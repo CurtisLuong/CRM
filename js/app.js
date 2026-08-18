@@ -18,7 +18,7 @@ const EVAL_REASONS = [
   'Khác',
 ];
 
-let supabase = null;
+let sb = null;
 let currentUser = null;
 let allCustomers = [];
 let editingId = null;
@@ -30,18 +30,18 @@ const $$ = (sel) => Array.from(document.querySelectorAll(sel));
 
 function initSupabase() {
   const { SUPABASE_URL, SUPABASE_ANON_KEY } = window.APP_CONFIG;
-  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 }
 
 async function boot() {
   initSupabase();
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { session } } = await sb.auth.getSession();
   if (session) {
     await onLoggedIn(session.user);
   } else {
     showAuthScreen();
   }
-  supabase.auth.onAuthStateChange((_event, session) => {
+  sb.auth.onAuthStateChange((_event, session) => {
     if (session && !currentUser) onLoggedIn(session.user);
     if (!session) { currentUser = null; showAuthScreen(); }
   });
@@ -50,7 +50,7 @@ async function boot() {
 async function onLoggedIn(user) {
   currentUser = user;
   showAppScreen();
-  CRM.init(supabase, user.id);
+  CRM.init(sb, user.id);
   await CRM.flushQueue();
   await CRM.pull();
   await refreshList();
@@ -77,7 +77,7 @@ async function handleLogin(e) {
   const password = $('#auth-password').value;
   const errBox = $('#auth-error');
   errBox.textContent = '';
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
   if (error) { errBox.textContent = 'Đăng nhập lỗi: ' + error.message; return; }
   await onLoggedIn(data.user);
 }
@@ -88,14 +88,14 @@ async function handleSignup(e) {
   const password = $('#auth-password').value;
   const errBox = $('#auth-error');
   errBox.textContent = '';
-  const { data, error } = await supabase.auth.signUp({ email, password });
+  const { data, error } = await sb.auth.signUp({ email, password });
   if (error) { errBox.textContent = 'Đăng ký lỗi: ' + error.message; return; }
   if (data.session) { await onLoggedIn(data.user); }
   else { errBox.textContent = 'Đã gửi email xác nhận — kiểm tra hộp thư rồi đăng nhập lại.'; }
 }
 
 function handleLogout() {
-  supabase.auth.signOut();
+  sb.auth.signOut();
 }
 
 // ------------------------------------------------------------- SYNC UI ----
