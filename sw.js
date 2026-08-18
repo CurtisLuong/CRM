@@ -1,7 +1,7 @@
 // sw.js — cache "app shell" để mở app được kể cả khi mất mạng.
 // Dữ liệu khách hàng KHÔNG cache ở đây — nó nằm trong IndexedDB (xem js/db.js).
 
-const CACHE_NAME = 'crm-khach-hang-v1';
+const CACHE_NAME = 'crm-khach-hang-v2';
 const APP_SHELL = [
   '/',
   '/index.html',
@@ -36,16 +36,15 @@ self.addEventListener('fetch', (event) => {
   // Không cache API calls tới Supabase — luôn phải qua mạng (hoặc lỗi ra để db.js xử lý offline queue)
   if (request.url.includes('supabase.co')) return;
 
+  // Network-first: luôn ưu tiên bản mới nhất trên mạng; chỉ rơi về cache khi mất mạng.
+  // (Tránh việc app bị "kẹt" dùng code cũ sau khi anh deploy bản mới lên Cloudflare.)
   event.respondWith(
-    caches.match(request).then((cached) => {
-      const network = fetch(request)
-        .then((response) => {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
-          return response;
-        })
-        .catch(() => cached);
-      return cached || network;
-    })
+    fetch(request)
+      .then((response) => {
+        const copy = response.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+        return response;
+      })
+      .catch(() => caches.match(request))
   );
 });
