@@ -53,7 +53,8 @@ create table if not exists public.customers (
     'Đang chăm sóc qua Zalo',
     'Đã yêu cầu hỗ trợ hồ sơ',
     'Đã booking',
-    'Đã ký hợp đồng mua bán'
+    'Đã ký hợp đồng mua bán',
+    'Không quan tâm-kết thúc'      -- kết thúc chăm sóc, không chốt được (xem add_care_stage_ket_thuc.sql)
   )),
   evaluation text check (evaluation in ('nên chăm','không nên chăm')),
   evaluation_reason text,

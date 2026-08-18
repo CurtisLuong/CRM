@@ -6,6 +6,40 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-18 — Vòng tròn tiến độ chăm sóc 7 bậc + bậc "Không quan tâm-kết thúc"
+
+Thay đổi cách dashboard thể hiện khách và thêm 1 trạng thái kết thúc mới:
+
+- **Thêm bậc `'Không quan tâm-kết thúc'`** vào cuối danh sách tiến độ chăm
+  sóc. Đây là trạng thái KẾT THÚC chăm sóc mà không chốt được khách — về mặt
+  "đã xong hay chưa" tương đương bậc 7 `'Đã ký hợp đồng mua bán'` (cả hai đều
+  coi là xong, mặc định ẩn khỏi dashboard).
+- **Đổi vòng tròn trên thẻ khách**: bỏ vòng `% mức độ quan tâm`
+  (`.interest-pill`), thay bằng **vòng tiến độ chăm sóc 7 bậc**
+  (`.progress-ring`) — đầy dần theo bậc (level/7), mỗi bậc 1 màu (đỏ đất →
+  xanh lá), giữa vòng ghi số bậc; bậc "Không quan tâm-kết thúc" hiện vòng đầy
+  màu xám + dấu ✕. Khách chưa đặt tiến độ (bỏ trống) coi như bậc 1
+  `'Chưa gọi được'`.
+- **Thêm bộ lọc trạng thái** ở thanh công cụ (`#filter-progress`): mặc định
+  `'Đang chăm sóc'` — dashboard chỉ hiện khách CHƯA xong (thay vì tất cả như
+  trước). Chọn `'Đã xong'` hoặc `'Tất cả trạng thái'` để xem lại nhóm đã
+  xong. Khi lọc theo 1 bậc cụ thể ở ô kế bên thì bỏ qua bộ lọc trạng thái.
+- **Lưu ý còn giữ nguyên**: field/slider `Mức độ quan tâm` trong form, cùng
+  bộ lọc `Q.tâm ≥` và sắp xếp `Mức quan tâm cao nhất` — vẫn dùng như cũ, chỉ
+  bỏ phần vẽ vòng tròn % trên thẻ.
+
+**Cần chạy migration:** `add_care_stage_ket_thuc.sql` trên Supabase SQL
+Editor để nới ràng buộc CHECK của cột `care_stage` chấp nhận giá trị mới —
+nếu không, khách gắn bậc mới sẽ không đồng bộ được lên server. Đã bake giá
+trị mới vào `schema.sql` gốc luôn.
+
+`sw.js` **không đổi** — network-first đã tự phục vụ bản JS/CSS mới sau deploy.
+
+File: `js/app.js`, `index.html`, `css/style.css`, `schema.sql`,
+`add_care_stage_ket_thuc.sql` (migration cần chạy)
+
+---
+
 ## 2026-08-18 — Sửa cache Service Worker phục vụ nhầm bản CSS cũ
 
 Sau khi deploy `style.css` đã sửa (mục ngay dưới) lên Cloudflare, giao diện

@@ -1,5 +1,7 @@
 /* app.js — UI + điều phối chính của CRM */
 
+// 7 bậc tiến độ chăm sóc "đi tới" (bậc 1 → bậc 7), theo đúng thứ tự phễu bán hàng.
+// Bậc 7 ('Đã ký hợp đồng mua bán') = chăm sóc XONG, chốt thành công.
 const CARE_STAGES = [
   'Chưa gọi được',
   'Hẹn gọi lại',
@@ -9,6 +11,49 @@ const CARE_STAGES = [
   'Đã booking',
   'Đã ký hợp đồng mua bán',
 ];
+
+// 'Không quan tâm-kết thúc' KHÔNG phải bậc thứ 8 của phễu — nó là 1 trạng thái
+// KẾT THÚC quá trình chăm sóc mà không chốt được khách. Về mặt "đã xong hay chưa"
+// nó tương đương bậc 7 (đều là xong), nhưng hiển thị vòng tròn màu xám để phân
+// biệt "kết thúc nhưng không mua" với "đã ký hợp đồng".
+const CARE_STAGE_DROPPED = 'Không quan tâm-kết thúc';
+
+// Danh sách đổ vào các <select>: 7 bậc + trạng thái kết thúc ở cuối cùng.
+const CARE_STAGE_OPTIONS = [...CARE_STAGES, CARE_STAGE_DROPPED];
+
+// Hai trạng thái coi là "chăm sóc đã xong" — mặc định ẩn khỏi dashboard.
+const CARE_DONE_STAGES = ['Đã ký hợp đồng mua bán', CARE_STAGE_DROPPED];
+
+// Màu từng bậc (đỏ đất → xanh lá: càng về sau càng "chín"). Bậc kết thúc = xám.
+const CARE_STAGE_COLORS = {
+  'Chưa gọi được':           '#b0463a', // đỏ đất — mới, chưa liên hệ được
+  'Hẹn gọi lại':             '#c96a4f', // cam đất
+  'Chờ kết bạn Zalo':        '#d29b2c', // vàng cam
+  'Đang chăm sóc qua Zalo':  '#b6a92f', // vàng xanh
+  'Đã yêu cầu hỗ trợ hồ sơ': '#7f9b3f', // xanh cốm
+  'Đã booking':              '#3f8f6b', // xanh ngọc
+  'Đã ký hợp đồng mua bán':  '#2f7d5e', // xanh lá đậm — chốt thành công
+  [CARE_STAGE_DROPPED]:      '#9a9a90', // xám — kết thúc, không mua
+};
+
+// Khách chưa đặt tiến độ (bỏ trống) coi như bậc 1 'Chưa gọi được' (theo yêu cầu).
+function careLevel(stage) {
+  if (stage === CARE_STAGE_DROPPED) return 7; // vòng đầy như bậc 7
+  const idx = CARE_STAGES.indexOf(stage);
+  return idx === -1 ? 1 : idx + 1; // bỏ trống / lạ → bậc 1
+}
+
+function careColor(stage) {
+  return CARE_STAGE_COLORS[stage] || CARE_STAGE_COLORS['Chưa gọi được'];
+}
+
+function careLabel(stage) {
+  return stage || 'Chưa gọi được';
+}
+
+function isCareDone(stage) {
+  return CARE_DONE_STAGES.includes(stage);
+}
 
 const EVAL_REASONS = [
   'Không đủ điều kiện',
@@ -138,7 +183,16 @@ function matchesFilters(c) {
     if (!hay.includes(q)) return false;
   }
   const stage = $('#filter-stage').value;
-  if (stage && c.care_stage !== stage) return false;
+  if (stage) {
+    // Chọn 1 bậc cụ thể → lọc đúng bậc đó, bỏ qua lọc trạng thái xong/chưa xong.
+    if (c.care_stage !== stage) return false;
+  } else {
+    // Không chọn bậc cụ thể → áp bộ lọc trạng thái (mặc định chỉ hiện "đang chăm sóc").
+    const progress = $('#filter-progress').value; // 'active' | 'done' | 'all'
+    const done = isCareDone(c.care_stage);
+    if (progress === 'active' && done) return false;
+    if (progress === 'done' && !done) return false;
+  }
   const evalFilter = $('#filter-evaluation').value;
   if (evalFilter && c.evaluation !== evalFilter) return false;
   const minInterest = Number($('#filter-min-interest').value || 0);
@@ -167,14 +221,21 @@ function renderList() {
     card.className = 'customer-card';
     if (c.evaluation === 'không nên chăm') card.classList.add('is-dropped');
 
-    const interest = c.interest_level ?? 0;
+    // Vòng tròn tiến độ chăm sóc: đầy dần theo bậc (level/7), màu theo từng bậc.
+    // Giữa vòng ghi số bậc (1-7); bậc kết thúc "không quan tâm" hiện dấu ✕.
+    const level = careLevel(c.care_stage);
+    const ringPct = Math.round((level / 7) * 100);
+    const ringColor = careColor(c.care_stage);
+    const ringText = c.care_stage === CARE_STAGE_DROPPED ? '✕' : String(level);
     card.innerHTML = `
       <div class="card-top">
         <div>
           <div class="card-name">${escapeHtml(c.full_name || '(chưa có tên)')}</div>
           <a class="card-phone" href="${zaloLink(c.phone)}" target="_blank" rel="noopener">📞 ${escapeHtml(c.phone || '')}</a>
         </div>
-        <div class="interest-pill" style="--pct:${interest}">${interest}%</div>
+        <div class="progress-ring" style="--pct:${ringPct}; --ring:${ringColor}" title="${escapeHtml(careLabel(c.care_stage))}">
+          <span class="progress-ring-inner">${ringText}</span>
+        </div>
       </div>
       <div class="card-tags">
         ${c.care_stage ? `<span class="tag tag-stage">${escapeHtml(c.care_stage)}</span>` : ''}
@@ -296,10 +357,10 @@ async function confirmDelete(id) {
 // -------------------------------------------------------------- WIRE UP ---
 
 function populateSelects() {
-  const stageOptions = ['<option value="">— Tất cả —</option>', ...CARE_STAGES.map((s) => `<option value="${s}">${s}</option>`)].join('');
+  const stageOptions = ['<option value="">— Mọi bậc —</option>', ...CARE_STAGE_OPTIONS.map((s) => `<option value="${s}">${s}</option>`)].join('');
   $('#filter-stage').innerHTML = stageOptions;
 
-  const formStageOptions = ['<option value="">— Chưa xác định —</option>', ...CARE_STAGES.map((s) => `<option value="${s}">${s}</option>`)].join('');
+  const formStageOptions = ['<option value="">— Chưa xác định —</option>', ...CARE_STAGE_OPTIONS.map((s) => `<option value="${s}">${s}</option>`)].join('');
   $('#customer-form').care_stage.innerHTML = formStageOptions;
 
   $('#eval-reason-datalist').innerHTML = EVAL_REASONS.map((r) => `<option value="${r}">`).join('');
@@ -323,12 +384,14 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   $('#search-input').addEventListener('input', renderList);
+  $('#filter-progress').addEventListener('change', renderList);
   $('#filter-stage').addEventListener('change', renderList);
   $('#filter-evaluation').addEventListener('change', renderList);
   $('#filter-min-interest').addEventListener('input', renderList);
   $('#sort-select').addEventListener('change', renderList);
   $('#clear-filters-btn').addEventListener('click', () => {
     $('#search-input').value = '';
+    $('#filter-progress').value = 'active'; // về mặc định: chỉ hiện khách đang chăm sóc
     $('#filter-stage').value = '';
     $('#filter-evaluation').value = '';
     $('#filter-min-interest').value = 0;

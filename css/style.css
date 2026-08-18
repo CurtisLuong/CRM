@@ -127,8 +127,11 @@ input:focus, select:focus, textarea:focus {
 .card-phone { color: var(--teal); text-decoration: none; font-size: 14px; display: inline-block; margin-top: 2px; }
 .card-phone:hover { text-decoration: underline; }
 
-.interest-pill {
+/* Vòng tròn tiến độ chăm sóc: viền conic đầy dần theo bậc (--pct), màu theo bậc
+   (--ring). Lỗ giữa màu trắng để nhìn ra hình "vòng" chứ không phải đĩa đặc. */
+.progress-ring {
   --pct: 0;
+  --ring: #9a9a90;
   flex-shrink: 0;
   width: 42px;
   height: 42px;
@@ -136,14 +139,19 @@ input:focus, select:focus, textarea:focus {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--teal);
-  background: conic-gradient(var(--terracotta) calc(var(--pct) * 1%), #eee 0);
+  background: conic-gradient(var(--ring) calc(var(--pct) * 1%), #e6e3da 0);
 }
-.interest-pill::before {
-  content: "";
-  position: absolute;
+.progress-ring-inner {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--panel);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ring);
 }
 
 .card-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 6px; }
