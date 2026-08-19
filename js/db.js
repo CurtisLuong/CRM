@@ -156,7 +156,9 @@ const CRM = {
     const now = new Date().toISOString();
     const record = { ...existing, ...payload, id, updated_at: now };
     await localPut(record);
-    await queueAdd({ type: 'update', recordId: id, payload, ts: now });
+    // Gửi kèm updated_at lên server để "lần cập nhật cuối" chính xác cả sau khi
+    // đồng bộ (Supabase không tự cập nhật updated_at khi UPDATE — không có trigger).
+    await queueAdd({ type: 'update', recordId: id, payload: { ...payload, updated_at: now }, ts: now });
     this.flushQueue();
     return record;
   },

@@ -6,6 +6,31 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-19 — Card dashboard: bố cục mới (vòng nhỏ, thanh quan tâm, menu ⋯, timestamp)
+
+Thiết kế lại card khách theo mẫu mới:
+
+- **Vòng tiến độ chuyển thành vòng NHỎ inline** (16px, đĩa conic đầy theo bậc)
+  đặt cạnh `x/7` + tên bước, thay cho vòng to góc phải trước đây.
+- **Thêm thanh "Mức quan tâm"** dạng ngang mảnh (`.interest-bar`) + số % —
+  trực quan hơn (trước chỉ có số trong form).
+- **Nút Xoá dời vào menu "⋯"** (popover góc phải, `.card-menu`). Nút **Sửa**
+  ở footer. Bấm ra ngoài hoặc mở menu card khác thì menu tự đóng.
+- **Thêm timestamp "Cập nhật X trước"** (chữ nhỏ xám ở footer, dùng
+  `updated_at` qua hàm `timeAgo`: vừa xong / X phút / X giờ / X ngày / ngày
+  DD/MM/YYYY nếu >1 tuần).
+- Tag **Mệnh rút gọn** còn "Mệnh Kim" (bỏ phần nạp âm dài) cho vừa card. Vẫn
+  giữ tag căn hộ + tag đánh giá (theo yêu cầu). Card vẫn làm mờ nếu
+  'không nên chăm'.
+- **Notes cắt còn 2 dòng** (trước 3). Chiều cao card cố định tăng 220→240px.
+- **Vá `db.js`**: thao tác update giờ gửi kèm `updated_at` lên Supabase (trước
+  không gửi nên server giữ giờ cũ, làm timestamp/ sort "mới cập nhật" sai sau
+  khi đồng bộ). Không đổi schema — cột `updated_at` đã có sẵn.
+
+File: `js/app.js`, `js/db.js`, `css/style.css`
+
+---
+
 ## 2026-08-19 — Icon Zalo bản nhẹ + số điện thoại không còn bấm được
 
 - **Tối ưu icon Zalo**: ảnh gốc `icons/Zalo-icon.png` là 978×978, ~344KB —

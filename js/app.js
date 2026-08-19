@@ -251,40 +251,47 @@ function renderList() {
     card.dataset.id = c.id; // để bấm vào thân card mở xem/sửa đầy đủ
     if (c.evaluation === 'không nên chăm') card.classList.add('is-dropped');
 
-    // Vòng tròn tiến độ chăm sóc: đầy dần theo bậc (level/7), màu theo từng bậc.
-    // Giữa vòng ghi số bậc (1-7); bậc kết thúc "không quan tâm" hiện dấu ✕.
+    // Tiến độ chăm sóc → vòng NHỎ (đĩa conic đầy theo bậc) + "x/7" + tên bước.
     const level = careLevel(c.care_stage);
     const ringPct = Math.round((level / 7) * 100);
     const ringColor = careColor(c.care_stage);
-    const ringText = c.care_stage === CARE_STAGE_DROPPED ? '✕' : String(level);
+    const interest = c.interest_level ?? 0;
+    const updated = timeAgo(c.updated_at);
+    const menhShort = c.menh ? c.menh.split(' — ')[0] : ''; // "Mệnh Kim" (bỏ nạp âm dài phía sau)
     card.innerHTML = `
-      <div class="card-top">
-        <div>
-          <div class="card-name">${escapeHtml(c.full_name || '(chưa có tên)')}</div>
-          <div class="phone-row">
-            <span class="phone-number">${escapeHtml(c.phone || '')}</span>
-            <a class="card-phone" href="tel:${normalizePhone(c.phone)}" aria-label="Gọi ${escapeHtml(c.phone || '')}">${PHONE_SVG}</a>
-            <a class="card-zalo" href="${zaloLink(c.phone)}" target="_blank" rel="noopener" aria-label="Nhắn Zalo">
-              <img class="ic-zalo" src="/icons/zalo.png" alt="Zalo" />
-            </a>
+      <div class="card-head">
+        <div class="card-name">${escapeHtml(c.full_name || '(chưa có tên)')}</div>
+        <div class="card-menu">
+          <button class="card-menu-btn" data-action="menu" aria-label="Tuỳ chọn khác">⋯</button>
+          <div class="card-menu-pop">
+            <button class="menu-item danger" data-action="delete" data-id="${c.id}">Xoá khách</button>
           </div>
         </div>
-        <div class="progress-ring" style="--pct:${ringPct}; --ring:${ringColor}" title="${escapeHtml(careLabel(c.care_stage))}">
-          <span class="progress-ring-inner">${ringText}</span>
-        </div>
       </div>
-      <div class="card-body">
-        <div class="card-tags">
-          ${c.care_stage ? `<span class="tag tag-stage">${escapeHtml(c.care_stage)}</span>` : ''}
-          ${c.evaluation ? `<span class="tag ${c.evaluation === 'nên chăm' ? 'tag-good' : 'tag-bad'}">${escapeHtml(c.evaluation)}</span>` : ''}
-          ${c.apt_type ? `<span class="tag">${escapeHtml(c.apt_type)}</span>` : ''}
-          ${c.menh ? `<span class="tag tag-menh">${escapeHtml(c.menh)}</span>` : ''}
-        </div>
-        ${c.notes ? `<div class="card-notes">${escapeHtml(c.notes)}</div>` : ''}
+      <div class="phone-row">
+        <span class="phone-number">${escapeHtml(c.phone || '')}</span>
+        <a class="card-phone" href="tel:${normalizePhone(c.phone)}" aria-label="Gọi ${escapeHtml(c.phone || '')}">${PHONE_SVG}</a>
+        <a class="card-zalo" href="${zaloLink(c.phone)}" target="_blank" rel="noopener" aria-label="Nhắn Zalo">
+          <img class="ic-zalo" src="/icons/zalo.png" alt="Zalo" />
+        </a>
       </div>
-      <div class="card-actions">
+      <div class="card-progress">
+        <span class="mini-ring" style="--pct:${ringPct}; --ring:${ringColor}" title="${escapeHtml(careLabel(c.care_stage))}"></span>
+        <span class="mini-frac">${level}/7</span>
+        <span class="stage-name">${escapeHtml(careLabel(c.care_stage))}</span>
+        ${c.apt_type ? `<span class="tag">${escapeHtml(c.apt_type)}</span>` : ''}
+        ${c.evaluation ? `<span class="tag ${c.evaluation === 'nên chăm' ? 'tag-good' : 'tag-bad'}">${escapeHtml(c.evaluation)}</span>` : ''}
+        ${menhShort ? `<span class="tag tag-menh">${escapeHtml(menhShort)}</span>` : ''}
+      </div>
+      <div class="interest-line">
+        <span class="interest-label">Quan tâm</span>
+        <span class="interest-bar"><span class="interest-fill" style="width:${interest}%"></span></span>
+        <span class="interest-pct">${interest}%</span>
+      </div>
+      <div class="card-notes">${escapeHtml(c.notes || '')}</div>
+      <div class="card-footer">
+        <span class="card-updated">${updated ? 'Cập nhật ' + escapeHtml(updated) : ''}</span>
         <button class="btn-small" data-action="edit" data-id="${c.id}">Sửa</button>
-        <button class="btn-small btn-danger" data-action="delete" data-id="${c.id}">Xoá</button>
       </div>
     `;
     container.appendChild(card);
@@ -298,6 +305,14 @@ function escapeHtml(s) {
 }
 
 $('#customer-list')?.addEventListener('click', (e) => {
+  const card = e.target.closest('.customer-card');
+  const menuBtn = e.target.closest('.card-menu-btn');
+  // Đóng mọi menu đang mở (trừ menu của card vừa bấm nút "⋯")
+  $$('.customer-card.menu-open').forEach((el) => {
+    if (!(menuBtn && el === card)) el.classList.remove('menu-open');
+  });
+  if (menuBtn) { card.classList.toggle('menu-open'); return; }
+
   const btn = e.target.closest('button[data-action]');
   if (btn) {
     const id = btn.dataset.id;
@@ -305,11 +320,17 @@ $('#customer-list')?.addEventListener('click', (e) => {
     if (btn.dataset.action === 'delete') confirmDelete(id);
     return;
   }
-  // Bấm vào link SĐT → để nó mở Zalo bình thường, không mở trang chi tiết
+  // Bấm vào link SĐT → để nó mở Zalo/gọi bình thường, không mở trang chi tiết
   if (e.target.closest('a')) return;
   // Bấm vào chỗ trống còn lại của card → mở trang chi tiết khách
-  const card = e.target.closest('.customer-card');
   if (card?.dataset.id) openDetail(card.dataset.id);
+});
+
+// Bấm ra ngoài card → đóng menu "⋯" đang mở
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.customer-card')) {
+    $$('.customer-card.menu-open').forEach((el) => el.classList.remove('menu-open'));
+  }
 });
 
 // -------------------------------------------------------------- FORM ------
@@ -443,6 +464,23 @@ function formatDate(d) {
   const [y, m, day] = d.split('-');
   if (!y || !m || !day) return d;
   return `${day}/${m}/${y}`;
+}
+
+// Timestamp tương đối kiểu "2 giờ trước" cho "lần cập nhật cuối" trên card.
+// Xa hơn 1 tuần thì hiện ngày DD/MM/YYYY cho gọn.
+function timeAgo(iso) {
+  if (!iso) return '';
+  const then = new Date(iso).getTime();
+  if (isNaN(then)) return '';
+  const sec = Math.floor((Date.now() - then) / 1000);
+  if (sec < 60) return 'vừa xong';
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min} phút trước`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr} giờ trước`;
+  const day = Math.floor(hr / 24);
+  if (day < 7) return `${day} ngày trước`;
+  return formatDate(iso.slice(0, 10));
 }
 
 // Viết hoa chữ cái đầu (hiển thị 'nam' → 'Nam').
