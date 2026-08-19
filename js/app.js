@@ -204,8 +204,14 @@ async function handleReload() {
 async function updateSyncBadge() {
   const n = await CRM.pendingCount();
   const badge = $('#sync-badge');
+  const err = CRM.lastSyncError && CRM.lastSyncError();
+  badge.classList.remove('sync-err');
   if (!CRM.isOnline()) {
-    badge.textContent = '🔴 Offline' + (n ? ` — ${n} thay đổi chờ đồng bộ` : '');
+    badge.textContent = '🔴 Offline' + (n ? ` — ${n} thay đổi chờ` : '');
+  } else if (n > 0 && err) {
+    // Có thao tác đẩy lên server bị lỗi (không phải mất mạng) → kẹt, cần xử lý.
+    badge.textContent = `🔴 Kẹt đồng bộ (${n}) — chạm để xử lý`;
+    badge.classList.add('sync-err');
   } else if (n > 0) {
     badge.textContent = `🟡 Đang đồng bộ ${n} thay đổi...`;
   } else {
@@ -214,6 +220,21 @@ async function updateSyncBadge() {
 }
 window.addEventListener('online', updateSyncBadge);
 window.addEventListener('offline', updateSyncBadge);
+
+// Bấm badge khi đang kẹt → xem lỗi + cho phép xoá thao tác kẹt (escape hatch).
+$('#sync-badge')?.addEventListener('click', async () => {
+  const n = await CRM.pendingCount();
+  if (!n) return;
+  const err = CRM.lastSyncError && CRM.lastSyncError();
+  await CRM.flushQueue(); // thử đẩy lại 1 lần trước
+  if ((await CRM.pendingCount()) === 0) { updateSyncBadge(); alert('Đã đồng bộ xong.'); return; }
+  const detail = err ? `Lỗi: ${err.message}${err.code ? ' (' + err.code + ')' : ''}\n\n` : '';
+  if (confirm(`${detail}Có ${n} thay đổi không đẩy lên server được (đang kẹt).\n\nBỏ qua & xoá các thay đổi kẹt này?\n(Dữ liệu khách đã lưu trên máy vẫn còn — chỉ ngừng cố đẩy các thao tác lỗi. Nếu cần, mở khách đó bấm Lưu để đồng bộ lại.)`)) {
+    await CRM.clearQueue();
+    await refreshList();
+    updateSyncBadge();
+  }
+});
 
 // -------------------------------------------------------------- LIST ------
 

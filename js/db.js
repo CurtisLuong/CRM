@@ -19,6 +19,7 @@ const STORE_QUEUE = 'queue';
 let _db = null;
 let _supabase = null;
 let _currentUserId = null;
+let _lastSyncError = null; // lỗi đồng bộ gần nhất (để hiển thị nếu hàng đợi kẹt)
 
 function openDB() {
   if (_db) return Promise.resolve(_db);
@@ -218,7 +219,9 @@ const CRM = {
     for (const op of ops) {
       try {
         if (op.type === 'insert') {
-          const { error } = await _supabase.from('customers').insert(op.payload);
+          // upsert (theo khoá chính id) thay vì insert: nếu record đã có trên
+          // server thì cập nhật đè, tránh lỗi "trùng khoá" làm kẹt hàng đợi mãi.
+          const { error } = await _supabase.from('customers').upsert(op.payload);
           if (error) throw error;
         } else if (op.type === 'update') {
           const { error } = await _supabase.from('customers').update(op.payload).eq('id', op.recordId);
@@ -229,16 +232,31 @@ const CRM = {
         }
         await queueDelete(op.opId);
         synced++;
+        _lastSyncError = null;
       } catch (e) {
-        console.warn('Sync tạm hoãn cho op', op.opId, e.message);
-        break; // giữ thứ tự: dừng lại, thử lại ở lần flush sau
+        // Ghi lại lỗi để app hiện rõ (thay vì "Đang đồng bộ" mãi). Vẫn dừng để
+        // giữ thứ tự; thử lại lần sau (nếu lỗi mạng) hoặc user xử lý (nếu lỗi server).
+        _lastSyncError = { opId: op.opId, type: op.type, recordId: op.recordId, message: e.message || String(e), code: e.code || null };
+        console.warn('Sync lỗi op', op.opId, op.type, _lastSyncError);
+        break;
       }
     }
-    return { synced, pending: (await queueGetAll()).length };
+    return { synced, pending: (await queueGetAll()).length, error: _lastSyncError };
   },
 
   async pendingCount() {
     return (await queueGetAll()).length;
+  },
+
+  lastSyncError() { return _lastSyncError; },
+
+  // Xoá toàn bộ hàng đợi đang chờ (escape hatch khi 1 thao tác kẹt vĩnh viễn).
+  // Dữ liệu khách đã lưu trong IndexedDB vẫn còn; chỉ bỏ việc đẩy các thao tác đó lên server.
+  async clearQueue() {
+    const ops = await queueGetAll();
+    for (const op of ops) await queueDelete(op.opId);
+    _lastSyncError = null;
+    return ops.length;
   },
 };
 

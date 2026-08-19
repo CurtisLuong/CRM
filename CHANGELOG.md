@@ -6,6 +6,23 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-19 — Sửa lỗi kẹt đồng bộ ("Đang đồng bộ 1 thay đổi..." mãi)
+
+Hàng đợi đồng bộ có 1 thao tác cứ đẩy lên server là lỗi → `flushQueue` dừng ở
+đó và thử lại mãi (reload/xoá app không giúp vì hàng đợi nằm trong IndexedDB).
+Nghi phạm chính: thao tác `insert` cho khách ĐÃ có trên server → lỗi trùng khoá.
+
+- **`db.js`: đổi `insert` → `upsert`** (theo khoá chính `id`). Khách đã tồn tại
+  thì cập nhật đè thay vì báo lỗi trùng → tự gỡ kẹt ở lần đồng bộ kế tiếp.
+- **Hiện rõ lỗi**: khi 1 thao tác lỗi (không phải mất mạng), badge chuyển
+  "🔴 Kẹt đồng bộ (N) — chạm để xử lý" (thay vì "Đang đồng bộ..." vô tận).
+  Bấm badge → thử đẩy lại; nếu vẫn kẹt → hiện lỗi cụ thể + cho **xoá các thao
+  tác kẹt** (`CRM.clearQueue`, dữ liệu local vẫn còn, chỉ ngừng đẩy op lỗi).
+
+File: `js/db.js`, `js/app.js`, `css/style.css`
+
+---
+
 ## 2026-08-19 — Thời gian đăng ký + mốc "Bắt đầu đăng ký" đầu timeline
 
 **Cần chạy migration** `add_registered_at.sql` (thêm cột `registered_at`).

@@ -119,7 +119,8 @@ input:focus, select:focus, textarea:focus {
 .topbar-search:focus { outline: none; border-color: rgba(255,255,255,0.65); background: rgba(255,255,255,0.18); }
 
 .topbar-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
-.sync-badge { font-size: 12px; color: rgba(255,255,255,0.85); white-space: nowrap; }
+.sync-badge { font-size: 12px; color: rgba(255,255,255,0.85); white-space: nowrap; cursor: pointer; }
+.sync-badge.sync-err { color: #F0C0B8; font-weight: 700; }
 
 /* Nút làm mới (icon ↻, xoay khi đang tải) */
 .icon-btn-plain {
