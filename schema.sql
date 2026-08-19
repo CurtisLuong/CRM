@@ -71,6 +71,7 @@ create table if not exists public.customers (
   occupation text check (occupation in ('Tự do','Công ty, DN','Công, viên chức','Công an, Bộ đội')),
   next_call_at timestamptz,        -- mốc bắt đầu khung giờ hẹn gọi (xem add_occupation_and_call_schedule.sql)
   next_call_end timestamptz,       -- mốc kết thúc khung giờ hẹn gọi (preset = +1h; tùy chọn = = next_call_at)
+  registered_at timestamptz,          -- thời gian đăng ký (nhập tay; trống thì = created_at)
   owner_id uuid not null default auth.uid() references auth.users(id),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),

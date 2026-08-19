@@ -6,6 +6,23 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-19 — Thời gian đăng ký + mốc "Bắt đầu đăng ký" đầu timeline
+
+**Cần chạy migration** `add_registered_at.sql` (thêm cột `registered_at`).
+
+1. **Thời gian đăng ký** (`registered_at`): thêm trường `datetime-local` trong
+   form (giờ hh:mm + ngày). Khách mới prefill giờ hiện tại — nếu không sửa thì
+   lấy luôn giờ đó (db.js cũng tự đặt = created_at nếu trống). Sửa lại được.
+   Khách cũ backfill = created_at trong migration.
+2. **Timeline lịch sử chăm sóc** luôn bắt đầu bằng mốc **"Bắt đầu đăng ký"** kèm
+   thời gian đăng ký (khối mực in đậm, không sửa note), rồi mới tới các mốc đổi
+   tiến độ. Thấy được khoảng cách từ lúc đăng ký tới lần chăm sóc đầu tiên.
+
+File: `index.html`, `js/app.js`, `js/db.js`, `css/style.css`, `schema.sql`,
+`add_registered_at.sql` (migration cần chạy)
+
+---
+
 ## 2026-08-19 — Badge nhắc gọi về vị trí cố định (cạnh menu ⋯)
 
 Trước đây tag nhắc gọi đặt ngay sau tên → vị trí "nhảy" theo độ dài tên. Nay

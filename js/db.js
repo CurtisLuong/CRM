@@ -146,6 +146,8 @@ const CRM = {
       care_stage_updated_at: now, // khách mới: mốc = giờ tạo
       ...payload,
     };
+    // Thời gian đăng ký: nếu không nhập thì lấy thời điểm tạo.
+    if (!record.registered_at) record.registered_at = now;
     // Nếu khách mới đã có 1 bậc care_stage → tạo mốc đầu tiên cho lịch sử.
     record.care_stage_history = payload.care_stage
       ? [{ stage: payload.care_stage, note: opts.careStageNote || null, at: now }]

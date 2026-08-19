@@ -400,6 +400,7 @@ input:focus, select:focus, textarea:focus {
   border-left: 4px solid var(--ring);
 }
 .cs-meta { font-size: 12px; color: #9a9a90; margin: 4px 0 0 2px; } /* timestamp + note: mờ */
+.cs-entry.cs-start .cs-stage { background: var(--paper); } /* mốc "Bắt đầu đăng ký": khối nền giấy, mực in */
 .cs-sep { color: #cfcabd; }
 .cs-note-text { color: #6b6b60; }
 /* Nút sửa ✎ / thêm ghi chú: kín đáo, chỉ rõ hơn khi rê chuột */

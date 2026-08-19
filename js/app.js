@@ -473,6 +473,9 @@ function openForm(id) {
   f.occupation.value = c.occupation || '';
   f.income.value = c.income || '';
   f.residence.value = c.residence || '';
+  // Thời gian đăng ký: khách cũ dùng registered_at (hoặc created_at); khách mới = giờ hiện tại.
+  const reg = c.registered_at ? new Date(c.registered_at) : (c.created_at ? new Date(c.created_at) : new Date());
+  f.registered_at.value = toLocalDatetimeInput(reg);
   // Loại căn: nếu khớp option có sẵn → chọn; nếu khác → "Khác" + ô tự nhập.
   const at = c.apt_type || '';
   if (!at) { f.apt_type_select.value = ''; f.apt_type_other.value = ''; }
@@ -551,6 +554,7 @@ async function handleFormSubmit(e) {
     occupation: f.occupation.value || null,
     income: f.income.value.trim() || null,
     residence: f.residence.value.trim() || null,
+    registered_at: f.registered_at.value ? new Date(f.registered_at.value).toISOString() : null,
     apt_type: (f.apt_type_select.value === '__other' ? f.apt_type_other.value.trim() : f.apt_type_select.value) || null,
     projects: selectedProjects,
     apt_code: f.apt_code.value.trim() || null,
@@ -746,7 +750,7 @@ function openDetail(id) {
     .map(([k, v]) => `<span class="pi-item"><span class="pi-label">${k}:</span> ${escapeHtml(String(v))}</span>`)
     .join(' <span class="pi-sep">·</span> '); // có khoảng trắng để dòng tự ngắt khi hẹp
 
-  renderCareHistory(c.care_stage_history);
+  renderCareHistory(c.care_stage_history, c.registered_at || c.created_at);
 
   showDetailScreen();
   window.scrollTo(0, 0);
@@ -754,11 +758,14 @@ function openDetail(id) {
 
 // Timeline lịch sử chăm sóc: mỗi mốc là 1 khối ô (tô màu theo bậc), giữa các
 // mốc hiện khoảng thời gian; timestamp + note để mờ hơn. Cũ ở trên, mới ở dưới.
-// Note của từng mốc sửa được tại chỗ (chỉ đổi note, không đụng stage/thời gian).
-function renderCareHistory(history) {
+// LUÔN bắt đầu bằng mốc "Bắt đầu đăng ký" (kèm thời gian đăng ký). Note của mốc
+// chăm sóc sửa được tại chỗ; riêng mốc "Bắt đầu đăng ký" không sửa note.
+function renderCareHistory(history, registeredAt) {
   const section = $('#detail-history-section');
   const box = $('#detail-history');
-  const list = Array.isArray(history) ? [...history] : [];
+  const list = [];
+  if (registeredAt) list.push({ synthetic: true, stage: 'Bắt đầu đăng ký', at: registeredAt });
+  if (Array.isArray(history)) list.push(...history);
   if (list.length === 0) { section.hidden = true; box.innerHTML = ''; return; }
   section.hidden = false;
   list.sort((a, b) => (a.at || '').localeCompare(b.at || '')); // theo thời gian tăng dần
@@ -769,11 +776,13 @@ function renderCareHistory(history) {
       const gap = new Date(entry.at) - new Date(list[i - 1].at);
       html += `<div class="cs-gap">${escapeHtml(formatDuration(gap))}</div>`;
     }
-    const color = careColor(entry.stage);
+    const color = entry.synthetic ? '#1A2E29' : careColor(entry.stage);
     const at = escapeHtml(entry.at || '');
-    const editing = entry.at === editingHistoryAt;
+    const editing = !entry.synthetic && entry.at === editingHistoryAt;
     let noteHtml;
-    if (editing) {
+    if (entry.synthetic) {
+      noteHtml = ''; // mốc đăng ký: không có note
+    } else if (editing) {
       // Giá trị input sẽ set bằng JS sau khi render (tránh lỗi escape dấu ").
       noteHtml = `
         <div class="cs-note-edit">
@@ -788,8 +797,8 @@ function renderCareHistory(history) {
       noteHtml = `<span class="cs-sep"> · </span><button class="cs-note-add" data-hist-edit="${at}">+ ghi chú</button>`;
     }
     html += `
-      <div class="cs-entry" style="--ring:${color}">
-        <span class="cs-stage">${escapeHtml(entry.stage || 'Chưa xác định')}</span>
+      <div class="cs-entry${entry.synthetic ? ' cs-start' : ''}" style="--ring:${color}">
+        <span class="cs-stage">${escapeHtml(entry.stage)}</span>
         <div class="cs-meta">
           <span class="cs-time">${escapeHtml(formatLogTime(entry.at))}</span>
           <span class="cs-note-wrap">${noteHtml}</span>
@@ -801,7 +810,7 @@ function renderCareHistory(history) {
   // Đang sửa 1 mốc → nạp note cũ vào input + focus (đặt con trỏ cuối chuỗi).
   if (editingHistoryAt) {
     const inp = box.querySelector('.cs-note-input');
-    const entry = list.find((e) => e.at === editingHistoryAt);
+    const entry = list.find((e) => !e.synthetic && e.at === editingHistoryAt);
     if (inp) {
       inp.value = entry && entry.note ? entry.note : '';
       inp.focus();
@@ -813,7 +822,7 @@ function renderCareHistory(history) {
 // Vẽ lại riêng phần lịch sử của khách đang xem (sau khi đổi trạng thái sửa).
 function rerenderCareHistory() {
   const c = allCustomers.find((x) => x.id === detailId);
-  renderCareHistory(c ? c.care_stage_history : []);
+  renderCareHistory(c ? c.care_stage_history : [], c ? (c.registered_at || c.created_at) : null);
 }
 
 // Lưu note đã sửa của 1 mốc rồi vẽ lại.
@@ -854,6 +863,11 @@ const CALL_SLOTS = { '9-10h': [9, 0, 10, 0], '14-15h': [14, 0, 15, 0], '20-21h':
 
 function isoDateLocal(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+// Date → "YYYY-MM-DDTHH:mm" (giờ địa phương) cho input datetime-local.
+function toLocalDatetimeInput(d) {
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 function fmtClock(ms) {
   const d = new Date(ms);
