@@ -55,6 +55,14 @@ function isCareDone(stage) {
   return CARE_DONE_STAGES.includes(stage);
 }
 
+// Thứ hạng để SẮP XẾP theo tiến độ (khác careLevel dùng để vẽ vòng tròn):
+// bỏ trống → 1, 7 bậc phễu → 1-7, 'Không quan tâm-kết thúc' → 8 (xếp cuối cùng).
+function careSortRank(stage) {
+  if (stage === CARE_STAGE_DROPPED) return 8;
+  const idx = CARE_STAGES.indexOf(stage);
+  return idx === -1 ? 1 : idx + 1;
+}
+
 const EVAL_REASONS = [
   'Không đủ điều kiện',
   'Khách dò giá',
@@ -203,7 +211,16 @@ function matchesFilters(c) {
 function sortCustomers(list) {
   const sortBy = $('#sort-select').value;
   const arr = [...list];
-  if (sortBy === 'interest_desc') arr.sort((a, b) => (b.interest_level || 0) - (a.interest_level || 0));
+  if (sortBy === 'care_asc') {
+    // Mặc định: tiến độ chăm sóc tăng dần (bậc 1 → 7), cùng bậc thì mức độ
+    // quan tâm tăng dần (thấp → cao). Đưa khách "cần chăm sớm" lên đầu.
+    arr.sort((a, b) => {
+      const d = careSortRank(a.care_stage) - careSortRank(b.care_stage);
+      if (d !== 0) return d;
+      return (a.interest_level || 0) - (b.interest_level || 0);
+    });
+  }
+  else if (sortBy === 'interest_desc') arr.sort((a, b) => (b.interest_level || 0) - (a.interest_level || 0));
   else if (sortBy === 'name_asc') arr.sort((a, b) => (a.full_name || '').localeCompare(b.full_name || '', 'vi'));
   else if (sortBy === 'updated_desc') arr.sort((a, b) => (b.updated_at || '').localeCompare(a.updated_at || ''));
   return arr;

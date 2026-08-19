@@ -24,9 +24,13 @@ Thay đổi cách dashboard thể hiện khách và thêm 1 trạng thái kết 
   `'Đang chăm sóc'` — dashboard chỉ hiện khách CHƯA xong (thay vì tất cả như
   trước). Chọn `'Đã xong'` hoặc `'Tất cả trạng thái'` để xem lại nhóm đã
   xong. Khi lọc theo 1 bậc cụ thể ở ô kế bên thì bỏ qua bộ lọc trạng thái.
+- **Thứ tự sắp xếp mặc định mới** (`#sort-select`, tuỳ chọn `care_asc`):
+  primary = tiến độ chăm sóc tăng dần (bậc 1 → 7, `'Không quan tâm-kết thúc'`
+  xếp cuối), secondary = mức độ quan tâm tăng dần (thấp → cao) — đưa khách
+  "cần chăm sớm" lên đầu. Vẫn còn các tuỳ chọn sắp xếp cũ (mới cập nhật, quan
+  tâm cao nhất, tên A→Z).
 - **Lưu ý còn giữ nguyên**: field/slider `Mức độ quan tâm` trong form, cùng
-  bộ lọc `Q.tâm ≥` và sắp xếp `Mức quan tâm cao nhất` — vẫn dùng như cũ, chỉ
-  bỏ phần vẽ vòng tròn % trên thẻ.
+  bộ lọc `Q.tâm ≥` — vẫn dùng như cũ, chỉ bỏ phần vẽ vòng tròn % trên thẻ.
 
 **Cần chạy migration:** `add_care_stage_ket_thuc.sql` trên Supabase SQL
 Editor để nới ràng buộc CHECK của cột `care_stage` chấp nhận giá trị mới —
