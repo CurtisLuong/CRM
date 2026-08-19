@@ -6,6 +6,26 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-19 — Sửa lỗi font tiếng Việt ở tên khách (trang chi tiết / tiêu đề)
+
+Một số tên khách có nguyên âm "râu" (ư/ơ + dấu: ường, ưởng, ữ, ự...) hiển thị
+vỡ dấu ở tiêu đề trang chi tiết và tiêu đề modal.
+
+**Nguyên nhân:** `h1, h2` dùng `font-family: "Iowan Old Style", "Georgia",
+serif`. Font "Iowan Old Style" (có sẵn trên macOS nên được ưu tiên) vẽ SAI các
+nguyên âm râu của tiếng Việt. Thân bài dùng font hệ thống sans nên không lỗi —
+vì thế chỉ tên ở `<h1>/<h2>` bị. Đã render thử đối chiếu: Georgia (font dự
+phòng thứ 2 trong danh sách) render tiếng Việt ĐÚNG.
+
+**Sửa:** bỏ "Iowan Old Style" khỏi khai báo → `font-family: "Georgia",
+"Times New Roman", serif`. Mac/Windows dùng Georgia, Android/Linux rơi về
+serif hệ thống (Noto Serif) — cả hai render tiếng Việt chuẩn, vẫn giữ nét
+serif. Sửa 1 dòng, không thêm file.
+
+File: `css/style.css`
+
+---
+
 ## 2026-08-19 — Card dashboard: bố cục mới (vòng nhỏ, thanh quan tâm, menu ⋯, timestamp)
 
 Thiết kế lại card khách theo mẫu mới:

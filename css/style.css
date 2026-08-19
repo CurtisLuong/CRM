@@ -24,7 +24,11 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-h1, h2 { font-family: "Iowan Old Style", "Georgia", serif; margin: 0; }
+/* Không dùng "Iowan Old Style": font này (có trên macOS) vẽ SAI các nguyên âm
+   có râu của tiếng Việt (ư/ơ + dấu: ường, ưởng, ữ, ự...). Georgia render đúng,
+   vẫn giữ nét serif trang trọng; Android/Linux rơi về serif hệ thống (Noto Serif)
+   cũng render tiếng Việt chuẩn. */
+h1, h2 { font-family: "Georgia", "Times New Roman", serif; margin: 0; }
 
 /* ---------------- AUTH ---------------- */
 #auth-screen {

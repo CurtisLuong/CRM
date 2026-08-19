@@ -106,6 +106,14 @@ nếu sửa code mà không biết:
    ở đầu `style.css` để đảm bảo mọi phần tử dùng `el.hidden = true/false`
    trong JS luôn ẩn/hiện đúng, bất kể rule `display` nào khác ở dưới.
 
+6. **Cẩn thận font cho tiếng Việt — tránh "Iowan Old Style".** Font tiêu đề
+   `h1, h2` từng để `"Iowan Old Style"` (có sẵn trên macOS) khiến các nguyên
+   âm "râu" (ư/ơ + dấu: ường, ưởng, ữ, ự...) hiển thị vỡ dấu — chỉ lộ ở tên
+   khách trong `<h1>/<h2>`, còn thân bài dùng font sans hệ thống nên không
+   thấy. Khi chọn/đổi font BẤT KỲ, phải thử với tên có ư/ơ + dấu. Hiện dùng
+   `"Georgia", "Times New Roman", serif` (Georgia + serif hệ thống đều render
+   tiếng Việt chuẩn).
+
 ## 6. Trạng thái hiện tại
 
 - Đã deploy thành công tại `https://crm-cop.pages.dev`, kết nối GitHub →
