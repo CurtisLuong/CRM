@@ -236,6 +236,7 @@ function renderList() {
   for (const c of list) {
     const card = document.createElement('div');
     card.className = 'customer-card';
+    card.dataset.id = c.id; // để bấm vào thân card mở xem/sửa đầy đủ
     if (c.evaluation === 'không nên chăm') card.classList.add('is-dropped');
 
     // Vòng tròn tiến độ chăm sóc: đầy dần theo bậc (level/7), màu theo từng bậc.
@@ -254,13 +255,15 @@ function renderList() {
           <span class="progress-ring-inner">${ringText}</span>
         </div>
       </div>
-      <div class="card-tags">
-        ${c.care_stage ? `<span class="tag tag-stage">${escapeHtml(c.care_stage)}</span>` : ''}
-        ${c.evaluation ? `<span class="tag ${c.evaluation === 'nên chăm' ? 'tag-good' : 'tag-bad'}">${escapeHtml(c.evaluation)}</span>` : ''}
-        ${c.apt_type ? `<span class="tag">${escapeHtml(c.apt_type)}</span>` : ''}
-        ${c.menh ? `<span class="tag tag-menh">${escapeHtml(c.menh)}</span>` : ''}
+      <div class="card-body">
+        <div class="card-tags">
+          ${c.care_stage ? `<span class="tag tag-stage">${escapeHtml(c.care_stage)}</span>` : ''}
+          ${c.evaluation ? `<span class="tag ${c.evaluation === 'nên chăm' ? 'tag-good' : 'tag-bad'}">${escapeHtml(c.evaluation)}</span>` : ''}
+          ${c.apt_type ? `<span class="tag">${escapeHtml(c.apt_type)}</span>` : ''}
+          ${c.menh ? `<span class="tag tag-menh">${escapeHtml(c.menh)}</span>` : ''}
+        </div>
+        ${c.notes ? `<div class="card-notes">${escapeHtml(c.notes)}</div>` : ''}
       </div>
-      ${c.notes ? `<div class="card-notes">${escapeHtml(c.notes)}</div>` : ''}
       <div class="card-actions">
         <button class="btn-small" data-action="edit" data-id="${c.id}">Sửa</button>
         <button class="btn-small btn-danger" data-action="delete" data-id="${c.id}">Xoá</button>
@@ -278,10 +281,17 @@ function escapeHtml(s) {
 
 $('#customer-list')?.addEventListener('click', (e) => {
   const btn = e.target.closest('button[data-action]');
-  if (!btn) return;
-  const id = btn.dataset.id;
-  if (btn.dataset.action === 'edit') openForm(id);
-  if (btn.dataset.action === 'delete') confirmDelete(id);
+  if (btn) {
+    const id = btn.dataset.id;
+    if (btn.dataset.action === 'edit') openForm(id);
+    if (btn.dataset.action === 'delete') confirmDelete(id);
+    return;
+  }
+  // Bấm vào link SĐT → để nó mở Zalo bình thường, không mở form
+  if (e.target.closest('a')) return;
+  // Bấm vào chỗ trống còn lại của card → mở xem/sửa đầy đủ (thấy hết phần "Chi tiết")
+  const card = e.target.closest('.customer-card');
+  if (card?.dataset.id) openForm(card.dataset.id);
 });
 
 // -------------------------------------------------------------- FORM ------

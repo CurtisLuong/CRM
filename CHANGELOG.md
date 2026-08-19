@@ -6,6 +6,26 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-19 — Card khách hàng: chiều cao cố định, actions luôn ở đáy, cắt "Chi tiết"
+
+Chỉnh lại thẻ khách trên dashboard cho đều mắt và dễ quét:
+
+- **Chiều cao cố định `220px`** cho mỗi card (thay vì tự co theo nội dung),
+  `display:flex; flex-direction:column; overflow:hidden`.
+- **Actions (Sửa/Xoá) luôn nằm ở đáy** dù nội dung phía trên dài hay ngắn:
+  bọc phần tag + chi tiết vào `.card-body` (`flex:1; min-height:0;
+  overflow:hidden`) + `.card-actions { margin-top:auto }`. Nhờ đó nút luôn ở
+  cùng 1 vị trí dọc giữa các card.
+- **"Chi tiết" (notes) cắt còn tối đa 3 dòng** bằng `-webkit-line-clamp:3`,
+  dư ra thêm "…". Bỏ `white-space:pre-wrap` (để clamp cắt gọn).
+- **Bấm vào thân card → mở form xem/sửa đầy đủ** (thấy hết phần Chi tiết dài).
+  Nút Sửa/Xoá và link SĐT (Zalo) vẫn hoạt động riêng, không kích hoạt mở
+  form. Thêm hiệu ứng hover + con trỏ tay để gợi ý card bấm được.
+
+File: `js/app.js`, `css/style.css`
+
+---
+
 ## 2026-08-18 — Vòng tròn tiến độ chăm sóc 7 bậc + bậc "Không quan tâm-kết thúc"
 
 Thay đổi cách dashboard thể hiện khách và thêm 1 trạng thái kết thúc mới:

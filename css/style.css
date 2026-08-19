@@ -120,9 +120,19 @@ input:focus, select:focus, textarea:focus {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 14px;
+  /* Chiều cao cố định + flex cột: mọi card cao bằng nhau, khối actions luôn ở đáy */
+  height: 220px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;       /* nội dung dư (tag/chi tiết) bị cắt gọn, không tràn ra ngoài */
+  cursor: pointer;        /* bấm vào card để xem/sửa đầy đủ */
 }
+.customer-card:hover { border-color: var(--teal-light); box-shadow: 0 2px 8px rgba(31, 58, 61, 0.08); }
 .customer-card.is-dropped { opacity: 0.6; }
-.card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; flex-shrink: 0; }
+/* Vùng giữa (tag + chi tiết) co giãn để lấp chỗ trống → đẩy actions xuống đáy.
+   min-height:0 cho phép co lại, overflow:hidden cắt phần dư, actions không bị đẩy ra ngoài. */
+.card-body { flex: 1 1 auto; min-height: 0; overflow: hidden; }
 .card-name { font-weight: 600; font-size: 16px; }
 .card-phone { color: var(--teal); text-decoration: none; font-size: 14px; display: inline-block; margin-top: 2px; }
 .card-phone:hover { text-decoration: underline; }
@@ -154,15 +164,26 @@ input:focus, select:focus, textarea:focus {
   color: var(--ring);
 }
 
-.card-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 6px; }
+.card-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 6px; flex-shrink: 0; }
 .tag { font-size: 11px; padding: 3px 8px; border-radius: 100px; background: #eee; color: #444; }
 .tag-stage { background: #e4ecec; color: var(--teal); }
 .tag-good { background: #e2f0e8; color: var(--good); }
 .tag-bad { background: #f5e3e0; color: var(--bad); }
 .tag-menh { background: #f2e8da; color: #7a5a2f; }
 
-.card-notes { font-size: 13px; color: #4a4a42; margin: 6px 0; white-space: pre-wrap; }
-.card-actions { display: flex; gap: 8px; margin-top: 10px; }
+/* "Chi tiết" freeform: chỉ hiện tối đa 3 dòng, dư ra cắt + "..." (bấm card xem đủ) */
+.card-notes {
+  font-size: 13px;
+  color: #4a4a42;
+  margin: 6px 0 0;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
+}
+/* margin-top:auto = luôn dính đáy card dù nội dung phía trên dài hay ngắn */
+.card-actions { display: flex; gap: 8px; margin-top: auto; padding-top: 10px; flex-shrink: 0; }
 
 .empty-state { text-align: center; padding: 60px 20px; color: #8a8a7d; }
 
