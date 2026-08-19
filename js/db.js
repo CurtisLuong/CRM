@@ -234,8 +234,17 @@ const CRM = {
         synced++;
         _lastSyncError = null;
       } catch (e) {
-        // Ghi lại lỗi để app hiện rõ (thay vì "Đang đồng bộ" mãi). Vẫn dừng để
-        // giữ thứ tự; thử lại lần sau (nếu lỗi mạng) hoặc user xử lý (nếu lỗi server).
+        // Insert bị TRÙNG (23505: trùng id hoặc trùng (phone, owner)) → khách đã
+        // có trên server, thao tác insert này là thừa → BỎ để không kẹt hàng đợi.
+        // (pull() sau đó sẽ đồng bộ lại bản chuẩn từ server.) Chỉ auto-bỏ với insert.
+        if (op.type === 'insert' && (e.code === '23505' || /duplicate key|unique constraint/i.test(e.message || ''))) {
+          console.warn('Bỏ insert trùng (khách đã có trên server):', op.recordId, e.message);
+          await queueDelete(op.opId);
+          _lastSyncError = null;
+          continue; // xử lý op kế tiếp, không chặn hàng đợi
+        }
+        // Lỗi khác (mạng, hoặc update vi phạm ràng buộc...) → ghi lại + dừng để
+        // giữ thứ tự; app hiện rõ để user xử lý.
         _lastSyncError = { opId: op.opId, type: op.type, recordId: op.recordId, message: e.message || String(e), code: e.code || null };
         console.warn('Sync lỗi op', op.opId, op.type, _lastSyncError);
         break;

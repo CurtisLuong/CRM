@@ -13,7 +13,13 @@ Hàng đợi đồng bộ có 1 thao tác cứ đẩy lên server là lỗi → 
 Nghi phạm chính: thao tác `insert` cho khách ĐÃ có trên server → lỗi trùng khoá.
 
 - **`db.js`: đổi `insert` → `upsert`** (theo khoá chính `id`). Khách đã tồn tại
-  thì cập nhật đè thay vì báo lỗi trùng → tự gỡ kẹt ở lần đồng bộ kế tiếp.
+  (trùng id) thì cập nhật đè thay vì báo lỗi trùng.
+- **Tự BỎ insert trùng (23505)**: lỗi thực tế gặp là trùng
+  `customers_phone_owner_unique` (2 bản cùng SĐT, khác id) — upsert-theo-id không
+  bắt được. Nay `flushQueue` gặp insert lỗi 23505 (trùng id HOẶC trùng
+  (phone,owner)) thì tự bỏ op thừa đó & chạy tiếp (khách đã có trên server;
+  `pull()` sẽ đồng bộ lại bản chuẩn). Chỉ auto-bỏ với `insert`; `update` trùng
+  vẫn báo để user sửa SĐT.
 - **Hiện rõ lỗi**: khi 1 thao tác lỗi (không phải mất mạng), badge chuyển
   "🔴 Kẹt đồng bộ (N) — chạm để xử lý" (thay vì "Đang đồng bộ..." vô tận).
   Bấm badge → thử đẩy lại; nếu vẫn kẹt → hiện lỗi cụ thể + cho **xoá các thao
