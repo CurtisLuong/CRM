@@ -6,6 +6,23 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-20 — Icon app dùng Net_Icon.png (mạng lưới xanh)
+
+Thay icon PWA tạm ("KH") bằng `icons/Net_Icon.png` (1024×1024, nền mint bo góc
++ đồ hoạ mạng lưới xanh).
+
+- Cắt bỏ viền trắng thừa quanh icon (center-crop 820) rồi render các cỡ chuẩn
+  bằng `sips`: `app-icon-512.png` (512), `app-icon-192.png` (192),
+  `apple-touch-icon.png` (180, cho iOS/Safari & Mac).
+- Đổi TÊN file mới (app-icon-*) để trình duyệt/OS lấy icon mới, tránh dính cache
+  icon cũ. Cập nhật `manifest.json` (icons) + thêm `<link rel="apple-touch-icon">`
+  và `<link rel="icon">` (favicon) trong `index.html`.
+
+File: `manifest.json`, `index.html`, `icons/app-icon-192.png`,
+`icons/app-icon-512.png`, `icons/apple-touch-icon.png`
+
+---
+
 ## 2026-08-19 — Sửa lỗi kẹt đồng bộ ("Đang đồng bộ 1 thay đổi..." mãi)
 
 Hàng đợi đồng bộ có 1 thao tác cứ đẩy lên server là lỗi → `flushQueue` dừng ở

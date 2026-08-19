@@ -122,8 +122,9 @@ nếu sửa code mà không biết:
   và được xác nhận thủ công qua nhiều vòng test.
 - Đang có 1 tài khoản (role mặc định `sale`), chưa có khách hàng thật nào
   được nhập.
-- Icon PWA (`icons/icon-192.png`, `icons/icon-512.png`) là icon tạm (chữ
-  "KH" trên nền màu), chưa phải logo thật.
+- Icon PWA (`icons/app-icon-192.png`, `icons/app-icon-512.png`,
+  `icons/apple-touch-icon.png`) render từ `icons/Net_Icon.png` (logo mạng lưới
+  xanh trên nền mint). Đã cắt viền trắng thừa bằng `sips` (center-crop).
 - Chưa test kỹ deep-link SĐT → Zalo trên môi trường thật (mới chỉ code theo
   tài liệu, chưa xác nhận trên máy chủ dự án).
 
