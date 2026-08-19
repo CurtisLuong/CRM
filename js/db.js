@@ -143,6 +143,7 @@ const CRM = {
       owner_id: _currentUserId,
       created_at: now,
       updated_at: now,
+      care_stage_updated_at: now, // khách mới: mốc = giờ tạo
       ...payload,
     };
     await localPut(record);
@@ -154,11 +155,17 @@ const CRM = {
   async update(id, payload) {
     const existing = (await localGetAll()).find((r) => r.id === id) || { id };
     const now = new Date().toISOString();
+    // care_stage_updated_at CHỈ đổi khi Tiến độ chăm sóc (care_stage) thực sự khác
+    // giá trị cũ — sửa các field khác không làm đổi timestamp này.
+    const careChanged = 'care_stage' in payload && payload.care_stage !== existing.care_stage;
     const record = { ...existing, ...payload, id, updated_at: now };
+    if (careChanged) record.care_stage_updated_at = now;
     await localPut(record);
-    // Gửi kèm updated_at lên server để "lần cập nhật cuối" chính xác cả sau khi
-    // đồng bộ (Supabase không tự cập nhật updated_at khi UPDATE — không có trigger).
-    await queueAdd({ type: 'update', recordId: id, payload: { ...payload, updated_at: now }, ts: now });
+    // Gửi kèm updated_at lên server để sort/xung đột chính xác sau khi đồng bộ
+    // (Supabase không tự cập nhật updated_at khi UPDATE — không có trigger).
+    const queuedPayload = { ...payload, updated_at: now };
+    if (careChanged) queuedPayload.care_stage_updated_at = now;
+    await queueAdd({ type: 'update', recordId: id, payload: queuedPayload, ts: now });
     this.flushQueue();
     return record;
   },

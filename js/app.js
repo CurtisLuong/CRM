@@ -268,7 +268,9 @@ function renderList() {
     const ringPct = Math.round((level / 7) * 100);
     const ringColor = careColor(c.care_stage);
     const interest = c.interest_level ?? 0;
-    const updated = timeAgo(c.updated_at);
+    // Timestamp phản ánh lần đổi Tiến độ chăm sóc cuối (không phải mọi lần sửa).
+    // Dòng cũ chưa có care_stage_updated_at thì tạm dùng updated_at.
+    const updated = timeAgo(c.care_stage_updated_at || c.updated_at);
     const menhShort = c.menh ? c.menh.split(' — ')[0] : ''; // "Mệnh Kim" (bỏ nạp âm dài phía sau)
     card.innerHTML = `
       <div class="card-head">

@@ -61,6 +61,8 @@ create table if not exists public.customers (
   owner_id uuid not null default auth.uid() references auth.users(id),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
+  -- thời điểm care_stage đổi lần cuối (cho timestamp trên card, xem add_care_stage_updated_at.sql)
+  care_stage_updated_at timestamptz default now(),
   updated_by uuid
 );
 

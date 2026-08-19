@@ -6,6 +6,31 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-19 — Timestamp card chỉ đổi khi Tiến độ chăm sóc thay đổi
+
+Trước đây "Cập nhật X trước" trên card dùng `updated_at` → đổi mỗi lần sửa BẤT
+KỲ field nào. Yêu cầu mới: timestamp chỉ phản ánh lần **Tiến độ chăm sóc**
+(`care_stage`) đổi cuối cùng.
+
+**Cách làm** (không tái dùng `updated_at` vì nó còn phục vụ sort "Mới cập nhật"
++ xử lý xung đột last-write-wins):
+
+- **Thêm cột mới `care_stage_updated_at`** (migration `add_care_stage_updated_at.sql`
+  — CẦN CHẠY trên Supabase; đã bake vào `schema.sql`).
+- **`db.js`**: khi `update`, so sánh `care_stage` cũ/mới — chỉ khi khác mới đặt
+  `care_stage_updated_at = now` (và gửi kèm lên server). Sửa field khác không
+  đụng cột này. Khi `create`, đặt = giờ tạo (khách mới hiện "vừa xong").
+- **`app.js`**: card đọc `care_stage_updated_at` (dòng cũ chưa có thì tạm dùng
+  `updated_at`).
+- `updated_at` vẫn cập nhật mỗi lần sửa như cũ (không đổi hành vi sort/đồng bộ).
+
+**Cần chạy migration** `add_care_stage_updated_at.sql` trước/ngay khi deploy —
+nếu không thao tác lưu khách sẽ lỗi "column ... does not exist" và kẹt hàng đợi.
+
+File: `js/db.js`, `js/app.js`, `schema.sql`, `add_care_stage_updated_at.sql` (migration cần chạy)
+
+---
+
 ## 2026-08-19 — Tìm kiếm bỏ dấu tiếng Việt
 
 Trước đây tìm kiếm so khớp có dấu: khách "Nguyễn Thị Hương" gõ "huong" không
