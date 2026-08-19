@@ -29,6 +29,15 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
 
+-- 1b) Danh sách dự án cho biểu mẫu (multi-select, tự quản lý) — xem add_projects_and_apt_options.sql
+create table if not exists public.project_options (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  owner_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  unique (name, owner_id)
+);
+
 -- 2) Bảng customers
 create table if not exists public.customers (
   id uuid primary key default gen_random_uuid(),
@@ -40,7 +49,8 @@ create table if not exists public.customers (
   marital_status text check (marital_status in ('đã kết hôn','chưa kết hôn')),
   income text,
   residence text,
-  apt_type text,                      -- vd "2N-2WC"
+  apt_type text,                      -- vd "2N-2WC" (select + "Khác" ở client)
+  projects jsonb not null default '[]'::jsonb, -- mảng tên dự án quan tâm (multi-select)
   apt_code text,
   building_code text,
   apt_price numeric,
@@ -135,6 +145,23 @@ create policy "customers_delete" on public.customers
     owner_id = auth.uid()
     or exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin')
   );
+
+-- project_options: mỗi user chỉ thấy & quản lý danh sách dự án của mình
+alter table public.project_options enable row level security;
+create policy "project_options_select" on public.project_options
+  for select using (owner_id = auth.uid());
+create policy "project_options_insert" on public.project_options
+  for insert with check (owner_id = auth.uid());
+create policy "project_options_delete" on public.project_options
+  for delete using (owner_id = auth.uid());
+grant select, insert, delete on public.project_options to authenticated;
+
+-- Seed dự án ban đầu cho mọi user đang có
+insert into public.project_options (name, owner_id)
+select v.name, u.id
+from auth.users u
+cross join (values ('Marquee Homes'), ('Vin Tràng Cát')) as v(name)
+on conflict (name, owner_id) do nothing;
 
 -- 4) Ghi chú:
 -- - Muốn nâng 1 tài khoản lên admin: chạy

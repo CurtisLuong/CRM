@@ -210,8 +210,29 @@
       <fieldset class="span-2">
         <legend>Căn hộ quan tâm</legend>
         <div class="form-grid">
+          <div class="span-2 proj-field">
+            <div class="proj-head">
+              <span class="proj-title">Dự án (chọn nhiều)</span>
+              <button type="button" id="proj-manage-btn" class="proj-manage">Quản lý</button>
+            </div>
+            <div id="proj-chips" class="proj-chips"></div>
+            <div id="proj-add-row" class="proj-add-row" hidden>
+              <input id="proj-add-input" type="text" placeholder="Tên dự án mới..." />
+              <button type="button" id="proj-add-ok" class="btn-small">Thêm</button>
+              <button type="button" id="proj-add-cancel" class="btn-small">Huỷ</button>
+            </div>
+          </div>
           <label>Loại căn
-            <input name="apt_type" type="text" placeholder="vd: 2N-2WC" />
+            <select name="apt_type_select">
+              <option value="">— Chưa rõ —</option>
+              <option value="1N-1WC">1N-1WC</option>
+              <option value="1N+, 1WC">1N+, 1WC</option>
+              <option value="2N-2WC">2N-2WC</option>
+              <option value="2N+, 2WC">2N+, 2WC</option>
+              <option value="3N-2WC">3N-2WC</option>
+              <option value="__other">Khác...</option>
+            </select>
+            <input name="apt_type_other" type="text" placeholder="Nhập loại căn khác" hidden />
           </label>
           <label>Mã căn
             <input name="apt_code" type="text" />

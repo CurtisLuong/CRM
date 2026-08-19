@@ -71,6 +71,9 @@ const EVAL_REASONS = [
   'Khác',
 ];
 
+// Loại căn có sẵn (select + "Khác" tự nhập, không lưu vào danh sách chung).
+const APT_TYPES = ['1N-1WC', '1N+, 1WC', '2N-2WC', '2N+, 2WC', '3N-2WC'];
+
 // Icon điện thoại (SVG inline, tô theo màu chữ, cỡ ăn theo font-size chỗ đặt).
 // Zalo dùng ảnh icons/Zalo-icon.png (đặt trong <img>).
 const PHONE_SVG = '<svg class="ic-phone" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>';
@@ -80,6 +83,13 @@ let currentUser = null;
 let allCustomers = [];
 let editingId = null;
 let formOriginalStage = ''; // care_stage lúc mở form — để biết có đổi bậc không
+
+// Dự án (multi-select, danh sách tự quản lý — lưu ở bảng project_options)
+let projectOptions = [];        // [{id, name}]
+let selectedProjects = [];      // tên dự án đang chọn ở form
+let projManageMode = false;     // đang bật chế độ xoá dự án
+const LS_PROJ_CACHE = 'crm_project_options';   // cache đọc offline
+const LS_LAST_PROJECTS = 'crm_last_projects';  // lựa chọn gần nhất → mặc định khách mới
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => Array.from(document.querySelectorAll(sel));
@@ -115,6 +125,7 @@ async function onLoggedIn(user) {
   CRM.init(sb, user.id);
   await CRM.flushQueue();
   await CRM.pull();
+  await loadProjectOptions();
   await refreshList();
   setInterval(async () => {
     await CRM.flushQueue();
@@ -392,6 +403,60 @@ document.addEventListener('click', (e) => {
   }
 });
 
+// --------------------------------------------------------- DỰ ÁN ----------
+
+// Nạp danh sách dự án: online → lấy từ Supabase + cache; offline → đọc cache.
+async function loadProjectOptions() {
+  try {
+    if (sb && CRM.isOnline()) {
+      const { data, error } = await sb.from('project_options').select('id,name').order('created_at');
+      if (error) throw error;
+      projectOptions = data || [];
+      localStorage.setItem(LS_PROJ_CACHE, JSON.stringify(projectOptions));
+      return;
+    }
+  } catch (e) { console.warn('Nạp dự án lỗi, dùng cache:', e.message); }
+  try { projectOptions = JSON.parse(localStorage.getItem(LS_PROJ_CACHE) || '[]'); }
+  catch { projectOptions = []; }
+}
+
+// Thêm dự án mới (cần online — thao tác hiếm). Trả về true nếu thành công.
+async function addProjectOption(name) {
+  name = (name || '').trim();
+  if (!name) return false;
+  if (projectOptions.some((o) => o.name === name)) return true; // đã có
+  if (!CRM.isOnline()) { alert('Cần có mạng để thêm dự án mới.'); return false; }
+  const { data, error } = await sb.from('project_options').insert({ name }).select('id,name').single();
+  if (error) { alert('Thêm dự án lỗi: ' + error.message); return false; }
+  projectOptions.push(data);
+  localStorage.setItem(LS_PROJ_CACHE, JSON.stringify(projectOptions));
+  return true;
+}
+
+// Xoá 1 dự án khỏi danh sách (cần online).
+async function removeProjectOption(id) {
+  if (!CRM.isOnline()) { alert('Cần có mạng để xoá dự án.'); return; }
+  const { error } = await sb.from('project_options').delete().eq('id', id);
+  if (error) { alert('Xoá dự án lỗi: ' + error.message); return; }
+  projectOptions = projectOptions.filter((o) => o.id !== id);
+  localStorage.setItem(LS_PROJ_CACHE, JSON.stringify(projectOptions));
+}
+
+// Vẽ các chip dự án trong form (chọn nhiều; chế độ Quản lý hiện nút xoá).
+function renderProjChips() {
+  const box = $('#proj-chips');
+  if (!box) return;
+  let html = projectOptions.map((o) => {
+    const sel = selectedProjects.includes(o.name);
+    return `<span class="proj-chip ${sel ? 'is-sel' : ''}">
+      <button type="button" class="proj-chip-name" data-projtoggle="${escapeHtml(o.name)}">${escapeHtml(o.name)}</button>
+      ${projManageMode ? `<button type="button" class="proj-chip-del" data-projdel="${o.id}" title="Xoá dự án khỏi danh sách">✕</button>` : ''}
+    </span>`;
+  }).join('');
+  html += `<button type="button" class="proj-chip proj-add" id="proj-add-btn">＋ Thêm mới</button>`;
+  box.innerHTML = html;
+}
+
 // -------------------------------------------------------------- FORM ------
 
 function openForm(id) {
@@ -408,7 +473,12 @@ function openForm(id) {
   f.occupation.value = c.occupation || '';
   f.income.value = c.income || '';
   f.residence.value = c.residence || '';
-  f.apt_type.value = c.apt_type || '';
+  // Loại căn: nếu khớp option có sẵn → chọn; nếu khác → "Khác" + ô tự nhập.
+  const at = c.apt_type || '';
+  if (!at) { f.apt_type_select.value = ''; f.apt_type_other.value = ''; }
+  else if (APT_TYPES.includes(at)) { f.apt_type_select.value = at; f.apt_type_other.value = ''; }
+  else { f.apt_type_select.value = '__other'; f.apt_type_other.value = at; }
+  toggleAptOther();
   f.apt_code.value = c.apt_code || '';
   f.building_code.value = c.building_code || '';
   f.apt_price.value = c.apt_price || '';
@@ -419,6 +489,14 @@ function openForm(id) {
   f.evaluation.value = c.evaluation || '';
   f.evaluation_reason.value = c.evaluation_reason || '';
 
+  // Dự án: khách cũ dùng lịch sử của khách; khách mới lấy lựa chọn gần nhất
+  // (localStorage) làm mặc định nếu chưa chủ động set.
+  if (id) selectedProjects = Array.isArray(c.projects) ? [...c.projects] : [];
+  else { try { selectedProjects = JSON.parse(localStorage.getItem(LS_LAST_PROJECTS) || '[]'); } catch { selectedProjects = []; } }
+  projManageMode = false;
+  $('#proj-add-row').hidden = true;
+  renderProjChips();
+
   // Ô "Ghi chú cho lần đổi tiến độ" chỉ hiện khi bậc thực sự khác lúc mở form.
   formOriginalStage = c.care_stage || '';
   f.care_stage_note.value = '';
@@ -427,6 +505,12 @@ function openForm(id) {
   updateMenhPreview();
   toggleEvalReason();
   $('#form-modal').showModal();
+}
+
+// Hiện ô "loại căn khác" khi chọn "Khác..."
+function toggleAptOther() {
+  const f = $('#customer-form');
+  f.apt_type_other.hidden = f.apt_type_select.value !== '__other';
 }
 
 // Hiện ô ghi chú-đổi-bậc khi care_stage được chọn khác giá trị lúc mở form.
@@ -467,7 +551,8 @@ async function handleFormSubmit(e) {
     occupation: f.occupation.value || null,
     income: f.income.value.trim() || null,
     residence: f.residence.value.trim() || null,
-    apt_type: f.apt_type.value.trim() || null,
+    apt_type: (f.apt_type_select.value === '__other' ? f.apt_type_other.value.trim() : f.apt_type_select.value) || null,
+    projects: selectedProjects,
     apt_code: f.apt_code.value.trim() || null,
     building_code: f.building_code.value.trim() || null,
     apt_price: f.apt_price.value ? Number(f.apt_price.value) : null,
@@ -482,6 +567,8 @@ async function handleFormSubmit(e) {
     return;
   }
   const savedId = editingId;
+  // Nhớ lựa chọn dự án lần này làm mặc định cho khách mới sau (nếu không tự set).
+  localStorage.setItem(LS_LAST_PROJECTS, JSON.stringify(selectedProjects));
   // Ghi chú cho lần đổi bậc (chỉ dùng khi care_stage thực sự đổi — db.js tự kiểm).
   const opts = { careStageNote: f.care_stage_note.value.trim() || null };
   if (editingId) await CRM.update(editingId, payload, opts);
@@ -635,6 +722,7 @@ function openDetail(id) {
 
   // Căn hộ quan tâm
   const aptRows = [
+    ['Dự án', (Array.isArray(c.projects) && c.projects.length) ? c.projects.join(', ') : DASH],
     ['Loại căn', c.apt_type || DASH],
     ['Mã căn', c.apt_code || DASH],
     ['Mã toà', c.building_code || DASH],
@@ -1191,6 +1279,46 @@ document.addEventListener('DOMContentLoaded', () => {
   $('#customer-form').dob.addEventListener('input', updateMenhPreview);
   $('#customer-form').evaluation.addEventListener('change', toggleEvalReason);
   $('#customer-form').care_stage.addEventListener('change', toggleCareStageNote);
+  $('#customer-form').apt_type_select.addEventListener('change', toggleAptOther);
+
+  // --- Chip dự án (chọn nhiều / thêm / xoá) ---
+  $('#proj-chips').addEventListener('click', async (e) => {
+    const toggle = e.target.closest('[data-projtoggle]');
+    if (toggle) {
+      const name = toggle.dataset.projtoggle;
+      const i = selectedProjects.indexOf(name);
+      if (i === -1) selectedProjects.push(name); else selectedProjects.splice(i, 1);
+      renderProjChips();
+      return;
+    }
+    const del = e.target.closest('[data-projdel]');
+    if (del) {
+      const opt = projectOptions.find((o) => o.id === del.dataset.projdel);
+      if (opt && confirm(`Xoá dự án "${opt.name}" khỏi danh sách? (không ảnh hưởng khách đã lưu)`)) {
+        await removeProjectOption(opt.id);
+        selectedProjects = selectedProjects.filter((n) => n !== opt.name);
+        renderProjChips();
+      }
+      return;
+    }
+    if (e.target.closest('#proj-add-btn')) {
+      $('#proj-add-row').hidden = false;
+      $('#proj-add-input').value = '';
+      $('#proj-add-input').focus();
+    }
+  });
+  $('#proj-manage-btn').addEventListener('click', () => { projManageMode = !projManageMode; renderProjChips(); });
+  $('#proj-add-ok').addEventListener('click', async () => {
+    const name = $('#proj-add-input').value.trim();
+    if (!name) return;
+    if (await addProjectOption(name)) {
+      if (!selectedProjects.includes(name)) selectedProjects.push(name);
+      $('#proj-add-row').hidden = true;
+      renderProjChips();
+    }
+  });
+  $('#proj-add-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('#proj-add-ok').click(); } });
+  $('#proj-add-cancel').addEventListener('click', () => { $('#proj-add-row').hidden = true; });
   $('#customer-form').interest_level.addEventListener('input', (e) => {
     $('#interest-output').textContent = e.target.value + '%';
   });

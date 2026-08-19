@@ -519,6 +519,24 @@ fieldset { border: 1px solid var(--line); border-radius: 8px; padding: 12px; }
 legend { font-size: 12px; color: #6b6b60; padding: 0 6px; }
 .menh-preview { padding: 10px 12px; background: #f2e8da; border-radius: 8px; font-size: 13px; color: #7a5a2f; }
 
+/* Trường "Dự án" (multi-select bằng chip) */
+.proj-field { display: flex; flex-direction: column; gap: 6px; }
+.proj-head { display: flex; align-items: center; justify-content: space-between; }
+.proj-title { font-size: 13px; color: #4a4a42; }
+.proj-manage { border: none; background: transparent; color: var(--seal); font: inherit; font-size: 12px; cursor: pointer; padding: 2px 4px; }
+.proj-manage:hover { text-decoration: underline; }
+.proj-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.proj-chip { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 100px; background: #fff; overflow: hidden; }
+.proj-chip-name { border: none; background: transparent; font: inherit; font-size: 13px; color: var(--ink); cursor: pointer; padding: 6px 12px; }
+.proj-chip.is-sel { background: var(--seal); border-color: var(--seal); }
+.proj-chip.is-sel .proj-chip-name { color: #fff; }
+.proj-chip-del { border: none; background: transparent; color: var(--bad); cursor: pointer; font-size: 11px; padding: 6px 9px 6px 0; }
+.proj-chip.is-sel .proj-chip-del { color: #fff; }
+.proj-chip.proj-add { padding: 6px 12px; font: inherit; font-size: 13px; color: var(--seal); cursor: pointer; border-style: dashed; }
+.proj-add-row { display: flex; gap: 6px; margin-top: 2px; }
+.proj-add-row input { flex: 1; min-width: 0; font: inherit; font-size: 14px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; }
+input[name="apt_type_other"] { margin-top: 8px; }
+
 .form-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
 
 /* ---------------- LỊCH GỌI ---------------- */

@@ -16,6 +16,33 @@ File: `js/app.js`, `css/style.css`
 
 ---
 
+## 2026-08-19 — Thuộc tính Dự án (multi-select tự quản lý) + Loại căn dạng chọn
+
+**Cần chạy migration** `add_projects_and_apt_options.sql` (bảng `project_options`
++ cột `customers.projects`) — chạy trước/ngay khi deploy.
+
+1. **Dự án** (trong "Căn hộ quan tâm"): chọn nhiều (chip), gồm 2 dự án seed sẵn
+   (Marquee Homes, Vin Tràng Cát) + **"＋ Thêm mới"** (lưu vào bảng
+   `project_options`, dùng lại mãi). Nút **"Quản lý"** bật chế độ xoá dự án khỏi
+   danh sách (nút ✕ trên từng chip — xoá không ảnh hưởng khách đã lưu).
+   - Danh sách theo từng tài khoản (owner), lưu ở Supabase; cache localStorage
+     để đọc offline. Thêm/xoá dự án cần online (thao tác hiếm); còn chọn dự án
+     cho khách thì offline vẫn chạy (lưu qua hàng đợi như field khác).
+   - **Lựa chọn dự án lần gần nhất** (localStorage `crm_last_projects`) tự áp
+     làm mặc định cho khách MỚI (nếu chưa chủ động chọn).
+   - Giá trị lưu ở `customers.projects` (mảng tên dự án). Hiện ở trang chi tiết
+     (dòng "Dự án" trong bảng căn hộ).
+
+2. **Loại căn**: đổi từ ô tự nhập → **select** các option
+   (1N-1WC / 1N+, 1WC / 2N-2WC / 2N+, 2WC / 3N-2WC) + **"Khác..."** (tự nhập,
+   chỉ riêng cho khách đó, KHÔNG lưu vào danh sách chung). Vẫn dùng cột `apt_type`
+   text sẵn có → không cần migration cho loại căn.
+
+File: `index.html`, `js/app.js`, `css/style.css`, `schema.sql`,
+`add_projects_and_apt_options.sql` (migration cần chạy)
+
+---
+
 ## 2026-08-19 — Đổi tiêu chí sort mặc định
 
 Sort mặc định `care_asc` (`sortCustomers` trong app.js) đổi từ 2 → 3 tiêu chí:
