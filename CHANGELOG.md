@@ -6,6 +6,35 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-19 — Thêm nghề nghiệp + hẹn lịch gọi + nhắc gọi trên card
+
+**Cần chạy migration** `add_occupation_and_call_schedule.sql` (thêm 3 cột:
+`occupation`, `next_call_at`, `next_call_end`) — chạy trước/ngay khi deploy.
+
+1. **Công việc** (`occupation`): thêm select trong form (Tự do / Công ty, DN /
+   Công, viên chức / Công an, Bộ đội), hiện ở "Thông tin cá nhân" trang chi tiết.
+
+2. **Hẹn lịch gọi** (trang chi tiết, dialog dùng chung `#schedule-modal`):
+   - Chọn giờ: 9–10h / 14–15h / 20–21h / Tùy chọn giờ.
+   - Chọn ngày: Hôm nay / Ngày mai / Tùy chọn ngày (min = sau hôm nay).
+   - Giờ gọi lưu dạng KHUNG (duration): preset dài 1h (`next_call_at`→`next_call_end`),
+     tùy chọn giờ là 1 mốc (end = at). Nút "Đổi lịch" / "Xoá lịch".
+
+3. **Tag nhắc gọi trên card** (dóng ngang tên, bấm được):
+   - `< 24h` trước giờ: tag **vàng** "hh:mm nữa gọi" (đếm ngược, cập nhật mỗi 30s).
+   - Trong khung giờ + 30 phút sau khi hết khung: tag **đỏ nhạt** "đến giờ gọi".
+   - Quá 30 phút sau khung: tag **xám** "quên gọi hh:mm".
+   - Bấm tag → popup `#call-action-modal`: **Đã gọi** (xoá lịch, tag biến mất) /
+     **Hẹn lại** (mở lại dialog đặt lịch) / **✕** (thoát). Tag chỉ mất khi bấm "Đã gọi".
+   - Card có nhắc gọi **nổi lên đầu, ĐÈ sort hiện tại**, sắp theo giờ hẹn tăng dần
+     (quên/đến giờ trước, rồi gần nhất → xa hơn).
+
+Client-side (đếm ngược `setInterval` 30s); dùng lại `CRM.update` để lưu (không
+đụng care_stage timestamps). File: `index.html`, `js/app.js`, `css/style.css`,
+`schema.sql`, `add_occupation_and_call_schedule.sql` (migration cần chạy).
+
+---
+
 ## 2026-08-19 — Đổi tên "Sổ Khách", làm lại header & bảng màu toàn app
 
 **1. Đổi tên** ứng dụng: "CRM Khách hàng" → **"Sổ Khách"** (title, brand

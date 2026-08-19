@@ -276,7 +276,17 @@ function sortCustomers(list) {
 }
 
 function renderList() {
-  const list = sortCustomers(allCustomers.filter(matchesFilters));
+  let list = sortCustomers(allCustomers.filter(matchesFilters));
+  // Nhắc gọi ĐÈ sort hiện tại: card có tag nhắc gọi luôn nổi lên đầu, sắp theo
+  // giờ hẹn tăng dần (quá/đến giờ → sắp gọi nhất → xa hơn).
+  const reminders = new Map();
+  for (const c of list) { const r = callReminder(c); if (r) reminders.set(c.id, r); }
+  if (reminders.size) {
+    const withR = [], without = [];
+    for (const c of list) (reminders.has(c.id) ? withR : without).push(c);
+    withR.sort((a, b) => reminders.get(a.id).sort - reminders.get(b.id).sort);
+    list = [...withR, ...without];
+  }
   const container = $('#customer-list');
   container.innerHTML = '';
   $('#empty-state').hidden = list.length !== 0;
@@ -300,6 +310,7 @@ function renderList() {
     card.innerHTML = `
       <div class="card-head">
         <div class="card-name">${escapeHtml(c.full_name || '(chưa có tên)')}</div>
+        ${reminders.has(c.id) ? `<button class="call-tag call-${reminders.get(c.id).state}" data-calltag="${c.id}">${escapeHtml(reminders.get(c.id).text)}</button>` : ''}
         <div class="card-menu">
           <button class="card-menu-btn" data-action="menu" aria-label="Tuỳ chọn khác">⋯</button>
           <div class="card-menu-pop">
@@ -352,6 +363,10 @@ $('#customer-list')?.addEventListener('click', (e) => {
   });
   if (menuBtn) { card.classList.toggle('menu-open'); return; }
 
+  // Bấm tag nhắc gọi → popup xác nhận gọi (không mở trang chi tiết)
+  const callTag = e.target.closest('[data-calltag]');
+  if (callTag) { openCallAction(callTag.dataset.calltag); return; }
+
   const btn = e.target.closest('button[data-action]');
   if (btn) {
     const id = btn.dataset.id;
@@ -385,6 +400,7 @@ function openForm(id) {
   f.gender.value = c.gender || '';
   f.dob.value = c.dob || '';
   f.marital_status.value = c.marital_status || '';
+  f.occupation.value = c.occupation || '';
   f.income.value = c.income || '';
   f.residence.value = c.residence || '';
   f.apt_type.value = c.apt_type || '';
@@ -443,6 +459,7 @@ async function handleFormSubmit(e) {
     dob,
     menh: dob ? window.LunarUtil.calcMenhFromSolarDOB(dob) : null,
     marital_status: f.marital_status.value || null,
+    occupation: f.occupation.value || null,
     income: f.income.value.trim() || null,
     residence: f.residence.value.trim() || null,
     apt_type: f.apt_type.value.trim() || null,
@@ -594,6 +611,18 @@ function openDetail(id) {
     evalBox.hidden = true;
   }
 
+  // Lịch gọi
+  const callLabel = $('#detail-call-label');
+  if (c.next_call_at) {
+    callLabel.textContent = '🔔 Hẹn gọi: ' + callScheduleLabel(c);
+    $('#detail-schedule-btn').textContent = 'Đổi lịch';
+    $('#detail-callclear-btn').hidden = false;
+  } else {
+    callLabel.textContent = '';
+    $('#detail-schedule-btn').textContent = '＋ Đặt lịch gọi';
+    $('#detail-callclear-btn').hidden = true;
+  }
+
   // Ghi chú
   const notesBox = $('#detail-notes');
   notesBox.textContent = c.notes || 'Chưa có ghi chú.';
@@ -616,6 +645,7 @@ function openDetail(id) {
     ['Hôn nhân', c.marital_status ? capitalize(c.marital_status) : DASH],
     ['Ngày sinh', formatDate(c.dob)],
     ['Mệnh', c.menh ? c.menh.replace(/^Mệnh\s+/, '') : DASH],
+    ['Công việc', c.occupation || DASH],
     ['Thu nhập', c.income || DASH],
     ['Thường trú', c.residence || DASH],
   ];
@@ -723,6 +753,138 @@ $('#detail-history')?.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') { e.preventDefault(); saveHistoryNote(editingHistoryAt, e.target.value.trim() || null); }
   else if (e.key === 'Escape') { e.preventDefault(); editingHistoryAt = null; rerenderCareHistory(); }
 });
+
+// ------------------------------------------------- LỊCH GỌI / NHẮC GỌI ----
+
+// Khung giờ preset: [giờ bắt đầu, phút, giờ kết thúc, phút]
+const CALL_SLOTS = { '9-10h': [9, 0, 10, 0], '14-15h': [14, 0, 15, 0], '20-21h': [20, 0, 21, 0] };
+
+function isoDateLocal(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+function fmtClock(ms) {
+  const d = new Date(ms);
+  return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+}
+// Thời lượng còn lại: "30p" (<1h) hoặc "2:00" (>=1h)
+function fmtRemainMs(ms) {
+  const min = Math.max(0, Math.round(ms / 60000));
+  if (min < 60) return min + 'p';
+  return Math.floor(min / 60) + ':' + String(min % 60).padStart(2, '0');
+}
+function relDayLabel(d) {
+  const t = new Date(); t.setHours(0, 0, 0, 0);
+  const dd = new Date(d); dd.setHours(0, 0, 0, 0);
+  const diff = Math.round((dd - t) / 86400000);
+  if (diff === 0) return 'Hôm nay';
+  if (diff === 1) return 'Ngày mai';
+  if (diff === -1) return 'Hôm qua';
+  return `${dd.getDate()}/${dd.getMonth() + 1}`;
+}
+function callScheduleLabel(c) {
+  if (!c.next_call_at) return '';
+  const s = new Date(c.next_call_at);
+  const e = c.next_call_end ? new Date(c.next_call_end) : s;
+  const tt = fmtClock(s.getTime()) + (e.getTime() !== s.getTime() ? '–' + fmtClock(e.getTime()) : '');
+  return relDayLabel(s) + ' ' + tt;
+}
+
+// Trạng thái tag nhắc gọi cho 1 khách. null = không hiện tag.
+// Giờ gọi là 1 khung (duration): 'due' kéo dài suốt khung + 30 phút sau khi hết.
+function callReminder(c) {
+  if (!c.next_call_at) return null;
+  const start = new Date(c.next_call_at).getTime();
+  const end = c.next_call_end ? new Date(c.next_call_end).getTime() : start;
+  const now = Date.now();
+  const graceEnd = end + 30 * 60000;
+  if (now < start) {
+    const remain = start - now;
+    if (remain > 24 * 3600 * 1000) return null; // >24h: chưa hiện tag
+    return { state: 'soon', text: fmtRemainMs(remain) + ' nữa gọi', sort: start };
+  }
+  if (now <= graceEnd) return { state: 'due', text: 'đến giờ gọi', sort: start };
+  return { state: 'missed', text: 'quên gọi ' + fmtClock(start), sort: start };
+}
+
+// ---- Dialog đặt lịch gọi (dùng chung) ----
+let schedulingId = null, schedTime = null, schedDate = null;
+function openScheduler(id) {
+  schedulingId = id; schedTime = null; schedDate = null;
+  $$('#sched-time .sched-opt').forEach((b) => b.classList.remove('is-sel'));
+  $$('#sched-date .sched-opt').forEach((b) => b.classList.remove('is-sel'));
+  const tc = $('#sched-time-custom'), dc = $('#sched-date-custom');
+  tc.hidden = true; tc.value = ''; dc.hidden = true; dc.value = '';
+  const tm = new Date(); tm.setDate(tm.getDate() + 1); dc.min = isoDateLocal(tm); // custom phải sau hôm nay
+  $('#sched-error').textContent = '';
+  $('#schedule-modal').showModal();
+}
+async function saveSchedule() {
+  const err = $('#sched-error'); err.textContent = '';
+  if (!schedTime) { err.textContent = 'Chọn giờ gọi.'; return; }
+  if (!schedDate) { err.textContent = 'Chọn ngày gọi.'; return; }
+  let base = new Date(); base.setHours(0, 0, 0, 0);
+  if (schedDate === 'tomorrow') base.setDate(base.getDate() + 1);
+  else if (schedDate === 'custom') {
+    const v = $('#sched-date-custom').value;
+    if (!v) { err.textContent = 'Chọn ngày cụ thể.'; return; }
+    const d = new Date(v + 'T00:00:00');
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    if (d <= today) { err.textContent = 'Ngày phải sau hôm nay.'; return; }
+    base = d;
+  }
+  let sh, sm, eh, em;
+  if (schedTime === 'custom') {
+    const v = $('#sched-time-custom').value;
+    if (!v) { err.textContent = 'Nhập giờ cụ thể.'; return; }
+    [sh, sm] = v.split(':').map(Number); eh = sh; em = sm; // 1 mốc
+  } else { [sh, sm, eh, em] = CALL_SLOTS[schedTime]; }
+  const start = new Date(base); start.setHours(sh, sm, 0, 0);
+  const end = new Date(base); end.setHours(eh, em, 0, 0);
+  await CRM.update(schedulingId, { next_call_at: start.toISOString(), next_call_end: end.toISOString() });
+  await refreshList();
+  $('#schedule-modal').close();
+  if (detailId && !$('#detail-screen').hidden) openDetail(detailId);
+}
+$('#sched-time')?.addEventListener('click', (e) => {
+  const b = e.target.closest('.sched-opt'); if (!b) return;
+  schedTime = b.dataset.time;
+  $$('#sched-time .sched-opt').forEach((x) => x.classList.toggle('is-sel', x === b));
+  $('#sched-time-custom').hidden = schedTime !== 'custom';
+  if (schedTime === 'custom') $('#sched-time-custom').focus();
+});
+$('#sched-date')?.addEventListener('click', (e) => {
+  const b = e.target.closest('.sched-opt'); if (!b) return;
+  schedDate = b.dataset.date;
+  $$('#sched-date .sched-opt').forEach((x) => x.classList.toggle('is-sel', x === b));
+  $('#sched-date-custom').hidden = schedDate !== 'custom';
+  if (schedDate === 'custom') $('#sched-date-custom').focus();
+});
+$('#sched-save')?.addEventListener('click', saveSchedule);
+$('#sched-cancel')?.addEventListener('click', () => $('#schedule-modal').close());
+
+// ---- Dialog xác nhận gọi (bấm vào tag nhắc gọi) ----
+let callActionId = null;
+function openCallAction(id) {
+  const c = allCustomers.find((x) => x.id === id); if (!c) return;
+  callActionId = id;
+  $('#callact-title').textContent = 'Gọi: ' + (c.full_name || '(chưa tên)');
+  $('#callact-sub').textContent = c.next_call_at ? ('Lịch hẹn: ' + callScheduleLabel(c)) : '';
+  $('#call-action-modal').showModal();
+}
+async function confirmCalled() {
+  await CRM.update(callActionId, { next_call_at: null, next_call_end: null });
+  await refreshList();
+  $('#call-action-modal').close();
+  if (detailId && !$('#detail-screen').hidden) openDetail(detailId);
+}
+$('#callact-done')?.addEventListener('click', confirmCalled);
+$('#callact-resched')?.addEventListener('click', () => { $('#call-action-modal').close(); openScheduler(callActionId); });
+$('#callact-close')?.addEventListener('click', () => $('#call-action-modal').close());
+
+// Cập nhật đếm ngược tag nhắc gọi định kỳ (chỉ khi đang xem danh sách khách)
+setInterval(() => {
+  if (currentUser && !$('#app-screen').hidden && !$('#list-view').hidden) renderList();
+}, 30000);
 
 // ---------------------------------------------------------- DASHBOARD -----
 
@@ -1012,6 +1174,13 @@ document.addEventListener('DOMContentLoaded', () => {
   $('#tab-dashboard').addEventListener('click', showDashboardView);
   $('#detail-back-btn').addEventListener('click', () => { detailId = null; showAppScreen(); });
   $('#detail-edit-btn').addEventListener('click', () => { if (detailId) openForm(detailId); });
+  $('#detail-schedule-btn').addEventListener('click', () => { if (detailId) openScheduler(detailId); });
+  $('#detail-callclear-btn').addEventListener('click', async () => {
+    if (!detailId) return;
+    await CRM.update(detailId, { next_call_at: null, next_call_end: null });
+    await refreshList();
+    openDetail(detailId);
+  });
   $('#customer-form').addEventListener('submit', handleFormSubmit);
   $('#cancel-form-btn').addEventListener('click', closeForm);
   $('#customer-form').dob.addEventListener('input', updateMenhPreview);

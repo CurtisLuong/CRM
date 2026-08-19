@@ -193,9 +193,22 @@ input:focus, select:focus, textarea:focus {
 }
 .customer-card:hover { border-color: var(--teal-light); box-shadow: 0 2px 8px rgba(31, 58, 61, 0.08); }
 .customer-card.is-dropped { opacity: 0.6; }
-/* Hàng đầu: tên (trái) + nút menu "⋯" (phải) */
-.card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; flex-shrink: 0; }
-.card-name { font-weight: 600; font-size: 16px; }
+/* Hàng đầu: tên (trái) + [tag nhắc gọi] + nút menu "⋯" (đẩy phải) */
+.card-head { display: flex; align-items: flex-start; gap: 8px; flex-shrink: 0; }
+.card-name { font-weight: 600; font-size: 16px; min-width: 0; }
+.card-head .card-menu { margin-left: auto; }
+
+/* Tag nhắc gọi (dóng ngang tên): vàng=sắp gọi, đỏ=đến giờ, xám=quên gọi.
+   Text theo scheme (mực in). Bấm vào → popup xác nhận gọi. */
+.call-tag {
+  flex-shrink: 0; margin-top: 1px;
+  border: none; cursor: pointer; font: inherit; font-size: 11px; font-weight: 700;
+  padding: 3px 9px; border-radius: 100px; white-space: nowrap; color: var(--ink);
+}
+.call-soon { background: #EBC85C; }              /* vàng nghệ ấm */
+.call-due { background: #E29A8E; }               /* đỏ son nhạt, không gắt */
+.call-missed { background: #D8D4C8; color: #5f5f57; } /* xám giấy */
+.call-tag:hover { filter: brightness(0.96); }
 
 /* Nút menu "⋯" + popover chứa nút Xoá */
 .card-menu { position: relative; flex-shrink: 0; }
@@ -505,6 +518,42 @@ legend { font-size: 12px; color: #6b6b60; padding: 0 6px; }
 .menh-preview { padding: 10px 12px; background: #f2e8da; border-radius: 8px; font-size: 13px; color: #7a5a2f; }
 
 .form-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+
+/* ---------------- LỊCH GỌI ---------------- */
+/* Khối đặt lịch trên trang chi tiết */
+.detail-call { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 22px; }
+.detail-call-label { font-size: 14px; color: var(--seal); font-weight: 600; }
+.detail-call .btn-small { cursor: pointer; }
+
+/* Dialog đặt lịch gọi + dialog xác nhận gọi */
+dialog#schedule-modal, dialog#call-action-modal {
+  border: none; border-radius: var(--radius); padding: 0; width: min(430px, 92vw);
+}
+dialog#schedule-modal::backdrop, dialog#call-action-modal::backdrop { background: rgba(20, 30, 30, 0.5); }
+.sched, .callact { padding: 22px; position: relative; }
+.sched h2, .callact h2 { font-size: 19px; margin-bottom: 6px; }
+.sched-label { font-size: 13px; font-weight: 600; color: #6b6b60; margin: 14px 0 7px; }
+.sched-opts { display: flex; flex-wrap: wrap; gap: 8px; }
+.sched-opt {
+  font: inherit; font-size: 14px; cursor: pointer; padding: 8px 14px; border-radius: 8px;
+  border: 1px solid var(--line); background: #fff; color: var(--ink);
+}
+.sched-opt:hover { border-color: var(--teal-light); }
+.sched-opt.is-sel { background: var(--seal); color: #fff; border-color: var(--seal); }
+#sched-time-custom, #sched-date-custom {
+  display: block; margin-top: 10px; font: inherit; font-size: 14px;
+  padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px;
+}
+.sched-error { color: var(--bad); font-size: 13px; min-height: 16px; margin-top: 10px; }
+
+.callact-sub { color: #6b6b60; font-size: 14px; margin: 8px 0 18px; }
+.callact-btns { display: flex; gap: 10px; flex-wrap: wrap; }
+.callact-btns .btn-primary, .callact-btns .btn-secondary { margin-top: 0; }
+.callact-x {
+  position: absolute; top: 14px; right: 14px; width: 30px; height: 30px; border-radius: 8px;
+  border: none; background: transparent; color: #8a8a7d; cursor: pointer; font-size: 15px;
+}
+.callact-x:hover { background: var(--paper); }
 
 @media (max-width: 560px) {
   .form-grid { grid-template-columns: 1fr; }

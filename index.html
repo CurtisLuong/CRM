@@ -130,6 +130,12 @@
       <span id="detail-eval"></span>
     </div>
 
+    <div class="detail-call">
+      <span id="detail-call-label" class="detail-call-label"></span>
+      <button id="detail-schedule-btn" class="btn-small">＋ Đặt lịch gọi</button>
+      <button id="detail-callclear-btn" class="btn-small btn-danger" hidden>Xoá lịch</button>
+    </div>
+
     <section class="detail-section">
       <h3>Ghi chú</h3>
       <div id="detail-notes" class="detail-notes-box"></div>
@@ -183,6 +189,15 @@
           <option value="">— Chưa rõ —</option>
           <option value="đã kết hôn">Đã kết hôn</option>
           <option value="chưa kết hôn">Chưa kết hôn</option>
+        </select>
+      </label>
+      <label>Công việc
+        <select name="occupation">
+          <option value="">— Chưa rõ —</option>
+          <option value="Tự do">Tự do</option>
+          <option value="Công ty, DN">Công ty, DN</option>
+          <option value="Công, viên chức">Công, viên chức</option>
+          <option value="Công an, Bộ đội">Công an, Bộ đội</option>
         </select>
       </label>
       <label>Thu nhập
@@ -244,6 +259,46 @@
       <button type="submit" class="btn-primary">Lưu</button>
     </div>
   </form>
+</dialog>
+
+<!-- ============ ĐẶT LỊCH GỌI (dùng chung: trang chi tiết + "hẹn lại") ============ -->
+<dialog id="schedule-modal">
+  <div class="sched">
+    <h2>Đặt lịch gọi</h2>
+    <div class="sched-label">Chọn giờ</div>
+    <div class="sched-opts" id="sched-time">
+      <button type="button" class="sched-opt" data-time="9-10h">9–10h</button>
+      <button type="button" class="sched-opt" data-time="14-15h">14–15h</button>
+      <button type="button" class="sched-opt" data-time="20-21h">20–21h</button>
+      <button type="button" class="sched-opt" data-time="custom">Tùy chọn giờ</button>
+    </div>
+    <input type="time" id="sched-time-custom" hidden />
+    <div class="sched-label">Chọn ngày</div>
+    <div class="sched-opts" id="sched-date">
+      <button type="button" class="sched-opt" data-date="today">Hôm nay</button>
+      <button type="button" class="sched-opt" data-date="tomorrow">Ngày mai</button>
+      <button type="button" class="sched-opt" data-date="custom">Tùy chọn ngày</button>
+    </div>
+    <input type="date" id="sched-date-custom" hidden />
+    <div id="sched-error" class="sched-error"></div>
+    <div class="form-actions">
+      <button type="button" id="sched-cancel" class="btn-ghost">Huỷ</button>
+      <button type="button" id="sched-save" class="btn-primary">Lưu lịch gọi</button>
+    </div>
+  </div>
+</dialog>
+
+<!-- ============ XÁC NHẬN GỌI (bấm vào tag nhắc gọi) ============ -->
+<dialog id="call-action-modal">
+  <div class="callact">
+    <button type="button" id="callact-close" class="callact-x" aria-label="Đóng">✕</button>
+    <h2 id="callact-title">Gọi khách</h2>
+    <p id="callact-sub" class="callact-sub"></p>
+    <div class="callact-btns">
+      <button type="button" id="callact-done" class="btn-primary">✓ Đã gọi</button>
+      <button type="button" id="callact-resched" class="btn-secondary">Hẹn lại</button>
+    </div>
+  </div>
 </dialog>
 
 <script src="/js/config.js"></script>
