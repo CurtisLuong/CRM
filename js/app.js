@@ -191,15 +191,27 @@ function normalizePhone(p) {
   return (p || '').replace(/[^\d+]/g, '');
 }
 
+// Bỏ dấu tiếng Việt để tìm kiếm "theo ký tự": "Hương" → "huong", "Đặng" → "dang".
+// Cách làm: NFD tách chữ + dấu thành 2 phần rồi xoá toàn bộ ký tự dấu tổ hợp
+// (dấu thanh, mũ, râu ư/ơ...). Riêng đ/Đ không tách được bằng NFD nên thay tay.
+function removeVietnameseTones(str) {
+  return (str || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/đ/g, 'd');
+}
+
 function zaloLink(phone) {
   const clean = normalizePhone(phone).replace(/^\+?84/, '0');
   return `https://zalo.me/${clean}`;
 }
 
 function matchesFilters(c) {
-  const q = $('#search-input').value.trim().toLowerCase();
+  // Tìm kiếm bỏ dấu: gõ "huong" vẫn ra "Hương", gõ "hu" đã ra ngay (theo ký tự).
+  const q = removeVietnameseTones($('#search-input').value.trim());
   if (q) {
-    const hay = `${c.phone || ''} ${c.full_name || ''}`.toLowerCase();
+    const hay = removeVietnameseTones(`${c.phone || ''} ${c.full_name || ''}`);
     if (!hay.includes(q)) return false;
   }
   const stage = $('#filter-stage').value;

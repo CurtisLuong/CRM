@@ -40,11 +40,9 @@ Chưa cái nào được làm. Sắp xếp thô theo mức độ nên làm sớm
   (`admin`/`sale`), admin thấy hết. Có thể cần thêm khái niệm "chuyển giao
   khách" (đổi `owner_id`) khi 1 sale nghỉ hoặc khách được re-assign, kèm
   lịch sử ai từng phụ trách.
-- **Tìm kiếm mờ (fuzzy search) cho tên khách.** Hiện search bằng
-  `includes()` đơn giản trên chuỗi đã lowercase — không xử lý được gõ sai
-  dấu hoặc không dấu. Cân nhắc chuẩn hoá bỏ dấu tiếng Việt trước khi so
-  khớp (viết hàm `removeVietnameseTones()` đơn giản, không cần thư viện
-  ngoài).
+<!-- ĐÃ LÀM 2026-08-19: Tìm kiếm bỏ dấu — thêm removeVietnameseTones() trong
+     app.js, áp vào matchesFilters. Gõ "huong" ra "Hương", "hu" ra ngay. Xem
+     CHANGELOG.md. (Chưa xử lý gõ SAI dấu kiểu typo — chỉ bỏ dấu, đủ dùng.) -->
 - **Nhắc trùng SĐT khi nhập khách mới.** Hiện unique index chặn ở tầng DB
   nhưng lỗi trả về khá kỹ thuật; nên check trước ở client và hỏi "Khách này
   đã tồn tại, xem lại thông tin cũ?" thay vì để lỗi INSERT rớt xuống hàng
