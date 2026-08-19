@@ -107,6 +107,10 @@ async function boot() {
 
 async function onLoggedIn(user) {
   currentUser = user;
+  // Avatar = chữ cái đầu của email; menu hiện email đầy đủ
+  const email = user.email || '';
+  $('#user-menu-btn').textContent = (email[0] || '?').toUpperCase();
+  $('#user-email').textContent = email;
   showAppScreen();
   CRM.init(sb, user.id);
   await CRM.flushQueue();
@@ -164,6 +168,24 @@ async function handleSignup(e) {
 
 function handleLogout() {
   sb.auth.signOut();
+}
+
+// Làm mới dữ liệu: đẩy hàng đợi + kéo bản mới nhất từ Supabase + vẽ lại
+// (không phải reload cả trang — giữ nguyên vị trí đang xem).
+async function handleReload() {
+  const btn = $('#reload-btn');
+  btn.classList.add('spinning');
+  try {
+    await CRM.flushQueue();
+    await CRM.pull();
+    await refreshList();
+    if (!$('#dashboard-view').hidden) renderDashboard();
+  } catch (e) {
+    console.warn('Làm mới lỗi:', e);
+  } finally {
+    updateSyncBadge();
+    setTimeout(() => btn.classList.remove('spinning'), 500);
+  }
 }
 
 // ------------------------------------------------------------- SYNC UI ----
@@ -999,7 +1021,19 @@ document.addEventListener('DOMContentLoaded', () => {
     $('#interest-output').textContent = e.target.value + '%';
   });
 
-  $('#search-input').addEventListener('input', renderList);
+  $('#search-input').addEventListener('input', () => {
+    // Gõ tìm khi đang ở tab Tổng quan → tự chuyển sang tab Khách hàng để thấy kết quả.
+    if ($('#search-input').value.trim() && $('#dashboard-view').hidden === false) showListView();
+    renderList();
+  });
+  $('#reload-btn').addEventListener('click', handleReload);
+  $('#user-menu-btn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    $('#topbar-menu').classList.toggle('open');
+  });
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('#topbar-menu')) $('#topbar-menu').classList.remove('open');
+  });
   $('#filter-progress').addEventListener('change', renderList);
   $('#filter-stage').addEventListener('change', renderList);
   $('#filter-evaluation').addEventListener('change', renderList);

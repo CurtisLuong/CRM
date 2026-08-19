@@ -6,6 +6,35 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-19 — Đổi tên "Sổ Khách", làm lại header & bảng màu toàn app
+
+**1. Đổi tên** ứng dụng: "CRM Khách hàng" → **"Sổ Khách"** (title, brand
+header, màn đăng nhập, `manifest.json` name/short_name).
+
+**2. Header mới (nhiều công năng hơn):**
+- Gộp **tab "Khách hàng" / "Tổng quan" vào ngay header** (bỏ thanh tab riêng
+  bên dưới) — dạng segmented control trên nền mực in.
+- **Ô tìm nhanh luôn có trong header** (chuyển từ toolbar lên). Gõ tìm khi
+  đang ở tab Tổng quan → tự chuyển về tab Khách hàng để thấy kết quả.
+- **Gộp "Đăng xuất" vào avatar tròn** (menu popover kèm email) — bỏ nút Đăng
+  xuất chình ình.
+- **Thêm nút "↻ Làm mới"**: đẩy hàng đợi + kéo dữ liệu mới nhất từ Supabase +
+  vẽ lại, không phải tắt/mở lại app (icon xoay khi đang tải).
+- Header responsive: mobile xuống 3 hàng (brand+tab / badge+reload+avatar /
+  ô tìm full-width).
+
+**3. Bảng màu mới** — cảm hứng "con dấu mộc đỏ trên sổ đỏ/hợp đồng"
+(cập nhật biến trong `:root`):
+- Nền giấy ngà `#F7F4EE`; chữ chính + header mực in xanh đen `#1A2E29`.
+- **Accent chính đỏ son `#B0342A`** (nút, badge quan trọng, mức quan tâm) —
+  thay cam đất cũ. Nút primary + avatar dùng màu này.
+- Accent phụ xanh lá trầm `#3D6B4F` (nên chăm / thành công).
+- Giữ nguyên bảng màu 7 bậc tiến độ (vốn đã là gradient đỏ→xanh, hợp tông).
+
+File: `index.html`, `manifest.json`, `css/style.css`, `js/app.js`
+
+---
+
 ## 2026-08-19 — Dashboard tổng quan (tab riêng, 8 phân tích)
 
 Thêm tab "Tổng quan" cạnh "Khách hàng" (điều hướng bằng `.tab-nav` trong

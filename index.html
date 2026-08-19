@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>CRM Khách hàng — Bất động sản</title>
-<meta name="theme-color" content="#1f3a3d" />
+<title>Sổ Khách — Bất động sản</title>
+<meta name="theme-color" content="#1A2E29" />
 <link rel="manifest" href="/manifest.json" />
 <link rel="stylesheet" href="/css/style.css" />
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -14,7 +14,7 @@
 <!-- ============ MÀN HÌNH ĐĂNG NHẬP ============ -->
 <section id="auth-screen">
   <div class="auth-box">
-    <h1>CRM Khách hàng</h1>
+    <h1>Sổ Khách</h1>
     <p class="auth-sub">Đăng nhập để xem &amp; đồng bộ danh sách khách của bạn</p>
     <form id="login-form">
       <label>Email
@@ -33,21 +33,29 @@
 <!-- ============ MÀN HÌNH CHÍNH ============ -->
 <section id="app-screen" hidden>
   <header class="topbar">
-    <h1>CRM Khách hàng</h1>
-    <div class="topbar-right">
+    <div class="topbar-lead">
+      <span class="topbar-brand">Sổ Khách</span>
+      <nav class="tab-nav">
+        <button id="tab-list" class="tab-btn is-active">Khách hàng</button>
+        <button id="tab-dashboard" class="tab-btn">Tổng quan</button>
+      </nav>
+    </div>
+    <input id="search-input" class="topbar-search" type="search" placeholder="Tìm nhanh SĐT / tên..." />
+    <div class="topbar-actions">
       <span id="sync-badge" class="sync-badge">…</span>
-      <button id="logout-btn" class="btn-ghost">Đăng xuất</button>
+      <button id="reload-btn" class="icon-btn-plain" title="Làm mới dữ liệu" aria-label="Làm mới">↻</button>
+      <div class="topbar-menu" id="topbar-menu">
+        <button id="user-menu-btn" class="avatar-btn" aria-label="Tài khoản">?</button>
+        <div class="menu-pop">
+          <div class="menu-email" id="user-email"></div>
+          <button id="logout-btn" class="menu-item">Đăng xuất</button>
+        </div>
+      </div>
     </div>
   </header>
 
-  <nav class="tab-nav">
-    <button id="tab-list" class="tab-btn is-active">Khách hàng</button>
-    <button id="tab-dashboard" class="tab-btn">Tổng quan</button>
-  </nav>
-
   <div id="list-view">
   <div class="toolbar">
-    <input id="search-input" type="search" placeholder="Tìm theo SĐT hoặc tên..." />
     <select id="filter-progress">
       <option value="active" selected>Đang chăm sóc</option>
       <option value="done">Đã xong</option>
