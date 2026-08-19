@@ -6,6 +6,18 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-19 — Đổi tiêu chí sort mặc định
+
+Sort mặc định `care_asc` (`sortCustomers` trong app.js) đổi từ 2 → 3 tiêu chí:
+1. Tiến độ chăm sóc tăng dần (giữ nguyên).
+2. Cùng bậc → mức quan tâm **GIẢM dần** (trước đây tăng dần).
+3. Bằng nhau → khách **mới tạo gần đây lên trước** (`created_at` giảm dần).
+
+Cập nhật nhãn dropdown thành "Tiến độ ↑, quan tâm ↓ (mặc định)".
+File: `js/app.js`, `index.html`
+
+---
+
 ## 2026-08-19 — Thêm nghề nghiệp + hẹn lịch gọi + nhắc gọi trên card
 
 **Cần chạy migration** `add_occupation_and_call_schedule.sql` (thêm 3 cột:

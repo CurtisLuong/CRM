@@ -261,12 +261,15 @@ function sortCustomers(list) {
   const sortBy = $('#sort-select').value;
   const arr = [...list];
   if (sortBy === 'care_asc') {
-    // Mặc định: tiến độ chăm sóc tăng dần (bậc 1 → 7), cùng bậc thì mức độ
-    // quan tâm tăng dần (thấp → cao). Đưa khách "cần chăm sớm" lên đầu.
+    // Mặc định: 1) tiến độ chăm sóc tăng dần (bậc 1 → 7);
+    // 2) cùng bậc → mức quan tâm GIẢM dần (cao → thấp);
+    // 3) bằng nhau → khách mới tạo gần đây lên trước (created_at giảm dần).
     arr.sort((a, b) => {
       const d = careSortRank(a.care_stage) - careSortRank(b.care_stage);
       if (d !== 0) return d;
-      return (a.interest_level || 0) - (b.interest_level || 0);
+      const i = (b.interest_level || 0) - (a.interest_level || 0);
+      if (i !== 0) return i;
+      return (b.created_at || '').localeCompare(a.created_at || '');
     });
   }
   else if (sortBy === 'interest_desc') arr.sort((a, b) => (b.interest_level || 0) - (a.interest_level || 0));
