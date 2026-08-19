@@ -134,8 +134,14 @@ input:focus, select:focus, textarea:focus {
    min-height:0 cho phép co lại, overflow:hidden cắt phần dư, actions không bị đẩy ra ngoài. */
 .card-body { flex: 1 1 auto; min-height: 0; overflow: hidden; }
 .card-name { font-weight: 600; font-size: 16px; }
-.card-phone { color: var(--teal); text-decoration: none; font-size: 14px; display: inline-block; margin-top: 2px; }
-.card-phone:hover { text-decoration: underline; }
+/* Hàng SĐT trên card: {số} (chỉ hiển thị, KHÔNG bấm) · {icon phone} bấm để gọi · {icon zalo} mở Zalo */
+.phone-row { display: flex; align-items: center; gap: 8px; margin-top: 3px; }
+.phone-number { font-size: 14px; color: #3a3a34; }
+.card-phone { color: var(--teal); text-decoration: none; font-size: 14px; display: inline-flex; align-items: center; }
+.card-zalo { display: inline-flex; align-items: center; line-height: 0; }
+/* Cỡ icon ăn theo font-size của SĐT (đặt bằng em) để luôn tương xứng cỡ chữ */
+.ic-phone { width: 1.05em; height: 1.05em; fill: currentColor; flex-shrink: 0; }
+.ic-zalo { height: 1.35em; width: auto; display: block; }
 
 /* Vòng tròn tiến độ chăm sóc: viền conic đầy dần theo bậc (--pct), màu theo bậc
    (--ring). Lỗ giữa màu trắng để nhìn ra hình "vòng" chứ không phải đĩa đặc. */
@@ -205,7 +211,22 @@ input:focus, select:focus, textarea:focus {
 
 .detail-phone-row { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; }
 .detail-phone { font-size: 16px; color: var(--teal); font-weight: 600; }
-.detail-phone-row a.btn-small { text-decoration: none; color: var(--teal); display: inline-flex; align-items: center; }
+/* Nút icon Gọi / Zalo — cỡ icon tương xứng cỡ chữ SĐT (16px) */
+.detail-phone-row .icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--teal);
+  text-decoration: none;
+  cursor: pointer;
+}
+.detail-phone-row .icon-btn:hover { border-color: var(--teal-light); }
+.detail-phone-row .ic-phone { width: 1.25em; height: 1.25em; fill: currentColor; }
+.detail-phone-row .ic-zalo { height: 1.4em; width: auto; display: block; }
 
 /* Hàng huy hiệu: tiến độ (chấm), quan tâm (chấm), đánh giá */
 .detail-badges { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 22px; }

@@ -71,6 +71,10 @@ const EVAL_REASONS = [
   'Khác',
 ];
 
+// Icon điện thoại (SVG inline, tô theo màu chữ, cỡ ăn theo font-size chỗ đặt).
+// Zalo dùng ảnh icons/Zalo-icon.png (đặt trong <img>).
+const PHONE_SVG = '<svg class="ic-phone" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>';
+
 let sb = null;
 let currentUser = null;
 let allCustomers = [];
@@ -257,7 +261,13 @@ function renderList() {
       <div class="card-top">
         <div>
           <div class="card-name">${escapeHtml(c.full_name || '(chưa có tên)')}</div>
-          <a class="card-phone" href="${zaloLink(c.phone)}" target="_blank" rel="noopener">📞 ${escapeHtml(c.phone || '')}</a>
+          <div class="phone-row">
+            <span class="phone-number">${escapeHtml(c.phone || '')}</span>
+            <a class="card-phone" href="tel:${normalizePhone(c.phone)}" aria-label="Gọi ${escapeHtml(c.phone || '')}">${PHONE_SVG}</a>
+            <a class="card-zalo" href="${zaloLink(c.phone)}" target="_blank" rel="noopener" aria-label="Nhắn Zalo">
+              <img class="ic-zalo" src="/icons/zalo.png" alt="Zalo" />
+            </a>
+          </div>
         </div>
         <div class="progress-ring" style="--pct:${ringPct}; --ring:${ringColor}" title="${escapeHtml(careLabel(c.care_stage))}">
           <span class="progress-ring-inner">${ringText}</span>
@@ -448,7 +458,7 @@ function openDetail(id) {
   detailId = id;
 
   $('#detail-name').textContent = c.full_name || '(chưa có tên)';
-  $('#detail-phone').textContent = '📞 ' + (c.phone || DASH);
+  $('#detail-phone').textContent = c.phone || DASH;
   $('#detail-call-btn').href = c.phone ? `tel:${normalizePhone(c.phone)}` : '#';
   $('#detail-zalo-btn').href = zaloLink(c.phone);
 

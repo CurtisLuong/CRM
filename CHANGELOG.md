@@ -6,6 +6,42 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-19 — Icon Zalo bản nhẹ + số điện thoại không còn bấm được
+
+- **Tối ưu icon Zalo**: ảnh gốc `icons/Zalo-icon.png` là 978×978, ~344KB —
+  quá nặng cho 1 icon hiển thị ~20px. Tạo bản nhẹ `icons/zalo.png` 96×96
+  (~9KB, đủ nét cho cả màn retina 2x–3x) bằng `sips`, đổi mọi tham chiếu
+  sang file mới. File gốc `Zalo-icon.png` giờ KHÔNG còn dùng — giữ lại phòng
+  khi cần, có thể xoá để repo gọn.
+- **Số điện thoại không còn clickable**: trước đó trên card, số nằm trong thẻ
+  `<a href="tel:">`. Nay tách số ra thành `<span class="phone-number">` chỉ
+  để hiển thị (chữ thường, không gạch chân); mọi thao tác bấm chuyển hết sang
+  2 icon (icon phone → gọi, icon Zalo → Zalo). Trang chi tiết vốn đã tách sẵn
+  số khỏi nút nên không đổi.
+
+File: `js/app.js`, `index.html`, `css/style.css`, `icons/zalo.png` (mới)
+
+---
+
+## 2026-08-19 — Icon Gọi / Zalo thay cho emoji & chữ
+
+Đổi cách hiển thị SĐT + hành động gọi/Zalo cho gọn và rõ:
+
+- **Card**: bỏ `📞` emoji + link Zalo cũ. Giờ hiện `{số điện thoại}
+  {icon phone}` (bấm cả cụm → `tel:` mở giao diện gọi) và `{icon Zalo}`
+  riêng (→ zalo.me). Trước đây bấm số là ra Zalo; nay bấm số/icon phone là
+  GỌI, muốn nhắn Zalo thì bấm icon Zalo.
+- **Trang chi tiết**: thay 2 nút chữ "Gọi" / "Zalo" bằng nút icon phone /
+  icon Zalo tương ứng; bỏ luôn emoji 📞 trước số (đã có nút icon phone).
+- **Icon**: phone là SVG inline (tô theo màu chữ, cỡ đặt bằng `em` nên luôn
+  tương xứng cỡ chữ SĐT); Zalo dùng ảnh `icons/Zalo-icon.png`.
+- `sw.js` **không đổi**: ảnh Zalo được service worker cache tự động theo cơ
+  chế network-first sau lần tải đầu (không cần thêm vào APP_SHELL).
+
+File: `index.html`, `js/app.js`, `css/style.css`
+
+---
+
 ## 2026-08-19 — Trang chi tiết khách hàng (màn hình xem đầy đủ)
 
 Thêm màn hình chi tiết `#detail-screen` (mục đã note trong `FEATURE_IDEAS.md`):
