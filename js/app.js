@@ -456,6 +456,7 @@ async function confirmDelete(id) {
 // ------------------------------------------------------------ DETAIL ------
 
 let detailId = null; // khách đang xem ở trang chi tiết
+let editingHistoryAt = null; // mốc lịch sử đang sửa note (theo 'at'), null = không sửa
 
 // Chuỗi HTML các "chấm" tiến độ: 7 chấm, tô màu bậc cho tới level hiện tại.
 function stageDotsHtml(stage) {
@@ -544,6 +545,7 @@ function openDetail(id) {
   const c = allCustomers.find((x) => x.id === id);
   if (!c) return;
   detailId = id;
+  editingHistoryAt = null; // mở khách mới → thoát chế độ sửa note cũ
 
   $('#detail-name').textContent = c.full_name || '(chưa có tên)';
   $('#detail-phone').textContent = c.phone || DASH;
@@ -605,6 +607,7 @@ function openDetail(id) {
 
 // Timeline lịch sử chăm sóc: mỗi mốc là 1 khối ô (tô màu theo bậc), giữa các
 // mốc hiện khoảng thời gian; timestamp + note để mờ hơn. Cũ ở trên, mới ở dưới.
+// Note của từng mốc sửa được tại chỗ (chỉ đổi note, không đụng stage/thời gian).
 function renderCareHistory(history) {
   const section = $('#detail-history-section');
   const box = $('#detail-history');
@@ -620,16 +623,82 @@ function renderCareHistory(history) {
       html += `<div class="cs-gap">${escapeHtml(formatDuration(gap))}</div>`;
     }
     const color = careColor(entry.stage);
-    const meta = [formatLogTime(entry.at), entry.note ? escapeHtml(entry.note) : '']
-      .filter(Boolean).join(' · ');
+    const at = escapeHtml(entry.at || '');
+    const editing = entry.at === editingHistoryAt;
+    let noteHtml;
+    if (editing) {
+      // Giá trị input sẽ set bằng JS sau khi render (tránh lỗi escape dấu ").
+      noteHtml = `
+        <div class="cs-note-edit">
+          <input class="cs-note-input" type="text" placeholder="Ghi chú cho mốc này..." />
+          <button class="btn-small" data-hist-save="${at}">Lưu</button>
+          <button class="btn-small" data-hist-cancel="${at}">Huỷ</button>
+        </div>`;
+    } else if (entry.note) {
+      noteHtml = `<span class="cs-sep"> · </span><span class="cs-note-text">${escapeHtml(entry.note)}</span>
+        <button class="cs-note-btn" data-hist-edit="${at}" title="Sửa ghi chú">✎</button>`;
+    } else {
+      noteHtml = `<span class="cs-sep"> · </span><button class="cs-note-add" data-hist-edit="${at}">+ ghi chú</button>`;
+    }
     html += `
       <div class="cs-entry" style="--ring:${color}">
         <span class="cs-stage">${escapeHtml(entry.stage || 'Chưa xác định')}</span>
-        ${meta ? `<div class="cs-meta">${meta}</div>` : ''}
+        <div class="cs-meta">
+          <span class="cs-time">${escapeHtml(formatLogTime(entry.at))}</span>
+          <span class="cs-note-wrap">${noteHtml}</span>
+        </div>
       </div>`;
   });
   box.innerHTML = html;
+
+  // Đang sửa 1 mốc → nạp note cũ vào input + focus (đặt con trỏ cuối chuỗi).
+  if (editingHistoryAt) {
+    const inp = box.querySelector('.cs-note-input');
+    const entry = list.find((e) => e.at === editingHistoryAt);
+    if (inp) {
+      inp.value = entry && entry.note ? entry.note : '';
+      inp.focus();
+      inp.setSelectionRange(inp.value.length, inp.value.length);
+    }
+  }
 }
+
+// Vẽ lại riêng phần lịch sử của khách đang xem (sau khi đổi trạng thái sửa).
+function rerenderCareHistory() {
+  const c = allCustomers.find((x) => x.id === detailId);
+  renderCareHistory(c ? c.care_stage_history : []);
+}
+
+// Lưu note đã sửa của 1 mốc rồi vẽ lại.
+async function saveHistoryNote(at, note) {
+  if (detailId) {
+    await CRM.updateCareHistoryNote(detailId, at, note);
+    allCustomers = await CRM.list();
+  }
+  editingHistoryAt = null;
+  rerenderCareHistory();
+}
+
+// Bấm trong timeline lịch sử: ✎/+ghi chú → vào sửa; Lưu/Huỷ → thoát.
+$('#detail-history')?.addEventListener('click', (e) => {
+  const editBtn = e.target.closest('[data-hist-edit]');
+  if (editBtn) { editingHistoryAt = editBtn.dataset.histEdit; rerenderCareHistory(); return; }
+  const saveBtn = e.target.closest('[data-hist-save]');
+  if (saveBtn) {
+    const inp = $('#detail-history .cs-note-input');
+    saveHistoryNote(saveBtn.dataset.histSave, inp ? inp.value.trim() || null : null);
+    return;
+  }
+  const cancelBtn = e.target.closest('[data-hist-cancel]');
+  if (cancelBtn) { editingHistoryAt = null; rerenderCareHistory(); }
+});
+
+// Trong ô sửa note: Enter = Lưu, Esc = Huỷ.
+$('#detail-history')?.addEventListener('keydown', (e) => {
+  if (!e.target.classList.contains('cs-note-input')) return;
+  if (e.key === 'Enter') { e.preventDefault(); saveHistoryNote(editingHistoryAt, e.target.value.trim() || null); }
+  else if (e.key === 'Escape') { e.preventDefault(); editingHistoryAt = null; rerenderCareHistory(); }
+});
 
 // -------------------------------------------------------------- WIRE UP ---
 

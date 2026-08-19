@@ -6,6 +6,25 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-19 — Sửa được note của từng mốc lịch sử chăm sóc (chỉ note)
+
+Timeline lịch sử trước đây chỉ đọc. Giờ note của mỗi mốc sửa được tại chỗ.
+
+- **`db.js`**: thêm `CRM.updateCareHistoryNote(id, at, note)` — tìm mốc theo
+  `at`, chỉ đổi `note`, GIỮ NGUYÊN `stage`, `at`, `updated_at`,
+  `care_stage_updated_at`. Đồng bộ chỉ gửi cột `care_stage_history` → không
+  làm nhảy "cập nhật cuối" trên card hay bất kỳ ràng buộc/timestamp nào.
+- **`app.js`**: mỗi mốc trong timeline có nút ✎ (sửa) / "+ ghi chú" (mốc chưa
+  có note). Bấm → hiện ô input tại chỗ + nút Lưu/Huỷ (Enter=Lưu, Esc=Huỷ). Chỉ
+  1 mốc sửa 1 lúc (`editingHistoryAt`). Lưu xong vẽ lại timeline.
+- **`css`**: style ô sửa note + nút ✎ kín đáo.
+
+Không đổi schema (dùng lại cột `care_stage_history` sẵn có) → không cần migration.
+
+File: `js/db.js`, `js/app.js`, `css/style.css`
+
+---
+
 ## 2026-08-19 — Lịch sử tiến độ chăm sóc (timeline) trên trang chi tiết
 
 Ghi lại & hiển thị toàn bộ hành trình đổi Tiến độ chăm sóc của khách.
