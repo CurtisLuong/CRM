@@ -125,6 +125,11 @@
       <h3>Thông tin cá nhân</h3>
       <div id="detail-personal" class="detail-personal"></div>
     </section>
+
+    <section class="detail-section" id="detail-history-section" hidden>
+      <h3>Lịch sử chăm sóc</h3>
+      <div id="detail-history" class="cs-log"></div>
+    </section>
   </div>
 </section>
 
@@ -196,6 +201,10 @@
 
       <label>Tiến độ chăm sóc
         <select name="care_stage"></select>
+      </label>
+      <label class="span-2" id="care-stage-note-wrap" hidden>
+        Ghi chú cho lần đổi tiến độ này
+        <input name="care_stage_note" type="text" placeholder="vd: Khách không nghe máy, hẹn gọi lại chiều mai..." />
       </label>
       <label>Đánh giá
         <select name="evaluation">

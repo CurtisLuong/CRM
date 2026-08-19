@@ -9,11 +9,12 @@ Chưa cái nào được làm. Sắp xếp thô theo mức độ nên làm sớm
      xem CHANGELOG.md. Bấm vào card mở trang chi tiết (đầy đủ Chi tiết,
      căn hộ, thông tin cá nhân), nút Sửa mở lại modal cũ. -->
 
-- **Lịch sử thay đổi tiến độ chăm sóc (timeline).** Hiện `care_stage` chỉ
-  lưu giá trị hiện tại, mất lịch sử. Thêm bảng `customer_activity_log`
-  (customer_id, field, old_value, new_value, changed_at, changed_by) ghi
-  lại mỗi lần đổi `care_stage`/`evaluation` — giúp biết khách đã đi qua các
-  bước nào, mất bao lâu ở mỗi bước.
+<!-- ĐÃ LÀM 2026-08-19: Lịch sử tiến độ chăm sóc (timeline) — nhưng làm GỌN hơn
+     đề xuất gốc: KHÔNG tạo bảng log riêng, mà lưu mảng JSONB care_stage_history
+     ({stage,note,at}) ngay trên record khách (đồng bộ sẵn qua hàng đợi). Mỗi lần
+     đổi care_stage → append 1 mốc kèm ghi chú riêng. Hiển thị timeline ở trang
+     chi tiết + khoảng thời gian giữa các bước. Xem CHANGELOG + add_care_stage_history.sql.
+     (Chưa log evaluation — chỉ care_stage. Muốn log thêm field khác thì mở rộng sau.) -->
 - **Nhắc hẹn gọi lại.** Khi `care_stage = 'Hẹn gọi lại'`, cho phép chọn ngày
   giờ hẹn, hiển thị badge "quá hạn" trên dashboard nếu đã qua ngày mà chưa
   đổi trạng thái. Có thể làm bằng field `next_followup_at` + filter/sort

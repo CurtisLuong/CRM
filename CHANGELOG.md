@@ -6,6 +6,33 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-19 — Lịch sử tiến độ chăm sóc (timeline) trên trang chi tiết
+
+Ghi lại & hiển thị toàn bộ hành trình đổi Tiến độ chăm sóc của khách.
+
+- **Lưu lịch sử**: thêm cột `care_stage_history` (JSONB) trên `customers` —
+  mảng các mốc `{stage, note, at}`. KHÔNG dùng bảng log riêng: nhét thẳng vào
+  record khách để tự đồng bộ qua hàng đợi IndexedDB hiện có (không thêm
+  bảng/RLS/grant/pull mới). Migration `add_care_stage_history.sql` (CẦN CHẠY).
+- **Ghi mốc**: `db.js` — mỗi khi `care_stage` đổi (đồng bộ với timestamp đã
+  làm) thì append 1 mốc kèm `at = giờ đổi`. Khi tạo khách có sẵn bậc → tạo
+  mốc đầu tiên.
+- **Ghi chú riêng mỗi lần đổi**: form có thêm ô "Ghi chú cho lần đổi tiến độ
+  này" (`care_stage_note`), CHỈ hiện khi chọn bậc khác giá trị lúc mở form.
+  Ghi chú này đi vào mốc lịch sử, không phải cột riêng của khách
+  (`CRM.create/update` nhận qua tham số `opts.careStageNote`).
+- **Hiển thị**: mục "Lịch sử chăm sóc" ở trang chi tiết — timeline dọc, mỗi
+  bậc là 1 khối ô tô màu theo tiến độ (nổi bật), timestamp + note mờ hơn,
+  giữa các mốc hiện khoảng thời gian ("2 ngày 23 giờ", "10 phút"...). Cũ trên,
+  mới dưới. Không có header cột.
+
+**Cần chạy migration** `add_care_stage_history.sql` trước/ngay khi deploy.
+
+File: `js/db.js`, `js/app.js`, `index.html`, `css/style.css`, `schema.sql`,
+`add_care_stage_history.sql` (migration cần chạy)
+
+---
+
 ## 2026-08-19 — Timestamp card chỉ đổi khi Tiến độ chăm sóc thay đổi
 
 Trước đây "Cập nhật X trước" trên card dùng `updated_at` → đổi mỗi lần sửa BẤT

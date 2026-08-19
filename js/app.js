@@ -79,6 +79,7 @@ let sb = null;
 let currentUser = null;
 let allCustomers = [];
 let editingId = null;
+let formOriginalStage = ''; // care_stage lúc mở form — để biết có đổi bậc không
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => Array.from(document.querySelectorAll(sel));
@@ -373,9 +374,22 @@ function openForm(id) {
   f.evaluation.value = c.evaluation || '';
   f.evaluation_reason.value = c.evaluation_reason || '';
 
+  // Ô "Ghi chú cho lần đổi tiến độ" chỉ hiện khi bậc thực sự khác lúc mở form.
+  formOriginalStage = c.care_stage || '';
+  f.care_stage_note.value = '';
+  toggleCareStageNote();
+
   updateMenhPreview();
   toggleEvalReason();
   $('#form-modal').showModal();
+}
+
+// Hiện ô ghi chú-đổi-bậc khi care_stage được chọn khác giá trị lúc mở form.
+function toggleCareStageNote() {
+  const f = $('#customer-form');
+  const changed = !!f.care_stage.value && f.care_stage.value !== formOriginalStage;
+  $('#care-stage-note-wrap').hidden = !changed;
+  if (!changed) f.care_stage_note.value = '';
 }
 
 function closeForm() {
@@ -422,8 +436,10 @@ async function handleFormSubmit(e) {
     return;
   }
   const savedId = editingId;
-  if (editingId) await CRM.update(editingId, payload);
-  else await CRM.create(payload);
+  // Ghi chú cho lần đổi bậc (chỉ dùng khi care_stage thực sự đổi — db.js tự kiểm).
+  const opts = { careStageNote: f.care_stage_note.value.trim() || null };
+  if (editingId) await CRM.update(editingId, payload, opts);
+  else await CRM.create(payload, opts);
   closeForm();
   await refreshList();
   // Nếu đang mở trang chi tiết khách vừa sửa → vẽ lại cho khớp dữ liệu mới
@@ -497,6 +513,26 @@ function timeAgo(iso) {
   return formatDate(iso.slice(0, 10));
 }
 
+// Thời điểm cho mốc lịch sử, kiểu "2h30, 30/8/2026" (giờ địa phương).
+function formatLogTime(iso) {
+  const dt = new Date(iso);
+  if (isNaN(dt.getTime())) return '';
+  const mm = String(dt.getMinutes()).padStart(2, '0');
+  return `${dt.getHours()}h${mm}, ${dt.getDate()}/${dt.getMonth() + 1}/${dt.getFullYear()}`;
+}
+
+// Khoảng cách giữa 2 mốc, kiểu "2 ngày 23 giờ" / "3 giờ 15 phút" / "40 phút".
+function formatDuration(ms) {
+  const totalMin = Math.max(0, Math.floor(ms / 60000));
+  if (totalMin < 1) return 'chưa tới 1 phút';
+  const d = Math.floor(totalMin / 1440);
+  const h = Math.floor((totalMin % 1440) / 60);
+  const m = totalMin % 60;
+  if (d > 0) return h > 0 ? `${d} ngày ${h} giờ` : `${d} ngày`;
+  if (h > 0) return m > 0 ? `${h} giờ ${m} phút` : `${h} giờ`;
+  return `${m} phút`;
+}
+
 // Viết hoa chữ cái đầu (hiển thị 'nam' → 'Nam').
 function capitalize(s) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
@@ -561,8 +597,38 @@ function openDetail(id) {
     .map(([k, v]) => `<span class="pi-item"><span class="pi-label">${k}:</span> ${escapeHtml(String(v))}</span>`)
     .join(' <span class="pi-sep">·</span> '); // có khoảng trắng để dòng tự ngắt khi hẹp
 
+  renderCareHistory(c.care_stage_history);
+
   showDetailScreen();
   window.scrollTo(0, 0);
+}
+
+// Timeline lịch sử chăm sóc: mỗi mốc là 1 khối ô (tô màu theo bậc), giữa các
+// mốc hiện khoảng thời gian; timestamp + note để mờ hơn. Cũ ở trên, mới ở dưới.
+function renderCareHistory(history) {
+  const section = $('#detail-history-section');
+  const box = $('#detail-history');
+  const list = Array.isArray(history) ? [...history] : [];
+  if (list.length === 0) { section.hidden = true; box.innerHTML = ''; return; }
+  section.hidden = false;
+  list.sort((a, b) => (a.at || '').localeCompare(b.at || '')); // theo thời gian tăng dần
+
+  let html = '';
+  list.forEach((entry, i) => {
+    if (i > 0) {
+      const gap = new Date(entry.at) - new Date(list[i - 1].at);
+      html += `<div class="cs-gap">${escapeHtml(formatDuration(gap))}</div>`;
+    }
+    const color = careColor(entry.stage);
+    const meta = [formatLogTime(entry.at), entry.note ? escapeHtml(entry.note) : '']
+      .filter(Boolean).join(' · ');
+    html += `
+      <div class="cs-entry" style="--ring:${color}">
+        <span class="cs-stage">${escapeHtml(entry.stage || 'Chưa xác định')}</span>
+        ${meta ? `<div class="cs-meta">${meta}</div>` : ''}
+      </div>`;
+  });
+  box.innerHTML = html;
 }
 
 // -------------------------------------------------------------- WIRE UP ---
@@ -592,6 +658,7 @@ document.addEventListener('DOMContentLoaded', () => {
   $('#cancel-form-btn').addEventListener('click', closeForm);
   $('#customer-form').dob.addEventListener('input', updateMenhPreview);
   $('#customer-form').evaluation.addEventListener('change', toggleEvalReason);
+  $('#customer-form').care_stage.addEventListener('change', toggleCareStageNote);
   $('#customer-form').interest_level.addEventListener('input', (e) => {
     $('#interest-output').textContent = e.target.value + '%';
   });

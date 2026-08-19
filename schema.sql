@@ -63,6 +63,8 @@ create table if not exists public.customers (
   updated_at timestamptz not null default now(),
   -- thời điểm care_stage đổi lần cuối (cho timestamp trên card, xem add_care_stage_updated_at.sql)
   care_stage_updated_at timestamptz default now(),
+  -- lịch sử đổi care_stage: mảng {stage, note, at} (xem add_care_stage_history.sql)
+  care_stage_history jsonb not null default '[]'::jsonb,
   updated_by uuid
 );
 

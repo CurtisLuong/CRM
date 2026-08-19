@@ -304,6 +304,39 @@ input:focus, select:focus, textarea:focus {
 .pi-label { color: #6b6b60; }
 .pi-sep { color: #cfcabd; }
 
+/* Timeline lịch sử chăm sóc: mỗi mốc 1 khối ô nổi bật (tô màu theo bậc),
+   giữa các mốc có đường nối + khoảng thời gian; timestamp/note mờ hơn. */
+.cs-log { position: relative; }
+.cs-entry { --ring: #9a9a90; position: relative; padding-left: 22px; }
+.cs-entry::before { /* chấm mốc trên đường timeline */
+  content: '';
+  position: absolute; left: 2px; top: 8px;
+  width: 11px; height: 11px; border-radius: 50%;
+  background: var(--ring); box-shadow: 0 0 0 2px var(--paper);
+}
+.cs-stage { /* KHỐI Ô nổi bật cho tên bậc */
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 14px; font-weight: 600;
+  color: var(--ring);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--ring);
+}
+.cs-meta { font-size: 12px; color: #9a9a90; margin: 4px 0 0 2px; } /* timestamp + note: mờ */
+.cs-gap { /* khoảng thời gian giữa 2 mốc, nằm trên đường nối dọc */
+  position: relative;
+  margin-left: 22px;
+  padding: 6px 0 6px 12px;
+  font-size: 12px; color: #6b6b60;
+}
+.cs-gap::before {
+  content: '';
+  position: absolute; left: -15.5px; top: 0; bottom: 0;
+  width: 2px; background: var(--line);
+}
+
 /* ---------------- FORM MODAL ---------------- */
 dialog#form-modal {
   border: none;

@@ -136,7 +136,7 @@ const CRM = {
     await localReplaceAll(data);
   },
 
-  async create(payload) {
+  async create(payload, opts = {}) {
     const now = new Date().toISOString();
     const record = {
       id: uuid(),
@@ -146,25 +146,38 @@ const CRM = {
       care_stage_updated_at: now, // khách mới: mốc = giờ tạo
       ...payload,
     };
+    // Nếu khách mới đã có 1 bậc care_stage → tạo mốc đầu tiên cho lịch sử.
+    record.care_stage_history = payload.care_stage
+      ? [{ stage: payload.care_stage, note: opts.careStageNote || null, at: now }]
+      : [];
     await localPut(record);
     await queueAdd({ type: 'insert', recordId: record.id, payload: record, ts: now });
     this.flushQueue();
     return record;
   },
 
-  async update(id, payload) {
+  async update(id, payload, opts = {}) {
     const existing = (await localGetAll()).find((r) => r.id === id) || { id };
     const now = new Date().toISOString();
-    // care_stage_updated_at CHỈ đổi khi Tiến độ chăm sóc (care_stage) thực sự khác
-    // giá trị cũ — sửa các field khác không làm đổi timestamp này.
+    // care_stage_updated_at + lịch sử CHỈ đổi khi Tiến độ chăm sóc (care_stage)
+    // thực sự khác giá trị cũ — sửa các field khác không đụng tới.
     const careChanged = 'care_stage' in payload && payload.care_stage !== existing.care_stage;
     const record = { ...existing, ...payload, id, updated_at: now };
-    if (careChanged) record.care_stage_updated_at = now;
+    if (careChanged) {
+      record.care_stage_updated_at = now;
+      // Append 1 mốc mới vào lịch sử (kèm ghi chú riêng cho lần đổi này).
+      const history = Array.isArray(existing.care_stage_history) ? existing.care_stage_history.slice() : [];
+      history.push({ stage: payload.care_stage || null, note: opts.careStageNote || null, at: now });
+      record.care_stage_history = history;
+    }
     await localPut(record);
     // Gửi kèm updated_at lên server để sort/xung đột chính xác sau khi đồng bộ
     // (Supabase không tự cập nhật updated_at khi UPDATE — không có trigger).
     const queuedPayload = { ...payload, updated_at: now };
-    if (careChanged) queuedPayload.care_stage_updated_at = now;
+    if (careChanged) {
+      queuedPayload.care_stage_updated_at = now;
+      queuedPayload.care_stage_history = record.care_stage_history;
+    }
     await queueAdd({ type: 'update', recordId: id, payload: queuedPayload, ts: now });
     this.flushQueue();
     return record;
