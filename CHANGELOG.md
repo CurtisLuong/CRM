@@ -6,6 +6,35 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-19 — Dashboard tổng quan (tab riêng, 8 phân tích)
+
+Thêm tab "Tổng quan" cạnh "Khách hàng" (điều hướng bằng `.tab-nav` trong
+`#app-screen`; `#list-view` / `#dashboard-view`). Tất cả tính client-side từ
+`allCustomers` đã nạp — KHÔNG đổi schema, KHÔNG query thêm, chạy offline.
+Chart tự vẽ bằng CSS/SVG, không dùng thư viện ngoài.
+
+8 widget (mục theo yêu cầu):
+1. **Phễu bán hàng** theo care_stage + **% chuyển đổi** giữa các bước, tự đánh
+   dấu **nút thắt** (bước rớt nhiều nhất, tô đỏ). Đếm "đã từng đạt tới" mỗi bậc
+   (suy từ `care_stage_history` + bậc hiện tại) để % có nghĩa.
+2. **Đánh giá** nên/không nên chăm + **drill-down lý do** (evaluation_reason)
+   trong nhóm "không nên chăm".
+3. **Khách mới theo tuần** (cột, 8 tuần gần nhất, theo created_at).
+4. **Điểm quan tâm TB toàn pipeline** + **đường xu hướng theo tuần** (khách mới
+   vào đang "nóng" hay "nguội").
+5. **Phân bổ loại căn / mã toà** (khách đang chăm).
+6. **Khách bị bỏ quên**: đang chăm nhưng >7 ngày chưa đổi tiến độ
+   (theo `care_stage_updated_at`). Bấm mở chi tiết.
+7. **Thời gian TB ở mỗi bậc** (tính từ `care_stage_history`).
+8. **Khách nóng cần gọi ngay**: quan tâm >70% & >7 ngày chưa động — kèm nút gọi.
+
+Bố cục masonry: JS chia card vào cột thấp nhất (1 cột mobile → 3 cột laptop),
+tự chia lại khi đổi kích thước cửa sổ. Dashboard tự làm mới khi quay lại tab.
+
+File: `index.html`, `js/app.js`, `css/style.css`
+
+---
+
 ## 2026-08-19 — Sửa được note của từng mốc lịch sử chăm sóc (chỉ note)
 
 Timeline lịch sử trước đây chỉ đọc. Giờ note của mỗi mốc sửa được tại chỗ.

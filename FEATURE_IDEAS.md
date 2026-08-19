@@ -29,11 +29,12 @@ Chưa cái nào được làm. Sắp xếp thô theo mức độ nên làm sớm
 
 ## Trung hạn
 
-- **Dashboard thống kê tổng quan.** Số khách theo từng `care_stage` (kiểu
-  phễu bán hàng — funnel chart), tỉ lệ "nên chăm" / "không nên chăm", số
-  khách mới trong tuần/tháng. Dùng `recharts` hoặc `chart.js` (đã có sẵn
-  trong danh sách thư viện artifact, nhưng đây là web app riêng nên cần tự
-  thêm qua CDN hoặc npm nếu chuyển sang có build step).
+<!-- ĐÃ LÀM 2026-08-19: Dashboard tổng quan (tab "Tổng quan" cạnh danh sách).
+     8 widget: phễu + % chuyển đổi & nút thắt, đánh giá + lý do loại, khách mới/tuần,
+     điểm quan tâm TB + xu hướng, phân bổ căn/toà, khách bị bỏ quên (>7 ngày),
+     thời gian TB mỗi bậc, khách nóng cần gọi. Tự vẽ chart bằng CSS/SVG (KHÔNG dùng
+     thư viện ngoài — giữ offline + không build). Xem CHANGELOG. -->
+- **Xuất dashboard ra ảnh/PDF để gửi báo cáo.** Hiện dashboard chỉ xem trong app.
 - **Gắn nhãn tự do (tags) ngoài các field cố định.** Một số khách có đặc
   điểm không nằm trong field nào (vd "khách VIP giới thiệu", "khách cũ quay
   lại") — thêm mảng `tags text[]` cho phép gắn nhãn tự do, filter theo tag.

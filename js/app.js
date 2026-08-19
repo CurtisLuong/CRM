@@ -129,6 +129,8 @@ function showAppScreen() {
   $('#auth-screen').hidden = true;
   $('#app-screen').hidden = false;
   $('#detail-screen').hidden = true;
+  // Nếu đang ở tab Tổng quan thì vẽ lại cho khớp dữ liệu mới nhất.
+  if (!$('#dashboard-view').hidden) renderDashboard();
 }
 
 function showDetailScreen() {
@@ -700,6 +702,269 @@ $('#detail-history')?.addEventListener('keydown', (e) => {
   else if (e.key === 'Escape') { e.preventDefault(); editingHistoryAt = null; rerenderCareHistory(); }
 });
 
+// ---------------------------------------------------------- DASHBOARD -----
+
+// Chuyển tab giữa danh sách khách và bảng tổng quan.
+function showListView() {
+  $('#list-view').hidden = false;
+  $('#dashboard-view').hidden = true;
+  $('#tab-list').classList.add('is-active');
+  $('#tab-dashboard').classList.remove('is-active');
+}
+function showDashboardView() {
+  $('#list-view').hidden = true;
+  $('#dashboard-view').hidden = false;
+  $('#tab-list').classList.remove('is-active');
+  $('#tab-dashboard').classList.add('is-active');
+  renderDashboard();
+}
+
+// ---- helper nhỏ ----
+function pctOf(n, d) { return d > 0 ? Math.round((n / d) * 100) : 0; }
+function daysSince(iso) {
+  if (!iso) return Infinity;
+  const t = new Date(iso).getTime();
+  return isNaN(t) ? Infinity : Math.floor((Date.now() - t) / 86400000);
+}
+function mondayOf(d) {
+  const dt = new Date(d); dt.setHours(0, 0, 0, 0);
+  dt.setDate(dt.getDate() - ((dt.getDay() + 6) % 7)); // lùi về thứ Hai
+  return dt;
+}
+function lastNWeeks(n) {
+  const start = mondayOf(new Date());
+  return Array.from({ length: n }, (_, i) => {
+    const w = new Date(start); w.setDate(w.getDate() - (n - 1 - i) * 7); return w;
+  });
+}
+function ddmm(d) { return `${d.getDate()}/${d.getMonth() + 1}`; }
+
+// Chỉ số bậc tuyến tính CAO NHẤT khách đã đạt (cho phễu). Suy từ lịch sử + bậc
+// hiện tại. Bậc trống coi như 0 (Chưa gọi được); 'Không quan tâm-kết thúc' dựa
+// vào lịch sử để biết đã đi tới đâu trước khi rớt. -1 = chưa vào phễu.
+function funnelMaxIndex(c) {
+  let maxIdx = c.care_stage ? CARE_STAGES.indexOf(c.care_stage) : 0;
+  const hist = Array.isArray(c.care_stage_history) ? c.care_stage_history : [];
+  for (const h of hist) {
+    const i = CARE_STAGES.indexOf(h.stage);
+    if (i > maxIdx) maxIdx = i;
+  }
+  return maxIdx;
+}
+
+// Bar ngang dùng chung: items = [{label, value, sub?, color?}]
+function hbars(items, opts = {}) {
+  if (!items.length) return `<div class="dash-empty">${opts.empty || 'Chưa có dữ liệu'}</div>`;
+  const mx = opts.max || Math.max(...items.map((i) => i.value), 1);
+  return `<div class="hbars">` + items.map((i) => `
+    <div class="hbar-row">
+      <div class="hbar-label" title="${escapeHtml(i.label)}">${escapeHtml(i.label)}</div>
+      <div class="hbar-track"><div class="hbar-fill" style="width:${Math.max(pctOf(i.value, mx), 2)}%;background:${i.color || 'var(--teal-light)'}"></div></div>
+      <div class="hbar-val">${opts.fmt ? opts.fmt(i.value) : i.value}${i.sub ? `<span class="hbar-sub"> ${escapeHtml(i.sub)}</span>` : ''}</div>
+    </div>`).join('') + `</div>`;
+}
+
+// Cột dọc (khách mới theo tuần)
+function vbars(values, labels, color) {
+  const mx = Math.max(...values, 1);
+  return `<div class="vbars">` + values.map((v, i) => `
+    <div class="vbar-col">
+      <div class="vbar-val">${v || ''}</div>
+      <div class="vbar" style="height:${Math.round((v / mx) * 66) + 3}px;background:${color || 'var(--teal-light)'}"></div>
+      <div class="vbar-x">${escapeHtml(labels[i])}</div>
+    </div>`).join('') + `</div>`;
+}
+
+// Đường xu hướng (SVG) cho điểm quan tâm TB theo tuần (thang 0–100)
+function sparkline(values, labels) {
+  const pts = values.map((v, i) => ({ x: i, v }));
+  const defined = pts.filter((p) => p.v != null);
+  if (defined.length < 1) return '<div class="dash-empty">Chưa đủ dữ liệu</div>';
+  const W = 280, H = 90, pad = 10, n = values.length;
+  const X = (i) => pad + (n > 1 ? i * (W - 2 * pad) / (n - 1) : (W - 2 * pad) / 2);
+  const Y = (v) => H - pad - (v / 100) * (H - 2 * pad);
+  const path = defined.map((p, i) => `${i ? 'L' : 'M'}${X(p.x).toFixed(1)},${Y(p.v).toFixed(1)}`).join(' ');
+  const dots = defined.map((p) => `<circle cx="${X(p.x).toFixed(1)}" cy="${Y(p.v).toFixed(1)}" r="3" fill="var(--terracotta)"/>`).join('');
+  const xlabels = labels.map((l, i) => `<text x="${X(i).toFixed(1)}" y="${H - 1}" class="spark-x">${escapeHtml(l)}</text>`).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" class="spark">
+    <line x1="${pad}" y1="${Y(50)}" x2="${W - pad}" y2="${Y(50)}" class="spark-mid"/>
+    <path d="${path}" fill="none" stroke="var(--terracotta)" stroke-width="2"/>${dots}${xlabels}</svg>`;
+}
+
+function dashCard(title, bodyHtml, hint) {
+  return `<div class="dash-card">
+    <h3>${escapeHtml(title)}</h3>
+    ${hint ? `<p class="dash-hint">${escapeHtml(hint)}</p>` : ''}
+    ${bodyHtml}
+  </div>`;
+}
+
+function renderDashboard() {
+  const all = allCustomers;
+  const box = $('#dashboard-content');
+  if (!all.length) {
+    box.innerHTML = `<div class="dash-card"><div class="dash-empty">Chưa có khách hàng nào. Thêm khách để xem thống kê.</div></div>`;
+    return;
+  }
+  const active = all.filter((c) => !isCareDone(c.care_stage)); // đang chăm (chưa xong)
+  const weeks = lastNWeeks(8);
+  const wkeys = new Map(weeks.map((w, i) => [w.getTime(), i]));
+  const weekIdx = (iso) => { const k = mondayOf(iso).getTime(); return wkeys.has(k) ? wkeys.get(k) : -1; };
+
+  const cards = [];
+
+  // 1) PHỄU + % chuyển đổi ------------------------------------------------
+  const fc = CARE_STAGES.map(() => 0);
+  all.forEach((c) => { const m = funnelMaxIndex(c); for (let i = 0; i <= m && i < fc.length; i++) fc[i]++; });
+  // % chuyển đổi giữa các bước + tìm nút thắt (bước rớt nhiều nhất)
+  const convs = fc.map((v, i) => (i === 0 ? null : pctOf(fc[i], fc[i - 1])));
+  let worst = -1, worstV = 101;
+  convs.forEach((v, i) => { if (v != null && fc[i - 1] > 0 && v < worstV) { worstV = v; worst = i; } });
+  let funnelHtml = '<div class="funnel">';
+  CARE_STAGES.forEach((s, i) => {
+    if (i > 0) {
+      const bottleneck = i === worst;
+      funnelHtml += `<div class="funnel-conv ${bottleneck ? 'is-bottleneck' : ''}">↓ ${convs[i]}%${bottleneck ? ' · nút thắt' : ''}</div>`;
+    }
+    funnelHtml += `<div class="funnel-step" style="--ring:${careColor(s)}">
+      <div class="funnel-bar" style="width:${Math.max(pctOf(fc[i], fc[0]), 3)}%"></div>
+      <div class="funnel-txt"><span class="funnel-stage">${escapeHtml(s)}</span><span class="funnel-n">${fc[i]}</span></div>
+    </div>`;
+  });
+  funnelHtml += '</div>';
+  const dropped = all.filter((c) => c.care_stage === CARE_STAGE_DROPPED).length;
+  if (dropped) funnelHtml += `<div class="funnel-dropped">Đã kết thúc "không quan tâm": ${dropped} khách</div>`;
+  cards.push(dashCard('Phễu bán hàng theo tiến độ', funnelHtml, '% là tỉ lệ khách đi tiếp sang bước sau — bước "nút thắt" là nơi rớt nhiều nhất.'));
+
+  // 2) ĐÁNH GIÁ + lý do loại ---------------------------------------------
+  const evalGood = all.filter((c) => c.evaluation === 'nên chăm').length;
+  const evalBad = all.filter((c) => c.evaluation === 'không nên chăm').length;
+  const evalNone = all.length - evalGood - evalBad;
+  const evalHtml = hbars([
+    { label: 'Nên chăm', value: evalGood, color: 'var(--good)', sub: `${pctOf(evalGood, all.length)}%` },
+    { label: 'Không nên chăm', value: evalBad, color: 'var(--bad)', sub: `${pctOf(evalBad, all.length)}%` },
+    { label: 'Chưa đánh giá', value: evalNone, color: '#c9c4b6', sub: `${pctOf(evalNone, all.length)}%` },
+  ]);
+  // lý do trong nhóm "không nên chăm"
+  const reasonMap = {};
+  all.filter((c) => c.evaluation === 'không nên chăm').forEach((c) => {
+    const r = (c.evaluation_reason && c.evaluation_reason.trim()) || '(chưa ghi lý do)';
+    reasonMap[r] = (reasonMap[r] || 0) + 1;
+  });
+  const reasonItems = Object.entries(reasonMap).sort((a, b) => b[1] - a[1])
+    .map(([label, value]) => ({ label, value, color: 'var(--bad)', sub: `${pctOf(value, evalBad)}%` }));
+  const reasonHtml = evalBad ? `<div class="dash-sub-title">Lý do "không nên chăm"</div>` + hbars(reasonItems) : '';
+  cards.push(dashCard('Đánh giá khách', evalHtml + reasonHtml,
+    'Đào sâu lý do loại: "dò giá" → cần chốt giá rõ hơn; "không đủ điều kiện" → cần sàng lọc kỹ hơn.'));
+
+  // 3) KHÁCH MỚI THEO TUẦN -----------------------------------------------
+  const newByWeek = weeks.map(() => 0);
+  all.forEach((c) => { const i = weekIdx(c.created_at); if (i >= 0) newByWeek[i]++; });
+  cards.push(dashCard('Khách mới theo tuần', vbars(newByWeek, weeks.map(ddmm)),
+    '8 tuần gần nhất (theo ngày tạo).'));
+
+  // 4) ĐIỂM QUAN TÂM TRUNG BÌNH + xu hướng --------------------------------
+  const withInterest = all.filter((c) => c.interest_level != null);
+  const avgAll = withInterest.length ? Math.round(withInterest.reduce((s, c) => s + c.interest_level, 0) / withInterest.length) : 0;
+  const wSum = weeks.map(() => 0), wCnt = weeks.map(() => 0);
+  all.forEach((c) => { const i = weekIdx(c.created_at); if (i >= 0 && c.interest_level != null) { wSum[i] += c.interest_level; wCnt[i]++; } });
+  const avgByWeek = weeks.map((w, i) => (wCnt[i] ? Math.round(wSum[i] / wCnt[i]) : null));
+  const trendHtml = `<div class="big-stat">${avgAll}%<span class="big-stat-cap">quan tâm TB toàn pipeline</span></div>`
+    + `<div class="dash-sub-title">Xu hướng khách mới theo tuần</div>` + sparkline(avgByWeek, weeks.map(ddmm));
+  cards.push(dashCard('Mức độ quan tâm trung bình', trendHtml,
+    'Đường đi lên = khách mới vào đang "nóng" hơn; đi xuống = "nguội" hơn.'));
+
+  // 5) PHÂN BỔ LOẠI CĂN / TOÀ (khách đang chăm) --------------------------
+  const tally = (arr, key) => {
+    const m = {};
+    arr.forEach((c) => { const v = (c[key] && String(c[key]).trim()); if (v) m[v] = (m[v] || 0) + 1; });
+    return Object.entries(m).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([label, value]) => ({ label, value }));
+  };
+  const aptItems = tally(active, 'apt_type');
+  const bldItems = tally(active, 'building_code');
+  const distHtml = `<div class="dash-sub-title">Loại căn</div>${hbars(aptItems, { empty: 'Chưa có dữ liệu loại căn' })}`
+    + `<div class="dash-sub-title">Mã toà</div>${hbars(bldItems, { empty: 'Chưa có dữ liệu mã toà', color: '#8a7bb0' })}`;
+  cards.push(dashCard('Căn hộ quan tâm (khách đang chăm)', distHtml,
+    'Căn/toà "hot" nhất trong pipeline — feedback ngược cho đội dự án nên đẩy bán căn nào.'));
+
+  // 6) KHÁCH BỊ BỎ QUÊN (kẹt bậc > 7 ngày) --------------------------------
+  const stuck = active.filter((c) => daysSince(c.care_stage_updated_at) > 7)
+    .sort((a, b) => daysSince(b.care_stage_updated_at) - daysSince(a.care_stage_updated_at));
+  const stuckHtml = stuck.length
+    ? `<div class="dash-list">` + stuck.map((c) => `
+        <button class="dash-row" data-open="${c.id}">
+          <span class="dash-row-name">${escapeHtml(c.full_name || '(chưa tên)')}</span>
+          <span class="tag tag-stage">${escapeHtml(careLabel(c.care_stage))}</span>
+          <span class="dash-row-badge warn">${daysSince(c.care_stage_updated_at)} ngày</span>
+        </button>`).join('') + `</div>`
+    : '<div class="dash-empty">Không có khách nào bị kẹt quá 7 ngày 👍</div>';
+  cards.push(dashCard(`Khách bị bỏ quên (${stuck.length})`, stuckHtml,
+    'Đang chăm nhưng chưa đổi tiến độ quá 7 ngày — cần theo sát lại.'));
+
+  // 7) THỜI GIAN TRUNG BÌNH Ở MỖI BẬC ------------------------------------
+  const sSum = {}, sCnt = {};
+  all.forEach((c) => {
+    const h = Array.isArray(c.care_stage_history) ? [...c.care_stage_history].sort((a, b) => (a.at || '').localeCompare(b.at || '')) : [];
+    for (let i = 0; i < h.length - 1; i++) {
+      const dur = new Date(h[i + 1].at) - new Date(h[i].at);
+      if (dur >= 0 && h[i].stage) { sSum[h[i].stage] = (sSum[h[i].stage] || 0) + dur; sCnt[h[i].stage] = (sCnt[h[i].stage] || 0) + 1; }
+    }
+  });
+  const stageTimeItems = CARE_STAGES.filter((s) => sCnt[s]).map((s) => ({
+    label: s, value: sSum[s] / sCnt[s], color: careColor(s), sub: `(${sCnt[s]} lượt)`,
+  }));
+  cards.push(dashCard('Thời gian trung bình ở mỗi bậc',
+    hbars(stageTimeItems, { fmt: (ms) => formatDuration(ms), empty: 'Chưa đủ dữ liệu chuyển bậc' }),
+    'Bậc nào tốn nhiều thời gian nhất trước khi khách đi tiếp.'));
+
+  // 8) KHÁCH NÓNG CẦN GỌI NGAY (quan tâm >70% & >7 ngày chưa cập nhật) ----
+  const hot = active.filter((c) => (c.interest_level || 0) > 70 && daysSince(c.care_stage_updated_at) > 7)
+    .sort((a, b) => (b.interest_level || 0) - (a.interest_level || 0));
+  const hotHtml = hot.length
+    ? `<div class="dash-list">` + hot.map((c) => `
+        <div class="dash-row hot">
+          <button class="dash-row-main" data-open="${c.id}">
+            <span class="dash-row-name">${escapeHtml(c.full_name || '(chưa tên)')}</span>
+            <span class="dash-row-sub">${escapeHtml(c.phone || '')} · quan tâm ${c.interest_level || 0}% · ${daysSince(c.care_stage_updated_at)} ngày chưa động</span>
+          </button>
+          <a class="dash-row-call" href="tel:${normalizePhone(c.phone)}" aria-label="Gọi">${PHONE_SVG}</a>
+        </div>`).join('') + `</div>`
+    : '<div class="dash-empty">Không có khách nóng nào đang bị bỏ lỡ 👍</div>';
+  cards.push(dashCard(`🔥 Khách nóng cần gọi ngay (${hot.length})`, hotHtml,
+    'Quan tâm cao (>70%) nhưng >7 ngày chưa động tới — ưu tiên gọi.'));
+
+  // Masonry: chia card vào cột thấp nhất để các cột cân chiều cao.
+  box.innerHTML = '';
+  const ncol = Math.min(3, Math.max(1, Math.floor((box.clientWidth || 800) / 360)));
+  const wrap = document.createElement('div');
+  wrap.className = 'dash-cols';
+  const cols = Array.from({ length: ncol }, () => {
+    const c = document.createElement('div'); c.className = 'dash-col'; wrap.appendChild(c); return c;
+  });
+  box.appendChild(wrap);
+  for (const cardHtml of cards) {
+    let shortest = cols[0];
+    for (const c of cols) if (c.offsetHeight < shortest.offsetHeight) shortest = c;
+    const tmp = document.createElement('div');
+    tmp.innerHTML = cardHtml;
+    shortest.appendChild(tmp.firstElementChild);
+  }
+}
+
+// Bấm 1 dòng khách trong dashboard → mở trang chi tiết
+$('#dashboard-content')?.addEventListener('click', (e) => {
+  const el = e.target.closest('[data-open]');
+  if (el) openDetail(el.dataset.open);
+});
+
+// Đổi kích thước cửa sổ → chia lại cột masonry (chỉ khi đang xem dashboard)
+let _dashResizeT = null;
+window.addEventListener('resize', () => {
+  if ($('#dashboard-view').hidden) return;
+  clearTimeout(_dashResizeT);
+  _dashResizeT = setTimeout(renderDashboard, 200);
+});
+
 // -------------------------------------------------------------- WIRE UP ---
 
 function populateSelects() {
@@ -721,6 +986,8 @@ document.addEventListener('DOMContentLoaded', () => {
   $('#logout-btn').addEventListener('click', handleLogout);
 
   $('#add-customer-btn').addEventListener('click', () => openForm(null));
+  $('#tab-list').addEventListener('click', showListView);
+  $('#tab-dashboard').addEventListener('click', showDashboardView);
   $('#detail-back-btn').addEventListener('click', () => { detailId = null; showAppScreen(); });
   $('#detail-edit-btn').addEventListener('click', () => { if (detailId) openForm(detailId); });
   $('#customer-form').addEventListener('submit', handleFormSubmit);

@@ -33,13 +33,19 @@
 <!-- ============ MÀN HÌNH CHÍNH ============ -->
 <section id="app-screen" hidden>
   <header class="topbar">
-    <h1>Khách hàng</h1>
+    <h1>CRM Khách hàng</h1>
     <div class="topbar-right">
       <span id="sync-badge" class="sync-badge">…</span>
       <button id="logout-btn" class="btn-ghost">Đăng xuất</button>
     </div>
   </header>
 
+  <nav class="tab-nav">
+    <button id="tab-list" class="tab-btn is-active">Khách hàng</button>
+    <button id="tab-dashboard" class="tab-btn">Tổng quan</button>
+  </nav>
+
+  <div id="list-view">
   <div class="toolbar">
     <input id="search-input" type="search" placeholder="Tìm theo SĐT hoặc tên..." />
     <select id="filter-progress">
@@ -74,6 +80,11 @@
   <div id="customer-list" class="customer-list"></div>
   <div id="empty-state" class="empty-state" hidden>
     Chưa có khách nào khớp bộ lọc. Bấm <strong>+ Thêm khách</strong> để bắt đầu.
+  </div>
+  </div><!-- /#list-view -->
+
+  <div id="dashboard-view" hidden>
+    <div id="dashboard-content" class="dash-grid"></div>
   </div>
 </section>
 
