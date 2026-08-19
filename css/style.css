@@ -193,10 +193,12 @@ input:focus, select:focus, textarea:focus {
 }
 .customer-card:hover { border-color: var(--teal-light); box-shadow: 0 2px 8px rgba(31, 58, 61, 0.08); }
 .customer-card.is-dropped { opacity: 0.6; }
-/* Hàng đầu: tên (trái) + [tag nhắc gọi] + nút menu "⋯" (đẩy phải) */
+/* Hàng đầu: tên (trái, co giãn) + nhóm phải cố định [tag nhắc gọi + menu "⋯"].
+   Nhờ tên flex:1, nhóm phải luôn nằm sát mép phải → tag ở vị trí cố định cạnh ⋯,
+   không "nhảy" theo độ dài tên. */
 .card-head { display: flex; align-items: flex-start; gap: 8px; flex-shrink: 0; }
-.card-name { font-weight: 600; font-size: 16px; min-width: 0; }
-.card-head .card-menu { margin-left: auto; }
+.card-name { font-weight: 600; font-size: 16px; min-width: 0; flex: 1; }
+.card-head-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 
 /* Tag nhắc gọi (dóng ngang tên): vàng=sắp gọi, đỏ=đến giờ, xám=quên gọi.
    Text theo scheme (mực in). Bấm vào → popup xác nhận gọi. */

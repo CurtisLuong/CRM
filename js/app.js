@@ -313,11 +313,13 @@ function renderList() {
     card.innerHTML = `
       <div class="card-head">
         <div class="card-name">${escapeHtml(c.full_name || '(chưa có tên)')}</div>
-        ${reminders.has(c.id) ? `<button class="call-tag call-${reminders.get(c.id).state}" data-calltag="${c.id}">${escapeHtml(reminders.get(c.id).text)}</button>` : ''}
-        <div class="card-menu">
-          <button class="card-menu-btn" data-action="menu" aria-label="Tuỳ chọn khác">⋯</button>
-          <div class="card-menu-pop">
-            <button class="menu-item danger" data-action="delete" data-id="${c.id}">Xoá khách</button>
+        <div class="card-head-right">
+          ${reminders.has(c.id) ? `<button class="call-tag call-${reminders.get(c.id).state}" data-calltag="${c.id}">${escapeHtml(reminders.get(c.id).text)}</button>` : ''}
+          <div class="card-menu">
+            <button class="card-menu-btn" data-action="menu" aria-label="Tuỳ chọn khác">⋯</button>
+            <div class="card-menu-pop">
+              <button class="menu-item danger" data-action="delete" data-id="${c.id}">Xoá khách</button>
+            </div>
           </div>
         </div>
       </div>

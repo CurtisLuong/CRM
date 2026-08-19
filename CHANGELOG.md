@@ -6,6 +6,16 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-19 — Badge nhắc gọi về vị trí cố định (cạnh menu ⋯)
+
+Trước đây tag nhắc gọi đặt ngay sau tên → vị trí "nhảy" theo độ dài tên. Nay
+gom tag + menu ⋯ vào 1 nhóm phải (`.card-head-right`), tên dùng `flex:1` chiếm
+chỗ còn lại → tag luôn cố định sát mép phải cạnh ⋯, dù tên dài/ngắn/xuống dòng.
+
+File: `js/app.js`, `css/style.css`
+
+---
+
 ## 2026-08-19 — Đổi tiêu chí sort mặc định
 
 Sort mặc định `care_asc` (`sortCustomers` trong app.js) đổi từ 2 → 3 tiêu chí:
