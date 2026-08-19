@@ -77,6 +77,53 @@
   </div>
 </section>
 
+<!-- ============ MÀN HÌNH CHI TIẾT KHÁCH ============ -->
+<section id="detail-screen" hidden>
+  <header class="detail-topbar">
+    <button id="detail-back-btn" class="btn-ghost">← Quay lại</button>
+    <button id="detail-edit-btn" class="btn-primary">Sửa</button>
+  </header>
+
+  <div class="detail-body">
+    <h1 id="detail-name" class="detail-name"></h1>
+
+    <div class="detail-phone-row">
+      <span id="detail-phone" class="detail-phone"></span>
+      <a id="detail-call-btn" class="btn-small">Gọi</a>
+      <a id="detail-zalo-btn" class="btn-small" target="_blank" rel="noopener">Zalo</a>
+    </div>
+
+    <div class="detail-badges">
+      <div class="detail-badge">
+        <span class="detail-badge-label">Tiến độ</span>
+        <span id="detail-stage-dots" class="dot-row"></span>
+        <span id="detail-stage-text" class="detail-badge-text"></span>
+      </div>
+      <div class="detail-badge">
+        <span class="detail-badge-label">Quan tâm</span>
+        <span id="detail-interest-dots" class="dot-row"></span>
+        <span id="detail-interest-text" class="detail-badge-text"></span>
+      </div>
+      <span id="detail-eval"></span>
+    </div>
+
+    <section class="detail-section">
+      <h3>Ghi chú</h3>
+      <div id="detail-notes" class="detail-notes-box"></div>
+    </section>
+
+    <section class="detail-section">
+      <h3>Căn hộ quan tâm</h3>
+      <table class="detail-table"><tbody id="detail-apt"></tbody></table>
+    </section>
+
+    <section class="detail-section">
+      <h3>Thông tin cá nhân</h3>
+      <div id="detail-personal" class="detail-personal"></div>
+    </section>
+  </div>
+</section>
+
 <!-- ============ FORM THÊM / SỬA KHÁCH (modal) ============ -->
 <dialog id="form-modal">
   <form id="customer-form">

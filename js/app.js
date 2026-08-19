@@ -117,11 +117,19 @@ async function onLoggedIn(user) {
 function showAuthScreen() {
   $('#auth-screen').hidden = false;
   $('#app-screen').hidden = true;
+  $('#detail-screen').hidden = true;
 }
 
 function showAppScreen() {
   $('#auth-screen').hidden = true;
   $('#app-screen').hidden = false;
+  $('#detail-screen').hidden = true;
+}
+
+function showDetailScreen() {
+  $('#auth-screen').hidden = true;
+  $('#app-screen').hidden = true;
+  $('#detail-screen').hidden = false;
 }
 
 async function handleLogin(e) {
@@ -287,11 +295,11 @@ $('#customer-list')?.addEventListener('click', (e) => {
     if (btn.dataset.action === 'delete') confirmDelete(id);
     return;
   }
-  // Bấm vào link SĐT → để nó mở Zalo bình thường, không mở form
+  // Bấm vào link SĐT → để nó mở Zalo bình thường, không mở trang chi tiết
   if (e.target.closest('a')) return;
-  // Bấm vào chỗ trống còn lại của card → mở xem/sửa đầy đủ (thấy hết phần "Chi tiết")
+  // Bấm vào chỗ trống còn lại của card → mở trang chi tiết khách
   const card = e.target.closest('.customer-card');
-  if (card?.dataset.id) openForm(card.dataset.id);
+  if (card?.dataset.id) openDetail(card.dataset.id);
 });
 
 // -------------------------------------------------------------- FORM ------
@@ -368,10 +376,13 @@ async function handleFormSubmit(e) {
     alert('Cần nhập ít nhất Số điện thoại và Họ tên.');
     return;
   }
+  const savedId = editingId;
   if (editingId) await CRM.update(editingId, payload);
   else await CRM.create(payload);
   closeForm();
   await refreshList();
+  // Nếu đang mở trang chi tiết khách vừa sửa → vẽ lại cho khớp dữ liệu mới
+  if (savedId && !$('#detail-screen').hidden) openDetail(savedId);
 }
 
 async function confirmDelete(id) {
@@ -379,6 +390,117 @@ async function confirmDelete(id) {
   if (!confirm(`Xoá khách "${c?.full_name || ''}"? Không thể hoàn tác.`)) return;
   await CRM.remove(id);
   await refreshList();
+}
+
+// ------------------------------------------------------------ DETAIL ------
+
+let detailId = null; // khách đang xem ở trang chi tiết
+
+// Chuỗi HTML các "chấm" tiến độ: 7 chấm, tô màu bậc cho tới level hiện tại.
+function stageDotsHtml(stage) {
+  const level = careLevel(stage);
+  const color = careColor(stage);
+  let out = '';
+  for (let i = 1; i <= 7; i++) {
+    out += `<span class="dot" style="background:${i <= level ? color : '#dcd9cf'}"></span>`;
+  }
+  return out;
+}
+
+// 5 chấm mức quan tâm (mỗi chấm ~20%).
+function interestDotsHtml(interest) {
+  const filled = Math.round((interest || 0) / 20);
+  let out = '';
+  for (let i = 1; i <= 5; i++) {
+    out += `<span class="dot" style="background:${i <= filled ? 'var(--terracotta)' : '#dcd9cf'}"></span>`;
+  }
+  return out;
+}
+
+// Giá VNĐ → "1,2 tỷ" / "800 triệu" cho dễ đọc.
+function formatPrice(v) {
+  if (v == null || v === '') return '—';
+  const n = Number(v);
+  if (!isFinite(n) || n <= 0) return '—';
+  if (n >= 1e9) return (n / 1e9).toLocaleString('vi-VN', { maximumFractionDigits: 2 }) + ' tỷ';
+  if (n >= 1e6) return (n / 1e6).toLocaleString('vi-VN', { maximumFractionDigits: 0 }) + ' triệu';
+  return n.toLocaleString('vi-VN') + ' đ';
+}
+
+// "YYYY-MM-DD" → "DD/MM/YYYY".
+function formatDate(d) {
+  if (!d) return '—';
+  const [y, m, day] = d.split('-');
+  if (!y || !m || !day) return d;
+  return `${day}/${m}/${y}`;
+}
+
+// Viết hoa chữ cái đầu (hiển thị 'nam' → 'Nam').
+function capitalize(s) {
+  return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+}
+
+const DASH = '—'; // giá trị trống
+
+function openDetail(id) {
+  const c = allCustomers.find((x) => x.id === id);
+  if (!c) return;
+  detailId = id;
+
+  $('#detail-name').textContent = c.full_name || '(chưa có tên)';
+  $('#detail-phone').textContent = '📞 ' + (c.phone || DASH);
+  $('#detail-call-btn').href = c.phone ? `tel:${normalizePhone(c.phone)}` : '#';
+  $('#detail-zalo-btn').href = zaloLink(c.phone);
+
+  // Tiến độ
+  $('#detail-stage-dots').innerHTML = stageDotsHtml(c.care_stage);
+  $('#detail-stage-dots').style.color = careColor(c.care_stage);
+  $('#detail-stage-text').textContent = careLabel(c.care_stage);
+  // Mức quan tâm
+  const interest = c.interest_level ?? 0;
+  $('#detail-interest-dots').innerHTML = interestDotsHtml(interest);
+  $('#detail-interest-text').textContent = interest + '%';
+  // Đánh giá
+  const evalBox = $('#detail-eval');
+  if (c.evaluation) {
+    evalBox.hidden = false;
+    evalBox.className = 'tag ' + (c.evaluation === 'nên chăm' ? 'tag-good' : 'tag-bad');
+    evalBox.textContent = c.evaluation;
+  } else {
+    evalBox.hidden = true;
+  }
+
+  // Ghi chú
+  const notesBox = $('#detail-notes');
+  notesBox.textContent = c.notes || 'Chưa có ghi chú.';
+  notesBox.classList.toggle('is-empty', !c.notes);
+
+  // Căn hộ quan tâm
+  const aptRows = [
+    ['Loại căn', c.apt_type || DASH],
+    ['Mã căn', c.apt_code || DASH],
+    ['Mã toà', c.building_code || DASH],
+    ['Giá', formatPrice(c.apt_price)],
+  ];
+  $('#detail-apt').innerHTML = aptRows
+    .map(([k, v]) => `<tr><th>${k}</th><td>${escapeHtml(String(v))}</td></tr>`)
+    .join('');
+
+  // Thông tin cá nhân — mỗi mục "Nhãn: giá trị", ngăn nhau bằng dấu ·
+  const personal = [
+    ['Giới tính', c.gender ? capitalize(c.gender) : DASH],
+    ['Hôn nhân', c.marital_status ? capitalize(c.marital_status) : DASH],
+    ['Ngày sinh', formatDate(c.dob)],
+    ['Mệnh', c.menh ? c.menh.replace(/^Mệnh\s+/, '') : DASH],
+    ['Thu nhập', c.income || DASH],
+    ['Thường trú', c.residence || DASH],
+  ];
+  $('#detail-personal').innerHTML = personal
+    .map(([k, v]) => `<span class="pi-item"><span class="pi-label">${k}:</span> ${escapeHtml(String(v))}</span>`)
+    .join(' <span class="pi-sep">·</span> '); // có khoảng trắng để dòng tự ngắt khi hẹp
+
+  showDetailScreen();
+  window.scrollTo(0, 0);
 }
 
 // -------------------------------------------------------------- WIRE UP ---
@@ -402,6 +524,8 @@ document.addEventListener('DOMContentLoaded', () => {
   $('#logout-btn').addEventListener('click', handleLogout);
 
   $('#add-customer-btn').addEventListener('click', () => openForm(null));
+  $('#detail-back-btn').addEventListener('click', () => { detailId = null; showAppScreen(); });
+  $('#detail-edit-btn').addEventListener('click', () => { if (detailId) openForm(detailId); });
   $('#customer-form').addEventListener('submit', handleFormSubmit);
   $('#cancel-form-btn').addEventListener('click', closeForm);
   $('#customer-form').dob.addEventListener('input', updateMenhPreview);

@@ -6,6 +6,30 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-19 — Trang chi tiết khách hàng (màn hình xem đầy đủ)
+
+Thêm màn hình chi tiết `#detail-screen` (mục đã note trong `FEATURE_IDEAS.md`):
+
+- **Bấm vào thân card** giờ mở **trang chi tiết** (trước đó mở thẳng modal
+  Sửa). Nút **Sửa** trên trang chi tiết mở lại đúng modal cũ; sửa xong quay
+  lại trang chi tiết đã cập nhật dữ liệu mới. Nút **← Quay lại** về danh sách.
+- **Bố cục**: tên → SĐT + nút Gọi (`tel:`) / Zalo → hàng huy hiệu [Tiến độ =
+  7 chấm tô theo bậc + tên bậc] [Quan tâm = 5 chấm + %] [đánh giá] → hộp
+  **Ghi chú** (hiện đầy đủ, không cắt) → bảng **Căn hộ quan tâm** (loại/mã
+  căn/mã toà/giá) → **Thông tin cá nhân** (giới tính, hôn nhân, ngày sinh,
+  mệnh, thu nhập, thường trú).
+- **Định dạng hiển thị**: giá VNĐ → "1,2 tỷ" / "800 triệu"; ngày sinh →
+  DD/MM/YYYY; mệnh dùng thẳng chuỗi đã tính sẵn trong `menh`. Field trống hiện
+  dấu "—".
+- So với mockup gốc có **thêm 2 mục** ở phần cá nhân: Thu nhập và Thường trú
+  (vì đó là dữ liệu cá nhân đang lưu, cần có chỗ xem ở chế độ đọc).
+- Quản lý 3 màn hình bằng thuộc tính `hidden` (auth / app / detail) — không
+  đổi kiến trúc, vẫn 1 trang SPA thuần.
+
+File: `index.html`, `js/app.js`, `css/style.css`, `FEATURE_IDEAS.md`
+
+---
+
 ## 2026-08-19 — Card khách hàng: chiều cao cố định, actions luôn ở đáy, cắt "Chi tiết"
 
 Chỉnh lại thẻ khách trên dashboard cho đều mắt và dễ quét:

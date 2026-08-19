@@ -5,10 +5,10 @@ Chưa cái nào được làm. Sắp xếp thô theo mức độ nên làm sớm
 
 ## Nên làm sớm (giá trị cao, ít công sức)
 
-- **Trang chi tiết khách (thay vì chỉ card + modal sửa).** Hiện tại xem/sửa
-  chung 1 modal; khi khách có nhiều "Chi tiết" freeform dài, card bị cắt bớt.
-  Nên có view riêng dạng trang, hiển thị đầy đủ lịch sử, dễ đọc hơn trên
-  điện thoại.
+<!-- ĐÃ LÀM 2026-08-19: Trang chi tiết khách (màn hình #detail-screen) —
+     xem CHANGELOG.md. Bấm vào card mở trang chi tiết (đầy đủ Chi tiết,
+     căn hộ, thông tin cá nhân), nút Sửa mở lại modal cũ. -->
+
 - **Lịch sử thay đổi tiến độ chăm sóc (timeline).** Hiện `care_stage` chỉ
   lưu giá trị hiện tại, mất lịch sử. Thêm bảng `customer_activity_log`
   (customer_id, field, old_value, new_value, changed_at, changed_by) ghi
