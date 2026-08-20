@@ -58,6 +58,18 @@ Chưa cái nào được làm. Sắp xếp thô theo mức độ nên làm sớm
 - **Tích hợp gọi điện/ghi âm cuộc gọi.** Ngoài phạm vi kỹ thuật ban đầu,
   cần thêm quyền truy cập điện thoại — chỉ cân nhắc nếu thực sự cần, vì kéo
   theo nhiều vấn đề riêng tư/pháp lý.
+  <!-- 2026-08-20: Đã cân nhắc "đọc nhật ký cuộc gọi Android của đúng SĐT + tự
+       điền timestamp/duration vào note". KẾT LUẬN: KHÔNG khả thi với PWA/web —
+       đọc call log cần quyền hệ thống READ_CALL_LOG, chỉ cấp cho app native cài
+       từ APK; web app trong sandbox trình duyệt không có API nào chạm tới được.
+       Muốn làm thật phải bọc native (Capacitor/TWA + plugin riêng) = đổi kiến
+       trúc lớn. Curtis đã quyết định BỎ QUA tính năng này, giữ web thuần. Nếu
+       sau này cần: cân nhắc phương án "nhập tay nhanh thời lượng cuộc gọi" thay
+       vì đọc tự động. -->
+- **App native để đọc nhật ký cuộc gọi (nếu đổi ý).** Bọc PWA hiện tại bằng
+  Capacitor/TWA + viết plugin native đọc call log của đúng SĐT khách, tự điền
+  timestamp + duration vào ghi chú. Là thay đổi kiến trúc lớn — chỉ làm khi
+  Curtis xác nhận rõ muốn.
 - **Tự động nhắc qua Telegram/Zalo OA khi có khách quá hạn follow-up.**
   Curtis đã có kinh nghiệm với Telegram bot (Telethon) ở các dự án khác —
   có thể tái dùng pattern đó, nhưng cần 1 backend nhỏ (Cloudflare Worker

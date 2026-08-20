@@ -156,6 +156,15 @@
     <section class="detail-section" id="detail-history-section" hidden>
       <h3>Lịch sử chăm sóc</h3>
       <div id="detail-history" class="cs-log"></div>
+      <!-- Ghi thêm 1 lần liên hệ cùng bậc (chỉ hiện với bậc lặp được) -->
+      <div id="detail-log-add" class="cs-log-add" hidden>
+        <button id="detail-log-add-btn" class="btn-small" type="button">＋ Ghi thêm lần</button>
+        <div id="detail-log-add-form" class="cs-note-edit" hidden>
+          <input id="detail-log-add-input" class="cs-note-input" type="text" placeholder="Ghi chú lần này (vd: không nghe máy, đang đi xe)..." />
+          <button id="detail-log-add-save" class="btn-small" type="button">Lưu</button>
+          <button id="detail-log-add-cancel" class="btn-small" type="button">Huỷ</button>
+        </div>
+      </div>
     </section>
   </div>
 </section>
@@ -263,7 +272,7 @@
         <select name="care_stage"></select>
       </label>
       <label class="span-2" id="care-stage-note-wrap" hidden>
-        Ghi chú cho lần đổi tiến độ này
+        <span id="care-stage-note-label">Ghi chú cho lần đổi tiến độ này</span>
         <input name="care_stage_note" type="text" placeholder="vd: Khách không nghe máy, hẹn gọi lại chiều mai..." />
       </label>
       <label>Đánh giá

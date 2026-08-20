@@ -162,28 +162,54 @@ const CRM = {
   async update(id, payload, opts = {}) {
     const existing = (await localGetAll()).find((r) => r.id === id) || { id };
     const now = new Date().toISOString();
-    // care_stage_updated_at + lịch sử CHỈ đổi khi Tiến độ chăm sóc (care_stage)
-    // thực sự khác giá trị cũ — sửa các field khác không đụng tới.
+    // care_stage_updated_at + lịch sử ghi thêm 1 mốc khi:
+    //  - careChanged: care_stage đổi sang bậc khác (đi tới hoặc lùi), HOẶC
+    //  - opts.forceLog: ghi thêm 1 lần liên hệ CÙNG bậc (vd gọi lại lần 2) — dù
+    //    care_stage không đổi. Sửa các field khác (không kèm 2 cờ này) → không đụng.
     const careChanged = 'care_stage' in payload && payload.care_stage !== existing.care_stage;
+    const logStage = careChanged || opts.forceLog || opts.rewind;
     const record = { ...existing, ...payload, id, updated_at: now };
-    if (careChanged) {
+    if (logStage) {
       record.care_stage_updated_at = now;
-      // Append 1 mốc mới vào lịch sử (kèm ghi chú riêng cho lần đổi này).
-      const history = Array.isArray(existing.care_stage_history) ? existing.care_stage_history.slice() : [];
-      history.push({ stage: payload.care_stage || null, note: opts.careStageNote || null, at: now });
+      let history = Array.isArray(existing.care_stage_history) ? existing.care_stage_history.slice() : [];
+      if (opts.rewind && Array.isArray(opts.keepStages)) {
+        // CẬP NHẬT LÙI: chỉ giữ các mốc thuộc bậc <= bậc mới (danh sách keepStages
+        // do app.js tính theo thứ hạng phễu), xoá mọi mốc bậc cao hơn — coi các
+        // bước sau là nhầm/thử. Nếu mốc cuối còn lại đã đúng bậc mới thì KHÔNG thêm
+        // mốc trùng (tránh nhân đôi vd "Chưa gọi được" khi tua hẳn về đầu phễu).
+        history = history.filter((h) => opts.keepStages.includes(h.stage));
+        const last = history[history.length - 1];
+        if (!last || last.stage !== payload.care_stage) {
+          history.push({ stage: payload.care_stage || null, note: opts.careStageNote || null, at: now });
+        }
+      } else {
+        // Append 1 mốc mới (đổi bậc thường, hoặc ghi thêm lần cùng bậc).
+        history.push({ stage: payload.care_stage || null, note: opts.careStageNote || null, at: now });
+      }
       record.care_stage_history = history;
     }
     await localPut(record);
     // Gửi kèm updated_at lên server để sort/xung đột chính xác sau khi đồng bộ
     // (Supabase không tự cập nhật updated_at khi UPDATE — không có trigger).
     const queuedPayload = { ...payload, updated_at: now };
-    if (careChanged) {
+    if (logStage) {
       queuedPayload.care_stage_updated_at = now;
       queuedPayload.care_stage_history = record.care_stage_history;
     }
     await queueAdd({ type: 'update', recordId: id, payload: queuedPayload, ts: now });
     this.flushQueue();
     return record;
+  },
+
+  /**
+   * Ghi thêm 1 lần liên hệ CÙNG bậc hiện tại (vd "Chưa gọi được" lần 2, "Hẹn gọi
+   * lại" lần 3...) — bản chất vẫn ở nguyên bậc, chỉ thêm 1 mốc vào timeline để
+   * theo dõi. Dùng lại update() với cờ forceLog.
+   */
+  async addCareLog(id, note) {
+    const existing = (await localGetAll()).find((r) => r.id === id);
+    if (!existing || !existing.care_stage) return;
+    return this.update(id, { care_stage: existing.care_stage }, { careStageNote: note || null, forceLog: true });
   },
 
   /**

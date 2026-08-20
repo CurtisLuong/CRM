@@ -24,6 +24,14 @@ const CARE_STAGE_OPTIONS = [...CARE_STAGES, CARE_STAGE_DROPPED];
 // Hai trạng thái coi là "chăm sóc đã xong" — mặc định ẩn khỏi dashboard.
 const CARE_DONE_STAGES = ['Đã ký hợp đồng mua bán', CARE_STAGE_DROPPED];
 
+// Các bậc có thể LẶP LẠI nhiều lần mà vẫn ở nguyên bậc đó — mỗi lần liên hệ là 1
+// mốc riêng trong lịch sử để tiện theo dõi (vd gọi mãi không nghe, hẹn lại nhiều
+// lần). Chỉ những bậc này mới cho "ghi thêm lần".
+const CARE_STAGES_REPEATABLE = ['Chưa gọi được', 'Hẹn gọi lại'];
+function isRepeatableStage(stage) {
+  return CARE_STAGES_REPEATABLE.includes(stage);
+}
+
 // Màu từng bậc (đỏ đất → xanh lá: càng về sau càng "chín"). Bậc kết thúc = xám.
 const CARE_STAGE_COLORS = {
   'Chưa gọi được':           '#b0463a', // đỏ đất — mới, chưa liên hệ được
@@ -537,12 +545,21 @@ function toggleAptOther() {
   f.apt_type_other.hidden = f.apt_type_select.value !== '__other';
 }
 
-// Hiện ô ghi chú-đổi-bậc khi care_stage được chọn khác giá trị lúc mở form.
+// Hiện ô ghi chú khi: (a) đổi sang bậc khác, HOẶC (b) chọn lại ĐÚNG bậc cũ nhưng
+// là bậc lặp được (Chưa gọi được / Hẹn gọi lại) → cho ghi thêm 1 lần liên hệ mới.
 function toggleCareStageNote() {
   const f = $('#customer-form');
-  const changed = !!f.care_stage.value && f.care_stage.value !== formOriginalStage;
-  $('#care-stage-note-wrap').hidden = !changed;
-  if (!changed) f.care_stage_note.value = '';
+  const val = f.care_stage.value;
+  const changed = !!val && val !== formOriginalStage;
+  const relog = !!val && val === formOriginalStage && isRepeatableStage(val);
+  const show = changed || relog;
+  $('#care-stage-note-wrap').hidden = !show;
+  // Nhãn đổi theo ngữ cảnh để người dùng hiểu đang làm gì.
+  const lbl = $('#care-stage-note-label');
+  if (lbl) lbl.textContent = relog
+    ? 'Ghi chú lần liên hệ mới (thêm 1 mốc, vẫn ở bậc này)'
+    : 'Ghi chú cho lần đổi tiến độ này';
+  if (!show) f.care_stage_note.value = '';
 }
 
 function closeForm() {
@@ -594,10 +611,31 @@ async function handleFormSubmit(e) {
   const savedId = editingId;
   // Nhớ lựa chọn dự án lần này làm mặc định cho khách mới sau (nếu không tự set).
   localStorage.setItem(LS_LAST_PROJECTS, JSON.stringify(selectedProjects));
-  // Ghi chú cho lần đổi bậc (chỉ dùng khi care_stage thực sự đổi — db.js tự kiểm).
-  const opts = { careStageNote: f.care_stage_note.value.trim() || null };
-  if (editingId) await CRM.update(editingId, payload, opts);
-  else await CRM.create(payload, opts);
+  // Ghi chú cho lần đổi bậc / lần liên hệ mới.
+  const note = f.care_stage_note.value.trim() || null;
+  const opts = { careStageNote: note };
+  if (editingId) {
+    const newStage = payload.care_stage;
+    const orig = formOriginalStage;
+    if (newStage && orig && careSortRank(newStage) < careSortRank(orig)) {
+      // (a) CẬP NHẬT LÙI: bậc mới thấp hơn bậc cũ → cảnh báo trước khi xoá lịch sử.
+      const ok = confirm(
+        '⚠️ CẬP NHẬT LÙI TIẾN ĐỘ\n\n' +
+        `Từ "${orig}" → "${newStage}".\n\n` +
+        `Mọi mốc lịch sử ở bậc CAO HƠN "${newStage}" sẽ bị XOÁ vĩnh viễn ` +
+        '(coi các bước sau là nhầm/thử). Tiếp tục?'
+      );
+      if (!ok) return; // huỷ: giữ nguyên form để sửa lại
+      opts.rewind = true;
+      opts.keepStages = CARE_STAGE_OPTIONS.filter((s) => careSortRank(s) <= careSortRank(newStage));
+    } else if (newStage && newStage === orig && isRepeatableStage(newStage) && note) {
+      // (b) Cùng bậc lặp được + có ghi chú → ghi thêm 1 lần liên hệ mới.
+      opts.forceLog = true;
+    }
+    await CRM.update(editingId, payload, opts);
+  } else {
+    await CRM.create(payload, opts);
+  }
   closeForm();
   await refreshList();
   // Nếu đang mở trang chi tiết khách vừa sửa → vẽ lại cho khớp dữ liệu mới
@@ -773,6 +811,16 @@ function openDetail(id) {
 
   renderCareHistory(c.care_stage_history, c.registered_at || c.created_at);
 
+  // Nút "ghi thêm lần" chỉ hiện khi bậc hiện tại là bậc lặp được.
+  const logAdd = $('#detail-log-add');
+  if (logAdd) {
+    logAdd.hidden = !isRepeatableStage(c.care_stage);
+    $('#detail-log-add-btn').textContent = `＋ Ghi thêm lần "${c.care_stage}"`;
+    $('#detail-log-add-btn').hidden = false;
+    $('#detail-log-add-form').hidden = true;
+    $('#detail-log-add-input').value = '';
+  }
+
   showDetailScreen();
   window.scrollTo(0, 0);
 }
@@ -790,6 +838,13 @@ function renderCareHistory(history, registeredAt) {
   if (list.length === 0) { section.hidden = true; box.innerHTML = ''; return; }
   section.hidden = false;
   list.sort((a, b) => (a.at || '').localeCompare(b.at || '')); // theo thời gian tăng dần
+
+  // Đánh số "lần N" khi HIỂN THỊ (không lưu xuống DB): bậc chỉ có 1 mốc → không
+  // hiện số; từ 2 mốc trở lên → tự đánh lần 1, lần 2... theo thứ tự thời gian.
+  // Tính lại mỗi lần render nên thêm/xoá mốc thì số luôn tự đúng.
+  const stageCounts = {};
+  list.forEach((e) => { if (!e.synthetic) stageCounts[e.stage] = (stageCounts[e.stage] || 0) + 1; });
+  const stageSeen = {};
 
   let html = '';
   list.forEach((entry, i) => {
@@ -817,9 +872,17 @@ function renderCareHistory(history, registeredAt) {
     } else {
       noteHtml = `<span class="cs-sep"> · </span><button class="cs-note-add" data-hist-edit="${at}">+ ghi chú</button>`;
     }
+    // Tên bậc + "lần N" (nếu bậc đó có từ 2 mốc trở lên).
+    let stageInner = escapeHtml(entry.stage);
+    if (!entry.synthetic) {
+      stageSeen[entry.stage] = (stageSeen[entry.stage] || 0) + 1;
+      if (stageCounts[entry.stage] > 1) {
+        stageInner += ` <span class="cs-attempt">lần ${stageSeen[entry.stage]}</span>`;
+      }
+    }
     html += `
       <div class="cs-entry${entry.synthetic ? ' cs-start' : ''}" style="--ring:${color}">
-        <span class="cs-stage">${escapeHtml(entry.stage)}</span>
+        <span class="cs-stage">${stageInner}</span>
         <div class="cs-meta">
           <span class="cs-time">${escapeHtml(formatLogTime(entry.at))}</span>
           <span class="cs-note-wrap">${noteHtml}</span>
@@ -875,6 +938,34 @@ $('#detail-history')?.addEventListener('keydown', (e) => {
   if (!e.target.classList.contains('cs-note-input')) return;
   if (e.key === 'Enter') { e.preventDefault(); saveHistoryNote(editingHistoryAt, e.target.value.trim() || null); }
   else if (e.key === 'Escape') { e.preventDefault(); editingHistoryAt = null; rerenderCareHistory(); }
+});
+
+// ---- Ghi thêm 1 lần liên hệ cùng bậc (nút nhanh ở trang chi tiết) ----
+function openLogAddForm() {
+  $('#detail-log-add-form').hidden = false;
+  $('#detail-log-add-btn').hidden = true;
+  const inp = $('#detail-log-add-input');
+  inp.value = '';
+  inp.focus();
+}
+function closeLogAddForm() {
+  $('#detail-log-add-form').hidden = true;
+  $('#detail-log-add-btn').hidden = false;
+}
+async function saveNewCareLog(note) {
+  if (!detailId) return;
+  await CRM.addCareLog(detailId, note);
+  await refreshList();     // cập nhật mốc "cập nhật cuối" trên card danh sách
+  openDetail(detailId);    // vẽ lại chi tiết: timeline + đánh số "lần N"
+}
+$('#detail-log-add-btn')?.addEventListener('click', openLogAddForm);
+$('#detail-log-add-cancel')?.addEventListener('click', closeLogAddForm);
+$('#detail-log-add-save')?.addEventListener('click', () => {
+  saveNewCareLog($('#detail-log-add-input').value.trim() || null);
+});
+$('#detail-log-add-input')?.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); saveNewCareLog(e.target.value.trim() || null); }
+  else if (e.key === 'Escape') { e.preventDefault(); closeLogAddForm(); }
 });
 
 // ------------------------------------------------- LỊCH GỌI / NHẮC GỌI ----

@@ -6,6 +6,34 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-20 — Lịch sử chăm sóc: cập nhật lùi (xoá bậc sau) + ghi thêm lần cùng bậc + tự đánh số "lần N"
+
+Ba cải tiến cho timeline "Lịch sử chăm sóc" (dùng lại cột `care_stage_history`,
+KHÔNG đổi schema, KHÔNG có migration cần chạy):
+
+1. **Cập nhật LÙI tiến độ** — khi ở form sửa khách chọn 1 bậc THẤP HƠN bậc hiện
+   tại, app hiện cảnh báo xác nhận; nếu đồng ý → xoá mọi mốc lịch sử ở bậc CAO
+   HƠN bậc vừa chọn (coi các bước sau là nhầm/thử), chỉ giữ các mốc bậc ≤ bậc
+   mới. VD `1→2→3→4` rồi lùi về 1 → chỉ còn bậc 1. Nếu bậc còn lại đã đúng bậc
+   mới thì không thêm mốc trùng. Bấm Huỷ ở cảnh báo → không lưu gì, giữ nguyên
+   form. Thứ hạng bậc dùng `careSortRank` (bậc 1 'Chưa gọi được' → bậc 7 'Đã ký
+   hợp đồng'; 'Không quan tâm-kết thúc' = 8).
+
+2. **Ghi thêm 1 lần liên hệ CÙNG bậc** cho 2 bậc lặp được ('Chưa gọi được',
+   'Hẹn gọi lại') — bản chất vẫn ở nguyên bậc, chỉ thêm 1 mốc vào timeline. Làm
+   được ở CẢ HAI nơi: (a) nút "＋ Ghi thêm lần" ở trang chi tiết (chỉ hiện khi
+   bậc hiện tại là bậc lặp được); (b) trong form sửa: chọn lại đúng bậc cũ +
+   nhập ghi chú → tự thêm mốc mới. Dùng cờ `forceLog` trong `CRM.update` +
+   method mới `CRM.addCareLog`.
+
+3. **Tự đánh số "lần N" khi hiển thị** — bậc chỉ có 1 mốc: không hiện số; từ 2
+   mốc trở lên: tự đánh 'lần 1, lần 2...' theo thứ tự thời gian. Số này KHÔNG
+   lưu xuống DB, tính lại mỗi lần render nên thêm/xoá mốc thì số luôn tự đúng.
+
+File: `js/db.js`, `js/app.js`, `index.html`, `css/style.css`
+
+---
+
 ## 2026-08-20 — Icon app dùng Net_Icon.png (mạng lưới xanh)
 
 Thay icon PWA tạm ("KH") bằng `icons/Net_Icon.png` (1024×1024, nền mint bo góc
