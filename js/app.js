@@ -358,6 +358,7 @@ function renderList() {
           <div class="card-menu">
             <button class="card-menu-btn" data-action="menu" aria-label="Tuỳ chọn khác">⋯</button>
             <div class="card-menu-pop">
+              <button class="menu-item" data-action="schedule" data-id="${c.id}">Hẹn lịch gọi</button>
               <button class="menu-item danger" data-action="delete" data-id="${c.id}">Xoá khách</button>
             </div>
           </div>
@@ -417,6 +418,8 @@ $('#customer-list')?.addEventListener('click', (e) => {
     const id = btn.dataset.id;
     if (btn.dataset.action === 'edit') openForm(id);
     if (btn.dataset.action === 'delete') confirmDelete(id);
+    // Hẹn lịch gọi: đóng menu "⋯" rồi mở helper hẹn lịch (cùng modal ở trang chi tiết).
+    if (btn.dataset.action === 'schedule') { card?.classList.remove('menu-open'); openScheduler(id); }
     return;
   }
   // Bấm vào link SĐT → để nó mở Zalo/gọi bình thường, không mở trang chi tiết

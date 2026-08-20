@@ -6,6 +6,21 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-20 — Menu "⋯" trên card: thêm "Hẹn lịch gọi"
+
+Menu "⋯" ở mỗi card khách trước chỉ có "Xoá khách". Nay thêm mục **"Hẹn lịch
+gọi"** (đặt trên "Xoá khách") → trỏ thẳng tới helper hẹn lịch `openScheduler(id)`
+(cùng modal đang dùng ở trang chi tiết), khỏi phải vào chi tiết mới đặt được lịch.
+
+- Chữ "Hẹn lịch gọi" giữ **cùng tone** với các chữ khác (class `.menu-item`,
+  màu `--ink`); chữ "Xoá khách" giữ **màu đỏ cảnh báo** (class `.menu-item danger`).
+- Bấm → đóng menu "⋯" rồi mở modal hẹn lịch. Lưu xong `saveSchedule` đã tự
+  `refreshList()` nên tag nhắc gọi hiện ngay trên card.
+
+File: `js/app.js`
+
+---
+
 ## 2026-08-20 — Lịch sử chăm sóc: cập nhật lùi (xoá bậc sau) + ghi thêm lần cùng bậc + tự đánh số "lần N"
 
 Ba cải tiến cho timeline "Lịch sử chăm sóc" (dùng lại cột `care_stage_history`,
