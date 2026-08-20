@@ -84,6 +84,20 @@ function careSortRank(stage) {
   return idx === -1 ? 1 : idx + 1;
 }
 
+// 4 bậc MỨC QUAN TÂM → nhãn + màu (dùng cho viền trái card + badge trên card).
+// Ngưỡng: Nguội <35, Ấm 35–<60, Nóng 60–<80, Rất nóng >=80. Xếp min giảm dần để
+// find() lấy đúng bậc đầu tiên khách đạt.
+const INTEREST_TIERS = [
+  { key: 'ratnong', label: 'Rất nóng', color: '#a8302a', min: 80 },
+  { key: 'nong',    label: 'Nóng',     color: '#c94f3e', min: 60 },
+  { key: 'am',      label: 'Ấm',       color: '#e8a33d', min: 35 },
+  { key: 'nguoi',   label: 'Nguội',    color: '#8b93a0', min: 0 },
+];
+function interestTier(pct) {
+  const v = pct || 0;
+  return INTEREST_TIERS.find((t) => v >= t.min) || INTEREST_TIERS[INTEREST_TIERS.length - 1];
+}
+
 const EVAL_REASONS = [
   'Không đủ điều kiện',
   'Khách dò giá',
@@ -368,12 +382,14 @@ function renderList() {
     card.className = 'customer-card';
     card.dataset.id = c.id; // để bấm vào thân card mở xem/sửa đầy đủ
     if (c.evaluation === 'không nên chăm') card.classList.add('is-dropped');
+    // Viền trái card = màu bậc mức quan tâm (Nguội/Ấm/Nóng/Rất nóng).
+    const tier = interestTier(c.interest_level ?? 0);
+    card.style.setProperty('--tier', tier.color);
 
     // Tiến độ chăm sóc → vòng NHỎ (đĩa conic đầy theo bậc) + "x/7" + tên bước.
     const level = careLevel(c.care_stage);
     const ringPct = Math.round((level / 7) * 100);
     const ringColor = careColor(c.care_stage);
-    const interest = c.interest_level ?? 0;
     // Timestamp phản ánh lần đổi Tiến độ chăm sóc cuối (không phải mọi lần sửa).
     // Dòng cũ chưa có care_stage_updated_at thì tạm dùng updated_at.
     const updated = timeAgo(c.care_stage_updated_at || c.updated_at);
@@ -417,11 +433,7 @@ function renderList() {
         ${c.apt_type ? `<span class="tag">${escapeHtml(c.apt_type)}</span>` : ''}
         ${c.evaluation ? `<span class="tag ${c.evaluation === 'nên chăm' ? 'tag-good' : 'tag-bad'}">${escapeHtml(c.evaluation)}</span>` : ''}
         ${menhShort ? `<span class="tag tag-menh">${escapeHtml(menhShort)}</span>` : ''}
-      </div>
-      <div class="interest-line">
-        <span class="interest-label">Quan tâm</span>
-        <span class="interest-bar"><span class="interest-fill" style="width:${interest}%"></span></span>
-        <span class="interest-pct">${interest}%</span>
+        <span class="tag tag-interest ti-${tier.key}"><span class="ti-dot">◆</span> ${tier.label}</span>
       </div>
       <div class="card-notes">${cardNotesInner}</div>
       <div class="card-footer">

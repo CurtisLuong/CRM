@@ -6,6 +6,23 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-20 — Card: mức quan tâm thành viền trái 4 bậc màu + badge (bỏ thanh %)
+
+Đổi cách thể hiện Mức quan tâm trên card danh sách (trang chi tiết giữ nguyên
+chấm + %):
+
+- **Viền trái card** tô màu theo 4 bậc quan tâm (dải `::before` rộng 5px, tự bo
+  góc theo card nhờ `overflow:hidden`; màu set qua biến `--tier` trong JS).
+- **Badge "◆ {nhãn}"** trong hàng tiến độ (nền tint nhạt + ◆/chữ theo màu bậc).
+- **Bỏ** thanh "Quan tâm [====] %" cũ trên card (xoá `.interest-line/-bar/-fill/-pct`).
+- Ngưỡng & màu (hàm `interestTier` / `INTEREST_TIERS`):
+  Nguội `<35%` #8b93a0 · Ấm `35–<60%` #e8a33d · Nóng `60–<80%` #c94f3e ·
+  Rất nóng `>=80%` #a8302a.
+
+File: `js/app.js`, `css/style.css`
+
+---
+
 ## 2026-08-20 — Ghi chú khách: note TỰ ĐỘNG (từ care stage) + note tự nhập dạng bullet
 
 Đổi "Ghi chú" từ 1 ô text tự do thành danh sách bullet, tách 2 loại:

@@ -202,6 +202,7 @@ input:focus, select:focus, textarea:focus {
   gap: 12px;
 }
 .customer-card {
+  position: relative;      /* để đặt dải màu viền trái (::before) */
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -212,6 +213,13 @@ input:focus, select:focus, textarea:focus {
   flex-direction: column;
   overflow: hidden;       /* nội dung dư (tag/chi tiết) bị cắt gọn, không tràn ra ngoài */
   cursor: pointer;        /* bấm vào card để xem/sửa đầy đủ */
+}
+/* Dải màu viền trái = bậc mức quan tâm (--tier set trong JS). overflow:hidden của
+   card tự bo góc dải theo card. */
+.customer-card::before {
+  content: '';
+  position: absolute; left: 0; top: 0; bottom: 0; width: 5px;
+  background: var(--tier, transparent);
 }
 .customer-card:hover { border-color: var(--teal-light); box-shadow: 0 2px 8px rgba(31, 58, 61, 0.08); }
 .customer-card.is-dropped { opacity: 0.6; }
@@ -278,12 +286,18 @@ input:focus, select:focus, textarea:focus {
 .mini-frac { font-size: 12px; font-weight: 700; color: #3a3a34; }
 .stage-name { font-size: 12px; color: #4a4a42; margin-right: 2px; }
 
-/* Thanh "Mức quan tâm" ngang mảnh + số % */
-.interest-line { display: flex; align-items: center; gap: 8px; margin-top: 8px; flex-shrink: 0; font-size: 12px; }
-.interest-label { color: #6b6b60; }
-.interest-bar { flex: 1; max-width: 150px; height: 6px; border-radius: 100px; background: #e6e3da; overflow: hidden; }
-.interest-fill { display: block; height: 100%; background: var(--terracotta); border-radius: 100px; }
-.interest-pct { font-weight: 600; color: #3a3a34; }
+/* Badge MỨC QUAN TÂM trên card: ◆ + nhãn bậc, nền tint nhạt + chữ/◆ theo màu bậc.
+   (Thay cho thanh "Quan tâm" cũ — mức quan tâm giờ thể hiện qua viền trái + badge này.) */
+.tag-interest { font-weight: 600; display: inline-flex; align-items: center; gap: 4px; }
+.tag-interest .ti-dot { font-size: 9px; line-height: 1; }
+.ti-nguoi   { background: #edeff2; color: #5f6b7a; }
+.ti-nguoi   .ti-dot { color: #8b93a0; }
+.ti-am      { background: #fbeccd; color: #9c6f1a; }
+.ti-am      .ti-dot { color: #e8a33d; }
+.ti-nong    { background: #f7ddd7; color: #a83f30; }
+.ti-nong    .ti-dot { color: #c94f3e; }
+.ti-ratnong { background: #f2d3d0; color: #8f231d; }
+.ti-ratnong .ti-dot { color: #a8302a; }
 
 .tag { font-size: 11px; padding: 3px 8px; border-radius: 100px; background: #eee; color: #444; }
 .tag-stage { background: #e4ecec; color: var(--teal); }
