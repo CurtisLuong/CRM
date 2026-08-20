@@ -6,6 +6,25 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-20 — Kéo để tải lại (pull-to-refresh) → reload toàn bộ trang
+
+Thêm cử chỉ **kéo từ đầu trang xuống để reload cả trang** (`location.reload()`)
+— khác nút `↻` (nút đó chỉ làm mới DỮ LIỆU tại chỗ). Vì `sw.js` là network-first
+nên reload sẽ lấy HTML/JS/CSS mới nhất từ Cloudflare, tức **áp dụng luôn code vừa
+commit/deploy**.
+
+- Ở đầu trang (`scrollY<=0`), kéo xuống (có lực cản) quá ngưỡng ~64px rồi thả →
+  hiện thanh "Thả để tải lại" → reload. Chưa đủ ngưỡng thì thanh tự thu về.
+- Chỉ dùng touch (điện thoại/tablet). Bỏ qua khi đang có `dialog[open]` (form,
+  hộp thoại) để không reload nhầm lúc đang thao tác. Kéo lên / trang đã cuộn khỏi
+  đỉnh → không kích hoạt (cuộn bình thường).
+- Thanh chỉ báo `#ptr-indicator` (fixed top, trượt từ trên xuống) + spinner khi
+  đang tải. Không bump `CACHE_NAME` (APP_SHELL không đổi; network-first tự lấy mới).
+
+File: `index.html`, `css/style.css`, `js/app.js`
+
+---
+
 ## 2026-08-20 — Zalo trên Mac: mở thẳng cửa sổ chat trong app native
 
 Trước đây bấm icon Zalo trên Mac chỉ mở trang web `zalo.me/{sdt}` (Android thì

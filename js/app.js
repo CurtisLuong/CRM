@@ -1506,3 +1506,65 @@ document.addEventListener('DOMContentLoaded', () => {
     navigator.serviceWorker.register('/sw.js').catch(() => {});
   }
 });
+
+// ------------------------------------------------- KÉO ĐỂ TẢI LẠI ----------
+// Ở ĐẦU trang (scrollY<=0), kéo XUỐNG quá ngưỡng rồi thả → reload TOÀN BỘ trang.
+// location.reload() + sw.js network-first ⇒ lấy HTML/JS/CSS mới nhất từ Cloudflare
+// (kể cả code vừa commit/deploy). Chỉ dùng cử chỉ cảm ứng (điện thoại/tablet);
+// máy tính không kích hoạt (không có touch) — vẫn có nút ↻ để làm mới dữ liệu.
+(function setupPullToRefresh() {
+  const ind = document.getElementById('ptr-indicator');
+  if (!ind) return;
+  const txt = ind.querySelector('.ptr-text');
+  const HIDDEN = -48;      // vị trí ẩn (khớp translateY(-48px) trong CSS)
+  const THRESHOLD = 64;    // px kéo (đã có lực cản) tối thiểu để kích hoạt
+  const MAX_VISIBLE = 72;  // px tối đa thanh trượt xuống (cảm giác căng)
+  let startY = 0, pulling = false, dist = 0;
+
+  // Không kích hoạt khi có modal đang mở (đang thao tác trong form/hộp thoại).
+  const anyDialogOpen = () => !!document.querySelector('dialog[open]');
+
+  function reset() {
+    ind.classList.remove('ready', 'loading');
+    ind.style.transition = '';
+    ind.style.transform = '';
+    txt.textContent = 'Kéo để tải lại';
+    dist = 0;
+  }
+
+  window.addEventListener('touchstart', (e) => {
+    if (window.scrollY > 0 || e.touches.length !== 1 || anyDialogOpen()) { pulling = false; return; }
+    startY = e.touches[0].clientY;
+    pulling = true; dist = 0;
+  }, { passive: true });
+
+  window.addEventListener('touchmove', (e) => {
+    if (!pulling) return;
+    // Trong lúc kéo mà trang đã cuộn khỏi đỉnh → huỷ (để cuộn bình thường).
+    if (window.scrollY > 0) { reset(); pulling = false; return; }
+    const dy = e.touches[0].clientY - startY;
+    if (dy <= 0) { reset(); pulling = false; return; } // kéo lên → không phải PtR
+    dist = Math.min(MAX_VISIBLE, dy * 0.5); // lực cản: kéo càng xa càng chậm
+    e.preventDefault();                     // chặn hiệu ứng nảy mặc định
+    ind.style.transition = 'none';          // bám theo ngón tay
+    ind.style.transform = `translateY(${dist + HIDDEN}px)`;
+    const ready = dist >= THRESHOLD;
+    ind.classList.toggle('ready', ready);
+    txt.textContent = ready ? 'Thả để tải lại' : 'Kéo để tải lại';
+  }, { passive: false });
+
+  window.addEventListener('touchend', () => {
+    if (!pulling) return;
+    pulling = false;
+    ind.style.transition = ''; // bật lại transition mượt cho lúc trượt về/hiện spinner
+    if (dist >= THRESHOLD) {
+      ind.classList.remove('ready');
+      ind.classList.add('loading');
+      txt.textContent = 'Đang tải lại...';
+      ind.style.transform = 'translateY(0)';
+      setTimeout(() => location.reload(), 300);
+    } else {
+      reset();
+    }
+  });
+})();

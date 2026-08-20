@@ -28,6 +28,27 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Kéo để tải lại (pull-to-refresh): thanh trượt từ trên xuống khi kéo ở đầu trang */
+.ptr-indicator {
+  position: fixed; top: 0; left: 0; right: 0;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  height: 48px;
+  background: var(--paper); color: var(--ink);
+  font-size: 13px; font-weight: 600;
+  border-bottom: 1px solid var(--line);
+  transform: translateY(-48px);   /* ẩn phía trên viewport */
+  transition: transform .22s ease;
+  z-index: 2000; pointer-events: none;
+}
+.ptr-indicator .ptr-spinner {
+  width: 16px; height: 16px; border-radius: 50%;
+  border: 2px solid var(--line); border-top-color: var(--seal);
+  opacity: 0;
+}
+.ptr-indicator.ready .ptr-spinner { opacity: .5; }
+.ptr-indicator.loading .ptr-spinner { opacity: 1; animation: ptr-spin .7s linear infinite; }
+@keyframes ptr-spin { to { transform: rotate(360deg); } }
+
 /* Không dùng "Iowan Old Style": font này (có trên macOS) vẽ SAI các nguyên âm
    có râu của tiếng Việt (ư/ơ + dấu: ường, ưởng, ữ, ự...). Georgia render đúng,
    vẫn giữ nét serif trang trọng; Android/Linux rơi về serif hệ thống (Noto Serif)
