@@ -267,8 +267,23 @@ function removeVietnameseTones(str) {
     .replace(/đ/g, 'd');
 }
 
+// Máy Mac để bàn (KHÔNG phải iPhone/iPad giả UA Macintosh). iPad Safari cũng báo
+// "Macintosh" nhưng có cảm ứng (maxTouchPoints > 1) → loại ra để iOS vẫn dùng web.
+function isMacDesktop() {
+  const ua = navigator.userAgent || '';
+  const isMac = /Macintosh|Mac OS X/.test(ua);
+  const isTouchIOS = /iPhone|iPad|iPod/.test(ua) || (isMac && navigator.maxTouchPoints > 1);
+  return isMac && !isTouchIOS;
+}
+
 function zaloLink(phone) {
   const clean = normalizePhone(phone).replace(/^\+?84/, '0');
+  // Trên Mac có app Zalo native: deep-link mở THẲNG cửa sổ chat của khách (scheme
+  // này dò được từ app Zalo Mac — xem CHANGELOG 2026-08-20). Các nền tảng khác
+  // (Android/iOS/Windows...) dùng link web zalo.me, tự mở app nếu có (App/Universal
+  // Links). Lưu ý: nếu Mac chưa cài app Zalo thì bấm sẽ không mở gì — chấp nhận
+  // được vì đây là công cụ nội bộ cho sale luôn dùng Zalo.
+  if (isMacDesktop()) return `zalo://conversation?phone=${clean}`;
   return `https://zalo.me/${clean}`;
 }
 
@@ -350,6 +365,9 @@ function renderList() {
     // Dòng cũ chưa có care_stage_updated_at thì tạm dùng updated_at.
     const updated = timeAgo(c.care_stage_updated_at || c.updated_at);
     const menhShort = c.menh ? c.menh.split(' — ')[0] : ''; // "Mệnh Kim" (bỏ nạp âm dài phía sau)
+    // Link Zalo: web (http) mở tab mới; app native (zalo://) mở app tại chỗ, không target.
+    const zaloHref = zaloLink(c.phone);
+    const zaloAttr = zaloHref.startsWith('http') ? 'target="_blank" rel="noopener"' : '';
     card.innerHTML = `
       <div class="card-head">
         <div class="card-name">${escapeHtml(c.full_name || '(chưa có tên)')}</div>
@@ -367,7 +385,7 @@ function renderList() {
       <div class="phone-row">
         <span class="phone-number">${escapeHtml(c.phone || '')}</span>
         <a class="card-phone" href="tel:${normalizePhone(c.phone)}" aria-label="Gọi ${escapeHtml(c.phone || '')}">${PHONE_SVG}</a>
-        <a class="card-zalo" href="${zaloLink(c.phone)}" target="_blank" rel="noopener" aria-label="Nhắn Zalo">
+        <a class="card-zalo" href="${zaloHref}" ${zaloAttr} aria-label="Nhắn Zalo">
           <img class="ic-zalo" src="/icons/zalo.png" alt="Zalo" />
         </a>
       </div>
@@ -749,7 +767,12 @@ function openDetail(id) {
   $('#detail-name').textContent = c.full_name || '(chưa có tên)';
   $('#detail-phone').textContent = c.phone || DASH;
   $('#detail-call-btn').href = c.phone ? `tel:${normalizePhone(c.phone)}` : '#';
-  $('#detail-zalo-btn').href = zaloLink(c.phone);
+  const zaloHref = zaloLink(c.phone);
+  const zaloBtn = $('#detail-zalo-btn');
+  zaloBtn.href = zaloHref;
+  // Link web mở tab mới; link app native (zalo://) mở app tại chỗ (bỏ target để khỏi tab trắng).
+  if (zaloHref.startsWith('http')) { zaloBtn.target = '_blank'; zaloBtn.rel = 'noopener'; }
+  else { zaloBtn.removeAttribute('target'); zaloBtn.removeAttribute('rel'); }
 
   // Tiến độ
   $('#detail-stage-dots').innerHTML = stageDotsHtml(c.care_stage);

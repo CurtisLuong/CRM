@@ -6,6 +6,30 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-20 — Zalo trên Mac: mở thẳng cửa sổ chat trong app native
+
+Trước đây bấm icon Zalo trên Mac chỉ mở trang web `zalo.me/{sdt}` (Android thì
+đã vào app native nhờ App Links). Nay trên Mac dùng **deep-link scheme native**
+để nhảy thẳng vào cửa sổ chat của đúng khách.
+
+- Dò trên máy Mac (qua `lsregister` + grep `app.asar` + test `open`): app Zalo
+  Mac đăng ký scheme `zalo:`, và path mở đúng chat theo SĐT là
+  **`zalo://conversation?phone={sdt}`** (các dạng khác như `chat?phone=`,
+  `user/`, `open?phone=` chỉ bật app chung chung).
+- `zaloLink()` nhận biết nền tảng: **Mac để bàn** → `zalo://conversation?phone=`;
+  còn lại (Android/iOS/Windows) → giữ `https://zalo.me/{sdt}`. iPad Safari báo UA
+  "Macintosh" nhưng có cảm ứng nên bị loại khỏi nhánh Mac (hàm `isMacDesktop`).
+- SĐT chuẩn hoá về dạng `0...` (bỏ `+84/84`) như link web cũ.
+- Link web (http) vẫn mở tab mới; link app native (`zalo://`) bỏ `target="_blank"`
+  để không để lại tab trắng. Áp dụng cho cả card danh sách và nút ở trang chi tiết.
+- Không thêm fallback JS (thử scheme rồi hẹn giờ mở web) vì trên desktop việc dò
+  "app đã mở hay chưa" không đáng tin, dễ mở đúp. Máy sale luôn có app Zalo nên
+  chấp nhận: Mac chưa cài Zalo thì bấm icon sẽ không mở gì.
+
+File: `js/app.js`
+
+---
+
 ## 2026-08-20 — Menu "⋯" trên card: thêm "Hẹn lịch gọi"
 
 Menu "⋯" ở mỗi card khách trước chỉ có "Xoá khách". Nay thêm mục **"Hẹn lịch
