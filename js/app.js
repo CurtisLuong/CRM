@@ -32,6 +32,19 @@ function isRepeatableStage(stage) {
   return CARE_STAGES_REPEATABLE.includes(stage);
 }
 
+// Ghi chú TỰ ĐỘNG: lấy note của mốc care stage MỚI NHẤT có ghi chú (quét lịch sử
+// từ mới → cũ, lấy note đầu tiên khác rỗng). Không có note nào → null. KHÔNG lưu
+// xuống DB — tính lại mỗi lần hiển thị nên luôn bám theo note care stage mới nhất.
+function autoNoteFromHistory(history) {
+  if (!Array.isArray(history) || history.length === 0) return null;
+  const sorted = [...history].sort((a, b) => (a.at || '').localeCompare(b.at || ''));
+  for (let i = sorted.length - 1; i >= 0; i--) {
+    const n = (sorted[i].note || '').trim();
+    if (n) return n;
+  }
+  return null;
+}
+
 // Màu từng bậc (đỏ đất → xanh lá: càng về sau càng "chín"). Bậc kết thúc = xám.
 const CARE_STAGE_COLORS = {
   'Chưa gọi được':           '#b0463a', // đỏ đất — mới, chưa liên hệ được
@@ -368,6 +381,14 @@ function renderList() {
     // Link Zalo: web (http) mở tab mới; app native (zalo://) mở app tại chỗ, không target.
     const zaloHref = zaloLink(c.phone);
     const zaloAttr = zaloHref.startsWith('http') ? 'target="_blank" rel="noopener"' : '';
+    // Ghi chú trên card: note TỰ ĐỘNG (từ care stage mới nhất) lên đầu, rồi note tự nhập.
+    // Cắt còn 2 dòng bằng CSS (.card-notes line-clamp). Cũ ở dưới, mới ở trên.
+    const autoNote = autoNoteFromHistory(c.care_stage_history);
+    const manualNotes = Array.isArray(c.notes_manual) ? c.notes_manual : [];
+    const noteLines = [];
+    if (autoNote) noteLines.push(`<span class="note-auto">• ${escapeHtml(autoNote)}</span>`);
+    for (const n of manualNotes) noteLines.push(`• ${escapeHtml(n.text || '')}`);
+    const cardNotesInner = noteLines.join('<br>');
     card.innerHTML = `
       <div class="card-head">
         <div class="card-name">${escapeHtml(c.full_name || '(chưa có tên)')}</div>
@@ -402,7 +423,7 @@ function renderList() {
         <span class="interest-bar"><span class="interest-fill" style="width:${interest}%"></span></span>
         <span class="interest-pct">${interest}%</span>
       </div>
-      <div class="card-notes">${escapeHtml(c.notes || '')}</div>
+      <div class="card-notes">${cardNotesInner}</div>
       <div class="card-footer">
         <span class="card-updated">${updated ? 'Cập nhật ' + escapeHtml(updated) : ''}</span>
         <button class="btn-small" data-action="edit" data-id="${c.id}">Sửa</button>
@@ -535,7 +556,6 @@ function openForm(id) {
   f.apt_code.value = c.apt_code || '';
   f.building_code.value = c.building_code || '';
   f.apt_price.value = c.apt_price || '';
-  f.notes.value = c.notes || '';
   f.interest_level.value = c.interest_level ?? 50;
   $('#interest-output').textContent = (c.interest_level ?? 50) + '%';
   f.care_stage.value = c.care_stage || '';
@@ -619,7 +639,6 @@ async function handleFormSubmit(e) {
     apt_code: f.apt_code.value.trim() || null,
     building_code: f.building_code.value.trim() || null,
     apt_price: f.apt_price.value ? Number(f.apt_price.value) : null,
-    notes: f.notes.value.trim() || null,
     interest_level: Number(f.interest_level.value),
     care_stage: f.care_stage.value || null,
     evaluation: f.evaluation.value || null,
@@ -674,6 +693,7 @@ async function confirmDelete(id) {
 
 let detailId = null; // khách đang xem ở trang chi tiết
 let editingHistoryAt = null; // mốc lịch sử đang sửa note (theo 'at'), null = không sửa
+let editingNoteAt = null; // ghi chú tự nhập đang sửa (theo 'at'), null = không sửa
 
 // Chuỗi HTML các "chấm" tiến độ: 7 chấm, tô màu bậc cho tới level hiện tại.
 function stageDotsHtml(stage) {
@@ -804,10 +824,12 @@ function openDetail(id) {
     $('#detail-callclear-btn').hidden = true;
   }
 
-  // Ghi chú
-  const notesBox = $('#detail-notes');
-  notesBox.textContent = c.notes || 'Chưa có ghi chú.';
-  notesBox.classList.toggle('is-empty', !c.notes);
+  // Ghi chú (note tự động + note tự nhập, dạng bullet)
+  editingNoteAt = null;
+  renderDetailNotes(c);
+  $('#detail-note-add-form').hidden = true;
+  $('#detail-note-add-btn').hidden = false;
+  $('#detail-note-add-input').value = '';
 
   // Căn hộ quan tâm
   const aptRows = [
@@ -992,6 +1014,105 @@ $('#detail-log-add-save')?.addEventListener('click', () => {
 $('#detail-log-add-input')?.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') { e.preventDefault(); saveNewCareLog(e.target.value.trim() || null); }
   else if (e.key === 'Escape') { e.preventDefault(); closeLogAddForm(); }
+});
+
+// ---- Ghi chú: note TỰ ĐỘNG (từ care stage) + note tự nhập (bullet, có ngày giờ) ----
+function renderDetailNotes(c) {
+  const box = $('#detail-notes');
+  const autoNote = autoNoteFromHistory(c.care_stage_history);
+  const manual = Array.isArray(c.notes_manual) ? c.notes_manual : [];
+  let html = '';
+  // Note tự động lên đầu (mang tính cập nhật nhất), có nhãn "Tự động", không sửa được.
+  if (autoNote) {
+    html += `<div class="note-item note-auto">
+        <span class="note-badge">Tự động</span>
+        <span class="note-text">${escapeHtml(autoNote)}</span>
+      </div>`;
+  }
+  // Note tự nhập xếp sau, mới nhất ở trên (db lưu unshift), có ngày giờ + sửa/xoá.
+  for (const n of manual) {
+    const at = escapeHtml(n.at || '');
+    if (n.at === editingNoteAt) {
+      html += `<div class="note-item note-editing">
+          <input class="cs-note-input note-edit-input" type="text" placeholder="Nội dung ghi chú..." />
+          <button class="btn-small" data-note-save="${at}">Lưu</button>
+          <button class="btn-small" data-note-cancel="${at}">Huỷ</button>
+        </div>`;
+    } else {
+      html += `<div class="note-item">
+          <span class="note-bullet">•</span>
+          <span class="note-text">${escapeHtml(n.text || '')}</span>
+          <span class="note-meta">${escapeHtml(formatLogTime(n.at))}</span>
+          <button class="note-act" data-note-edit="${at}" title="Sửa">✎</button>
+          <button class="note-act" data-note-del="${at}" title="Xoá">✕</button>
+        </div>`;
+    }
+  }
+  box.classList.toggle('is-empty', !autoNote && manual.length === 0);
+  box.innerHTML = (!autoNote && manual.length === 0) ? 'Chưa có ghi chú.' : html;
+
+  // Đang sửa 1 ghi chú → nạp nội dung cũ vào input + focus.
+  if (editingNoteAt) {
+    const inp = box.querySelector('.note-edit-input');
+    const entry = manual.find((n) => n.at === editingNoteAt);
+    if (inp) { inp.value = entry ? (entry.text || '') : ''; inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }
+  }
+}
+
+// Vẽ lại card + phần ghi chú chi tiết sau mỗi thay đổi ghi chú.
+async function afterNoteChange() {
+  await refreshList(); // cập nhật allCustomers + card danh sách (note tự động/thủ công)
+  const c = allCustomers.find((x) => x.id === detailId);
+  if (c) renderDetailNotes(c);
+}
+
+function openNoteAddForm() {
+  $('#detail-note-add-form').hidden = false;
+  $('#detail-note-add-btn').hidden = true;
+  const inp = $('#detail-note-add-input'); inp.value = ''; inp.focus();
+}
+function closeNoteAddForm() {
+  $('#detail-note-add-form').hidden = true;
+  $('#detail-note-add-btn').hidden = false;
+}
+async function saveNewNote(text) {
+  const t = (text || '').trim();
+  if (t && detailId) { await CRM.addNote(detailId, t); await afterNoteChange(); }
+  closeNoteAddForm();
+}
+async function saveEditNote(at, text) {
+  if (detailId) await CRM.updateNote(detailId, at, (text || '').trim() || null); // trống = xoá
+  editingNoteAt = null;
+  await afterNoteChange();
+}
+async function deleteNoteEntry(at) {
+  if (!confirm('Xoá ghi chú này?')) return;
+  if (detailId) { await CRM.deleteNote(detailId, at); await afterNoteChange(); }
+}
+
+$('#detail-note-add-btn')?.addEventListener('click', openNoteAddForm);
+$('#detail-note-add-cancel')?.addEventListener('click', closeNoteAddForm);
+$('#detail-note-add-save')?.addEventListener('click', () => saveNewNote($('#detail-note-add-input').value));
+$('#detail-note-add-input')?.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); saveNewNote(e.target.value); }
+  else if (e.key === 'Escape') { e.preventDefault(); closeNoteAddForm(); }
+});
+
+// Bấm trong danh sách ghi chú: ✎ sửa / ✕ xoá / Lưu / Huỷ.
+$('#detail-notes')?.addEventListener('click', (e) => {
+  const ed = e.target.closest('[data-note-edit]');
+  if (ed) { editingNoteAt = ed.dataset.noteEdit; const c = allCustomers.find((x) => x.id === detailId); if (c) renderDetailNotes(c); return; }
+  const sv = e.target.closest('[data-note-save]');
+  if (sv) { const inp = $('#detail-notes .note-edit-input'); saveEditNote(sv.dataset.noteSave, inp ? inp.value : ''); return; }
+  const cn = e.target.closest('[data-note-cancel]');
+  if (cn) { editingNoteAt = null; const c = allCustomers.find((x) => x.id === detailId); if (c) renderDetailNotes(c); return; }
+  const dl = e.target.closest('[data-note-del]');
+  if (dl) { deleteNoteEntry(dl.dataset.noteDel); return; }
+});
+$('#detail-notes')?.addEventListener('keydown', (e) => {
+  if (!e.target.classList.contains('note-edit-input')) return;
+  if (e.key === 'Enter') { e.preventDefault(); saveEditNote(editingNoteAt, e.target.value); }
+  else if (e.key === 'Escape') { e.preventDefault(); editingNoteAt = null; const c = allCustomers.find((x) => x.id === detailId); if (c) renderDetailNotes(c); }
 });
 
 // ------------------------------------------------- LỊCH GỌI / NHẮC GỌI ----

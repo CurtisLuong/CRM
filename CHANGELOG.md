@@ -6,6 +6,33 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-20 — Ghi chú khách: note TỰ ĐỘNG (từ care stage) + note tự nhập dạng bullet
+
+Đổi "Ghi chú" từ 1 ô text tự do thành danh sách bullet, tách 2 loại:
+
+1. **Note TỰ ĐỘNG** (trên cùng, nhãn "Tự động", không sửa được): lấy note của
+   mốc care stage MỚI NHẤT có ghi chú; nếu bậc mới nhất không có note thì quét
+   ngược lấy note gần nhất phía trước có ghi chú. KHÔNG lưu xuống DB — tính lại
+   mỗi lần hiển thị (`autoNoteFromHistory`) nên luôn bám theo note mới nhất.
+2. **Note TỰ NHẬP** (xếp dưới, mới nhất trên): thêm bằng nút **"＋ Thêm ghi chú"**
+   ở trang chi tiết, mỗi ghi chú là 1 bullet có ngày giờ, sửa/xoá tại chỗ.
+
+- Hiển thị ở **cả trang chi tiết lẫn card danh sách** (card: note tự động lên đầu,
+  cắt còn 2 dòng như cũ).
+- **Schema**: thêm cột `notes_manual jsonb` (mảng `{text, at}`, mới nhất ở đầu).
+  Cột `notes` text cũ được GIỮ (không xoá), app không dùng nữa; migration tự
+  chuyển ghi chú cũ thành 1 bullet đầu tiên. **Cần chạy `add_notes_manual.sql`
+  trên Supabase SQL Editor TRƯỚC khi bản deploy mới có hiệu lực** (nếu không sẽ
+  báo "column notes_manual does not exist" và kẹt hàng đợi đồng bộ).
+- Bỏ ô "Chi tiết (freeform)" trong form thêm/sửa khách (ghi chú giờ nhập ở trang
+  chi tiết). `db.js` thêm `addNote/updateNote/deleteNote` (đồng bộ riêng cột
+  `notes_manual`, không đụng field khác).
+
+File: `add_notes_manual.sql` (migration cần chạy), `js/db.js`, `js/app.js`,
+`index.html`, `css/style.css`
+
+---
+
 ## 2026-08-20 — Kéo để tải lại (pull-to-refresh) → reload toàn bộ trang
 
 Thêm cử chỉ **kéo từ đầu trang xuống để reload cả trang** (`location.reload()`)

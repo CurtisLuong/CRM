@@ -153,6 +153,8 @@ const CRM = {
     record.care_stage_history = payload.care_stage
       ? [{ stage: payload.care_stage, note: opts.careStageNote || null, at: now }]
       : [];
+    // Danh sách ghi chú tự nhập (bullet có mốc thời gian) — mặc định rỗng.
+    if (!Array.isArray(record.notes_manual)) record.notes_manual = [];
     await localPut(record);
     await queueAdd({ type: 'insert', recordId: record.id, payload: record, ts: now });
     this.flushQueue();
@@ -210,6 +212,53 @@ const CRM = {
     const existing = (await localGetAll()).find((r) => r.id === id);
     if (!existing || !existing.care_stage) return;
     return this.update(id, { care_stage: existing.care_stage }, { careStageNote: note || null, forceLog: true });
+  },
+
+  // ---- Ghi chú tự nhập (notes_manual): mảng {text, at}, mới nhất ở ĐẦU mảng ----
+  // Chỉ đồng bộ riêng cột notes_manual (partial update) → không đụng field khác.
+
+  /** Thêm 1 ghi chú mới (lên đầu danh sách). */
+  async addNote(id, text) {
+    const t = (text || '').trim();
+    const existing = (await localGetAll()).find((r) => r.id === id);
+    if (!existing || !t) return;
+    const now = new Date().toISOString();
+    const list = Array.isArray(existing.notes_manual) ? existing.notes_manual.slice() : [];
+    list.unshift({ text: t, at: now }); // mới nhất lên đầu
+    const record = { ...existing, notes_manual: list, updated_at: now };
+    await localPut(record);
+    await queueAdd({ type: 'update', recordId: id, payload: { notes_manual: list, updated_at: now }, ts: now });
+    this.flushQueue();
+    return record;
+  },
+
+  /** Sửa nội dung 1 ghi chú (nhận diện theo `at`). Để trống = xoá ghi chú đó. */
+  async updateNote(id, at, text) {
+    const existing = (await localGetAll()).find((r) => r.id === id);
+    if (!existing) return;
+    const t = (text || '').trim();
+    let list = Array.isArray(existing.notes_manual) ? existing.notes_manual.slice() : [];
+    const idx = list.findIndex((n) => n.at === at);
+    if (idx === -1) return;
+    if (!t) list.splice(idx, 1);
+    else list[idx] = { ...list[idx], text: t };
+    const record = { ...existing, notes_manual: list };
+    await localPut(record);
+    await queueAdd({ type: 'update', recordId: id, payload: { notes_manual: list }, ts: new Date().toISOString() });
+    this.flushQueue();
+    return record;
+  },
+
+  /** Xoá 1 ghi chú (nhận diện theo `at`). */
+  async deleteNote(id, at) {
+    const existing = (await localGetAll()).find((r) => r.id === id);
+    if (!existing) return;
+    const list = (Array.isArray(existing.notes_manual) ? existing.notes_manual : []).filter((n) => n.at !== at);
+    const record = { ...existing, notes_manual: list };
+    await localPut(record);
+    await queueAdd({ type: 'update', recordId: id, payload: { notes_manual: list }, ts: new Date().toISOString() });
+    this.flushQueue();
+    return record;
   },
 
   /**

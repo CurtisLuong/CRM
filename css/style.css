@@ -382,6 +382,36 @@ input:focus, select:focus, textarea:focus {
   line-height: 1.5;
 }
 .detail-notes-box.is-empty { color: #9a9a90; font-style: italic; }
+/* Danh sách ghi chú (bullet): note tự động ở trên (nhãn riêng), note tự nhập dưới */
+.detail-notes-box:not(.is-empty) { white-space: normal; }
+.note-item {
+  display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px;
+  padding: 5px 0; line-height: 1.5;
+}
+.note-item + .note-item { border-top: 1px dashed var(--line); }
+.note-bullet { color: var(--seal); font-weight: 700; }
+.note-text { flex: 1 1 60%; min-width: 0; word-break: break-word; }
+.note-meta { font-size: 11px; color: #9a9a90; white-space: nowrap; }
+/* Note tự động: nổi bật hơn, có nhãn, không có nút sửa/xoá */
+.note-item.note-auto {
+  background: #f2efe8; border-radius: 8px; padding: 8px 10px; margin-bottom: 6px;
+  border-left: 3px solid var(--seal);
+}
+.note-item.note-auto + .note-item { border-top: none; }
+.note-badge {
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .3px;
+  color: #fff; background: var(--seal); border-radius: 100px; padding: 2px 7px; flex-shrink: 0;
+}
+/* Nút sửa ✎ / xoá ✕ cạnh mỗi ghi chú tự nhập */
+.note-act {
+  border: none; background: transparent; cursor: pointer;
+  font: inherit; font-size: 13px; color: #b06a4f; padding: 0 3px;
+}
+.note-act:hover { color: var(--teal); }
+.note-edit-input { min-width: 200px; flex: 1; }
+.note-add { margin-top: 10px; }
+/* Note tự động trên card danh sách: cùng màu son cho dễ nhận */
+.card-notes .note-auto { color: var(--seal); font-weight: 600; }
 
 .detail-table {
   width: 100%;

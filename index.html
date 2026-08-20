@@ -147,6 +147,14 @@
     <section class="detail-section">
       <h3>Ghi chú</h3>
       <div id="detail-notes" class="detail-notes-box"></div>
+      <div id="detail-note-add" class="note-add">
+        <button id="detail-note-add-btn" class="btn-small" type="button">＋ Thêm ghi chú</button>
+        <div id="detail-note-add-form" class="cs-note-edit" hidden>
+          <input id="detail-note-add-input" class="cs-note-input" type="text" placeholder="Nhập ghi chú của bạn..." />
+          <button id="detail-note-add-save" class="btn-small" type="button">Lưu</button>
+          <button id="detail-note-add-cancel" class="btn-small" type="button">Huỷ</button>
+        </div>
+      </div>
     </section>
 
     <section class="detail-section">
@@ -266,9 +274,8 @@
         </div>
       </fieldset>
 
-      <label class="span-2">Chi tiết (freeform)
-        <textarea name="notes" rows="4" placeholder="Mua cho con, đang vướng nợ xấu, muốn vay ngân hàng, đang so sánh giá..."></textarea>
-      </label>
+      <!-- Ghi chú giờ nhập ở trang chi tiết (nút "＋ Thêm ghi chú", dạng bullet có
+           ngày giờ) + tự động lấy note care stage mới nhất — không còn ô ở form này. -->
 
       <label class="span-2">Mức độ quan tâm: <span id="interest-output">50%</span>
         <input name="interest_level" type="range" min="0" max="100" value="50" />
