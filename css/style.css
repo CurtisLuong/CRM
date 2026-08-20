@@ -410,9 +410,9 @@ input:focus, select:focus, textarea:focus {
 .note-act:hover { color: var(--teal); }
 .note-edit-input { min-width: 200px; flex: 1; }
 .note-add { margin-top: 10px; }
-/* Note tự động trên card: xanh rêu trầm (bình thản, không hối thúc) — tách biệt
-   với note tự nhập màu xám. Cố ý KHÔNG dùng đỏ son (--seal) vì đỏ gây cảm giác gấp. */
-.card-notes .note-auto { color: var(--good); font-weight: 600; }
+/* Note tự động trên card: cùng màu chữ như note thường (kế thừa .card-notes) cho
+   đồng bộ, chỉ IN ĐẬM hơn một chút để vẫn phân biệt. Không tô màu để đỡ rối. */
+.card-notes .note-auto { font-weight: 600; }
 
 .detail-table {
   width: 100%;
