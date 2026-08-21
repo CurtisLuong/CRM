@@ -164,6 +164,17 @@ File: `add_notes_manual.sql` (migration cần chạy), `js/db.js`, `js/app.js`,
 
 ---
 
+## 2026-08-21 — Ghi chú: sắp note tự nhập mới-nhất-lên-trên (tường minh theo 'at')
+
+Note tự động (latest care stage) vẫn xếp đầu; các note tự nhập nay sắp **theo mốc
+'at' giảm dần** (tạo sau lên trên — cập nhật hơn, tiện chăm sóc). Sort tường minh
+khi render (không chỉ dựa thứ tự mảng) nên đúng kể cả với dữ liệu cũ/sau đồng bộ.
+Áp dụng cả trang chi tiết lẫn card danh sách.
+
+File: `js/app.js`
+
+---
+
 ## 2026-08-21 — Nút "Lưu vào danh bạ" (vCard) ở trang chi tiết
 
 Xuất khách ra danh bạ điện thoại/máy: tạo **vCard 3.0 (.vcf)** rồi dùng **Web Share

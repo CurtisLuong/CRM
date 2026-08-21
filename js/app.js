@@ -422,7 +422,9 @@ function renderList() {
     // Ghi chú trên card: note TỰ ĐỘNG (từ care stage mới nhất) lên đầu, rồi note tự nhập.
     // Cắt còn 2 dòng bằng CSS (.card-notes line-clamp). Cũ ở dưới, mới ở trên.
     const autoNote = autoNoteFromHistory(c.care_stage_history);
-    const manualNotes = Array.isArray(c.notes_manual) ? c.notes_manual : [];
+    // Mới nhất lên trên (tạo sau = cập nhật hơn).
+    const manualNotes = (Array.isArray(c.notes_manual) ? [...c.notes_manual] : [])
+      .sort((a, b) => (b.at || '').localeCompare(a.at || ''));
     const noteLines = [];
     if (autoNote) noteLines.push(`<span class="note-auto">• ${escapeHtml(autoNote)}</span>`);
     for (const n of manualNotes) noteLines.push(`• ${escapeHtml(n.text || '')}`);
@@ -1301,7 +1303,9 @@ $('#detail-log-add-input')?.addEventListener('keydown', (e) => {
 function renderDetailNotes(c) {
   const box = $('#detail-notes');
   const autoNote = autoNoteFromHistory(c.care_stage_history);
-  const manual = Array.isArray(c.notes_manual) ? c.notes_manual : [];
+  // Note tự nhập: sắp MỚI NHẤT LÊN TRÊN (tạo sau = cập nhật hơn), theo mốc 'at'.
+  const manual = (Array.isArray(c.notes_manual) ? [...c.notes_manual] : [])
+    .sort((a, b) => (b.at || '').localeCompare(a.at || ''));
   let html = '';
   // Note tự động lên đầu (mang tính cập nhật nhất), có nhãn "Tự động", không sửa được.
   if (autoNote) {
