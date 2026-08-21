@@ -164,6 +164,17 @@ File: `add_notes_manual.sql` (migration cần chạy), `js/db.js`, `js/app.js`,
 
 ---
 
+## 2026-08-21 — Đổi tên bậc 'Không quan tâm-kết thúc' → 'Không chốt-kết thúc'
+
+Đổi tên giá trị care_stage. **Cần chạy `rename_care_stage_khong_chot.sql`** (đổi
+ràng buộc CHECK + cột care_stage + trong care_stage_history JSONB). Code: đổi hằng
+`CARE_STAGE_DROPPED` (các nơi khác dùng qua hằng nên tự theo); bake tên mới vào
+`schema.sql`. Chạy migration TRƯỚC khi deploy để tránh kẹt đồng bộ.
+
+File: `rename_care_stage_khong_chot.sql` (migration cần chạy), `js/app.js`, `schema.sql`
+
+---
+
 ## 2026-08-21 — Badge nhắc gọi (đếm ngược) vào trang chi tiết
 
 Mang badge đếm ngược giờ gọi (trước chỉ ở card) vào trang chi tiết, đặt cạnh khu

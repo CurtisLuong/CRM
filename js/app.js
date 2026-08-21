@@ -12,11 +12,11 @@ const CARE_STAGES = [
   'Đã ký hợp đồng mua bán',
 ];
 
-// 'Không quan tâm-kết thúc' KHÔNG phải bậc thứ 8 của phễu — nó là 1 trạng thái
+// 'Không chốt-kết thúc' KHÔNG phải bậc thứ 8 của phễu — nó là 1 trạng thái
 // KẾT THÚC quá trình chăm sóc mà không chốt được khách. Về mặt "đã xong hay chưa"
 // nó tương đương bậc 7 (đều là xong), nhưng hiển thị vòng tròn màu xám để phân
 // biệt "kết thúc nhưng không mua" với "đã ký hợp đồng".
-const CARE_STAGE_DROPPED = 'Không quan tâm-kết thúc';
+const CARE_STAGE_DROPPED = 'Không chốt-kết thúc';
 
 // Danh sách đổ vào các <select>: 7 bậc + trạng thái kết thúc ở cuối cùng.
 const CARE_STAGE_OPTIONS = [...CARE_STAGES, CARE_STAGE_DROPPED];
@@ -25,7 +25,7 @@ const CARE_STAGE_OPTIONS = [...CARE_STAGES, CARE_STAGE_DROPPED];
 const CARE_DONE_STAGES = ['Đã ký hợp đồng mua bán', CARE_STAGE_DROPPED];
 
 // Đổi bậc chăm sóc → TỰ set mức quan tâm (chỉ các bậc dưới; bậc khác giữ nguyên).
-// Kéo slider bằng tay sẽ ghi đè giá trị tự động này. 'Không quan tâm-kết thúc' → 0%.
+// Kéo slider bằng tay sẽ ghi đè giá trị tự động này. 'Không chốt-kết thúc' → 0%.
 const STAGE_INTEREST = {
   'Đang chăm sóc qua Zalo': 60,
   'Đã yêu cầu hỗ trợ hồ sơ': 70,
@@ -87,7 +87,7 @@ function isCareDone(stage) {
 }
 
 // Thứ hạng để SẮP XẾP theo tiến độ (khác careLevel dùng để vẽ vòng tròn):
-// bỏ trống → 1, 7 bậc phễu → 1-7, 'Không quan tâm-kết thúc' → 8 (xếp cuối cùng).
+// bỏ trống → 1, 7 bậc phễu → 1-7, 'Không chốt-kết thúc' → 8 (xếp cuối cùng).
 function careSortRank(stage) {
   if (stage === CARE_STAGE_DROPPED) return 8;
   const idx = CARE_STAGES.indexOf(stage);
@@ -669,7 +669,7 @@ function toggleCareStageNote() {
 }
 
 // Khi ĐỔI bậc chăm sóc: tự chỉnh mức quan tâm theo bậc (nếu bậc có map). Riêng
-// 'Không quan tâm-kết thúc' → 0% + tự đánh giá 'không nên chăm'. Người dùng kéo
+// 'Không chốt-kết thúc' → 0% + tự đánh giá 'không nên chăm'. Người dùng kéo
 // slider tay sau đó sẽ ghi đè (giá trị hiển thị lúc Lưu là giá trị cuối cùng).
 function onCareStageChange() {
   toggleCareStageNote();
@@ -1816,7 +1816,7 @@ function lastNWeeks(n) {
 function ddmm(d) { return `${d.getDate()}/${d.getMonth() + 1}`; }
 
 // Chỉ số bậc tuyến tính CAO NHẤT khách đã đạt (cho phễu). Suy từ lịch sử + bậc
-// hiện tại. Bậc trống coi như 0 (Chưa gọi được); 'Không quan tâm-kết thúc' dựa
+// hiện tại. Bậc trống coi như 0 (Chưa gọi được); 'Không chốt-kết thúc' dựa
 // vào lịch sử để biết đã đi tới đâu trước khi rớt. -1 = chưa vào phễu.
 function funnelMaxIndex(c) {
   let maxIdx = c.care_stage ? CARE_STAGES.indexOf(c.care_stage) : 0;

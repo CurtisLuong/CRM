@@ -64,7 +64,7 @@ create table if not exists public.customers (
     'Đã yêu cầu hỗ trợ hồ sơ',
     'Đã booking',
     'Đã ký hợp đồng mua bán',
-    'Không quan tâm-kết thúc'      -- kết thúc chăm sóc, không chốt được (xem add_care_stage_ket_thuc.sql)
+    'Không chốt-kết thúc'      -- kết thúc chăm sóc, không chốt được (xem add_care_stage_ket_thuc.sql + rename_care_stage_khong_chot.sql)
   )),
   evaluation text check (evaluation in ('nên chăm','không nên chăm')),
   evaluation_reason text,
