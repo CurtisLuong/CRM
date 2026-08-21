@@ -366,12 +366,38 @@ function zaloLink(phone) {
   return `https://zalo.me/${clean}`;
 }
 
+// Chuẩn hoá SĐT về chuỗi chỉ chữ số, đưa +84/84 về dạng "0..." để khớp với thói
+// quen gõ số bắt đầu bằng 0 (vd "+84901234567" và "84901234567" đều thành
+// "0901234567"). Chỉ đổi khi đủ 11+ chữ số dạng 84... để không đụng số nội địa.
+function phoneDigits(p) {
+  let d = (p || '').replace(/\D/g, '');
+  if (d.startsWith('84') && d.length >= 11) d = '0' + d.slice(2);
+  return d;
+}
+
+// Tìm SĐT theo vị trí bất kỳ, có ưu tiên theo độ dài:
+// - Khớp TỪ ĐẦU (prefix): chỉ cần 1 số đã ra (gõ "0", "01", "012"... đều ra).
+// - Khớp Ở GIỮA/CUỐI: phải từ 3 số trở lên mới ra ("123", "678", "6789" ra;
+//   nhưng "23", "2" không ra) — tránh việc gõ 1-2 số ở giữa làm ra quá nhiều kết quả.
+function phoneMatch(phoneDig, qDig) {
+  if (!phoneDig || !qDig) return false;
+  if (phoneDig.startsWith(qDig)) return true;
+  return qDig.length >= 3 && phoneDig.includes(qDig);
+}
+
 function matchesFilters(c) {
-  // Tìm kiếm bỏ dấu: gõ "huong" vẫn ra "Hương", gõ "hu" đã ra ngay (theo ký tự).
-  const q = removeVietnameseTones($('#search-input').value.trim());
-  if (q) {
-    const hay = removeVietnameseTones(`${c.phone || ''} ${c.full_name || ''}`);
-    if (!hay.includes(q)) return false;
+  const raw = $('#search-input').value.trim();
+  if (raw) {
+    const qNorm = removeVietnameseTones(raw);
+    const qDig = raw.replace(/\D/g, '');
+    // Query toàn số (không có chữ cái) → tìm theo SĐT với quy tắc vị trí ở trên.
+    // Query có chữ cái → tìm theo tên, bỏ dấu: gõ "huong" vẫn ra "Hương", "hu" ra ngay.
+    if (!/[a-z]/.test(qNorm) && qDig) {
+      if (!phoneMatch(phoneDigits(c.phone), qDig)) return false;
+    } else {
+      const hay = removeVietnameseTones(`${c.phone || ''} ${c.full_name || ''}`);
+      if (!hay.includes(qNorm)) return false;
+    }
   }
   const stage = $('#filter-stage').value;
   if (stage) {

@@ -6,6 +6,21 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-21 — Tìm SĐT theo vị trí bất kỳ (khớp cuối/giữa số)
+
+Trước đây ô tìm kiếm gộp `phone + tên` rồi `includes`, không có quy tắc độ dài nên
+gõ 1-2 số ở giữa dễ ra quá nhiều kết quả. Nay tách riêng:
+- **Query toàn số** → tìm theo SĐT với ưu tiên vị trí:
+  - Khớp **từ đầu** (prefix): chỉ cần 1 số cũng ra (`0`, `01`, `012`...).
+  - Khớp **giữa/cuối**: phải **từ 3 số trở lên** mới ra (`123`, `678`, `6789` ra;
+    còn `23`, `2` không ra) — hợp thói quen tìm bằng 3-4 số cuối.
+- **Query có chữ cái** → giữ nguyên tìm theo tên, bỏ dấu như cũ.
+- Có chuẩn hoá `+84/84 → 0` (helper `phoneDigits`) để khớp số gõ dạng `0...`.
+
+File: `js/app.js`
+
+---
+
 ## 2026-08-21 — Zoom cho trình xem ảnh (pinch / trackpad / nút +−)
 
 Thêm phóng to/thu nhỏ cho trình xem, tôn trọng thói quen từng thiết bị:
