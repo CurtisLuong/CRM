@@ -109,6 +109,9 @@ const EVAL_REASONS = [
 // Loại căn có sẵn (select + "Khác" tự nhập, không lưu vào danh sách chung).
 const APT_TYPES = ['1N-1WC', '1N+, 1WC', '2N-2WC', '2N+, 2WC', '3N-2WC'];
 
+// Nghề nghiệp (khớp enum ở schema) — dùng để lọc giá trị OCR trả về cho hợp lệ.
+const OCCUPATIONS = ['Tự do', 'Công ty, DN', 'Công, viên chức', 'Công an, Bộ đội'];
+
 // Icon điện thoại (SVG inline, tô theo màu chữ, cỡ ăn theo font-size chỗ đặt).
 // Zalo dùng ảnh icons/Zalo-icon.png (đặt trong <img>).
 const PHONE_SVG = '<svg class="ic-phone" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>';
@@ -118,6 +121,7 @@ let currentUser = null;
 let allCustomers = [];
 let editingId = null;
 let formOriginalStage = ''; // care_stage lúc mở form — để biết có đổi bậc không
+let pendingOcrNote = null;  // ghi chú OCR đọc được → thêm thành 1 note sau khi tạo khách
 
 // Dự án (multi-select, danh sách tự quản lý — lưu ở bảng project_options)
 let projectOptions = [];        // [{id, name}]
@@ -587,6 +591,10 @@ function openForm(id) {
   f.care_stage_note.value = '';
   toggleCareStageNote();
 
+  // Reset trạng thái OCR mỗi lần mở form (ghi chú tạm + dòng thông báo).
+  pendingOcrNote = null;
+  const ocrStatus = $('#ocr-status'); if (ocrStatus) ocrStatus.textContent = '';
+
   updateMenhPreview();
   toggleEvalReason();
   $('#form-modal').showModal();
@@ -685,8 +693,11 @@ async function handleFormSubmit(e) {
       opts.forceLog = true;
     }
     await CRM.update(editingId, payload, opts);
+    if (pendingOcrNote) { await CRM.addNote(editingId, pendingOcrNote); pendingOcrNote = null; }
   } else {
-    await CRM.create(payload, opts);
+    const created = await CRM.create(payload, opts);
+    // Nếu OCR đọc được 1 ghi chú → thêm thành 1 note tự nhập cho khách vừa tạo.
+    if (created && pendingOcrNote) { await CRM.addNote(created.id, pendingOcrNote); pendingOcrNote = null; }
   }
   closeForm();
   await refreshList();
@@ -699,6 +710,98 @@ async function confirmDelete(id) {
   if (!confirm(`Xoá khách "${c?.full_name || ''}"? Không thể hoàn tác.`)) return;
   await CRM.remove(id);
   await refreshList();
+}
+
+// ------------------------------------------------- OCR: NHẬP TỪ ẢNH --------
+// Gửi ảnh cho Worker (giữ key Gemini) → nhận JSON field → TỰ ĐIỀN form, KHÔNG lưu
+// thẳng. Bắt buộc user rà lại (nhất là SĐT) rồi mới bấm Lưu.
+
+// Thu nhỏ ảnh về tối đa maxDim px + nén JPEG để nhẹ payload, nhanh, đỡ tốn quota.
+async function fileToScaledBase64(file, maxDim = 1600, quality = 0.85) {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; });
+    const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+    const w = Math.max(1, Math.round(img.width * scale));
+    const h = Math.max(1, Math.round(img.height * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+    const dataUrl = canvas.toDataURL('image/jpeg', quality);
+    return { base64: dataUrl.split(',')[1], mime: 'image/jpeg' };
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+// Điền các field OCR trả về vào form (chỉ field có giá trị; bỏ qua giá trị lạ).
+function applyOcrToForm(d) {
+  if (!d || typeof d !== 'object') return;
+  const f = $('#customer-form');
+  if (d.phone) f.phone.value = String(d.phone).trim();
+  if (d.full_name) f.full_name.value = String(d.full_name).trim();
+  if (['nam', 'nữ', 'khác'].includes(d.gender)) f.gender.value = d.gender;
+  if (d.dob && /^\d{4}-\d{2}-\d{2}$/.test(d.dob)) { f.dob.value = d.dob; updateMenhPreview(); }
+  if (['đã kết hôn', 'chưa kết hôn'].includes(d.marital_status)) f.marital_status.value = d.marital_status;
+  if (OCCUPATIONS.includes(d.occupation)) f.occupation.value = d.occupation;
+  if (d.income) f.income.value = String(d.income).trim();
+  if (d.residence) f.residence.value = String(d.residence).trim();
+  // Loại căn: khớp option có sẵn bất kể dấu cách/phẩy/gạch ("3N, 2WC" ↔ "3N-2WC");
+  // khớp → chọn giá trị chuẩn, không khớp → "Khác" + giữ nguyên chữ OCR.
+  if (d.apt_type) {
+    const raw = String(d.apt_type).trim();
+    // Giữ '+' (phân biệt "2N+" với "2N"); chỉ bỏ dấu cách/phẩy/gạch.
+    const norm = (s) => s.toLowerCase().replace(/[^a-z0-9+]/g, '');
+    const canon = APT_TYPES.find((t) => norm(t) === norm(raw));
+    if (canon) { f.apt_type_select.value = canon; f.apt_type_other.value = ''; }
+    else { f.apt_type_select.value = '__other'; f.apt_type_other.value = raw; }
+    toggleAptOther();
+  }
+  if (d.apt_code) f.apt_code.value = String(d.apt_code).trim();
+  if (d.building_code) f.building_code.value = String(d.building_code).trim();
+  if (d.apt_price != null && !isNaN(Number(d.apt_price))) f.apt_price.value = Number(d.apt_price);
+  if (d.interest_level != null && !isNaN(Number(d.interest_level))) {
+    const lv = Math.max(0, Math.min(100, Math.round(Number(d.interest_level))));
+    f.interest_level.value = lv;
+    $('#interest-output').textContent = lv + '%';
+  }
+  // Dự án: chỉ chọn tên trùng danh sách có sẵn (tên lạ để user tự thêm).
+  if (Array.isArray(d.projects)) {
+    for (const name of d.projects) {
+      if (projectOptions.some((o) => o.name === name) && !selectedProjects.includes(name)) selectedProjects.push(name);
+    }
+    renderProjChips();
+  }
+  // Ghi chú OCR: giữ tạm, sẽ thêm thành 1 note sau khi tạo khách (xem handleFormSubmit).
+  pendingOcrNote = (d.note && String(d.note).trim()) || null;
+}
+
+async function handleOcrImage(file) {
+  if (!file) return;
+  const status = $('#ocr-status');
+  const workerUrl = (window.APP_CONFIG.WORKER_URL || '').replace(/\/+$/, '');
+  if (!workerUrl) { status.textContent = '⚠️ Chưa cấu hình WORKER_URL.'; return; }
+  status.textContent = '⏳ Đang đọc ảnh...';
+  try {
+    const { base64, mime } = await fileToScaledBase64(file);
+    const { data: { session } } = await sb.auth.getSession();
+    const token = session && session.access_token;
+    if (!token) throw new Error('Chưa đăng nhập');
+    const res = await fetch(`${workerUrl}/ocr`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ image: base64, mime }),
+    });
+    const out = await res.json().catch(() => ({}));
+    if (!res.ok || out.error) throw new Error(out.error || `Lỗi ${res.status}`);
+    applyOcrToForm(out.data || {});
+    status.textContent = '✅ Đã điền — KIỂM TRA kỹ SĐT rồi mới Lưu.';
+  } catch (e) {
+    console.warn('OCR lỗi:', e);
+    status.textContent = '⚠️ Đọc ảnh thất bại: ' + (e.message || 'lỗi không rõ');
+  } finally {
+    $('#ocr-file').value = ''; // cho phép chọn lại đúng ảnh đó lần nữa
+  }
 }
 
 // ------------------------------------------------------------ DETAIL ------
@@ -1565,6 +1668,11 @@ document.addEventListener('DOMContentLoaded', () => {
   $('#customer-form').evaluation.addEventListener('change', toggleEvalReason);
   $('#customer-form').care_stage.addEventListener('change', toggleCareStageNote);
   $('#customer-form').apt_type_select.addEventListener('change', toggleAptOther);
+
+  // --- OCR: nhập từ ảnh (chỉ hiện nút nếu đã cấu hình WORKER_URL) ---
+  if ((window.APP_CONFIG.WORKER_URL || '').trim()) $('#ocr-row').hidden = false;
+  $('#ocr-btn').addEventListener('click', () => $('#ocr-file').click());
+  $('#ocr-file').addEventListener('change', (e) => handleOcrImage(e.target.files && e.target.files[0]));
 
   // --- Chip dự án (chọn nhiều / thêm / xoá) ---
   $('#proj-chips').addEventListener('click', async (e) => {

@@ -6,6 +6,38 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-20 — Nhập khách từ ẢNH (OCR qua Gemini) — kênh 2 của intake layer
+
+Thêm nút **"📷 Nhập từ ảnh"** trong form Thêm/Sửa khách: chọn ảnh (chụp Zalo/
+Messenger/form) → AI vision đọc → TỰ ĐIỀN các ô trong form. **Không lưu thẳng** —
+user rà lại (nhất là SĐT) rồi mới bấm Lưu.
+
+- **Cloudflare Worker mới** (`worker/intake-worker.js`, deploy RIÊNG — không thuộc
+  Pages) giữ API key Gemini an toàn. Route `POST /ocr`: xác thực bằng access_token
+  Supabase (chặn người lạ đốt quota), gọi Gemini `gemini-2.5-flash` (structured
+  output → JSON đúng field bảng customers), trả về cho app. Xem `worker/README.md`
+  để deploy + đặt secret (GEMINI_API_KEY, SUPABASE_URL, SUPABASE_ANON_KEY,
+  ALLOWED_ORIGIN).
+- **App**: `config.js` thêm `WORKER_URL` (rỗng → nút OCR tự ẩn, tính năng tắt).
+  Ảnh được thu nhỏ ≤1600px + nén JPEG ở client trước khi gửi (nhẹ, nhanh, đỡ quota).
+  Field OCR trả về được lọc hợp lệ trước khi điền (SĐT/tên/giới tính/ngày sinh/
+  hôn nhân/nghề/thu nhập/nơi ở/loại căn/mã căn/mã toà/giá/dự án/mức quan tâm);
+  ghi chú OCR (`note`) thành 1 note tự nhập sau khi lưu khách.
+- Không đổi luồng CRUD/offline hiện có; OCR chỉ prefill form.
+- Prompt đã tinh chỉnh theo ảnh mẫu thật (lead form Messenger): liệt kê đúng thuộc
+  tính CRM + giá trị hợp lệ, ép null nếu thiếu, CẤM suy đoán (kể cả đoán giới tính
+  từ ảnh đại diện), bỏ qua tin nhắn tự động của phía sale, SĐT chỉ lấy chữ số. Loại
+  căn khớp linh hoạt bất kể dấu cách/phẩy/gạch nhưng vẫn phân biệt biến thể "+"
+  ("3N, 2WC" → "3N-2WC"; "2N+, 2WC" ≠ "2N-2WC").
+
+Chưa build: field `source` (thủ công/OCR/landing) và kênh 3 (leads landing page) —
+để các bước sau.
+
+File: `worker/intake-worker.js`, `worker/README.md`, `worker/wrangler.toml`,
+`js/config.js`, `js/app.js`, `index.html`, `css/style.css`
+
+---
+
 ## 2026-08-20 — Card: mức quan tâm thành viền trái 4 bậc màu + badge (bỏ thanh %)
 
 Đổi cách thể hiện Mức quan tâm trên card danh sách (trang chi tiết giữ nguyên

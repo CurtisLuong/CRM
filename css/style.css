@@ -541,6 +541,10 @@ input:focus, select:focus, textarea:focus {
 .big-stat { font-size: 34px; font-weight: 700; color: var(--terracotta); line-height: 1; display: flex; align-items: baseline; gap: 10px; }
 .big-stat-cap { font-size: 12px; font-weight: 400; color: #9a9a90; }
 
+/* Hàng "Nhập từ ảnh" (OCR) trên đầu form */
+.ocr-row { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+.ocr-status { font-size: 12px; color: #6b6b60; flex: 1 1 100%; }
+
 /* Phễu */
 .funnel { display: flex; flex-direction: column; gap: 2px; }
 .funnel-step { --ring: var(--teal); position: relative; background: #f2efe8; border-radius: 6px; overflow: hidden; }

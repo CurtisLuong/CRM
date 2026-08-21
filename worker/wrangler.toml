@@ -1,0 +1,8 @@
+# Cấu hình deploy cho intake-worker (Cloudflare Worker).
+# Deploy: cd worker && wrangler deploy
+# Các secret (GEMINI_API_KEY, SUPABASE_URL, SUPABASE_ANON_KEY, ALLOWED_ORIGIN)
+# đặt bằng `wrangler secret put <TÊN>` — KHÔNG ghi vào file này.
+
+name = "intake-worker"
+main = "intake-worker.js"
+compatibility_date = "2025-01-01"

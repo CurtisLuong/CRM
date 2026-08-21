@@ -11,4 +11,7 @@
 window.APP_CONFIG = {
   SUPABASE_URL: 'https://nrqccwamwctihivpxjww.supabase.co',
   SUPABASE_ANON_KEY: 'sb_publishable_HE8KI3vgqwYXDE2ymypc7A_y8UrCJQn',
+  // URL của Cloudflare Worker "cổng nhập liệu" (xem worker/README.md). Để RỖNG
+  // thì nút "📷 Nhập từ ảnh" (OCR) tự ẩn — dán URL vào đây sau khi deploy Worker.
+  WORKER_URL: 'https://intake-worker.luongninja.workers.dev',
 };
