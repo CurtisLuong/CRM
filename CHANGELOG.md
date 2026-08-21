@@ -6,6 +6,37 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-21 — OCR: dán ảnh từ clipboard (thêm cạnh "Nhập từ ảnh")
+
+Ngoài chọn ảnh từ máy như cũ, giờ dán được ảnh trực tiếp từ clipboard — tiện khi chụp
+màn hình tin nhắn rồi dán thẳng:
+- Nút **"📋 Dán ảnh"** (Clipboard API `navigator.clipboard.read()`) — cần HTTPS + quyền.
+- **Ctrl/Cmd+V khi form khách đang mở** dán thẳng ảnh (đường tin cậy nhất, không cần
+  xin quyền). Chỉ chặn khi clipboard THỰC SỰ có ảnh — dán chữ (SĐT...) vào ô vẫn bình thường.
+- Ảnh dán đi vào đúng luồng OCR hiện có (`handleOcrImage` nhận cả File lẫn Blob).
+- Không hỗ trợ / bị chặn quyền → báo nhẹ, gợi ý dùng cách còn lại.
+
+File: `index.html`, `js/app.js`
+
+---
+
+## 2026-08-21 — OCR: suy luận giới tính từ tên (kèm ngưỡng độ chắc chắn)
+
+Trước đây prompt OCR CẤM đoán giới tính. Nay cho phép Gemini suy luận giới tính từ
+TÊN tiếng Việt (đa số đoán được), kèm chỉ số `gender_confidence` (0-100):
+- Ảnh ghi rõ giới tính → `gender_confidence = 100`.
+- Không ghi rõ nhưng có tên → suy từ tên, tự chấm độ chắc chắn.
+- Vẫn CẤM đoán giới tính từ ảnh đại diện/khuôn mặt; vẫn cấm đoán tuổi/hôn nhân.
+- **Ngưỡng 90% áp ngay trong Worker**: `gender_confidence >= 90` mới lấy; dưới ngưỡng
+  (tên trung tính) → `gender = null` → form để trống cho user tự chọn khi rà.
+
+Áp ngưỡng ở Worker (deterministic) thay vì phó mặc model tự lọc. Client không đổi
+(vốn chỉ điền gender khi hợp lệ). **CẦN redeploy Worker** thì mới có hiệu lực.
+
+File: `worker/intake-worker.js`
+
+---
+
 ## 2026-08-21 — Tự đặt con trỏ ở ô tìm kiếm khi vào app (chỉ máy tính)
 
 Mỗi lần reload / mở lại / lần đầu vào app, con trỏ tự nằm sẵn trong ô tìm kiếm để gõ

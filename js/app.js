@@ -1085,6 +1085,28 @@ async function handleOcrImage(file) {
   }
 }
 
+// Dán ảnh từ CLIPBOARD qua nút bấm (Clipboard API). Cần HTTPS + user gesture (nút bấm
+// thoả) + có thể hỏi quyền. Lấy được ảnh → đưa vào đúng luồng OCR như chọn từ file.
+// Không hỗ trợ / bị chặn quyền → báo nhẹ, gợi ý dùng Ctrl/Cmd+V hoặc "Nhập từ ảnh".
+async function pasteOcrFromClipboard() {
+  const status = $('#ocr-status');
+  if (!navigator.clipboard || !navigator.clipboard.read) {
+    status.textContent = 'ℹ️ Trình duyệt không đọc được clipboard — thử Ctrl/Cmd+V, hoặc "Nhập từ ảnh".';
+    return;
+  }
+  try {
+    const items = await navigator.clipboard.read();
+    for (const item of items) {
+      const imgType = item.types.find((t) => t.startsWith('image/'));
+      if (imgType) { handleOcrImage(await item.getType(imgType)); return; }
+    }
+    status.textContent = 'ℹ️ Clipboard chưa có ảnh — copy 1 ảnh (hoặc chụp màn hình) rồi bấm lại.';
+  } catch (e) {
+    console.warn('Đọc clipboard lỗi:', e);
+    status.textContent = '⚠️ Không đọc được clipboard (chặn quyền?) — thử Ctrl/Cmd+V, hoặc "Nhập từ ảnh".';
+  }
+}
+
 // ------------------------------------------------------------ DETAIL ------
 
 let detailId = null; // khách đang xem ở trang chi tiết
@@ -2174,6 +2196,20 @@ document.addEventListener('DOMContentLoaded', () => {
   if ((window.APP_CONFIG.WORKER_URL || '').trim()) $('#ocr-row').hidden = false;
   $('#ocr-btn').addEventListener('click', () => $('#ocr-file').click());
   $('#ocr-file').addEventListener('change', (e) => handleOcrImage(e.target.files && e.target.files[0]));
+  // Dán ảnh từ clipboard: (a) nút bấm dùng Clipboard API; (b) Ctrl/Cmd+V khi form khách
+  // đang mở dán thẳng — đường tin cậy nhất, không cần xin quyền. Chỉ chặn khi clipboard
+  // thực sự CÓ ảnh; dán chữ (vd SĐT) vào ô input vẫn hoạt động bình thường.
+  $('#ocr-paste-btn').addEventListener('click', pasteOcrFromClipboard);
+  document.addEventListener('paste', (e) => {
+    if (!$('#form-modal').open) return; // chỉ khi form Thêm/Sửa khách đang mở
+    const items = (e.clipboardData && e.clipboardData.items) || [];
+    for (const it of items) {
+      if (it.type && it.type.startsWith('image/')) {
+        const blob = it.getAsFile();
+        if (blob) { e.preventDefault(); handleOcrImage(blob); return; }
+      }
+    }
+  });
 
   // --- Dropdown dự án (chọn nhiều / thêm / xoá) ---
   $('#proj-dropdown-btn').addEventListener('click', () => {

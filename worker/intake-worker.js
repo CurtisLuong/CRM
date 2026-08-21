@@ -31,6 +31,7 @@ const RESPONSE_SCHEMA = {
     phone:          { type: 'STRING',  nullable: true },
     full_name:      { type: 'STRING',  nullable: true },
     gender:         { type: 'STRING',  nullable: true }, // 'nam' | 'nữ' | 'khác'
+    gender_confidence: { type: 'INTEGER', nullable: true }, // 0-100: độ chắc chắn của gender (suy từ tên)
     dob:            { type: 'STRING',  nullable: true }, // 'YYYY-MM-DD'
     marital_status: { type: 'STRING',  nullable: true }, // 'đã kết hôn' | 'chưa kết hôn'
     occupation:     { type: 'STRING',  nullable: true }, // 1 trong 4 nghề ở PROMPT
@@ -56,8 +57,9 @@ NHIỆM VỤ: chỉ lấy thông tin của KHÁCH (người điền form / để
 
 NGUYÊN TẮC TỐI QUAN TRỌNG:
 - Chỉ điền field khi thông tin ĐƯỢC VIẾT RÕ trong ảnh. Không có → để null.
-- TUYỆT ĐỐI KHÔNG suy đoán/bịa (hallucination). Đặc biệt: KHÔNG đoán giới tính, tuổi,
-  hôn nhân... từ ảnh đại diện hay từ tên. Chỉ lấy khi có chữ ghi rõ.
+- TUYỆT ĐỐI KHÔNG suy đoán/bịa (hallucination) cho hầu hết field. KHÔNG đoán tuổi,
+  hôn nhân, thu nhập, nghề... từ ảnh đại diện hay từ tên. Chỉ lấy khi có chữ ghi rõ.
+  NGOẠI LỆ DUY NHẤT: giới tính ĐƯỢC PHÉP suy luận từ TÊN — xem quy tắc ở field gender.
 - BỎ QUA tin nhắn tự động/của phía tư vấn (vd "Chuyên viên tư vấn sẽ liên hệ...",
   "Xem trang web", "nhân viên kinh doanh bên em..."), lời chào, câu marketing.
 
@@ -68,7 +70,16 @@ CÁC FIELD (đúng thuộc tính CRM):
   thêm "0" đầu. Số nước ngoài/khác thì GIỮ NGUYÊN, không động vào.
   VD "093 274 12 27" → "0932741227"; "+84 932 741 227" → "0932741227"; "84932741227" → "0932741227"; "932741227" → "0932741227".
 - full_name: họ tên khách.
-- gender: 1 trong ['nam','nữ','khác'] — chỉ khi ghi rõ, không đoán từ ảnh/tên.
+- gender: 1 trong ['nam','nữ','khác'].
+  • Nếu ảnh GHI RÕ giới tính → lấy đúng, gender_confidence = 100.
+  • Nếu KHÔNG ghi rõ nhưng có full_name → ĐƯỢC PHÉP suy luận giới tính từ TÊN tiếng Việt
+    (đa số tên tiếng Việt đoán được giới tính khá chắc), và tự chấm gender_confidence.
+  • TUYỆT ĐỐI KHÔNG đoán giới tính từ ẢNH ĐẠI DIỆN/khuôn mặt — chỉ từ chữ ghi rõ hoặc từ tên.
+  • Tên trung tính/không rõ (vd chỉ có họ, hoặc tên dùng được cả nam lẫn nữ) → cho
+    gender_confidence THẤP tương ứng, đừng gượng đoán chắc.
+  • Không có tên và ảnh không ghi rõ → gender = null.
+- gender_confidence: SỐ NGUYÊN 0-100 = độ chắc chắn của giá trị gender ở trên (100 =
+  ảnh ghi rõ; suy từ tên thì chấm theo mức chắc thật sự). gender = null thì để null.
 - dob: 'YYYY-MM-DD' (dương lịch). Chỉ có năm hoặc không chắc → null.
 - marital_status: 'đã kết hôn' | 'chưa kết hôn' — chỉ khi ghi rõ.
 - occupation: 1 trong ['Tự do','Công ty, DN','Công, viên chức','Công an, Bộ đội'] — chỉ khi khớp rõ.
@@ -155,5 +166,14 @@ async function handleOcr(request, env) {
   if (!text) return json({ error: 'Gemini không trả nội dung', raw: JSON.stringify(g).slice(0, 500) }, 502);
   let data;
   try { data = JSON.parse(text); } catch { return json({ error: 'Kết quả không phải JSON hợp lệ', raw: text.slice(0, 500) }, 502); }
+
+  // Giới tính suy từ tên chỉ đáng tin khi model tự chấm ĐỘ CHẮC CHẮN >= 90%. Dưới ngưỡng
+  // (hoặc không chấm điểm) → coi như KHÔNG RÕ: bỏ gender (để trống cho user tự chọn khi rà),
+  // tránh điền sai với tên trung tính. Áp ở Worker cho chắc, không phó mặc model tự lọc.
+  const GENDER_MIN_CONFIDENCE = 90;
+  if (data && data.gender && !(Number(data.gender_confidence) >= GENDER_MIN_CONFIDENCE)) {
+    data.gender = null;
+  }
+
   return json({ data });
 }
