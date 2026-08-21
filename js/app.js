@@ -2105,18 +2105,42 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- Trackpad/chuột (Mac/Windows): overscroll LÊN ở đỉnh trang ---
   // Kéo 2 ngón xuống (natural scroll) khi đã ở đỉnh → deltaY < 0 → tích luỹ.
-  let wheelAccum = 0, wheelTimer = null;
+  // Bỏ QUÁN TÍNH (momentum/trớn của trackpad-chuột), chỉ tính đoạn kéo CHỦ ĐỘNG:
+  //  - START_FLOOR: 1 lần kéo hợp lệ phải BẮT ĐẦU chậm (event đầu < ngưỡng này). Flick
+  //    cuộn lên rồi trớn qua đỉnh → khi chạm đỉnh vận tốc đã lớn → event đầu > ngưỡng
+  //    → coi là trớn, BỎ QUA cả phiên. (Cũng giống cảm ứng: phải bắt đầu ngay tại đỉnh.)
+  //  - Sau khi qua đỉnh của lần kéo, nếu delta tụt < 40% đỉnh → phần còn lại là trớn, ngừng cộng.
+  //  - WHEEL_K: quy đổi độ kéo chủ động → tương đương cảm ứng (~128px mới đủ ngưỡng).
+  const WHEEL_K = 0.5, START_FLOOR = 24;
+  let wheelAccum = 0, wheelPeak = 0, wheelMomentum = false, wheelValid = false, wheelLastT = 0, wheelTimer = null;
+
+  function wheelResetSession() { wheelAccum = 0; wheelPeak = 0; wheelMomentum = false; wheelValid = false; }
+  function wheelRetractSoon() {
+    clearTimeout(wheelTimer);
+    wheelTimer = setTimeout(() => { wheelResetSession(); ind.style.transition = ''; reset(); }, 200);
+  }
+
   window.addEventListener('wheel', (e) => {
     if (triggered || anyDialogOpen()) return;
-    // Rời đỉnh hoặc đang cuộn xuống → huỷ tích luỹ, thu thanh về.
-    if (window.scrollY > 0 || e.deltaY >= 0) {
-      if (wheelAccum > 0) { wheelAccum = 0; reset(); }
-      return;
+    const now = performance.now();
+    const isNew = now - wheelLastT > 120; // ngắt quãng >120ms → lần kéo MỚI
+    wheelLastT = now;
+
+    // Rời đỉnh hoặc đang cuộn xuống → huỷ phiên (nên nếu sau đó chạm đỉnh vẫn cùng
+    // dòng event thì bị coi là không hợp lệ = trớn của flick).
+    if (window.scrollY > 0 || e.deltaY >= 0) { wheelResetSession(); reset(); return; }
+
+    const abs = -e.deltaY;
+    if (isNew) { wheelResetSession(); wheelValid = abs < START_FLOOR; } // chốt hợp lệ ngay từ event đầu
+    if (!wheelValid) { wheelRetractSoon(); return; }                    // phiên bắt đầu nhanh = trớn → bỏ
+
+    wheelPeak = Math.max(wheelPeak, abs);
+    if (!wheelMomentum && abs < wheelPeak * 0.4) wheelMomentum = true;  // đã qua đỉnh, đang decay = trớn
+
+    if (!wheelMomentum) {
+      wheelAccum += abs;
+      if (showProgress(wheelAccum * WHEEL_K)) { ind.style.transition = ''; triggerReload(); return; }
     }
-    wheelAccum += -e.deltaY;
-    // Hệ số 0.1 → cần ~640px overscroll mới đủ ngưỡng (phải chủ ý kéo mạnh mới khớp).
-    if (showProgress(wheelAccum * 0.1)) { ind.style.transition = ''; triggerReload(); return; }
-    clearTimeout(wheelTimer);
-    wheelTimer = setTimeout(() => { wheelAccum = 0; ind.style.transition = ''; reset(); }, 200); // ngừng lăn → thu về
+    wheelRetractSoon();
   }, { passive: true });
 })();

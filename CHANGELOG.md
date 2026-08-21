@@ -164,6 +164,21 @@ File: `add_notes_manual.sql` (migration cần chạy), `js/db.js`, `js/app.js`,
 
 ---
 
+## 2026-08-21 — Kéo để tải lại (Mac/Windows): bỏ quán tính, chỉ tính kéo chủ động
+
+Trackpad/chuột có "quán tính" (momentum) → flick cuộn lên tới đỉnh, phần trớn dội
+lại ở đỉnh cộng dồn khiến reload nhầm; trải nghiệm lệch với Android. Nay lọc bỏ trớn:
+- 1 lần kéo hợp lệ phải **bắt đầu chậm** (event đầu < 24) — flick trớn qua đỉnh có
+  vận tốc lớn ngay khi chạm đỉnh → bị coi là trớn, bỏ qua cả phiên. (Giống cảm ứng:
+  phải bắt đầu ngay tại đỉnh.)
+- Sau khi qua đỉnh của cú kéo, delta tụt < 40% đỉnh = trớn → ngừng cộng.
+- Ngắt >120ms giữa các event = lần kéo mới. Đã test 4 kịch bản (kéo mạnh/nhẹ/flick
+  trớn/kéo-rồi-nhấc) cho kết quả đúng.
+
+File: `js/app.js`
+
+---
+
 ## 2026-08-21 — Kéo để tải lại: hỗ trợ trackpad/chuột trên Mac/Windows
 
 Pull-to-refresh trước chỉ nghe sự kiện cảm ứng (`touch*`) → trackpad Mac (phát
