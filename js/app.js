@@ -540,18 +540,22 @@ async function removeProjectOption(id) {
 }
 
 // Vẽ các chip dự án trong form (chọn nhiều; chế độ Quản lý hiện nút xoá).
-function renderProjChips() {
-  const box = $('#proj-chips');
+// Dropdown chọn nhiều dự án: nút tóm tắt (tên đã chọn) + panel danh sách checkbox.
+function renderProjSelect() {
+  const btn = $('#proj-dropdown-btn');
+  if (btn) btn.textContent = selectedProjects.length ? selectedProjects.join(', ') : '— Chọn dự án —';
+  const box = $('#proj-options');
   if (!box) return;
-  let html = projectOptions.map((o) => {
+  box.innerHTML = projectOptions.map((o) => {
     const sel = selectedProjects.includes(o.name);
-    return `<span class="proj-chip ${sel ? 'is-sel' : ''}">
-      <button type="button" class="proj-chip-name" data-projtoggle="${escapeHtml(o.name)}">${escapeHtml(o.name)}</button>
+    return `<div class="proj-opt ${sel ? 'is-sel' : ''}">
+      <label class="proj-opt-label">
+        <input type="checkbox" data-projtoggle="${escapeHtml(o.name)}" ${sel ? 'checked' : ''} />
+        <span>${escapeHtml(o.name)}</span>
+      </label>
       ${projManageMode ? `<button type="button" class="proj-chip-del" data-projdel="${o.id}" title="Xoá dự án khỏi danh sách">✕</button>` : ''}
-    </span>`;
-  }).join('');
-  html += `<button type="button" class="proj-chip proj-add" id="proj-add-btn">＋ Thêm mới</button>`;
-  box.innerHTML = html;
+    </div>`;
+  }).join('') || '<div class="proj-empty">Chưa có dự án nào</div>';
 }
 
 // -------------------------------------------------------------- FORM ------
@@ -594,7 +598,12 @@ function openForm(id) {
   else { try { selectedProjects = JSON.parse(localStorage.getItem(LS_LAST_PROJECTS) || '[]'); } catch { selectedProjects = []; } }
   projManageMode = false;
   $('#proj-add-row').hidden = true;
-  renderProjChips();
+  $('#proj-add-btn').hidden = false;
+  $('#proj-dropdown-panel').hidden = true; // dropdown thu gọn mỗi lần mở form
+  renderProjSelect();
+
+  // Ô "Ghi chú" khi tạo/sửa khách — luôn để trống (là ô THÊM ghi chú mới).
+  f.new_note.value = '';
 
   // Ô "Ghi chú cho lần đổi tiến độ" chỉ hiện khi bậc thực sự khác lúc mở form.
   formOriginalStage = c.care_stage || '';
@@ -685,6 +694,8 @@ async function handleFormSubmit(e) {
   // Ghi chú cho lần đổi bậc / lần liên hệ mới.
   const note = f.care_stage_note.value.trim() || null;
   const opts = { careStageNote: note };
+  // Ghi chú nhập ở form (ô "Ghi chú") → thêm thành 1 mục ghi chú sau khi lưu.
+  const formNote = f.new_note.value.trim() || null;
   if (editingId) {
     const newStage = payload.care_stage;
     const orig = formOriginalStage;
@@ -705,10 +716,12 @@ async function handleFormSubmit(e) {
     }
     await CRM.update(editingId, payload, opts);
     if (pendingOcrNote) { await CRM.addNote(editingId, pendingOcrNote); pendingOcrNote = null; }
+    if (formNote) await CRM.addNote(editingId, formNote);
   } else {
     const created = await CRM.create(payload, opts);
     // Nếu OCR đọc được 1 ghi chú → thêm thành 1 note tự nhập cho khách vừa tạo.
     if (created && pendingOcrNote) { await CRM.addNote(created.id, pendingOcrNote); pendingOcrNote = null; }
+    if (created && formNote) await CRM.addNote(created.id, formNote);
     // Lưu ảnh OCR thành tài liệu reg_image (cần mạng; offline thì bỏ qua, không chặn tạo khách).
     if (created && pendingOcrImage) {
       try { await CRM.uploadDocument(created.id, pendingOcrImage, 'reg_image', 'Ảnh đăng ký'); }
@@ -757,7 +770,7 @@ async function fileToScaled(file, maxDim = 1600, quality = 0.85) {
 function applyOcrToForm(d) {
   if (!d || typeof d !== 'object') return;
   const f = $('#customer-form');
-  if (d.phone) f.phone.value = String(d.phone).trim();
+  if (d.phone) f.phone.value = normalizeOcrPhone(d.phone);
   // Tên: viết hoa chữ ĐẦU mỗi từ ("ngo thi minh thu" / "NGO THI MINH THU" → "Ngo Thi Minh Thu").
   if (d.full_name) f.full_name.value = toTitleCaseName(d.full_name);
   if (['nam', 'nữ', 'khác'].includes(d.gender)) f.gender.value = d.gender;
@@ -790,7 +803,7 @@ function applyOcrToForm(d) {
     for (const name of d.projects) {
       if (projectOptions.some((o) => o.name === name) && !selectedProjects.includes(name)) selectedProjects.push(name);
     }
-    renderProjChips();
+    renderProjSelect();
   }
   // Thời gian đăng ký từ GIỜ tin nhắn: dựng datetime = giờ đó + ngày. Nếu giờ đó
   // muộn hơn giờ hiện tại (không thể là hôm nay) → lấy ngày HÔM QUA; ngược lại HÔM NAY.
@@ -805,6 +818,20 @@ function applyOcrToForm(d) {
   }
   // Ghi chú OCR: giữ tạm, sẽ thêm thành 1 note sau khi tạo khách (xem handleFormSubmit).
   pendingOcrNote = (d.note && String(d.note).trim()) || null;
+}
+
+// Chuẩn hoá SĐT từ OCR: bỏ ký tự thừa; "+84..." → "0..."; nếu không bắt đầu bằng
+// "0" và chưa đủ 10 chữ số thì thêm "0" đầu. (SĐT là master key nên chuẩn hoá bằng
+// code cho chắc, không phó thác hẳn cho AI.)
+function normalizeOcrPhone(raw) {
+  let p = String(raw).replace(/[^\d+]/g, ''); // giữ chữ số và dấu +
+  if (p.startsWith('+84')) p = '0' + p.slice(3);
+  p = p.replace(/\D/g, ''); // bỏ nốt dấu + còn sót
+  // SĐT VN dạng mã quốc gia thiếu dấu "+": "84" + 9 số = 11 chữ số → đổi "84" thành "0".
+  if (p.startsWith('84') && p.length === 11) p = '0' + p.slice(2);
+  // Thiếu số 0 đầu (vd "912345678") → thêm vào. Số nước ngoài/khác không khớp → giữ nguyên.
+  if (!p.startsWith('0') && p.length < 10) p = '0' + p;
+  return p;
 }
 
 // Viết hoa chữ đầu mỗi từ trong tên (giữ dấu tiếng Việt), gộp khoảng trắng thừa.
@@ -1808,44 +1835,58 @@ document.addEventListener('DOMContentLoaded', () => {
   $('#ocr-btn').addEventListener('click', () => $('#ocr-file').click());
   $('#ocr-file').addEventListener('change', (e) => handleOcrImage(e.target.files && e.target.files[0]));
 
-  // --- Chip dự án (chọn nhiều / thêm / xoá) ---
-  $('#proj-chips').addEventListener('click', async (e) => {
-    const toggle = e.target.closest('[data-projtoggle]');
-    if (toggle) {
-      const name = toggle.dataset.projtoggle;
-      const i = selectedProjects.indexOf(name);
-      if (i === -1) selectedProjects.push(name); else selectedProjects.splice(i, 1);
-      renderProjChips();
-      return;
-    }
+  // --- Dropdown dự án (chọn nhiều / thêm / xoá) ---
+  $('#proj-dropdown-btn').addEventListener('click', () => {
+    const p = $('#proj-dropdown-panel'); p.hidden = !p.hidden;
+  });
+  // Tích/bỏ tích 1 dự án (checkbox)
+  $('#proj-options').addEventListener('change', (e) => {
+    const cb = e.target.closest('[data-projtoggle]');
+    if (!cb) return;
+    const name = cb.dataset.projtoggle;
+    const i = selectedProjects.indexOf(name);
+    if (cb.checked && i === -1) selectedProjects.push(name);
+    else if (!cb.checked && i !== -1) selectedProjects.splice(i, 1);
+    renderProjSelect();
+  });
+  // Xoá 1 dự án khỏi danh sách (chế độ Quản lý)
+  $('#proj-options').addEventListener('click', async (e) => {
     const del = e.target.closest('[data-projdel]');
-    if (del) {
-      const opt = projectOptions.find((o) => o.id === del.dataset.projdel);
-      if (opt && confirm(`Xoá dự án "${opt.name}" khỏi danh sách? (không ảnh hưởng khách đã lưu)`)) {
-        await removeProjectOption(opt.id);
-        selectedProjects = selectedProjects.filter((n) => n !== opt.name);
-        renderProjChips();
-      }
-      return;
-    }
-    if (e.target.closest('#proj-add-btn')) {
-      $('#proj-add-row').hidden = false;
-      $('#proj-add-input').value = '';
-      $('#proj-add-input').focus();
+    if (!del) return;
+    const opt = projectOptions.find((o) => o.id === del.dataset.projdel);
+    if (opt && confirm(`Xoá dự án "${opt.name}" khỏi danh sách? (không ảnh hưởng khách đã lưu)`)) {
+      await removeProjectOption(opt.id);
+      selectedProjects = selectedProjects.filter((n) => n !== opt.name);
+      renderProjSelect();
     }
   });
-  $('#proj-manage-btn').addEventListener('click', () => { projManageMode = !projManageMode; renderProjChips(); });
+  $('#proj-add-btn').addEventListener('click', () => {
+    $('#proj-add-row').hidden = false;
+    $('#proj-add-btn').hidden = true;
+    $('#proj-add-input').value = '';
+    $('#proj-add-input').focus();
+  });
+  // Đóng dropdown khi bấm ra ngoài
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.proj-dropdown')) $('#proj-dropdown-panel').hidden = true;
+  });
+  $('#proj-manage-btn').addEventListener('click', () => {
+    projManageMode = !projManageMode;
+    $('#proj-dropdown-panel').hidden = false; // mở panel để thấy nút xoá
+    renderProjSelect();
+  });
   $('#proj-add-ok').addEventListener('click', async () => {
     const name = $('#proj-add-input').value.trim();
     if (!name) return;
     if (await addProjectOption(name)) {
       if (!selectedProjects.includes(name)) selectedProjects.push(name);
       $('#proj-add-row').hidden = true;
-      renderProjChips();
+      $('#proj-add-btn').hidden = false;
+      renderProjSelect();
     }
   });
   $('#proj-add-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('#proj-add-ok').click(); } });
-  $('#proj-add-cancel').addEventListener('click', () => { $('#proj-add-row').hidden = true; });
+  $('#proj-add-cancel').addEventListener('click', () => { $('#proj-add-row').hidden = true; $('#proj-add-btn').hidden = false; });
   $('#customer-form').interest_level.addEventListener('input', (e) => {
     $('#interest-output').textContent = e.target.value + '%';
   });

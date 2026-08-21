@@ -6,6 +6,20 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-21 — Form thêm khách: gọn "Thường trú", thêm "Ghi chú", "Dự án" thành dropdown
+
+- **Thường trú**: rút còn nửa dòng, xếp ngang hàng "Thu nhập" (bỏ `span-2`),
+  placeholder gợi ý nhập tên tỉnh.
+- **Ghi chú**: thêm ô "Ghi chú" (`new_note`) trong form → khi Lưu, thành 1 mục
+  ghi chú của khách (append qua `CRM.addNote`, cả tạo mới lẫn sửa).
+- **Dự án**: đổi từ chips luôn-hiện sang **dropdown chọn nhiều** (nút tóm tắt tên đã
+  chọn → panel checkbox), vẫn chọn nhiều + giữ lựa chọn gần nhất làm mặc định +
+  Thêm/Quản lý dự án như cũ. `renderProjChips` → `renderProjSelect`.
+
+File: `index.html`, `js/app.js`, `css/style.css`
+
+---
+
 ## 2026-08-21 — Lưu trữ tài liệu (ảnh/PDF) + tinh chỉnh OCR (tên, giờ đăng ký, ảnh reg_image)
 
 **Tài liệu khách** (mới): Supabase Storage bucket riêng tư `customer-docs` + bảng
@@ -23,6 +37,9 @@ metadata `documents` (`kind/label/storage_path/mime/size...`). File để ở St
 - `registered_at` lấy từ **giờ tin nhắn** (field `message_time` Gemini trả): giờ đó
   ≤ giờ hiện tại → ngày hôm nay; muộn hơn → hôm qua.
 - Model đổi sang `gemini-3.6-flash` (2.5-flash ngừng cho user mới).
+- Chuẩn hoá SĐT (cả prompt Gemini lẫn code app `normalizeOcrPhone`): "+84..." → "0...";
+  "84"+11 chữ số → "0..."; không bắt đầu "0" và chưa đủ 10 chữ số → thêm "0" đầu.
+  Số nước ngoài/khác giữ nguyên.
 
 File: `add_documents.sql` (migration cần chạy), `js/db.js`, `js/app.js`,
 `index.html`, `css/style.css`, `worker/intake-worker.js`

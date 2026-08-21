@@ -62,7 +62,11 @@ NGUYÊN TẮC TỐI QUAN TRỌNG:
   "Xem trang web", "nhân viên kinh doanh bên em..."), lời chào, câu marketing.
 
 CÁC FIELD (đúng thuộc tính CRM):
-- phone: CHỈ chữ số, bỏ hết dấu cách/chấm (vd "093 274 12 27" → "0932741227"). Đọc kỹ từng số — đây là dữ liệu quan trọng nhất.
+- phone: đọc kỹ TỪNG SỐ (dữ liệu quan trọng nhất). Chỉ chữ số, bỏ dấu cách/chấm.
+  Chuẩn hoá (SĐT VN chỉ 10 số): (1) bắt đầu "+84" → thay bằng "0"; (2) bắt đầu "84"
+  và đủ 11 chữ số → đổi "84" thành "0"; (3) không bắt đầu "0" và chưa đủ 10 chữ số →
+  thêm "0" đầu. Số nước ngoài/khác thì GIỮ NGUYÊN, không động vào.
+  VD "093 274 12 27" → "0932741227"; "+84 932 741 227" → "0932741227"; "84932741227" → "0932741227"; "932741227" → "0932741227".
 - full_name: họ tên khách.
 - gender: 1 trong ['nam','nữ','khác'] — chỉ khi ghi rõ, không đoán từ ảnh/tên.
 - dob: 'YYYY-MM-DD' (dương lịch). Chỉ có năm hoặc không chắc → null.

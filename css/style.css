@@ -617,15 +617,31 @@ legend { font-size: 12px; color: #6b6b60; padding: 0 6px; }
 .proj-title { font-size: 13px; color: #4a4a42; }
 .proj-manage { border: none; background: transparent; color: var(--seal); font: inherit; font-size: 12px; cursor: pointer; padding: 2px 4px; }
 .proj-manage:hover { text-decoration: underline; }
-.proj-chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.proj-chip { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 100px; background: #fff; overflow: hidden; }
-.proj-chip-name { border: none; background: transparent; font: inherit; font-size: 13px; color: var(--ink); cursor: pointer; padding: 6px 12px; }
-.proj-chip.is-sel { background: var(--seal); border-color: var(--seal); }
-.proj-chip.is-sel .proj-chip-name { color: #fff; }
-.proj-chip-del { border: none; background: transparent; color: var(--bad); cursor: pointer; font-size: 11px; padding: 6px 9px 6px 0; }
-.proj-chip.is-sel .proj-chip-del { color: #fff; }
-.proj-chip.proj-add { padding: 6px 12px; font: inherit; font-size: 13px; color: var(--seal); cursor: pointer; border-style: dashed; }
-.proj-add-row { display: flex; gap: 6px; margin-top: 2px; }
+/* Dropdown chọn nhiều dự án */
+.proj-dropdown { position: relative; }
+.proj-dropdown-btn {
+  width: 100%; text-align: left; font: inherit; font-size: 14px;
+  padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px;
+  background: #fff; color: var(--ink); cursor: pointer;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.proj-dropdown-btn::after { content: ' ▾'; color: #9a9a90; }
+.proj-dropdown-panel {
+  position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 20;
+  background: #fff; border: 1px solid var(--line); border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.12); padding: 6px; max-height: 260px; overflow-y: auto;
+}
+.proj-options { display: flex; flex-direction: column; }
+.proj-opt { display: flex; align-items: center; gap: 6px; border-radius: 6px; padding: 2px 4px; }
+.proj-opt:hover { background: var(--paper); }
+/* .proj-dropdown ... để đủ đặc hiệu, đè rule ".form-grid label { flex-direction:column }" */
+.proj-dropdown .proj-opt-label { display: flex; flex-direction: row; align-items: center; gap: 8px; flex: 1; font-size: 14px; cursor: pointer; padding: 6px 4px; }
+.proj-opt-label input { width: 16px; height: 16px; }
+.proj-opt.is-sel { font-weight: 600; }
+.proj-empty { font-size: 13px; color: #9a9a90; font-style: italic; padding: 6px; }
+.proj-chip-del { border: none; background: transparent; color: var(--bad); cursor: pointer; font-size: 12px; padding: 4px 6px; }
+.proj-add-open { margin-top: 6px; width: 100%; color: var(--seal); border-style: dashed; }
+.proj-add-row { display: flex; gap: 6px; margin-top: 6px; }
 .proj-add-row input { flex: 1; min-width: 0; font: inherit; font-size: 14px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; }
 input[name="apt_type_other"] { margin-top: 8px; }
 
