@@ -6,6 +6,19 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-21 — Trình xem ảnh/PDF trong app (nhẹ)
+
+Xem tài liệu không còn bị đẩy sang tab trình duyệt. Thêm 1 dialog xem nhẹ
+(`#file-viewer`): **ảnh** dùng `<img>`, **PDF** dùng `<iframe>` (trình duyệt tự
+render, KHÔNG kèm thư viện PDF nặng). Định dạng khác vẫn mở tab mới. Có nút
+"Mở tab mới" dự phòng + đóng bằng ✕ / bấm nền tối / Esc. `openDocSigned` nhận diện
+mime để chọn xem-trong-app hay mở-tab; signed URL nới hạn 300s cho đủ thời gian xem.
+Dùng chung cho cả trang chi tiết (chỉ xem) lẫn form Sửa khách.
+
+File: `index.html`, `js/app.js`, `css/style.css`
+
+---
+
 ## 2026-08-21 — Chuyển Xoá khách + quản lý tài liệu vào trang Sửa khách
 
 - **Xoá khách**: bỏ khỏi menu "⋯" trên card; giờ là nút **"🗑 Xoá khách"** viền/chữ

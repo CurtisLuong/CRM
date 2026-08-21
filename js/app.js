@@ -1348,14 +1348,43 @@ function docItemHtml(d, prefix) {
     </div>`;
 }
 
-// Mở 1 tài liệu qua signed URL (mở tab trống trước để tránh bị chặn popup).
+// Mở 1 tài liệu: ẢNH/PDF → xem trong app (trình xem nhẹ); định dạng khác → mở tab.
 async function openDocSigned(doc) {
   if (!doc) return;
+  const mime = doc.mime || '';
+  const isImg = mime.startsWith('image/');
+  const isPdf = mime === 'application/pdf';
+  if (isImg || isPdf) { openFileViewer(doc, isImg); return; }
+  // Định dạng khác: mở tab trống trước (tránh chặn popup) rồi gán URL.
   const w = window.open('', '_blank');
-  const url = await CRM.signedDocUrl(doc.storage_path);
+  const url = await CRM.signedDocUrl(doc.storage_path, 300);
   if (url && w) w.location = url;
   else if (w) { w.close(); alert('Không lấy được link xem (cần mạng?).'); }
 }
+
+// Trình xem nhẹ trong app: <img> cho ảnh, <iframe> cho PDF (trình duyệt tự render).
+async function openFileViewer(doc, isImg) {
+  const dlg = $('#file-viewer');
+  const body = $('#file-viewer-body');
+  $('#file-viewer-title').textContent = (DOC_KIND_LABELS[doc.kind] || doc.kind) + (doc.label ? ' · ' + doc.label : '');
+  $('#file-viewer-open').onclick = null;
+  body.innerHTML = '<div class="fv-loading">Đang tải...</div>';
+  if (!dlg.open) dlg.showModal();
+  const url = await CRM.signedDocUrl(doc.storage_path, 300);
+  if (!url) { body.innerHTML = '<div class="fv-loading">Không tải được (cần mạng?).</div>'; return; }
+  body.innerHTML = '';
+  const el = document.createElement(isImg ? 'img' : 'iframe');
+  el.className = isImg ? 'fv-img' : 'fv-pdf';
+  el.src = url; // gán qua thuộc tính, không nhúng vào HTML → an toàn
+  body.appendChild(el);
+  $('#file-viewer-open').onclick = () => window.open(url, '_blank');
+}
+
+$('#file-viewer-close')?.addEventListener('click', () => $('#file-viewer').close());
+// Bấm nền tối (ngoài nội dung) → đóng
+$('#file-viewer')?.addEventListener('click', (e) => { if (e.target.id === 'file-viewer') $('#file-viewer').close(); });
+// Đóng → xoá nội dung để dừng tải iframe/ảnh, giải phóng bộ nhớ
+$('#file-viewer')?.addEventListener('close', () => { $('#file-viewer-body').innerHTML = ''; });
 
 $('#detail-docs-toggle')?.addEventListener('click', () => {
   const body = $('#detail-docs-body');
