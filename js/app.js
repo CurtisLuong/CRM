@@ -124,6 +124,14 @@ let formOriginalStage = ''; // care_stage lúc mở form — để biết có đ
 let pendingOcrNote = null;  // ghi chú OCR đọc được → thêm thành 1 note sau khi tạo khách
 let pendingOcrImage = null; // ảnh OCR (blob đã nén) → lưu thành tài liệu reg_image sau khi tạo khách
 
+// Nhãn "Nguồn khách" (source) — hệ thống tự set, user không sửa.
+const SOURCE_LABELS = {
+  manual: 'Quảng cáo (nhập tay)',
+  ocr: 'Quảng cáo (từ ảnh)',
+  landing: 'Landing page',
+};
+function sourceLabel(s) { return SOURCE_LABELS[s] || SOURCE_LABELS.manual; }
+
 // Nhãn hiển thị cho loại tài liệu (kind). Mở rộng khi có loại giấy tờ mới.
 const DOC_KIND_LABELS = {
   reg_image: 'Ảnh đăng ký',
@@ -723,6 +731,8 @@ async function handleFormSubmit(e) {
     if (pendingOcrNote) { await CRM.addNote(editingId, pendingOcrNote); pendingOcrNote = null; }
     if (formNote) await CRM.addNote(editingId, formNote);
   } else {
+    // Nguồn khách: hệ thống tự set khi tạo — dùng ảnh (OCR) → 'ocr', nhập tay → 'manual'.
+    payload.source = pendingOcrImage ? 'ocr' : 'manual';
     const created = await CRM.create(payload, opts);
     // Nếu OCR đọc được 1 ghi chú → thêm thành 1 note tự nhập cho khách vừa tạo.
     if (created && pendingOcrNote) { await CRM.addNote(created.id, pendingOcrNote); pendingOcrNote = null; }
@@ -1044,6 +1054,7 @@ function openDetail(id) {
     ['Công việc', c.occupation || DASH],
     ['Thu nhập', c.income || DASH],
     ['Thường trú', c.residence || DASH],
+    ['Nguồn khách', sourceLabel(c.source)],
   ];
   $('#detail-personal').innerHTML = personal
     .map(([k, v]) => `<span class="pi-item"><span class="pi-label">${k}:</span> ${escapeHtml(String(v))}</span>`)

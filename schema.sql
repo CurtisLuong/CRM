@@ -79,6 +79,10 @@ create table if not exists public.customers (
   care_stage_updated_at timestamptz default now(),
   -- lịch sử đổi care_stage: mảng {stage, note, at} (xem add_care_stage_history.sql)
   care_stage_history jsonb not null default '[]'::jsonb,
+  -- ghi chú tự nhập dạng bullet: mảng {text, at} (xem add_notes_manual.sql)
+  notes_manual jsonb not null default '[]'::jsonb,
+  -- nguồn khách, hệ thống tự set: 'manual'|'ocr'|'landing' (xem add_source.sql)
+  source text,
   updated_by uuid
 );
 

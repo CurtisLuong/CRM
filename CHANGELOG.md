@@ -164,6 +164,22 @@ File: `add_notes_manual.sql` (migration cần chạy), `js/db.js`, `js/app.js`,
 
 ---
 
+## 2026-08-21 — Thêm "Nguồn khách" (source) — hệ thống tự detect
+
+Thêm cột `source` cho customers (text): `manual` (Quảng cáo – nhập tay), `ocr`
+(Quảng cáo – từ ảnh), `landing` (Landing page, để dành). **Cần chạy `add_source.sql`**
+(thêm cột + backfill: có tài liệu reg_image → 'ocr', không có → 'manual').
+
+- Hệ thống TỰ set khi tạo khách (dùng "📷 Nhập từ ảnh" → 'ocr', nhập tay → 'manual');
+  user KHÔNG sửa được (không có ô trong form). Landing page sẽ set 'landing' sau.
+- Hiển thị "Nguồn khách" ở trang chi tiết (mục Thông tin cá nhân), nhãn thân thiện
+  qua `SOURCE_LABELS`/`sourceLabel`.
+- Đã bake cột `source` (và `notes_manual`) vào `schema.sql` baseline.
+
+File: `add_source.sql` (migration cần chạy), `js/app.js`, `schema.sql`
+
+---
+
 ## 2026-08-21 — Kéo để tải lại (Mac/Windows): bỏ quán tính, chỉ tính kéo chủ động
 
 Trackpad/chuột có "quán tính" (momentum) → flick cuộn lên tới đỉnh, phần trớn dội
