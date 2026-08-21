@@ -157,6 +157,13 @@ let selectedProjects = [];      // tên dự án đang chọn ở form
 let projManageMode = false;     // đang bật chế độ xoá dự án
 const LS_PROJ_CACHE = 'crm_project_options';   // cache đọc offline
 const LS_LAST_PROJECTS = 'crm_last_projects';  // lựa chọn gần nhất → mặc định khách mới
+const LS_LAST_USER = 'crm_last_user';          // {id,email} người dùng đăng nhập gần nhất (cho chế độ offline)
+
+// Người dùng đã đăng nhập gần nhất (để vào app xem dữ liệu offline khi mất mạng).
+function rememberedUser() {
+  try { const u = JSON.parse(localStorage.getItem(LS_LAST_USER) || 'null'); return (u && u.id) ? u : null; }
+  catch { return null; }
+}
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => Array.from(document.querySelectorAll(sel));
@@ -173,17 +180,25 @@ async function boot() {
   const { data: { session } } = await sb.auth.getSession();
   if (session) {
     await onLoggedIn(session.user);
+  } else if (!navigator.onLine && rememberedUser()) {
+    // Mất mạng nhưng đã từng đăng nhập → vào app xem dữ liệu offline, KHÔNG bắt đăng nhập lại.
+    await onLoggedIn(rememberedUser());
   } else {
     showAuthScreen();
   }
   sb.auth.onAuthStateChange((_event, session) => {
-    if (session && !currentUser) onLoggedIn(session.user);
-    if (!session) { currentUser = null; showAuthScreen(); }
+    if (session) { if (!currentUser) onLoggedIn(session.user); return; }
+    // Mất phiên: nếu đang MẤT MẠNG và còn nhớ user → GIỮ nguyên app (đừng đá ra login).
+    // Chỉ khi ĐANG ONLINE (đăng xuất thật / token hết hạn) mới về màn hình đăng nhập.
+    if (!navigator.onLine && rememberedUser()) return;
+    currentUser = null; showAuthScreen();
   });
 }
 
 async function onLoggedIn(user) {
   currentUser = user;
+  // Nhớ user để lần sau mất mạng vẫn vào xem dữ liệu offline được.
+  try { localStorage.setItem(LS_LAST_USER, JSON.stringify({ id: user.id, email: user.email || '' })); } catch {}
   // Avatar = chữ cái đầu của email; menu hiện email đầy đủ
   const email = user.email || '';
   $('#user-menu-btn').textContent = (email[0] || '?').toUpperCase();
@@ -244,8 +259,13 @@ async function handleSignup(e) {
   else { errBox.textContent = 'Đã gửi email xác nhận — kiểm tra hộp thư rồi đăng nhập lại.'; }
 }
 
-function handleLogout() {
-  sb.auth.signOut();
+async function handleLogout() {
+  // Đăng xuất CHỦ ĐỘNG: xoá "nhớ user" trước để chế độ offline không giữ app lại,
+  // rồi về màn hình đăng nhập ngay (kể cả khi đang mất mạng).
+  try { localStorage.removeItem(LS_LAST_USER); } catch {}
+  currentUser = null;
+  try { await sb.auth.signOut(); } catch {}
+  showAuthScreen();
 }
 
 // Làm mới dữ liệu: đẩy hàng đợi + kéo bản mới nhất từ Supabase + vẽ lại

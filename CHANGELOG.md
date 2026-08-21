@@ -164,6 +164,21 @@ File: `add_notes_manual.sql` (migration cần chạy), `js/db.js`, `js/app.js`,
 
 ---
 
+## 2026-08-21 — Chống freeze khi mạng yếu: timeout SW + không đá ra login khi offline
+
+Khắc phục lỗi trên Android: mất mạng → tự đăng xuất → kẹt "Đang tải lại...".
+- **`sw.js` network-first CÓ TIMEOUT (5s)**: mạng chậm/chập chờn → rơi về cache ngay
+  thay vì chờ vô hạn (hết treo "Đang tải lại..." khi reload). Điều hướng không có
+  cache khớp → trả app-shell `index.html`. Tăng `CACHE_NAME` v2→v3.
+- **Không đá ra màn hình đăng nhập khi chỉ MẤT MẠNG**: nhớ user đăng nhập gần nhất
+  (`crm_last_user`); khi mất phiên mà đang offline → GIỮ app, vẫn xem được dữ liệu
+  khách đã lưu (IndexedDB). Chỉ về login khi ONLINE (đăng xuất thật / token hết hạn)
+  hoặc khi bấm Đăng xuất (xoá "nhớ user" + về login ngay, kể cả offline).
+
+File: `sw.js`, `js/app.js`
+
+---
+
 ## 2026-08-21 — Đổi tên bậc 'Không quan tâm-kết thúc' → 'Không chốt-kết thúc'
 
 Đổi tên giá trị care_stage. **Cần chạy `rename_care_stage_khong_chot.sql`** (đổi
