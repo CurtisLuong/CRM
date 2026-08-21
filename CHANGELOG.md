@@ -6,6 +6,17 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-21 — Tự đặt con trỏ ở ô tìm kiếm khi vào app (chỉ máy tính)
+
+Mỗi lần reload / mở lại / lần đầu vào app, con trỏ tự nằm sẵn trong ô tìm kiếm để gõ
+ngay, không phải bấm chuột vào ô. Đặt trong `onLoggedIn` (đúng luồng khởi động, không
+kích hoạt khi quay lại từ màn chi tiết). Chỉ chạy trên **máy KHÔNG cảm ứng** (Mac/laptop);
+trên điện thoại bỏ qua để không tự bật bàn phím ảo mỗi lần mở app.
+
+File: `js/app.js`
+
+---
+
 ## 2026-08-21 — Universal search + tìm SĐT theo vị trí bất kỳ
 
 Nâng ô tìm kiếm từ chỉ "phone + tên" thành tìm trên MỌI trường của khách, chia 2 nhánh

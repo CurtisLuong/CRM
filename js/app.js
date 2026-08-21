@@ -204,6 +204,7 @@ async function onLoggedIn(user) {
   $('#user-menu-btn').textContent = (email[0] || '?').toUpperCase();
   $('#user-email').textContent = email;
   showAppScreen();
+  focusSearchOnDesktop(); // con trỏ nằm sẵn ở ô tìm kiếm khi vừa vào app
   CRM.init(sb, user.id);
   await CRM.flushQueue();
   await CRM.pull();
@@ -228,6 +229,16 @@ function showAppScreen() {
   $('#detail-screen').hidden = true;
   // Nếu đang ở tab Tổng quan thì vẽ lại cho khớp dữ liệu mới nhất.
   if (!$('#dashboard-view').hidden) renderDashboard();
+}
+
+// Đặt sẵn con trỏ ở ô tìm kiếm mỗi lần vào app (reload / mở lại / lần đầu) để gõ tìm
+// được ngay, không phải bấm chuột vào ô. CHỈ làm trên máy KHÔNG cảm ứng (Mac/laptop):
+// trên điện thoại, focus sẽ tự bật bàn phím ảo mỗi lần mở app → phiền, nên bỏ qua.
+function focusSearchOnDesktop() {
+  const isTouch = navigator.maxTouchPoints > 0 || 'ontouchstart' in window;
+  if (isTouch) return;
+  // requestAnimationFrame: chờ app-screen hiện xong hẳn rồi mới focus (tránh bị mất focus).
+  requestAnimationFrame(() => { const el = $('#search-input'); if (el) el.focus(); });
 }
 
 function showDetailScreen() {
