@@ -164,6 +164,20 @@ File: `add_notes_manual.sql` (migration cần chạy), `js/db.js`, `js/app.js`,
 
 ---
 
+## 2026-08-21 — Liên kết bậc chăm sóc → mức quan tâm (+ tự đánh giá khi kết thúc)
+
+Khi ĐỔI bậc chăm sóc trong form, mức quan tâm tự nhảy theo (map `STAGE_INTEREST`):
+- 'Đang chăm sóc qua Zalo' → 60%, 'Đã yêu cầu hỗ trợ hồ sơ' → 70%, 'Đã booking' →
+  90%, 'Đã ký hợp đồng mua bán' → 100%.
+- 'Không quan tâm-kết thúc' → **0%** và tự set đánh giá **'không nên chăm'**.
+- Các bậc còn lại: không đụng mức quan tâm.
+- **Kéo slider bằng tay ghi đè** giá trị tự động (giá trị lúc Lưu là giá trị cuối cùng).
+- Khách mới không chỉnh gì vẫn mặc định 50% (như cũ).
+
+File: `js/app.js`
+
+---
+
 ## 2026-08-21 — Ghi chú: sắp note tự nhập mới-nhất-lên-trên (tường minh theo 'at')
 
 Note tự động (latest care stage) vẫn xếp đầu; các note tự nhập nay sắp **theo mốc

@@ -24,6 +24,16 @@ const CARE_STAGE_OPTIONS = [...CARE_STAGES, CARE_STAGE_DROPPED];
 // Hai trạng thái coi là "chăm sóc đã xong" — mặc định ẩn khỏi dashboard.
 const CARE_DONE_STAGES = ['Đã ký hợp đồng mua bán', CARE_STAGE_DROPPED];
 
+// Đổi bậc chăm sóc → TỰ set mức quan tâm (chỉ các bậc dưới; bậc khác giữ nguyên).
+// Kéo slider bằng tay sẽ ghi đè giá trị tự động này. 'Không quan tâm-kết thúc' → 0%.
+const STAGE_INTEREST = {
+  'Đang chăm sóc qua Zalo': 60,
+  'Đã yêu cầu hỗ trợ hồ sơ': 70,
+  'Đã booking': 90,
+  'Đã ký hợp đồng mua bán': 100,
+  [CARE_STAGE_DROPPED]: 0,
+};
+
 // Các bậc có thể LẶP LẠI nhiều lần mà vẫn ở nguyên bậc đó — mỗi lần liên hệ là 1
 // mốc riêng trong lịch sử để tiện theo dõi (vd gọi mãi không nghe, hẹn lại nhiều
 // lần). Chỉ những bậc này mới cho "ghi thêm lần".
@@ -656,6 +666,24 @@ function toggleCareStageNote() {
     ? 'Ghi chú lần liên hệ mới (thêm 1 mốc, vẫn ở bậc này)'
     : 'Ghi chú cho lần đổi tiến độ này';
   if (!show) f.care_stage_note.value = '';
+}
+
+// Khi ĐỔI bậc chăm sóc: tự chỉnh mức quan tâm theo bậc (nếu bậc có map). Riêng
+// 'Không quan tâm-kết thúc' → 0% + tự đánh giá 'không nên chăm'. Người dùng kéo
+// slider tay sau đó sẽ ghi đè (giá trị hiển thị lúc Lưu là giá trị cuối cùng).
+function onCareStageChange() {
+  toggleCareStageNote();
+  const f = $('#customer-form');
+  const stage = f.care_stage.value;
+  if (Object.prototype.hasOwnProperty.call(STAGE_INTEREST, stage)) {
+    const v = STAGE_INTEREST[stage];
+    f.interest_level.value = v;
+    $('#interest-output').textContent = v + '%';
+  }
+  if (stage === CARE_STAGE_DROPPED) {
+    f.evaluation.value = 'không nên chăm';
+    toggleEvalReason();
+  }
 }
 
 function closeForm() {
@@ -2032,7 +2060,7 @@ document.addEventListener('DOMContentLoaded', () => {
   $('#delete-customer-btn').addEventListener('click', () => { if (editingId) confirmDelete(editingId); });
   $('#customer-form').dob.addEventListener('input', updateMenhPreview);
   $('#customer-form').evaluation.addEventListener('change', toggleEvalReason);
-  $('#customer-form').care_stage.addEventListener('change', toggleCareStageNote);
+  $('#customer-form').care_stage.addEventListener('change', onCareStageChange);
   $('#customer-form').apt_type_select.addEventListener('change', toggleAptOther);
 
   // --- OCR: nhập từ ảnh (chỉ hiện nút nếu đã cấu hình WORKER_URL) ---
