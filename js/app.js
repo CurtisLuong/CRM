@@ -135,12 +135,35 @@ let pendingOcrNote = null;  // ghi chú OCR đọc được → thêm thành 1 n
 let pendingOcrImage = null; // ảnh OCR (blob đã nén) → lưu thành tài liệu reg_image sau khi tạo khách
 
 // Nhãn "Nguồn khách" (source) — hệ thống tự set, user không sửa.
-const SOURCE_LABELS = {
-  manual: 'Quảng cáo (nhập tay)',
-  ocr: 'Quảng cáo (từ ảnh)',
-  landing: 'Landing page',
-};
-function sourceLabel(s) { return SOURCE_LABELS[s] || SOURCE_LABELS.manual; }
+// Từ 2026-08-21: source có thể mang NHIỀU giá trị (mảng), vd khách vừa từ Quảng cáo
+// vừa từ Landing page → gộp nguồn vào 1 khách thay vì tạo bản trùng (xem handleFormSubmit).
+// Nhóm nguồn (group): manual + ocr đều thuộc "Quảng cáo"; landing riêng. So trùng/gộp
+// và hiển thị đều theo NHÓM (quyết định của chủ dự án).
+const SOURCE_GROUP = { manual: 'quang_cao', ocr: 'quang_cao', landing: 'landing' };
+const SOURCE_GROUP_LABELS = { quang_cao: 'Quảng cáo', landing: 'Landing page' };
+
+// Chuẩn hoá source (string cũ | mảng mới | null) → mảng giá trị gốc ['manual'|'ocr'|'landing'].
+function sourceListOf(source) {
+  if (Array.isArray(source)) return source.filter(Boolean);
+  if (typeof source === 'string' && source) return [source];
+  return [];
+}
+// Các NHÓM nguồn (không trùng) của 1 khách.
+function sourceGroupsOf(source) {
+  const groups = [];
+  for (const s of sourceListOf(source)) {
+    const g = SOURCE_GROUP[s] || 'quang_cao';
+    if (!groups.includes(g)) groups.push(g);
+  }
+  return groups;
+}
+// Chuỗi hiển thị: nhãn các nhóm nối bằng " + " (vd "Quảng cáo + Landing page").
+// Trống → mặc định "Quảng cáo" (giữ hành vi cũ khi source rỗng = nhập tay).
+function sourceDisplay(source) {
+  const groups = sourceGroupsOf(source);
+  if (groups.length === 0) return SOURCE_GROUP_LABELS.quang_cao;
+  return groups.map((g) => SOURCE_GROUP_LABELS[g] || g).join(' + ');
+}
 
 // Nhãn hiển thị cho loại tài liệu (kind). Mở rộng khi có loại giấy tờ mới.
 const DOC_KIND_LABELS = {
@@ -411,7 +434,7 @@ function customerSearchBlob(c) {
     c.phone, c.full_name, c.gender, c.dob, c.dob ? formatDate(c.dob) : '',
     c.menh, c.marital_status, c.occupation, c.income, c.residence,
     c.apt_type, c.apt_code, c.building_code, c.care_stage, c.evaluation,
-    c.evaluation_reason, sourceLabel(c.source),
+    c.evaluation_reason, sourceDisplay(c.source),
     c.apt_price != null ? String(c.apt_price) : '',
     c.apt_price ? formatPrice(c.apt_price) : '',
     c.interest_level != null ? c.interest_level + '%' : '',
@@ -816,6 +839,9 @@ async function handleFormSubmit(e) {
     evaluation: f.evaluation.value || null,
     evaluation_reason: f.evaluation.value === 'không nên chăm' ? (f.evaluation_reason.value || null) : null,
   };
+  // Chuẩn hoá SĐT (master key) NGAY: bỏ dấu cách, +84→0... để mọi so trùng & lưu đều
+  // dùng 1 dạng chuẩn ("0123 456 789" và "0123456789" là một).
+  payload.phone = normalizePhoneVN(payload.phone);
   if (!payload.phone || !payload.full_name) {
     alert('Cần nhập ít nhất Số điện thoại và Họ tên.');
     return;
@@ -829,6 +855,14 @@ async function handleFormSubmit(e) {
   // Ghi chú nhập ở form (ô "Ghi chú") → thêm thành 1 mục ghi chú sau khi lưu.
   const formNote = f.new_note.value.trim() || null;
   if (editingId) {
+    // Chặn SỬA SĐT trùng khách KHÁC: update vi phạm unique (phone,owner) sẽ làm KẸT
+    // hàng đợi đồng bộ (khác insert — không tự bỏ được), nên chặn ngay tại đây.
+    const clash = allCustomers.find((c) => c.id !== editingId && normalizePhoneVN(c.phone) === payload.phone);
+    if (clash) {
+      alert('⚠️ Số điện thoại "' + payload.phone + '" đã thuộc về khách khác: "' +
+        (clash.full_name || '') + '".\n\nHãy dùng số khác hoặc kiểm tra lại.');
+      return;
+    }
     const newStage = payload.care_stage;
     const orig = formOriginalStage;
     if (newStage && orig && careSortRank(newStage) < careSortRank(orig)) {
@@ -850,8 +884,48 @@ async function handleFormSubmit(e) {
     if (pendingOcrNote) { await CRM.addNote(editingId, pendingOcrNote); pendingOcrNote = null; }
     if (formNote) await CRM.addNote(editingId, formNote);
   } else {
-    // Nguồn khách: hệ thống tự set khi tạo — dùng ảnh (OCR) → 'ocr', nhập tay → 'manual'.
-    payload.source = pendingOcrImage ? 'ocr' : 'manual';
+    // Nguồn khách hệ thống tự set: từ ảnh (OCR) → 'ocr', nhập tay → 'manual'.
+    const newSource = pendingOcrImage ? 'ocr' : 'manual';
+
+    // === CHẶN TRÙNG theo MASTER KEY (SĐT) khi tạo khách mới ===
+    // So với khách của chính mình (local chỉ chứa khách của owner hiện tại).
+    const dup = allCustomers.find((c) => normalizePhoneVN(c.phone) === payload.phone);
+    if (dup) {
+      const sameName = normalizeNameKey(dup.full_name) === normalizeNameKey(payload.full_name);
+      if (!sameName) {
+        // SĐT trùng nhưng TÊN khác → nhiều khả năng gõ nhầm số → chặn, bắt xác nhận lại.
+        alert('⚠️ Số điện thoại "' + payload.phone + '" đã tồn tại nhưng gắn với TÊN KHÁC: "' +
+          (dup.full_name || '') + '".\n\nHãy kiểm tra / xác nhận lại số điện thoại.');
+        return;
+      }
+      const newGroup = SOURCE_GROUP[newSource];
+      const curGroups = sourceGroupsOf(dup.source);
+      if (curGroups.includes(newGroup)) {
+        // Trùng SĐT + trùng tên + CÙNG nhóm nguồn → trùng lặp hoàn toàn → không cho ghi.
+        alert('⚠️ Khách này đã tồn tại (trùng số điện thoại, tên và nguồn "' +
+          (SOURCE_GROUP_LABELS[newGroup] || newGroup) + '"). Không tạo bản trùng.');
+        return;
+      }
+      // Trùng SĐT + trùng tên + KHÁC nhóm nguồn → KHÔNG tạo bản mới; chỉ BỔ SUNG nguồn
+      // vào khách cũ (nguồn thành nhiều giá trị, vd "Quảng cáo + Landing page").
+      const mergedSource = sourceListOf(dup.source).concat([newSource]);
+      await CRM.update(dup.id, { source: mergedSource });
+      if (pendingOcrNote) { await CRM.addNote(dup.id, pendingOcrNote); pendingOcrNote = null; }
+      if (formNote) await CRM.addNote(dup.id, formNote);
+      if (pendingOcrImage) {
+        try { await CRM.uploadDocument(dup.id, pendingOcrImage, 'reg_image', 'Ảnh đăng ký'); }
+        catch (err) { console.warn('Lưu ảnh đăng ký lỗi:', err); }
+        pendingOcrImage = null;
+      }
+      alert('✅ Đã lưu. Khách "' + (dup.full_name || '') + '" đã tồn tại — đã BỔ SUNG nguồn "' +
+        (SOURCE_GROUP_LABELS[newGroup] || newGroup) + '" vào khách cũ (không tạo bản trùng).');
+      closeForm();
+      await refreshList();
+      return;
+    }
+
+    // SĐT mới hoàn toàn → tạo khách bình thường. source lưu dạng MẢNG (jsonb).
+    payload.source = [newSource];
     const created = await CRM.create(payload, opts);
     // Nếu OCR đọc được 1 ghi chú → thêm thành 1 note tự nhập cho khách vừa tạo.
     if (created && pendingOcrNote) { await CRM.addNote(created.id, pendingOcrNote); pendingOcrNote = null; }
@@ -908,7 +982,7 @@ function buildContactNote(c) {
   const manual = Array.isArray(c.notes_manual) ? c.notes_manual.map((n) => n.text).filter(Boolean) : [];
   const notes = [autoNote, ...manual].filter(Boolean);
   if (notes.length) push('Ghi chú', notes.join(' | '));
-  push('Nguồn', sourceLabel(c.source));
+  push('Nguồn', sourceDisplay(c.source));
   return L.join('\n');
 }
 
@@ -1034,8 +1108,12 @@ function applyOcrToForm(d) {
 // Chuẩn hoá SĐT từ OCR: bỏ ký tự thừa; "+84..." → "0..."; nếu không bắt đầu bằng
 // "0" và chưa đủ 10 chữ số thì thêm "0" đầu. (SĐT là master key nên chuẩn hoá bằng
 // code cho chắc, không phó thác hẳn cho AI.)
-function normalizeOcrPhone(raw) {
-  let p = String(raw).replace(/[^\d+]/g, ''); // giữ chữ số và dấu +
+// Chuẩn hoá SĐT (master key) — dùng CHUNG cho OCR lẫn mọi lần lưu khách:
+//  - Bỏ dấu cách/chấm/gạch ("0123 456 789" → "0123456789").
+//  - "+84..." hoặc "84..."(11 số) → "0...".  - Thiếu "0" đầu → thêm.
+//  - Giá trị cuối KHÔNG có dấu cách. Số nước ngoài/khác không khớp → giữ nguyên.
+function normalizePhoneVN(raw) {
+  let p = String(raw || '').replace(/[^\d+]/g, ''); // giữ chữ số và dấu +
   if (p.startsWith('+84')) p = '0' + p.slice(3);
   p = p.replace(/\D/g, ''); // bỏ nốt dấu + còn sót
   // SĐT VN dạng mã quốc gia thiếu dấu "+": "84" + 9 số = 11 chữ số → đổi "84" thành "0".
@@ -1043,6 +1121,14 @@ function normalizeOcrPhone(raw) {
   // Thiếu số 0 đầu (vd "912345678") → thêm vào. Số nước ngoài/khác không khớp → giữ nguyên.
   if (!p.startsWith('0') && p.length < 10) p = '0' + p;
   return p;
+}
+// Tên cũ giữ làm alias để không phải sửa chỗ gọi trong OCR.
+const normalizeOcrPhone = normalizePhoneVN;
+
+// Khoá so trùng TÊN: bỏ khoảng trắng thừa + không phân biệt hoa/thường (GIỮ dấu tiếng
+// Việt — tên khác dấu là người khác, không gộp nhầm).
+function normalizeNameKey(s) {
+  return String(s || '').trim().toLowerCase().replace(/\s+/g, ' ');
 }
 
 // Viết hoa chữ đầu mỗi từ trong tên (giữ dấu tiếng Việt), gộp khoảng trắng thừa.
@@ -1261,7 +1347,7 @@ function openDetail(id) {
     ['Công việc', c.occupation || DASH],
     ['Thu nhập', c.income || DASH],
     ['Thường trú', c.residence || DASH],
-    ['Nguồn khách', sourceLabel(c.source)],
+    ['Nguồn khách', sourceDisplay(c.source)],
   ];
   $('#detail-personal').innerHTML = personal
     .map(([k, v]) => `<span class="pi-item"><span class="pi-label">${k}:</span> ${escapeHtml(String(v))}</span>`)

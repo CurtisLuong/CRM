@@ -81,8 +81,9 @@ create table if not exists public.customers (
   care_stage_history jsonb not null default '[]'::jsonb,
   -- ghi chú tự nhập dạng bullet: mảng {text, at} (xem add_notes_manual.sql)
   notes_manual jsonb not null default '[]'::jsonb,
-  -- nguồn khách, hệ thống tự set: 'manual'|'ocr'|'landing' (xem add_source.sql)
-  source text,
+  -- nguồn khách, hệ thống tự set: MẢNG giá trị 'manual'|'ocr'|'landing' (nhiều nguồn/khách).
+  -- Ban đầu là text 1 giá trị (add_source.sql); đổi sang jsonb mảng ở source_multi_value.sql.
+  source jsonb not null default '[]'::jsonb,
   updated_by uuid
 );
 

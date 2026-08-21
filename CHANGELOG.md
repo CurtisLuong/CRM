@@ -6,6 +6,36 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-21 — Chặn trùng khi tạo khách + chuẩn hoá SĐT + nguồn nhiều giá trị
+
+**Bối cảnh bug:** tạo khách trùng SĐT thì bản trùng bị unique index (phone,owner) chặn ở
+server, thao tác insert tự bị bỏ ([db.js:369](js/db.js)) → KHÔNG có rác trên Supabase/hàng đợi;
+chỉ có 1 "bản ma" tạm trong IndexedDB, tự mất khi `pull()` (reload). Nay chặn NGAY khi lưu.
+
+**1) Chặn trùng khi TẠO khách mới** (so trong danh sách khách của mình, theo SĐT đã chuẩn hoá):
+- SĐT chưa có → tạo bình thường.
+- SĐT trùng + tên trùng + cùng nhóm nguồn → chặn, báo "trùng lặp".
+- SĐT trùng + tên trùng + khác nhóm nguồn → KHÔNG tạo bản mới, chỉ BỔ SUNG nguồn vào khách
+  cũ (nguồn thành nhiều giá trị, vd "Quảng cáo + Landing page"), báo đã lưu.
+- SĐT trùng + tên KHÁC → chặn, báo "xác nhận lại số điện thoại".
+- Nhóm nguồn: manual + ocr = "Quảng cáo"; landing = "Landing page".
+- Khi SỬA khách: chặn đổi SĐT trùng khách khác (tránh update vi phạm unique làm KẸT hàng đợi).
+
+**2) Chuẩn hoá SĐT** (`normalizePhoneVN`, đổi tên từ `normalizeOcrPhone`, áp cho mọi lần lưu):
+bỏ dấu cách/chấm/gạch, "+84.."/"84..(11 số)" → "0..", thiếu "0" đầu → thêm. "0123 456 789" ≡
+"0123456789". Kèm migration `normalize_phones.sql` chuẩn hoá số đang có (báo cáo cặp đụng nhau,
+không tự gộp).
+
+**3) source → mảng nhiều giá trị** (jsonb): migration `source_multi_value.sql`. Hiển thị theo
+nhóm ("Quảng cáo", "Landing page"), helper `sourceListOf/sourceGroupsOf/sourceDisplay`.
+
+⚠️ **Thứ tự deploy:** chạy `source_multi_value.sql` TRƯỚC khi deploy code (code ghi source dạng
+mảng; cột còn là text sẽ kẹt hàng đợi). `normalize_phones.sql` chạy lúc nào cũng được.
+
+File: `js/app.js`, `schema.sql`, `normalize_phones.sql` (mới), `source_multi_value.sql` (mới)
+
+---
+
 ## 2026-08-21 — OCR: dán ảnh từ clipboard (thêm cạnh "Nhập từ ảnh")
 
 Ngoài chọn ảnh từ máy như cũ, giờ dán được ảnh trực tiếp từ clipboard — tiện khi chụp
