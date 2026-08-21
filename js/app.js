@@ -2111,7 +2111,7 @@ document.addEventListener('DOMContentLoaded', () => {
   //    → coi là trớn, BỎ QUA cả phiên. (Cũng giống cảm ứng: phải bắt đầu ngay tại đỉnh.)
   //  - Sau khi qua đỉnh của lần kéo, nếu delta tụt < 40% đỉnh → phần còn lại là trớn, ngừng cộng.
   //  - WHEEL_K: quy đổi độ kéo chủ động → tương đương cảm ứng (~128px mới đủ ngưỡng).
-  const WHEEL_K = 0.5, START_FLOOR = 24;
+  const WHEEL_K = 0.29, START_FLOOR = 24;
   let wheelAccum = 0, wheelPeak = 0, wheelMomentum = false, wheelValid = false, wheelLastT = 0, wheelTimer = null;
 
   function wheelResetSession() { wheelAccum = 0; wheelPeak = 0; wheelMomentum = false; wheelValid = false; }
