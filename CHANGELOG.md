@@ -6,16 +6,29 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
-## 2026-08-21 — Tìm SĐT theo vị trí bất kỳ (khớp cuối/giữa số)
+## 2026-08-21 — Universal search + tìm SĐT theo vị trí bất kỳ
 
-Trước đây ô tìm kiếm gộp `phone + tên` rồi `includes`, không có quy tắc độ dài nên
-gõ 1-2 số ở giữa dễ ra quá nhiều kết quả. Nay tách riêng:
-- **Query toàn số** → tìm theo SĐT với ưu tiên vị trí:
-  - Khớp **từ đầu** (prefix): chỉ cần 1 số cũng ra (`0`, `01`, `012`...).
-  - Khớp **giữa/cuối**: phải **từ 3 số trở lên** mới ra (`123`, `678`, `6789` ra;
-    còn `23`, `2` không ra) — hợp thói quen tìm bằng 3-4 số cuối.
-- **Query có chữ cái** → giữ nguyên tìm theo tên, bỏ dấu như cũ.
-- Có chuẩn hoá `+84/84 → 0` (helper `phoneDigits`) để khớp số gõ dạng `0...`.
+Nâng ô tìm kiếm từ chỉ "phone + tên" thành tìm trên MỌI trường của khách, chia 2 nhánh
+theo nội dung gõ vào:
+
+**1) Query TOÀN SỐ → tìm theo SĐT với ưu tiên vị trí:**
+- Khớp **từ đầu** (prefix): chỉ cần 1 số cũng ra (`0`, `01`, `012`...).
+- Khớp **giữa/cuối**: phải **từ 3 số trở lên** mới ra (`123`, `678`, `6789` ra; còn
+  `23`, `2` không ra) — hợp thói quen tìm bằng 3-4 số cuối, tránh ra quá nhiều kết quả.
+- Chuẩn hoá `+84/84 → 0` (helper `phoneDigits`) để khớp số gõ dạng `0...`.
+
+**2) Query CÓ CHỮ (kể cả `2n`) → universal search (bỏ dấu) trên mọi trường:**
+- Gom hết giá trị của khách vào 1 chuỗi: tên, giới tính, ngày sinh, mệnh, hôn nhân,
+  nghề, thu nhập, nơi ở, loại căn, mã căn, mã toà, dự án, giá, mức quan tâm, tiến độ,
+  đánh giá + lý do, nguồn, **note của từng bậc chăm sóc** (`care_stage_history[].note`),
+  và **ghi chú tay** (`notes_manual[].text`).
+- Nhờ vậy gõ `lan tan gia` ra khách có note "lăn tăn giá", gõ `2n` ra khách loại
+  căn "2N-2WC"...; vẫn tìm được tên có dấu như cũ (`huong` ra "Hương").
+- Chuỗi tìm được cache theo `updated_at` qua `WeakMap` (không đụng object gốc → không
+  lỡ đẩy field phụ xuống DB), để gõ phím mượt dù nhiều khách.
+
+Ghi chú: query toàn số CHỈ tìm trong SĐT (cố ý), để gõ 1-2 số không lôi ra hàng loạt
+khách trùng số ở giá/%/mã căn. Muốn tìm số trong các trường khác thì gõ kèm chữ.
 
 File: `js/app.js`
 

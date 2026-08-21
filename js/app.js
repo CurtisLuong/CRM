@@ -385,18 +385,50 @@ function phoneMatch(phoneDig, qDig) {
   return qDig.length >= 3 && phoneDig.includes(qDig);
 }
 
+// UNIVERSAL SEARCH: gom TẤT CẢ giá trị tìm được của 1 khách thành 1 chuỗi đã bỏ
+// dấu, để gõ chuỗi bất kỳ ra khách có chuỗi đó ở BẤT KỲ trường nào — ghi chú tay,
+// note của từng bậc chăm sóc ("lăn tăn giá"), loại căn ("2N-2WC" → gõ "2n"), dự án,
+// mệnh, nghề, nơi ở... Cache theo `updated_at` qua WeakMap (không đụng vào object gốc,
+// tránh lỡ đẩy field "_" xuống DB) để không phải bỏ dấu lại toàn bộ mỗi lần gõ phím;
+// mọi chỉnh sửa khách đều bump `updated_at` nên cache tự mới lại đúng lúc.
+const _searchBlobCache = new WeakMap();
+function customerSearchBlob(c) {
+  const key = c.updated_at || '';
+  const cached = _searchBlobCache.get(c);
+  if (cached && cached.key === key) return cached.blob;
+  const parts = [
+    c.phone, c.full_name, c.gender, c.dob, c.dob ? formatDate(c.dob) : '',
+    c.menh, c.marital_status, c.occupation, c.income, c.residence,
+    c.apt_type, c.apt_code, c.building_code, c.care_stage, c.evaluation,
+    c.evaluation_reason, sourceLabel(c.source),
+    c.apt_price != null ? String(c.apt_price) : '',
+    c.apt_price ? formatPrice(c.apt_price) : '',
+    c.interest_level != null ? c.interest_level + '%' : '',
+    Array.isArray(c.projects) ? c.projects.join(' ') : '',
+  ];
+  if (Array.isArray(c.care_stage_history)) {
+    for (const h of c.care_stage_history) { parts.push(h && h.stage, h && h.note); }
+  }
+  if (Array.isArray(c.notes_manual)) {
+    for (const n of c.notes_manual) parts.push(n && n.text);
+  }
+  const blob = removeVietnameseTones(parts.filter(Boolean).join(' '));
+  _searchBlobCache.set(c, { key, blob });
+  return blob;
+}
+
 function matchesFilters(c) {
   const raw = $('#search-input').value.trim();
   if (raw) {
     const qNorm = removeVietnameseTones(raw);
     const qDig = raw.replace(/\D/g, '');
-    // Query toàn số (không có chữ cái) → tìm theo SĐT với quy tắc vị trí ở trên.
-    // Query có chữ cái → tìm theo tên, bỏ dấu: gõ "huong" vẫn ra "Hương", "hu" ra ngay.
+    // Query TOÀN SỐ (không có chữ cái) → tìm theo SĐT với quy tắc vị trí ở trên
+    // (giữ riêng để gõ "2" không lôi ra hàng loạt khách trùng số ở giữa/giá/%...).
+    // Query CÓ CHỮ (kể cả "2n") → universal search trên mọi trường của khách.
     if (!/[a-z]/.test(qNorm) && qDig) {
       if (!phoneMatch(phoneDigits(c.phone), qDig)) return false;
     } else {
-      const hay = removeVietnameseTones(`${c.phone || ''} ${c.full_name || ''}`);
-      if (!hay.includes(qNorm)) return false;
+      if (!customerSearchBlob(c).includes(qNorm)) return false;
     }
   }
   const stage = $('#filter-stage').value;
