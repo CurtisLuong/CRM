@@ -659,8 +659,15 @@ input[name="apt_type_other"] { margin-top: 8px; }
 .file-viewer::backdrop { background: rgba(0, 0, 0, 0.6); }
 .fv-bar { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--line); }
 .fv-title { flex: 1; min-width: 0; font-weight: 600; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.fv-body { display: flex; align-items: center; justify-content: center; background: #f2efe8; min-height: 300px; max-height: 82vh; overflow: auto; }
-.fv-img { max-width: 100%; max-height: 82vh; display: block; }
+/* Cụm nút zoom (+/−) — chỉ hiện khi xem ảnh */
+.fv-zoom { display: flex; align-items: center; gap: 2px; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.fv-zbtn { border: none; background: #fff; font: inherit; font-size: 18px; line-height: 1; width: 32px; height: 30px; cursor: pointer; color: var(--ink); }
+.fv-zbtn:hover { background: var(--paper); }
+.fv-zpct { font-size: 12px; color: #6b6b60; min-width: 42px; text-align: center; }
+.fv-body { display: flex; align-items: center; justify-content: center; background: #f2efe8; min-height: 300px; max-height: 82vh; overflow: hidden; }
+.fv-body.fv-zoomable { touch-action: none; } /* ảnh: app tự bắt pinch/kéo (PDF thì để native) */
+.fv-img { max-width: 100%; max-height: 82vh; display: block; transform-origin: center center; transition: transform .06s linear; will-change: transform; user-select: none; -webkit-user-drag: none; }
+.fv-body.fv-pannable .fv-img { cursor: grab; }
 .fv-pdf { width: 100%; height: 82vh; border: none; background: #fff; }
 .fv-loading { padding: 40px; color: #6b6b60; font-size: 14px; }
 

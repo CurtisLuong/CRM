@@ -6,6 +6,21 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-21 — Zoom cho trình xem ảnh (pinch / trackpad / nút +−)
+
+Thêm phóng to/thu nhỏ cho trình xem, tôn trọng thói quen từng thiết bị:
+- **Android**: tách 2 ngón = phóng to, chụm lại = thu nhỏ; 1 ngón kéo khi đã zoom = di chuyển.
+- **Mac/Windows**: pinch trackpad (wheel + ctrlKey) = zoom; cuộn 2 ngón khi đã zoom = di chuyển; chuột kéo = di chuyển; bấm đúp = zoom nhanh/trả 100%.
+- **Nút +/−** thủ công + hiển thị % (100%–600%).
+
+Áp dụng cho **ẢNH** (transform scale + translate; `touch-action:none` để app tự bắt
+cử chỉ). **PDF** dùng luôn zoom sẵn có của trình xem PDF trình duyệt (pinch/trackpad/
+thanh công cụ của nó) nên cụm nút +/− tự ẩn khi xem PDF, tránh nhân đôi/xung đột.
+
+File: `index.html`, `js/app.js`, `css/style.css`
+
+---
+
 ## 2026-08-21 — Trình xem ảnh/PDF trong app (nhẹ)
 
 Xem tài liệu không còn bị đẩy sang tab trình duyệt. Thêm 1 dialog xem nhẹ

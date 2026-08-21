@@ -1362,12 +1362,16 @@ async function openDocSigned(doc) {
   else if (w) { w.close(); alert('Không lấy được link xem (cần mạng?).'); }
 }
 
-// Trình xem nhẹ trong app: <img> cho ảnh, <iframe> cho PDF (trình duyệt tự render).
+// Trình xem nhẹ trong app: <img> cho ảnh (kèm zoom tự làm), <iframe> cho PDF
+// (trình duyệt tự render + tự có pinch/trackpad/thanh công cụ zoom của nó).
 async function openFileViewer(doc, isImg) {
   const dlg = $('#file-viewer');
   const body = $('#file-viewer-body');
   $('#file-viewer-title').textContent = (DOC_KIND_LABELS[doc.kind] || doc.kind) + (doc.label ? ' · ' + doc.label : '');
   $('#file-viewer-open').onclick = null;
+  fvImg = null; fvResetZoom();
+  $('#fv-zoom').hidden = !isImg;                    // nút +/− chỉ cho ảnh
+  body.classList.toggle('fv-zoomable', isImg);      // ảnh: app tự bắt cử chỉ; PDF: để native
   body.innerHTML = '<div class="fv-loading">Đang tải...</div>';
   if (!dlg.open) dlg.showModal();
   const url = await CRM.signedDocUrl(doc.storage_path, 300);
@@ -1377,14 +1381,71 @@ async function openFileViewer(doc, isImg) {
   el.className = isImg ? 'fv-img' : 'fv-pdf';
   el.src = url; // gán qua thuộc tính, không nhúng vào HTML → an toàn
   body.appendChild(el);
+  if (isImg) { fvImg = el; fvResetZoom(); }
   $('#file-viewer-open').onclick = () => window.open(url, '_blank');
 }
+
+// ---- Zoom cho ảnh trong trình xem ----
+const FV_MIN = 1, FV_MAX = 6;
+let fvImg = null, fvZoom = 1, fvTx = 0, fvTy = 0;
+let fvPinchDist = 0, fvPinchZoom = 1, fvLastMid = null, fvDrag = null;
+
+const fvClamp = (z) => Math.max(FV_MIN, Math.min(FV_MAX, z));
+function fvApply() {
+  if (fvImg) fvImg.style.transform = `translate(${fvTx}px, ${fvTy}px) scale(${fvZoom})`;
+  $('#fv-zoom-pct').textContent = Math.round(fvZoom * 100) + '%';
+  $('#file-viewer-body').classList.toggle('fv-pannable', fvZoom > 1);
+}
+function fvResetZoom() { fvZoom = 1; fvTx = 0; fvTy = 0; fvApply(); }
+function fvSetZoom(z) { fvZoom = fvClamp(z); if (fvZoom === FV_MIN) { fvTx = 0; fvTy = 0; } fvApply(); }
+function fvDist(t) { return Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY); }
+function fvMid(t) { return { x: (t[0].clientX + t[1].clientX) / 2, y: (t[0].clientY + t[1].clientY) / 2 }; }
 
 $('#file-viewer-close')?.addEventListener('click', () => $('#file-viewer').close());
 // Bấm nền tối (ngoài nội dung) → đóng
 $('#file-viewer')?.addEventListener('click', (e) => { if (e.target.id === 'file-viewer') $('#file-viewer').close(); });
-// Đóng → xoá nội dung để dừng tải iframe/ảnh, giải phóng bộ nhớ
-$('#file-viewer')?.addEventListener('close', () => { $('#file-viewer-body').innerHTML = ''; });
+// Đóng → xoá nội dung + reset zoom (dừng tải, nhẹ bộ nhớ)
+$('#file-viewer')?.addEventListener('close', () => { fvImg = null; $('#file-viewer-body').innerHTML = ''; });
+
+$('#fv-zoom-in')?.addEventListener('click', () => fvSetZoom(fvZoom + 0.5));
+$('#fv-zoom-out')?.addEventListener('click', () => fvSetZoom(fvZoom - 0.5));
+
+const fvBody = $('#file-viewer-body');
+// Bấm đúp (chuột) → phóng to nhanh / trả về 100%
+fvBody?.addEventListener('dblclick', () => { if (fvImg) fvSetZoom(fvZoom > 1 ? 1 : 2.5); });
+// Trackpad Mac/Windows: pinch = wheel + ctrlKey → zoom; cuộn 2 ngón khi đã zoom → di chuyển
+fvBody?.addEventListener('wheel', (e) => {
+  if (!fvImg) return; // PDF: để native lo
+  if (e.ctrlKey) { e.preventDefault(); fvSetZoom(fvZoom * Math.exp(-e.deltaY * 0.01)); }
+  else if (fvZoom > 1) { e.preventDefault(); fvTx -= e.deltaX; fvTy -= e.deltaY; fvApply(); }
+}, { passive: false });
+// Cảm ứng Android: 2 ngón tách/chụm = zoom; 1 ngón kéo (khi đã zoom) = di chuyển
+fvBody?.addEventListener('touchstart', (e) => {
+  if (!fvImg) return;
+  if (e.touches.length === 2) { fvPinchDist = fvDist(e.touches); fvPinchZoom = fvZoom; fvLastMid = fvMid(e.touches); e.preventDefault(); }
+  else if (e.touches.length === 1 && fvZoom > 1) { fvDrag = { x: e.touches[0].clientX - fvTx, y: e.touches[0].clientY - fvTy }; }
+}, { passive: false });
+fvBody?.addEventListener('touchmove', (e) => {
+  if (!fvImg) return;
+  if (e.touches.length === 2) {
+    e.preventDefault();
+    fvZoom = fvClamp(fvPinchZoom * (fvDist(e.touches) / (fvPinchDist || 1)));
+    const m = fvMid(e.touches);
+    if (fvLastMid) { fvTx += m.x - fvLastMid.x; fvTy += m.y - fvLastMid.y; }
+    fvLastMid = m;
+    if (fvZoom === FV_MIN) { fvTx = 0; fvTy = 0; }
+    fvApply();
+  } else if (e.touches.length === 1 && fvDrag) {
+    e.preventDefault();
+    fvTx = e.touches[0].clientX - fvDrag.x; fvTy = e.touches[0].clientY - fvDrag.y; fvApply();
+  }
+}, { passive: false });
+fvBody?.addEventListener('touchend', (e) => { if (e.touches.length === 0) { fvDrag = null; fvLastMid = null; } });
+// Chuột kéo (desktop) khi đã zoom = di chuyển (biến riêng, không đụng kéo cảm ứng)
+let fvMouseDrag = null;
+fvBody?.addEventListener('mousedown', (e) => { if (fvImg && fvZoom > 1) { fvMouseDrag = { x: e.clientX - fvTx, y: e.clientY - fvTy }; e.preventDefault(); } });
+window.addEventListener('mousemove', (e) => { if (fvMouseDrag) { fvTx = e.clientX - fvMouseDrag.x; fvTy = e.clientY - fvMouseDrag.y; fvApply(); } });
+window.addEventListener('mouseup', () => { fvMouseDrag = null; });
 
 $('#detail-docs-toggle')?.addEventListener('click', () => {
   const body = $('#detail-docs-body');
