@@ -8,7 +8,7 @@ Hiện có 1 route: `POST /ocr` — nhận ảnh, gọi Gemini vision, trả JSO
 
 ## 1. Lấy Gemini API key
 1. Vào https://aistudio.google.com/ → **Get API key** → tạo key.
-2. Free tier của bản `gemini-2.5-flash` khá rộng cho nhu cầu vài chục ảnh/ngày.
+2. Free tier của bản `gemini-3.6-flash` khá rộng cho nhu cầu vài chục ảnh/ngày.
 
 > Lưu ý chi phí: **quota API tính riêng, KHÔNG liên quan gói "Gemini Pro" của app
 > Google.** Gói Pro tiêu dùng không nâng rate limit của API. Muốn vượt free tier

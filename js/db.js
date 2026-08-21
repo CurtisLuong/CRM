@@ -15,6 +15,7 @@ const DB_NAME = 'crm_khach_hang';
 const DB_VERSION = 1;
 const STORE_CUSTOMERS = 'customers';
 const STORE_QUEUE = 'queue';
+const DOC_BUCKET = 'customer-docs'; // Supabase Storage bucket cho tài liệu khách
 
 let _db = null;
 let _supabase = null;
@@ -259,6 +260,59 @@ const CRM = {
     await queueAdd({ type: 'update', recordId: id, payload: { notes_manual: list }, ts: new Date().toISOString() });
     this.flushQueue();
     return record;
+  },
+
+  // ---- TÀI LIỆU (ảnh/PDF) — ONLINE-ONLY, KHÔNG qua hàng đợi offline ----
+  // File nằm ở Supabase Storage (bucket customer-docs, riêng tư); metadata ở bảng
+  // documents. Cần mạng để dùng (khác dữ liệu chữ của khách vốn offline-first).
+
+  /** Danh sách tài liệu của 1 khách (cũ → mới). Offline → mảng rỗng. */
+  async listDocuments(customerId) {
+    if (!this.isOnline() || !_supabase) return [];
+    const { data, error } = await _supabase.from('documents')
+      .select('*').eq('customer_id', customerId).order('created_at', { ascending: true });
+    if (error) { console.warn('listDocuments lỗi:', error); return []; }
+    return data || [];
+  },
+
+  /** Upload 1 file (File/Blob) lên Storage + tạo dòng metadata. Trả về row. */
+  async uploadDocument(customerId, file, kind = 'khac', label = null) {
+    if (!this.isOnline() || !_supabase) throw new Error('Cần mạng để tải tài liệu lên');
+    const mime = file.type || 'application/octet-stream';
+    let ext = 'bin';
+    if (file.name && file.name.includes('.')) ext = file.name.split('.').pop().toLowerCase();
+    else if (mime === 'application/pdf') ext = 'pdf';
+    else if (mime.startsWith('image/')) ext = mime.split('/')[1] || 'jpg';
+    const docId = uuid();
+    const path = `${_currentUserId}/${customerId}/${docId}.${ext}`;
+    const up = await _supabase.storage.from(DOC_BUCKET).upload(path, file, { contentType: mime, upsert: false });
+    if (up.error) throw up.error;
+    const row = {
+      id: docId, customer_id: customerId, owner_id: _currentUserId,
+      kind, label, storage_path: path, mime, size: file.size || null,
+    };
+    const { error } = await _supabase.from('documents').insert(row);
+    if (error) { // rollback file đã upload nếu tạo metadata lỗi
+      await _supabase.storage.from(DOC_BUCKET).remove([path]);
+      throw error;
+    }
+    return row;
+  },
+
+  /** Xoá 1 tài liệu (cả file lẫn metadata). */
+  async deleteDocument(doc) {
+    if (!this.isOnline() || !_supabase) throw new Error('Cần mạng để xoá tài liệu');
+    await _supabase.storage.from(DOC_BUCKET).remove([doc.storage_path]);
+    const { error } = await _supabase.from('documents').delete().eq('id', doc.id);
+    if (error) throw error;
+  },
+
+  /** Link ký tạm để xem 1 file (mặc định hết hạn sau 60s). */
+  async signedDocUrl(storagePath, expires = 60) {
+    if (!this.isOnline() || !_supabase) return null;
+    const { data, error } = await _supabase.storage.from(DOC_BUCKET).createSignedUrl(storagePath, expires);
+    if (error) { console.warn('signedDocUrl lỗi:', error); return null; }
+    return data.signedUrl;
   },
 
   /**

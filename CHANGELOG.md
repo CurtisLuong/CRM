@@ -6,6 +6,29 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-21 — Lưu trữ tài liệu (ảnh/PDF) + tinh chỉnh OCR (tên, giờ đăng ký, ảnh reg_image)
+
+**Tài liệu khách** (mới): Supabase Storage bucket riêng tư `customer-docs` + bảng
+metadata `documents` (`kind/label/storage_path/mime/size...`). File để ở Storage
+(không nhét base64 vào DB), xem qua **signed URL** hết hạn 60s. **Cần chạy
+`add_documents.sql`** (tạo bảng + RLS + bucket + policy Storage) TRƯỚC khi deploy.
+- Trang chi tiết: mục **"📎 Xem tài liệu (N)"** thu gọn được, mỗi tài liệu có nút
+  Xem/Xoá; nút **"＋ Thêm tài liệu"** (ảnh + PDF) cho hồ sơ sau này. Ảnh nén trước
+  khi lên, PDF giữ nguyên. `db.js`: `listDocuments/uploadDocument/deleteDocument/
+  signedDocUrl` (ONLINE-ONLY, không qua hàng đợi offline).
+- Ảnh OCR tự lưu thành tài liệu `kind='reg_image'` khi Lưu khách mới.
+
+**Tinh chỉnh OCR:**
+- Tên tự viết hoa chữ đầu mỗi từ ("NGO THI MINH THU" → "Ngo Thi Minh Thu").
+- `registered_at` lấy từ **giờ tin nhắn** (field `message_time` Gemini trả): giờ đó
+  ≤ giờ hiện tại → ngày hôm nay; muộn hơn → hôm qua.
+- Model đổi sang `gemini-3.6-flash` (2.5-flash ngừng cho user mới).
+
+File: `add_documents.sql` (migration cần chạy), `js/db.js`, `js/app.js`,
+`index.html`, `css/style.css`, `worker/intake-worker.js`
+
+---
+
 ## 2026-08-20 — Nhập khách từ ẢNH (OCR qua Gemini) — kênh 2 của intake layer
 
 Thêm nút **"📷 Nhập từ ảnh"** trong form Thêm/Sửa khách: chọn ảnh (chụp Zalo/
@@ -14,7 +37,7 @@ user rà lại (nhất là SĐT) rồi mới bấm Lưu.
 
 - **Cloudflare Worker mới** (`worker/intake-worker.js`, deploy RIÊNG — không thuộc
   Pages) giữ API key Gemini an toàn. Route `POST /ocr`: xác thực bằng access_token
-  Supabase (chặn người lạ đốt quota), gọi Gemini `gemini-2.5-flash` (structured
+  Supabase (chặn người lạ đốt quota), gọi Gemini `gemini-3.6-flash` (structured
   output → JSON đúng field bảng customers), trả về cho app. Xem `worker/README.md`
   để deploy + đặt secret (GEMINI_API_KEY, SUPABASE_URL, SUPABASE_ANON_KEY,
   ALLOWED_ORIGIN).

@@ -122,6 +122,16 @@ let allCustomers = [];
 let editingId = null;
 let formOriginalStage = ''; // care_stage lúc mở form — để biết có đổi bậc không
 let pendingOcrNote = null;  // ghi chú OCR đọc được → thêm thành 1 note sau khi tạo khách
+let pendingOcrImage = null; // ảnh OCR (blob đã nén) → lưu thành tài liệu reg_image sau khi tạo khách
+
+// Nhãn hiển thị cho loại tài liệu (kind). Mở rộng khi có loại giấy tờ mới.
+const DOC_KIND_LABELS = {
+  reg_image: 'Ảnh đăng ký',
+  cccd: 'CCCD/CMND',
+  so_ho_khau: 'Sổ hộ khẩu',
+  hop_dong: 'Hợp đồng',
+  khac: 'Khác',
+};
 
 // Dự án (multi-select, danh sách tự quản lý — lưu ở bảng project_options)
 let projectOptions = [];        // [{id, name}]
@@ -591,8 +601,9 @@ function openForm(id) {
   f.care_stage_note.value = '';
   toggleCareStageNote();
 
-  // Reset trạng thái OCR mỗi lần mở form (ghi chú tạm + dòng thông báo).
+  // Reset trạng thái OCR mỗi lần mở form (ghi chú tạm + ảnh tạm + dòng thông báo).
   pendingOcrNote = null;
+  pendingOcrImage = null;
   const ocrStatus = $('#ocr-status'); if (ocrStatus) ocrStatus.textContent = '';
 
   updateMenhPreview();
@@ -698,6 +709,12 @@ async function handleFormSubmit(e) {
     const created = await CRM.create(payload, opts);
     // Nếu OCR đọc được 1 ghi chú → thêm thành 1 note tự nhập cho khách vừa tạo.
     if (created && pendingOcrNote) { await CRM.addNote(created.id, pendingOcrNote); pendingOcrNote = null; }
+    // Lưu ảnh OCR thành tài liệu reg_image (cần mạng; offline thì bỏ qua, không chặn tạo khách).
+    if (created && pendingOcrImage) {
+      try { await CRM.uploadDocument(created.id, pendingOcrImage, 'reg_image', 'Ảnh đăng ký'); }
+      catch (err) { console.warn('Lưu ảnh đăng ký lỗi:', err); }
+      pendingOcrImage = null;
+    }
   }
   closeForm();
   await refreshList();
@@ -716,8 +733,9 @@ async function confirmDelete(id) {
 // Gửi ảnh cho Worker (giữ key Gemini) → nhận JSON field → TỰ ĐIỀN form, KHÔNG lưu
 // thẳng. Bắt buộc user rà lại (nhất là SĐT) rồi mới bấm Lưu.
 
-// Thu nhỏ ảnh về tối đa maxDim px + nén JPEG để nhẹ payload, nhanh, đỡ tốn quota.
-async function fileToScaledBase64(file, maxDim = 1600, quality = 0.85) {
+// Thu nhỏ ảnh về tối đa maxDim px + nén JPEG. Trả cả base64 (gửi Gemini) lẫn blob
+// (lưu vào Storage) — nhẹ payload, nhanh, đỡ quota, tối ưu dung lượng lưu trữ.
+async function fileToScaled(file, maxDim = 1600, quality = 0.85) {
   const url = URL.createObjectURL(file);
   try {
     const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; });
@@ -728,7 +746,8 @@ async function fileToScaledBase64(file, maxDim = 1600, quality = 0.85) {
     canvas.width = w; canvas.height = h;
     canvas.getContext('2d').drawImage(img, 0, 0, w, h);
     const dataUrl = canvas.toDataURL('image/jpeg', quality);
-    return { base64: dataUrl.split(',')[1], mime: 'image/jpeg' };
+    const blob = await new Promise((res) => canvas.toBlob(res, 'image/jpeg', quality));
+    return { base64: dataUrl.split(',')[1], blob, mime: 'image/jpeg' };
   } finally {
     URL.revokeObjectURL(url);
   }
@@ -739,7 +758,8 @@ function applyOcrToForm(d) {
   if (!d || typeof d !== 'object') return;
   const f = $('#customer-form');
   if (d.phone) f.phone.value = String(d.phone).trim();
-  if (d.full_name) f.full_name.value = String(d.full_name).trim();
+  // Tên: viết hoa chữ ĐẦU mỗi từ ("ngo thi minh thu" / "NGO THI MINH THU" → "Ngo Thi Minh Thu").
+  if (d.full_name) f.full_name.value = toTitleCaseName(d.full_name);
   if (['nam', 'nữ', 'khác'].includes(d.gender)) f.gender.value = d.gender;
   if (d.dob && /^\d{4}-\d{2}-\d{2}$/.test(d.dob)) { f.dob.value = d.dob; updateMenhPreview(); }
   if (['đã kết hôn', 'chưa kết hôn'].includes(d.marital_status)) f.marital_status.value = d.marital_status;
@@ -772,8 +792,27 @@ function applyOcrToForm(d) {
     }
     renderProjChips();
   }
+  // Thời gian đăng ký từ GIỜ tin nhắn: dựng datetime = giờ đó + ngày. Nếu giờ đó
+  // muộn hơn giờ hiện tại (không thể là hôm nay) → lấy ngày HÔM QUA; ngược lại HÔM NAY.
+  if (d.message_time && /^\d{1,2}:\d{2}$/.test(String(d.message_time).trim())) {
+    const [hh, mm] = String(d.message_time).trim().split(':').map(Number);
+    if (hh >= 0 && hh < 24 && mm >= 0 && mm < 60) {
+      const now = new Date();
+      const cand = new Date(now); cand.setHours(hh, mm, 0, 0);
+      if (cand > now) cand.setDate(cand.getDate() - 1); // giờ tin nhắn > giờ hiện tại → hôm qua
+      f.registered_at.value = toLocalDatetimeInput(cand);
+    }
+  }
   // Ghi chú OCR: giữ tạm, sẽ thêm thành 1 note sau khi tạo khách (xem handleFormSubmit).
   pendingOcrNote = (d.note && String(d.note).trim()) || null;
+}
+
+// Viết hoa chữ đầu mỗi từ trong tên (giữ dấu tiếng Việt), gộp khoảng trắng thừa.
+function toTitleCaseName(s) {
+  return String(s).trim().toLowerCase().replace(/\s+/g, ' ')
+    .split(' ')
+    .map((w) => (w ? w.charAt(0).toUpperCase() + w.slice(1) : w))
+    .join(' ');
 }
 
 async function handleOcrImage(file) {
@@ -783,7 +822,8 @@ async function handleOcrImage(file) {
   if (!workerUrl) { status.textContent = '⚠️ Chưa cấu hình WORKER_URL.'; return; }
   status.textContent = '⏳ Đang đọc ảnh...';
   try {
-    const { base64, mime } = await fileToScaledBase64(file);
+    const { base64, blob, mime } = await fileToScaled(file);
+    pendingOcrImage = blob; // giữ ảnh nén để lưu thành tài liệu reg_image khi Lưu khách
     const { data: { session } } = await sb.auth.getSession();
     const token = session && session.access_token;
     if (!token) throw new Error('Chưa đăng nhập');
@@ -986,6 +1026,11 @@ function openDetail(id) {
     $('#detail-log-add-form').hidden = true;
     $('#detail-log-add-input').value = '';
   }
+
+  // Tài liệu (online-only) — nạp danh sách, mục để thu gọn mặc định.
+  $('#detail-doc-status').textContent = '';
+  $('#detail-doc-file').value = '';
+  loadDetailDocs(c.id);
 
   showDetailScreen();
   window.scrollTo(0, 0);
@@ -1231,6 +1276,92 @@ $('#detail-notes')?.addEventListener('keydown', (e) => {
   if (!e.target.classList.contains('note-edit-input')) return;
   if (e.key === 'Enter') { e.preventDefault(); saveEditNote(editingNoteAt, e.target.value); }
   else if (e.key === 'Escape') { e.preventDefault(); editingNoteAt = null; const c = allCustomers.find((x) => x.id === detailId); if (c) renderDetailNotes(c); }
+});
+
+// ------------------------------------------------- TÀI LIỆU (ảnh/PDF) ------
+// Online-only: nạp danh sách từ Supabase khi mở chi tiết; xem qua signed URL.
+let detailDocs = []; // cache tài liệu của khách đang xem
+
+async function loadDetailDocs(customerId) {
+  const toggle = $('#detail-docs-toggle');
+  $('#detail-docs-body').hidden = true;
+  detailDocs = [];
+  if (!CRM.isOnline()) { toggle.textContent = '📎 Tài liệu (cần mạng)'; toggle.disabled = true; return; }
+  toggle.disabled = false;
+  toggle.textContent = '📎 Đang tải tài liệu...';
+  detailDocs = await CRM.listDocuments(customerId);
+  toggle.textContent = `📎 Xem tài liệu (${detailDocs.length})`;
+  renderDetailDocs();
+}
+
+function renderDetailDocs() {
+  const box = $('#detail-docs');
+  if (!detailDocs.length) { box.innerHTML = '<div class="docs-empty">Chưa có tài liệu.</div>'; return; }
+  box.innerHTML = detailDocs.map((d) => {
+    const isImg = (d.mime || '').startsWith('image/');
+    const kindLabel = DOC_KIND_LABELS[d.kind] || d.kind;
+    const sub = [d.label, formatLogTime(d.created_at)].filter(Boolean).join(' · ');
+    return `<div class="doc-item">
+        <span class="doc-icon">${isImg ? '🖼️' : '📄'}</span>
+        <span class="doc-info"><span class="doc-kind">${escapeHtml(kindLabel)}</span>
+          <span class="doc-meta">${escapeHtml(sub)}</span></span>
+        <button class="btn-small" data-doc-view="${d.id}">Xem</button>
+        <button class="doc-del" data-doc-del="${d.id}" title="Xoá">✕</button>
+      </div>`;
+  }).join('');
+}
+
+async function viewDoc(id) {
+  const doc = detailDocs.find((d) => d.id === id);
+  if (!doc) return;
+  // Mở tab trống TRƯỚC (giữ user-gesture, tránh bị chặn popup), rồi gán URL sau khi có.
+  const w = window.open('', '_blank');
+  const url = await CRM.signedDocUrl(doc.storage_path);
+  if (url && w) w.location = url;
+  else if (w) { w.close(); alert('Không lấy được link xem (cần mạng?).'); }
+}
+
+async function deleteDoc(id) {
+  const doc = detailDocs.find((d) => d.id === id);
+  if (!doc) return;
+  if (!confirm(`Xoá tài liệu "${DOC_KIND_LABELS[doc.kind] || doc.kind}"? Không thể hoàn tác.`)) return;
+  try {
+    await CRM.deleteDocument(doc);
+    await loadDetailDocs(detailId);
+    $('#detail-docs-body').hidden = false; // giữ mục đang mở
+  } catch (e) { alert('Xoá tài liệu lỗi: ' + (e.message || e)); }
+}
+
+async function handleDocUpload(file) {
+  if (!file || !detailId) return;
+  const status = $('#detail-doc-status');
+  status.textContent = '⏳ Đang tải lên...';
+  try {
+    // Ảnh thì nén trước cho nhẹ; PDF giữ nguyên.
+    let toUpload = file;
+    if ((file.type || '').startsWith('image/')) toUpload = (await fileToScaled(file)).blob;
+    await CRM.uploadDocument(detailId, toUpload, 'khac', file.name || null);
+    status.textContent = '';
+    await loadDetailDocs(detailId);
+    $('#detail-docs-body').hidden = false;
+  } catch (e) {
+    status.textContent = '⚠️ Tải lên lỗi: ' + (e.message || e);
+  } finally {
+    $('#detail-doc-file').value = '';
+  }
+}
+
+$('#detail-docs-toggle')?.addEventListener('click', () => {
+  const body = $('#detail-docs-body');
+  body.hidden = !body.hidden;
+});
+$('#detail-doc-add-btn')?.addEventListener('click', () => $('#detail-doc-file').click());
+$('#detail-doc-file')?.addEventListener('change', (e) => handleDocUpload(e.target.files && e.target.files[0]));
+$('#detail-docs')?.addEventListener('click', (e) => {
+  const v = e.target.closest('[data-doc-view]');
+  if (v) { viewDoc(v.dataset.docView); return; }
+  const d = e.target.closest('[data-doc-del]');
+  if (d) { deleteDoc(d.dataset.docDel); return; }
 });
 
 // ------------------------------------------------- LỊCH GỌI / NHẮC GỌI ----

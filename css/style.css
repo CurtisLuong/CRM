@@ -545,6 +545,21 @@ input:focus, select:focus, textarea:focus {
 .ocr-row { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
 .ocr-status { font-size: 12px; color: #6b6b60; flex: 1 1 100%; }
 
+/* Mục Tài liệu ở trang chi tiết */
+#detail-docs-body { margin-top: 10px; }
+.docs-list { display: flex; flex-direction: column; gap: 6px; }
+.docs-empty { font-size: 13px; color: #9a9a90; font-style: italic; }
+.doc-item {
+  display: flex; align-items: center; gap: 8px;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--panel); padding: 8px 10px;
+}
+.doc-icon { font-size: 18px; }
+.doc-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.doc-kind { font-size: 13px; font-weight: 600; }
+.doc-meta { font-size: 11px; color: #9a9a90; }
+.doc-del { border: none; background: transparent; cursor: pointer; color: var(--bad); font-size: 14px; padding: 0 4px; }
+.docs-add { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+
 /* Phễu */
 .funnel { display: flex; flex-direction: column; gap: 2px; }
 .funnel-step { --ring: var(--teal); position: relative; background: #f2efe8; border-radius: 6px; overflow: hidden; }

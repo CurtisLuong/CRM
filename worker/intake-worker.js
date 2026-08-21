@@ -19,8 +19,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 // Model Gemini dùng cho vision. Bản Flash có free tier rộng, đọc ảnh + xuất JSON tốt.
-// Đổi tên tại đây nếu Google ra bản mới (vd 'gemini-2.5-pro' cho ảnh khó, tốn quota hơn).
-const MODEL = 'gemini-2.5-flash';
+// Đổi tên tại đây nếu Google ra bản mới (vd bản 'pro' cho ảnh khó, tốn quota hơn).
+const MODEL = 'gemini-3.6-flash'; // 2.5-flash đã ngừng cho user mới (Google báo dùng 3.6-flash)
 
 // Ràng buộc cấu trúc JSON model phải trả về — khớp đúng field bảng customers.
 // LƯU Ý: Gemini đòi `type` viết HOA (OBJECT/STRING/NUMBER/INTEGER/ARRAY), không
@@ -43,6 +43,7 @@ const RESPONSE_SCHEMA = {
     projects:       { type: 'ARRAY',   nullable: true, items: { type: 'STRING' } },
     interest_level: { type: 'INTEGER', nullable: true },
     note:           { type: 'STRING',  nullable: true },
+    message_time:   { type: 'STRING',  nullable: true }, // giờ tin nhắn 'HH:MM' (24h)
   },
 };
 
@@ -77,7 +78,11 @@ CÁC FIELD (đúng thuộc tính CRM):
 - projects: mảng tên dự án khách quan tâm (nếu có).
 - interest_level: số 0-100, chỉ khi ảnh thể hiện rõ; không rõ → null.
 - note: gom thông tin đáng lưu ý KHÁC chưa có field riêng (vd diện tích "76.3 m2",
-  nhu cầu, hoàn cảnh, câu khách nói) thành 1 câu ngắn; không có → null.`;
+  nhu cầu, hoàn cảnh, câu khách nói) thành 1 câu ngắn; không có → null.
+- message_time: GIỜ tin nhắn của khách hiển thị trong cuộc trò chuyện (mốc thời gian
+  cạnh/dưới tin nhắn), dạng 24h "HH:MM" (vd "07:28"; nếu ảnh ghi "2:50 PM" → "14:50").
+  Ưu tiên mốc giờ của TIN NHẮN, không phải đồng hồ trên thanh trạng thái điện thoại.
+  Không thấy → null.`;
 
 export default {
   async fetch(request, env) {
