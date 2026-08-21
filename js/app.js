@@ -793,7 +793,10 @@ async function handleOcrImage(file) {
       body: JSON.stringify({ image: base64, mime }),
     });
     const out = await res.json().catch(() => ({}));
-    if (!res.ok || out.error) throw new Error(out.error || `Lỗi ${res.status}`);
+    if (!res.ok || out.error) {
+      const extra = out.detail ? ` — ${String(out.detail).slice(0, 200)}` : '';
+      throw new Error((out.error || `Lỗi ${res.status}`) + extra);
+    }
     applyOcrToForm(out.data || {});
     status.textContent = '✅ Đã điền — KIỂM TRA kỹ SĐT rồi mới Lưu.';
   } catch (e) {

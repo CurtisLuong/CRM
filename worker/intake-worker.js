@@ -23,25 +23,26 @@
 const MODEL = 'gemini-2.5-flash';
 
 // Ràng buộc cấu trúc JSON model phải trả về — khớp đúng field bảng customers.
-// nullable:true để field không có trong ảnh thì trả null (không bịa).
+// LƯU Ý: Gemini đòi `type` viết HOA (OBJECT/STRING/NUMBER/INTEGER/ARRAY), không
+// phải chữ thường. nullable:true để field không có trong ảnh thì trả null (không bịa).
 const RESPONSE_SCHEMA = {
-  type: 'object',
+  type: 'OBJECT',
   properties: {
-    phone:          { type: 'string',  nullable: true },
-    full_name:      { type: 'string',  nullable: true },
-    gender:         { type: 'string',  nullable: true }, // 'nam' | 'nữ' | 'khác'
-    dob:            { type: 'string',  nullable: true }, // 'YYYY-MM-DD'
-    marital_status: { type: 'string',  nullable: true }, // 'đã kết hôn' | 'chưa kết hôn'
-    occupation:     { type: 'string',  nullable: true }, // 1 trong 4 nghề ở PROMPT
-    income:         { type: 'string',  nullable: true },
-    residence:      { type: 'string',  nullable: true },
-    apt_type:       { type: 'string',  nullable: true },
-    apt_code:       { type: 'string',  nullable: true },
-    building_code:  { type: 'string',  nullable: true },
-    apt_price:      { type: 'number',  nullable: true },
-    projects:       { type: 'array',   nullable: true, items: { type: 'string' } },
-    interest_level: { type: 'integer', nullable: true },
-    note:           { type: 'string',  nullable: true },
+    phone:          { type: 'STRING',  nullable: true },
+    full_name:      { type: 'STRING',  nullable: true },
+    gender:         { type: 'STRING',  nullable: true }, // 'nam' | 'nữ' | 'khác'
+    dob:            { type: 'STRING',  nullable: true }, // 'YYYY-MM-DD'
+    marital_status: { type: 'STRING',  nullable: true }, // 'đã kết hôn' | 'chưa kết hôn'
+    occupation:     { type: 'STRING',  nullable: true }, // 1 trong 4 nghề ở PROMPT
+    income:         { type: 'STRING',  nullable: true },
+    residence:      { type: 'STRING',  nullable: true },
+    apt_type:       { type: 'STRING',  nullable: true },
+    apt_code:       { type: 'STRING',  nullable: true },
+    building_code:  { type: 'STRING',  nullable: true },
+    apt_price:      { type: 'NUMBER',  nullable: true },
+    projects:       { type: 'ARRAY',   nullable: true, items: { type: 'STRING' } },
+    interest_level: { type: 'INTEGER', nullable: true },
+    note:           { type: 'STRING',  nullable: true },
   },
 };
 
@@ -135,6 +136,7 @@ async function handleOcr(request, env) {
   }
   if (!gRes.ok) {
     const t = await gRes.text();
+    console.log('Gemini error', gRes.status, t.slice(0, 800)); // xem qua `wrangler tail`
     return json({ error: 'Gemini trả lỗi', status: gRes.status, detail: t.slice(0, 500) }, 502);
   }
   const g = await gRes.json();
