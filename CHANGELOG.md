@@ -164,6 +164,21 @@ File: `add_notes_manual.sql` (migration cần chạy), `js/db.js`, `js/app.js`,
 
 ---
 
+## 2026-08-21 — Nút "Lưu vào danh bạ" (vCard) ở trang chi tiết
+
+Xuất khách ra danh bạ điện thoại/máy: tạo **vCard 3.0 (.vcf)** rồi dùng **Web Share
+API** trên điện thoại (bung màn hình "Thêm liên hệ" — Android/iOS), **fallback tải
+.vcf** trên desktop (macOS/Windows mở Danh bạ/Contacts để thêm).
+- Tên danh bạ = **Họ tên + loại căn** (FN/N). SĐT → TEL, ngày sinh → BDAY, thường
+  trú → ADR. Các trường còn lại (dự án, giá, mệnh, nghề, thu nhập, mức quan tâm,
+  tiến độ, đánh giá, ghi chú, nguồn) gộp vào **NOTE** của hồ sơ danh bạ.
+- Nút "＋ Lưu vào danh bạ" ở hàng SĐT trang chi tiết. Escape đúng chuẩn vCard
+  (`\n`, `\,`, `\;`). Chỉ dùng dữ liệu của khách; do người dùng chủ động bấm.
+
+File: `index.html`, `js/app.js`
+
+---
+
 ## 2026-08-21 — Thêm "Nguồn khách" (source) — hệ thống tự detect
 
 Thêm cột `source` cho customers (text): `manual` (Quảng cáo – nhập tay), `ocr`

@@ -759,6 +759,81 @@ async function confirmDelete(id) {
   await refreshList();
 }
 
+// ------------------------------------------------- LƯU VÀO DANH BẠ ----------
+// Tạo vCard (.vcf) rồi: điện thoại dùng Web Share (bung "Thêm liên hệ") — mượt nhất;
+// desktop fallback tải file .vcf (macOS/Windows mở Danh bạ/Contacts để thêm).
+// Tên danh bạ = Họ tên + loại căn; SĐT + ngày sinh + thường trú map vào field khớp;
+// còn lại gộp vào NOTE của hồ sơ danh bạ.
+
+function vcardEsc(s) {
+  return String(s == null ? '' : s).replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/,/g, '\\,').replace(/;/g, '\\;');
+}
+
+function buildContactNote(c) {
+  const L = [];
+  const push = (label, val) => { if (val != null && String(val).trim() !== '') L.push(`${label}: ${val}`); };
+  push('Loại căn', c.apt_type);
+  push('Dự án', Array.isArray(c.projects) && c.projects.length ? c.projects.join(', ') : '');
+  push('Giá', c.apt_price ? formatPrice(c.apt_price) : '');
+  push('Mã căn', c.apt_code);
+  push('Mã toà', c.building_code);
+  push('Giới tính', c.gender);
+  push('Hôn nhân', c.marital_status);
+  push('Mệnh', c.menh);
+  push('Công việc', c.occupation);
+  push('Thu nhập', c.income);
+  push('Mức quan tâm', c.interest_level != null ? c.interest_level + '%' : '');
+  push('Tiến độ', c.care_stage);
+  push('Đánh giá', c.evaluation);
+  const autoNote = autoNoteFromHistory(c.care_stage_history);
+  const manual = Array.isArray(c.notes_manual) ? c.notes_manual.map((n) => n.text).filter(Boolean) : [];
+  const notes = [autoNote, ...manual].filter(Boolean);
+  if (notes.length) push('Ghi chú', notes.join(' | '));
+  push('Nguồn', sourceLabel(c.source));
+  return L.join('\n');
+}
+
+function buildVCard(c) {
+  const fn = (c.full_name || '(chưa có tên)') + (c.apt_type ? ' - ' + c.apt_type : '');
+  const lines = ['BEGIN:VCARD', 'VERSION:3.0', 'N:;' + vcardEsc(fn) + ';;;', 'FN:' + vcardEsc(fn)];
+  if (c.phone) lines.push('TEL;TYPE=CELL:' + vcardEsc(c.phone));
+  if (c.dob && /^\d{4}-\d{2}-\d{2}$/.test(c.dob)) lines.push('BDAY:' + c.dob);
+  if (c.residence) lines.push('ADR;TYPE=HOME:;;;' + vcardEsc(c.residence) + ';;;'); // thường trú → phần "tỉnh/thành"
+  const note = buildContactNote(c);
+  if (note) lines.push('NOTE:' + vcardEsc(note));
+  lines.push('END:VCARD');
+  return lines.join('\r\n');
+}
+
+async function saveContact(c) {
+  if (!c) return;
+  const vcf = buildVCard(c);
+  const fnBase = ((c.full_name || 'khach') + (c.apt_type ? '-' + c.apt_type : '')).replace(/[^\p{L}\p{N}_-]+/gu, '_').slice(0, 60);
+  const fileName = `${fnBase || 'khach'}.vcf`;
+  // Điện thoại: Web Share API với file → bung màn hình "Thêm liên hệ" / share sheet.
+  try {
+    const file = new File([vcf], fileName, { type: 'text/vcard' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: c.full_name || 'Liên hệ' });
+      return;
+    }
+  } catch (e) {
+    if (e && e.name === 'AbortError') return; // user tự huỷ share
+    console.warn('Web Share lỗi, chuyển sang tải .vcf:', e);
+  }
+  // Desktop / không hỗ trợ share file: tải .vcf (OS mở Danh bạ/Contacts để thêm).
+  const url = URL.createObjectURL(new Blob([vcf], { type: 'text/vcard;charset=utf-8' }));
+  const a = document.createElement('a');
+  a.href = url; a.download = fileName;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+$('#detail-contact-btn')?.addEventListener('click', () => {
+  const c = allCustomers.find((x) => x.id === detailId);
+  if (c) saveContact(c);
+});
+
 // ------------------------------------------------- OCR: NHẬP TỪ ẢNH --------
 // Gửi ảnh cho Worker (giữ key Gemini) → nhận JSON field → TỰ ĐIỀN form, KHÔNG lưu
 // thẳng. Bắt buộc user rà lại (nhất là SĐT) rồi mới bấm Lưu.
