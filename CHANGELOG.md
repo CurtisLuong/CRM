@@ -6,6 +6,20 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-21 — Chuyển Xoá khách + quản lý tài liệu vào trang Sửa khách
+
+- **Xoá khách**: bỏ khỏi menu "⋯" trên card; giờ là nút **"🗑 Xoá khách"** viền/chữ
+  đỏ ở góc dưới TRÁI form Sửa khách (chỉ hiện khi sửa, không hiện khi thêm mới).
+  Vẫn confirm 1 bước. Xoá xong tự đóng form + về danh sách nếu đang xem chi tiết.
+  Menu "⋯" trên card giờ chỉ còn "Hẹn lịch gọi".
+- **Tài liệu**: thêm/xoá tài liệu chuyển vào **form Sửa khách** (mục "Tài liệu đính
+  kèm": Xem + Xoá + Thêm; chỉ hiện khi sửa). **Trang chi tiết chỉ còn XEM** (danh
+  sách + nút Xem, bỏ Thêm/Xoá; có dòng gợi ý sửa ở trang Sửa khách).
+
+File: `index.html`, `js/app.js`, `css/style.css`
+
+---
+
 ## 2026-08-21 — Form thêm khách: gọn "Thường trú", thêm "Ghi chú", "Dự án" thành dropdown
 
 - **Thường trú**: rút còn nửa dòng, xếp ngang hàng "Thu nhập" (bỏ `span-2`),

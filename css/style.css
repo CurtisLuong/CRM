@@ -645,7 +645,14 @@ legend { font-size: 12px; color: #6b6b60; padding: 0 6px; }
 .proj-add-row input { flex: 1; min-width: 0; font: inherit; font-size: 14px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; }
 input[name="apt_type_other"] { margin-top: 8px; }
 
-.form-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+.form-actions { display: flex; align-items: center; gap: 10px; margin-top: 20px; }
+.form-actions-spacer { flex: 1; } /* đẩy Huỷ/Lưu sang phải, nút Xoá nằm góc trái */
+/* Nút Xoá khách: viền + chữ đỏ, rê chuột thì tô nền đỏ (cảnh báo rõ) */
+.btn-danger-outline { color: var(--bad); border: 1px solid var(--bad); background: #fff; }
+.btn-danger-outline:hover { background: var(--bad); color: #fff; }
+/* Mục Tài liệu trong form + gợi ý ở trang chi tiết */
+.form-docs { display: flex; flex-direction: column; gap: 8px; }
+.docs-hint { font-size: 12px; color: #9a9a90; font-style: italic; margin-top: 8px; }
 
 /* ---------------- LỊCH GỌI ---------------- */
 /* Khối đặt lịch trên trang chi tiết */

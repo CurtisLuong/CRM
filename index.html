@@ -186,11 +186,7 @@
       <button id="detail-docs-toggle" class="btn-small" type="button">📎 Xem tài liệu (0)</button>
       <div id="detail-docs-body" hidden>
         <div id="detail-docs" class="docs-list"></div>
-        <div class="docs-add">
-          <button id="detail-doc-add-btn" class="btn-small" type="button">＋ Thêm tài liệu</button>
-          <input type="file" id="detail-doc-file" accept="image/*,application/pdf" hidden />
-          <span id="detail-doc-status" class="ocr-status"></span>
-        </div>
+        <div class="docs-hint">Thêm/xoá tài liệu trong trang "Sửa thông tin khách".</div>
       </div>
     </section>
   </div>
@@ -328,9 +324,22 @@
         <input name="evaluation_reason" type="text" list="eval-reason-datalist" placeholder="Chọn hoặc gõ lý do khác" />
         <datalist id="eval-reason-datalist"></datalist>
       </label>
+
+      <!-- Tài liệu đính kèm (chỉ hiện khi SỬA khách — cần đã có khách để gắn file) -->
+      <div class="span-2 form-docs" id="form-docs-section" hidden>
+        <div class="proj-head"><span class="proj-title">Tài liệu đính kèm</span></div>
+        <div id="form-docs" class="docs-list"></div>
+        <div class="docs-add">
+          <button type="button" id="form-doc-add-btn" class="btn-small">＋ Thêm tài liệu</button>
+          <input type="file" id="form-doc-file" accept="image/*,application/pdf" hidden />
+          <span id="form-doc-status" class="ocr-status"></span>
+        </div>
+      </div>
     </div>
 
     <div class="form-actions">
+      <button type="button" id="delete-customer-btn" class="btn-small btn-danger-outline" hidden>🗑 Xoá khách</button>
+      <span class="form-actions-spacer"></span>
       <button type="button" id="cancel-form-btn" class="btn-ghost">Huỷ</button>
       <button type="submit" class="btn-primary">Lưu</button>
     </div>

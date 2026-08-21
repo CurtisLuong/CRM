@@ -428,7 +428,6 @@ function renderList() {
             <button class="card-menu-btn" data-action="menu" aria-label="Tuỳ chọn khác">⋯</button>
             <div class="card-menu-pop">
               <button class="menu-item" data-action="schedule" data-id="${c.id}">Hẹn lịch gọi</button>
-              <button class="menu-item danger" data-action="delete" data-id="${c.id}">Xoá khách</button>
             </div>
           </div>
         </div>
@@ -482,7 +481,6 @@ $('#customer-list')?.addEventListener('click', (e) => {
   if (btn) {
     const id = btn.dataset.id;
     if (btn.dataset.action === 'edit') openForm(id);
-    if (btn.dataset.action === 'delete') confirmDelete(id);
     // Hẹn lịch gọi: đóng menu "⋯" rồi mở helper hẹn lịch (cùng modal ở trang chi tiết).
     if (btn.dataset.action === 'schedule') { card?.classList.remove('menu-open'); openScheduler(id); }
     return;
@@ -615,6 +613,13 @@ function openForm(id) {
   pendingOcrImage = null;
   const ocrStatus = $('#ocr-status'); if (ocrStatus) ocrStatus.textContent = '';
 
+  // Nút Xoá khách + mục Tài liệu: chỉ khi SỬA (đã có khách). Khách mới thì ẩn.
+  $('#delete-customer-btn').hidden = !id;
+  $('#form-docs-section').hidden = !id;
+  $('#form-doc-status').textContent = '';
+  $('#form-doc-file').value = '';
+  if (id) loadFormDocs(id);
+
   updateMenhPreview();
   toggleEvalReason();
   $('#form-modal').showModal();
@@ -739,6 +744,8 @@ async function confirmDelete(id) {
   const c = allCustomers.find((x) => x.id === id);
   if (!confirm(`Xoá khách "${c?.full_name || ''}"? Không thể hoàn tác.`)) return;
   await CRM.remove(id);
+  closeForm();
+  if (detailId === id) { detailId = null; showAppScreen(); } // đang xem chi tiết khách này → về danh sách
   await refreshList();
 }
 
@@ -1054,9 +1061,7 @@ function openDetail(id) {
     $('#detail-log-add-input').value = '';
   }
 
-  // Tài liệu (online-only) — nạp danh sách, mục để thu gọn mặc định.
-  $('#detail-doc-status').textContent = '';
-  $('#detail-doc-file').value = '';
+  // Tài liệu (online-only, CHỈ XEM) — nạp danh sách, mục thu gọn mặc định.
   loadDetailDocs(c.id);
 
   showDetailScreen();
@@ -1321,74 +1326,93 @@ async function loadDetailDocs(customerId) {
   renderDetailDocs();
 }
 
+// Trang chi tiết CHỈ XEM (thêm/sửa/xoá tài liệu chuyển sang trang Sửa khách).
 function renderDetailDocs() {
   const box = $('#detail-docs');
   if (!detailDocs.length) { box.innerHTML = '<div class="docs-empty">Chưa có tài liệu.</div>'; return; }
-  box.innerHTML = detailDocs.map((d) => {
-    const isImg = (d.mime || '').startsWith('image/');
-    const kindLabel = DOC_KIND_LABELS[d.kind] || d.kind;
-    const sub = [d.label, formatLogTime(d.created_at)].filter(Boolean).join(' · ');
-    return `<div class="doc-item">
-        <span class="doc-icon">${isImg ? '🖼️' : '📄'}</span>
-        <span class="doc-info"><span class="doc-kind">${escapeHtml(kindLabel)}</span>
-          <span class="doc-meta">${escapeHtml(sub)}</span></span>
-        <button class="btn-small" data-doc-view="${d.id}">Xem</button>
-        <button class="doc-del" data-doc-del="${d.id}" title="Xoá">✕</button>
-      </div>`;
-  }).join('');
+  box.innerHTML = detailDocs.map((d) => docItemHtml(d, 'doc')).join('');
 }
 
-async function viewDoc(id) {
-  const doc = detailDocs.find((d) => d.id === id);
+// HTML 1 dòng tài liệu. prefix='doc' (chi tiết, chỉ Xem) | 'fdoc' (form, Xem + Xoá).
+function docItemHtml(d, prefix) {
+  const isImg = (d.mime || '').startsWith('image/');
+  const kindLabel = DOC_KIND_LABELS[d.kind] || d.kind;
+  const sub = [d.label, formatLogTime(d.created_at)].filter(Boolean).join(' · ');
+  const delBtn = prefix === 'fdoc' ? `<button type="button" class="doc-del" data-fdoc-del="${d.id}" title="Xoá">✕</button>` : '';
+  return `<div class="doc-item">
+      <span class="doc-icon">${isImg ? '🖼️' : '📄'}</span>
+      <span class="doc-info"><span class="doc-kind">${escapeHtml(kindLabel)}</span>
+        <span class="doc-meta">${escapeHtml(sub)}</span></span>
+      <button type="button" class="btn-small" data-${prefix}-view="${d.id}">Xem</button>
+      ${delBtn}
+    </div>`;
+}
+
+// Mở 1 tài liệu qua signed URL (mở tab trống trước để tránh bị chặn popup).
+async function openDocSigned(doc) {
   if (!doc) return;
-  // Mở tab trống TRƯỚC (giữ user-gesture, tránh bị chặn popup), rồi gán URL sau khi có.
   const w = window.open('', '_blank');
   const url = await CRM.signedDocUrl(doc.storage_path);
   if (url && w) w.location = url;
   else if (w) { w.close(); alert('Không lấy được link xem (cần mạng?).'); }
 }
 
-async function deleteDoc(id) {
-  const doc = detailDocs.find((d) => d.id === id);
-  if (!doc) return;
-  if (!confirm(`Xoá tài liệu "${DOC_KIND_LABELS[doc.kind] || doc.kind}"? Không thể hoàn tác.`)) return;
-  try {
-    await CRM.deleteDocument(doc);
-    await loadDetailDocs(detailId);
-    $('#detail-docs-body').hidden = false; // giữ mục đang mở
-  } catch (e) { alert('Xoá tài liệu lỗi: ' + (e.message || e)); }
-}
-
-async function handleDocUpload(file) {
-  if (!file || !detailId) return;
-  const status = $('#detail-doc-status');
-  status.textContent = '⏳ Đang tải lên...';
-  try {
-    // Ảnh thì nén trước cho nhẹ; PDF giữ nguyên.
-    let toUpload = file;
-    if ((file.type || '').startsWith('image/')) toUpload = (await fileToScaled(file)).blob;
-    await CRM.uploadDocument(detailId, toUpload, 'khac', file.name || null);
-    status.textContent = '';
-    await loadDetailDocs(detailId);
-    $('#detail-docs-body').hidden = false;
-  } catch (e) {
-    status.textContent = '⚠️ Tải lên lỗi: ' + (e.message || e);
-  } finally {
-    $('#detail-doc-file').value = '';
-  }
-}
-
 $('#detail-docs-toggle')?.addEventListener('click', () => {
   const body = $('#detail-docs-body');
   body.hidden = !body.hidden;
 });
-$('#detail-doc-add-btn')?.addEventListener('click', () => $('#detail-doc-file').click());
-$('#detail-doc-file')?.addEventListener('change', (e) => handleDocUpload(e.target.files && e.target.files[0]));
 $('#detail-docs')?.addEventListener('click', (e) => {
   const v = e.target.closest('[data-doc-view]');
-  if (v) { viewDoc(v.dataset.docView); return; }
-  const d = e.target.closest('[data-doc-del]');
-  if (d) { deleteDoc(d.dataset.docDel); return; }
+  if (v) openDocSigned(detailDocs.find((d) => d.id === v.dataset.docView));
+});
+
+// ---- Tài liệu trong trang SỬA khách: xem + thêm + xoá ----
+let formDocs = [];
+
+async function loadFormDocs(customerId) {
+  formDocs = [];
+  const box = $('#form-docs');
+  if (!CRM.isOnline()) { box.innerHTML = '<div class="docs-empty">Cần mạng để xem/sửa tài liệu.</div>'; return; }
+  box.innerHTML = '<div class="docs-empty">Đang tải...</div>';
+  formDocs = await CRM.listDocuments(customerId);
+  renderFormDocs();
+}
+function renderFormDocs() {
+  const box = $('#form-docs');
+  box.innerHTML = formDocs.length
+    ? formDocs.map((d) => docItemHtml(d, 'fdoc')).join('')
+    : '<div class="docs-empty">Chưa có tài liệu.</div>';
+}
+async function deleteFormDoc(id) {
+  const doc = formDocs.find((d) => d.id === id);
+  if (!doc) return;
+  if (!confirm(`Xoá tài liệu "${DOC_KIND_LABELS[doc.kind] || doc.kind}"? Không thể hoàn tác.`)) return;
+  try { await CRM.deleteDocument(doc); await loadFormDocs(editingId); }
+  catch (e) { alert('Xoá tài liệu lỗi: ' + (e.message || e)); }
+}
+async function handleFormDocUpload(file) {
+  if (!file || !editingId) return;
+  const status = $('#form-doc-status');
+  status.textContent = '⏳ Đang tải lên...';
+  try {
+    let toUpload = file; // ảnh nén trước cho nhẹ; PDF giữ nguyên
+    if ((file.type || '').startsWith('image/')) toUpload = (await fileToScaled(file)).blob;
+    await CRM.uploadDocument(editingId, toUpload, 'khac', file.name || null);
+    status.textContent = '';
+    await loadFormDocs(editingId);
+  } catch (e) {
+    status.textContent = '⚠️ Tải lên lỗi: ' + (e.message || e);
+  } finally {
+    $('#form-doc-file').value = '';
+  }
+}
+$('#form-doc-add-btn')?.addEventListener('click', () => $('#form-doc-file').click());
+$('#form-doc-file')?.addEventListener('change', (e) => handleFormDocUpload(e.target.files && e.target.files[0]));
+$('#form-docs')?.addEventListener('click', (e) => {
+  const v = e.target.closest('[data-fdoc-view]');
+  if (v) { openDocSigned(formDocs.find((d) => d.id === v.dataset.fdocView)); return; }
+  const d = e.target.closest('[data-fdoc-del]');
+  if (d) { deleteFormDoc(d.dataset.fdocDel); return; }
 });
 
 // ------------------------------------------------- LỊCH GỌI / NHẮC GỌI ----
@@ -1825,6 +1849,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   $('#customer-form').addEventListener('submit', handleFormSubmit);
   $('#cancel-form-btn').addEventListener('click', closeForm);
+  $('#delete-customer-btn').addEventListener('click', () => { if (editingId) confirmDelete(editingId); });
   $('#customer-form').dob.addEventListener('input', updateMenhPreview);
   $('#customer-form').evaluation.addEventListener('change', toggleEvalReason);
   $('#customer-form').care_stage.addEventListener('change', toggleCareStageNote);
