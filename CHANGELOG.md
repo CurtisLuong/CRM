@@ -164,6 +164,17 @@ File: `add_notes_manual.sql` (migration cần chạy), `js/db.js`, `js/app.js`,
 
 ---
 
+## 2026-08-21 — Badge nhắc gọi (đếm ngược) vào trang chi tiết
+
+Mang badge đếm ngược giờ gọi (trước chỉ ở card) vào trang chi tiết, đặt cạnh khu
+"lịch hẹn gọi". Đầy đủ tính năng như ngoài card: bấm badge → hộp thoại **"đã gọi"
+/ "hẹn lại"** (dùng lại `openCallAction`). 3 trạng thái soon/due/missed dùng lại
+class `call-tag` sẵn có. Đếm ngược tự cập nhật mỗi 30s khi đang mở trang chi tiết.
+
+File: `index.html`, `js/app.js`
+
+---
+
 ## 2026-08-21 — Liên kết bậc chăm sóc → mức quan tâm (+ tự đánh giá khi kết thúc)
 
 Khi ĐỔI bậc chăm sóc trong form, mức quan tâm tự nhảy theo (map `STAGE_INTEREST`):

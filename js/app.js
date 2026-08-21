@@ -1119,17 +1119,8 @@ function openDetail(id) {
     evalBox.hidden = true;
   }
 
-  // Lịch gọi
-  const callLabel = $('#detail-call-label');
-  if (c.next_call_at) {
-    callLabel.textContent = '🔔 Hẹn gọi: ' + callScheduleLabel(c);
-    $('#detail-schedule-btn').textContent = 'Đổi lịch';
-    $('#detail-callclear-btn').hidden = false;
-  } else {
-    callLabel.textContent = '';
-    $('#detail-schedule-btn').textContent = '＋ Đặt lịch gọi';
-    $('#detail-callclear-btn').hidden = true;
-  }
+  // Lịch gọi + badge đếm ngược (bấm badge để "đã gọi"/"hẹn lại").
+  renderDetailCall(c);
 
   // Ghi chú (note tự động + note tự nhập, dạng bullet)
   editingNoteAt = null;
@@ -1680,6 +1671,26 @@ function callReminder(c) {
   return { state: 'missed', text: 'quên gọi ' + fmtClock(start), sort: start };
 }
 
+// Vẽ khu "lịch gọi" ở trang chi tiết: nhãn hẹn + nút đặt/đổi/xoá lịch + BADGE đếm
+// ngược (giống card). Badge chỉ hiện khi có lịch trong tầm nhắc; bấm → mở hộp
+// thoại "đã gọi / hẹn lại". Gọi lại định kỳ để đếm ngược tự cập nhật.
+function renderDetailCall(c) {
+  const callLabel = $('#detail-call-label');
+  if (c.next_call_at) {
+    callLabel.textContent = '🔔 Hẹn gọi: ' + callScheduleLabel(c);
+    $('#detail-schedule-btn').textContent = 'Đổi lịch';
+    $('#detail-callclear-btn').hidden = false;
+  } else {
+    callLabel.textContent = '';
+    $('#detail-schedule-btn').textContent = '＋ Đặt lịch gọi';
+    $('#detail-callclear-btn').hidden = true;
+  }
+  const badge = $('#detail-call-badge');
+  const rem = callReminder(c);
+  if (rem) { badge.hidden = false; badge.className = 'call-tag call-' + rem.state; badge.textContent = rem.text; }
+  else { badge.hidden = true; }
+}
+
 // ---- Dialog đặt lịch gọi (dùng chung) ----
 let schedulingId = null, schedTime = null, schedDate = null;
 function openScheduler(id) {
@@ -1754,10 +1765,17 @@ async function confirmCalled() {
 $('#callact-done')?.addEventListener('click', confirmCalled);
 $('#callact-resched')?.addEventListener('click', () => { $('#call-action-modal').close(); openScheduler(callActionId); });
 $('#callact-close')?.addEventListener('click', () => $('#call-action-modal').close());
+// Badge đếm ngược ở trang chi tiết → mở hộp thoại "đã gọi / hẹn lại".
+$('#detail-call-badge')?.addEventListener('click', () => { if (detailId) openCallAction(detailId); });
 
-// Cập nhật đếm ngược tag nhắc gọi định kỳ (chỉ khi đang xem danh sách khách)
+// Cập nhật đếm ngược định kỳ: danh sách (card) + badge trang chi tiết.
 setInterval(() => {
-  if (currentUser && !$('#app-screen').hidden && !$('#list-view').hidden) renderList();
+  if (!currentUser) return;
+  if (!$('#app-screen').hidden && !$('#list-view').hidden) renderList();
+  if (!$('#detail-screen').hidden && detailId) {
+    const c = allCustomers.find((x) => x.id === detailId);
+    if (c) renderDetailCall(c);
+  }
 }, 30000);
 
 // ---------------------------------------------------------- DASHBOARD -----
