@@ -2114,7 +2114,8 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
     wheelAccum += -e.deltaY;
-    if (showProgress(wheelAccum * 0.4)) { ind.style.transition = ''; triggerReload(); return; }
+    // Hệ số 0.2 → cần ~320px overscroll mới đủ ngưỡng (chủ ý kéo mới khớp, tránh lỡ tay).
+    if (showProgress(wheelAccum * 0.2)) { ind.style.transition = ''; triggerReload(); return; }
     clearTimeout(wheelTimer);
     wheelTimer = setTimeout(() => { wheelAccum = 0; ind.style.transition = ''; reset(); }, 200); // ngừng lăn → thu về
   }, { passive: true });
