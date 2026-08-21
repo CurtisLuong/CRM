@@ -164,6 +164,19 @@ File: `add_notes_manual.sql` (migration cần chạy), `js/db.js`, `js/app.js`,
 
 ---
 
+## 2026-08-21 — Kéo để tải lại: hỗ trợ trackpad/chuột trên Mac/Windows
+
+Pull-to-refresh trước chỉ nghe sự kiện cảm ứng (`touch*`) → trackpad Mac (phát
+`wheel`, không phát touch) không kích hoạt được. Thêm nhánh **`wheel`**: khi đã ở
+đỉnh trang mà tiếp tục overscroll LÊN (kéo 2 ngón xuống, `deltaY<0`) đủ ngưỡng →
+reload. Rời đỉnh / cuộn xuống / ngừng lăn 200ms → thu thanh về, huỷ. Có cờ chống
+kích hoạt trùng. Đã test bằng wheel giả: kéo mạnh ở đỉnh → trigger; kéo nhẹ hoặc
+đang cuộn giữa trang → không trigger.
+
+File: `js/app.js`
+
+---
+
 ## 2026-08-20 — Kéo để tải lại (pull-to-refresh) → reload toàn bộ trang
 
 Thêm cử chỉ **kéo từ đầu trang xuống để reload cả trang** (`location.reload()`)
