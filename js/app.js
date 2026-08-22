@@ -2542,6 +2542,20 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!e.target.closest('.tool-pop')) closeToolPops();
   });
 
+  // Header thu gọn khi cuộn xuống (đầy đủ khi ở đầu trang). Có ngưỡng trễ (48/16) tránh
+  // rung ở ranh giới; rAF throttle cho mượt. Đóng panel đang mở khi bắt đầu thu gọn.
+  const topbarEl = document.querySelector('.topbar');
+  let headerCollapsed = false, scrollTick = false;
+  function applyHeaderState() {
+    scrollTick = false;
+    const y = window.scrollY || 0;
+    if (!headerCollapsed && y > 48) { headerCollapsed = true; topbarEl.classList.add('collapsed'); closeToolPops(); }
+    else if (headerCollapsed && y < 16) { headerCollapsed = false; topbarEl.classList.remove('collapsed'); }
+  }
+  window.addEventListener('scroll', () => {
+    if (!scrollTick) { scrollTick = true; requestAnimationFrame(applyHeaderState); }
+  }, { passive: true });
+
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js').catch(() => {});
   }

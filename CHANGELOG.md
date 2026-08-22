@@ -6,6 +6,19 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-22 — Header tự thu gọn khi cuộn (1 hàng: logo · search · refresh)
+
+- Ở đầu trang: header đầy đủ 3 tầng (logo + "Sổ Khách" + sync + refresh + avatar / tabs / search).
+- Cuộn xuống: header thu gọn còn **1 hàng ngang**: `logo · thanh tìm · nút refresh` (ẩn chữ tên,
+  tabs, chấm sync, avatar) — nhường không gian cho nội dung.
+- Kỹ thuật: JS bắt `window` scroll (rAF throttle, ngưỡng trễ 48/16 tránh rung), toggle class
+  `.topbar.collapsed`; CSS dùng `display:contents` để "làm phẳng" các hàng lồng nhau thành 1
+  hàng rồi ẩn/sắp lại thứ tự. Khi bắt đầu thu gọn thì đóng panel Bộ lọc/Sắp xếp đang mở.
+
+File: `css/style.css`, `js/app.js`
+
+---
+
 ## 2026-08-22 — Logo chính thức (icons/logo.svg) gắn khắp app
 
 Dùng `logo.svg` (bản vector polished trong `backup icons`) làm logo CHÍNH: nền vuông xanh

@@ -143,6 +143,29 @@ input:focus, select:focus, textarea:focus {
 .topbar-row-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .topbar-brand { display: flex; align-items: center; gap: 10px; font-family: "Georgia", "Times New Roman", serif; font-size: 21px; font-weight: 700; color: #fff; white-space: nowrap; }
 .brand-logo { height: 38px; width: auto; flex: none; border-radius: 8px; }
+.topbar { transition: padding 0.18s ease, box-shadow 0.18s ease; }
+
+/* ===== HEADER THU GỌN khi cuộn xuống (chỉ 1 hàng: logo · search · refresh) =====
+   Dùng display:contents để "làm phẳng" các hàng lồng nhau thành item trực tiếp của .topbar,
+   rồi ẩn phần thừa (chữ, tabs, sync, avatar) và sắp lại thứ tự. */
+.topbar.collapsed {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+}
+.topbar.collapsed .topbar-row-top,
+.topbar.collapsed .topbar-brand,
+.topbar.collapsed .topbar-actions { display: contents; }
+.topbar.collapsed .topbar-brand span,   /* ẩn chữ "Sổ Khách" */
+.topbar.collapsed .tab-nav,              /* ẩn tab Khách hàng / Tổng quan */
+.topbar.collapsed #sync-badge,           /* ẩn chấm đồng bộ */
+.topbar.collapsed .topbar-menu { display: none; } /* ẩn avatar/tài khoản */
+.topbar.collapsed .brand-logo { order: 1; height: 34px; }
+.topbar.collapsed .topbar-search-wrap { order: 2; flex: 1 1 auto; }
+.topbar.collapsed #reload-btn { order: 3; }
 
 /* Tab ngay trong header (segmented control trên nền mực in) */
 .tab-nav { display: flex; gap: 4px; }
