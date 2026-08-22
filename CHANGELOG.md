@@ -6,14 +6,19 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
-## 2026-08-22 — Header thu gọn: animation mượt bằng FLIP
+## 2026-08-22 — Header thu gọn: animation mượt hoàn toàn bằng CSS (morph liên tục)
 
-Trước đây chuyển giữa header đầy đủ ↔ thu gọn bị "cứng" vì `display`/`display:contents` đổi
-tức thì (không animate được), khiến ô tìm "nhảy" từ hàng 3 lên hàng 1. Nay dùng kỹ thuật
-**FLIP**: đo vị trí các phần tử "ở lại" (logo, ô tìm, refresh) TRƯỚC khi đổi layout, đổi layout,
-rồi cho chúng **trượt** (transform, ~0.3s ease-out) từ chỗ cũ về chỗ mới → mượt mà. Tôn trọng
-`prefers-reduced-motion` (bỏ animation nếu người dùng tắt hiệu ứng); `will-change` chỉ bật trong
-lúc animate; dọn transform sau khi xong.
+Trước đây chuyển giữa header đầy đủ ↔ thu gọn bị "cứng" vì `display`/`display:contents`/đổi
+`flex-direction` đổi tức thì (không animate được). Nay bỏ hẳn cách đó, chuyển sang **morph
+liên tục 100% bằng CSS transition** (0.5s):
+- **Ô tìm** đặt `position:absolute`, trượt bằng `top/left/right` (đầy đủ = hàng 3 rộng hết → thu
+  gọn = giữa logo và refresh). Vì đổi inset thay vì scale → **co bề rộng mượt, không méo chữ**.
+- **Chữ "Sổ Khách" / tabs / sync / avatar** fade (`opacity`) + co (`max-width`/`max-height`)
+  về 0 → biến mất mượt thay vì "pop".
+- Header `padding`/`gap` cũng transition; chừa `padding-bottom` ở trạng thái đầy đủ cho ô tìm
+  absolute. Tôn trọng `prefers-reduced-motion`. Không còn dùng JS transform/FLIP — JS chỉ
+  bật/tắt class `.collapsed`.
+- Thời lượng kéo dài 0.3s → **0.5s** cho đỡ gấp.
 
 File: `css/style.css`, `js/app.js`
 
