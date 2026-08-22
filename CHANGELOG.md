@@ -6,6 +6,18 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-22 — Fix: header nhấp nháy khi dừng ở ngưỡng chuyển full↔collapsed
+
+Khi dừng cuộn ngay điểm chuyển trạng thái, header dao động qua lại liên tục (nhấp nháy). Nguyên
+nhân: header thu gọn/bung đổi chiều cao trang (sticky chiếm chỗ trong luồng) → trình duyệt tự
+chỉnh `scrollY` để giữ nội dung (scroll-anchoring) → scrollY nhảy qua ngưỡng → toggle → lặp vô
+hạn dù đã ngừng kéo. Sửa: **`overflow-anchor: none`** trên `html, body` → header đổi trạng thái
+KHÔNG làm scrollY tự nhảy → tại một điểm thả tay chỉ còn 1 trạng thái ổn định.
+
+File: `css/style.css`
+
+---
+
 ## 2026-08-22 — Fix: gõ tìm khi header thu gọn làm header biến mất (Android/Chrome)
 
 Khi header đang THU GỌN mà chạm ô tìm để gõ, bàn phím ảo Android đổi viewport khiến header

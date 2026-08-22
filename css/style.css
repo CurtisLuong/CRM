@@ -21,11 +21,14 @@
 /* Bắt buộc ẩn hẳn khi có thuộc tính [hidden] — tránh bị các rule display bên dưới ghi đè */
 [hidden] { display: none !important; }
 
+html { overflow-anchor: none; } /* tắt scroll-anchoring: header thu gọn/bung KHÔNG làm trình
+                                   duyệt tự chỉnh scrollY → hết vòng lặp nhấp nháy ở ngưỡng chuyển. */
 body {
   margin: 0;
   background: var(--paper);
   color: var(--ink);
   -webkit-font-smoothing: antialiased;
+  overflow-anchor: none;
 }
 
 /* Kéo để tải lại (pull-to-refresh): thanh trượt từ trên xuống khi kéo ở đầu trang */
