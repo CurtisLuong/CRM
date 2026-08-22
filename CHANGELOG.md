@@ -6,6 +6,18 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-22 — Fix: gõ tìm khi header thu gọn làm header biến mất (Android/Chrome)
+
+Khi header đang THU GỌN mà chạm ô tìm để gõ, bàn phím ảo Android đổi viewport khiến header
+sticky (ô tìm `position:absolute`) biến mất → không thấy từ khoá đang gõ. Xử: focus ô tìm →
+**bung header đầy đủ + về đầu trang + khoá không thu gọn** cho tới khi rời ô tìm (blur). Ô tìm
+luôn nằm ở vị trí ổn định, hiện rõ khi gõ. (`searchFocused` guard trong `applyHeaderState` +
+listener focus/blur trên `#search-input`.)
+
+File: `js/app.js`
+
+---
+
 ## 2026-08-22 — Header thu gọn: animation mượt hoàn toàn bằng CSS (morph liên tục)
 
 Trước đây chuyển giữa header đầy đủ ↔ thu gọn bị "cứng" vì `display`/`display:contents`/đổi
