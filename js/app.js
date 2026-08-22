@@ -361,12 +361,14 @@ async function handleReload() {
 // ------------------------------------------------------------- SYNC UI ----
 
 // Nút đồng bộ gộp: 4 trạng thái (synced/syncing/offline/error) — icon + màu + tooltip.
-// Icon bộ "đặc" (solid): đĩa màu (currentColor theo trạng thái) + ký hiệu trắng.
+// Icon bộ "ĐÁM MÂY" (cloud): đám mây nét (currentColor theo trạng thái) + ký hiệu bên trong.
+// Riêng syncing xoay CHỈ phần mũi tên (<g class="spin">), không xoay cả đám mây.
+const CLOUD = 'M17.5 18.5H8.4A5.4 5.4 0 1 1 13.8 10h1.6a3.9 3.9 0 1 1 0 8.5Z';
 const SYNC_SVG = {
-  synced: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="currentColor"/><path d="M7.4 12.4l3 3 6.1-6.7" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-  syncing: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="currentColor"/><path d="M16.8 12a4.8 4.8 0 1 1-1.4-3.4" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/><path d="M16.9 7.4v3.1h-3.1" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-  offline: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="currentColor"/><path d="M8 8l8 8" fill="none" stroke="#243029" stroke-width="2.3" stroke-linecap="round"/></svg>',
-  error: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="currentColor"/><path d="M12 6.6v7" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round"/><circle cx="12" cy="17.4" r="1.3" fill="#fff"/></svg>',
+  synced: `<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="${CLOUD}"/><path d="M9.6 13.4l1.8 1.8 3.4-3.7"/></svg>`,
+  syncing: `<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="${CLOUD}"/><g class="spin"><path d="M14.3 13a2.5 2.5 0 1 1-.75-1.8"/><path d="M14.4 10.1v1.6h-1.6"/></g></svg>`,
+  offline: `<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 18.5H8.4A5.4 5.4 0 0 1 5 9.2m3.6-1.1A5.4 5.4 0 0 1 13.8 10h1.6a3.9 3.9 0 0 1 3.4 5.8"/><path d="M4.5 4.5l15 15"/></svg>`,
+  error: `<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="${CLOUD}"/><path d="M12 11v2.2"/><path d="M12 15.7h.02"/></svg>`,
 };
 // Glyph nhỏ dùng trong CHỮ tooltip (không phải icon nút).
 const SYNC_GLYPH = { synced: '✓', syncing: '↻', offline: '⊘', error: '!' };

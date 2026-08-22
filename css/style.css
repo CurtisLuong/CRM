@@ -224,7 +224,8 @@ input:focus, select:focus, textarea:focus {
 .sync-btn .sync-ic { display: inline-flex; width: 22px; height: 22px; }
 .sync-btn .sync-ic svg { width: 100%; height: 100%; display: block; }
 .sync-btn.sync-synced  .sync-ic { color: #35c26a; }
-.sync-btn.sync-syncing .sync-ic { color: #e8973a; animation: spin 0.7s linear infinite; }
+.sync-btn.sync-syncing .sync-ic { color: #e8973a; }
+.sync-ic .spin { transform-origin: 12px 12px; animation: spin 0.7s linear infinite; } /* chỉ mũi tên xoay */
 .sync-btn.sync-offline .sync-ic { color: #b9bec4; }
 .sync-btn.sync-error   .sync-ic { color: #ec6a5c; }
 @keyframes spin { to { transform: rotate(360deg); } }
