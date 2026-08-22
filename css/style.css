@@ -238,16 +238,23 @@ input:focus, select:focus, textarea:focus {
 
 /* Panel Sắp xếp: mỗi thuộc tính 1 hàng + 2 nút hướng */
 .sort-options { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
-.sort-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.sort-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 2px 0; }
 .sort-row-name { font-size: 14px; color: var(--ink); }
-.sort-dirs { display: flex; gap: 6px; }
-.sort-dir-btn {
-  font: inherit; font-size: 12px; cursor: pointer;
-  border: 1px solid var(--line); background: #fff; color: #4a4a42;
-  padding: 5px 10px; border-radius: 7px; white-space: nowrap;
+/* Cặp tam giác ▲▼ chọn tăng/giảm cho từng tiêu chí. Sáng (teal) = hướng đang chọn. */
+.sort-tris { display: inline-flex; flex-direction: column; gap: 3px; }
+.tri-btn {
+  position: relative; width: 24px; height: 13px; padding: 0;
+  border: none; background: transparent; cursor: pointer; display: inline-block;
 }
-.sort-dir-btn:hover { background: var(--panel); }
-.sort-dir-btn.is-active { background: var(--teal); color: #fff; border-color: var(--teal); }
+.tri-btn::before {
+  content: ''; position: absolute; left: 50%; transform: translateX(-50%);
+  border-left: 7px solid transparent; border-right: 7px solid transparent;
+}
+.tri-up::before    { bottom: 1px; border-bottom: 9px solid #c7c7bd; }
+.tri-down::before  { top: 1px;    border-top: 9px solid #c7c7bd; }
+.tri-up.is-on::before   { border-bottom-color: var(--teal); }
+.tri-down.is-on::before { border-top-color: var(--teal); }
+.tri-btn:hover::before { filter: brightness(0.85); }
 
 /* FAB — nút thêm khách nổi góc dưới phải */
 .fab {
@@ -262,7 +269,14 @@ input:focus, select:focus, textarea:focus {
 .fab:hover { background: var(--seal-dark); }
 .fab:active { transform: translateY(1px); }
 
-.list-meta { padding: 10px 20px 0; font-size: 13px; color: #6b6b60; }
+.list-meta { padding: 10px 20px 0; font-size: 13px; color: #6b6b60; display: flex; align-items: center; gap: 10px; }
+/* Nút xoá lọc nhanh cạnh dòng đếm khách — chỉ hiện khi đang có lọc nâng cao */
+.clear-filter-inline {
+  font: inherit; font-size: 12px; cursor: pointer;
+  border: 1px solid #e6c9c2; background: #fff; color: var(--seal);
+  padding: 3px 10px; border-radius: 100px; line-height: 1.5; white-space: nowrap;
+}
+.clear-filter-inline:hover { background: #fbece9; }
 
 /* ---------------- CUSTOMER LIST ---------------- */
 .customer-list {

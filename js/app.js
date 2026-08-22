@@ -506,26 +506,25 @@ function matchesFilters(c) {
   return true;
 }
 
+// So sánh 1 tiêu chí (chưa nhân hướng): trả về a-b.
+function sortCompareOne(key, a, b) {
+  if (key === 'care') return careSortRank(a.care_stage) - careSortRank(b.care_stage);
+  if (key === 'interest') return (a.interest_level || 0) - (b.interest_level || 0);
+  if (key === 'updated') return (a.updated_at || '').localeCompare(b.updated_at || '');
+  if (key === 'name') return (a.full_name || '').localeCompare(b.full_name || '', 'vi');
+  return 0;
+}
 function sortCustomers(list) {
   const arr = [...list];
-  if (!currentSort) {
-    // MẶC ĐỊNH (đa khoá): 1) tiến độ tăng (bậc 1→7); 2) cùng bậc → quan tâm GIẢM;
-    // 3) bằng nhau → cập nhật MỚI NHẤT lên trước; 4) tên A→Z.
-    arr.sort((a, b) =>
-      (careSortRank(a.care_stage) - careSortRank(b.care_stage)) ||
-      ((b.interest_level || 0) - (a.interest_level || 0)) ||
-      ((b.updated_at || '').localeCompare(a.updated_at || '')) ||
-      ((a.full_name || '').localeCompare(b.full_name || '', 'vi'))
-    );
-    return arr;
-  }
-  // Sắp theo 1 thuộc tính + hướng do người dùng chọn.
-  const { key, dir } = currentSort;
-  const s = dir === 'asc' ? 1 : -1;
-  if (key === 'care') arr.sort((a, b) => s * (careSortRank(a.care_stage) - careSortRank(b.care_stage)));
-  else if (key === 'interest') arr.sort((a, b) => s * ((a.interest_level || 0) - (b.interest_level || 0)));
-  else if (key === 'updated') arr.sort((a, b) => s * (a.updated_at || '').localeCompare(b.updated_at || ''));
-  else if (key === 'name') arr.sort((a, b) => s * (a.full_name || '').localeCompare(b.full_name || '', 'vi'));
+  // Không chọn tiêu chí nào → dùng mặc định để danh sách luôn có thứ tự hợp lý.
+  const keys = (currentSort && currentSort.length) ? currentSort : DEFAULT_SORT;
+  arr.sort((a, b) => {
+    for (const { key, dir } of keys) {
+      const d = sortCompareOne(key, a, b);
+      if (d !== 0) return (dir === 'asc' ? 1 : -1) * d;
+    }
+    return 0;
+  });
   return arr;
 }
 
@@ -545,6 +544,7 @@ function renderList() {
   container.innerHTML = '';
   $('#empty-state').hidden = list.length !== 0;
   $('#result-count').textContent = `${list.length} khách hàng`;
+  updateFilterDot(); // giữ chấm đỏ + nút "Xoá lọc ✕" luôn khớp trạng thái lọc
 
   for (const c of list) {
     const card = document.createElement('div');
@@ -2284,20 +2284,43 @@ function populateSelects() {
 // ---- SẮP XẾP: trạng thái + render panel ----
 // currentSort = null → MẶC ĐỊNH đa khoá (tiến độ↑ → quan tâm↓ → cập nhật mới nhất → tên A→Z).
 // {key,dir} → sắp theo 1 thuộc tính. KHÔNG lưu lại → mỗi lần tải trang tự về mặc định.
-let currentSort = null;
+// SẮP XẾP ĐA TIÊU CHÍ (multi-key): chọn nhiều tiêu chí, mỗi tiêu chí 1 hướng (tăng/giảm)
+// bằng 2 tam giác ▲▼; ưu tiên theo THỨ TỰ hàng (Tiến độ > Quan tâm > Cập nhật > Tên).
+// currentSort = mảng {key,dir} ĐANG áp dụng. Không lưu lại → mỗi lần tải trang về mặc định.
 const SORT_ATTRS = [
-  { key: 'care',     name: 'Tiến độ',  dirs: [['asc', 'Tăng'],      ['desc', 'Giảm']] },
-  { key: 'interest', name: 'Quan tâm', dirs: [['desc', 'Giảm'],     ['asc', 'Tăng']] },
-  { key: 'updated',  name: 'Cập nhật', dirs: [['desc', 'Gần nhất'], ['asc', 'Lâu nhất']] },
-  { key: 'name',     name: 'Tên',      dirs: [['asc', 'A→Z'],       ['desc', 'Z→A']] },
+  { key: 'care',     name: 'Tiến độ' },
+  { key: 'interest', name: 'Quan tâm' },
+  { key: 'updated',  name: 'Cập nhật' },
+  { key: 'name',     name: 'Tên' },
 ];
+// Mặc định: tiến độ↑ → quan tâm↓ → cập nhật mới nhất(giảm) → tên A→Z(tăng).
+const DEFAULT_SORT = [
+  { key: 'care', dir: 'asc' },
+  { key: 'interest', dir: 'desc' },
+  { key: 'updated', dir: 'desc' },
+  { key: 'name', dir: 'asc' },
+];
+let currentSort = DEFAULT_SORT.map((x) => ({ ...x }));
+let sortDraft = {}; // bản nháp trong panel: key -> 'asc'|'desc' (vắng mặt = không chọn)
+
+// currentSort (mảng) → nháp (map) để panel hiển thị đúng trạng thái đang áp dụng.
+function sortToDraft() {
+  const d = {};
+  for (const { key, dir } of currentSort) d[key] = dir;
+  return d;
+}
 function renderSortOptions() {
   $('#sort-options').innerHTML = SORT_ATTRS.map((a) => {
-    const btns = a.dirs.map(([dir, label]) => {
-      const active = currentSort && currentSort.key === a.key && currentSort.dir === dir;
-      return `<button type="button" class="sort-dir-btn${active ? ' is-active' : ''}" data-sortkey="${a.key}" data-sortdir="${dir}">${label}</button>`;
-    }).join('');
-    return `<div class="sort-row"><span class="sort-row-name">${a.name}</span><span class="sort-dirs">${btns}</span></div>`;
+    const dir = sortDraft[a.key]; // undefined | 'asc' | 'desc'
+    const up = dir === 'asc' ? ' is-on' : '';
+    const dn = dir === 'desc' ? ' is-on' : '';
+    return `<div class="sort-row">
+        <span class="sort-row-name">${a.name}</span>
+        <span class="sort-tris" data-key="${a.key}">
+          <button type="button" class="tri-btn tri-up${up}" data-dir="asc" aria-label="${a.name} tăng"></button>
+          <button type="button" class="tri-btn tri-down${dn}" data-dir="desc" aria-label="${a.name} giảm"></button>
+        </span>
+      </div>`;
   }).join('');
 }
 
@@ -2307,11 +2330,28 @@ function closeToolPops() {
   $('#sort-panel').hidden = true; $('#sort-btn').classList.remove('is-open');
 }
 // Chấm báo "đang có lọc nâng cao" trên icon phễu (tiến độ ≠ tất cả HOẶC quan tâm ≥ >0).
-function updateFilterDot() {
+function isAdvancedFilterActive() {
   const stageEl = document.querySelector('input[name="f-stage"]:checked');
   const stage = stageEl ? stageEl.value : '';
   const interest = Number($('#filter-min-interest').value || 0);
-  $('#filter-active-dot').hidden = !(stage || interest > 0);
+  return !!(stage || interest > 0);
+}
+// Đồng bộ 2 chỉ báo "đang có lọc nâng cao": chấm đỏ trên icon phễu + nút "Xoá lọc ✕"
+// cạnh dòng "[x] khách hàng". Cả 2 chỉ hiện khi có lọc khác mặc định (giữ UI gọn).
+function updateFilterDot() {
+  const active = isAdvancedFilterActive();
+  $('#filter-active-dot').hidden = !active;
+  const clearBtn = $('#clear-filter-inline');
+  if (clearBtn) clearBtn.hidden = !active;
+}
+// Đưa bộ lọc nâng cao về mặc định (tiến độ = Tất cả, quan tâm ≥ 0%).
+function resetAdvancedFilters() {
+  const allRadio = document.querySelector('input[name="f-stage"][value=""]');
+  if (allRadio) allRadio.checked = true;
+  $('#filter-min-interest').value = 0;
+  $('#filter-interest-val').textContent = '0';
+  updateFilterDot();
+  renderList();
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -2447,32 +2487,41 @@ document.addEventListener('DOMContentLoaded', () => {
     updateFilterDot(); renderList();
   });
   $('#filter-apply-btn').addEventListener('click', () => { renderList(); closeToolPops(); });
-  $('#filter-reset-btn').addEventListener('click', () => {
-    const allRadio = document.querySelector('input[name="f-stage"][value=""]');
-    if (allRadio) allRadio.checked = true;
-    $('#filter-min-interest').value = 0;
-    $('#filter-interest-val').textContent = '0';
-    updateFilterDot();
-    renderList();
-  });
+  $('#filter-reset-btn').addEventListener('click', resetAdvancedFilters);
+  // Nút "Xoá lọc ✕" cạnh dòng đếm khách (chỉ hiện khi đang có lọc nâng cao).
+  $('#clear-filter-inline').addEventListener('click', resetAdvancedFilters);
 
-  // --- Panel Sắp xếp (icon): mở/đóng + chọn thuộc tính/hướng + đặt lại mặc định ---
+  // --- Panel Sắp xếp (icon): đa tiêu chí, chọn xong bấm Áp dụng mới sắp ---
   $('#sort-btn').addEventListener('click', (e) => {
     e.stopPropagation();
     const willOpen = $('#sort-panel').hidden;
     closeToolPops();
+    if (willOpen) { sortDraft = sortToDraft(); renderSortOptions(); } // mở → nạp trạng thái đang áp dụng
     $('#sort-panel').hidden = !willOpen;
     $('#sort-btn').classList.toggle('is-open', willOpen);
   });
+  // Bấm tam giác ▲/▼ → đổi nháp (KHÔNG sắp ngay). Bấm lại đúng hướng đang bật → bỏ chọn tiêu chí đó.
   $('#sort-options').addEventListener('click', (e) => {
-    const btn = e.target.closest('[data-sortkey]');
-    if (!btn) return;
-    currentSort = { key: btn.dataset.sortkey, dir: btn.dataset.sortdir };
+    const tri = e.target.closest('.tri-btn');
+    if (!tri) return;
+    // Chặn nổi bọt: handler này render lại innerHTML → phần tử vừa click bị tách khỏi DOM,
+    // nếu để lọt tới handler "click ngoài" bên dưới nó sẽ tưởng là click ngoài và đóng panel.
+    e.stopPropagation();
+    const key = tri.closest('.sort-tris').dataset.key;
+    const dir = tri.dataset.dir;
+    if (sortDraft[key] === dir) delete sortDraft[key];
+    else sortDraft[key] = dir;
     renderSortOptions();
+  });
+  $('#sort-apply-btn').addEventListener('click', () => {
+    // Ghép theo THỨ TỰ hàng (ưu tiên Tiến độ > Quan tâm > Cập nhật > Tên).
+    currentSort = SORT_ATTRS.filter((a) => sortDraft[a.key]).map((a) => ({ key: a.key, dir: sortDraft[a.key] }));
     renderList();
+    closeToolPops();
   });
   $('#sort-reset-btn').addEventListener('click', () => {
-    currentSort = null; // về sắp xếp mặc định đa khoá
+    currentSort = DEFAULT_SORT.map((x) => ({ ...x })); // về mặc định đa khoá
+    sortDraft = sortToDraft();
     renderSortOptions();
     renderList();
   });

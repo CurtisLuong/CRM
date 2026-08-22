@@ -6,6 +6,36 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-22 — Nút "Xoá lọc ✕" cạnh dòng đếm khách
+
+Thêm nút **"Xoá lọc ✕"** ngay bên phải dòng "[x] khách hàng"; bấm → đưa bộ lọc nâng cao về
+mặc định (tiến độ = Tất cả, quan tâm ≥ 0%). Nút **chỉ hiện khi đang có lọc nâng cao** (cùng
+điều kiện với chấm đỏ trên icon phễu) để giữ UI gọn. Tách hàm dùng chung `resetAdvancedFilters`
+(nút trong panel + nút inline), và `updateFilterDot` nay bật/tắt cả chấm đỏ lẫn nút; gọi trong
+`renderList` để luôn khớp trạng thái.
+
+File: `index.html`, `css/style.css`, `js/app.js`
+
+---
+
+## 2026-08-22 — Panel Sắp xếp đa tiêu chí (tam giác ▲▼, chọn nhiều, Áp dụng)
+
+Đổi panel Sắp xếp từ chọn 1 tiêu chí sang **đa tiêu chí** (multi-key):
+- Mỗi tiêu chí (Tiến độ / Quan tâm / Cập nhật / Tên) có cặp **tam giác ▲▼**. Tam giác trên
+  sáng = sắp tăng, dưới sáng = giảm; hướng còn lại để màu mặc định (xám).
+- **Bấm tam giác** đổi hướng; bấm lại đúng hướng đang bật → **bỏ chọn** tiêu chí đó.
+- **Chọn nhiều tiêu chí** cùng lúc; ưu tiên theo thứ tự hàng (Tiến độ > Quan tâm > Cập nhật >
+  Tên). Chỉ **áp dụng khi bấm "Áp dụng"** (panel giữ bản nháp `sortDraft` tới khi áp dụng).
+- Mặc định = 4 tiêu chí: tiến độ↑ · quan tâm↓ · cập nhật mới nhất↓ · tên A→Z↑ (nút Đặt lại
+  mặc định). Không lưu → mỗi lần tải trang về mặc định.
+- `currentSort` nay là MẢNG {key,dir}; `sortCustomers` so sánh đa khoá theo thứ tự.
+- Fix: handler bấm tam giác render lại innerHTML làm phần tử bị tách DOM → lọt tới handler
+  "click ngoài" đóng panel; thêm `stopPropagation`.
+
+File: `index.html`, `css/style.css`, `js/app.js`
+
+---
+
 ## 2026-08-22 — Thiết kế lại giao diện danh sách (FAB, panel lọc/sắp xếp, header 3 tầng)
 
 - **Nút thêm khách → FAB**: nút tròn "+" nổi góc dưới phải (`.fab`), chỉ hiện ở tab Khách hàng
