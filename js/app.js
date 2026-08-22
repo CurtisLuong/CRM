@@ -495,8 +495,6 @@ function matchesFilters(c) {
     if (progress === 'active' && done) return false;
     if (progress === 'done' && !done) return false;
   }
-  const evalFilter = $('#filter-evaluation').value;
-  if (evalFilter && c.evaluation !== evalFilter) return false;
   const minInterest = Number($('#filter-min-interest').value || 0);
   if ((c.interest_level || 0) < minInterest) return false;
   return true;
@@ -2260,7 +2258,7 @@ window.addEventListener('resize', () => {
 // -------------------------------------------------------------- WIRE UP ---
 
 function populateSelects() {
-  const stageOptions = ['<option value="">— Mọi bậc —</option>', ...CARE_STAGE_OPTIONS.map((s) => `<option value="${s}">${s}</option>`)].join('');
+  const stageOptions = ['<option value="">Tiến độ: tất cả</option>', ...CARE_STAGE_OPTIONS.map((s) => `<option value="${s}">${s}</option>`)].join('');
   $('#filter-stage').innerHTML = stageOptions;
 
   const formStageOptions = ['<option value="">— Chưa xác định —</option>', ...CARE_STAGE_OPTIONS.map((s) => `<option value="${s}">${s}</option>`)].join('');
@@ -2387,14 +2385,12 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   $('#filter-progress').addEventListener('change', renderList);
   $('#filter-stage').addEventListener('change', renderList);
-  $('#filter-evaluation').addEventListener('change', renderList);
   $('#filter-min-interest').addEventListener('input', renderList);
   $('#sort-select').addEventListener('change', renderList);
   $('#clear-filters-btn').addEventListener('click', () => {
     $('#search-input').value = '';
     $('#filter-progress').value = 'active'; // về mặc định: chỉ hiện khách đang chăm sóc
     $('#filter-stage').value = '';
-    $('#filter-evaluation').value = '';
     $('#filter-min-interest').value = 0;
     renderList();
   });

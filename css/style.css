@@ -188,7 +188,12 @@ input:focus, select:focus, textarea:focus {
   z-index: 5;
 }
 .toolbar input[type="search"] { flex: 1 1 200px; min-width: 160px; }
-.filter-interest-label { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #4a4a42; }
+/* Đồng bộ cỡ chữ mọi mục trong toolbar (select/input/nút/label) để nhìn đều nhau */
+.toolbar select,
+.toolbar input,
+.toolbar button,
+.toolbar .filter-interest-label { font-size: 14px; }
+.filter-interest-label { display: flex; align-items: center; gap: 6px; color: #4a4a42; }
 .filter-interest-label input { width: 60px; }
 #add-customer-btn { margin-left: auto; }
 

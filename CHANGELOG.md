@@ -6,6 +6,20 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-22 — Gọn thanh lọc/sắp xếp + đồng bộ cỡ chữ
+
+- Filter tiến độ (`#filter-stage`): đổi option mặc định "— Mọi bậc —" → **"Tiến độ: tất cả"**
+  (mặc định vẫn là tất cả các bậc).
+- **Bỏ hẳn filter Đánh giá** (nên chăm / không nên chăm): gỡ `<select id="filter-evaluation">`
+  và mọi tham chiếu trong `matchesFilters` / listener / nút Xoá lọc.
+- Sort mặc định: bỏ chữ "(mặc định)" ở option "Tiến độ ↑, quan tâm ↓" (vẫn là sort mặc định).
+- Đồng bộ cỡ chữ mọi mục trong toolbar về **14px** (trước đây label "Q.tâm ≥" 13px trong khi
+  select/nút 16px → nhìn lệch).
+
+File: `index.html`, `js/app.js`, `css/style.css`
+
+---
+
 ## 2026-08-22 — Badge đồng bộ báo đúng cả chiều KÉO (không còn "đã đồng bộ" giả)
 
 **Bug:** badge `updateSyncBadge` chỉ nhìn hàng đợi ĐẨY LÊN (`pendingCount`); khi `pull()`
