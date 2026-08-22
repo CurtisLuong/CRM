@@ -152,7 +152,7 @@ input:focus, select:focus, textarea:focus {
 /* Các phần tử sẽ FADE + CO mượt khi thu gọn */
 .topbar-brand span { overflow: hidden; max-width: 260px; }
 .tab-nav { overflow: hidden; max-height: 60px; }
-.topbar-brand span, .topbar .tab-nav, #sync-badge, .topbar-menu {
+.topbar-brand span, .topbar .tab-nav, .topbar-menu {
   transition: opacity 0.2s ease, max-width 0.3s cubic-bezier(0.4,0,0.2,1),
               max-height 0.3s cubic-bezier(0.4,0,0.2,1), margin 0.3s cubic-bezier(0.4,0,0.2,1);
 }
@@ -171,11 +171,11 @@ input:focus, select:focus, textarea:focus {
 .topbar.collapsed .topbar-brand span { max-width: 0; opacity: 0; margin: 0; }
 .topbar.collapsed .tab-nav { max-height: 0; opacity: 0; margin: 0; }
 .topbar.collapsed .topbar-actions { gap: 0; }
-.topbar.collapsed #sync-badge { max-width: 0; opacity: 0; margin: 0; }
 .topbar.collapsed .topbar-menu { max-width: 0; opacity: 0; margin: 0; overflow: hidden; }
+/* Nút đồng bộ (#sync-btn) VẪN hiện ở header thu gọn — nó đóng vai nút làm mới. */
 
 @media (prefers-reduced-motion: reduce) {
-  .topbar, .topbar-search-wrap, .topbar-brand span, .topbar .tab-nav, #sync-badge, .topbar-menu { transition: none; }
+  .topbar, .topbar-search-wrap, .topbar-brand span, .topbar .tab-nav, .topbar-menu { transition: none; }
 }
 /* Tắt transition tạm khi khôi phục vị trí cuộn (đổi trạng thái header tức thì để cuộn không lệch) */
 .topbar.no-anim, .topbar.no-anim * { transition: none !important; }
@@ -210,31 +210,38 @@ input:focus, select:focus, textarea:focus {
 .topbar-search:focus { outline: none; border-color: rgba(255,255,255,0.65); background: rgba(255,255,255,0.18); }
 
 .topbar-actions { display: flex; align-items: center; gap: 8px; }
-/* Tín hiệu đồng bộ = 1 CHẤM MÀU (không chữ). Chữ giải thích hiện khi hover (title).
-   Xanh = đã đồng bộ · Vàng = đang đồng bộ/ chưa tải xong · Đỏ = offline/ kẹt. */
-.sync-badge {
-  display: inline-block;
-  width: 12px; height: 12px;
-  border-radius: 50%;
-  background: #9aa0a6;                 /* xám: chưa xác định */
-  cursor: pointer;
-  flex: none;
-  box-shadow: 0 0 0 2px rgba(255,255,255,0.18);
-  text-indent: -9999px; overflow: hidden; /* ẩn mọi chữ còn sót */
-}
-.sync-badge.sync-green  { background: #35c26a; }
-.sync-badge.sync-yellow { background: #e8b93a; }
-.sync-badge.sync-red    { background: #e0574a; }
 
-/* Nút làm mới (icon ↻, xoay khi đang tải) */
-.icon-btn-plain {
+/* NÚT ĐỒNG BỘ (gộp chấm trạng thái + nút làm mới). Icon + màu phản ánh trạng thái;
+   hover hiện chữ (tooltip). ✓xanh=đã đồng bộ · ↻cam=đang đồng bộ · ⊘xám=offline · !đỏ=lỗi. */
+.sync-btn {
+  position: relative;
   width: 34px; height: 34px; border-radius: 8px; cursor: pointer;
-  border: 1px solid rgba(255,255,255,0.25); background: transparent; color: #fff;
-  font-size: 17px; line-height: 1; display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid rgba(255,255,255,0.22); background: transparent;
+  display: inline-flex; align-items: center; justify-content: center; flex: none; padding: 0;
 }
-.icon-btn-plain:hover { background: rgba(255,255,255,0.12); }
-.icon-btn-plain.spinning { animation: spin 0.7s linear infinite; }
+.sync-btn:hover { background: rgba(255,255,255,0.10); }
+.sync-btn.sync-syncing { cursor: default; }        /* đang đồng bộ → không bấm */
+.sync-btn .sync-ic { font-size: 16px; line-height: 1; font-weight: 700; }
+.sync-btn.sync-synced  .sync-ic { color: #35c26a; }
+.sync-btn.sync-syncing .sync-ic { color: #e8973a; animation: spin 0.7s linear infinite; }
+.sync-btn.sync-offline .sync-ic { color: #b9bec4; }
+.sync-btn.sync-error   .sync-ic { color: #ec6a5c; }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* Tooltip chữ trạng thái, hiện khi hover/focus */
+.sync-tip {
+  position: absolute; top: calc(100% + 6px); right: 0;
+  background: #26332f; color: #EEECE7; border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px; padding: 7px 10px; font-size: 12px; line-height: 1.45;
+  white-space: pre-line; text-align: left; min-width: 150px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.28);
+  opacity: 0; visibility: hidden; transform: translateY(-3px);
+  transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s;
+  pointer-events: none; z-index: 60;
+}
+.sync-btn:hover .sync-tip, .sync-btn:focus-visible .sync-tip {
+  opacity: 1; visibility: visible; transform: translateY(0);
+}
 
 /* Avatar tròn + menu tài khoản (chứa Đăng xuất) */
 .topbar-menu { position: relative; }

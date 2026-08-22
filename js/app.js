@@ -339,9 +339,12 @@ async function handleLogout() {
 
 // Làm mới dữ liệu: đẩy hàng đợi + kéo bản mới nhất từ Supabase + vẽ lại
 // (không phải reload cả trang — giữ nguyên vị trí đang xem).
+let manualSyncing = false; // đang chạy làm mới thủ công → nút hiện trạng thái "đang đồng bộ"
 async function handleReload() {
-  const btn = $('#reload-btn');
-  btn.classList.add('spinning');
+  if (manualSyncing) return;
+  manualSyncing = true;
+  updateSyncBadge();                                    // → ↻ đang đồng bộ (xoay)
+  const minSpin = new Promise((r) => setTimeout(r, 550)); // giữ ↻ tối thiểu để thấy hiệu ứng
   try {
     await CRM.flushQueue();
     await CRM.pull();
@@ -349,58 +352,64 @@ async function handleReload() {
     if (!$('#dashboard-view').hidden) renderDashboard();
   } catch (e) {
     console.warn('Làm mới lỗi:', e);
-  } finally {
-    updateSyncBadge();
-    setTimeout(() => btn.classList.remove('spinning'), 500);
   }
+  await minSpin;
+  manualSyncing = false;
+  updateSyncBadge();                                    // → về trạng thái thật (✓ / ⊘ / !)
 }
 
 // ------------------------------------------------------------- SYNC UI ----
 
+// Nút đồng bộ gộp: 4 trạng thái (synced/syncing/offline/error) — icon + màu + tooltip.
+const SYNC_ICON = { synced: '✓', syncing: '↻', offline: '⊘', error: '!' };
+let lastSyncedAt = null, prevSyncState = null;
+function fmtClock(ts) {
+  if (!ts) return '';
+  const d = new Date(ts);
+  return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+}
+
 async function updateSyncBadge() {
   const n = await CRM.pendingCount();
-  const badge = $('#sync-badge');
   const err = CRM.lastSyncError && CRM.lastSyncError();
   const pullErr = CRM.lastPullError && CRM.lastPullError();
-  // Chọn MÀU (xanh/vàng/đỏ) + chữ giải thích (chỉ hiện khi hover qua thuộc tính title).
-  let color, label;
-  if (!CRM.isOnline()) {
-    color = 'sync-red';
-    label = 'Offline' + (n ? ` — ${n} thay đổi chờ` : '');
-  } else if (n > 0 && err) {
-    color = 'sync-red'; // đẩy lên bị lỗi → kẹt, cần xử lý
-    label = `Kẹt đồng bộ (${n}) — chạm để xử lý`;
-  } else if (n > 0) {
-    color = 'sync-yellow';
-    label = `Đang đồng bộ ${n} thay đổi...`;
-  } else if (pullErr) {
-    color = 'sync-yellow'; // đã đẩy hết nhưng chưa KÉO được bản mới nhất → dữ liệu có thể cũ
-    label = 'Chưa tải được bản mới — chạm để thử lại';
-  } else {
-    color = 'sync-green';
-    label = 'Đã đồng bộ';
-  }
-  badge.className = 'sync-badge ' + color;
-  badge.textContent = label;          // để trong DOM cho accessibility; CSS ẩn chữ, chỉ còn chấm
-  badge.title = label;                // hiện chữ khi hover chuột
-  badge.setAttribute('aria-label', label);
+  let state, label;
+  if (manualSyncing) { state = 'syncing'; label = 'Đang đồng bộ...'; }
+  else if (!CRM.isOnline()) { state = 'offline'; label = 'Offline' + (n ? ` — ${n} thay đổi chờ` : ''); }
+  else if (n > 0 && err) { state = 'error'; label = `Kẹt đồng bộ (${n} thay đổi) — chạm để xử lý`; }
+  else if (pullErr) { state = 'error'; label = 'Chưa tải được bản mới — chạm để thử lại'; }
+  else if (n > 0) { state = 'syncing'; label = `Đang đồng bộ ${n} thay đổi...`; }
+  else { state = 'synced'; label = 'Đã đồng bộ'; }
+
+  // Ghi mốc "lần cuối đồng bộ" khi vừa CHUYỂN sang trạng thái đã đồng bộ.
+  if (state === 'synced' && prevSyncState !== 'synced') lastSyncedAt = Date.now();
+  prevSyncState = state;
+
+  const btn = $('#sync-btn');
+  if (!btn) return;
+  btn.className = 'sync-btn sync-' + state;
+  btn.dataset.state = state;
+  btn.querySelector('.sync-ic').textContent = SYNC_ICON[state];
+  const line1 = `${SYNC_ICON[state]} ${label}`;
+  const line2 = lastSyncedAt ? `Lần cuối: ${fmtClock(lastSyncedAt)}` : '';
+  const tip = line2 ? `${line1}\n${line2}` : line1;
+  btn.querySelector('.sync-tip').textContent = tip;
+  btn.setAttribute('aria-label', tip.replace('\n', ' · '));
 }
 window.addEventListener('online', updateSyncBadge);
 window.addEventListener('offline', updateSyncBadge);
 
-// Bấm badge khi đang kẹt → xem lỗi + cho phép xoá thao tác kẹt (escape hatch).
-$('#sync-badge')?.addEventListener('click', async () => {
+// Xử lý trạng thái LỖI: thử đẩy lại; nếu vẫn kẹt → hiện lỗi + cho xoá thao tác kẹt (escape hatch).
+async function handleSyncError() {
   const n = await CRM.pendingCount();
-  // Không còn thao tác chờ đẩy, nhưng lần KÉO gần nhất lỗi → chỉ cần thử tải lại bản mới.
-  if (!n && CRM.lastPullError && CRM.lastPullError()) {
+  if (!n && CRM.lastPullError && CRM.lastPullError()) { // chỉ kẹt ở khâu KÉO → thử tải lại
     await handleReload();
-    if (!(CRM.lastPullError && CRM.lastPullError())) alert('Đã tải được dữ liệu mới nhất.');
-    else alert('Vẫn chưa tải được — kiểm tra lại mạng rồi thử lần nữa.');
+    alert((CRM.lastPullError && CRM.lastPullError()) ? 'Vẫn chưa tải được — kiểm tra lại mạng rồi thử lần nữa.' : 'Đã tải được dữ liệu mới nhất.');
     return;
   }
-  if (!n) return;
+  if (!n) { await handleReload(); return; }
   const err = CRM.lastSyncError && CRM.lastSyncError();
-  await CRM.flushQueue(); // thử đẩy lại 1 lần trước
+  await CRM.flushQueue();
   if ((await CRM.pendingCount()) === 0) { updateSyncBadge(); alert('Đã đồng bộ xong.'); return; }
   const detail = err ? `Lỗi: ${err.message}${err.code ? ' (' + err.code + ')' : ''}\n\n` : '';
   if (confirm(`${detail}Có ${n} thay đổi không đẩy lên server được (đang kẹt).\n\nBỏ qua & xoá các thay đổi kẹt này?\n(Dữ liệu khách đã lưu trên máy vẫn còn — chỉ ngừng cố đẩy các thao tác lỗi. Nếu cần, mở khách đó bấm Lưu để đồng bộ lại.)`)) {
@@ -408,6 +417,14 @@ $('#sync-badge')?.addEventListener('click', async () => {
     await refreshList();
     updateSyncBadge();
   }
+}
+
+// Nút đồng bộ gộp: bấm hành xử theo trạng thái (chỉ gộp UI, logic vẫn là flush/pull/xử-lỗi cũ).
+$('#sync-btn')?.addEventListener('click', () => {
+  const state = $('#sync-btn').dataset.state;
+  if (state === 'syncing') return;              // đang đồng bộ → bỏ qua
+  if (state === 'error') { handleSyncError(); return; } // lỗi → hiện & thử sửa
+  handleReload();                               // synced (làm mới) / offline (thử reconnect)
 });
 
 // -------------------------------------------------------------- LIST ------
@@ -2492,7 +2509,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if ($('#search-input').value.trim() && $('#dashboard-view').hidden === false) showListView();
     renderList();
   });
-  $('#reload-btn').addEventListener('click', handleReload);
   $('#user-menu-btn').addEventListener('click', (e) => {
     e.stopPropagation();
     $('#topbar-menu').classList.toggle('open');

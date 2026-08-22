@@ -57,8 +57,10 @@
         <span>Sổ Khách</span>
       </div>
       <div class="topbar-actions">
-        <span id="sync-badge" class="sync-badge" title="Trạng thái đồng bộ"></span>
-        <button id="reload-btn" class="icon-btn-plain" title="Làm mới dữ liệu" aria-label="Làm mới">↻</button>
+        <button id="sync-btn" class="sync-btn sync-synced" type="button" aria-label="Trạng thái đồng bộ">
+          <span class="sync-ic" aria-hidden="true">✓</span>
+          <span class="sync-tip"></span>
+        </button>
         <div class="topbar-menu" id="topbar-menu">
           <button id="user-menu-btn" class="avatar-btn" aria-label="Tài khoản">?</button>
           <div class="menu-pop">

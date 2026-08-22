@@ -6,6 +6,27 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-22 — Gộp chấm đồng bộ + nút làm mới thành 1 nút trạng thái
+
+Thay `#sync-badge` (chấm màu) + `#reload-btn` (↻) bằng MỘT nút `#sync-btn` phản ánh 4 trạng
+thái (chỉ gộp UI, business logic flush/pull/xử-lỗi giữ nguyên):
+
+| Trạng thái | Icon | Màu | Bấm |
+|---|---|---|---|
+| Synced | ✓ | xanh | làm mới (`handleReload`) |
+| Syncing | ↻ | cam, xoay | vô hiệu (bỏ qua) |
+| Offline | ⊘ | xám | thử reconnect (`handleReload`) |
+| Error | ! | đỏ | hiện & sửa lỗi (`handleSyncError`) |
+
+- Hover hiện tooltip: dòng 1 "✓ Đã đồng bộ", dòng 2 "Lần cuối: HH:MM" (`lastSyncedAt` ghi khi
+  vừa chuyển sang trạng thái đã đồng bộ).
+- Luồng: ✓ xanh → bấm → ↻ xoay (giữ tối thiểu 0.55s) → xong → về ✓ (`manualSyncing`).
+- Nút vẫn hiện ở header thu gọn (đóng vai nút làm mới cũ). Gỡ `.sync-badge`/`.icon-btn-plain`.
+
+File: `index.html`, `css/style.css`, `js/app.js`
+
+---
+
 ## 2026-08-22 — Gesture "Quay lại" của Android: về danh sách thay vì thoát app
 
 App là SPA đổi màn bằng thuộc tính `hidden`, không tích hợp History API → gesture/nút "Quay
