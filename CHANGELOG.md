@@ -6,6 +6,18 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-22 — Sửa panel Bộ lọc/Sắp xếp bị tràn mép phải trên điện thoại
+
+Trên màn hẹp, panel neo `left:0`/`right:0` theo nút nhỏ (lệch trái/phải) bị tràn ra ngoài mép
+phải → che mất mũi tên tăng/giảm và nút "Áp dụng"; panel Bộ lọc thì cắt mất tên bậc dài.
+Khắc phục: thêm `position:relative` cho `.toolbar`; trong `@media (max-width:560px)` cho panel
+neo theo TOOLBAR và trải gần full ngang (`left:16px; right:16px; width:auto`) — không còn tràn.
+Desktop giữ nguyên panel gọn neo theo nút (Sắp xếp canh phải).
+
+File: `css/style.css`
+
+---
+
 ## 2026-08-22 — Nút "Xoá lọc ✕" cạnh dòng đếm khách
 
 Thêm nút **"Xoá lọc ✕"** ngay bên phải dòng "[x] khách hàng"; bấm → đưa bộ lọc nâng cao về

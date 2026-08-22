@@ -202,6 +202,7 @@ input:focus, select:focus, textarea:focus {
   padding: 12px 20px;
   background: var(--panel);
   border-bottom: 1px solid var(--line);
+  position: relative; /* mốc cho panel trải full-width trên mobile (xem @media) */
 }
 .status-select { font-size: 14px; }
 
@@ -225,8 +226,11 @@ input:focus, select:focus, textarea:focus {
   position: absolute; top: calc(100% + 8px); left: 0;
   background: #fff; border: 1px solid var(--line); border-radius: 12px;
   box-shadow: 0 10px 30px rgba(0,0,0,0.16);
-  min-width: 240px; max-width: 88vw; padding: 14px; z-index: 40;
+  min-width: 240px; max-width: 90vw; padding: 14px; z-index: 40;
 }
+/* Panel Sắp xếp neo về MÉP PHẢI của nút (mở sang trái) — nút này lệch phải, nếu neo
+   trái sẽ tràn ra ngoài màn hình điện thoại, che mất mũi tên tăng/giảm + nút Áp dụng. */
+#sort-panel { left: auto; right: 0; }
 .pop-title { font-weight: 700; font-size: 15px; margin-bottom: 10px; color: var(--ink); }
 .pop-group { margin-bottom: 14px; }
 .pop-label { font-size: 12px; font-weight: 700; letter-spacing: 0.02em; color: #8a8a7d; margin-bottom: 8px; text-transform: uppercase; }
@@ -793,5 +797,11 @@ dialog#schedule-modal::backdrop, dialog#call-action-modal::backdrop { background
 
 @media (max-width: 560px) {
   .form-grid { grid-template-columns: 1fr; }
-  .toolbar { position: static; }
+  /* Panel Bộ lọc/Sắp xếp: trải gần full chiều ngang, neo theo TOOLBAR (không theo nút nhỏ
+     lệch trái/phải) → không còn tràn ra ngoài mép, che mất nút tăng/giảm & "Áp dụng". */
+  .tool-pop { position: static; }
+  .pop-panel, #sort-panel {
+    left: 16px; right: 16px; top: calc(100% + 8px);
+    min-width: 0; max-width: none; width: auto;
+  }
 }
