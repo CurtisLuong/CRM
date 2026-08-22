@@ -6,6 +6,19 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-22 — Header thu gọn: animation mượt bằng FLIP
+
+Trước đây chuyển giữa header đầy đủ ↔ thu gọn bị "cứng" vì `display`/`display:contents` đổi
+tức thì (không animate được), khiến ô tìm "nhảy" từ hàng 3 lên hàng 1. Nay dùng kỹ thuật
+**FLIP**: đo vị trí các phần tử "ở lại" (logo, ô tìm, refresh) TRƯỚC khi đổi layout, đổi layout,
+rồi cho chúng **trượt** (transform, ~0.3s ease-out) từ chỗ cũ về chỗ mới → mượt mà. Tôn trọng
+`prefers-reduced-motion` (bỏ animation nếu người dùng tắt hiệu ứng); `will-change` chỉ bật trong
+lúc animate; dọn transform sau khi xong.
+
+File: `css/style.css`, `js/app.js`
+
+---
+
 ## 2026-08-22 — Header tự thu gọn khi cuộn (1 hàng: logo · search · refresh)
 
 - Ở đầu trang: header đầy đủ 3 tầng (logo + "Sổ Khách" + sync + refresh + avatar / tabs / search).

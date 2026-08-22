@@ -163,7 +163,7 @@ input:focus, select:focus, textarea:focus {
 .topbar.collapsed .tab-nav,              /* ẩn tab Khách hàng / Tổng quan */
 .topbar.collapsed #sync-badge,           /* ẩn chấm đồng bộ */
 .topbar.collapsed .topbar-menu { display: none; } /* ẩn avatar/tài khoản */
-.topbar.collapsed .brand-logo { order: 1; height: 34px; }
+.topbar.collapsed .brand-logo { order: 1; }
 .topbar.collapsed .topbar-search-wrap { order: 2; flex: 1 1 auto; }
 .topbar.collapsed #reload-btn { order: 3; }
 

@@ -2546,11 +2546,38 @@ document.addEventListener('DOMContentLoaded', () => {
   // rung ở ranh giới; rAF throttle cho mượt. Đóng panel đang mở khi bắt đầu thu gọn.
   const topbarEl = document.querySelector('.topbar');
   let headerCollapsed = false, scrollTick = false;
+  const prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Đổi trạng thái header có ANIMATION MƯỢT bằng FLIP: đo vị trí các phần tử "ở lại"
+  // (logo, ô tìm, nút refresh) TRƯỚC khi đổi layout, đổi layout, rồi cho chúng trượt
+  // (transform) từ vị trí cũ về vị trí mới — thay vì "nhảy" tức thì.
+  function setHeaderCollapsed(collapsed) {
+    if (collapsed === headerCollapsed) return;
+    if (collapsed) closeToolPops();
+    if (prefersReduced) { headerCollapsed = collapsed; topbarEl.classList.toggle('collapsed', collapsed); return; }
+    const movers = [topbarEl.querySelector('.brand-logo'), topbarEl.querySelector('.topbar-search-wrap'), topbarEl.querySelector('#reload-btn')].filter(Boolean);
+    const first = movers.map((el) => el.getBoundingClientRect()); // vị trí CŨ
+    headerCollapsed = collapsed;
+    topbarEl.classList.toggle('collapsed', collapsed);            // đổi layout (vị trí MỚI)
+    movers.forEach((el, i) => {
+      const f = first[i], l = el.getBoundingClientRect();
+      const dx = f.left - l.left, dy = f.top - l.top;
+      if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) return;
+      el.style.willChange = 'transform';
+      el.style.transition = 'none';
+      el.style.transform = `translate(${dx}px, ${dy}px)`;         // đặt về chỗ cũ
+      void el.offsetWidth;                                        // ép reflow để mốc khởi điểm ăn
+      el.style.transition = 'transform 0.3s cubic-bezier(0.22, 0.61, 0.36, 1)';
+      el.style.transform = 'translate(0, 0)';                     // trượt tới chỗ mới
+      const clear = () => { el.style.transition = ''; el.style.transform = ''; el.style.willChange = ''; el.removeEventListener('transitionend', clear); };
+      el.addEventListener('transitionend', clear);
+    });
+  }
   function applyHeaderState() {
     scrollTick = false;
     const y = window.scrollY || 0;
-    if (!headerCollapsed && y > 48) { headerCollapsed = true; topbarEl.classList.add('collapsed'); closeToolPops(); }
-    else if (headerCollapsed && y < 16) { headerCollapsed = false; topbarEl.classList.remove('collapsed'); }
+    if (!headerCollapsed && y > 48) setHeaderCollapsed(true);
+    else if (headerCollapsed && y < 16) setHeaderCollapsed(false);
   }
   window.addEventListener('scroll', () => {
     if (!scrollTick) { scrollTick = true; requestAnimationFrame(applyHeaderState); }
