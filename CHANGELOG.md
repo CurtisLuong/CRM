@@ -10,7 +10,7 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 Trước đây chuyển giữa header đầy đủ ↔ thu gọn bị "cứng" vì `display`/`display:contents`/đổi
 `flex-direction` đổi tức thì (không animate được). Nay bỏ hẳn cách đó, chuyển sang **morph
-liên tục 100% bằng CSS transition** (0.5s):
+liên tục 100% bằng CSS transition** (~0.4s):
 - **Ô tìm** đặt `position:absolute`, trượt bằng `top/left/right` (đầy đủ = hàng 3 rộng hết → thu
   gọn = giữa logo và refresh). Vì đổi inset thay vì scale → **co bề rộng mượt, không méo chữ**.
 - **Chữ "Sổ Khách" / tabs / sync / avatar** fade (`opacity`) + co (`max-width`/`max-height`)
@@ -18,7 +18,7 @@ liên tục 100% bằng CSS transition** (0.5s):
 - Header `padding`/`gap` cũng transition; chừa `padding-bottom` ở trạng thái đầy đủ cho ô tìm
   absolute. Tôn trọng `prefers-reduced-motion`. Không còn dùng JS transform/FLIP — JS chỉ
   bật/tắt class `.collapsed`.
-- Thời lượng kéo dài 0.3s → **0.5s** cho đỡ gấp.
+- Thời lượng: **0.4s** (chữ/tabs fade 0.3s).
 
 File: `css/style.css`, `js/app.js`
 
