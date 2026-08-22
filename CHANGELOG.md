@@ -6,6 +6,36 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-22 — Cổng thông báo trong app (Tầng 1: chuông + badge, chưa push)
+
+Thêm "cổng thông báo" (notification engine) — 1 chỗ DUY NHẤT định nghĩa "khi nào nhắc sale
+điều gì", để dễ thêm rule mới về sau. Đây là **Tầng 1** (in-app, KHÔNG cần backend): chỉ báo
+khi app đang mở/mở lại. Push thật (kêu khi app đóng) là Tầng 2 — cần Cloudflare Worker + cron,
+để dành sau.
+
+- **File mới `js/notifications.js`** — bộ máy `window.NOTIF`. Mỗi rule là 1 hàm thuần
+  `evaluate(khách, now) → {level,title,body,sortAt}|null`; thêm rule = thêm 1 `registerRule({...})`,
+  không đụng `app.js`. `NOTIF.compute(khách)` chạy mọi rule → trả danh sách đã sort (gấp trước).
+- **`lastInteractionAt(khách)`** — MỘT hàm duy nhất cho "mốc liên hệ cuối": max của
+  `care_stage_updated_at`, note mới nhất `care_stage_history`, note mới nhất `notes_manual`
+  (đổi/ghi care stage + thêm ghi chú hồ sơ). Sau này thêm "nhiều note/1 stage" chỉ sửa hàm này.
+- **2 rule hiện có:**
+  - `call_due` (🔴 urgent): đã tới khung `next_call_at`→`next_call_end` (+30' ân hạn) → "Đến giờ
+    gọi"; quá ân hạn mà chưa xác nhận đã gọi → "Quên gọi". Chưa tới giờ → không vào chuông.
+  - `hot_idle` (🟠 warn): `interest_level ≥ 60` và `≥ 7 ngày` chưa liên hệ, khách chưa kết thúc.
+  - Ngưỡng chỉnh ở `NOTIF_CONFIG` đầu file.
+- **UI:** nút chuông 🔔 đặt giữa nút sync và avatar (vẫn hiện ở header thu gọn), có chấm đỏ + số.
+  Bấm → panel xổ danh sách; bấm 1 dòng → `openDetail()` về trang khách đó. Panel & chuông đóng
+  khi bấm ra ngoài / mở popup còn lại.
+- **App badge:** `navigator.setAppBadge(tổng số)` / `clearAppBadge()` (có kiểm tra hỗ trợ) — số
+  đỏ trên icon PWA. Badge là 1 con số chung của HĐH (không tô màu riêng từng loại).
+- Tính lại trong `refreshList()` (dữ liệu đổi) + `setInterval` 30s ("đến giờ gọi" tự nổi theo giờ).
+- **`sw.js`:** thêm `/js/notifications.js` vào `APP_SHELL`, **bump `CACHE_NAME` v5→v6** (bẫy #4).
+
+File: `js/notifications.js` (mới), `index.html`, `css/style.css`, `js/app.js`, `sw.js`
+
+---
+
 ## 2026-08-22 — Gộp chấm đồng bộ + nút làm mới thành 1 nút trạng thái
 
 Thay `#sync-badge` (chấm màu) + `#reload-btn` (↻) bằng MỘT nút `#sync-btn` phản ánh 4 trạng

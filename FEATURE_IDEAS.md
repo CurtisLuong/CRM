@@ -70,10 +70,21 @@ Chưa cái nào được làm. Sắp xếp thô theo mức độ nên làm sớm
   Capacitor/TWA + viết plugin native đọc call log của đúng SĐT khách, tự điền
   timestamp + duration vào ghi chú. Là thay đổi kiến trúc lớn — chỉ làm khi
   Curtis xác nhận rõ muốn.
+<!-- ĐÃ LÀM 2026-08-22 (Tầng 1): Cổng thông báo IN-APP — chuông 🔔 cạnh avatar +
+     app badge, tính từ js/notifications.js (rule call_due + hot_idle). CHỈ báo khi
+     app đang mở/mở lại. Xem CHANGELOG. Thêm rule mới = thêm 1 registerRule({...}). -->
+- **PUSH thật (Tầng 2) — nhắc khi app ĐÓNG, qua Web Push + Cloudflare Worker cron.**
+  Nối tiếp cổng thông báo Tầng 1 (đã có `js/notifications.js`): để điện thoại kêu
+  khi chưa mở app, cần backend chạy nền. Kế hoạch: bảng `push_subscriptions` +
+  `notifications_log` (chống báo trùng) + RLS, cặp VAPID key, client xin quyền +
+  `subscribe`, `sw.js` thêm `push`/`notificationclick`, và **Cron Trigger** trên
+  Worker (đã có `worker/intake-worker.js`) dùng LẠI đúng các rule của Tầng 1.
+  Chỗ khó nhất: mã hoá web-push (VAPID JWT + AES128GCM) bằng WebCrypto trong Worker.
 - **Tự động nhắc qua Telegram/Zalo OA khi có khách quá hạn follow-up.**
   Curtis đã có kinh nghiệm với Telegram bot (Telethon) ở các dự án khác —
   có thể tái dùng pattern đó, nhưng cần 1 backend nhỏ (Cloudflare Worker
   cron) để kiểm tra định kỳ và gửi thông báo, vì hiện tại app hoàn toàn
-  client-side, không có gì chạy nền khi tắt trình duyệt.
+  client-side, không có gì chạy nền khi tắt trình duyệt. (Cùng hạ tầng cron với
+  Tầng 2 push ở trên — có thể làm chung.)
 - **Multi-tenant thật sự (bán cho sale khác dùng).** Ngoài phạm vi hiện
   tại — dự án đang thiết kế cho 1 nhóm nhỏ dùng nội bộ, không phải SaaS.

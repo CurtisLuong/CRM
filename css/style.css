@@ -261,6 +261,51 @@ input:focus, select:focus, textarea:focus {
 .menu-item { display: block; width: 100%; text-align: left; border: none; background: transparent; font: inherit; font-size: 14px; color: var(--ink); padding: 10px 12px; border-radius: 6px; cursor: pointer; }
 .menu-item:hover { background: var(--paper); }
 
+/* ─── CHUÔNG THÔNG BÁO (kế avatar) ───────────────────────────────────────
+   Nút giống nút sync (34x34) + chấm đỏ đếm số ở góc. Panel xổ xuống liệt kê
+   thông báo; bấm 1 dòng → về trang khách. Vẫn hiện ở header thu gọn. */
+.notif-wrap { position: relative; display: inline-flex; flex: none; }
+.notif-btn {
+  position: relative;
+  width: 34px; height: 34px; border-radius: 8px; cursor: pointer;
+  border: 1px solid rgba(255,255,255,0.22); background: transparent;
+  display: inline-flex; align-items: center; justify-content: center; padding: 0;
+}
+.notif-btn:hover { background: rgba(255,255,255,0.10); }
+.notif-ic { display: inline-flex; width: 22px; height: 22px; color: #EEECE7; }
+.notif-ic svg { width: 100%; height: 100%; display: block; }
+/* Chấm đỏ + số. Đỏ = có việc gấp (đến giờ gọi / quên gọi / khách nóng cần nhắc). */
+.notif-dot {
+  position: absolute; top: -5px; right: -5px; min-width: 17px; height: 17px;
+  padding: 0 4px; border-radius: 9px; background: #ec5b4c; color: #fff;
+  font-size: 11px; font-weight: 700; line-height: 17px; text-align: center;
+  border: 1.5px solid var(--teal, #1A2E29); box-sizing: content-box;
+}
+.notif-pop {
+  display: none; position: absolute; right: 0; top: calc(100% + 8px);
+  background: #fff; border: 1px solid var(--line); border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.16); width: 320px; max-width: 86vw;
+  padding: 6px; z-index: 60;
+}
+.notif-wrap.open .notif-pop { display: block; }
+.notif-pop-head { font-size: 12px; font-weight: 700; color: #6b6b60; padding: 8px 12px 10px; border-bottom: 1px solid var(--line); }
+.notif-list { max-height: 60vh; overflow-y: auto; padding-top: 4px; }
+.notif-empty { font-size: 13px; color: #8a8a7e; padding: 18px 12px; text-align: center; }
+.notif-item {
+  display: block; width: 100%; text-align: left; border: none; background: transparent;
+  font: inherit; cursor: pointer; padding: 9px 10px 9px 12px; border-radius: 8px;
+  border-left: 3px solid transparent; margin-bottom: 2px;
+}
+.notif-item:hover { background: var(--paper); }
+.notif-item.level-urgent { border-left-color: #ec5b4c; }
+.notif-item.level-warn { border-left-color: #e0912f; }
+.notif-item-top { display: flex; align-items: baseline; gap: 6px; }
+.notif-item-title { font-size: 13px; font-weight: 700; color: var(--ink); }
+.notif-item.level-urgent .notif-item-title { color: #cf4436; }
+.notif-item.level-warn .notif-item-title { color: #b9741d; }
+.notif-item-name { font-size: 13px; color: var(--ink); font-weight: 600; }
+.notif-item-body { font-size: 12px; color: #6b6b60; margin-top: 2px; }
+
 @media (max-width: 560px) {
   .topbar-brand { font-size: 19px; }
 }

@@ -441,6 +441,50 @@ async function refreshList() {
   allCustomers = await CRM.list();
   renderList();
   updateSyncBadge();
+  renderNotifications();
+}
+
+// ─── CHUÔNG THÔNG BÁO ───────────────────────────────────────────────────────
+// Tính lại danh sách thông báo từ "cổng" NOTIF (xem js/notifications.js), cập
+// nhật chấm đỏ + số, đặt badge trên icon app (PWA), và vẽ panel xổ xuống.
+// Gọi mỗi khi dữ liệu đổi (refreshList) và định kỳ (setInterval) để "đến giờ
+// gọi" tự nổi lên theo thời gian mà không cần thao tác.
+let _notifCache = [];
+function renderNotifications() {
+  if (!window.NOTIF) return;
+  const items = NOTIF.compute(allCustomers);
+  _notifCache = items;
+  const n = items.length;
+
+  // Chấm đỏ + số trên chuông
+  const dot = $('#notif-dot');
+  if (dot) {
+    dot.textContent = n > 99 ? '99+' : String(n);
+    dot.hidden = n === 0;
+  }
+
+  // Badge trên icon app (PWA). Chỉ có ở một số trình duyệt → phải kiểm tra.
+  if ('setAppBadge' in navigator) {
+    if (n > 0) navigator.setAppBadge(n).catch(() => {});
+    else navigator.clearAppBadge().catch(() => {});
+  }
+
+  // Danh sách trong panel
+  const list = $('#notif-list');
+  if (list) {
+    if (n === 0) {
+      list.innerHTML = '<div class="notif-empty">Không có thông báo 👍</div>';
+    } else {
+      list.innerHTML = items.map((it) => `
+        <button class="notif-item level-${it.level}" data-notif-open="${escapeHtml(it.customerId)}">
+          <div class="notif-item-top">
+            <span class="notif-item-title">${escapeHtml(it.title)}</span>
+            <span class="notif-item-name">${escapeHtml(it.customerName)}</span>
+          </div>
+          <div class="notif-item-body">${escapeHtml(it.body)}</div>
+        </button>`).join('');
+    }
+  }
 }
 
 function normalizePhone(p) {
@@ -2052,6 +2096,7 @@ setInterval(() => {
     const c = allCustomers.find((x) => x.id === detailId);
     if (c) renderDetailCall(c);
   }
+  renderNotifications(); // "đến giờ gọi" tự nổi lên theo thời gian + cập nhật badge
 }, 30000);
 
 // ---------------------------------------------------------- DASHBOARD -----
@@ -2523,6 +2568,22 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   document.addEventListener('click', (e) => {
     if (!e.target.closest('#topbar-menu')) $('#topbar-menu').classList.remove('open');
+  });
+
+  // --- Chuông thông báo: mở/đóng panel, bấm 1 dòng → về trang khách đó ---
+  $('#notif-btn')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    $('#topbar-menu').classList.remove('open'); // 2 popup không mở cùng lúc
+    $('#notif-wrap').classList.toggle('open');
+  });
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('#notif-wrap')) $('#notif-wrap').classList.remove('open');
+  });
+  $('#notif-list')?.addEventListener('click', (e) => {
+    const item = e.target.closest('[data-notif-open]');
+    if (!item) return;
+    $('#notif-wrap').classList.remove('open');
+    openDetail(item.dataset.notifOpen);
   });
   // --- Lọc trạng thái (inline, áp ngay) ---
   $('#filter-progress').addEventListener('change', renderList);
