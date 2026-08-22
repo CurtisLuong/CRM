@@ -361,7 +361,15 @@ async function handleReload() {
 // ------------------------------------------------------------- SYNC UI ----
 
 // Nút đồng bộ gộp: 4 trạng thái (synced/syncing/offline/error) — icon + màu + tooltip.
-const SYNC_ICON = { synced: '✓', syncing: '↻', offline: '⊘', error: '!' };
+// Icon bộ "đặc" (solid): đĩa màu (currentColor theo trạng thái) + ký hiệu trắng.
+const SYNC_SVG = {
+  synced: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="currentColor"/><path d="M7.4 12.4l3 3 6.1-6.7" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  syncing: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="currentColor"/><path d="M16.8 12a4.8 4.8 0 1 1-1.4-3.4" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/><path d="M16.9 7.4v3.1h-3.1" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  offline: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="currentColor"/><path d="M8 8l8 8" fill="none" stroke="#243029" stroke-width="2.3" stroke-linecap="round"/></svg>',
+  error: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="currentColor"/><path d="M12 6.6v7" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round"/><circle cx="12" cy="17.4" r="1.3" fill="#fff"/></svg>',
+};
+// Glyph nhỏ dùng trong CHỮ tooltip (không phải icon nút).
+const SYNC_GLYPH = { synced: '✓', syncing: '↻', offline: '⊘', error: '!' };
 let lastSyncedAt = null, prevSyncState = null;
 function fmtClock(ts) {
   if (!ts) return '';
@@ -389,8 +397,8 @@ async function updateSyncBadge() {
   if (!btn) return;
   btn.className = 'sync-btn sync-' + state;
   btn.dataset.state = state;
-  btn.querySelector('.sync-ic').textContent = SYNC_ICON[state];
-  const line1 = `${SYNC_ICON[state]} ${label}`;
+  btn.querySelector('.sync-ic').innerHTML = SYNC_SVG[state];
+  const line1 = `${SYNC_GLYPH[state]} ${label}`;
   const line2 = lastSyncedAt ? `Lần cuối: ${fmtClock(lastSyncedAt)}` : '';
   const tip = line2 ? `${line1}\n${line2}` : line1;
   btn.querySelector('.sync-tip').textContent = tip;

@@ -22,6 +22,9 @@ thái (chỉ gộp UI, business logic flush/pull/xử-lỗi giữ nguyên):
   vừa chuyển sang trạng thái đã đồng bộ).
 - Luồng: ✓ xanh → bấm → ↻ xoay (giữ tối thiểu 0.55s) → xong → về ✓ (`manualSyncing`).
 - Nút vẫn hiện ở header thu gọn (đóng vai nút làm mới cũ). Gỡ `.sync-badge`/`.icon-btn-plain`.
+- Icon: dùng bộ **SVG "đặc" (solid)** — đĩa màu theo trạng thái + ký hiệu trắng (check / mũi tên
+  vòng / gạch chéo / chấm than), hợp tông con dấu của app; thay bộ glyph text ✓↻⊘! ban đầu.
+  (Glyph text vẫn dùng trong CHỮ tooltip.)
 
 File: `index.html`, `css/style.css`, `js/app.js`
 
