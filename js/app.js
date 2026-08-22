@@ -2665,7 +2665,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function setHeaderCollapsed(collapsed) {
     if (collapsed === headerCollapsed) return;
     headerCollapsed = collapsed;
-    if (collapsed) closeToolPops();
+    if (collapsed) { closeToolPops(); $('#notif-wrap')?.classList.remove('open'); } // chuông bị ẩn khi thu gọn → đóng panel kèm
     topbarEl.classList.toggle('collapsed', collapsed);
   }
   function applyHeaderState() {

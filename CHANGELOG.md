@@ -24,9 +24,10 @@ khi app đang mở/mở lại. Push thật (kêu khi app đóng) là Tầng 2 �
     gọi"; quá ân hạn mà chưa xác nhận đã gọi → "Quên gọi". Chưa tới giờ → không vào chuông.
   - `hot_idle` (🟠 warn): `interest_level ≥ 60` và `≥ 7 ngày` chưa liên hệ, khách chưa kết thúc.
   - Ngưỡng chỉnh ở `NOTIF_CONFIG` đầu file.
-- **UI:** nút chuông 🔔 đặt giữa nút sync và avatar (vẫn hiện ở header thu gọn), có chấm đỏ + số.
-  Bấm → panel xổ danh sách; bấm 1 dòng → `openDetail()` về trang khách đó. Panel & chuông đóng
-  khi bấm ra ngoài / mở popup còn lại.
+- **UI:** nút chuông 🔔 đặt giữa nút sync và avatar, có chấm đỏ + số. Bấm → panel xổ danh sách;
+  bấm 1 dòng → `openDetail()` về trang khách đó. Panel & chuông đóng khi bấm ra ngoài / mở popup
+  còn lại. **Header thu gọn:** chuông ẩn đi (giống avatar) — nếu để lại sẽ chiếm chỗ đẩy nút sync
+  lệch sang trái, chìm dưới ô tìm; chỉ còn logo · ô tìm · sync như trước.
 - **App badge:** `navigator.setAppBadge(tổng số)` / `clearAppBadge()` (có kiểm tra hỗ trợ) — số
   đỏ trên icon PWA. Badge là 1 con số chung của HĐH (không tô màu riêng từng loại).
 - Tính lại trong `refreshList()` (dữ liệu đổi) + `setInterval` 30s ("đến giờ gọi" tự nổi theo giờ).

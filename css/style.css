@@ -152,7 +152,7 @@ input:focus, select:focus, textarea:focus {
 /* Các phần tử sẽ FADE + CO mượt khi thu gọn */
 .topbar-brand span { overflow: hidden; max-width: 260px; }
 .tab-nav { overflow: hidden; max-height: 60px; }
-.topbar-brand span, .topbar .tab-nav, .topbar-menu {
+.topbar-brand span, .topbar .tab-nav, .topbar-menu, .notif-wrap {
   transition: opacity 0.2s ease, max-width 0.3s cubic-bezier(0.4,0,0.2,1),
               max-height 0.3s cubic-bezier(0.4,0,0.2,1), margin 0.3s cubic-bezier(0.4,0,0.2,1);
 }
@@ -172,6 +172,8 @@ input:focus, select:focus, textarea:focus {
 .topbar.collapsed .tab-nav { max-height: 0; opacity: 0; margin: 0; }
 .topbar.collapsed .topbar-actions { gap: 0; }
 .topbar.collapsed .topbar-menu { max-width: 0; opacity: 0; margin: 0; overflow: hidden; }
+/* Chuông thông báo ẩn khi thu gọn (giống avatar) — tránh chiếm chỗ đẩy nút sync lệch. */
+.topbar.collapsed .notif-wrap { max-width: 0; opacity: 0; margin: 0; overflow: hidden; pointer-events: none; }
 /* Nút đồng bộ (#sync-btn) VẪN hiện ở header thu gọn — nó đóng vai nút làm mới. */
 
 @media (prefers-reduced-motion: reduce) {
