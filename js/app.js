@@ -284,7 +284,26 @@ function showDetailScreen() {
   $('#auth-screen').hidden = true;
   $('#app-screen').hidden = true;
   $('#detail-screen').hidden = false;
+  // Đẩy 1 entry vào lịch sử trình duyệt để nút/gesture "Quay lại" của Android đóng màn chi
+  // tiết (về danh sách) thay vì THOÁT APP. Chỉ đẩy khi mới vào chi tiết (không đẩy khi vẽ lại).
+  if (!history.state || history.state.screen !== 'detail') {
+    history.pushState({ screen: 'detail' }, '');
+  }
 }
+
+// Đóng màn chi tiết về danh sách. Nếu đang có entry 'detail' trong history → lùi history
+// (→ sự kiện popstate sẽ đóng, giữ history đồng bộ). Nếu không → đóng trực tiếp.
+function closeDetailToList() {
+  detailId = null;
+  if (history.state && history.state.screen === 'detail') history.back();
+  else showAppScreen();
+}
+
+// Gesture/nút "Quay lại" của Android/trình duyệt → nếu đang ở màn chi tiết thì về danh sách.
+// (Các <dialog> native như form/lịch/xem ảnh được trình duyệt tự đóng bằng back, không tới đây.)
+window.addEventListener('popstate', () => {
+  if (!$('#detail-screen').hidden) { detailId = null; showAppScreen(); }
+});
 
 async function handleLogin(e) {
   e.preventDefault();
@@ -983,7 +1002,7 @@ async function confirmDelete(id) {
   if (!confirm(`Xoá khách "${c?.full_name || ''}"? Không thể hoàn tác.`)) return;
   await CRM.remove(id);
   closeForm();
-  if (detailId === id) { detailId = null; showAppScreen(); } // đang xem chi tiết khách này → về danh sách
+  if (detailId === id) closeDetailToList(); // đang xem chi tiết khách này → về danh sách (đồng bộ history)
   await refreshList();
 }
 
@@ -2376,7 +2395,7 @@ document.addEventListener('DOMContentLoaded', () => {
   $('#add-customer-btn').addEventListener('click', () => openForm(null));
   $('#tab-list').addEventListener('click', showListView);
   $('#tab-dashboard').addEventListener('click', showDashboardView);
-  $('#detail-back-btn').addEventListener('click', () => { detailId = null; showAppScreen(); });
+  $('#detail-back-btn').addEventListener('click', closeDetailToList);
   $('#detail-edit-btn').addEventListener('click', () => { if (detailId) openForm(detailId); });
   $('#detail-schedule-btn').addEventListener('click', () => { if (detailId) openScheduler(detailId); });
   $('#detail-callclear-btn').addEventListener('click', async () => {

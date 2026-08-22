@@ -6,6 +6,21 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-22 — Gesture "Quay lại" của Android: về danh sách thay vì thoát app
+
+App là SPA đổi màn bằng thuộc tính `hidden`, không tích hợp History API → gesture/nút "Quay
+lại" của Android (PWA) không có gì để lùi, ở màn CHI TIẾT khách thì back = THOÁT APP. Sửa:
+- Vào màn chi tiết → `history.pushState({screen:'detail'})` (chỉ đẩy khi mới vào, không đẩy
+  khi vẽ lại → không phình history).
+- Nghe `popstate`: nếu đang ở màn chi tiết → về danh sách (`showAppScreen`), KHÔNG thoát.
+- Nút "← Quay lại" và xoá-khách-đang-xem → `closeDetailToList()` (lùi history nếu đang có
+  entry 'detail' → đồng bộ, tránh lệch history).
+- Các `<dialog>` native (form/lịch/xem ảnh) vốn được trình duyệt tự đóng bằng back.
+
+File: `js/app.js`
+
+---
+
 ## 2026-08-22 — Fix: header nhấp nháy khi dừng ở ngưỡng chuyển full↔collapsed
 
 Khi dừng cuộn ngay điểm chuyển trạng thái, header dao động qua lại liên tục (nhấp nháy). Nguyên
