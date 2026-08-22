@@ -6,25 +6,25 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
-## 2026-08-22 — Logo mới (vòng tròn + người + dấu tích) gắn khắp app
+## 2026-08-22 — Logo chính thức (icons/logo.svg) gắn khắp app
 
-Dựng lại logo theo mẫu: vòng tròn viền + hình người + dấu tích đỏ. 2 file SVG nguồn (sắc nét,
-nhẹ, scale mọi cỡ):
-- `icons/logo-mark.svg` — mark trong suốt (dùng trên nền tối: header, splash).
-- `icons/logo-icon.svg` — mark trên nền xanh đậm `#0F1F1C` bo góc (favicon SVG, login, nguồn
-  xuất PNG app icon).
+Dùng `logo.svg` (bản vector polished trong `backup icons`) làm logo CHÍNH: nền vuông xanh
+`#1A2C27` + vòng tròn/người cream `#EEECE7` + dấu tích đỏ `#A64737`. Đã strip 15KB metadata
+C2PA → còn ~2.6KB. Đặt tại `icons/logo.svg`.
 
-Xuất PNG từ SVG bằng QuickLook (`qlmanage`) vì máy không có rsvg/imagemagick:
+Xuất PNG từ logo.svg bằng QuickLook (`qlmanage`, máy không có rsvg/imagemagick):
 `app-icon-192/512.png`, `apple-touch-icon.png` (180), `favicon-32.png`.
 
-Gắn logo vào:
-- **Header**: `[logo] Sổ Khách` (mark cream trên nền teal).
-- **Login**: badge logo (nền tối bo góc) trên form đăng nhập.
-- **Splash/Loading**: màn tải mới `#splash` (logo + "Sổ Khách" + 3 chấm đỏ nhấp nháy + "Đang
-  tải dữ liệu..."), ẩn khi app/đăng nhập sẵn sàng (`hideSplash`), có lưới an toàn 8s.
-- **Favicon**: SVG (`logo-icon.svg`) + PNG 32 fallback.
-- **App icon (PWA)**: `app-icon-192/512.png` (manifest) + `apple-touch-icon.png`.
-- Thêm 2 SVG vào `APP_SHELL`, tăng `CACHE_NAME` v3 → **v4**.
+Gắn `logo.svg` vào mọi vị trí:
+- **Header**: `[logo] Sổ Khách` — nền vuông logo (`#1A2C27`) hoà gần khít vào teal header (`#1A2E29`).
+- **Login**: badge logo bo góc trên form đăng nhập.
+- **Splash/Loading**: màn tải `#splash` (logo + "Sổ Khách" + 3 chấm đỏ nhấp nháy + "Đang tải
+  dữ liệu..."); nền splash đặt `#1A2C27` trùng logo để mark như nổi. Ẩn khi app sẵn sàng
+  (`hideSplash`), lưới an toàn 8s.
+- **Favicon**: `logo.svg` + PNG 32 fallback.
+- **App icon (PWA)**: `app-icon-192/512.png` + `apple-touch-icon.png`.
+- Xoá 2 SVG tạm cũ (`logo-mark.svg`, `logo-icon.svg`); `APP_SHELL` dùng `logo.svg`, tăng
+  `CACHE_NAME` v4 → **v5**.
 
 File: `index.html`, `css/style.css`, `js/app.js`, `sw.js`, `icons/*`
 
