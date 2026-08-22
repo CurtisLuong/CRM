@@ -2576,20 +2576,34 @@ document.addEventListener('DOMContentLoaded', () => {
   // FIX Android/Chrome: gõ tìm khi header đang THU GỌN, bàn phím ảo đổi viewport làm header
   // sticky (ô tìm absolute) "biến mất", không thấy từ khoá. Cách xử: NGAY KHI ô tìm có ký tự
   // → BUNG header đầy đủ + về đầu trang, và giữ vậy tới khi ô trống lại / rời ô tìm.
+  let savedScrollY = null; // vị trí cuộn TRƯỚC khi bắt đầu gõ tìm (để khôi phục khi xoá hết)
   function maybeExpandForSearch() {
-    if (searchQueryActive() && headerCollapsed) {
-      setHeaderCollapsed(false);
+    const hasText = !!searchInputEl && searchInputEl.value.trim() !== '';
+    if (hasText) {
+      // Có ký tự: lần ĐẦU rời khỏi vị trí đang xem → lưu vị trí cuộn, rồi bung + về đầu trang.
+      if (savedScrollY === null) savedScrollY = window.scrollY || 0;
+      if (headerCollapsed) setHeaderCollapsed(false);
       if (window.scrollY > 0) window.scrollTo(0, 0);
+    } else if (savedScrollY !== null) {
+      // Xoá hết ký tự → quay lại đúng vị trí cuộn đã lưu lúc bắt đầu gõ.
+      const target = savedScrollY; savedScrollY = null;
+      // Đưa header về đúng trạng thái ứng với vị trí khôi phục KHÔNG animation trước, rồi mới
+      // scroll — vì header sticky chiếm chỗ trong luồng, đổi chiều cao lúc đang cuộn sẽ làm
+      // vị trí bị lệch (clamp). Tắt transition tạm → đổi tức thì → chiều cao khớp → cuộn chuẩn.
+      topbarEl.classList.add('no-anim');
+      setHeaderCollapsed(target > 48);
+      void topbarEl.offsetHeight; // ép reflow để chiều cao mới ăn ngay
+      window.scrollTo(0, target);
+      requestAnimationFrame(() => topbarEl.classList.remove('no-anim'));
+    } else {
+      applyHeaderState(); // rỗng ngay từ đầu (chưa từng gõ) → theo cuộn bình thường
     }
   }
   if (searchInputEl) {
-    // KHÔNG bung khi mới focus (ô còn rỗng) — chỉ đánh dấu đang focus.
+    // KHÔNG bung khi mới focus mà ô còn rỗng — chỉ bung khi thực sự CÓ ký tự (xem maybeExpandForSearch).
     searchInputEl.addEventListener('focus', () => { searchFocused = true; maybeExpandForSearch(); });
     searchInputEl.addEventListener('blur', () => { searchFocused = false; applyHeaderState(); });
-    searchInputEl.addEventListener('input', () => {
-      if (searchQueryActive()) maybeExpandForSearch(); // có ký tự → bung + về đầu
-      else applyHeaderState();                          // xoá hết ký tự → theo cuộn (giữ thu gọn)
-    });
+    searchInputEl.addEventListener('input', maybeExpandForSearch);
   }
 
   if ('serviceWorker' in navigator) {

@@ -9,11 +9,16 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 ## 2026-08-22 — Fix: gõ tìm khi header thu gọn làm header biến mất (Android/Chrome)
 
 Khi header đang THU GỌN mà chạm ô tìm để gõ, bàn phím ảo Android đổi viewport khiến header
-sticky (ô tìm `position:absolute`) biến mất → không thấy từ khoá đang gõ. Xử: chỉ khi ô tìm
-**CÓ ký tự** (đang gõ) mới **bung header đầy đủ + về đầu trang + khoá không thu gọn**; giữ vậy
-tới khi ô trống lại. Focus mà ô còn RỖNG (chưa nhập / đã xoá hết) → vẫn thu gọn bình thường,
-KHÔNG nhảy về đầu (theo yêu cầu). (`searchQueryActive()` = focus && có ký tự, dùng trong
-`applyHeaderState` + listener focus/blur/input trên `#search-input`.)
+sticky (ô tìm `position:absolute`) biến mất → không thấy từ khoá đang gõ. Xử:
+- Chỉ khi ô tìm **CÓ ký tự** (đang gõ) mới **LƯU vị trí cuộn hiện tại**, rồi **bung header đầy
+  đủ + về đầu trang + khoá không thu gọn**. Focus mà ô còn RỖNG (chưa nhập / đã xoá hết) → vẫn
+  thu gọn bình thường, KHÔNG nhảy về đầu.
+- **Xoá hết ký tự → khôi phục ĐÚNG vị trí cuộn đã lưu** lúc bắt đầu gõ. Vì header sticky chiếm
+  chỗ trong luồng (đổi chiều cao làm lệch cuộn), khi khôi phục sẽ đổi trạng thái header **tức
+  thì (tắt transition tạm bằng class `.no-anim`)** rồi mới scroll → về đúng chỗ, không lệch.
+
+(`searchQueryActive()` = focus && có ký tự; `savedScrollY` lưu/khôi phục; listener
+focus/blur/input trên `#search-input`.)
 
 File: `js/app.js`
 
