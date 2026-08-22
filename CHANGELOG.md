@@ -6,6 +6,26 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-22 — Thêm List view (dòng gọn) cho danh sách khách + nút đổi kiểu xem
+
+Bổ sung kiểu xem DÒNG GỌN bên cạnh card view sẵn có (để lướt nhanh khi khách nhiều). Mỗi dòng
+hiện đúng thứ tự: **Tên · SĐT + nút gọi/Zalo · Loại căn · Quan tâm** (field null → bỏ, để trống).
+
+- Nút đổi kiểu xem `#view-toggle` (icon `.tool-icon-btn`) trong toolbar, cạnh nút Sắp xếp. Hiện
+  icon của kiểu SẼ chuyển sang (≡ = sang list, ▭▭ = về card) + tooltip. Lựa chọn lưu
+  `localStorage['crm_view_mode']` → nhớ qua các lần mở.
+- `renderList()` rẽ nhánh theo `viewMode`: mode `list` render `.cust-row`, thêm class
+  `.list-mode` cho `#customer-list` (bỏ lưới card → xếp dọc 1 cột). Dùng LẠI class nút gọi/Zalo
+  (`.card-phone/.card-zalo`) và màu quan tâm (`.ti-*`) của card. Không SĐT → bỏ hẳn dòng SĐT;
+  không căn & không quan tâm → bỏ dòng meta.
+- Handler click của `#customer-list` khớp thêm `.cust-row` (bấm dòng → `openDetail`; bấm nút
+  gọi/Zalo → link chạy bình thường). Không cần đổi `sw.js` (không thêm file mới; app.js/css
+  network-first tự lấy bản mới).
+
+File: `index.html`, `css/style.css`, `js/app.js`
+
+---
+
 ## 2026-08-22 — Cổng thông báo trong app (Tầng 1: chuông + badge, chưa push)
 
 Thêm "cổng thông báo" (notification engine) — 1 chỗ DUY NHẤT định nghĩa "khi nào nhắc sale

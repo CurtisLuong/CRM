@@ -181,6 +181,11 @@ let projManageMode = false;     // đang bật chế độ xoá dự án
 const LS_PROJ_CACHE = 'crm_project_options';   // cache đọc offline
 const LS_LAST_PROJECTS = 'crm_last_projects';  // lựa chọn gần nhất → mặc định khách mới
 const LS_LAST_USER = 'crm_last_user';          // {id,email} người dùng đăng nhập gần nhất (cho chế độ offline)
+const LS_VIEW_MODE = 'crm_view_mode';          // 'card' | 'list' — kiểu hiển thị danh sách khách
+
+// Kiểu xem danh sách: 'card' (thẻ đầy đủ, mặc định) hoặc 'list' (dòng gọn để lướt nhanh
+// khi khách nhiều). Đọc lựa chọn cũ từ localStorage.
+let viewMode = (localStorage.getItem(LS_VIEW_MODE) === 'list') ? 'list' : 'card';
 
 // Người dùng đã đăng nhập gần nhất (để vào app xem dữ liệu offline khi mất mạng).
 function rememberedUser() {
@@ -642,9 +647,44 @@ function renderList() {
   }
   const container = $('#customer-list');
   container.innerHTML = '';
+  container.classList.toggle('list-mode', viewMode === 'list');
   $('#empty-state').hidden = list.length !== 0;
   $('#result-count').textContent = `${list.length} khách hàng`;
   updateFilterDot(); // giữ chấm đỏ + nút "Xoá lọc ✕" luôn khớp trạng thái lọc
+
+  // Kiểu DÒNG GỌN (list view): mỗi khách 1 dòng — Tên · SĐT+nút gọi/Zalo · Loại căn · Quan tâm.
+  // Field null → để trống. Dùng lại handler click của #customer-list (khớp cả .cust-row).
+  if (viewMode === 'list') {
+    for (const c of list) {
+      const row = document.createElement('div');
+      row.className = 'cust-row';
+      row.dataset.id = c.id;
+      const hasPhone = !!(c.phone && String(c.phone).trim());
+      const zaloHref = zaloLink(c.phone);
+      const zaloAttr = zaloHref.startsWith('http') ? 'target="_blank" rel="noopener"' : '';
+      const phoneBtns = hasPhone ? `
+        <a class="card-phone" href="tel:${normalizePhone(c.phone)}" aria-label="Gọi ${escapeHtml(c.phone)}">${PHONE_SVG}</a>
+        <a class="card-zalo" href="${zaloHref}" ${zaloAttr} aria-label="Nhắn Zalo"><img class="ic-zalo" src="/icons/zalo.png" alt="Zalo" /></a>` : '';
+      const interest = c.interest_level;
+      let interestHtml = '';
+      if (interest != null) {
+        const tier = interestTier(interest);
+        interestHtml = `<span class="row-interest ti-${tier.key}"><span class="ti-dot">◆</span> ${interest}%</span>`;
+      }
+      row.innerHTML = `
+        <div class="row-name">${escapeHtml(c.full_name || '(chưa có tên)')}</div>
+        ${hasPhone ? `<div class="row-phone">
+          <span class="row-phone-num">${escapeHtml(c.phone)}</span>
+          ${phoneBtns}
+        </div>` : ''}
+        <div class="row-meta">
+          ${c.apt_type ? `<span class="row-apt">${escapeHtml(c.apt_type)}</span>` : ''}
+          ${interestHtml}
+        </div>`;
+      container.appendChild(row);
+    }
+    return;
+  }
 
   for (const c of list) {
     const card = document.createElement('div');
@@ -722,7 +762,7 @@ function escapeHtml(s) {
 }
 
 $('#customer-list')?.addEventListener('click', (e) => {
-  const card = e.target.closest('.customer-card');
+  const card = e.target.closest('.customer-card, .cust-row');
   const menuBtn = e.target.closest('.card-menu-btn');
   // Đóng mọi menu đang mở (trừ menu của card vừa bấm nút "⋯")
   $$('.customer-card.menu-open').forEach((el) => {
@@ -754,6 +794,27 @@ document.addEventListener('click', (e) => {
     $$('.customer-card.menu-open').forEach((el) => el.classList.remove('menu-open'));
   }
 });
+
+// ---- Đổi kiểu xem danh sách: thẻ (card) ⇄ dòng gọn (list) ----
+// Nút hiện ICON của kiểu SẼ chuyển sang (bấm để đổi), lựa chọn lưu vào localStorage.
+const VIEW_ICON_LIST = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M4 6h16v2H4zM4 11h16v2H4zM4 16h16v2H4z"/></svg>';
+const VIEW_ICON_CARD = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M4 4h16v6H4zM4 14h16v6H4z"/></svg>';
+function updateViewToggleBtn() {
+  const btn = $('#view-toggle');
+  if (!btn) return;
+  const toList = viewMode === 'card';
+  btn.innerHTML = toList ? VIEW_ICON_LIST : VIEW_ICON_CARD;
+  btn.title = toList ? 'Xem dạng danh sách' : 'Xem dạng thẻ';
+  btn.setAttribute('aria-label', btn.title);
+}
+function setViewMode(mode) {
+  viewMode = (mode === 'list') ? 'list' : 'card';
+  try { localStorage.setItem(LS_VIEW_MODE, viewMode); } catch {}
+  updateViewToggleBtn();
+  renderList();
+}
+$('#view-toggle')?.addEventListener('click', () => setViewMode(viewMode === 'card' ? 'list' : 'card'));
+updateViewToggleBtn(); // đặt icon đúng theo lựa chọn đã lưu ngay khi tải
 
 // --------------------------------------------------------- DỰ ÁN ----------
 
