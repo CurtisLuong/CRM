@@ -20,7 +20,8 @@ const DOC_BUCKET = 'customer-docs'; // Supabase Storage bucket cho tài liệu k
 let _db = null;
 let _supabase = null;
 let _currentUserId = null;
-let _lastSyncError = null; // lỗi đồng bộ gần nhất (để hiển thị nếu hàng đợi kẹt)
+let _lastSyncError = null; // lỗi ĐẨY LÊN gần nhất (để hiển thị nếu hàng đợi kẹt)
+let _lastPullError = null; // lỗi KÉO XUỐNG gần nhất (mạng lỗi → dữ liệu đang hiển thị có thể CŨ)
 
 function openDB() {
   if (_db) return Promise.resolve(_db);
@@ -128,14 +129,28 @@ const CRM = {
     return (await localGetAll()).sort((a, b) => (b.updated_at || '').localeCompare(a.updated_at || ''));
   },
 
-  /** Kéo dữ liệu mới nhất từ Supabase về local (chỉ nên gọi khi queue đã rỗng) */
+  /**
+   * Kéo dữ liệu mới nhất từ Supabase về local (chỉ nên gọi khi queue đã rỗng).
+   * Trả về { ok, skipped?, error? } để UI biết có kéo được bản mới không — QUAN TRỌNG:
+   * trước đây pull lỗi mạng chỉ log im lặng, khiến badge vẫn báo "đã đồng bộ" dù dữ liệu
+   * đang CŨ (mạng chập chờn trên Mac). Nay ghi lại _lastPullError để badge phản ánh đúng.
+   */
   async pull() {
-    if (!this.isOnline() || !_supabase) return;
+    if (!this.isOnline() || !_supabase) return { ok: false, skipped: true };
     const pending = await queueGetAll();
-    if (pending.length > 0) return; // tránh ghi đè thay đổi chưa đồng bộ
-    const { data, error } = await _supabase.from('customers').select('*');
-    if (error) { console.error('Pull error:', error); return; }
-    await localReplaceAll(data);
+    if (pending.length > 0) return { ok: false, skipped: true }; // tránh ghi đè thay đổi chưa đồng bộ
+    try {
+      const { data, error } = await _supabase.from('customers').select('*');
+      if (error) throw error;
+      await localReplaceAll(data);
+      _lastPullError = null; // kéo thành công → xoá cờ lỗi cũ
+      return { ok: true };
+    } catch (e) {
+      // Không kéo được bản mới (mạng lỗi dù navigator.onLine=true, hoặc lỗi server).
+      _lastPullError = { message: e.message || String(e), code: e.code || null, at: new Date().toISOString() };
+      console.warn('Pull lỗi (dữ liệu đang hiển thị có thể CŨ):', _lastPullError);
+      return { ok: false, error: _lastPullError };
+    }
   },
 
   async create(payload, opts = {}) {
@@ -387,6 +402,7 @@ const CRM = {
   },
 
   lastSyncError() { return _lastSyncError; },
+  lastPullError() { return _lastPullError; },
 
   // Xoá toàn bộ hàng đợi đang chờ (escape hatch khi 1 thao tác kẹt vĩnh viễn).
   // Dữ liệu khách đã lưu trong IndexedDB vẫn còn; chỉ bỏ việc đẩy các thao tác đó lên server.

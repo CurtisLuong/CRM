@@ -235,6 +235,12 @@ async function onLoggedIn(user) {
   await refreshList();
   setInterval(async () => {
     await CRM.flushQueue();
+    // Nếu lần kéo trước lỗi mạng → thử KÉO LẠI (mạng chập chờn có thể không bắn event
+    // 'online'). Kéo được thì vẽ lại danh sách cho khớp bản mới nhất.
+    if (CRM.isOnline() && CRM.lastPullError && CRM.lastPullError()) {
+      const r = await CRM.pull();
+      if (r && r.ok) await refreshList();
+    }
     updateSyncBadge();
   }, 15000);
   updateSyncBadge();
@@ -326,6 +332,7 @@ async function updateSyncBadge() {
   const n = await CRM.pendingCount();
   const badge = $('#sync-badge');
   const err = CRM.lastSyncError && CRM.lastSyncError();
+  const pullErr = CRM.lastPullError && CRM.lastPullError();
   badge.classList.remove('sync-err');
   if (!CRM.isOnline()) {
     badge.textContent = '🔴 Offline' + (n ? ` — ${n} thay đổi chờ` : '');
@@ -335,6 +342,11 @@ async function updateSyncBadge() {
     badge.classList.add('sync-err');
   } else if (n > 0) {
     badge.textContent = `🟡 Đang đồng bộ ${n} thay đổi...`;
+  } else if (pullErr) {
+    // Đã đẩy hết thay đổi lên, NHƯNG chưa KÉO được bản mới nhất về (mạng lỗi) → dữ liệu
+    // đang hiển thị có thể CŨ. Không báo "đã đồng bộ" để tránh hiểu nhầm (bug đã gặp trên Mac).
+    badge.textContent = '🟠 Chưa tải được bản mới — chạm để thử lại';
+    badge.classList.add('sync-err');
   } else {
     badge.textContent = '🟢 Đã đồng bộ';
   }
@@ -345,6 +357,13 @@ window.addEventListener('offline', updateSyncBadge);
 // Bấm badge khi đang kẹt → xem lỗi + cho phép xoá thao tác kẹt (escape hatch).
 $('#sync-badge')?.addEventListener('click', async () => {
   const n = await CRM.pendingCount();
+  // Không còn thao tác chờ đẩy, nhưng lần KÉO gần nhất lỗi → chỉ cần thử tải lại bản mới.
+  if (!n && CRM.lastPullError && CRM.lastPullError()) {
+    await handleReload();
+    if (!(CRM.lastPullError && CRM.lastPullError())) alert('Đã tải được dữ liệu mới nhất.');
+    else alert('Vẫn chưa tải được — kiểm tra lại mạng rồi thử lần nữa.');
+    return;
+  }
   if (!n) return;
   const err = CRM.lastSyncError && CRM.lastSyncError();
   await CRM.flushQueue(); // thử đẩy lại 1 lần trước

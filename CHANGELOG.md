@@ -6,6 +6,24 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-22 — Badge đồng bộ báo đúng cả chiều KÉO (không còn "đã đồng bộ" giả)
+
+**Bug:** badge `updateSyncBadge` chỉ nhìn hàng đợi ĐẨY LÊN (`pendingCount`); khi `pull()`
+(kéo bản mới về) lỗi mạng thì chỉ log im lặng rồi return → badge vẫn báo "🟢 Đã đồng bộ" dù
+dữ liệu đang CŨ (đúng ca Mac lỗi mạng, hiện thiếu 1 khách nhưng vẫn báo đã đồng bộ).
+
+**Sửa:**
+- `pull()` giờ trả `{ok, skipped?, error?}` và ghi `_lastPullError` khi kéo lỗi (getter
+  `CRM.lastPullError()`), xoá cờ khi kéo thành công.
+- Badge thêm trạng thái **🟠 "Chưa tải được bản mới — chạm để thử lại"** khi đã đẩy hết
+  nhưng kéo lỗi. Chạm badge ở trạng thái này → thử tải lại.
+- Interval 15s: nếu lần kéo trước lỗi và đang online → tự KÉO LẠI (mạng chập chờn có thể
+  không bắn event 'online'), kéo được thì vẽ lại danh sách.
+
+File: `js/db.js`, `js/app.js` (không đụng APP_SHELL nên không cần tăng CACHE_NAME)
+
+---
+
 ## 2026-08-21 — Chặn trùng khi tạo khách + chuẩn hoá SĐT + nguồn nhiều giá trị
 
 **Bối cảnh bug:** tạo khách trùng SĐT thì bản trùng bị unique index (phone,owner) chặn ở
