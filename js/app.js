@@ -233,6 +233,7 @@ async function onLoggedIn(user) {
   await CRM.pull();
   await loadProjectOptions();
   await refreshList();
+  hideSplash(); // dữ liệu đã sẵn sàng → ẩn màn hình tải
   setInterval(async () => {
     await CRM.flushQueue();
     // Nếu lần kéo trước lỗi mạng → thử KÉO LẠI (mạng chập chờn có thể không bắn event
@@ -250,6 +251,15 @@ function showAuthScreen() {
   $('#auth-screen').hidden = false;
   $('#app-screen').hidden = true;
   $('#detail-screen').hidden = true;
+  hideSplash(); // cần đăng nhập → ẩn màn hình tải, hiện form
+}
+
+// Ẩn màn hình tải (splash) sau khi app/đăng nhập sẵn sàng — mờ dần rồi bỏ hẳn.
+function hideSplash() {
+  const s = $('#splash');
+  if (!s || s.hidden) return;
+  s.classList.add('fade');
+  setTimeout(() => { s.hidden = true; }, 320);
 }
 
 function showAppScreen() {
@@ -2357,6 +2367,7 @@ function resetAdvancedFilters() {
 document.addEventListener('DOMContentLoaded', () => {
   populateSelects();
   boot();
+  setTimeout(hideSplash, 8000); // lưới an toàn: nếu boot treo, vẫn bỏ splash sau 8s
 
   $('#login-form').addEventListener('submit', handleLogin);
   $('#signup-btn').addEventListener('click', handleSignup);

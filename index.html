@@ -7,11 +7,20 @@
 <meta name="theme-color" content="#1A2E29" />
 <link rel="manifest" href="/manifest.json" />
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
-<link rel="icon" type="image/png" href="/icons/app-icon-192.png" />
+<link rel="icon" type="image/svg+xml" href="/icons/logo-icon.svg" />
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png" />
 <link rel="stylesheet" href="/css/style.css" />
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 </head>
 <body>
+
+<!-- ============ MÀN HÌNH TẢI (splash) — ẩn sau khi app sẵn sàng ============ -->
+<div id="splash" class="splash">
+  <img class="splash-logo" src="/icons/logo-mark.svg" alt="" />
+  <div class="splash-title">Sổ Khách</div>
+  <div class="splash-dots"><span></span><span></span><span></span></div>
+  <div class="splash-text">Đang tải dữ liệu...</div>
+</div>
 
 <!-- Thanh "kéo để tải lại" (pull-to-refresh) — hiện khi kéo xuống ở đầu trang -->
 <div id="ptr-indicator" class="ptr-indicator" aria-hidden="true">
@@ -22,6 +31,7 @@
 <!-- ============ MÀN HÌNH ĐĂNG NHẬP ============ -->
 <section id="auth-screen">
   <div class="auth-box">
+    <img class="auth-logo" src="/icons/logo-icon.svg" alt="" />
     <h1>Sổ Khách</h1>
     <p class="auth-sub">Đăng nhập để xem &amp; đồng bộ danh sách khách của bạn</p>
     <form id="login-form">
@@ -42,7 +52,10 @@
 <section id="app-screen" hidden>
   <header class="topbar">
     <div class="topbar-row topbar-row-top">
-      <span class="topbar-brand">Sổ Khách</span>
+      <div class="topbar-brand">
+        <img class="brand-logo" src="/icons/logo-mark.svg" alt="" />
+        <span>Sổ Khách</span>
+      </div>
       <div class="topbar-actions">
         <span id="sync-badge" class="sync-badge" title="Trạng thái đồng bộ"></span>
         <button id="reload-btn" class="icon-btn-plain" title="Làm mới dữ liệu" aria-label="Làm mới">↻</button>

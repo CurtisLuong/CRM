@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Sổ Khách">
+  <rect width="512" height="512" rx="112" fill="#0F1F1C"/>
+  <!-- Mark căn giữa: inner viewBox "6 -4 122 122" ôm sát nội dung mark -->
+  <svg x="86" y="86" width="340" height="340" viewBox="6 -4 122 122" fill="none">
+    <circle cx="58" cy="56" r="41" stroke="#F2F1EB" stroke-width="9"/>
+    <circle cx="58" cy="45" r="15" fill="#F2F1EB"/>
+    <path d="M31 86a27 22 0 0 1 54 0Z" fill="#F2F1EB"/>
+    <path d="M79 83l11 14 26-33" stroke="#C4473A" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+</svg>
