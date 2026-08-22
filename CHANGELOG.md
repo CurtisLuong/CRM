@@ -6,6 +6,28 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-22 — Thiết kế lại giao diện danh sách (FAB, panel lọc/sắp xếp, header 3 tầng)
+
+- **Nút thêm khách → FAB**: nút tròn "+" nổi góc dưới phải (`.fab`), chỉ hiện ở tab Khách hàng
+  (nằm trong `#list-view`). Giữ id `add-customer-btn` nên listener cũ không đổi.
+- **Bộ lọc**: thanh ngoài chỉ còn trạng thái (Đang chăm sóc / Đã xong / Tất cả). Các lọc còn
+  lại (Tiến độ + Mức quan tâm) chuyển vào **panel Bộ lọc** ẩn dưới icon phễu — Tiến độ dạng
+  radio, Mức quan tâm là slider ≥ X%, nút Xoá lọc + Áp dụng. Icon phễu có chấm báo khi đang có
+  lọc nâng cao. (Bỏ `<select id="filter-stage">`, đổi sang radio `name="f-stage"`; interest
+  đổi từ ô số sang range.)
+- **Sắp xếp → icon**: panel sổ ra từng thuộc tính (Tiến độ / Quan tâm / Cập nhật / Tên) với 2
+  hướng, + nút Đặt lại mặc định. Trạng thái sort giữ trong biến `currentSort` (không lưu → mỗi
+  lần tải trang tự về mặc định). Mặc định đa khoá: tiến độ↑ → quan tâm↓ → cập nhật mới nhất →
+  tên A→Z. (Bỏ `<select id="sort-select">`.)
+- **Header 3 tầng**: (1) "Sổ Khách" + chấm đồng bộ/↻/avatar; (2) tab Khách hàng/Tổng quan;
+  (3) ô tìm kiếm rộng hết có icon 🔍.
+- Fix phụ: `.btn-primary.btn-small` bị `.btn-small` đè nền trắng + chữ trắng → mất chữ; thêm
+  rule khôi phục nền/chữ primary.
+
+File: `index.html`, `css/style.css`, `js/app.js`
+
+---
+
 ## 2026-08-22 — Tín hiệu đồng bộ gọn thành 1 chấm màu (chữ hiện khi hover)
 
 Bỏ chữ ở badge đồng bộ, chỉ còn 1 CHẤM MÀU; chữ giải thích hiện khi hover chuột (thuộc

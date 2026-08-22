@@ -103,20 +103,23 @@ input:focus, select:focus, textarea:focus {
 .btn-secondary { background: transparent; border: 1px solid var(--teal); color: var(--teal); margin-top: 4px; }
 .btn-ghost { background: transparent; color: var(--teal); border: 1px solid var(--line); }
 .btn-small { padding: 6px 12px; font-size: 13px; border: 1px solid var(--line); background: #fff; }
+/* Nút primary cỡ nhỏ: khôi phục nền/chữ primary (nếu không .btn-small đè thành nền trắng,
+   cộng chữ trắng của .btn-primary → mất chữ). */
+.btn-primary.btn-small { background: var(--seal); color: #fff; border-color: var(--seal); }
+.btn-primary.btn-small:hover { background: var(--seal-dark); }
 .btn-danger { color: var(--bad); border-color: #e6c9c2; }
 
 /* ---------------- TOPBAR / TOOLBAR ---------------- */
 .topbar {
   display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 10px 14px;
-  padding: 10px 20px;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 20px;
   background: var(--teal);
   color: #fff;
   position: sticky; top: 0; z-index: 20;
 }
-.topbar-lead { display: flex; align-items: center; gap: 16px; flex-shrink: 0; }
+.topbar-row-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .topbar-brand { font-family: "Georgia", "Times New Roman", serif; font-size: 21px; font-weight: 700; color: #fff; white-space: nowrap; }
 
 /* Tab ngay trong header (segmented control trên nền mực in) */
@@ -129,17 +132,21 @@ input:focus, select:focus, textarea:focus {
 .tab-btn:hover { color: #fff; background: rgba(255,255,255,0.10); }
 .tab-btn.is-active { background: var(--paper); color: var(--ink); }
 
-/* Ô tìm nhanh luôn có trong header */
+/* Ô tìm nhanh: 1 hàng riêng, rộng hết, có icon kính lúp bên trái */
+.topbar-search-wrap { position: relative; display: flex; align-items: center; }
+.topbar-search-wrap .search-ic {
+  position: absolute; left: 12px; font-size: 14px; opacity: 0.7; pointer-events: none; line-height: 1;
+}
 .topbar-search {
-  flex: 1 1 200px; min-width: 130px; max-width: 460px;
-  font: inherit; font-size: 14px; padding: 8px 12px; border-radius: 8px;
+  width: 100%;
+  font: inherit; font-size: 14px; padding: 9px 12px 9px 36px; border-radius: 8px;
   border: 1px solid rgba(255,255,255,0.25);
   background: rgba(255,255,255,0.12); color: #fff;
 }
 .topbar-search::placeholder { color: rgba(255,255,255,0.6); }
 .topbar-search:focus { outline: none; border-color: rgba(255,255,255,0.65); background: rgba(255,255,255,0.18); }
 
-.topbar-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.topbar-actions { display: flex; align-items: center; gap: 8px; }
 /* Tín hiệu đồng bộ = 1 CHẤM MÀU (không chữ). Chữ giải thích hiện khi hover (title).
    Xanh = đã đồng bộ · Vàng = đang đồng bộ/ chưa tải xong · Đỏ = offline/ kẹt. */
 .sync-badge {
@@ -185,30 +192,75 @@ input:focus, select:focus, textarea:focus {
 
 @media (max-width: 560px) {
   .topbar-brand { font-size: 19px; }
-  .topbar-search { order: 3; flex-basis: 100%; max-width: none; }
-  .topbar-lead { flex: 1 1 auto; }
 }
 
 .toolbar {
   display: flex;
+  align-items: center;
   flex-wrap: wrap;
   gap: 8px;
-  padding: 14px 20px;
+  padding: 12px 20px;
   background: var(--panel);
   border-bottom: 1px solid var(--line);
-  position: sticky;
-  top: 0;
-  z-index: 5;
 }
-.toolbar input[type="search"] { flex: 1 1 200px; min-width: 160px; }
-/* Đồng bộ cỡ chữ mọi mục trong toolbar (select/input/nút/label) để nhìn đều nhau */
-.toolbar select,
-.toolbar input,
-.toolbar button,
-.toolbar .filter-interest-label { font-size: 14px; }
-.filter-interest-label { display: flex; align-items: center; gap: 6px; color: #4a4a42; }
-.filter-interest-label input { width: 60px; }
-#add-customer-btn { margin-left: auto; }
+.status-select { font-size: 14px; }
+
+/* Nút icon công cụ (Bộ lọc / Sắp xếp) + chấm báo đang có lọc */
+.tool-pop { position: relative; }
+.tool-icon-btn {
+  position: relative;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 38px; height: 38px; border-radius: 8px; cursor: pointer;
+  border: 1px solid var(--line); background: #fff; color: var(--teal);
+}
+.tool-icon-btn:hover { background: var(--panel); }
+.tool-icon-btn.is-open { background: var(--teal); color: #fff; border-color: var(--teal); }
+.tool-dot {
+  position: absolute; top: -3px; right: -3px; width: 9px; height: 9px;
+  border-radius: 50%; background: var(--seal); border: 2px solid #fff;
+}
+
+/* Panel xổ xuống dùng chung cho Bộ lọc & Sắp xếp */
+.pop-panel {
+  position: absolute; top: calc(100% + 8px); left: 0;
+  background: #fff; border: 1px solid var(--line); border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.16);
+  min-width: 240px; max-width: 88vw; padding: 14px; z-index: 40;
+}
+.pop-title { font-weight: 700; font-size: 15px; margin-bottom: 10px; color: var(--ink); }
+.pop-group { margin-bottom: 14px; }
+.pop-label { font-size: 12px; font-weight: 700; letter-spacing: 0.02em; color: #8a8a7d; margin-bottom: 8px; text-transform: uppercase; }
+.pop-radios { display: flex; flex-direction: column; gap: 7px; max-height: 260px; overflow-y: auto; }
+.pop-radio { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--ink); cursor: pointer; }
+.pop-radio input { width: auto; }
+.pop-range { width: 100%; }
+.pop-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+
+/* Panel Sắp xếp: mỗi thuộc tính 1 hàng + 2 nút hướng */
+.sort-options { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.sort-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.sort-row-name { font-size: 14px; color: var(--ink); }
+.sort-dirs { display: flex; gap: 6px; }
+.sort-dir-btn {
+  font: inherit; font-size: 12px; cursor: pointer;
+  border: 1px solid var(--line); background: #fff; color: #4a4a42;
+  padding: 5px 10px; border-radius: 7px; white-space: nowrap;
+}
+.sort-dir-btn:hover { background: var(--panel); }
+.sort-dir-btn.is-active { background: var(--teal); color: #fff; border-color: var(--teal); }
+
+/* FAB — nút thêm khách nổi góc dưới phải */
+.fab {
+  position: fixed; right: 18px; bottom: 20px; z-index: 30;
+  width: 56px; height: 56px; border-radius: 50%;
+  border: none; cursor: pointer;
+  background: var(--seal); color: #fff;
+  font-size: 32px; line-height: 1; font-weight: 300;
+  display: inline-flex; align-items: center; justify-content: center;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+}
+.fab:hover { background: var(--seal-dark); }
+.fab:active { transform: translateY(1px); }
 
 .list-meta { padding: 10px 20px 0; font-size: 13px; color: #6b6b60; }
 

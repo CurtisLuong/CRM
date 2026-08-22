@@ -489,7 +489,8 @@ function matchesFilters(c) {
       if (!customerSearchBlob(c).includes(qNorm)) return false;
     }
   }
-  const stage = $('#filter-stage').value;
+  const stageEl = document.querySelector('input[name="f-stage"]:checked');
+  const stage = stageEl ? stageEl.value : '';
   if (stage) {
     // Chọn 1 bậc cụ thể → lọc đúng bậc đó, bỏ qua lọc trạng thái xong/chưa xong.
     if (c.care_stage !== stage) return false;
@@ -506,23 +507,25 @@ function matchesFilters(c) {
 }
 
 function sortCustomers(list) {
-  const sortBy = $('#sort-select').value;
   const arr = [...list];
-  if (sortBy === 'care_asc') {
-    // Mặc định: 1) tiến độ chăm sóc tăng dần (bậc 1 → 7);
-    // 2) cùng bậc → mức quan tâm GIẢM dần (cao → thấp);
-    // 3) bằng nhau → khách mới tạo gần đây lên trước (created_at giảm dần).
-    arr.sort((a, b) => {
-      const d = careSortRank(a.care_stage) - careSortRank(b.care_stage);
-      if (d !== 0) return d;
-      const i = (b.interest_level || 0) - (a.interest_level || 0);
-      if (i !== 0) return i;
-      return (b.created_at || '').localeCompare(a.created_at || '');
-    });
+  if (!currentSort) {
+    // MẶC ĐỊNH (đa khoá): 1) tiến độ tăng (bậc 1→7); 2) cùng bậc → quan tâm GIẢM;
+    // 3) bằng nhau → cập nhật MỚI NHẤT lên trước; 4) tên A→Z.
+    arr.sort((a, b) =>
+      (careSortRank(a.care_stage) - careSortRank(b.care_stage)) ||
+      ((b.interest_level || 0) - (a.interest_level || 0)) ||
+      ((b.updated_at || '').localeCompare(a.updated_at || '')) ||
+      ((a.full_name || '').localeCompare(b.full_name || '', 'vi'))
+    );
+    return arr;
   }
-  else if (sortBy === 'interest_desc') arr.sort((a, b) => (b.interest_level || 0) - (a.interest_level || 0));
-  else if (sortBy === 'name_asc') arr.sort((a, b) => (a.full_name || '').localeCompare(b.full_name || '', 'vi'));
-  else if (sortBy === 'updated_desc') arr.sort((a, b) => (b.updated_at || '').localeCompare(a.updated_at || ''));
+  // Sắp theo 1 thuộc tính + hướng do người dùng chọn.
+  const { key, dir } = currentSort;
+  const s = dir === 'asc' ? 1 : -1;
+  if (key === 'care') arr.sort((a, b) => s * (careSortRank(a.care_stage) - careSortRank(b.care_stage)));
+  else if (key === 'interest') arr.sort((a, b) => s * ((a.interest_level || 0) - (b.interest_level || 0)));
+  else if (key === 'updated') arr.sort((a, b) => s * (a.updated_at || '').localeCompare(b.updated_at || ''));
+  else if (key === 'name') arr.sort((a, b) => s * (a.full_name || '').localeCompare(b.full_name || '', 'vi'));
   return arr;
 }
 
@@ -2263,13 +2266,52 @@ window.addEventListener('resize', () => {
 // -------------------------------------------------------------- WIRE UP ---
 
 function populateSelects() {
-  const stageOptions = ['<option value="">Tiến độ: tất cả</option>', ...CARE_STAGE_OPTIONS.map((s) => `<option value="${s}">${s}</option>`)].join('');
-  $('#filter-stage').innerHTML = stageOptions;
+  // Bộ lọc "Tiến độ" nay là radio trong panel Bộ lọc (không còn <select>).
+  const stageRadios = [['', 'Tất cả'], ...CARE_STAGE_OPTIONS.map((s) => [s, s])]
+    .map(([val, label], i) =>
+      `<label class="pop-radio"><input type="radio" name="f-stage" value="${escapeHtml(val)}"${i === 0 ? ' checked' : ''}> ${escapeHtml(label)}</label>`
+    ).join('');
+  $('#filter-stage-group').innerHTML = stageRadios;
+
+  renderSortOptions();
 
   const formStageOptions = ['<option value="">— Chưa xác định —</option>', ...CARE_STAGE_OPTIONS.map((s) => `<option value="${s}">${s}</option>`)].join('');
   $('#customer-form').care_stage.innerHTML = formStageOptions;
 
   $('#eval-reason-datalist').innerHTML = EVAL_REASONS.map((r) => `<option value="${r}">`).join('');
+}
+
+// ---- SẮP XẾP: trạng thái + render panel ----
+// currentSort = null → MẶC ĐỊNH đa khoá (tiến độ↑ → quan tâm↓ → cập nhật mới nhất → tên A→Z).
+// {key,dir} → sắp theo 1 thuộc tính. KHÔNG lưu lại → mỗi lần tải trang tự về mặc định.
+let currentSort = null;
+const SORT_ATTRS = [
+  { key: 'care',     name: 'Tiến độ',  dirs: [['asc', 'Tăng'],      ['desc', 'Giảm']] },
+  { key: 'interest', name: 'Quan tâm', dirs: [['desc', 'Giảm'],     ['asc', 'Tăng']] },
+  { key: 'updated',  name: 'Cập nhật', dirs: [['desc', 'Gần nhất'], ['asc', 'Lâu nhất']] },
+  { key: 'name',     name: 'Tên',      dirs: [['asc', 'A→Z'],       ['desc', 'Z→A']] },
+];
+function renderSortOptions() {
+  $('#sort-options').innerHTML = SORT_ATTRS.map((a) => {
+    const btns = a.dirs.map(([dir, label]) => {
+      const active = currentSort && currentSort.key === a.key && currentSort.dir === dir;
+      return `<button type="button" class="sort-dir-btn${active ? ' is-active' : ''}" data-sortkey="${a.key}" data-sortdir="${dir}">${label}</button>`;
+    }).join('');
+    return `<div class="sort-row"><span class="sort-row-name">${a.name}</span><span class="sort-dirs">${btns}</span></div>`;
+  }).join('');
+}
+
+// ---- Panel công cụ (Bộ lọc / Sắp xếp): mở/đóng ----
+function closeToolPops() {
+  $('#filter-panel').hidden = true; $('#filter-btn').classList.remove('is-open');
+  $('#sort-panel').hidden = true; $('#sort-btn').classList.remove('is-open');
+}
+// Chấm báo "đang có lọc nâng cao" trên icon phễu (tiến độ ≠ tất cả HOẶC quan tâm ≥ >0).
+function updateFilterDot() {
+  const stageEl = document.querySelector('input[name="f-stage"]:checked');
+  const stage = stageEl ? stageEl.value : '';
+  const interest = Number($('#filter-min-interest').value || 0);
+  $('#filter-active-dot').hidden = !(stage || interest > 0);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -2388,16 +2430,56 @@ document.addEventListener('DOMContentLoaded', () => {
   document.addEventListener('click', (e) => {
     if (!e.target.closest('#topbar-menu')) $('#topbar-menu').classList.remove('open');
   });
+  // --- Lọc trạng thái (inline, áp ngay) ---
   $('#filter-progress').addEventListener('change', renderList);
-  $('#filter-stage').addEventListener('change', renderList);
-  $('#filter-min-interest').addEventListener('input', renderList);
-  $('#sort-select').addEventListener('change', renderList);
-  $('#clear-filters-btn').addEventListener('click', () => {
-    $('#search-input').value = '';
-    $('#filter-progress').value = 'active'; // về mặc định: chỉ hiện khách đang chăm sóc
-    $('#filter-stage').value = '';
+
+  // --- Panel Bộ lọc (icon phễu): mở/đóng + lọc theo tiến độ + mức quan tâm ---
+  $('#filter-btn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    const willOpen = $('#filter-panel').hidden;
+    closeToolPops();
+    $('#filter-panel').hidden = !willOpen;
+    $('#filter-btn').classList.toggle('is-open', willOpen);
+  });
+  $('#filter-stage-group').addEventListener('change', () => { updateFilterDot(); renderList(); });
+  $('#filter-min-interest').addEventListener('input', () => {
+    $('#filter-interest-val').textContent = $('#filter-min-interest').value;
+    updateFilterDot(); renderList();
+  });
+  $('#filter-apply-btn').addEventListener('click', () => { renderList(); closeToolPops(); });
+  $('#filter-reset-btn').addEventListener('click', () => {
+    const allRadio = document.querySelector('input[name="f-stage"][value=""]');
+    if (allRadio) allRadio.checked = true;
     $('#filter-min-interest').value = 0;
+    $('#filter-interest-val').textContent = '0';
+    updateFilterDot();
     renderList();
+  });
+
+  // --- Panel Sắp xếp (icon): mở/đóng + chọn thuộc tính/hướng + đặt lại mặc định ---
+  $('#sort-btn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    const willOpen = $('#sort-panel').hidden;
+    closeToolPops();
+    $('#sort-panel').hidden = !willOpen;
+    $('#sort-btn').classList.toggle('is-open', willOpen);
+  });
+  $('#sort-options').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-sortkey]');
+    if (!btn) return;
+    currentSort = { key: btn.dataset.sortkey, dir: btn.dataset.sortdir };
+    renderSortOptions();
+    renderList();
+  });
+  $('#sort-reset-btn').addEventListener('click', () => {
+    currentSort = null; // về sắp xếp mặc định đa khoá
+    renderSortOptions();
+    renderList();
+  });
+
+  // Đóng panel Bộ lọc/Sắp xếp khi bấm ra ngoài
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.tool-pop')) closeToolPops();
   });
 
   if ('serviceWorker' in navigator) {
