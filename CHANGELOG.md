@@ -21,6 +21,9 @@ hiện đúng thứ tự: **Tên · SĐT + nút gọi/Zalo · Loại căn · Qua
 - Handler click của `#customer-list` khớp thêm `.cust-row` (bấm dòng → `openDetail`; bấm nút
   gọi/Zalo → link chạy bình thường). Không cần đổi `sw.js` (không thêm file mới; app.js/css
   network-first tự lấy bản mới).
+- **Cập nhật:** mỗi dòng dồn tất cả trường lên CÙNG 1 HÀNG (`.cust-row` = flex ngang): Tên co
+  giãn + cắt "…" khi dài, SĐT/căn/quan tâm giữ nguyên bên phải. Trên màn hẹp (điện thoại) tên bị
+  cắt nhiều để đủ chỗ — đánh đổi của layout 1 hàng.
 
 File: `index.html`, `css/style.css`, `js/app.js`
 
