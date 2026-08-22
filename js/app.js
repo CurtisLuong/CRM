@@ -2545,7 +2545,14 @@ document.addEventListener('DOMContentLoaded', () => {
   // Header thu gọn khi cuộn xuống (đầy đủ khi ở đầu trang). Có ngưỡng trễ (48/16) tránh
   // rung ở ranh giới; rAF throttle cho mượt. Đóng panel đang mở khi bắt đầu thu gọn.
   const topbarEl = document.querySelector('.topbar');
+  const searchInputEl = document.querySelector('#search-input');
   let headerCollapsed = false, scrollTick = false, searchFocused = false;
+
+  // "Đang gõ tìm" = ô tìm ĐANG focus VÀ CÓ ký tự. Chỉ khi đó mới giữ/bung header đầy đủ.
+  // (Focus mà ô rỗng, hoặc đã xoá hết ký tự → coi như không gõ → vẫn cho thu gọn.)
+  function searchQueryActive() {
+    return searchFocused && !!searchInputEl && searchInputEl.value.trim() !== '';
+  }
 
   // Chỉ bật/tắt class — mọi chuyển động do CSS transition lo (ô tìm trượt bằng top/left/right,
   // chữ·tabs·sync·avatar fade + co bằng opacity/max-width/max-height). Xem css/style.css.
@@ -2557,7 +2564,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   function applyHeaderState() {
     scrollTick = false;
-    if (searchFocused) return; // đang gõ tìm → giữ header đầy đủ, không thu gọn
+    if (searchQueryActive()) return; // đang gõ tìm (có ký tự) → giữ header đầy đủ, không thu gọn
     const y = window.scrollY || 0;
     if (!headerCollapsed && y > 48) setHeaderCollapsed(true);
     else if (headerCollapsed && y < 16) setHeaderCollapsed(false);
@@ -2566,19 +2573,22 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!scrollTick) { scrollTick = true; requestAnimationFrame(applyHeaderState); }
   }, { passive: true });
 
-  // FIX Android/Chrome: khi ô tìm đang THU GỌN mà focus để gõ, bàn phím ảo đổi viewport làm
-  // header sticky (ô tìm absolute) "biến mất", không thấy từ khoá đang gõ. Cách xử: focus vào
-  // ô tìm → BUNG header đầy đủ + về đầu trang + KHOÁ không cho thu gọn tới khi rời ô tìm.
-  const searchInputEl = document.querySelector('#search-input');
-  if (searchInputEl) {
-    searchInputEl.addEventListener('focus', () => {
-      searchFocused = true;
-      setHeaderCollapsed(false);          // bung header → ô tìm về vị trí đầy đủ, hiện rõ
+  // FIX Android/Chrome: gõ tìm khi header đang THU GỌN, bàn phím ảo đổi viewport làm header
+  // sticky (ô tìm absolute) "biến mất", không thấy từ khoá. Cách xử: NGAY KHI ô tìm có ký tự
+  // → BUNG header đầy đủ + về đầu trang, và giữ vậy tới khi ô trống lại / rời ô tìm.
+  function maybeExpandForSearch() {
+    if (searchQueryActive() && headerCollapsed) {
+      setHeaderCollapsed(false);
       if (window.scrollY > 0) window.scrollTo(0, 0);
-    });
-    searchInputEl.addEventListener('blur', () => {
-      searchFocused = false;
-      applyHeaderState();                 // rời ô tìm → đánh giá lại theo vị trí cuộn
+    }
+  }
+  if (searchInputEl) {
+    // KHÔNG bung khi mới focus (ô còn rỗng) — chỉ đánh dấu đang focus.
+    searchInputEl.addEventListener('focus', () => { searchFocused = true; maybeExpandForSearch(); });
+    searchInputEl.addEventListener('blur', () => { searchFocused = false; applyHeaderState(); });
+    searchInputEl.addEventListener('input', () => {
+      if (searchQueryActive()) maybeExpandForSearch(); // có ký tự → bung + về đầu
+      else applyHeaderState();                          // xoá hết ký tự → theo cuộn (giữ thu gọn)
     });
   }
 
