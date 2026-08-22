@@ -140,8 +140,21 @@ input:focus, select:focus, textarea:focus {
 .topbar-search:focus { outline: none; border-color: rgba(255,255,255,0.65); background: rgba(255,255,255,0.18); }
 
 .topbar-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
-.sync-badge { font-size: 12px; color: rgba(255,255,255,0.85); white-space: nowrap; cursor: pointer; }
-.sync-badge.sync-err { color: #F0C0B8; font-weight: 700; }
+/* Tín hiệu đồng bộ = 1 CHẤM MÀU (không chữ). Chữ giải thích hiện khi hover (title).
+   Xanh = đã đồng bộ · Vàng = đang đồng bộ/ chưa tải xong · Đỏ = offline/ kẹt. */
+.sync-badge {
+  display: inline-block;
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  background: #9aa0a6;                 /* xám: chưa xác định */
+  cursor: pointer;
+  flex: none;
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.18);
+  text-indent: -9999px; overflow: hidden; /* ẩn mọi chữ còn sót */
+}
+.sync-badge.sync-green  { background: #35c26a; }
+.sync-badge.sync-yellow { background: #e8b93a; }
+.sync-badge.sync-red    { background: #e0574a; }
 
 /* Nút làm mới (icon ↻, xoay khi đang tải) */
 .icon-btn-plain {

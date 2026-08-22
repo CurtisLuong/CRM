@@ -6,6 +6,21 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-22 — Tín hiệu đồng bộ gọn thành 1 chấm màu (chữ hiện khi hover)
+
+Bỏ chữ ở badge đồng bộ, chỉ còn 1 CHẤM MÀU; chữ giải thích hiện khi hover chuột (thuộc
+tính `title`, kèm `aria-label` cho screen reader):
+- 🟢 Xanh = đã đồng bộ.
+- 🟡 Vàng = đang đồng bộ (còn thay đổi chờ đẩy) hoặc chưa tải được bản mới.
+- 🔴 Đỏ = offline hoặc kẹt đồng bộ.
+
+`updateSyncBadge` nay set class màu (`sync-green/yellow/red`) thay vì viết chữ; badge vẫn
+bấm được để thử lại như trước.
+
+File: `index.html`, `js/app.js`, `css/style.css`
+
+---
+
 ## 2026-08-22 — Gọn thanh lọc/sắp xếp + đồng bộ cỡ chữ
 
 - Filter tiến độ (`#filter-stage`): đổi option mặc định "— Mọi bậc —" → **"Tiến độ: tất cả"**

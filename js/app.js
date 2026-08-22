@@ -333,23 +333,28 @@ async function updateSyncBadge() {
   const badge = $('#sync-badge');
   const err = CRM.lastSyncError && CRM.lastSyncError();
   const pullErr = CRM.lastPullError && CRM.lastPullError();
-  badge.classList.remove('sync-err');
+  // Chọn MÀU (xanh/vàng/đỏ) + chữ giải thích (chỉ hiện khi hover qua thuộc tính title).
+  let color, label;
   if (!CRM.isOnline()) {
-    badge.textContent = '🔴 Offline' + (n ? ` — ${n} thay đổi chờ` : '');
+    color = 'sync-red';
+    label = 'Offline' + (n ? ` — ${n} thay đổi chờ` : '');
   } else if (n > 0 && err) {
-    // Có thao tác đẩy lên server bị lỗi (không phải mất mạng) → kẹt, cần xử lý.
-    badge.textContent = `🔴 Kẹt đồng bộ (${n}) — chạm để xử lý`;
-    badge.classList.add('sync-err');
+    color = 'sync-red'; // đẩy lên bị lỗi → kẹt, cần xử lý
+    label = `Kẹt đồng bộ (${n}) — chạm để xử lý`;
   } else if (n > 0) {
-    badge.textContent = `🟡 Đang đồng bộ ${n} thay đổi...`;
+    color = 'sync-yellow';
+    label = `Đang đồng bộ ${n} thay đổi...`;
   } else if (pullErr) {
-    // Đã đẩy hết thay đổi lên, NHƯNG chưa KÉO được bản mới nhất về (mạng lỗi) → dữ liệu
-    // đang hiển thị có thể CŨ. Không báo "đã đồng bộ" để tránh hiểu nhầm (bug đã gặp trên Mac).
-    badge.textContent = '🟠 Chưa tải được bản mới — chạm để thử lại';
-    badge.classList.add('sync-err');
+    color = 'sync-yellow'; // đã đẩy hết nhưng chưa KÉO được bản mới nhất → dữ liệu có thể cũ
+    label = 'Chưa tải được bản mới — chạm để thử lại';
   } else {
-    badge.textContent = '🟢 Đã đồng bộ';
+    color = 'sync-green';
+    label = 'Đã đồng bộ';
   }
+  badge.className = 'sync-badge ' + color;
+  badge.textContent = label;          // để trong DOM cho accessibility; CSS ẩn chữ, chỉ còn chấm
+  badge.title = label;                // hiện chữ khi hover chuột
+  badge.setAttribute('aria-label', label);
 }
 window.addEventListener('online', updateSyncBadge);
 window.addEventListener('offline', updateSyncBadge);
