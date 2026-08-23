@@ -492,6 +492,8 @@
       <button type="button" class="sched-opt" data-date="custom">Tùy chọn ngày</button>
     </div>
     <input type="date" id="sched-date-custom" hidden />
+    <div class="sched-label">Lý do <span class="sched-optional">(không bắt buộc)</span></div>
+    <textarea id="sched-reason" class="sched-reason" rows="2" placeholder="Vì sao gọi? vd: nhắc hồ sơ, gửi bảng giá, chốt cọc..."></textarea>
     <div id="sched-error" class="sched-error"></div>
     <div class="form-actions">
       <button type="button" id="sched-cancel" class="btn-ghost">Huỷ</button>
@@ -506,6 +508,7 @@
     <button type="button" id="callact-close" class="callact-x" aria-label="Đóng">✕</button>
     <h2 id="callact-title">Gọi khách</h2>
     <p id="callact-sub" class="callact-sub"></p>
+    <p id="callact-reason" class="callact-reason" hidden></p>
     <div class="callact-btns">
       <button type="button" id="callact-done" class="btn-primary">✓ Đã gọi</button>
       <button type="button" id="callact-resched" class="btn-secondary">Hẹn lại</button>

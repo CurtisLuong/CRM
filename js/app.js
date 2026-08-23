@@ -2331,7 +2331,9 @@ function callReminder(c) {
 function renderDetailCall(c) {
   const callLabel = $('#detail-call-label');
   if (c.next_call_at) {
-    callLabel.textContent = '🔔 Hẹn gọi: ' + callScheduleLabel(c);
+    // Nhãn: "🔔 Hẹn gọi: [ngày giờ]" + " · [lý do]" nếu có (textContent → an toàn XSS).
+    callLabel.textContent = '🔔 Hẹn gọi: ' + callScheduleLabel(c) +
+      (c.next_call_reason ? ' · ' + c.next_call_reason : '');
     $('#detail-schedule-btn').textContent = 'Đổi lịch';
     $('#detail-callclear-btn').hidden = false;
   } else {
@@ -2354,6 +2356,9 @@ function openScheduler(id) {
   const tc = $('#sched-time-custom'), dc = $('#sched-date-custom');
   tc.hidden = true; tc.value = ''; dc.hidden = true; dc.value = '';
   const tm = new Date(); tm.setDate(tm.getDate() + 1); dc.min = isoDateLocal(tm); // custom phải sau hôm nay
+  // Lý do gắn với lịch hiện có → nạp lại khi "Đổi lịch"; khách chưa có lịch → trống.
+  const c = allCustomers.find((x) => x.id === id);
+  $('#sched-reason').value = (c && c.next_call_reason) || '';
   $('#sched-error').textContent = '';
   $('#schedule-modal').showModal();
 }
@@ -2379,7 +2384,8 @@ async function saveSchedule() {
   } else { [sh, sm, eh, em] = CALL_SLOTS[schedTime]; }
   const start = new Date(base); start.setHours(sh, sm, 0, 0);
   const end = new Date(base); end.setHours(eh, em, 0, 0);
-  await CRM.update(schedulingId, { next_call_at: start.toISOString(), next_call_end: end.toISOString() });
+  const reason = $('#sched-reason').value.trim() || null; // optional
+  await CRM.update(schedulingId, { next_call_at: start.toISOString(), next_call_end: end.toISOString(), next_call_reason: reason });
   await refreshList();
   $('#schedule-modal').close();
   if (detailId && !$('#detail-screen').hidden) openDetail(detailId);
@@ -2408,6 +2414,9 @@ function openCallAction(id) {
   callActionId = id;
   $('#callact-title').textContent = 'Gọi: ' + (c.full_name || '(chưa tên)');
   $('#callact-sub').textContent = c.next_call_at ? ('Lịch hẹn: ' + callScheduleLabel(c)) : '';
+  const reasonEl = $('#callact-reason');
+  reasonEl.textContent = c.next_call_reason ? ('Lý do: ' + c.next_call_reason) : '';
+  reasonEl.hidden = !c.next_call_reason;
   $('#call-action-modal').showModal();
 }
 // Dấu thời gian cho ghi chú "đã gọi": "hh:mm, dd/mm/yyyy" (giờ địa phương).
@@ -2424,7 +2433,7 @@ async function confirmCalled() {
   const c = allCustomers.find((x) => x.id === id);
   const note = 'Gọi lúc ' + callStamp(new Date());
   const stage = (c && c.care_stage) || 'Chưa gọi được';
-  await CRM.update(id, { care_stage: stage, next_call_at: null, next_call_end: null },
+  await CRM.update(id, { care_stage: stage, next_call_at: null, next_call_end: null, next_call_reason: null },
     { careStageNote: note, forceLog: true });
   await refreshList();
   $('#call-action-modal').close();
@@ -2433,7 +2442,7 @@ async function confirmCalled() {
 // "Huỷ lịch": chỉ xoá lịch hẹn (gỡ badge đếm ngược), KHÔNG ghi lịch sử — dùng khi
 // bỏ cuộc hẹn mà không thực sự gọi.
 async function cancelSchedule() {
-  await CRM.update(callActionId, { next_call_at: null, next_call_end: null });
+  await CRM.update(callActionId, { next_call_at: null, next_call_end: null, next_call_reason: null });
   await refreshList();
   $('#call-action-modal').close();
   if (detailId && !$('#detail-screen').hidden) openDetail(detailId);
@@ -2962,7 +2971,7 @@ document.addEventListener('DOMContentLoaded', () => {
   $('#detail-schedule-btn').addEventListener('click', () => { if (detailId) openScheduler(detailId); });
   $('#detail-callclear-btn').addEventListener('click', async () => {
     if (!detailId) return;
-    await CRM.update(detailId, { next_call_at: null, next_call_end: null });
+    await CRM.update(detailId, { next_call_at: null, next_call_end: null, next_call_reason: null });
     await refreshList();
     openDetail(detailId);
   });

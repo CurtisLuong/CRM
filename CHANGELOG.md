@@ -6,6 +6,27 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-23 — Lý do cho lịch hẹn gọi (form đặt lịch + modal xác nhận)
+
+Thêm ô **"Lý do (không bắt buộc)"** vào form đặt lịch gọi, dưới phần chọn ngày. Lý do gắn
+LIỀN với lịch hẹn và hiện lại lúc nhắc gọi để biết cần nói gì.
+
+- **DB (cần chạy `add_next_call_reason.sql`):** thêm cột `customers.next_call_reason text`
+  (nullable). Không cần GRANT thêm (quyền tầng bảng tự áp cho cột mới). **Chạy TRƯỚC khi
+  deploy** — nếu không, lưu lịch gọi sẽ báo "column does not exist" và kẹt hàng đợi đồng bộ.
+- **Form đặt lịch (`schedule-modal`):** thêm `<textarea id="sched-reason">`. `openScheduler`
+  nạp lại lý do cũ khi bấm "Đổi lịch"; `saveSchedule` lưu kèm `next_call_reason`.
+- **Hiển thị:** nhãn "🔔 Hẹn gọi" trang chi tiết nối thêm " · [lý do]"; modal xác nhận gọi
+  thêm dòng "Lý do: ..." (id `callact-reason`) ngay dưới "Lịch hẹn". Đều dùng `textContent`
+  (an toàn XSS).
+- **Xoá theo lịch:** "Đã gọi" / "Huỷ lịch" / "Xoá lịch" set `next_call_reason = null` cùng
+  `next_call_at`/`next_call_end` → lý do mất theo lịch (đúng như thiết kế).
+- Không đụng `sw.js`/`APP_SHELL` → không cần tăng `CACHE_NAME`.
+
+File: `add_next_call_reason.sql` (migration mới), `index.html`, `css/style.css`, `js/app.js`
+
+---
+
 ## 2026-08-23 — Modal xác nhận gọi: thêm nút "Huỷ lịch" + "Đã gọi" ghi lịch sử
 
 Đổi hộp thoại xác nhận cuộc gọi (mở khi bấm badge đếm ngược trên card hoặc trang chi tiết).

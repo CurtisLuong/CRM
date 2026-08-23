@@ -1061,9 +1061,13 @@ dialog#schedule-modal::backdrop, dialog#call-action-modal::backdrop { background
   display: block; margin-top: 10px; font: inherit; font-size: 14px;
   padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px;
 }
+.sched-reason { display: block; width: 100%; margin-top: 2px; resize: vertical; min-height: 44px; }
+.sched-optional { font-weight: 400; color: #9a9a8e; }
 .sched-error { color: var(--bad); font-size: 13px; min-height: 16px; margin-top: 10px; }
 
 .callact-sub { color: #6b6b60; font-size: 14px; margin: 8px 0 18px; }
+/* Lý do (nếu có) nằm ngay dưới dòng lịch hẹn: kéo lên sát bằng margin âm. */
+.callact-reason { color: var(--ink); font-size: 14px; margin: -12px 0 18px; white-space: pre-wrap; }
 .callact-btns { display: flex; gap: 10px; flex-wrap: wrap; }
 .callact-btns .btn-primary, .callact-btns .btn-secondary { margin-top: 0; }
 .callact-x {
