@@ -6,6 +6,16 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-23 — Nút "Lưu vào danh bạ" (trang chi tiết) → icon person+
+
+Đổi nút chữ "＋ Lưu vào danh bạ" thành **nút icon** (SVG person+, kiểu Lucide user-plus) cho đồng
+bộ với 2 nút icon Gọi/Zalo cạnh nó (`.icon-btn`, viền teal). Giữ id `#detail-contact-btn` (logic
+lưu danh bạ không đổi) + `aria-label`/`title` "Lưu vào danh bạ" cho tooltip & trợ năng.
+
+File: `index.html`, `css/style.css`
+
+---
+
 ## 2026-08-23 — List view: hiện chỉ báo NHẮC GỌI (đồng nhất card về rule đẩy lên đầu)
 
 Kiểm tra thực tế: filter + sort + rule "đẩy khách sắp/đến/quên giờ gọi lên đầu" VỐN ĐÃ dùng chung

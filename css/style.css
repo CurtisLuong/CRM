@@ -685,6 +685,7 @@ input:focus, select:focus, textarea:focus {
 .detail-phone-row .icon-btn:hover { border-color: var(--teal-light); }
 .detail-phone-row .ic-phone { width: 1.25em; height: 1.25em; fill: currentColor; }
 .detail-phone-row .ic-zalo { height: 1.4em; width: auto; display: block; }
+.detail-phone-row .ic-contact { width: 1.35em; height: 1.35em; display: block; } /* icon "thêm liên hệ" (person +) */
 
 /* Hàng huy hiệu: tiến độ (chấm), quan tâm (chấm), đánh giá */
 .detail-badges { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 22px; }
