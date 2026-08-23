@@ -128,7 +128,14 @@
         </div>
         <div class="pop-group">
           <div class="pop-label">Tiến độ</div>
-          <div id="filter-stage-group" class="pop-radios"></div>
+          <!-- Dropdown tuỳ biến (như dropdown Trạng thái): hiện bậc đang chọn, bấm mới xổ danh sách. -->
+          <div class="status-select-wrap" id="stage-filter">
+            <button type="button" id="stage-btn" class="status-select-btn" aria-haspopup="listbox" aria-expanded="false">
+              <span id="stage-label">Tất cả</span>
+              <span class="status-caret" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            </button>
+            <div id="stage-pop" class="status-select-pop pop-panel" hidden role="listbox"></div>
+          </div>
         </div>
         <div class="pop-group">
           <div class="pop-label">Mức độ quan tâm ≥ <span id="filter-interest-val">0</span>%</div>

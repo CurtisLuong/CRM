@@ -133,6 +133,8 @@ let progressFilter = 'active'; // lọc trạng thái: 'active' | 'done' | 'all'
 // Lọc theo THỜI GIAN ĐĂNG KÝ (registered_at, fallback created_at). preset:
 // 'all'|'today'|'week'|'month'|'custom'; custom dùng from/to ('YYYY-MM-DD').
 let dateFilter = { preset: 'all', from: null, to: null };
+let stageFilter = '';      // lọc theo bậc Tiến độ (dropdown): '' = Tất cả, hoặc tên bậc
+let calExpanded = true;     // lịch Tuỳ chọn đang mở? (tự thu gọn sau khi chọn xong khoảng)
 let editingId = null;
 let formOriginalStage = ''; // care_stage lúc mở form — để biết có đổi bậc không
 let pendingOcrNote = null;  // ghi chú OCR đọc được → thêm thành 1 note sau khi tạo khách
@@ -598,8 +600,7 @@ function matchesFilters(c) {
       if (!customerSearchBlob(c).includes(qNorm)) return false;
     }
   }
-  const stageEl = document.querySelector('input[name="f-stage"]:checked');
-  const stage = stageEl ? stageEl.value : '';
+  const stage = stageFilter;
   if (stage) {
     // Chọn 1 bậc cụ thể → lọc đúng bậc đó, bỏ qua lọc trạng thái xong/chưa xong.
     if (c.care_stage !== stage) return false;
@@ -2490,12 +2491,12 @@ window.addEventListener('resize', () => {
 // -------------------------------------------------------------- WIRE UP ---
 
 function populateSelects() {
-  // Bộ lọc "Tiến độ" nay là radio trong panel Bộ lọc (không còn <select>).
-  const stageRadios = [['', 'Tất cả'], ...CARE_STAGE_OPTIONS.map((s) => [s, s])]
-    .map(([val, label], i) =>
-      `<label class="pop-radio"><input type="radio" name="f-stage" value="${escapeHtml(val)}"${i === 0 ? ' checked' : ''}> ${escapeHtml(label)}</label>`
+  // Bộ lọc "Tiến độ" nay là DROPDOWN tuỳ biến (như dropdown Trạng thái).
+  $('#stage-pop').innerHTML = [['', 'Tất cả'], ...CARE_STAGE_OPTIONS.map((s) => [s, s])]
+    .map(([val, label]) =>
+      `<button type="button" class="status-opt${val === stageFilter ? ' is-sel' : ''}" data-value="${escapeHtml(val)}" role="option">${escapeHtml(label)}</button>`
     ).join('');
-  $('#filter-stage-group').innerHTML = stageRadios;
+  syncStageLabel();
 
   renderSortOptions();
 
@@ -2549,11 +2550,22 @@ function renderSortOptions() {
 }
 
 // ---- Panel công cụ (Bộ lọc / Sắp xếp / Trạng thái): mở/đóng ----
-// Đóng các pop "chốc lát" (Sắp xếp + dropdown Trạng thái). KHÔNG đóng panel Bộ lọc.
+// Đóng các pop "chốc lát" (Sắp xếp + dropdown Trạng thái + dropdown Tiến độ). KHÔNG đóng panel Bộ lọc.
 function closeTransientPops() {
   $('#sort-panel').hidden = true; $('#sort-btn').classList.remove('is-open');
   const pp = $('#progress-pop');
   if (pp) { pp.hidden = true; $('#progress-btn').classList.remove('is-open'); $('#progress-btn').setAttribute('aria-expanded', 'false'); }
+  closeStagePop();
+}
+function closeStagePop() {
+  const sp = $('#stage-pop');
+  if (sp) { sp.hidden = true; $('#stage-btn').classList.remove('is-open'); $('#stage-btn').setAttribute('aria-expanded', 'false'); }
+}
+// Đồng bộ nhãn nút Tiến độ + đánh dấu mục đang chọn theo stageFilter.
+function syncStageLabel() {
+  const lbl = $('#stage-label');
+  if (lbl) lbl.textContent = stageFilter || 'Tất cả';
+  $$('#stage-pop .status-opt').forEach((o) => o.classList.toggle('is-sel', o.dataset.value === stageFilter));
 }
 // Đóng TẤT CẢ (gồm cả panel Bộ lọc). Dùng cho các đóng CHỦ ĐÍCH: bấm icon phễu, nút "Áp dụng".
 function closeToolPops() {
@@ -2605,8 +2617,19 @@ let calMonth = null; // Date của mùng 1 tháng đang hiển thị
 function renderCalendar() {
   const box = $('#filter-date-custom');
   if (!box) return;
+  const fromC = dateFilter.from, toC = dateFilter.to;
+  // THU GỌN: đã chọn xong khoảng và không đang mở lịch → chỉ hiện thanh tóm tắt (bấm để mở lại).
+  if (!calExpanded && fromC) {
+    const rangeTxt = toC ? `${viWdShort(fromC)} ${dmyShort(fromC)} → ${viWdShort(toC)} ${dmyShort(toC)}`
+                         : `${viWdShort(fromC)} ${dmyShort(fromC)}`;
+    box.innerHTML = `<button type="button" class="cal-collapsed" data-cal-expand>
+        <span class="cal-col-range">${escapeHtml(rangeTxt)}</span>
+        <span class="cal-col-edit">Đổi ▾</span>
+      </button>`;
+    return;
+  }
   if (!calMonth) {
-    const base = dateFilter.from ? new Date(dateFilter.from + 'T00:00:00') : new Date();
+    const base = fromC ? new Date(fromC + 'T00:00:00') : new Date();
     calMonth = new Date(base.getFullYear(), base.getMonth(), 1);
   }
   const y = calMonth.getFullYear(), m = calMonth.getMonth();
@@ -2651,6 +2674,7 @@ function calPick(iso) {
   else if (iso < dateFilter.from) { dateFilter.to = dateFilter.from; dateFilter.from = iso; }
   else { dateFilter.to = iso; }
   dateFilter.preset = 'custom';
+  if (dateFilter.from && dateFilter.to) calExpanded = false; // chọn xong khoảng → tự thu gọn lịch
   renderCalendar();
   updateFilterDot();
   renderList(); // real-time: danh sách cập nhật ngay theo khoảng đang chọn
@@ -2666,10 +2690,8 @@ function syncDatePresetUI() {
 
 // Chấm báo "đang có lọc nâng cao" trên icon phễu (tiến độ ≠ tất cả HOẶC quan tâm >0 HOẶC có lọc thời gian).
 function isAdvancedFilterActive() {
-  const stageEl = document.querySelector('input[name="f-stage"]:checked');
-  const stage = stageEl ? stageEl.value : '';
   const interest = Number($('#filter-min-interest').value || 0);
-  return !!(stage || interest > 0 || dateFilterRange());
+  return !!(stageFilter || interest > 0 || dateFilterRange());
 }
 // Đồng bộ 2 chỉ báo "đang có lọc nâng cao": chấm đỏ trên icon phễu + nút "Xoá lọc ✕"
 // cạnh dòng "[x] khách hàng". Cả 2 chỉ hiện khi có lọc khác mặc định (giữ UI gọn).
@@ -2681,12 +2703,12 @@ function updateFilterDot() {
 }
 // Đưa bộ lọc nâng cao về mặc định (tiến độ = Tất cả, quan tâm ≥ 0%).
 function resetAdvancedFilters() {
-  const allRadio = document.querySelector('input[name="f-stage"][value=""]');
-  if (allRadio) allRadio.checked = true;
+  stageFilter = '';
+  syncStageLabel(); closeStagePop();
   $('#filter-min-interest').value = 0;
   $('#filter-interest-val').textContent = '0';
   dateFilter = { preset: 'all', from: null, to: null };
-  calMonth = null; // lần mở lịch sau tính lại về tháng hiện tại
+  calMonth = null; calExpanded = true; // lần mở lịch sau: tháng hiện tại + mở sẵn
   syncDatePresetUI();
   updateFilterDot();
   renderList();
@@ -2853,7 +2875,6 @@ document.addEventListener('DOMContentLoaded', () => {
     $('#filter-panel').hidden = !willOpen;
     $('#filter-btn').classList.toggle('is-open', willOpen);
   });
-  $('#filter-stage-group').addEventListener('change', () => { updateFilterDot(); renderList(); });
   $('#filter-min-interest').addEventListener('input', () => {
     $('#filter-interest-val').textContent = $('#filter-min-interest').value;
     updateFilterDot(); renderList();
@@ -2863,18 +2884,37 @@ document.addEventListener('DOMContentLoaded', () => {
   $('#filter-date-presets').addEventListener('click', (e) => {
     const b = e.target.closest('.date-preset'); if (!b) return;
     dateFilter.preset = b.dataset.preset;
-    if (b.dataset.preset === 'custom') calMonth = null;
+    if (b.dataset.preset === 'custom') { calMonth = null; calExpanded = true; } // bấm Tuỳ chọn → mở lịch
     syncDatePresetUI(); updateFilterDot(); renderList();
   });
   $('#filter-date-custom').addEventListener('click', (e) => {
-    // Chặn nổi bọt: calPick/đổi tháng render lại innerHTML → phần tử vừa bấm rời DOM; nếu để lọt
-    // tới handler "click ngoài" ở document nó sẽ tưởng click ngoài (nhưng panel giờ vốn không tự
-    // đóng theo click ngoài — vẫn stopPropagation cho an toàn/nhất quán).
+    // Chặn nổi bọt: các nhánh render lại innerHTML → phần tử vừa bấm rời DOM.
+    const exp = e.target.closest('[data-cal-expand]');
+    if (exp) { e.stopPropagation(); calExpanded = true; renderCalendar(); return; } // mở lại lịch để chỉnh
     const nav = e.target.closest('[data-cal-nav]');
     if (nav) { e.stopPropagation(); calMonth.setMonth(calMonth.getMonth() + Number(nav.dataset.calNav)); renderCalendar(); return; }
     const day = e.target.closest('.cal-day[data-date]');
     if (day) { e.stopPropagation(); calPick(day.dataset.date); }
   });
+  // --- Dropdown Tiến độ: mở/đóng + chọn 1 bậc → thu gọn + áp ngay (không đóng panel) ---
+  $('#stage-btn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    const willOpen = $('#stage-pop').hidden;
+    closeTransientPops();
+    $('#stage-pop').hidden = !willOpen;
+    $('#stage-btn').classList.toggle('is-open', willOpen);
+    $('#stage-btn').setAttribute('aria-expanded', String(willOpen));
+  });
+  $('#stage-pop').addEventListener('click', (e) => {
+    const opt = e.target.closest('.status-opt'); if (!opt) return;
+    e.stopPropagation();
+    stageFilter = opt.dataset.value;
+    syncStageLabel();
+    closeStagePop();
+    updateFilterDot(); renderList();
+  });
+  // Bấm chỗ khác (kể cả trong panel Bộ lọc) → đóng dropdown Tiến độ.
+  document.addEventListener('click', (e) => { if (!e.target.closest('#stage-filter')) closeStagePop(); });
   // Bộ lọc đã áp real-time; nút "Áp dụng" đáy panel chỉ đóng panel (chốt phiên xem/gộp lọc).
   $('#filter-apply-btn').addEventListener('click', () => { closeToolPops(); });
   $('#filter-reset-btn').addEventListener('click', resetAdvancedFilters);

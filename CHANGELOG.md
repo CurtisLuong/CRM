@@ -6,6 +6,23 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-23 — Panel Bộ lọc gọn hơn: lịch tự thu gọn + Tiến độ thành dropdown
+
+Thu gọn 2 điều khiển trong panel Bộ lọc (chọn xong KHÔNG đóng panel — vẫn chỉ nút "Áp dụng" đáy đóng):
+
+- **Thời gian → Tuỳ chọn:** bấm "Tuỳ chọn" mở lịch; chọn xong KHOẢNG (đủ 2 đầu) → lịch **tự thu
+  gọn** thành thanh tóm tắt "T7 8/8 → T5 20/8 · Đổi ▾" (giữ nguyên khoảng đã chọn, vẫn áp lọc
+  real-time). Bấm thanh đó (hoặc bấm lại pill "Tuỳ chọn") mở lại lịch để chỉnh. State `calExpanded`.
+- **Tiến độ:** đổi từ danh sách radio dài → **dropdown tuỳ biến** (như dropdown Trạng thái): nút
+  hiện bậc đang chọn, bấm mới xổ full danh sách, chọn 1 bậc → thu gọn + áp ngay. State `stageFilter`
+  thay cho radio `f-stage`; `matchesFilters`/`isAdvancedFilterActive` đọc `stageFilter`.
+- `closeTransientPops()` đóng thêm dropdown Tiến độ; có handler riêng đóng nó khi bấm chỗ khác
+  (kể cả trong panel). `populateSelects` render option cho `#stage-pop`.
+
+File: `index.html`, `css/style.css`, `js/app.js`
+
+---
+
 ## 2026-08-23 — Panel Bộ lọc: lọc real-time, 1 nút "Áp dụng" đáy để đóng, không tự đóng
 
 Chốt hành vi panel Bộ lọc theo ý dùng "gộp nhiều filter, xem nhóm khách trực tiếp":

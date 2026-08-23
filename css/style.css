@@ -326,6 +326,7 @@ input:focus, select:focus, textarea:focus {
 /* Lọc trạng thái = DROPDOWN TUỲ BIẾN (thay <select> gốc) để cả nút đóng LẪN danh
    sách bung ra đều khớp UI (dùng chung shell .pop-panel với popup Lọc/Sắp xếp).
    Nút: cùng chiều cao 38px + viền/màu như nút Lọc & Sắp xếp. Mũi tên ˅ xoay khi mở. */
+.status-select-wrap { position: relative; } /* mốc cho popup (dropdown Trạng thái + Tiến độ) */
 .status-select-btn {
   display: inline-flex; align-items: center; gap: 8px;
   height: 38px; padding: 0 10px 0 12px;
@@ -441,6 +442,15 @@ input:focus, select:focus, textarea:focus {
 .cal-day.is-single { background: var(--teal); color: #fff; font-weight: 700; border-radius: 6px; }
 .cal-day.is-start  { background: var(--teal); color: #fff; font-weight: 700; border-radius: 6px 0 0 6px; }
 .cal-day.is-end    { background: var(--teal); color: #fff; font-weight: 700; border-radius: 0 6px 6px 0; }
+/* Thanh KHOẢNG ĐÃ CHỌN khi lịch thu gọn (bấm để mở lại lịch chỉnh). */
+.cal-collapsed {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%;
+  font: inherit; font-size: 13px; cursor: pointer; text-align: left;
+  padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: #fff; color: var(--ink);
+}
+.cal-collapsed:hover { background: var(--paper); }
+.cal-collapsed .cal-col-range { font-weight: 700; color: var(--teal); }
+.cal-collapsed .cal-col-edit { font-size: 12px; color: #8a8a7d; flex: none; }
 
 /* FAB — nút thêm khách nổi góc dưới phải */
 .fab {
