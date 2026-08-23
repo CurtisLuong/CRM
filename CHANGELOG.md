@@ -6,6 +6,32 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-23 — Sửa lỗi OCR 524 (Gemini timeout): Worker timeout+retry + app maxDim 1024 + nút thử lại
+
+Lỗi "Đọc ảnh thất bại: Gemini trả lỗi — error code: 524" thực chất là **timeout của Cloudflare**:
+Worker gọi `fetch` sang Gemini, Gemini không trả kịp (~100s) → Cloudflare tự sinh response 524
+cho subrequest → Worker gán nhãn sai thành "Gemini trả lỗi". Sửa 2 phía:
+
+**Worker (`worker/intake-worker.js`) — CẦN `wrangler deploy` lại:**
+- Thêm `callGeminiOnce()` dùng **AbortController timeout 45s/lần** (dưới ngưỡng ~100s của CF) →
+  không treo tới 524 nữa.
+- **Tự thử lại tối đa 2 lần** khi lỗi TẠM THỜI (timeout, lỗi mạng, 5xx kể cả 524); 4xx (lỗi cố
+  định như sai model/API key) thì dừng ngay, không phí lượt.
+- **Thông báo phân loại rõ** thay cho "Gemini trả lỗi" mập mờ: `timeout` (504, "phản hồi quá
+  lâu"), `busy` (5xx, "đang bận/quá tải"), `rejected` (4xx, "từ chối — kiểm tra ảnh/model/key"),
+  `network`. Log mỗi lần thử qua `wrangler tail`.
+- Hằng số `GEMINI_TIMEOUT_MS` / `GEMINI_MAX_ATTEMPTS` chỉnh ở đầu file.
+
+**App (`index.html`, `js/app.js`) — chỉ kéo-để-tải-lại:**
+- OCR thu ảnh về **maxDim 1024** (thay 1600) → payload nhẹ + Gemini nhanh hơn → đỡ timeout.
+  (Chỉ đổi tại chỗ gọi OCR; upload tài liệu vẫn 1600.)
+- Thêm nút **"↻ Thử lại"** cạnh dòng trạng thái OCR: hiện khi đọc ảnh thất bại, bấm gọi lại đúng
+  ảnh vừa rồi (`lastOcrFile`). Reset khi mở form / đọc thành công.
+
+File: `worker/intake-worker.js`, `index.html`, `js/app.js`
+
+---
+
 ## 2026-08-23 — List view: bỏ nút gọi/Zalo, số ĐT hiện nhiều/ít số theo chỗ trống
 
 Tinh chỉnh list view: **bỏ nút gọi & Zalo** trên mỗi dòng (muốn thao tác thì bấm vào dòng →

@@ -955,10 +955,12 @@ function openForm(id) {
   f.care_stage_note.value = '';
   toggleCareStageNote();
 
-  // Reset trạng thái OCR mỗi lần mở form (ghi chú tạm + ảnh tạm + dòng thông báo).
+  // Reset trạng thái OCR mỗi lần mở form (ghi chú tạm + ảnh tạm + dòng thông báo + nút thử lại).
   pendingOcrNote = null;
   pendingOcrImage = null;
+  lastOcrFile = null;
   const ocrStatus = $('#ocr-status'); if (ocrStatus) ocrStatus.textContent = '';
+  const ocrRetry = $('#ocr-retry-btn'); if (ocrRetry) ocrRetry.hidden = true;
 
   // Nút Xoá khách + mục Tài liệu: chỉ khi SỬA (đã có khách). Khách mới thì ẩn.
   $('#delete-customer-btn').hidden = !id;
@@ -1354,14 +1356,19 @@ function toTitleCaseName(s) {
     .join(' ');
 }
 
+let lastOcrFile = null; // ảnh OCR gần nhất — để nút "↻ Thử lại" gọi lại khi đọc thất bại
 async function handleOcrImage(file) {
   if (!file) return;
+  lastOcrFile = file;
   const status = $('#ocr-status');
+  const retryBtn = $('#ocr-retry-btn');
+  if (retryBtn) retryBtn.hidden = true; // đang thử → giấu nút, chỉ hiện lại nếu lỗi
   const workerUrl = (window.APP_CONFIG.WORKER_URL || '').replace(/\/+$/, '');
   if (!workerUrl) { status.textContent = '⚠️ Chưa cấu hình WORKER_URL.'; return; }
   status.textContent = '⏳ Đang đọc ảnh...';
   try {
-    const { base64, blob, mime } = await fileToScaled(file);
+    // maxDim 1024 (thay vì 1600): nhẹ payload + Gemini xử lý nhanh hơn → đỡ timeout (524).
+    const { base64, blob, mime } = await fileToScaled(file, 1024);
     pendingOcrImage = blob; // giữ ảnh nén để lưu thành tài liệu reg_image khi Lưu khách
     const { data: { session } } = await sb.auth.getSession();
     const token = session && session.access_token;
@@ -1381,6 +1388,7 @@ async function handleOcrImage(file) {
   } catch (e) {
     console.warn('OCR lỗi:', e);
     status.textContent = '⚠️ Đọc ảnh thất bại: ' + (e.message || 'lỗi không rõ');
+    if (retryBtn && lastOcrFile) retryBtn.hidden = false; // cho thử lại ngay cùng ảnh đó
   } finally {
     $('#ocr-file').value = ''; // cho phép chọn lại đúng ảnh đó lần nữa
   }
@@ -2580,6 +2588,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if ((window.APP_CONFIG.WORKER_URL || '').trim()) $('#ocr-row').hidden = false;
   $('#ocr-btn').addEventListener('click', () => $('#ocr-file').click());
   $('#ocr-file').addEventListener('change', (e) => handleOcrImage(e.target.files && e.target.files[0]));
+  $('#ocr-retry-btn').addEventListener('click', () => { if (lastOcrFile) handleOcrImage(lastOcrFile); });
   // Dán ảnh từ clipboard: (a) nút bấm dùng Clipboard API; (b) Ctrl/Cmd+V khi form khách
   // đang mở dán thẳng — đường tin cậy nhất, không cần xin quyền. Chỉ chặn khi clipboard
   // thực sự CÓ ảnh; dán chữ (vd SĐT) vào ô input vẫn hoạt động bình thường.

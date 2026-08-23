@@ -22,6 +22,12 @@
 // Đổi tên tại đây nếu Google ra bản mới (vd bản 'pro' cho ảnh khó, tốn quota hơn).
 const MODEL = 'gemini-3.6-flash'; // 2.5-flash đã ngừng cho user mới (Google báo dùng 3.6-flash)
 
+// Chống lỗi 524 (Cloudflare cắt vì Gemini treo/quá lâu): mỗi lần gọi Gemini chờ TỐI ĐA
+// GEMINI_TIMEOUT_MS rồi tự huỷ (AbortController) — trả lỗi rõ nghĩa thay vì để treo tới ~100s.
+// Lỗi TẠM THỜI (timeout, lỗi mạng, 5xx kể cả 524) → tự thử lại tới GEMINI_MAX_ATTEMPTS lần.
+const GEMINI_TIMEOUT_MS = 45000; // 45s/lần, dưới ngưỡng ~100s của Cloudflare
+const GEMINI_MAX_ATTEMPTS = 2;   // 1 lần đầu + 1 lần thử lại
+
 // Ràng buộc cấu trúc JSON model phải trả về — khớp đúng field bảng customers.
 // LƯU Ý: Gemini đòi `type` viết HOA (OBJECT/STRING/NUMBER/INTEGER/ARRAY), không
 // phải chữ thường. nullable:true để field không có trong ảnh thì trả null (không bịa).
@@ -123,6 +129,28 @@ function json(obj, status = 200) {
   return new Response(JSON.stringify(obj), { status, headers: { 'Content-Type': 'application/json' } });
 }
 
+// Gọi Gemini 1 lần, tự huỷ nếu quá timeoutMs (AbortController). Trả:
+//   { res }                    — có response (dù ok hay lỗi status, để bên gọi tự xử)
+//   { timedOut: true, message } — bị huỷ do quá lâu
+//   { timedOut: false, message }— lỗi mạng khác
+async function callGeminiOnce(endpoint, payload, timeoutMs) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: ctrl.signal,
+    });
+    return { res };
+  } catch (e) {
+    return { timedOut: e && e.name === 'AbortError', message: (e && e.message) || String(e) };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function handleOcr(request, env) {
   // 1) Xác thực: token Supabase phải hợp lệ (chặn người lạ đốt quota Gemini).
   const token = (request.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
@@ -139,25 +167,44 @@ async function handleOcr(request, env) {
   const mime = (body && body.mime) || 'image/jpeg';
   if (!image) return json({ error: 'Thiếu ảnh' }, 400);
 
-  // 3) Gọi Gemini (structured output — ép trả JSON đúng schema).
+  // 3) Gọi Gemini (structured output — ép trả JSON đúng schema) CÓ timeout + tự thử lại.
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${env.GEMINI_API_KEY}`;
-  let gRes;
-  try {
-    gRes = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: PROMPT }, { inlineData: { mimeType: mime, data: image } }] }],
-        generationConfig: { temperature: 0, responseMimeType: 'application/json', responseSchema: RESPONSE_SCHEMA },
-      }),
-    });
-  } catch (e) {
-    return json({ error: 'Không gọi được Gemini', detail: String(e) }, 502);
+  const payload = {
+    contents: [{ parts: [{ text: PROMPT }, { inlineData: { mimeType: mime, data: image } }] }],
+    generationConfig: { temperature: 0, responseMimeType: 'application/json', responseSchema: RESPONSE_SCHEMA },
+  };
+
+  let gRes = null;
+  let lastTimedOut = false, lastStatus = 0, lastDetail = '', lastNetErr = '';
+  for (let attempt = 1; attempt <= GEMINI_MAX_ATTEMPTS; attempt++) {
+    const r = await callGeminiOnce(endpoint, payload, GEMINI_TIMEOUT_MS);
+    if (r.res) {
+      if (r.res.ok) { gRes = r.res; break; }
+      lastStatus = r.res.status;
+      lastDetail = (await r.res.text()).slice(0, 500);
+      console.log(`Gemini attempt ${attempt} status`, lastStatus, lastDetail.slice(0, 300)); // xem `wrangler tail`
+      // 5xx (kể cả 524 do Cloudflare tự sinh khi treo) = tạm thời → thử lại; 4xx = lỗi cố định → dừng.
+      if (lastStatus >= 500 && attempt < GEMINI_MAX_ATTEMPTS) continue;
+      break;
+    }
+    // Không có res = timeout (AbortError) hoặc lỗi mạng.
+    lastTimedOut = r.timedOut; lastNetErr = r.message || '';
+    console.log(`Gemini attempt ${attempt} ${r.timedOut ? 'TIMEOUT' : 'network error'}`, lastNetErr);
+    if (attempt < GEMINI_MAX_ATTEMPTS) continue; // thử lại
   }
-  if (!gRes.ok) {
-    const t = await gRes.text();
-    console.log('Gemini error', gRes.status, t.slice(0, 800)); // xem qua `wrangler tail`
-    return json({ error: 'Gemini trả lỗi', status: gRes.status, detail: t.slice(0, 500) }, 502);
+
+  if (!gRes) {
+    // Thông báo PHÂN LOẠI rõ (thay cho "Gemini trả lỗi" mập mờ trước đây).
+    if (lastTimedOut) {
+      return json({ error: 'Gemini phản hồi quá lâu — thử lại giúp mình (ảnh nhỏ & rõ hơn sẽ nhanh hơn).', code: 'timeout' }, 504);
+    }
+    if (lastStatus >= 500) {
+      return json({ error: 'Gemini đang bận/quá tải — thử lại sau ít phút.', code: 'busy', status: lastStatus, detail: lastDetail }, 502);
+    }
+    if (lastStatus >= 400) {
+      return json({ error: 'Gemini từ chối yêu cầu (kiểm tra ảnh / tên model / API key).', code: 'rejected', status: lastStatus, detail: lastDetail }, 502);
+    }
+    return json({ error: 'Không gọi được Gemini (lỗi mạng).', code: 'network', detail: lastNetErr }, 502);
   }
   const g = await gRes.json();
   const text = g && g.candidates && g.candidates[0] && g.candidates[0].content
