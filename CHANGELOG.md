@@ -6,6 +6,26 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-23 — "Tuỳ chọn" thời gian: lịch tuỳ biến chọn KHOẢNG (1 bảng, tô dải)
+
+Đổi phần "Tuỳ chọn" của bộ lọc thời gian từ 2 ô `<input type=date>` native → **1 bảng lịch tuỳ
+biến** chọn khoảng: bấm ngày bắt đầu rồi ngày kết thúc trên cùng bảng. Ngày đầu/cuối **tô teal
+đậm** (chữ trắng); các ngày GIỮA **tô teal cùng màu ~½ opacity** (`rgba(26,46,41,0.5)`) thành dải
+liền. Có header đổi tháng (‹ ›), hàng thứ T2..CN, hôm nay gạch chân, và dòng tóm tắt khoảng kèm
+thứ (vd "T7 8/8 → T5 20/8").
+
+- `renderCalendar()` vẽ lịch; `calPick(iso)` chốt đầu/cuối (tự sắp min/max nếu bấm ngược, bấm
+  lần 3 bắt đầu khoảng mới); state `calMonth` cho tháng đang xem. Vẫn ghi vào `dateFilter.from/to`
+  nên `dateFilterRange()`/lọc không đổi.
+- **Bug đã sửa cùng lúc:** handler click lịch phải `stopPropagation()` — vì `calPick` render lại
+  innerHTML làm phần tử vừa bấm rời DOM, để lọt tới handler "click ngoài" ở document sẽ tưởng
+  click ngoài → đóng panel (cùng loại bug đã ghi ở handler Sắp xếp).
+- Bỏ 2 `<input type=date>` + helper `viWeekdayLabel` cũ; thêm `viWdShort`/`dmyShort`.
+
+File: `index.html`, `css/style.css`, `js/app.js`
+
+---
+
 ## 2026-08-23 — Bộ lọc thời gian đăng ký trong panel Bộ lọc (preset + tuỳ chọn lịch)
 
 Thêm nhóm "Thời gian đăng ký" vào panel Bộ lọc (cạnh Tiến độ + Mức quan tâm) — lọc theo

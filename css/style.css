@@ -411,14 +411,36 @@ input:focus, select:focus, textarea:focus {
 }
 .date-preset:hover { background: var(--paper); }
 .date-preset.is-sel { background: var(--teal); color: #fff; border-color: var(--teal); }
-.date-custom { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
-.date-field { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #4a4a42; }
-.date-input {
-  flex: 1 1 auto; min-width: 0;
-  font: inherit; font-size: 13px; padding: 6px 8px; border-radius: 8px;
-  border: 1px solid var(--line); background: #fff; color: var(--ink);
+/* Lịch tuỳ biến chọn KHOẢNG ngày (1 bảng). Ngày đầu/cuối tô đậm teal; ngày GIỮA
+   cùng màu teal nhưng ~½ opacity → thấy rõ đoạn đã chọn. */
+.date-cal { margin-top: 10px; }
+.cal-summary { font-size: 12px; font-weight: 700; color: var(--teal); text-align: center; margin-bottom: 8px; }
+.cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.cal-month { font-size: 13px; font-weight: 700; color: var(--ink); }
+.cal-nav {
+  width: 28px; height: 28px; border-radius: 6px; cursor: pointer; padding: 0;
+  border: 1px solid var(--line); background: #fff; color: var(--teal);
+  font-size: 17px; line-height: 1; display: inline-flex; align-items: center; justify-content: center;
 }
-.date-wd { flex: none; font-size: 12px; font-weight: 600; color: var(--teal); min-width: 52px; }
+.cal-nav:hover { background: var(--paper); }
+.cal-weekdays, .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); }
+.cal-weekdays { margin-bottom: 4px; }
+.cal-weekdays span { text-align: center; font-size: 11px; font-weight: 700; color: #8a8a7d; }
+.cal-grid { row-gap: 2px; }
+.cal-day {
+  height: 32px; font: inherit; font-size: 13px; cursor: pointer;
+  border: none; background: transparent; color: var(--ink);
+  display: flex; align-items: center; justify-content: center; border-radius: 6px;
+}
+.cal-day.cal-empty { pointer-events: none; }
+.cal-day:not(.cal-empty):not(.is-single):not(.is-start):not(.is-end):not(.is-range):hover { background: var(--paper); }
+.cal-day.is-today { font-weight: 700; text-decoration: underline; text-underline-offset: 2px; }
+/* Ngày GIỮA: teal ~½ opacity, ô vuông để nối liền dải; chữ trắng cho nổi. */
+.cal-day.is-range { background: rgba(26, 46, 41, 0.5); color: #fff; border-radius: 0; }
+/* Ngày đầu/cuối/đơn: teal đậm, chữ trắng. Bo góc theo vị trí để dải liền mạch. */
+.cal-day.is-single { background: var(--teal); color: #fff; font-weight: 700; border-radius: 6px; }
+.cal-day.is-start  { background: var(--teal); color: #fff; font-weight: 700; border-radius: 6px 0 0 6px; }
+.cal-day.is-end    { background: var(--teal); color: #fff; font-weight: 700; border-radius: 0 6px 6px 0; }
 
 /* FAB — nút thêm khách nổi góc dưới phải */
 .fab {

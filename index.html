@@ -123,16 +123,8 @@
             <button type="button" class="date-preset" data-preset="month">Tháng này</button>
             <button type="button" class="date-preset" data-preset="custom">Tuỳ chọn</button>
           </div>
-          <div id="filter-date-custom" class="date-custom" hidden>
-            <label class="date-field">Từ
-              <input type="date" id="filter-date-from" class="date-input" />
-              <span class="date-wd" id="filter-date-from-wd"></span>
-            </label>
-            <label class="date-field">Đến
-              <input type="date" id="filter-date-to" class="date-input" />
-              <span class="date-wd" id="filter-date-to-wd"></span>
-            </label>
-          </div>
+          <!-- Lịch tuỳ biến: bấm ngày bắt đầu + ngày kết thúc trên CÙNG 1 bảng; JS render (renderCalendar). -->
+          <div id="filter-date-custom" class="date-cal" hidden></div>
         </div>
         <div class="pop-group">
           <div class="pop-label">Tiến độ</div>

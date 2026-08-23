@@ -2556,11 +2556,14 @@ function closeToolPops() {
   if (pp) { pp.hidden = true; $('#progress-btn').classList.remove('is-open'); $('#progress-btn').setAttribute('aria-expanded', 'false'); }
 }
 // ---- Bộ lọc THỜI GIAN ĐĂNG KÝ ----
-const VI_WEEKDAYS = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
-function viWeekdayLabel(isoDate) {
-  if (!isoDate) return '';
-  const d = new Date(isoDate + 'T00:00:00');
-  return isNaN(d.getTime()) ? '' : VI_WEEKDAYS[d.getDay()];
+const VI_WD_SHORT = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7']; // getDay() 0=CN..6=T7
+function dmyShort(iso) {
+  const d = new Date(iso + 'T00:00:00');
+  return isNaN(d.getTime()) ? '' : `${d.getDate()}/${d.getMonth() + 1}`;
+}
+function viWdShort(iso) {
+  const d = new Date(iso + 'T00:00:00');
+  return isNaN(d.getTime()) ? '' : VI_WD_SHORT[d.getDay()];
 }
 // Khoảng thời gian đang lọc → { start, end } (ms, end LOẠI TRỪ), hoặc null = không lọc.
 function dateFilterRange() {
@@ -2589,14 +2592,70 @@ function dateFilterRange() {
   }
   return null; // 'all'
 }
-// Đồng bộ UI preset + phần tuỳ chọn theo state dateFilter.
+// ---- Lịch tuỳ biến chọn KHOẢNG ngày (1 bảng duy nhất) ----
+let calMonth = null; // Date của mùng 1 tháng đang hiển thị
+// Vẽ lịch: header đổi tháng + hàng thứ (T2..CN) + lưới ngày. Ngày đầu/cuối tô đậm,
+// các ngày GIỮA tô cùng màu nhạt (~½ opacity). Nhấn 1 ngày → calPick.
+function renderCalendar() {
+  const box = $('#filter-date-custom');
+  if (!box) return;
+  if (!calMonth) {
+    const base = dateFilter.from ? new Date(dateFilter.from + 'T00:00:00') : new Date();
+    calMonth = new Date(base.getFullYear(), base.getMonth(), 1);
+  }
+  const y = calMonth.getFullYear(), m = calMonth.getMonth();
+  const daysInMonth = new Date(y, m + 1, 0).getDate();
+  const lead = (new Date(y, m, 1).getDay() + 6) % 7; // số ô trống đầu (bắt đầu từ Thứ Hai)
+  const from = dateFilter.from, to = dateFilter.to;
+  const hasRange = !!(from && to && to !== from);
+  const todayIso = isoDateLocal(new Date());
+
+  let cells = '';
+  for (let i = 0; i < lead; i++) cells += '<span class="cal-day cal-empty"></span>';
+  for (let d = 1; d <= daysInMonth; d++) {
+    const iso = isoDateLocal(new Date(y, m, d));
+    let cls = 'cal-day';
+    if (iso === from && !hasRange) cls += ' is-single';       // chỉ mới chọn 1 đầu → 1 ngày tròn
+    else if (iso === from) cls += ' is-start';
+    if (iso === to && hasRange) cls += ' is-end';
+    if (hasRange && iso > from && iso < to) cls += ' is-range'; // ngày giữa → màu nhạt
+    if (iso === todayIso) cls += ' is-today';
+    cells += `<button type="button" class="${cls}" data-date="${iso}">${d}</button>`;
+  }
+
+  const summary = from
+    ? (to ? `${viWdShort(from)} ${dmyShort(from)} → ${viWdShort(to)} ${dmyShort(to)}`
+          : `${viWdShort(from)} ${dmyShort(from)} → chọn ngày kết thúc`)
+    : 'Chọn ngày bắt đầu';
+
+  box.innerHTML = `
+    <div class="cal-summary">${escapeHtml(summary)}</div>
+    <div class="cal-head">
+      <button type="button" class="cal-nav" data-cal-nav="-1" aria-label="Tháng trước">‹</button>
+      <span class="cal-month">Tháng ${m + 1}/${y}</span>
+      <button type="button" class="cal-nav" data-cal-nav="1" aria-label="Tháng sau">›</button>
+    </div>
+    <div class="cal-weekdays"><span>T2</span><span>T3</span><span>T4</span><span>T5</span><span>T6</span><span>T7</span><span>CN</span></div>
+    <div class="cal-grid">${cells}</div>`;
+}
+// Chọn 1 ngày trên lịch: chưa có/đã đủ cặp → bắt đầu khoảng mới; đã có ngày đầu → chốt ngày
+// cuối (tự sắp min/max nếu bấm ngược). Áp lọc ngay.
+function calPick(iso) {
+  if (!dateFilter.from || dateFilter.to) { dateFilter.from = iso; dateFilter.to = null; }
+  else if (iso < dateFilter.from) { dateFilter.to = dateFilter.from; dateFilter.from = iso; }
+  else { dateFilter.to = iso; }
+  dateFilter.preset = 'custom';
+  renderCalendar();
+  updateFilterDot();
+  renderList();
+}
+// Đồng bộ UI preset + hiện/ẩn lịch theo state dateFilter.
 function syncDatePresetUI() {
   $$('#filter-date-presets .date-preset').forEach((b) => b.classList.toggle('is-sel', b.dataset.preset === dateFilter.preset));
-  $('#filter-date-custom').hidden = dateFilter.preset !== 'custom';
-  $('#filter-date-from').value = dateFilter.from || '';
-  $('#filter-date-to').value = dateFilter.to || '';
-  $('#filter-date-from-wd').textContent = viWeekdayLabel(dateFilter.from);
-  $('#filter-date-to-wd').textContent = viWeekdayLabel(dateFilter.to);
+  const custom = $('#filter-date-custom');
+  if (!custom) return;
+  if (dateFilter.preset === 'custom') { custom.hidden = false; renderCalendar(); }
+  else custom.hidden = true;
 }
 
 // Chấm báo "đang có lọc nâng cao" trên icon phễu (tiến độ ≠ tất cả HOẶC quan tâm >0 HOẶC có lọc thời gian).
@@ -2621,6 +2680,7 @@ function resetAdvancedFilters() {
   $('#filter-min-interest').value = 0;
   $('#filter-interest-val').textContent = '0';
   dateFilter = { preset: 'all', from: null, to: null };
+  calMonth = null; // lần mở lịch sau tính lại về tháng hiện tại
   syncDatePresetUI();
   updateFilterDot();
   renderList();
@@ -2792,21 +2852,19 @@ document.addEventListener('DOMContentLoaded', () => {
     $('#filter-interest-val').textContent = $('#filter-min-interest').value;
     updateFilterDot(); renderList();
   });
-  // --- Lọc thời gian đăng ký: chọn preset / nhập ngày tuỳ chọn (áp ngay) ---
+  // --- Lọc thời gian đăng ký: chọn preset; "Tuỳ chọn" → lịch chọn khoảng (áp ngay) ---
   $('#filter-date-presets').addEventListener('click', (e) => {
     const b = e.target.closest('.date-preset'); if (!b) return;
     dateFilter.preset = b.dataset.preset;
     syncDatePresetUI(); updateFilterDot(); renderList();
   });
-  $('#filter-date-from').addEventListener('change', (e) => {
-    dateFilter.from = e.target.value || null;
-    $('#filter-date-from-wd').textContent = viWeekdayLabel(dateFilter.from);
-    updateFilterDot(); renderList();
-  });
-  $('#filter-date-to').addEventListener('change', (e) => {
-    dateFilter.to = e.target.value || null;
-    $('#filter-date-to-wd').textContent = viWeekdayLabel(dateFilter.to);
-    updateFilterDot(); renderList();
+  $('#filter-date-custom').addEventListener('click', (e) => {
+    // Chặn nổi bọt: calPick/đổi tháng render lại innerHTML → phần tử vừa bấm bị tách khỏi DOM;
+    // nếu để lọt tới handler "click ngoài" ở document nó sẽ tưởng click ngoài → đóng panel.
+    const nav = e.target.closest('[data-cal-nav]');
+    if (nav) { e.stopPropagation(); calMonth.setMonth(calMonth.getMonth() + Number(nav.dataset.calNav)); renderCalendar(); return; }
+    const day = e.target.closest('.cal-day[data-date]');
+    if (day) { e.stopPropagation(); calPick(day.dataset.date); }
   });
   $('#filter-apply-btn').addEventListener('click', () => { renderList(); closeToolPops(); });
   $('#filter-reset-btn').addEventListener('click', resetAdvancedFilters);
