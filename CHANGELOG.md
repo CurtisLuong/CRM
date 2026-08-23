@@ -6,6 +6,26 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-23 — Lịch gọi trang chi tiết → thẻ "Hành động tiếp theo"
+
+Đổi khu lịch gọi ở trang chi tiết từ 1 dòng chữ + 3 nút thành 1 **thẻ phân cấp** bấm được.
+
+- **Phân cấp:** dòng 1 = nhãn "HẸN GỌI" (trái) + badge đếm ngược (phải); dòng 2 = "ngày · giờ"
+  (nổi bật); dòng 3 = lý do (mờ, nếu có). Viền trái đổi màu theo độ gấp (vàng sắp gọi · đỏ đến
+  giờ · xám quên gọi).
+- **Bỏ 2 nút "Đổi lịch" + "Xoá lịch"** (`detail-callclear-btn` xoá hẳn). Chức năng đổi/huỷ nay
+  nằm trong hộp thoại mở khi **bấm cả thẻ** (Đã gọi / Hẹn lại / Huỷ lịch) — tránh trùng lặp.
+  Bấm được cả khi lịch xa >24h (chưa hiện badge). Chưa có lịch → chỉ còn nút "＋ Đặt lịch gọi".
+- **Bỏ icon chuông 🔔** trước nhãn — thay bằng eyebrow chữ hoa "HẸN GỌI" + viền màu (hiện đại,
+  gọn hơn).
+- Đổi `#detail-call-label` (span) → thẻ `#detail-next-action` (button) chứa `#detail-call-badge`
+  (nay là span), `#detail-na-when`, `#detail-na-reason`. `renderDetailCall` viết lại; listener
+  badge cũ → listener trên cả thẻ.
+
+File: `index.html`, `css/style.css`, `js/app.js`
+
+---
+
 ## 2026-08-23 — Lý do cho lịch hẹn gọi (form đặt lịch + modal xác nhận)
 
 Thêm ô **"Lý do (không bắt buộc)"** vào form đặt lịch gọi, dưới phần chọn ngày. Lý do gắn

@@ -234,10 +234,19 @@
     </div>
 
     <div class="detail-call">
-      <span id="detail-call-label" class="detail-call-label"></span>
-      <button id="detail-call-badge" class="call-tag" type="button" hidden></button>
+      <!-- CÓ lịch → thẻ "Hành động tiếp theo": bấm cả thẻ để mở hộp thoại Đã gọi /
+           Hẹn lại / Huỷ lịch. Đổi lịch & Xoá lịch nay nằm trong hộp thoại đó nên
+           không còn nút riêng ở đây. Bấm được kể cả khi lịch xa >24h (chưa có badge). -->
+      <button id="detail-next-action" class="next-action" type="button" hidden>
+        <span class="na-head">
+          <span class="na-eyebrow">Hẹn gọi</span>
+          <span id="detail-call-badge" class="call-tag" hidden></span>
+        </span>
+        <span id="detail-na-when" class="na-when"></span>
+        <span id="detail-na-reason" class="na-reason" hidden></span>
+      </button>
+      <!-- CHƯA có lịch → nút tạo lịch -->
       <button id="detail-schedule-btn" class="btn-small">＋ Đặt lịch gọi</button>
-      <button id="detail-callclear-btn" class="btn-small btn-danger" hidden>Xoá lịch</button>
     </div>
 
     <section class="detail-section">

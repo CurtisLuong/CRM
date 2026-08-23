@@ -2328,23 +2328,34 @@ function callReminder(c) {
 // Vẽ khu "lịch gọi" ở trang chi tiết: nhãn hẹn + nút đặt/đổi/xoá lịch + BADGE đếm
 // ngược (giống card). Badge chỉ hiện khi có lịch trong tầm nhắc; bấm → mở hộp
 // thoại "đã gọi / hẹn lại". Gọi lại định kỳ để đếm ngược tự cập nhật.
+// Khu "Hành động tiếp theo" (lịch gọi) ở trang chi tiết. Có lịch → thẻ phân cấp
+// [Hẹn gọi · badge] / [ngày · giờ] / [lý do], bấm cả thẻ để mở hộp thoại Đã gọi /
+// Hẹn lại / Huỷ lịch. Chưa có lịch → nút "＋ Đặt lịch gọi".
 function renderDetailCall(c) {
-  const callLabel = $('#detail-call-label');
+  const card = $('#detail-next-action');
+  const schedBtn = $('#detail-schedule-btn');
   if (c.next_call_at) {
-    // Nhãn: "🔔 Hẹn gọi: [ngày giờ]" + " · [lý do]" nếu có (textContent → an toàn XSS).
-    callLabel.textContent = '🔔 Hẹn gọi: ' + callScheduleLabel(c) +
-      (c.next_call_reason ? ' · ' + c.next_call_reason : '');
-    $('#detail-schedule-btn').textContent = 'Đổi lịch';
-    $('#detail-callclear-btn').hidden = false;
+    // Dòng "khi": "Ngày mai · 09:00–10:00" (ngăn cách ngày/giờ bằng ·).
+    const s = new Date(c.next_call_at);
+    const e = c.next_call_end ? new Date(c.next_call_end) : s;
+    const tt = fmtClock(s.getTime()) + (e.getTime() !== s.getTime() ? '–' + fmtClock(e.getTime()) : '');
+    $('#detail-na-when').textContent = relDayLabel(s) + ' · ' + tt;
+    const reasonEl = $('#detail-na-reason');
+    reasonEl.textContent = c.next_call_reason || '';
+    reasonEl.hidden = !c.next_call_reason;
+    // Badge trạng thái đếm ngược. Lịch xa >24h → callReminder null → ẩn badge (thẻ vẫn bấm được).
+    const rem = callReminder(c);
+    const badge = $('#detail-call-badge');
+    if (rem) { badge.hidden = false; badge.className = 'call-tag call-' + rem.state; badge.textContent = rem.text; }
+    else { badge.hidden = true; }
+    card.className = 'next-action' + (rem ? ' na-' + rem.state : ''); // viền trái theo độ gấp
+    card.hidden = false;
+    schedBtn.hidden = true;
   } else {
-    callLabel.textContent = '';
-    $('#detail-schedule-btn').textContent = '＋ Đặt lịch gọi';
-    $('#detail-callclear-btn').hidden = true;
+    card.hidden = true;
+    schedBtn.hidden = false;
+    schedBtn.textContent = '＋ Đặt lịch gọi';
   }
-  const badge = $('#detail-call-badge');
-  const rem = callReminder(c);
-  if (rem) { badge.hidden = false; badge.className = 'call-tag call-' + rem.state; badge.textContent = rem.text; }
-  else { badge.hidden = true; }
 }
 
 // ---- Dialog đặt lịch gọi (dùng chung) ----
@@ -2451,8 +2462,8 @@ $('#callact-done')?.addEventListener('click', confirmCalled);
 $('#callact-resched')?.addEventListener('click', () => { $('#call-action-modal').close(); openScheduler(callActionId); });
 $('#callact-cancel')?.addEventListener('click', cancelSchedule);
 $('#callact-close')?.addEventListener('click', () => $('#call-action-modal').close());
-// Badge đếm ngược ở trang chi tiết → mở hộp thoại "đã gọi / hẹn lại".
-$('#detail-call-badge')?.addEventListener('click', () => { if (detailId) openCallAction(detailId); });
+// Bấm thẻ "Hành động tiếp theo" (trang chi tiết) → hộp thoại Đã gọi / Hẹn lại / Huỷ lịch.
+$('#detail-next-action')?.addEventListener('click', () => { if (detailId) openCallAction(detailId); });
 
 // Cập nhật đếm ngược định kỳ: danh sách (card) + badge trang chi tiết.
 setInterval(() => {
@@ -2969,12 +2980,6 @@ document.addEventListener('DOMContentLoaded', () => {
   $('#detail-back-btn').addEventListener('click', closeDetailToList);
   $('#detail-edit-btn').addEventListener('click', () => { if (detailId) openForm(detailId); });
   $('#detail-schedule-btn').addEventListener('click', () => { if (detailId) openScheduler(detailId); });
-  $('#detail-callclear-btn').addEventListener('click', async () => {
-    if (!detailId) return;
-    await CRM.update(detailId, { next_call_at: null, next_call_end: null, next_call_reason: null });
-    await refreshList();
-    openDetail(detailId);
-  });
   $('#customer-form').addEventListener('submit', handleFormSubmit);
   $('#cancel-form-btn').addEventListener('click', closeForm);
   $('#delete-customer-btn').addEventListener('click', () => { if (editingId) confirmDelete(editingId); });
