@@ -84,7 +84,9 @@ create table if not exists public.customers (
   -- nguồn khách, hệ thống tự set: MẢNG giá trị 'manual'|'ocr'|'landing' (nhiều nguồn/khách).
   -- Ban đầu là text 1 giá trị (add_source.sql); đổi sang jsonb mảng ở source_multi_value.sql.
   source jsonb not null default '[]'::jsonb,
-  updated_by uuid
+  updated_by uuid,
+  -- đường dẫn ảnh đại diện trong Storage bucket customer-docs (xem add_avatar.sql)
+  avatar_path text
 );
 
 -- SDT là "master key" hiển thị — unique theo từng người phụ trách

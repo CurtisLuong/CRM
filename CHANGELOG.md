@@ -6,6 +6,27 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-23 — Ảnh đại diện cho khách (trang chi tiết)
+
+Thêm avatar tròn cho mỗi khách ở trang chi tiết (tăng nhận diện).
+
+- **DB (cần chạy `add_avatar.sql`):** thêm cột `customers.avatar_path text` (nullable) — trỏ tới
+  file ảnh trong bucket `customer-docs` (CÙNG bucket tài liệu đính kèm), path
+  `<owner>/<customerId>/avatar-<ts>.<ext>`. Không tạo dòng `documents` (để avatar không lẫn vào
+  danh sách tài liệu). Cũng thêm vào `schema.sql` baseline.
+- **db.js:** `uploadAvatar(id, blob)` (online-only: upload Storage → `update(avatar_path)` →
+  xoá file cũ) + `removeAvatar(id)`. Hiển thị qua `signedDocUrl` như tài liệu.
+- **UI chi tiết:** avatar tròn **bên TRÁI tên** (tên/hàng SĐT đẩy sang phải) — 64px điện thoại /
+  72px desktop. Có ảnh → `object-fit: cover` (tự căn giữa + scale vừa khung tròn); chưa có →
+  chữ cái đầu của TỪ CUỐI trong tên (vd "Lương Thị Đào" → "Đ") trên nền màu theo tên.
+- **Xem + đổi ảnh:** bấm avatar → mở lại `#file-viewer` (chế độ avatar): xem ảnh gốc (có zoom)
+  hoặc placeholder chữ cái, + khu "Chọn ảnh / Dán ảnh (clipboard)"; chọn xong → xem trước +
+  **Lưu ảnh / Huỷ**; có nút "Gỡ ảnh" khi đã có avatar. Ảnh nén về ≤512px trước khi lưu.
+
+File: `add_avatar.sql` (mới), `schema.sql`, `js/db.js`, `index.html`, `css/style.css`, `js/app.js`
+
+---
+
 ## 2026-08-23 — Nút "Lưu vào danh bạ" (trang chi tiết) → icon person+
 
 Đổi nút chữ "＋ Lưu vào danh bạ" thành **nút icon** (SVG person+, kiểu Lucide user-plus) cho đồng

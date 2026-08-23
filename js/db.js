@@ -322,6 +322,38 @@ const CRM = {
     if (error) throw error;
   },
 
+  // ---- ẢNH ĐẠI DIỆN (avatar) — ONLINE-ONLY, lưu cùng bucket với tài liệu ----
+  // File nằm ở '<owner>/<customerId>/avatar-<ts>.<ext>'; đường dẫn lưu ở cột customers.avatar_path
+  // (đồng bộ offline-first qua update()). Xem hiển thị bằng signedDocUrl như tài liệu.
+
+  /** Đổi/đặt avatar: upload ảnh mới → set avatar_path → xoá file avatar cũ (nếu có). */
+  async uploadAvatar(customerId, file) {
+    if (!this.isOnline() || !_supabase) throw new Error('Cần mạng để đổi ảnh đại diện');
+    const existing = (await localGetAll()).find((r) => r.id === customerId);
+    const oldPath = existing && existing.avatar_path;
+    const mime = file.type || 'image/jpeg';
+    const ext = mime.startsWith('image/') ? (mime.split('/')[1] || 'jpg') : 'jpg';
+    const path = `${_currentUserId}/${customerId}/avatar-${Date.now()}.${ext}`;
+    const up = await _supabase.storage.from(DOC_BUCKET).upload(path, file, { contentType: mime, upsert: false });
+    if (up.error) throw up.error;
+    await this.update(customerId, { avatar_path: path }); // ghi vào record (offline-first + đồng bộ)
+    // Dọn file avatar cũ (không chặn nếu lỗi — chỉ là rác nhẹ trong bucket).
+    if (oldPath && oldPath !== path) {
+      try { await _supabase.storage.from(DOC_BUCKET).remove([oldPath]); } catch (e) { console.warn('Xoá avatar cũ lỗi:', e); }
+    }
+    return path;
+  },
+
+  /** Gỡ avatar: xoá file + đặt avatar_path = null. */
+  async removeAvatar(customerId) {
+    const existing = (await localGetAll()).find((r) => r.id === customerId);
+    const oldPath = existing && existing.avatar_path;
+    if (oldPath && this.isOnline() && _supabase) {
+      try { await _supabase.storage.from(DOC_BUCKET).remove([oldPath]); } catch (e) { console.warn('Xoá avatar lỗi:', e); }
+    }
+    await this.update(customerId, { avatar_path: null });
+  },
+
   /** Link ký tạm để xem 1 file (mặc định hết hạn sau 60s). */
   async signedDocUrl(storagePath, expires = 60) {
     if (!this.isOnline() || !_supabase) return null;

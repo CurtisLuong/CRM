@@ -1542,6 +1542,7 @@ function openDetail(id) {
   editingHistoryAt = null; // mở khách mới → thoát chế độ sửa note cũ
 
   $('#detail-name').textContent = c.full_name || '(chưa có tên)';
+  renderDetailAvatar(c); // ảnh đại diện (hoặc chữ cái) bên trái tên
   $('#detail-phone').textContent = c.phone || DASH;
   $('#detail-call-btn').href = c.phone ? `tel:${normalizePhone(c.phone)}` : '#';
   const zaloHref = zaloLink(c.phone);
@@ -1926,6 +1927,7 @@ async function openDocSigned(doc) {
 async function openFileViewer(doc, isImg) {
   const dlg = $('#file-viewer');
   const body = $('#file-viewer-body');
+  avatarViewerCid = null; $('#fv-avatar-actions').hidden = true; $('#file-viewer-open').hidden = false; // không phải chế độ avatar
   $('#file-viewer-title').textContent = (DOC_KIND_LABELS[doc.kind] || doc.kind) + (doc.label ? ' · ' + doc.label : '');
   $('#file-viewer-open').onclick = null;
   fvImg = null; fvResetZoom();
@@ -1943,6 +1945,157 @@ async function openFileViewer(doc, isImg) {
   if (isImg) { fvImg = el; fvResetZoom(); }
   $('#file-viewer-open').onclick = () => window.open(url, '_blank');
 }
+
+// ==================== ẢNH ĐẠI DIỆN (avatar) ====================
+// Chữ cái đại diện = ký tự đầu của TỪ CUỐI trong tên (vd "Lương Thị Đào" → "Đ").
+function lastWordInitial(name) {
+  const words = (name || '').trim().split(/\s+/).filter(Boolean);
+  const last = words[words.length - 1] || '';
+  return last ? last[0].toUpperCase() : '?';
+}
+// Màu nền cho avatar chữ (theo tên) — giúp phân biệt khách với nhau. Tông đất/rêu/son của app.
+const AVATAR_COLORS = ['#B0342A', '#3D6B4F', '#B5892F', '#5B7C99', '#8A5A44', '#6B5B95', '#2C6E6B'];
+function avatarColor(name) {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  return AVATAR_COLORS[h % AVATAR_COLORS.length];
+}
+// Vẽ avatar ở trang chi tiết: có avatar_path + online → ảnh (cover); còn lại → chữ cái + màu.
+async function renderDetailAvatar(c) {
+  const el = $('#detail-avatar');
+  if (!el) return;
+  el.style.background = avatarColor(c.full_name || '');
+  el.textContent = lastWordInitial(c.full_name);
+  if (c.avatar_path && CRM.isOnline()) {
+    const url = await CRM.signedDocUrl(c.avatar_path, 600);
+    if (url && detailId === c.id) { // tránh race khi đổi khách nhanh
+      const img = document.createElement('img'); img.src = url; img.alt = 'Ảnh đại diện';
+      el.textContent = ''; el.style.background = ''; el.appendChild(img);
+    }
+  }
+}
+
+// ---- Trình xem + ĐỔI ảnh đại diện (dùng lại #file-viewer) ----
+let avatarViewerCid = null;   // khách đang mở avatar viewer
+let avatarPendingBlob = null; // ảnh vừa chọn (đã nén) chờ Lưu/Huỷ
+
+function resetAvatarActionsUI() {
+  $('#fv-av-choose').hidden = false;
+  $('#fv-av-confirm').hidden = true;
+  $('#avatar-status').textContent = '';
+}
+async function openAvatarViewer(customerId) {
+  const c = allCustomers.find((x) => x.id === customerId);
+  if (!c) return;
+  avatarViewerCid = customerId; avatarPendingBlob = null;
+  const dlg = $('#file-viewer');
+  $('#file-viewer-title').textContent = 'Ảnh đại diện';
+  $('#file-viewer-open').onclick = null;
+  fvImg = null; fvResetZoom();
+  $('#fv-avatar-actions').hidden = false;
+  resetAvatarActionsUI();
+  $('#avatar-remove-btn').hidden = !c.avatar_path;
+  if (!dlg.open) dlg.showModal();
+  await showAvatarInViewer(c);
+}
+// Hiển thị avatar hiện tại trong viewer: ảnh gốc (có zoom) hoặc placeholder chữ cái.
+async function showAvatarInViewer(c) {
+  const body = $('#file-viewer-body');
+  if (c && c.avatar_path && CRM.isOnline()) {
+    $('#fv-zoom').hidden = false; $('#file-viewer-open').hidden = false;
+    body.classList.add('fv-zoomable');
+    body.innerHTML = '<div class="fv-loading">Đang tải...</div>';
+    const url = await CRM.signedDocUrl(c.avatar_path, 300);
+    if (avatarViewerCid !== c.id) return; // đã đóng/đổi
+    if (!url) { body.innerHTML = '<div class="fv-loading">Không tải được (cần mạng?).</div>'; return; }
+    body.innerHTML = '';
+    const el = document.createElement('img'); el.className = 'fv-img'; el.src = url;
+    body.appendChild(el); fvImg = el; fvResetZoom();
+    $('#file-viewer-open').onclick = () => window.open(url, '_blank');
+  } else {
+    // chưa có ảnh → placeholder chữ cái to
+    $('#fv-zoom').hidden = true; $('#file-viewer-open').hidden = true;
+    body.classList.remove('fv-zoomable'); fvImg = null;
+    const ph = document.createElement('div');
+    ph.className = 'fv-av-placeholder';
+    ph.textContent = lastWordInitial(c && c.full_name);
+    ph.style.background = avatarColor((c && c.full_name) || '');
+    body.innerHTML = ''; body.appendChild(ph);
+  }
+}
+// Chọn/dán 1 ảnh → nén + xem trước + chuyển sang nút Lưu/Huỷ (CHƯA lưu).
+async function avatarPreview(file) {
+  if (!file) return;
+  const status = $('#avatar-status');
+  if (!CRM.isOnline()) { status.textContent = '⚠️ Cần mạng để đổi ảnh.'; return; }
+  try {
+    status.textContent = '⏳ Đang xử lý ảnh...';
+    const { blob } = await fileToScaled(file, 512, 0.9); // avatar không cần to; cover ở khung tròn
+    avatarPendingBlob = blob;
+    const body = $('#file-viewer-body');
+    $('#fv-zoom').hidden = true; $('#file-viewer-open').hidden = true;
+    body.classList.remove('fv-zoomable'); fvImg = null;
+    body.innerHTML = '';
+    const img = document.createElement('img'); img.className = 'fv-img'; img.src = URL.createObjectURL(blob);
+    body.appendChild(img);
+    $('#fv-av-choose').hidden = true; $('#fv-av-confirm').hidden = false;
+    status.textContent = 'Xem trước — bấm "Lưu ảnh" để cập nhật.';
+  } catch (e) { console.warn('avatar preview lỗi:', e); status.textContent = '⚠️ Không xử lý được ảnh.'; }
+}
+async function avatarSave() {
+  if (!avatarPendingBlob || !avatarViewerCid) return;
+  const status = $('#avatar-status');
+  status.textContent = '⏳ Đang lưu...';
+  try {
+    await CRM.uploadAvatar(avatarViewerCid, avatarPendingBlob);
+    allCustomers = await CRM.list();
+    avatarPendingBlob = null;
+    const c = allCustomers.find((x) => x.id === avatarViewerCid);
+    if (detailId === avatarViewerCid && c) renderDetailAvatar(c);
+    resetAvatarActionsUI();
+    $('#avatar-remove-btn').hidden = false;
+    await showAvatarInViewer(c);
+    status.textContent = '✅ Đã lưu ảnh đại diện.';
+  } catch (e) { console.warn('avatar save lỗi:', e); status.textContent = '⚠️ Lưu thất bại: ' + (e.message || 'lỗi'); }
+}
+async function avatarCancel() {
+  avatarPendingBlob = null;
+  resetAvatarActionsUI();
+  await showAvatarInViewer(allCustomers.find((x) => x.id === avatarViewerCid));
+}
+async function avatarRemove() {
+  if (!avatarViewerCid) return;
+  const status = $('#avatar-status');
+  status.textContent = '⏳ Đang gỡ...';
+  try {
+    await CRM.removeAvatar(avatarViewerCid);
+    allCustomers = await CRM.list();
+    const c = allCustomers.find((x) => x.id === avatarViewerCid);
+    if (detailId === avatarViewerCid && c) renderDetailAvatar(c);
+    $('#avatar-remove-btn').hidden = true;
+    await showAvatarInViewer(c);
+    status.textContent = '✅ Đã gỡ ảnh đại diện.';
+  } catch (e) { console.warn('avatar remove lỗi:', e); status.textContent = '⚠️ Gỡ thất bại.'; }
+}
+async function avatarPasteFromClipboard() {
+  const status = $('#avatar-status');
+  if (!navigator.clipboard || !navigator.clipboard.read) { status.textContent = 'ℹ️ Trình duyệt không đọc được clipboard — dùng "Chọn ảnh".'; return; }
+  try {
+    const items = await navigator.clipboard.read();
+    for (const item of items) {
+      const t = item.types.find((x) => x.startsWith('image/'));
+      if (t) { avatarPreview(await item.getType(t)); return; }
+    }
+    status.textContent = 'ℹ️ Clipboard chưa có ảnh — copy 1 ảnh rồi bấm lại.';
+  } catch (e) { console.warn('paste avatar lỗi:', e); status.textContent = '⚠️ Không đọc được clipboard.'; }
+}
+$('#detail-avatar')?.addEventListener('click', () => { if (detailId) openAvatarViewer(detailId); });
+$('#avatar-pick-btn')?.addEventListener('click', () => $('#avatar-file').click());
+$('#avatar-file')?.addEventListener('change', (e) => { avatarPreview(e.target.files && e.target.files[0]); e.target.value = ''; });
+$('#avatar-paste-btn')?.addEventListener('click', avatarPasteFromClipboard);
+$('#avatar-save-btn')?.addEventListener('click', avatarSave);
+$('#avatar-cancel-btn')?.addEventListener('click', avatarCancel);
+$('#avatar-remove-btn')?.addEventListener('click', avatarRemove);
 
 // ---- Zoom cho ảnh trong trình xem ----
 const FV_MIN = 1, FV_MAX = 6;
@@ -1964,7 +2117,10 @@ $('#file-viewer-close')?.addEventListener('click', () => $('#file-viewer').close
 // Bấm nền tối (ngoài nội dung) → đóng
 $('#file-viewer')?.addEventListener('click', (e) => { if (e.target.id === 'file-viewer') $('#file-viewer').close(); });
 // Đóng → xoá nội dung + reset zoom (dừng tải, nhẹ bộ nhớ)
-$('#file-viewer')?.addEventListener('close', () => { fvImg = null; $('#file-viewer-body').innerHTML = ''; });
+$('#file-viewer')?.addEventListener('close', () => {
+  fvImg = null; $('#file-viewer-body').innerHTML = '';
+  $('#fv-avatar-actions').hidden = true; avatarViewerCid = null; avatarPendingBlob = null; // reset chế độ avatar
+});
 
 $('#fv-zoom-in')?.addEventListener('click', () => fvSetZoom(fvZoom + 0.5));
 $('#fv-zoom-out')?.addEventListener('click', () => fvSetZoom(fvZoom - 0.5));

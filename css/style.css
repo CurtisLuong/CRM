@@ -665,6 +665,22 @@ input:focus, select:focus, textarea:focus {
 .detail-topbar .btn-ghost { color: #fff; border-color: rgba(255, 255, 255, 0.4); }
 
 .detail-body { max-width: 720px; margin: 0 auto; padding: 20px; }
+/* Hàng đầu trang chi tiết: [ẢNH ĐẠI DIỆN tròn] + [tên · hàng SĐT]. */
+.detail-id-row { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
+.detail-id-text { min-width: 0; flex: 1 1 auto; }
+.detail-id-text .detail-phone-row { margin-bottom: 0; }
+/* Avatar tròn: 64px điện thoại → 72px desktop. Có ảnh: object-fit cover (tự căn giữa + scale
+   vừa khung tròn). Chưa có ảnh: nền màu theo tên + chữ cái đầu của TỪ CUỐI. */
+.detail-avatar {
+  flex: none; width: 64px; height: 64px; border-radius: 50%;
+  border: 2px solid var(--line); padding: 0; cursor: pointer; overflow: hidden;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--teal); color: #fff; font-weight: 700; font-size: 26px; line-height: 1;
+  font-family: "Georgia", "Times New Roman", serif;
+}
+.detail-avatar:hover { border-color: var(--teal-light); }
+.detail-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+@media (min-width: 561px) { .detail-avatar { width: 72px; height: 72px; font-size: 30px; } }
 .detail-name { font-size: 26px; margin-bottom: 8px; }
 
 .detail-phone-row { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; }
@@ -997,6 +1013,18 @@ input[name="apt_type_other"] { margin-top: 8px; }
 .fv-body.fv-pannable .fv-img { cursor: grab; }
 .fv-pdf { width: 100%; height: 82vh; border: none; background: #fff; }
 .fv-loading { padding: 40px; color: #6b6b60; font-size: 14px; }
+/* Khu ĐỔI ẢNH ĐẠI DIỆN (chỉ hiện ở chế độ avatar) — chọn/dán ảnh → Lưu/Huỷ. */
+.fv-avatar-actions { border-top: 1px solid var(--line); padding: 12px; background: var(--panel); }
+.fv-av-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.fv-av-row + .fv-av-row { margin-top: 8px; }
+.fv-avatar-actions .ocr-status { font-size: 13px; }
+/* Chưa có ảnh: nội dung body hiện chữ cái to (placeholder) */
+.fv-av-placeholder {
+  display: flex; align-items: center; justify-content: center;
+  width: 160px; height: 160px; border-radius: 50%; margin: 24px;
+  background: var(--teal); color: #fff; font-weight: 700; font-size: 72px;
+  font-family: "Georgia", "Times New Roman", serif;
+}
 
 /* ---------------- LỊCH GỌI ---------------- */
 /* Khối đặt lịch trên trang chi tiết */
