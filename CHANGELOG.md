@@ -6,6 +6,27 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-23 — Lọc trạng thái: thay <select> gốc bằng dropdown tuỳ biến (khớp UI 100%)
+
+`<select id="filter-progress">` (Đang chăm / Đã xong / Tất cả) để trình duyệt/OS tự vẽ (nút +
+danh sách bung ra khác hẳn UI, rõ nhất trên Mac/Safari). Thay hẳn bằng **dropdown tuỳ biến** để
+cả nút đóng LẪN danh sách bung ra đều đồng nhất với popup Lọc/Sắp xếp — CSS thuần không style
+được list của `<select>` gốc nên phải tự dựng.
+
+- `index.html`: `<select>` → `<div class="tool-pop status-select-wrap">` gồm nút `#progress-btn`
+  (nhãn + caret ˅) + panel `#progress-pop` (dùng chung shell `.pop-panel`) với 3 nút `.status-opt`.
+- `css`: `.status-select-btn` khớp nút Lọc/Sắp xếp (cao 38px, viền/màu); caret xoay 180° khi mở;
+  `.status-opt` kiểu menu, mục đang chọn nền teal (`.is-sel`); popup rộng 150px (thắng min-width
+  240px của `.pop-panel`).
+- `app.js`: state `progressFilter` ('active'|'done'|'all') thay cho `.value` của select;
+  `matchesFilters` đọc `progressFilter`; wiring mở/đóng + chọn (áp ngay, gọi `renderList`).
+  `closeToolPops()` đóng luôn popup trạng thái → mở Lọc/Sắp xếp hay bấm ra ngoài đều tự đóng nó
+  (nhờ wrap mang class `.tool-pop`).
+
+File: `index.html`, `css/style.css`, `js/app.js`
+
+---
+
 ## 2026-08-22 — Thêm List view (dòng gọn) cho danh sách khách + nút đổi kiểu xem
 
 Bổ sung kiểu xem DÒNG GỌN bên cạnh card view sẵn có (để lướt nhanh khi khách nhiều). Mỗi dòng

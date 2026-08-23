@@ -92,11 +92,19 @@
 
   <div id="list-view">
   <div class="toolbar">
-    <select id="filter-progress" class="status-select">
-      <option value="active" selected>Đang chăm</option>
-      <option value="done">Đã xong</option>
-      <option value="all">Tất cả</option>
-    </select>
+    <!-- Lọc trạng thái: dropdown TUỲ BIẾN (không dùng <select> gốc để cả lúc bung ra
+         cũng khớp UI, giống popup Lọc/Sắp xếp). Logic ở app.js (progressFilter). -->
+    <div class="tool-pop status-select-wrap" id="progress-filter">
+      <button type="button" id="progress-btn" class="status-select-btn" aria-haspopup="listbox" aria-expanded="false">
+        <span id="progress-label">Đang chăm</span>
+        <span class="status-caret" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      </button>
+      <div id="progress-pop" class="status-select-pop pop-panel" hidden role="listbox">
+        <button type="button" class="status-opt is-sel" data-value="active" role="option">Đang chăm</button>
+        <button type="button" class="status-opt" data-value="done" role="option">Đã xong</button>
+        <button type="button" class="status-opt" data-value="all" role="option">Tất cả</button>
+      </div>
+    </div>
 
     <!-- Bộ lọc nâng cao (ẩn dưới icon phễu) -->
     <div class="tool-pop">

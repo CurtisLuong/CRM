@@ -129,6 +129,7 @@ const PHONE_SVG = '<svg class="ic-phone" viewBox="0 0 24 24" aria-hidden="true">
 let sb = null;
 let currentUser = null;
 let allCustomers = [];
+let progressFilter = 'active'; // lọc trạng thái: 'active' | 'done' | 'all' (dropdown tuỳ biến)
 let editingId = null;
 let formOriginalStage = ''; // care_stage lúc mở form — để biết có đổi bậc không
 let pendingOcrNote = null;  // ghi chú OCR đọc được → thêm thành 1 note sau khi tạo khách
@@ -601,7 +602,7 @@ function matchesFilters(c) {
     if (c.care_stage !== stage) return false;
   } else {
     // Không chọn bậc cụ thể → áp bộ lọc trạng thái (mặc định chỉ hiện "đang chăm sóc").
-    const progress = $('#filter-progress').value; // 'active' | 'done' | 'all'
+    const progress = progressFilter; // 'active' | 'done' | 'all' (dropdown tuỳ biến)
     const done = isCareDone(c.care_stage);
     if (progress === 'active' && done) return false;
     if (progress === 'done' && !done) return false;
@@ -2490,6 +2491,8 @@ function renderSortOptions() {
 function closeToolPops() {
   $('#filter-panel').hidden = true; $('#filter-btn').classList.remove('is-open');
   $('#sort-panel').hidden = true; $('#sort-btn').classList.remove('is-open');
+  const pp = $('#progress-pop');
+  if (pp) { pp.hidden = true; $('#progress-btn').classList.remove('is-open'); $('#progress-btn').setAttribute('aria-expanded', 'false'); }
 }
 // Chấm báo "đang có lọc nâng cao" trên icon phễu (tiến độ ≠ tất cả HOẶC quan tâm ≥ >0).
 function isAdvancedFilterActive() {
@@ -2648,8 +2651,25 @@ document.addEventListener('DOMContentLoaded', () => {
     $('#notif-wrap').classList.remove('open');
     openDetail(item.dataset.notifOpen);
   });
-  // --- Lọc trạng thái (inline, áp ngay) ---
-  $('#filter-progress').addEventListener('change', renderList);
+  // --- Lọc trạng thái (dropdown tuỳ biến): mở/đóng + chọn 1 mục → áp ngay ---
+  $('#progress-btn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    const willOpen = $('#progress-pop').hidden;
+    closeToolPops();
+    $('#progress-pop').hidden = !willOpen;
+    $('#progress-btn').classList.toggle('is-open', willOpen);
+    $('#progress-btn').setAttribute('aria-expanded', String(willOpen));
+  });
+  $('#progress-pop').addEventListener('click', (e) => {
+    const opt = e.target.closest('.status-opt');
+    if (!opt) return;
+    e.stopPropagation();
+    progressFilter = opt.dataset.value;
+    $('#progress-label').textContent = opt.textContent;
+    $$('#progress-pop .status-opt').forEach((o) => o.classList.toggle('is-sel', o === opt));
+    closeToolPops();
+    renderList();
+  });
 
   // --- Panel Bộ lọc (icon phễu): mở/đóng + lọc theo tiến độ + mức quan tâm ---
   $('#filter-btn').addEventListener('click', (e) => {
