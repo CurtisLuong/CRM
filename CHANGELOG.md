@@ -6,6 +6,23 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-23 — Modal xác nhận gọi: thêm nút "Huỷ lịch" + "Đã gọi" ghi lịch sử
+
+Đổi hộp thoại xác nhận cuộc gọi (mở khi bấm badge đếm ngược trên card hoặc trang chi tiết).
+
+- **Giao diện:** `Gọi: [tên]` · `Lịch hẹn: [ngày] [khung giờ]` · 3 nút `[✓ Đã gọi] [Hẹn lại] [Huỷ lịch]`
+  (trước đây chỉ có 2 nút, không có "Huỷ lịch"). Nút "Huỷ lịch" tô đỏ (`btn-danger`).
+- **"Đã gọi"** giờ ghi thêm **1 mốc liên hệ mới** vào lịch sử chăm sóc, note tự động
+  `Gọi lúc hh:mm, dd/mm/yyyy` (timestamp chốt ngay lúc bấm), rồi xoá lịch hẹn. **GIỮ NGUYÊN**
+  bậc chăm sóc hiện tại (dùng `forceLog` — chỉ thêm mốc, không đẩy bậc). Khách chưa đặt bậc
+  (null) coi như bậc 1 'Chưa gọi được' để không tạo mốc trống.
+- **"Huỷ lịch"** chỉ xoá lịch hẹn (gỡ badge), KHÔNG ghi lịch sử — dùng khi bỏ hẹn mà không gọi.
+- Không đụng `sw.js`/`APP_SHELL` → không cần tăng `CACHE_NAME` (network-first tự lấy bản mới).
+
+File: `index.html`, `js/app.js`
+
+---
+
 ## 2026-08-23 — Avatar trong CARD view (danh sách khách)
 
 Thêm avatar tròn **46px** vào card (bên TRÁI tên + SĐT) — cùng nguồn dữ liệu với avatar trang

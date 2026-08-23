@@ -2410,7 +2410,29 @@ function openCallAction(id) {
   $('#callact-sub').textContent = c.next_call_at ? ('Lịch hẹn: ' + callScheduleLabel(c)) : '';
   $('#call-action-modal').showModal();
 }
+// Dấu thời gian cho ghi chú "đã gọi": "hh:mm, dd/mm/yyyy" (giờ địa phương).
+function callStamp(d) {
+  const p = (n) => String(n).padStart(2, '0');
+  return `${p(d.getHours())}:${p(d.getMinutes())}, ${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()}`;
+}
+// "Đã gọi": ghi thêm 1 mốc liên hệ vào lịch sử chăm sóc (note "Gọi lúc ...",
+// timestamp chốt ngay lúc bấm nút) rồi xoá lịch hẹn. GIỮ NGUYÊN bậc hiện tại —
+// forceLog chỉ thêm mốc, không đẩy bậc. Khách chưa đặt bậc (null) coi như bậc 1
+// 'Chưa gọi được' (theo quy ước app) để không tạo mốc trống.
 async function confirmCalled() {
+  const id = callActionId;
+  const c = allCustomers.find((x) => x.id === id);
+  const note = 'Gọi lúc ' + callStamp(new Date());
+  const stage = (c && c.care_stage) || 'Chưa gọi được';
+  await CRM.update(id, { care_stage: stage, next_call_at: null, next_call_end: null },
+    { careStageNote: note, forceLog: true });
+  await refreshList();
+  $('#call-action-modal').close();
+  if (detailId && !$('#detail-screen').hidden) openDetail(detailId);
+}
+// "Huỷ lịch": chỉ xoá lịch hẹn (gỡ badge đếm ngược), KHÔNG ghi lịch sử — dùng khi
+// bỏ cuộc hẹn mà không thực sự gọi.
+async function cancelSchedule() {
   await CRM.update(callActionId, { next_call_at: null, next_call_end: null });
   await refreshList();
   $('#call-action-modal').close();
@@ -2418,6 +2440,7 @@ async function confirmCalled() {
 }
 $('#callact-done')?.addEventListener('click', confirmCalled);
 $('#callact-resched')?.addEventListener('click', () => { $('#call-action-modal').close(); openScheduler(callActionId); });
+$('#callact-cancel')?.addEventListener('click', cancelSchedule);
 $('#callact-close')?.addEventListener('click', () => $('#call-action-modal').close());
 // Badge đếm ngược ở trang chi tiết → mở hộp thoại "đã gọi / hẹn lại".
 $('#detail-call-badge')?.addEventListener('click', () => { if (detailId) openCallAction(detailId); });
