@@ -22,8 +22,10 @@ hiện đúng thứ tự: **Tên · SĐT + nút gọi/Zalo · Loại căn · Qua
   gọi/Zalo → link chạy bình thường). Không cần đổi `sw.js` (không thêm file mới; app.js/css
   network-first tự lấy bản mới).
 - **Cập nhật:** mỗi dòng dồn tất cả trường lên CÙNG 1 HÀNG (`.cust-row` = flex ngang): Tên co
-  giãn + cắt "…" khi dài, SĐT/căn/quan tâm giữ nguyên bên phải. Trên màn hẹp (điện thoại) tên bị
-  cắt nhiều để đủ chỗ — đánh đổi của layout 1 hàng.
+  giãn + cắt "…" khi dài, SĐT/căn/quan tâm giữ nguyên bên phải.
+- **Responsive (cập nhật tiếp):** `.cust-row` thêm `flex-wrap: wrap`; ở `@media (max-width:560px)`
+  ép `.row-name { flex-basis:100%; white-space:normal }` → **màn rộng (Mac/tablet) 1 hàng đủ
+  thông tin như cũ; điện thoại tự xuống 2 hàng** (tên đầy đủ ở hàng 1, SĐT/căn/quan tâm ở hàng 2).
 
 File: `index.html`, `css/style.css`, `js/app.js`
 

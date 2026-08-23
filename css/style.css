@@ -517,6 +517,7 @@ input:focus, select:focus, textarea:focus {
    Tên chiếm khoảng trống còn lại, dài quá thì cắt "…" để dòng không xuống hàng. */
 .cust-row {
   display: flex;
+  flex-wrap: wrap;              /* màn hẹp: cho phép rớt xuống hàng 2 (xem @media dưới) */
   align-items: center;
   gap: 12px;
   background: var(--panel);
@@ -545,6 +546,12 @@ input:focus, select:focus, textarea:focus {
   display: inline-flex; align-items: center; gap: 4px;   /* màu nền/chữ lấy từ class ti-* */
 }
 .row-interest .ti-dot { font-size: 9px; line-height: 1; }
+/* Màn HẸP (điện thoại): Tên chiếm trọn hàng 1 (hiện đủ, không cắt "…"); SĐT + căn +
+   quan tâm tự rớt xuống hàng 2. Màn rộng (Mac/tablet) đủ chỗ → vẫn 1 hàng như trên. */
+@media (max-width: 560px) {
+  .cust-row { gap: 6px 12px; }
+  .row-name { flex-basis: 100%; white-space: normal; }
+}
 
 .tag { font-size: 11px; padding: 3px 8px; border-radius: 100px; background: #eee; color: #444; }
 .tag-stage { background: #e4ecec; color: var(--teal); }
