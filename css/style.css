@@ -506,6 +506,16 @@ input:focus, select:focus, textarea:focus {
 /* Hàng đầu: tên (trái, co giãn) + nhóm phải cố định [tag nhắc gọi + menu "⋯"].
    Nhờ tên flex:1, nhóm phải luôn nằm sát mép phải → tag ở vị trí cố định cạnh ⋯,
    không "nhảy" theo độ dài tên. */
+/* Hàng đầu card: [avatar tròn 46px] + [tên/nhóm phải + hàng SĐT]. */
+.card-top { display: flex; align-items: flex-start; gap: 10px; flex-shrink: 0; }
+.card-top-main { flex: 1 1 auto; min-width: 0; }
+.card-avatar {
+  flex: none; width: 46px; height: 46px; border-radius: 50%; overflow: hidden; margin-top: 1px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: #fff; font-weight: 700; font-size: 19px; line-height: 1;
+  font-family: "Georgia", "Times New Roman", serif;
+}
+.card-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .card-head { display: flex; align-items: flex-start; gap: 8px; flex-shrink: 0; }
 .card-name { font-weight: 600; font-size: 16px; min-width: 0; flex: 1; }
 .card-head-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }

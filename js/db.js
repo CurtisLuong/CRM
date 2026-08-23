@@ -362,6 +362,16 @@ const CRM = {
     return data.signedUrl;
   },
 
+  /** Link ký tạm cho NHIỀU path trong 1 lần gọi (cho avatar trên card). Trả Map(path → url). */
+  async signedDocUrls(paths, expires = 600) {
+    const out = new Map();
+    if (!this.isOnline() || !_supabase || !paths || !paths.length) return out;
+    const { data, error } = await _supabase.storage.from(DOC_BUCKET).createSignedUrls(paths, expires);
+    if (error) { console.warn('signedDocUrls lỗi:', error); return out; }
+    for (const it of (data || [])) { if (it && it.signedUrl && !it.error) out.set(it.path, it.signedUrl); }
+    return out;
+  },
+
   /**
    * Sửa RIÊNG note của 1 mốc trong lịch sử chăm sóc (nhận diện mốc theo `at`).
    * KHÔNG đụng stage, at, updated_at hay care_stage_updated_at — chỉ đổi note.

@@ -6,6 +6,23 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-23 — Avatar trong CARD view (danh sách khách)
+
+Thêm avatar tròn **46px** vào card (bên TRÁI tên + SĐT) — cùng nguồn dữ liệu với avatar trang
+chi tiết (`avatar_path`; chưa có → chữ cái từ cuối trong tên + màu theo tên).
+
+- Bọc card-head + phone-row trong `.card-top` (avatar trái · tên/SĐT phải); progress/notes/footer
+  vẫn full-width bên dưới. Avatar chỉ hiển thị (không phải nút) → bấm card vẫn mở chi tiết.
+- **Tối ưu mạng:** card LUÔN vẽ chữ cái trước (render nhanh); nếu khách có ảnh → gắn
+  `data-avatar-path`, sau đó `resolveCardAvatars()` gom các path → **batch** `signedDocUrls`
+  (createSignedUrls 1 lần) + **cache 10 phút** rồi mới đổi sang `<img>` (cover). Re-render dùng
+  cache, không gọi lại mạng. Offline → giữ chữ cái.
+- db.js: thêm `signedDocUrls(paths, expires)` (batch signed URL).
+
+File: `js/db.js`, `css/style.css`, `js/app.js`
+
+---
+
 ## 2026-08-23 — Ảnh đại diện cho khách (trang chi tiết)
 
 Thêm avatar tròn cho mỗi khách ở trang chi tiết (tăng nhận diện).

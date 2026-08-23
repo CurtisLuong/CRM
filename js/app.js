@@ -726,24 +726,29 @@ function renderList() {
     for (const n of manualNotes) noteLines.push(`• ${escapeHtml(n.text || '')}`);
     const cardNotesInner = noteLines.join('<br>');
     card.innerHTML = `
-      <div class="card-head">
-        <div class="card-name">${escapeHtml(c.full_name || '(chưa có tên)')}</div>
-        <div class="card-head-right">
-          ${reminders.has(c.id) ? `<button class="call-tag call-${reminders.get(c.id).state}" data-calltag="${c.id}">${escapeHtml(reminders.get(c.id).text)}</button>` : ''}
-          <div class="card-menu">
-            <button class="card-menu-btn" data-action="menu" aria-label="Tuỳ chọn khác">⋯</button>
-            <div class="card-menu-pop">
-              <button class="menu-item" data-action="schedule" data-id="${c.id}">Hẹn lịch gọi</button>
+      <div class="card-top">
+        ${cardAvatarMarkup(c)}
+        <div class="card-top-main">
+          <div class="card-head">
+            <div class="card-name">${escapeHtml(c.full_name || '(chưa có tên)')}</div>
+            <div class="card-head-right">
+              ${reminders.has(c.id) ? `<button class="call-tag call-${reminders.get(c.id).state}" data-calltag="${c.id}">${escapeHtml(reminders.get(c.id).text)}</button>` : ''}
+              <div class="card-menu">
+                <button class="card-menu-btn" data-action="menu" aria-label="Tuỳ chọn khác">⋯</button>
+                <div class="card-menu-pop">
+                  <button class="menu-item" data-action="schedule" data-id="${c.id}">Hẹn lịch gọi</button>
+                </div>
+              </div>
             </div>
           </div>
+          <div class="phone-row">
+            <span class="phone-number">${escapeHtml(c.phone || '')}</span>
+            <a class="card-phone" href="tel:${normalizePhone(c.phone)}" aria-label="Gọi ${escapeHtml(c.phone || '')}">${PHONE_SVG}</a>
+            <a class="card-zalo" href="${zaloHref}" ${zaloAttr} aria-label="Nhắn Zalo">
+              <img class="ic-zalo" src="/icons/zalo.png" alt="Zalo" />
+            </a>
+          </div>
         </div>
-      </div>
-      <div class="phone-row">
-        <span class="phone-number">${escapeHtml(c.phone || '')}</span>
-        <a class="card-phone" href="tel:${normalizePhone(c.phone)}" aria-label="Gọi ${escapeHtml(c.phone || '')}">${PHONE_SVG}</a>
-        <a class="card-zalo" href="${zaloHref}" ${zaloAttr} aria-label="Nhắn Zalo">
-          <img class="ic-zalo" src="/icons/zalo.png" alt="Zalo" />
-        </a>
       </div>
       <div class="card-progress">
         <span class="mini-ring" style="--pct:${ringPct}; --ring:${ringColor}" title="${escapeHtml(careLabel(c.care_stage))}"></span>
@@ -762,6 +767,7 @@ function renderList() {
     `;
     container.appendChild(card);
   }
+  resolveCardAvatars(); // đổi chữ cái → ảnh cho card có avatar (batch signed URL + cache)
 }
 
 function escapeHtml(s) {
@@ -1959,6 +1965,48 @@ function avatarColor(name) {
   let h = 0;
   for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
   return AVATAR_COLORS[h % AVATAR_COLORS.length];
+}
+
+// ---- Avatar trên CARD (danh sách) ----
+// Nhiều card → cần signed URL cho từng ảnh → cache + BATCH (createSignedUrls) để đỡ gọi mạng.
+const _avatarUrlCache = new Map(); // path → { url, exp(ms) }
+function cachedAvatarUrl(path) {
+  const e = _avatarUrlCache.get(path);
+  return (e && e.exp > Date.now()) ? e.url : null;
+}
+// Markup avatar trên card: LUÔN vẽ chữ cái trước (render nhanh); nếu khách có ảnh → gắn
+// data-avatar-path để resolveCardAvatars() đổi thành ảnh sau (từ cache hoặc batch fetch).
+function cardAvatarMarkup(c) {
+  const cached = c.avatar_path ? cachedAvatarUrl(c.avatar_path) : null;
+  if (cached) return `<div class="card-avatar"><img src="${escapeHtml(cached)}" alt=""></div>`;
+  const attr = c.avatar_path ? ` data-avatar-path="${escapeHtml(c.avatar_path)}"` : ''; // → resolveCardAvatars đổi sang ảnh
+  return `<div class="card-avatar" style="background:${avatarColor(c.full_name || '')}"${attr}>${escapeHtml(lastWordInitial(c.full_name))}</div>`;
+}
+function setCardAvatarImg(el, url) {
+  const img = document.createElement('img'); img.src = url; img.alt = '';
+  el.textContent = ''; el.style.background = ''; el.appendChild(img);
+  el.removeAttribute('data-avatar-path');
+}
+async function resolveCardAvatars() {
+  if (!CRM.isOnline()) return;
+  const els = $$('#customer-list .card-avatar[data-avatar-path]');
+  if (!els.length) return;
+  const need = [];
+  for (const el of els) {
+    const p = el.dataset.avatarPath;
+    const url = cachedAvatarUrl(p);
+    if (url) setCardAvatarImg(el, url);
+    else if (!need.includes(p)) need.push(p);
+  }
+  if (!need.length) return;
+  const map = await CRM.signedDocUrls(need, 600);
+  const exp = Date.now() + 590 * 1000;
+  for (const [p, url] of map) _avatarUrlCache.set(p, { url, exp });
+  // Cập nhật những card còn trong trang (có thể đã render lại → query lại).
+  for (const el of $$('#customer-list .card-avatar[data-avatar-path]')) {
+    const url = cachedAvatarUrl(el.dataset.avatarPath);
+    if (url) setCardAvatarImg(el, url);
+  }
 }
 // Vẽ avatar ở trang chi tiết: có avatar_path + online → ảnh (cover); còn lại → chữ cái + màu.
 async function renderDetailAvatar(c) {
