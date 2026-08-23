@@ -653,37 +653,31 @@ function renderList() {
   $('#result-count').textContent = `${list.length} khách hàng`;
   updateFilterDot(); // giữ chấm đỏ + nút "Xoá lọc ✕" luôn khớp trạng thái lọc
 
-  // Kiểu DÒNG GỌN (list view): mỗi khách 1 dòng — Tên · SĐT+nút gọi/Zalo · Loại căn · Quan tâm.
-  // Field null → để trống. Dùng lại handler click của #customer-list (khớp cả .cust-row).
+  // Kiểu DÒNG GỌN (list view): LUÔN 1 hàng — [Tên đầy đủ] ... [SĐT …xxxxx + loại căn +
+  // thẻ mức quan tâm]. KHÔNG có nút gọi/Zalo (bấm vào dòng → trang chi tiết mới thao tác).
+  // Số ĐT hiển thị bao nhiêu số CUỐI là do fitListRow tính theo chỗ trống (nhiều chỗ = nhiều
+  // số), ưu tiên tên đầy đủ trước. Field null → bỏ hẳn. Handler click #customer-list khớp .cust-row.
   if (viewMode === 'list') {
     for (const c of list) {
       const row = document.createElement('div');
       row.className = 'cust-row';
       row.dataset.id = c.id;
-      const hasPhone = !!(c.phone && String(c.phone).trim());
-      const zaloHref = zaloLink(c.phone);
-      const zaloAttr = zaloHref.startsWith('http') ? 'target="_blank" rel="noopener"' : '';
-      const phoneBtns = hasPhone ? `
-        <a class="card-phone" href="tel:${normalizePhone(c.phone)}" aria-label="Gọi ${escapeHtml(c.phone)}">${PHONE_SVG}</a>
-        <a class="card-zalo" href="${zaloHref}" ${zaloAttr} aria-label="Nhắn Zalo"><img class="ic-zalo" src="/icons/zalo.png" alt="Zalo" /></a>` : '';
-      const interest = c.interest_level;
+      const digits = (c.phone || '').replace(/\D/g, '');
+      // data-digits = toàn bộ số; fitListRow chọn hiển thị bao nhiêu số cuối cho vừa.
+      const phoneHtml = digits ? `<span class="row-phone-num" data-digits="${escapeHtml(digits)}">${escapeHtml(digits)}</span>` : '';
+      const aptHtml = c.apt_type ? `<span class="row-apt">${escapeHtml(c.apt_type)}</span>` : '';
+      // Thẻ mức quan tâm: nhãn bậc (Nguội/Ấm/Nóng/Rất nóng) — dùng chung style thẻ trên card.
       let interestHtml = '';
-      if (interest != null) {
-        const tier = interestTier(interest);
-        interestHtml = `<span class="row-interest ti-${tier.key}"><span class="ti-dot">◆</span> ${interest}%</span>`;
+      if (c.interest_level != null) {
+        const tier = interestTier(c.interest_level);
+        interestHtml = `<span class="tag tag-interest ti-${tier.key}"><span class="ti-dot">◆</span> ${escapeHtml(tier.label)}</span>`;
       }
       row.innerHTML = `
         <div class="row-name">${escapeHtml(c.full_name || '(chưa có tên)')}</div>
-        ${hasPhone ? `<div class="row-phone">
-          <span class="row-phone-num">${escapeHtml(c.phone)}</span>
-          ${phoneBtns}
-        </div>` : ''}
-        <div class="row-meta">
-          ${c.apt_type ? `<span class="row-apt">${escapeHtml(c.apt_type)}</span>` : ''}
-          ${interestHtml}
-        </div>`;
+        <div class="row-right">${phoneHtml}${aptHtml}${interestHtml}</div>`;
       container.appendChild(row);
     }
+    refitListRows(); // chọn số digits ĐT (và cắt tên nếu cùng cực) cho vừa 1 hàng
     return;
   }
 
@@ -761,6 +755,40 @@ function escapeHtml(s) {
   div.textContent = s;
   return div.innerHTML;
 }
+
+// ─── LIST VIEW: chọn số DIGITS của SĐT (và cắt tên nếu cùng cực) cho vừa ĐÚNG 1 hàng ───
+// Nguyên tắc: ưu tiên TÊN đầy đủ trước. Chỗ còn lại dành cho số ĐT — hiện được BAO NHIÊU
+// số cuối thì hiện bấy nhiêu (nhiều chỗ = nhiều số; đủ chỗ thì cả số đầy đủ), dạng "…xxxx"
+// khi bị cắt. Chật quá thì số ĐT ẩn hẳn. Nếu ẩn số ĐT rồi mà tên vẫn quá dài → mới cắt "…"
+// ở tên. Đo bằng scrollWidth > clientWidth (dòng có overflow:hidden).
+function fitListRow(row) {
+  const nameEl = row.querySelector('.row-name');
+  const phoneNum = row.querySelector('.row-phone-num');
+  if (nameEl) nameEl.classList.remove('truncate'); // reset: tên để nguyên để đo lại
+  const overflow = () => row.scrollWidth > row.clientWidth + 1;
+  if (phoneNum) {
+    const d = phoneNum.dataset.digits || '';
+    let shown = false;
+    // Thử từ NHIỀU số nhất (đầy đủ) xuống 1 số — lấy mức nhiều nhất còn vừa.
+    for (let k = d.length; k >= 1; k--) {
+      phoneNum.style.display = '';
+      phoneNum.textContent = (k === d.length) ? d : '…' + d.slice(-k); // đủ số → không cần "…"
+      if (!overflow()) { shown = true; break; }
+    }
+    if (!shown) phoneNum.style.display = 'none'; // 1 số vẫn tràn → ẩn hẳn số ĐT
+  }
+  if (nameEl && overflow()) nameEl.classList.add('truncate'); // cùng lắm mới cắt tên
+}
+function refitListRows() {
+  if (viewMode !== 'list') return;
+  $$('#customer-list .cust-row').forEach(fitListRow);
+}
+// Đổi bề rộng cửa sổ (xoay ngang/thu cửa sổ trên Mac) → co lại cho khớp.
+let _refitTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(_refitTimer);
+  _refitTimer = setTimeout(refitListRows, 120);
+});
 
 $('#customer-list')?.addEventListener('click', (e) => {
   const card = e.target.closest('.customer-card, .cust-row');

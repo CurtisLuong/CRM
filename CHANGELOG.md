@@ -6,6 +6,41 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-23 — List view: bỏ nút gọi/Zalo, số ĐT hiện nhiều/ít số theo chỗ trống
+
+Tinh chỉnh list view: **bỏ nút gọi & Zalo** trên mỗi dòng (muốn thao tác thì bấm vào dòng →
+trang chi tiết). Chỗ trống dồn cho SỐ ĐIỆN THOẠI: `fitListRow()` giờ thử từ SỐ ĐẦY ĐỦ giảm dần
+số digits cho tới khi vừa (thay vì cap ở 3 số) — nguyên tắc: ưu tiên tên đầy đủ, dư chỗ mới hiện
+số ĐT, càng dư nhiều càng hiện nhiều số cuối ("…xxxxx"), đủ chỗ thì hiện cả số; chật quá thì ẩn;
+tên quá dài mới cắt "…" ở tên. Đã kiểm tra: màn rộng → số đầy đủ; mobile → tên ngắn hiện cả số,
+tên vừa hiện vài số cuối, tên rất dài thì ẩn số. Bỏ rule `.row-phone` (không còn nút). `sw.js`
+không đổi.
+
+File: `index.html`, `css/style.css`, `js/app.js`
+
+---
+
+## 2026-08-23 — List view: LUÔN 1 hàng (kể cả điện thoại) + số ĐT tự co theo diện tích
+
+Đổi lại list view theo yêu cầu: mỗi khách LUÔN gói gọn 1 hàng (bỏ kiểu xuống 2 hàng ở mobile).
+Thứ tự 1 hàng: **[Tên đầy đủ] … [SĐT …xxx + nút gọi + Zalo + loại căn + thẻ mức quan tâm]**
+(nhóm phải neo sát mép phải bằng `margin-left:auto`). Field null → bỏ hẳn.
+
+- **Số ĐT thích ứng:** hiện "…" + tối đa 3 số cuối; JS `fitListRow()` đo `scrollWidth` vs
+  `clientWidth` rồi co dần **3→2→1→ẩn** để nhường chỗ. Ưu tiên GIỮ TÊN đầy đủ (tên để `flex:0 0
+  auto`, không co); chỉ khi ẩn hết số ĐT mà vẫn tràn (tên quá dài) mới gắn `.truncate` cắt "…"
+  ở tên. Chạy sau khi render + khi `resize` cửa sổ (debounce 120ms). Màn rộng (Mac) → hiện đủ
+  "…678" cho mọi khách; điện thoại → tên thường (≤4 âm tiết) vẫn đủ, số ĐT tự ẩn.
+- **Thẻ mức quan tâm:** dùng nhãn bậc (Nguội/Ấm/Nóng/Rất nóng) như card. Bỏ chấm ◆ trong list
+  (tiết kiệm chỗ cho tên) và cho **nền pill theo màu bậc** (selector `.cust-row .tag-interest.ti-*`
+  thắng nền xám của `.tag`) để vẫn phân biệt màu ngay.
+- Thu gọn padding/gap/font nhóm phải để tên 4 âm tiết vừa đủ 1 hàng trên 375px.
+- Thay `@media (max-width:560px)` (xuống 2 hàng) đã bỏ. `sw.js` không đổi.
+
+File: `index.html`, `css/style.css`, `js/app.js`
+
+---
+
 ## 2026-08-23 — Lọc trạng thái: thay <select> gốc bằng dropdown tuỳ biến (khớp UI 100%)
 
 `<select id="filter-progress">` (Đang chăm / Đã xong / Tất cả) để trình duyệt/OS tự vẽ (nút +

@@ -531,51 +531,48 @@ input:focus, select:focus, textarea:focus {
 .ti-ratnong .ti-dot { color: #a8302a; }
 
 /* ===== LIST VIEW (dòng gọn) — bật khi #customer-list có class .list-mode =====
-   Mỗi khách 1 dòng: Tên · SĐT + nút gọi/Zalo · Loại căn · Quan tâm. Dày hơn card,
-   để lướt nhanh khi khách nhiều. Field null → JS bỏ hẳn (để trống). */
+   LUÔN 1 HÀNG (kể cả điện thoại): [Tên đầy đủ] ......... [SĐT …xxxxx + loại căn +
+   thẻ mức quan tâm]. KHÔNG có nút gọi/Zalo (vào trang chi tiết mới thao tác).
+   Nhóm phải neo sát mép phải (margin-left:auto). Số ĐT hiện BAO NHIÊU số cuối là do
+   JS (fitListRow) tính theo chỗ trống — nhiều chỗ = nhiều số (đủ chỗ = cả số); chật
+   thì ẩn hẳn; hết cách (tên quá dài) mới cắt "…" ở tên. Field null → bỏ hẳn. */
 .customer-list.list-mode {
   display: block;              /* bỏ lưới card, xếp dọc 1 cột */
   padding: 10px 16px 60px;
 }
-/* Tất cả trường trên CÙNG 1 HÀNG: [Tên co giãn] · [SĐT+nút] · [Loại căn] · [Quan tâm].
-   Tên chiếm khoảng trống còn lại, dài quá thì cắt "…" để dòng không xuống hàng. */
 .cust-row {
   display: flex;
-  flex-wrap: wrap;              /* màn hẹp: cho phép rớt xuống hàng 2 (xem @media dưới) */
   align-items: center;
-  gap: 12px;
+  gap: 6px;
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 10px;
-  padding: 10px 12px;
+  padding: 10px;
   margin-bottom: 8px;
   cursor: pointer;             /* bấm dòng → mở trang chi tiết */
+  overflow: hidden;            /* cắt phần dư; JS lo co số ĐT/tên cho vừa 1 hàng */
 }
 .cust-row:hover { border-color: var(--teal-light); box-shadow: 0 2px 8px rgba(31, 58, 61, 0.08); }
-.row-name {
-  flex: 1 1 auto; min-width: 0;    /* co giãn + cho phép cắt "…" */
-  font-weight: 700; font-size: 15px; color: var(--ink);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.row-phone { display: flex; align-items: center; gap: 6px; flex: none; }
-.row-phone-num { font-size: 14px; color: var(--ink); white-space: nowrap; }
-.row-meta { display: flex; align-items: center; gap: 8px; flex: none; }
-.row-meta:empty { display: none; }   /* apt & quan tâm đều trống → bỏ khối meta */
+/* Tên: MẶC ĐỊNH để nguyên (không co) → JS đo được khi tràn để co SỐ ĐT trước.
+   Chỉ khi JS gắn .truncate (tên quá dài, đã ẩn hết số ĐT vẫn tràn) mới cắt "…". */
+.row-name { flex: 0 0 auto; font-weight: 700; font-size: 15px; color: var(--ink); white-space: nowrap; }
+.row-name.truncate { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+/* Nhóm phải: SĐT + loại căn + thẻ quan tâm, neo sát phải. Thu gọn (font/pad nhỏ)
+   để tên thường vẫn đủ chỗ hiện đầy đủ trên điện thoại. */
+.row-right { flex: 0 0 auto; margin-left: auto; display: flex; align-items: center; gap: 6px; }
+.row-phone-num { flex: 0 0 auto; font-size: 13px; color: #6b6b60; white-space: nowrap; }
 .row-apt {
-  font-size: 12px; padding: 2px 9px; border-radius: 100px;
+  flex: 0 0 auto; font-size: 11px; padding: 2px 8px; border-radius: 100px; white-space: nowrap;
   background: #faf8f3; border: 1px solid var(--line); color: #55564e;
 }
-.row-interest {
-  font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 100px;
-  display: inline-flex; align-items: center; gap: 4px;   /* màu nền/chữ lấy từ class ti-* */
-}
-.row-interest .ti-dot { font-size: 9px; line-height: 1; }
-/* Màn HẸP (điện thoại): Tên chiếm trọn hàng 1 (hiện đủ, không cắt "…"); SĐT + căn +
-   quan tâm tự rớt xuống hàng 2. Màn rộng (Mac/tablet) đủ chỗ → vẫn 1 hàng như trên. */
-@media (max-width: 560px) {
-  .cust-row { gap: 6px 12px; }
-  .row-name { flex-basis: 100%; white-space: normal; }
-}
+.cust-row .tag-interest { flex: 0 0 auto; font-size: 11px; padding: 2px 8px; white-space: nowrap; }
+/* Trong list bỏ chấm ◆ (tiết kiệm chỗ cho tên đầy đủ) → thay bằng NỀN pill theo màu bậc
+   để vẫn phân biệt Nguội/Ấm/Nóng/Rất nóng ngay. Selector cụ thể hơn để thắng .tag (nền xám). */
+.cust-row .tag-interest .ti-dot { display: none; }
+.cust-row .tag-interest.ti-nguoi   { background: #edeff2; color: #5f6b7a; }
+.cust-row .tag-interest.ti-am      { background: #fbeccd; color: #9c6f1a; }
+.cust-row .tag-interest.ti-nong    { background: #f7ddd7; color: #a83f30; }
+.cust-row .tag-interest.ti-ratnong { background: #f2d3d0; color: #8f231d; }
 
 .tag { font-size: 11px; padding: 3px 8px; border-radius: 100px; background: #eee; color: #444; }
 .tag-stage { background: #e4ecec; color: var(--teal); }
