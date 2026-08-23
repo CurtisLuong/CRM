@@ -615,6 +615,8 @@ input:focus, select:focus, textarea:focus {
   background: #faf8f3; border: 1px solid var(--line); color: #55564e;
 }
 .cust-row .tag-interest { flex: 0 0 auto; font-size: 11px; padding: 2px 8px; white-space: nowrap; }
+/* Chỉ báo nhắc gọi trong list (nhãn, không phải nút) — dùng chung màu call-soon/due/missed. */
+.row-call { flex: 0 0 auto; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 100px; white-space: nowrap; color: var(--ink); }
 /* Trong list bỏ chấm ◆ (tiết kiệm chỗ cho tên đầy đủ) → thay bằng NỀN pill theo màu bậc
    để vẫn phân biệt Nguội/Ấm/Nóng/Rất nóng ngay. Selector cụ thể hơn để thắng .tag (nền xám). */
 .cust-row .tag-interest .ti-dot { display: none; }

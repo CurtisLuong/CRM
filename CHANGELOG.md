@@ -6,6 +6,19 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-23 — List view: hiện chỉ báo NHẮC GỌI (đồng nhất card về rule đẩy lên đầu)
+
+Kiểm tra thực tế: filter + sort + rule "đẩy khách sắp/đến/quên giờ gọi lên đầu" VỐN ĐÃ dùng chung
+cho cả card lẫn list (`renderList` tính `list` một lần, cả 2 nhánh lặp trên cùng `list`; test 2
+view cho ra thứ tự y hệt). Nhưng list view **không hiển thị** dấu nhắc gọi nên nhìn không thấy lý
+do khách bị đẩy lên đầu → tưởng rule không áp dụng. Sửa: thêm nhãn nhắc gọi vào dòng list (dùng
+chung `reminders` + màu `.call-soon/due/missed` như card; là NHÃN, không phải nút — bấm dòng vẫn
+mở chi tiết). `fitListRow` tự ưu tiên nhãn này, thu số ĐT lại nếu chật.
+
+File: `css/style.css`, `js/app.js`
+
+---
+
 ## 2026-08-23 — Panel Bộ lọc gọn hơn: lịch tự thu gọn + Tiến độ thành dropdown
 
 Thu gọn 2 điều khiển trong panel Bộ lọc (chọn xong KHÔNG đóng panel — vẫn chỉ nút "Áp dụng" đáy đóng):

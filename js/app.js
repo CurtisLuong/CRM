@@ -682,9 +682,13 @@ function renderList() {
         const tier = interestTier(c.interest_level);
         interestHtml = `<span class="tag tag-interest ti-${tier.key}"><span class="ti-dot">◆</span> ${escapeHtml(tier.label)}</span>`;
       }
+      // Chỉ báo NHẮC GỌI (cùng rule/màu như card) — cho thấy vì sao khách này bị đẩy lên đầu.
+      // Chỉ là nhãn (không phải nút; bấm dòng vẫn mở chi tiết).
+      const rem = reminders.get(c.id);
+      const callHtml = rem ? `<span class="row-call call-${rem.state}">${escapeHtml(rem.text)}</span>` : '';
       row.innerHTML = `
         <div class="row-name">${escapeHtml(c.full_name || '(chưa có tên)')}</div>
-        <div class="row-right">${phoneHtml}${aptHtml}${interestHtml}</div>`;
+        <div class="row-right">${callHtml}${phoneHtml}${aptHtml}${interestHtml}</div>`;
       container.appendChild(row);
     }
     refitListRows(); // chọn số digits ĐT (và cắt tên nếu cùng cực) cho vừa 1 hàng
