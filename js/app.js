@@ -2548,12 +2548,17 @@ function renderSortOptions() {
   }).join('');
 }
 
-// ---- Panel công cụ (Bộ lọc / Sắp xếp): mở/đóng ----
-function closeToolPops() {
-  $('#filter-panel').hidden = true; $('#filter-btn').classList.remove('is-open');
+// ---- Panel công cụ (Bộ lọc / Sắp xếp / Trạng thái): mở/đóng ----
+// Đóng các pop "chốc lát" (Sắp xếp + dropdown Trạng thái). KHÔNG đóng panel Bộ lọc.
+function closeTransientPops() {
   $('#sort-panel').hidden = true; $('#sort-btn').classList.remove('is-open');
   const pp = $('#progress-pop');
   if (pp) { pp.hidden = true; $('#progress-btn').classList.remove('is-open'); $('#progress-btn').setAttribute('aria-expanded', 'false'); }
+}
+// Đóng TẤT CẢ (gồm cả panel Bộ lọc). Dùng cho các đóng CHỦ ĐÍCH: bấm icon phễu, nút "Áp dụng".
+function closeToolPops() {
+  $('#filter-panel').hidden = true; $('#filter-btn').classList.remove('is-open');
+  closeTransientPops();
 }
 // ---- Bộ lọc THỜI GIAN ĐĂNG KÝ ----
 const VI_WD_SHORT = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7']; // getDay() 0=CN..6=T7
@@ -2592,10 +2597,11 @@ function dateFilterRange() {
   }
   return null; // 'all'
 }
-// ---- Lịch tuỳ biến chọn KHOẢNG ngày (1 bảng duy nhất) ----
+// ---- Lịch tuỳ biến chọn KHOẢNG ngày (1 bảng). Chọn ngày ÁP LỌC NGAY (real-time);
+//      panel chỉ đóng bằng nút "Áp dụng" đáy panel (hoặc bấm lại icon phễu). ----
 let calMonth = null; // Date của mùng 1 tháng đang hiển thị
 // Vẽ lịch: header đổi tháng + hàng thứ (T2..CN) + lưới ngày. Ngày đầu/cuối tô đậm,
-// các ngày GIỮA tô cùng màu nhạt (~½ opacity). Nhấn 1 ngày → calPick.
+// các ngày GIỮA tô cùng màu nhạt (~½ opacity).
 function renderCalendar() {
   const box = $('#filter-date-custom');
   if (!box) return;
@@ -2638,8 +2644,8 @@ function renderCalendar() {
     <div class="cal-weekdays"><span>T2</span><span>T3</span><span>T4</span><span>T5</span><span>T6</span><span>T7</span><span>CN</span></div>
     <div class="cal-grid">${cells}</div>`;
 }
-// Chọn 1 ngày trên lịch: chưa có/đã đủ cặp → bắt đầu khoảng mới; đã có ngày đầu → chốt ngày
-// cuối (tự sắp min/max nếu bấm ngược). Áp lọc ngay.
+// Chọn 1 ngày: cập nhật khoảng + ÁP LỌC NGAY (không đóng panel). Chưa có/đủ cặp → bắt đầu
+// khoảng mới; có ngày đầu → chốt ngày cuối (tự sắp min/max nếu bấm ngược).
 function calPick(iso) {
   if (!dateFilter.from || dateFilter.to) { dateFilter.from = iso; dateFilter.to = null; }
   else if (iso < dateFilter.from) { dateFilter.to = dateFilter.from; dateFilter.from = iso; }
@@ -2647,7 +2653,7 @@ function calPick(iso) {
   dateFilter.preset = 'custom';
   renderCalendar();
   updateFilterDot();
-  renderList();
+  renderList(); // real-time: danh sách cập nhật ngay theo khoảng đang chọn
 }
 // Đồng bộ UI preset + hiện/ẩn lịch theo state dateFilter.
 function syncDatePresetUI() {
@@ -2852,21 +2858,25 @@ document.addEventListener('DOMContentLoaded', () => {
     $('#filter-interest-val').textContent = $('#filter-min-interest').value;
     updateFilterDot(); renderList();
   });
-  // --- Lọc thời gian đăng ký: chọn preset; "Tuỳ chọn" → lịch chọn khoảng (áp ngay) ---
+  // --- Lọc thời gian đăng ký: chọn preset. Preset thường (Tất cả/Hôm nay/Tuần/Tháng) áp NGAY.
+  //     "Tuỳ chọn" chỉ mở lịch (nạp nháp = khoảng đang áp dụng), CHƯA đổi lọc — chờ bấm Áp dụng. ---
   $('#filter-date-presets').addEventListener('click', (e) => {
     const b = e.target.closest('.date-preset'); if (!b) return;
     dateFilter.preset = b.dataset.preset;
+    if (b.dataset.preset === 'custom') calMonth = null;
     syncDatePresetUI(); updateFilterDot(); renderList();
   });
   $('#filter-date-custom').addEventListener('click', (e) => {
-    // Chặn nổi bọt: calPick/đổi tháng render lại innerHTML → phần tử vừa bấm bị tách khỏi DOM;
-    // nếu để lọt tới handler "click ngoài" ở document nó sẽ tưởng click ngoài → đóng panel.
+    // Chặn nổi bọt: calPick/đổi tháng render lại innerHTML → phần tử vừa bấm rời DOM; nếu để lọt
+    // tới handler "click ngoài" ở document nó sẽ tưởng click ngoài (nhưng panel giờ vốn không tự
+    // đóng theo click ngoài — vẫn stopPropagation cho an toàn/nhất quán).
     const nav = e.target.closest('[data-cal-nav]');
     if (nav) { e.stopPropagation(); calMonth.setMonth(calMonth.getMonth() + Number(nav.dataset.calNav)); renderCalendar(); return; }
     const day = e.target.closest('.cal-day[data-date]');
     if (day) { e.stopPropagation(); calPick(day.dataset.date); }
   });
-  $('#filter-apply-btn').addEventListener('click', () => { renderList(); closeToolPops(); });
+  // Bộ lọc đã áp real-time; nút "Áp dụng" đáy panel chỉ đóng panel (chốt phiên xem/gộp lọc).
+  $('#filter-apply-btn').addEventListener('click', () => { closeToolPops(); });
   $('#filter-reset-btn').addEventListener('click', resetAdvancedFilters);
   // Nút "Xoá lọc ✕" cạnh dòng đếm khách (chỉ hiện khi đang có lọc nâng cao).
   $('#clear-filter-inline').addEventListener('click', resetAdvancedFilters);
@@ -2908,7 +2918,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Đóng panel Bộ lọc/Sắp xếp khi bấm ra ngoài
   document.addEventListener('click', (e) => {
-    if (!e.target.closest('.tool-pop')) closeToolPops();
+    // Bấm ra ngoài đóng Sắp xếp + dropdown Trạng thái; RIÊNG panel Bộ lọc giữ nguyên (để gộp
+    // nhiều filter + xem danh sách real-time), chỉ đóng khi bấm "Áp dụng" đáy panel hoặc icon phễu.
+    if (!e.target.closest('.tool-pop')) closeTransientPops();
   });
 
   // Header thu gọn khi cuộn xuống (đầy đủ khi ở đầu trang). Có ngưỡng trễ (48/16) tránh
@@ -2928,7 +2940,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function setHeaderCollapsed(collapsed) {
     if (collapsed === headerCollapsed) return;
     headerCollapsed = collapsed;
-    if (collapsed) { closeToolPops(); $('#notif-wrap')?.classList.remove('open'); } // chuông bị ẩn khi thu gọn → đóng panel kèm
+    if (collapsed) { closeTransientPops(); $('#notif-wrap')?.classList.remove('open'); } // cuộn → giữ panel Bộ lọc mở
     topbarEl.classList.toggle('collapsed', collapsed);
   }
   function applyHeaderState() {

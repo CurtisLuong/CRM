@@ -6,6 +6,23 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-23 — Panel Bộ lọc: lọc real-time, 1 nút "Áp dụng" đáy để đóng, không tự đóng
+
+Chốt hành vi panel Bộ lọc theo ý dùng "gộp nhiều filter, xem nhóm khách trực tiếp":
+
+- **Lọc real-time:** chọn ngày trên lịch (kể cả Tuỳ chọn) áp lọc NGAY, danh sách cập nhật tức thì
+  (bỏ bản nháp + 2 nút Huỷ/Áp dụng trong lịch của bản trước).
+- **Panel KHÔNG tự đóng** khi bấm ra ngoài hay cuộn (thu gọn header) → tách `closeTransientPops()`
+  (chỉ đóng Sắp xếp + dropdown Trạng thái, chừa panel Bộ lọc) cho 2 sự kiện đó; `closeToolPops()`
+  (đóng cả Bộ lọc) chỉ dùng cho đóng CHỦ ĐÍCH.
+- **Chỉ nút "Áp dụng" duy nhất ở ĐÁY panel đóng panel** (bộ lọc vốn đã áp real-time nên nút chỉ
+  đóng phiên). Bấm lại icon phễu cũng đóng (toggle). Mở Sắp xếp/Trạng thái vẫn đóng Bộ lọc (1
+  popup 1 lúc).
+
+File: `css/style.css`, `js/app.js`
+
+---
+
 ## 2026-08-23 — "Tuỳ chọn" thời gian: lịch tuỳ biến chọn KHOẢNG (1 bảng, tô dải)
 
 Đổi phần "Tuỳ chọn" của bộ lọc thời gian từ 2 ô `<input type=date>` native → **1 bảng lịch tuỳ
