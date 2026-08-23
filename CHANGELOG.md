@@ -6,6 +6,46 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-23 — Bộ lọc thời gian đăng ký trong panel Bộ lọc (preset + tuỳ chọn lịch)
+
+Thêm nhóm "Thời gian đăng ký" vào panel Bộ lọc (cạnh Tiến độ + Mức quan tâm) — lọc theo
+`registered_at` (fallback `created_at`). Preset dạng pill: **Tất cả · Hôm nay · Tuần này · Tháng
+này · Tuỳ chọn**. "Tuỳ chọn" xổ 2 ô ngày (`<input type=date>`, bấm ra lịch OS) Từ–Đến, **kèm nhãn
+thứ trong tuần** (vd "Thứ Ba") bên cạnh mỗi ngày cho trực quan.
+
+- `dateFilter = { preset, from, to }`; `dateFilterRange()` trả `{start,end}` (end loại trừ):
+  hôm nay = 00:00→24h; tuần = Thứ Hai→Thứ Hai (dùng `mondayOf` sẵn có); tháng = mùng 1→mùng 1;
+  tuỳ chọn = from 00:00 → (to+1 ngày) 00:00 (gồm cả ngày "đến"); chưa chọn ngày → không lọc.
+- `matchesFilters` lọc thêm theo khoảng này; `isAdvancedFilterActive` + chấm đỏ phễu + nút "Xoá
+  lọc ✕" đã tính cả lọc thời gian; `resetAdvancedFilters` đưa về "Tất cả". Áp ngay khi chọn.
+- Weekday: `viWeekdayLabel()` (Chủ Nhật…Thứ Bảy). Lịch bung ra là lịch native của trình duyệt/OS
+  (đã có sẵn cột thứ) — nếu sau muốn lịch tuỳ biến 100% như dropdown trạng thái thì làm thêm.
+
+File: `index.html`, `css/style.css`, `js/app.js`
+
+---
+
+## 2026-08-23 — OCR: đọc "thời gian đăng ký" chuẩn hơn (kèm NGÀY, không chỉ giờ)
+
+Trước đây OCR chỉ lấy GIỜ tin nhắn (`message_time` HH:MM) rồi đoán hôm nay/hôm qua. Nhưng
+Messenger/Facebook **kèm cả ngày phía sau giờ khi tin KHÔNG phải hôm nay** (vd "22:51 22 THG 8").
+Nay đọc đúng cả ngày. Nguyên tắc (Gemini trả THÔ, app tự quy ra ngày cụ thể vì Gemini không
+biết chắc giờ/timezone hiện tại):
+
+- **Worker (`worker/intake-worker.js`) — CẦN `wrangler deploy` lại:** thêm 3 field
+  `message_day` / `message_month` / `message_year` (INTEGER, nullable) vào schema; prompt hướng
+  dẫn: chỉ đọc mốc giờ của TIN NHẮN (không lấy đồng hồ thanh trạng thái điện thoại vd "10:03");
+  có ngày kèm ("22 THG 8" = ngày 22 tháng 8, "THG"=tháng) → điền day/month; chỉ điền year khi ảnh
+  ghi rõ năm; chỉ có giờ → 3 field ngày = null; KHÔNG tự suy hôm nay/hôm qua.
+- **App (`js/app.js`):** `applyOcrToForm` dựng `registered_at` theo 3 quy tắc:
+  (1) có ngày trong ảnh → dùng đúng ngày; năm lấy từ ảnh, không có thì năm nay, nếu ngày rơi vào
+  tương lai (vd đầu tháng 1 xem tin tháng 12) → lùi 1 năm. (2) chỉ có giờ → hôm nay. (3) chỉ có
+  giờ mà giờ > hiện tại → hôm qua. Đã test 5 kịch bản khớp (gồm đúng ca "22:51 22 THG 8").
+
+File: `worker/intake-worker.js`, `js/app.js`
+
+---
+
 ## 2026-08-23 — Sửa lỗi OCR 524 (Gemini timeout): Worker timeout+retry + app maxDim 1024 + nút thử lại
 
 Lỗi "Đọc ảnh thất bại: Gemini trả lỗi — error code: 524" thực chất là **timeout của Cloudflare**:

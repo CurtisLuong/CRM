@@ -51,6 +51,9 @@ const RESPONSE_SCHEMA = {
     interest_level: { type: 'INTEGER', nullable: true },
     note:           { type: 'STRING',  nullable: true },
     message_time:   { type: 'STRING',  nullable: true }, // giờ tin nhắn 'HH:MM' (24h)
+    message_day:    { type: 'INTEGER', nullable: true }, // ngày (1-31) kèm cạnh giờ, null nếu ảnh CHỈ có giờ
+    message_month:  { type: 'INTEGER', nullable: true }, // tháng (1-12) kèm cạnh giờ, null nếu chỉ có giờ
+    message_year:   { type: 'INTEGER', nullable: true }, // năm — CHỈ khi ảnh ghi rõ năm, còn lại null
   },
 };
 
@@ -100,10 +103,20 @@ CÁC FIELD (đúng thuộc tính CRM):
 - interest_level: số 0-100, chỉ khi ảnh thể hiện rõ; không rõ → null.
 - note: gom thông tin đáng lưu ý KHÁC chưa có field riêng (vd diện tích "76.3 m2",
   nhu cầu, hoàn cảnh, câu khách nói) thành 1 câu ngắn; không có → null.
-- message_time: GIỜ tin nhắn của khách hiển thị trong cuộc trò chuyện (mốc thời gian
-  cạnh/dưới tin nhắn), dạng 24h "HH:MM" (vd "07:28"; nếu ảnh ghi "2:50 PM" → "14:50").
-  Ưu tiên mốc giờ của TIN NHẮN, không phải đồng hồ trên thanh trạng thái điện thoại.
-  Không thấy → null.`;
+- message_time / message_day / message_month / message_year: MỐC THỜI GIAN của tin nhắn
+  khách gửi cho page, hiển thị trong cuộc trò chuyện (thường ở dòng header phía TRÊN tin
+  nhắn, vd "22:51 22 THG 8" hoặc chỉ "07:28").
+  • ĐÂY LÀ MỐC CỦA TIN NHẮN — TUYỆT ĐỐI KHÔNG lấy đồng hồ trên THANH TRẠNG THÁI điện thoại
+    (góc trên cùng màn hình, vd "10:03" cạnh sóng/pin) — đó KHÔNG phải giờ tin nhắn.
+  • message_time: giờ, dạng 24h "HH:MM" (vd "07:28"; "2:50 PM" → "14:50"; "22:51" → "22:51").
+  • Nếu cạnh giờ CÓ KÈM NGÀY (Messenger/Facebook chỉ kèm ngày khi tin KHÔNG phải hôm nay):
+    đọc NGÀY + THÁNG vào message_day, message_month. Định dạng tiếng Việt: "THG" = "tháng",
+    vd "22 THG 8" → message_day=22, message_month=8; "22 tháng 8" hay "22/8" cũng vậy.
+    Chỉ điền message_year khi ảnh GHI RÕ năm (vd "22 THG 8, 2024" → message_year=2024); không
+    ghi năm → message_year=null.
+  • Nếu cạnh giờ CHỈ CÓ GIỜ (không có ngày) → message_day, message_month, message_year đều null.
+  • KHÔNG tự suy hôm nay/hôm qua/năm — chỉ đọc ĐÚNG những gì ghi trong ảnh; app sẽ tự tính.
+  • Không thấy mốc thời gian tin nhắn nào → tất cả 4 field null.`;
 
 export default {
   async fetch(request, env) {

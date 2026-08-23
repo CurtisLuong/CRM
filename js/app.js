@@ -130,6 +130,9 @@ let sb = null;
 let currentUser = null;
 let allCustomers = [];
 let progressFilter = 'active'; // lọc trạng thái: 'active' | 'done' | 'all' (dropdown tuỳ biến)
+// Lọc theo THỜI GIAN ĐĂNG KÝ (registered_at, fallback created_at). preset:
+// 'all'|'today'|'week'|'month'|'custom'; custom dùng from/to ('YYYY-MM-DD').
+let dateFilter = { preset: 'all', from: null, to: null };
 let editingId = null;
 let formOriginalStage = ''; // care_stage lúc mở form — để biết có đổi bậc không
 let pendingOcrNote = null;  // ghi chú OCR đọc được → thêm thành 1 note sau khi tạo khách
@@ -609,6 +612,12 @@ function matchesFilters(c) {
   }
   const minInterest = Number($('#filter-min-interest').value || 0);
   if ((c.interest_level || 0) < minInterest) return false;
+  // Lọc theo thời gian đăng ký (registered_at, fallback created_at).
+  const range = dateFilterRange();
+  if (range) {
+    const t = Date.parse(c.registered_at || c.created_at || '');
+    if (isNaN(t) || t < range.start || t >= range.end) return false;
+  }
   return true;
 }
 
@@ -1307,14 +1316,30 @@ function applyOcrToForm(d) {
     }
     renderProjSelect();
   }
-  // Thời gian đăng ký từ GIỜ tin nhắn: dựng datetime = giờ đó + ngày. Nếu giờ đó
-  // muộn hơn giờ hiện tại (không thể là hôm nay) → lấy ngày HÔM QUA; ngược lại HÔM NAY.
+  // Thời gian đăng ký = mốc tin nhắn khách gửi cho page. Gemini trả THÔ: giờ (message_time)
+  // và ngày/tháng/năm (message_day/month/year) NẾU ảnh có kèm. App tự quy ra ngày cụ thể:
+  //  1) Ảnh có ngày (Messenger chỉ kèm ngày khi KHÔNG phải hôm nay) → dùng đúng ngày đó. Năm:
+  //     lấy từ ảnh nếu có; không có → năm nay, nhưng nếu ngày đó rơi vào TƯƠNG LAI (vd giờ đang
+  //     đầu tháng 1 mà ảnh ghi tháng 12) → lùi 1 năm.
+  //  2) Ảnh CHỈ có giờ → mặc định HÔM NAY.
+  //  3) Chỉ có giờ mà giờ đó lại MUỘN hơn hiện tại (FB lỗi không kèm ngày) → coi là HÔM QUA.
   if (d.message_time && /^\d{1,2}:\d{2}$/.test(String(d.message_time).trim())) {
     const [hh, mm] = String(d.message_time).trim().split(':').map(Number);
     if (hh >= 0 && hh < 24 && mm >= 0 && mm < 60) {
       const now = new Date();
-      const cand = new Date(now); cand.setHours(hh, mm, 0, 0);
-      if (cand > now) cand.setDate(cand.getDate() - 1); // giờ tin nhắn > giờ hiện tại → hôm qua
+      const day = Number(d.message_day), mon = Number(d.message_month);
+      let cand;
+      if (day >= 1 && day <= 31 && mon >= 1 && mon <= 12) {
+        let year = Number(d.message_year);
+        if (!(year >= 2000 && year <= 2100)) {                 // ảnh không ghi năm → suy
+          year = now.getFullYear();
+          if (new Date(year, mon - 1, day, hh, mm) > now) year -= 1; // ngày ở tương lai → năm ngoái
+        }
+        cand = new Date(year, mon - 1, day, hh, mm, 0, 0);
+      } else {
+        cand = new Date(now); cand.setHours(hh, mm, 0, 0);     // không có ngày → hôm nay
+        if (cand > now) cand.setDate(cand.getDate() - 1);      // giờ > hiện tại → hôm qua
+      }
       f.registered_at.value = toLocalDatetimeInput(cand);
     }
   }
@@ -2530,12 +2555,56 @@ function closeToolPops() {
   const pp = $('#progress-pop');
   if (pp) { pp.hidden = true; $('#progress-btn').classList.remove('is-open'); $('#progress-btn').setAttribute('aria-expanded', 'false'); }
 }
-// Chấm báo "đang có lọc nâng cao" trên icon phễu (tiến độ ≠ tất cả HOẶC quan tâm ≥ >0).
+// ---- Bộ lọc THỜI GIAN ĐĂNG KÝ ----
+const VI_WEEKDAYS = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+function viWeekdayLabel(isoDate) {
+  if (!isoDate) return '';
+  const d = new Date(isoDate + 'T00:00:00');
+  return isNaN(d.getTime()) ? '' : VI_WEEKDAYS[d.getDay()];
+}
+// Khoảng thời gian đang lọc → { start, end } (ms, end LOẠI TRỪ), hoặc null = không lọc.
+function dateFilterRange() {
+  const now = new Date();
+  const p = dateFilter.preset;
+  if (p === 'today') {
+    const s = new Date(now); s.setHours(0, 0, 0, 0);
+    return { start: s.getTime(), end: s.getTime() + 86400000 };
+  }
+  if (p === 'week') {
+    const s = mondayOf(now);                 // Thứ Hai 00:00 tuần này (helper sẵn có)
+    const e = new Date(s); e.setDate(e.getDate() + 7);
+    return { start: s.getTime(), end: e.getTime() };
+  }
+  if (p === 'month') {
+    const s = new Date(now.getFullYear(), now.getMonth(), 1);
+    const e = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    return { start: s.getTime(), end: e.getTime() };
+  }
+  if (p === 'custom') {
+    let start = -Infinity, end = Infinity;
+    if (dateFilter.from) { const s = new Date(dateFilter.from + 'T00:00:00'); if (!isNaN(s.getTime())) start = s.getTime(); }
+    if (dateFilter.to)   { const e = new Date(dateFilter.to + 'T00:00:00');   if (!isNaN(e.getTime())) end = e.getTime() + 86400000; } // gồm cả ngày "đến"
+    if (start === -Infinity && end === Infinity) return null; // custom nhưng chưa chọn ngày → không lọc
+    return { start, end };
+  }
+  return null; // 'all'
+}
+// Đồng bộ UI preset + phần tuỳ chọn theo state dateFilter.
+function syncDatePresetUI() {
+  $$('#filter-date-presets .date-preset').forEach((b) => b.classList.toggle('is-sel', b.dataset.preset === dateFilter.preset));
+  $('#filter-date-custom').hidden = dateFilter.preset !== 'custom';
+  $('#filter-date-from').value = dateFilter.from || '';
+  $('#filter-date-to').value = dateFilter.to || '';
+  $('#filter-date-from-wd').textContent = viWeekdayLabel(dateFilter.from);
+  $('#filter-date-to-wd').textContent = viWeekdayLabel(dateFilter.to);
+}
+
+// Chấm báo "đang có lọc nâng cao" trên icon phễu (tiến độ ≠ tất cả HOẶC quan tâm >0 HOẶC có lọc thời gian).
 function isAdvancedFilterActive() {
   const stageEl = document.querySelector('input[name="f-stage"]:checked');
   const stage = stageEl ? stageEl.value : '';
   const interest = Number($('#filter-min-interest').value || 0);
-  return !!(stage || interest > 0);
+  return !!(stage || interest > 0 || dateFilterRange());
 }
 // Đồng bộ 2 chỉ báo "đang có lọc nâng cao": chấm đỏ trên icon phễu + nút "Xoá lọc ✕"
 // cạnh dòng "[x] khách hàng". Cả 2 chỉ hiện khi có lọc khác mặc định (giữ UI gọn).
@@ -2551,6 +2620,8 @@ function resetAdvancedFilters() {
   if (allRadio) allRadio.checked = true;
   $('#filter-min-interest').value = 0;
   $('#filter-interest-val').textContent = '0';
+  dateFilter = { preset: 'all', from: null, to: null };
+  syncDatePresetUI();
   updateFilterDot();
   renderList();
 }
@@ -2719,6 +2790,22 @@ document.addEventListener('DOMContentLoaded', () => {
   $('#filter-stage-group').addEventListener('change', () => { updateFilterDot(); renderList(); });
   $('#filter-min-interest').addEventListener('input', () => {
     $('#filter-interest-val').textContent = $('#filter-min-interest').value;
+    updateFilterDot(); renderList();
+  });
+  // --- Lọc thời gian đăng ký: chọn preset / nhập ngày tuỳ chọn (áp ngay) ---
+  $('#filter-date-presets').addEventListener('click', (e) => {
+    const b = e.target.closest('.date-preset'); if (!b) return;
+    dateFilter.preset = b.dataset.preset;
+    syncDatePresetUI(); updateFilterDot(); renderList();
+  });
+  $('#filter-date-from').addEventListener('change', (e) => {
+    dateFilter.from = e.target.value || null;
+    $('#filter-date-from-wd').textContent = viWeekdayLabel(dateFilter.from);
+    updateFilterDot(); renderList();
+  });
+  $('#filter-date-to').addEventListener('change', (e) => {
+    dateFilter.to = e.target.value || null;
+    $('#filter-date-to-wd').textContent = viWeekdayLabel(dateFilter.to);
     updateFilterDot(); renderList();
   });
   $('#filter-apply-btn').addEventListener('click', () => { renderList(); closeToolPops(); });

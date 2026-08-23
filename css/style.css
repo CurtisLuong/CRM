@@ -403,6 +403,23 @@ input:focus, select:focus, textarea:focus {
 .tri-down.is-on::before { border-top-color: var(--teal); }
 .tri-btn:hover::before { filter: brightness(0.85); }
 
+/* Bộ lọc THỜI GIAN ĐĂNG KÝ: nút preset dạng pill + phần "Tuỳ chọn" (2 ô ngày + weekday). */
+.date-presets { display: flex; flex-wrap: wrap; gap: 6px; }
+.date-preset {
+  font: inherit; font-size: 13px; padding: 5px 11px; border-radius: 100px; cursor: pointer;
+  border: 1px solid var(--line); background: #fff; color: var(--ink);
+}
+.date-preset:hover { background: var(--paper); }
+.date-preset.is-sel { background: var(--teal); color: #fff; border-color: var(--teal); }
+.date-custom { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.date-field { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #4a4a42; }
+.date-input {
+  flex: 1 1 auto; min-width: 0;
+  font: inherit; font-size: 13px; padding: 6px 8px; border-radius: 8px;
+  border: 1px solid var(--line); background: #fff; color: var(--ink);
+}
+.date-wd { flex: none; font-size: 12px; font-weight: 600; color: var(--teal); min-width: 52px; }
+
 /* FAB — nút thêm khách nổi góc dưới phải */
 .fab {
   position: fixed; right: 18px; bottom: 20px; z-index: 30;

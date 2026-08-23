@@ -115,6 +115,26 @@
       <div id="filter-panel" class="pop-panel" hidden>
         <div class="pop-title">Bộ lọc</div>
         <div class="pop-group">
+          <div class="pop-label">Thời gian đăng ký</div>
+          <div id="filter-date-presets" class="date-presets">
+            <button type="button" class="date-preset is-sel" data-preset="all">Tất cả</button>
+            <button type="button" class="date-preset" data-preset="today">Hôm nay</button>
+            <button type="button" class="date-preset" data-preset="week">Tuần này</button>
+            <button type="button" class="date-preset" data-preset="month">Tháng này</button>
+            <button type="button" class="date-preset" data-preset="custom">Tuỳ chọn</button>
+          </div>
+          <div id="filter-date-custom" class="date-custom" hidden>
+            <label class="date-field">Từ
+              <input type="date" id="filter-date-from" class="date-input" />
+              <span class="date-wd" id="filter-date-from-wd"></span>
+            </label>
+            <label class="date-field">Đến
+              <input type="date" id="filter-date-to" class="date-input" />
+              <span class="date-wd" id="filter-date-to-wd"></span>
+            </label>
+          </div>
+        </div>
+        <div class="pop-group">
           <div class="pop-label">Tiến độ</div>
           <div id="filter-stage-group" class="pop-radios"></div>
         </div>
