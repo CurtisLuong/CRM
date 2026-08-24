@@ -928,7 +928,11 @@ function renderProjSelect() {
 function openForm(id) {
   editingId = id || null;
   const c = id ? allCustomers.find((x) => x.id === id) : {};
-  $('#form-title').textContent = id ? 'Sửa thông tin khách' : 'Thêm khách mới';
+  // Header khi sửa: kèm HỌ TÊN ĐÃ LƯU (đọc từ record c — giá trị trước khi sửa),
+  // không đổi theo lúc gõ ô Họ tên vì chỉ set 1 lần lúc mở form.
+  $('#form-title').textContent = id
+    ? 'Sửa thông tin khách ' + (c.full_name || '(chưa tên)')
+    : 'Thêm khách mới';
 
   const f = $('#customer-form');
   f.phone.value = c.phone || '';

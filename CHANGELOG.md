@@ -6,6 +6,18 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-24 — Form sửa khách: header kèm tên + tên section nổi bật hơn
+
+- **Header khi SỬA** đổi từ "Sửa thông tin khách" → "Sửa thông tin khách **[họ tên]**", lấy
+  `full_name` từ record ĐÃ LƯU lúc mở form (không đổi theo lúc gõ ô Họ tên; tên rỗng → "(chưa
+  tên)"). Chế độ thêm mới vẫn "Thêm khách mới". (`openForm` trong `js/app.js`)
+- **Tên section (`legend`)** giữ nguyên cỡ 12px nhưng **in đậm + màu mực đậm (`--ink`) + chữ
+  hoa giãn nhẹ** → tách biệt rõ tiêu đề section với tên field (13px, xám, thường). (`css/style.css`)
+
+File: `js/app.js`, `css/style.css`
+
+---
+
 ## 2026-08-24 — Form sửa khách: gom field vào 4 section có viền
 
 Tổ chức lại form thêm/sửa khách thành **4 fieldset có viền chữ nhật** (dùng đúng pattern

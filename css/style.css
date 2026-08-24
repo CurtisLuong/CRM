@@ -961,7 +961,9 @@ dialog#form-modal::backdrop { background: rgba(20, 30, 30, 0.5); }
 .form-grid label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #4a4a42; }
 .span-2 { grid-column: 1 / -1; }
 fieldset { border: 1px solid var(--line); border-radius: 8px; padding: 12px; }
-legend { font-size: 12px; color: #6b6b60; padding: 0 6px; }
+/* Tên section: giữ nguyên cỡ 12px nhưng đậm + màu mực đậm + chữ hoa giãn nhẹ →
+   nổi hơn hẳn tên field (13px, #4a4a42, thường) để phân biệt rõ tiêu đề với field. */
+legend { font-size: 12px; color: var(--ink); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; padding: 0 6px; }
 .menh-preview { padding: 10px 12px; background: #f2e8da; border-radius: 8px; font-size: 13px; color: #7a5a2f; }
 
 /* Trường "Dự án" (multi-select bằng chip) */
