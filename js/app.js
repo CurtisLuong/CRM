@@ -572,6 +572,7 @@ function customerSearchBlob(c) {
     c.evaluation_reason, sourceDisplay(c.source),
     c.apt_price != null ? String(c.apt_price) : '',
     c.apt_price ? formatPrice(c.apt_price) : '',
+    c.purpose, c.finance != null ? String(c.finance) : '',
     c.interest_level != null ? c.interest_level + '%' : '',
     Array.isArray(c.projects) ? c.projects.join(' ') : '',
   ];
@@ -955,6 +956,8 @@ function openForm(id) {
   f.apt_code.value = c.apt_code || '';
   f.building_code.value = c.building_code || '';
   f.apt_price.value = c.apt_price || '';
+  f.finance.value = c.finance || '';
+  f.purpose.value = c.purpose || '';
   f.interest_level.value = c.interest_level ?? 50;
   $('#interest-output').textContent = (c.interest_level ?? 50) + '%';
   f.care_stage.value = c.care_stage || '';
@@ -1075,6 +1078,8 @@ async function handleFormSubmit(e) {
     apt_code: f.apt_code.value.trim() || null,
     building_code: f.building_code.value.trim() || null,
     apt_price: f.apt_price.value ? Number(f.apt_price.value) : null,
+    finance: f.finance.value ? Number(f.finance.value) : null,
+    purpose: f.purpose.value || null,
     interest_level: Number(f.interest_level.value),
     care_stage: f.care_stage.value || null,
     evaluation: f.evaluation.value || null,
@@ -1599,9 +1604,10 @@ function openDetail(id) {
   const aptRows = [
     ['Dự án', (Array.isArray(c.projects) && c.projects.length) ? c.projects.join(', ') : DASH],
     ['Loại căn', c.apt_type || DASH],
-    ['Mã căn', c.apt_code || DASH],
-    ['Mã toà', c.building_code || DASH],
-    ['Giá', formatPrice(c.apt_price)],
+    // Gộp 2 giá trị/1 dòng cho dễ nắm bắt & so sánh.
+    ['Mã căn | Mã toà', `${c.apt_code || DASH} | ${c.building_code || DASH}`],
+    ['Tài chính | Giá', `${formatPrice(c.finance)} | ${formatPrice(c.apt_price)}`],
+    ['Mục đích', c.purpose || DASH],
   ];
   $('#detail-apt').innerHTML = aptRows
     .map(([k, v]) => `<tr><th>${k}</th><td>${escapeHtml(String(v))}</td></tr>`)

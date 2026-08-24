@@ -6,6 +6,21 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-24 — Căn hộ quan tâm: thêm Tài chính + Mục đích, gộp dòng hiển thị
+
+- **DB (cần chạy `add_apt_finance_purpose.sql`):** thêm 2 cột `finance numeric` (tiền khách có
+  sẵn, VNĐ) và `purpose text check (Ở / Đầu tư / Cho tặng)`. Nullable, không cần GRANT thêm.
+  **Chạy TRƯỚC khi deploy** kẻo lưu khách báo "column does not exist" và kẹt hàng đợi.
+- **Form (fieldset "Thông tin căn hộ"):** thêm "Tài chính (VNĐ)" (number) + "Mục đích" (select
+  3 lựa chọn). `openForm` nạp + `handleFormSubmit` lưu 2 field. Thêm vào search index.
+- **Hiển thị chi tiết (`#detail-apt`)** gộp dòng cho dễ nắm bắt/so sánh:
+  Dự án · Loại căn · **Mã căn | Mã toà** (`[mã căn] | [mã toà]`) · **Tài chính | Giá**
+  (`[tài chính] | [giá]`, dùng formatPrice) · **Mục đích**.
+
+File: `add_apt_finance_purpose.sql` (migration mới), `index.html`, `js/app.js`
+
+---
+
 ## 2026-08-24 — Ghi chú gọn hơn + badge tiến độ/quan tâm đổi màu
 
 **1) Ghi chú (trang chi tiết):**

@@ -418,6 +418,17 @@
           <label>Giá căn (VNĐ)
             <input name="apt_price" type="number" min="0" step="1000000" />
           </label>
+          <label>Tài chính (VNĐ)
+            <input name="finance" type="number" min="0" step="1000000" placeholder="Tiền khách có sẵn" />
+          </label>
+          <label>Mục đích
+            <select name="purpose">
+              <option value="">— Chưa rõ —</option>
+              <option value="Ở">Ở</option>
+              <option value="Đầu tư">Đầu tư</option>
+              <option value="Cho tặng">Cho tặng</option>
+            </select>
+          </label>
           <label>Thời gian đăng ký
             <input name="registered_at" type="datetime-local" />
           </label>
