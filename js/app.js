@@ -1462,18 +1462,15 @@ let detailId = null; // khách đang xem ở trang chi tiết
 let editingHistoryAt = null; // mốc lịch sử đang sửa note (theo 'at'), null = không sửa
 let editingNoteAt = null; // ghi chú tự nhập đang sửa (theo 'at'), null = không sửa
 
-// Chuỗi HTML các "chấm" tiến độ: 7 chấm, tô tới level hiện tại. MỖI chấm mang màu
-// riêng của BẬC đó (đỏ đất bậc 1 → xanh lá bậc 7) để đồng bộ màu bậc với phần còn lại;
-// chấm chưa đạt → xám. Trạng thái kết thúc (không mua) → xám toàn bộ (phân biệt "đã ký").
+// Chuỗi HTML các "chấm" tiến độ: 7 chấm, tô tới bậc hiện tại. Tất cả các chấm đã tô
+// mang CÙNG 1 màu = màu của BẬC HIỆN TẠI (vd bậc 4 → 4 chấm cùng màu vàng xanh; bậc 7
+// → 7 chấm cùng màu xanh lá). Chấm chưa đạt bậc → xám. Cùng màu với vòng tiến độ ngoài card.
 function stageDotsHtml(stage) {
   const level = careLevel(stage);
-  const dropped = stage === CARE_STAGE_DROPPED;
+  const color = careColor(stage);
   let out = '';
   for (let i = 1; i <= 7; i++) {
-    const bg = i > level ? '#dcd9cf'
-      : dropped ? CARE_STAGE_COLORS[CARE_STAGE_DROPPED]
-      : (CARE_STAGE_COLORS[CARE_STAGES[i - 1]] || '#dcd9cf');
-    out += `<span class="dot" style="background:${bg}"></span>`;
+    out += `<span class="dot" style="background:${i <= level ? color : '#dcd9cf'}"></span>`;
   }
   return out;
 }

@@ -15,8 +15,8 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
   (giữ viền/nền), `#detail-notes` bỏ viền riêng.
 
 **2) Badge Tiến độ & Mức quan tâm** (giữ cấu trúc, chỉ đổi màu cho đồng bộ quy ước màu):
-- **Tiến độ:** 7 chấm nay tô **màu riêng theo từng bậc** (đỏ đất bậc 1 → xanh lá bậc 7) tới
-  bậc hiện tại, thay vì cùng 1 màu. Trạng thái kết thúc (không mua) → xám toàn bộ.
+- **Tiến độ:** các chấm đã tô mang **CÙNG 1 màu = màu của bậc hiện tại** (vd bậc 4 → 4 chấm
+  vàng xanh; bậc 7 → 7 chấm xanh lá) — cùng màu với vòng tiến độ ở list view. Chấm chưa đạt bậc → xám.
 - **Mức quan tâm:** chấm tô **màu theo mốc** nguội/ấm/nóng/rất nóng (`INTEREST_TIERS`) thay vì
   luôn dùng `--terracotta` — cùng màu với tag mức quan tâm ngoài card.
 
