@@ -1063,11 +1063,12 @@ input[name="apt_type_other"] { margin-top: 8px; }
 .na-when { display: block; font-size: 16px; font-weight: 600; margin-top: 5px; }
 .na-reason { display: block; font-size: 13px; color: #6b6b60; margin-top: 3px; white-space: pre-wrap; }
 
-/* Dialog đặt lịch gọi + dialog xác nhận gọi */
-dialog#schedule-modal, dialog#call-action-modal {
+/* Dialog đặt lịch gọi + xác nhận gọi + ghi chú cuộc gọi */
+dialog#schedule-modal, dialog#call-action-modal, dialog#call-note-modal {
   border: none; border-radius: var(--radius); padding: 0; width: min(430px, 92vw);
 }
-dialog#schedule-modal::backdrop, dialog#call-action-modal::backdrop { background: rgba(20, 30, 30, 0.5); }
+dialog#schedule-modal::backdrop, dialog#call-action-modal::backdrop, dialog#call-note-modal::backdrop { background: rgba(20, 30, 30, 0.5); }
+.callnote-input { display: block; width: 100%; margin: 4px 0 16px; resize: vertical; min-height: 76px; }
 .sched, .callact { padding: 22px; position: relative; }
 .sched h2, .callact h2 { font-size: 19px; margin-bottom: 6px; }
 .sched-label { font-size: 13px; font-weight: 600; color: #6b6b60; margin: 14px 0 7px; }

@@ -6,6 +6,24 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-24 — "Đã gọi" thêm bước ghi chú cuộc gọi
+
+Đổi luồng xác nhận gọi: bấm countdown badge → hộp thoại (Đã gọi / Hẹn lại / Huỷ lịch) →
+bấm **"Đã gọi"** giờ mở thêm **hộp thoại ghi chú cuộc gọi** (note không bắt buộc) trước khi ghi.
+
+- Thêm dialog `#call-note-modal` (tái dùng khung `.callact`): tiêu đề "Ghi chú cuộc gọi",
+  dòng phụ "[tên] · đã gọi hh:mm, dd.mm.yyyy", ô textarea + nút Lưu / Huỷ.
+- **Timestamp chốt NGAY lúc bấm "Đã gọi"** (`callDoneAt`), không phụ thuộc gõ note lâu hay nhanh.
+- **Lưu** → ghi 1 mốc MỚI vào care timeline, **giữ nguyên bậc hiện tại** (forceLog, vẫn tự đánh
+  số "lần N"), note = `đã gọi hh:mm, dd.mm.yyyy` + `. [ghi chú]` nếu có → rồi xoá lịch hẹn.
+  **Huỷ / ✕** → không ghi gì, giữ nguyên lịch hẹn.
+- Đổi định dạng ngày trong `callStamp` từ `dd/mm/yyyy` → **`dd.mm.yyyy`** và prefix
+  `Gọi lúc` → `đã gọi`. Tách `confirmCalled` cũ thành `openCallNote` + `saveCallNote`.
+
+File: `index.html`, `css/style.css`, `js/app.js`
+
+---
+
 ## 2026-08-24 — Form sửa khách: header kèm tên + tên section nổi bật hơn
 
 - **Header khi SỬA** đổi từ "Sửa thông tin khách" → "Sửa thông tin khách **[họ tên]**", lấy
