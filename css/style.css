@@ -1045,29 +1045,33 @@ input[name="apt_type_other"] { margin-top: 8px; }
 .detail-call { margin-bottom: 22px; }
 .detail-call .btn-small { cursor: pointer; }
 
-/* Thẻ "Hành động tiếp theo" (lịch gọi). Bấm cả thẻ → hộp thoại Đã gọi/Hẹn lại/Huỷ lịch. */
-.next-action {
-  display: block; width: 100%; text-align: left; cursor: pointer;
+/* Khu "next action" (thẻ nhắc gọi + danh sách việc) — THẺ NỔI + NHẤN MÀU:
+   nền trắng, shadow ẤM (ám nâu, hợp tông giấy) + thanh màu bên trái + tiêu đề đỏ son.
+   Cả 2 trạng thái dùng chung khung thẻ để khu này nổi bật, đồng nhất. */
+.next-action, .tasks-wrap {
+  display: block; width: 100%; text-align: left;
   font: inherit; color: var(--ink);
-  background: #fff; border: 1px solid var(--line); border-left: 3px solid var(--line);
-  border-radius: 12px; padding: 12px 14px;
-  transition: box-shadow .12s, transform .04s;
+  background: #fff; border: 1px solid #E4DFD3; border-left: 4px solid var(--seal);
+  border-radius: 14px; padding: 16px 18px;
+  box-shadow: 0 6px 18px rgba(120, 70, 40, .12);
 }
-.next-action:hover { box-shadow: 0 3px 12px rgba(26, 46, 41, .09); }
+/* Thẻ nhắc gọi bấm được → thêm cảm giác tương tác. */
+.next-action { cursor: pointer; transition: box-shadow .12s, transform .04s; }
+.next-action:hover { box-shadow: 0 9px 24px rgba(120, 70, 40, .17); }
 .next-action:active { transform: translateY(1px); }
-/* Viền trái đổi màu theo độ gấp: sắp gọi (vàng) · đến giờ (đỏ) · quên gọi (xám). */
+/* Viền trái thẻ NHẮC GỌI đổi màu theo độ gấp: sắp gọi (vàng) · đến giờ (đỏ) · quên gọi (xám).
+   Mặc định (chưa tới tầm badge / lịch xa) giữ đỏ son như danh sách việc. */
 .next-action.na-soon { border-left-color: #EBC85C; }
 .next-action.na-due { border-left-color: #E29A8E; }
 .next-action.na-missed { border-left-color: #D8D4C8; }
 
 .na-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.na-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: #8a8a7e; }
+.na-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--seal); }
 .na-when { display: block; font-size: 16px; font-weight: 600; margin-top: 5px; }
 .na-reason { display: block; font-size: 13px; color: #6b6b60; margin-top: 3px; white-space: pre-wrap; }
 
 /* "Việc tiếp theo" (khi chưa có lịch gọi) */
-.tasks-wrap { display: block; }
-.tasks-wrap .na-eyebrow { display: block; margin-bottom: 8px; }
+.tasks-wrap .na-eyebrow { display: block; margin-bottom: 9px; }
 .tasks-list { display: flex; flex-direction: column; gap: 7px; margin-bottom: 10px; }
 .tasks-empty { font-size: 13px; color: #9a9a8e; }
 .task-item { display: flex; align-items: flex-start; gap: 8px; font-size: 14px; color: var(--ink); }

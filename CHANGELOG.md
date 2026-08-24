@@ -6,6 +6,22 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-24 — Khu "next action" thành THẺ NỔI (elevated card)
+
+Làm nổi bật khu "Hành động tiếp theo" (thẻ nhắc gọi + danh sách việc) — chọn phương án C
+sau khi so mockup 3 kiểu: **thẻ trắng, shadow ẤM (ám nâu — hợp tông giấy) + thanh màu bên
+trái + tiêu đề đỏ son**. Áp cho CẢ 2 trạng thái để khu này đồng nhất, tách rõ khỏi khu "Ghi chú".
+
+- `.next-action` + `.tasks-wrap` dùng chung khung thẻ: nền trắng, `border-left: 4px` màu đỏ son
+  (mặc định), bo góc 14px, `box-shadow: 0 6px 18px rgba(120,70,40,.12)`, padding rộng hơn.
+- Thẻ nhắc gọi vẫn đổi màu thanh trái theo độ gấp (vàng/đỏ/xám) — đè lên đỏ son mặc định.
+- `.na-eyebrow` (HẸN GỌI / VIỆC TIẾP THEO) đổi từ xám → **đỏ son** (`--seal`).
+- Thuần CSS, không đụng HTML/JS.
+
+File: `css/style.css`
+
+---
+
 ## 2026-08-24 — "Việc tiếp theo": danh sách to-do khi chưa có lịch gọi
 
 Khu "Hành động tiếp theo" trang chi tiết (ngay dưới "Mức độ quan tâm") có 2 trạng thái:
