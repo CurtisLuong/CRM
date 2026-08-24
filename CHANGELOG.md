@@ -6,6 +6,26 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-24 — Form sửa khách: gom field vào 4 section có viền
+
+Tổ chức lại form thêm/sửa khách thành **4 fieldset có viền chữ nhật** (dùng đúng pattern
+`<fieldset><legend>` + `.form-grid` lồng như "Căn hộ quan tâm" cũ). Không đổi CSS/JS — chỉ
+sắp xếp lại markup; mọi `name`/`id` giữ nguyên nên logic (OCR, tính mệnh, toggle note/lý do,
+tài liệu) không đổi.
+
+- **1) Thông tin cá nhân:** SĐT, họ tên, giới tính, ngày sinh, mệnh, hôn nhân, công việc, thu
+  nhập, thường trú. Ô **Mệnh bỏ `span-2`** → chỉ còn 1 cột (trước chiếm cả 2 cột).
+- **2) Thông tin căn hộ:** dự án, loại căn, mã căn, mã toà, giá căn, **+ thời gian đăng ký**
+  (chuyển từ khối cá nhân sang đây). Đổi tên legend "Căn hộ quan tâm" → "Thông tin căn hộ".
+- **3) Chăm sóc:** sắp lại đúng thứ tự tiến độ chăm sóc → mức độ quan tâm → ghi chú → đánh giá
+  (kèm ô ghi chú đổi tiến độ & lý do không nên chăm ẩn/hiện như cũ).
+- **4) Tài liệu đính kèm:** đổi `div.form-docs` → `fieldset` (id `form-docs-section` giữ nguyên,
+  vẫn chỉ hiện khi SỬA khách). Bỏ tiêu đề `.proj-head` cũ (đã có `<legend>`).
+
+File: `index.html`
+
+---
+
 ## 2026-08-23 — Lịch gọi trang chi tiết → thẻ "Hành động tiếp theo"
 
 Đổi khu lịch gọi ở trang chi tiết từ 1 dòng chữ + 3 nút thành 1 **thẻ phân cấp** bấm được.

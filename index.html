@@ -313,54 +313,60 @@
     </div>
 
     <div class="form-grid">
-      <label>Số điện thoại *
-        <input name="phone" type="tel" required placeholder="09xxxxxxxx" />
-      </label>
-      <label>Họ tên *
-        <input name="full_name" type="text" required />
-      </label>
-      <label>Giới tính
-        <select name="gender">
-          <option value="">— Chưa rõ —</option>
-          <option value="nam">Nam</option>
-          <option value="nữ">Nữ</option>
-          <option value="khác">Khác</option>
-        </select>
-      </label>
-      <label>Ngày sinh (dương lịch)
-        <input name="dob" type="date" />
-      </label>
-      <label class="span-2">Mệnh (tự tính từ ngày sinh)
-        <div id="menh-preview" class="menh-preview">— nhập ngày sinh để tính mệnh —</div>
-      </label>
-      <label>Trạng thái hôn nhân
-        <select name="marital_status">
-          <option value="">— Chưa rõ —</option>
-          <option value="đã kết hôn">Đã kết hôn</option>
-          <option value="chưa kết hôn">Chưa kết hôn</option>
-        </select>
-      </label>
-      <label>Công việc
-        <select name="occupation">
-          <option value="">— Chưa rõ —</option>
-          <option value="Tự do">Tự do</option>
-          <option value="Công ty, DN">Công ty, DN</option>
-          <option value="Công, viên chức">Công, viên chức</option>
-          <option value="Công an, Bộ đội">Công an, Bộ đội</option>
-        </select>
-      </label>
-      <label>Thu nhập
-        <input name="income" type="text" placeholder="vd: ~25tr/tháng" />
-      </label>
-      <label>Thường trú
-        <input name="residence" type="text" placeholder="vd: Hải Phòng" />
-      </label>
-      <label class="span-2">Thời gian đăng ký
-        <input name="registered_at" type="datetime-local" />
-      </label>
 
+      <!-- 1) THÔNG TIN CÁ NHÂN -->
       <fieldset class="span-2">
-        <legend>Căn hộ quan tâm</legend>
+        <legend>Thông tin cá nhân</legend>
+        <div class="form-grid">
+          <label>Số điện thoại *
+            <input name="phone" type="tel" required placeholder="09xxxxxxxx" />
+          </label>
+          <label>Họ tên *
+            <input name="full_name" type="text" required />
+          </label>
+          <label>Giới tính
+            <select name="gender">
+              <option value="">— Chưa rõ —</option>
+              <option value="nam">Nam</option>
+              <option value="nữ">Nữ</option>
+              <option value="khác">Khác</option>
+            </select>
+          </label>
+          <label>Ngày sinh (dương lịch)
+            <input name="dob" type="date" />
+          </label>
+          <!-- Mệnh: 1 cột (không span-2) — chỉ hiển thị kết quả tự tính từ ngày sinh -->
+          <label>Mệnh (tự tính từ ngày sinh)
+            <div id="menh-preview" class="menh-preview">— nhập ngày sinh để tính mệnh —</div>
+          </label>
+          <label>Trạng thái hôn nhân
+            <select name="marital_status">
+              <option value="">— Chưa rõ —</option>
+              <option value="đã kết hôn">Đã kết hôn</option>
+              <option value="chưa kết hôn">Chưa kết hôn</option>
+            </select>
+          </label>
+          <label>Công việc
+            <select name="occupation">
+              <option value="">— Chưa rõ —</option>
+              <option value="Tự do">Tự do</option>
+              <option value="Công ty, DN">Công ty, DN</option>
+              <option value="Công, viên chức">Công, viên chức</option>
+              <option value="Công an, Bộ đội">Công an, Bộ đội</option>
+            </select>
+          </label>
+          <label>Thu nhập
+            <input name="income" type="text" placeholder="vd: ~25tr/tháng" />
+          </label>
+          <label>Thường trú
+            <input name="residence" type="text" placeholder="vd: Hải Phòng" />
+          </label>
+        </div>
+      </fieldset>
+
+      <!-- 2) THÔNG TIN CĂN HỘ -->
+      <fieldset class="span-2">
+        <legend>Thông tin căn hộ</legend>
         <div class="form-grid">
           <div class="span-2 proj-field">
             <div class="proj-head">
@@ -401,47 +407,56 @@
           <label>Giá căn (VNĐ)
             <input name="apt_price" type="number" min="0" step="1000000" />
           </label>
+          <label>Thời gian đăng ký
+            <input name="registered_at" type="datetime-local" />
+          </label>
         </div>
       </fieldset>
 
-      <label class="span-2">Ghi chú
-        <textarea name="new_note" rows="3" placeholder="Ghi chú lúc tạo khách (sẽ thành 1 mục ghi chú)..."></textarea>
-      </label>
-
-      <label class="span-2">Mức độ quan tâm: <span id="interest-output">50%</span>
-        <input name="interest_level" type="range" min="0" max="100" value="50" />
-      </label>
-
-      <label>Tiến độ chăm sóc
-        <select name="care_stage"></select>
-      </label>
-      <label class="span-2" id="care-stage-note-wrap" hidden>
-        <span id="care-stage-note-label">Ghi chú cho lần đổi tiến độ này</span>
-        <input name="care_stage_note" type="text" placeholder="vd: Khách không nghe máy, hẹn gọi lại chiều mai..." />
-      </label>
-      <label>Đánh giá
-        <select name="evaluation">
-          <option value="">— Chưa đánh giá —</option>
-          <option value="nên chăm">Nên chăm</option>
-          <option value="không nên chăm">Không nên chăm</option>
-        </select>
-      </label>
-      <label class="span-2" id="evaluation-reason-wrap" hidden>
-        Lý do không nên chăm
-        <input name="evaluation_reason" type="text" list="eval-reason-datalist" placeholder="Chọn hoặc gõ lý do khác" />
-        <datalist id="eval-reason-datalist"></datalist>
-      </label>
-
-      <!-- Tài liệu đính kèm (chỉ hiện khi SỬA khách — cần đã có khách để gắn file) -->
-      <div class="span-2 form-docs" id="form-docs-section" hidden>
-        <div class="proj-head"><span class="proj-title">Tài liệu đính kèm</span></div>
-        <div id="form-docs" class="docs-list"></div>
-        <div class="docs-add">
-          <button type="button" id="form-doc-add-btn" class="btn-small">＋ Thêm tài liệu</button>
-          <input type="file" id="form-doc-file" accept="image/*,application/pdf" hidden />
-          <span id="form-doc-status" class="ocr-status"></span>
+      <!-- 3) CHĂM SÓC -->
+      <fieldset class="span-2">
+        <legend>Chăm sóc</legend>
+        <div class="form-grid">
+          <label>Tiến độ chăm sóc
+            <select name="care_stage"></select>
+          </label>
+          <label class="span-2" id="care-stage-note-wrap" hidden>
+            <span id="care-stage-note-label">Ghi chú cho lần đổi tiến độ này</span>
+            <input name="care_stage_note" type="text" placeholder="vd: Khách không nghe máy, hẹn gọi lại chiều mai..." />
+          </label>
+          <label class="span-2">Mức độ quan tâm: <span id="interest-output">50%</span>
+            <input name="interest_level" type="range" min="0" max="100" value="50" />
+          </label>
+          <label class="span-2">Ghi chú
+            <textarea name="new_note" rows="3" placeholder="Ghi chú lúc tạo khách (sẽ thành 1 mục ghi chú)..."></textarea>
+          </label>
+          <label>Đánh giá
+            <select name="evaluation">
+              <option value="">— Chưa đánh giá —</option>
+              <option value="nên chăm">Nên chăm</option>
+              <option value="không nên chăm">Không nên chăm</option>
+            </select>
+          </label>
+          <label class="span-2" id="evaluation-reason-wrap" hidden>
+            Lý do không nên chăm
+            <input name="evaluation_reason" type="text" list="eval-reason-datalist" placeholder="Chọn hoặc gõ lý do khác" />
+            <datalist id="eval-reason-datalist"></datalist>
+          </label>
         </div>
-      </div>
+      </fieldset>
+
+      <!-- 4) TÀI LIỆU ĐÍNH KÈM (chỉ hiện khi SỬA khách — cần đã có khách để gắn file) -->
+      <fieldset class="span-2" id="form-docs-section" hidden>
+        <legend>Tài liệu đính kèm</legend>
+        <div class="form-docs">
+          <div id="form-docs" class="docs-list"></div>
+          <div class="docs-add">
+            <button type="button" id="form-doc-add-btn" class="btn-small">＋ Thêm tài liệu</button>
+            <input type="file" id="form-doc-file" accept="image/*,application/pdf" hidden />
+            <span id="form-doc-status" class="ocr-status"></span>
+          </div>
+        </div>
+      </fieldset>
     </div>
 
     <div class="form-actions">
