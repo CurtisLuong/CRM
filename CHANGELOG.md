@@ -6,6 +6,27 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-24 — Hộp thoại gọi PHẲNG + viền section đậm hơn
+
+**1) Gộp luồng xác nhận gọi thành 1 hộp thoại phẳng.** Bỏ hộp thoại ghi chú riêng
+(`#call-note-modal`) đã thêm hồi sáng. Nay `#call-action-modal` chứa luôn: thời gian hẹn +
+lý do + **ô ghi chú** (`#callact-note`) + 3 nút.
+- **Cả 3 nút đều ghi 1 mốc** vào care timeline (giữ nguyên bậc, forceLog, tự đánh số "lần N"),
+  note = `[hành động] hh:mm, dd.mm.yyyy` + `. [ghi chú]` nếu có. Prefix theo nút: `đã gọi` /
+  `hẹn lại` / `huỷ gọi`. Timestamp chốt lúc bấm nút.
+- **Đã gọi** & **Huỷ gọi**: ghi mốc + xoá lịch hẹn. **Hẹn lại**: ghi mốc (giữ lịch) rồi mở
+  scheduler chọn lịch mới. Đổi nhãn nút "Huỷ lịch" → **"Huỷ gọi"**. Gom `logCallAction(prefix,
+  clearSchedule)` dùng chung cho cả 3.
+- Giữ định dạng ngày `dd.mm.yyyy` (dấu chấm) như đã chốt trước đó — xem ghi chú bên dưới.
+
+**2) Viền các section trong form khách đậm hơn ~50%.** `fieldset` từ `1px solid #E4DFD3`
+(trùng viền field) → **`1.5px solid #C7BEA9`** (dày hơn + màu taupe đậm hơn) để phân biệt rõ
+khung section với khung từng field.
+
+File: `index.html`, `css/style.css`, `js/app.js`
+
+---
+
 ## 2026-08-24 — "Đã gọi" thêm bước ghi chú cuộc gọi
 
 Đổi luồng xác nhận gọi: bấm countdown badge → hộp thoại (Đã gọi / Hẹn lại / Huỷ lịch) →

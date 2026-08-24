@@ -527,30 +527,19 @@
 </dialog>
 
 <!-- ============ XÁC NHẬN GỌI (bấm vào tag nhắc gọi) ============ -->
+<!-- 1 hộp thoại phẳng: thời gian hẹn + ô ghi chú + 3 nút. Mỗi nút đều kèm ghi chú
+     (nếu có) → ghi 1 mốc vào care timeline: "[hành động] hh:mm, dd.mm.yyyy. [ghi chú]". -->
 <dialog id="call-action-modal">
   <div class="callact">
     <button type="button" id="callact-close" class="callact-x" aria-label="Đóng">✕</button>
     <h2 id="callact-title">Gọi khách</h2>
     <p id="callact-sub" class="callact-sub"></p>
     <p id="callact-reason" class="callact-reason" hidden></p>
+    <textarea id="callact-note" class="callnote-input" rows="3" placeholder="Ghi chú cuộc gọi (không bắt buộc)..."></textarea>
     <div class="callact-btns">
       <button type="button" id="callact-done" class="btn-primary">✓ Đã gọi</button>
       <button type="button" id="callact-resched" class="btn-secondary">Hẹn lại</button>
-      <button type="button" id="callact-cancel" class="btn-secondary btn-danger">Huỷ lịch</button>
-    </div>
-  </div>
-</dialog>
-
-<!-- ============ GHI CHÚ CUỘC GỌI (sau khi bấm "Đã gọi") ============ -->
-<dialog id="call-note-modal">
-  <div class="callact">
-    <button type="button" id="callnote-close" class="callact-x" aria-label="Đóng">✕</button>
-    <h2>Ghi chú cuộc gọi</h2>
-    <p id="callnote-sub" class="callact-sub"></p>
-    <textarea id="callnote-input" class="callnote-input" rows="3" placeholder="Kết quả / nội dung cuộc gọi (không bắt buộc)..."></textarea>
-    <div class="callact-btns">
-      <button type="button" id="callnote-save" class="btn-primary">✓ Lưu</button>
-      <button type="button" id="callnote-cancel" class="btn-secondary">Huỷ</button>
+      <button type="button" id="callact-cancel" class="btn-secondary btn-danger">Huỷ gọi</button>
     </div>
   </div>
 </dialog>

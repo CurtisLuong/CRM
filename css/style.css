@@ -960,7 +960,9 @@ dialog#form-modal::backdrop { background: rgba(20, 30, 30, 0.5); }
 }
 .form-grid label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #4a4a42; }
 .span-2 { grid-column: 1 / -1; }
-fieldset { border: 1px solid var(--line); border-radius: 8px; padding: 12px; }
+/* Viền section đậm hơn ~50% so với viền field (field: 1px #E4DFD3) → dày 1.5px +
+   màu taupe đậm hơn, đủ để mắt phân biệt khung section với khung của từng field. */
+fieldset { border: 1.5px solid #C7BEA9; border-radius: 8px; padding: 12px; }
 /* Tên section: giữ nguyên cỡ 12px nhưng đậm + màu mực đậm + chữ hoa giãn nhẹ →
    nổi hơn hẳn tên field (13px, #4a4a42, thường) để phân biệt rõ tiêu đề với field. */
 legend { font-size: 12px; color: var(--ink); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; padding: 0 6px; }
@@ -1063,11 +1065,11 @@ input[name="apt_type_other"] { margin-top: 8px; }
 .na-when { display: block; font-size: 16px; font-weight: 600; margin-top: 5px; }
 .na-reason { display: block; font-size: 13px; color: #6b6b60; margin-top: 3px; white-space: pre-wrap; }
 
-/* Dialog đặt lịch gọi + xác nhận gọi + ghi chú cuộc gọi */
-dialog#schedule-modal, dialog#call-action-modal, dialog#call-note-modal {
+/* Dialog đặt lịch gọi + xác nhận gọi */
+dialog#schedule-modal, dialog#call-action-modal {
   border: none; border-radius: var(--radius); padding: 0; width: min(430px, 92vw);
 }
-dialog#schedule-modal::backdrop, dialog#call-action-modal::backdrop, dialog#call-note-modal::backdrop { background: rgba(20, 30, 30, 0.5); }
+dialog#schedule-modal::backdrop, dialog#call-action-modal::backdrop { background: rgba(20, 30, 30, 0.5); }
 .callnote-input { display: block; width: 100%; margin: 4px 0 16px; resize: vertical; min-height: 76px; }
 .sched, .callact { padding: 22px; position: relative; }
 .sched h2, .callact h2 { font-size: 19px; margin-bottom: 6px; }

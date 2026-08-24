@@ -2432,58 +2432,51 @@ function openCallAction(id) {
   const reasonEl = $('#callact-reason');
   reasonEl.textContent = c.next_call_reason ? ('Lý do: ' + c.next_call_reason) : '';
   reasonEl.hidden = !c.next_call_reason;
+  $('#callact-note').value = ''; // ô ghi chú luôn trống mỗi lần mở
   $('#call-action-modal').showModal();
 }
-// Dấu thời gian cho ghi chú "đã gọi": "hh:mm, dd.mm.yyyy" (giờ địa phương).
+// Dấu thời gian cho ghi chú hành động gọi: "hh:mm, dd.mm.yyyy" (giờ địa phương).
 function callStamp(d) {
   const p = (n) => String(n).padStart(2, '0');
   return `${p(d.getHours())}:${p(d.getMinutes())}, ${p(d.getDate())}.${p(d.getMonth() + 1)}.${d.getFullYear()}`;
 }
-// Bấm "Đã gọi" → mở hộp thoại GHI CHÚ cuộc gọi (note KHÔNG bắt buộc). Chốt timestamp
-// NGAY lúc bấm (callDoneAt): dù người dùng gõ note bao lâu, giờ "đã gọi" vẫn tính lúc bấm.
-let callDoneAt = null;
-function openCallNote() {
-  callDoneAt = new Date();
-  const c = allCustomers.find((x) => x.id === callActionId);
-  $('#callnote-sub').textContent = (c ? (c.full_name || '(chưa tên)') + ' · ' : '') + 'đã gọi ' + callStamp(callDoneAt);
-  $('#callnote-input').value = '';
-  $('#call-action-modal').close();
-  $('#call-note-modal').showModal();
-  $('#callnote-input').focus();
-}
-// Lưu cuộc gọi: ghi 1 mốc liên hệ MỚI vào lịch sử chăm sóc — GIỮ NGUYÊN bậc hiện tại
-// (forceLog chỉ thêm mốc, vẫn tự đánh số "lần N" khi hiển thị). Note =
-// "đã gọi hh:mm, dd.mm.yyyy" + ". [ghi chú]" nếu có. Xong → xoá lịch hẹn. Khách chưa
-// đặt bậc (null) coi như bậc 1 'Chưa gọi được' để không tạo mốc trống.
-async function saveCallNote() {
+// Ghi 1 mốc liên hệ MỚI vào care timeline cho 1 HÀNH ĐỘNG (đã gọi / hẹn lại / huỷ gọi).
+// GIỮ NGUYÊN bậc hiện tại (forceLog chỉ thêm mốc, vẫn tự đánh số "lần N" khi hiển thị).
+// Note = "[hành động] hh:mm, dd.mm.yyyy" + ". [ghi chú]" nếu có (ô ghi chú chung, không bắt
+// buộc). Timestamp chốt NGAY lúc bấm. clearSchedule=true → xoá lịch hẹn (đã gọi / huỷ gọi);
+// false → giữ lịch để bước hẹn lại tiếp tục (scheduler sẽ ghi đè). Khách chưa đặt bậc (null)
+// coi như bậc 1 'Chưa gọi được' để không tạo mốc trống.
+async function logCallAction(prefix, clearSchedule) {
   const id = callActionId;
   const c = allCustomers.find((x) => x.id === id);
-  const extra = $('#callnote-input').value.trim();
-  const note = 'đã gọi ' + callStamp(callDoneAt || new Date()) + (extra ? '. ' + extra : '');
+  const extra = $('#callact-note').value.trim();
+  const note = prefix + ' ' + callStamp(new Date()) + (extra ? '. ' + extra : '');
   const stage = (c && c.care_stage) || 'Chưa gọi được';
-  await CRM.update(id, { care_stage: stage, next_call_at: null, next_call_end: null, next_call_reason: null },
-    { careStageNote: note, forceLog: true });
+  const payload = { care_stage: stage };
+  if (clearSchedule) { payload.next_call_at = null; payload.next_call_end = null; payload.next_call_reason = null; }
+  await CRM.update(id, payload, { careStageNote: note, forceLog: true });
   await refreshList();
-  $('#call-note-modal').close();
-  if (detailId && !$('#detail-screen').hidden) openDetail(detailId);
 }
-// "Huỷ lịch": chỉ xoá lịch hẹn (gỡ badge đếm ngược), KHÔNG ghi lịch sử — dùng khi
-// bỏ cuộc hẹn mà không thực sự gọi.
-async function cancelSchedule() {
-  await CRM.update(callActionId, { next_call_at: null, next_call_end: null, next_call_reason: null });
-  await refreshList();
+// 3 nút — mỗi nút ghi 1 mốc kèm ghi chú (nếu có), rồi: đã gọi/huỷ gọi → xoá lịch & đóng;
+// hẹn lại → giữ lịch, đóng rồi mở scheduler để chọn lịch mới.
+$('#callact-done')?.addEventListener('click', async () => {
+  await logCallAction('đã gọi', true);
   $('#call-action-modal').close();
   if (detailId && !$('#detail-screen').hidden) openDetail(detailId);
-}
-$('#callact-done')?.addEventListener('click', openCallNote);
-$('#callact-resched')?.addEventListener('click', () => { $('#call-action-modal').close(); openScheduler(callActionId); });
-$('#callact-cancel')?.addEventListener('click', cancelSchedule);
+});
+$('#callact-cancel')?.addEventListener('click', async () => {
+  await logCallAction('huỷ gọi', true);
+  $('#call-action-modal').close();
+  if (detailId && !$('#detail-screen').hidden) openDetail(detailId);
+});
+$('#callact-resched')?.addEventListener('click', async () => {
+  const id = callActionId;
+  await logCallAction('hẹn lại', false);
+  $('#call-action-modal').close();
+  openScheduler(id);
+});
 $('#callact-close')?.addEventListener('click', () => $('#call-action-modal').close());
-// Hộp thoại ghi chú cuộc gọi: Lưu → ghi mốc; Huỷ/✕ → bỏ (KHÔNG ghi, giữ nguyên lịch hẹn).
-$('#callnote-save')?.addEventListener('click', saveCallNote);
-$('#callnote-cancel')?.addEventListener('click', () => $('#call-note-modal').close());
-$('#callnote-close')?.addEventListener('click', () => $('#call-note-modal').close());
-// Bấm thẻ "Hành động tiếp theo" (trang chi tiết) → hộp thoại Đã gọi / Hẹn lại / Huỷ lịch.
+// Bấm thẻ "Hành động tiếp theo" (trang chi tiết) → hộp thoại Đã gọi / Hẹn lại / Huỷ gọi.
 $('#detail-next-action')?.addEventListener('click', () => { if (detailId) openCallAction(detailId); });
 
 // Cập nhật đếm ngược định kỳ: danh sách (card) + badge trang chi tiết.
