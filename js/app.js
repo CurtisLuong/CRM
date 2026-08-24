@@ -1550,6 +1550,7 @@ function openDetail(id) {
   if (!c) return;
   detailId = id;
   editingHistoryAt = null; // mở khách mới → thoát chế độ sửa note cũ
+  editingTaskAt = null;    // và thoát chế độ sửa/thêm việc
 
   $('#detail-name').textContent = c.full_name || '(chưa có tên)';
   renderDetailAvatar(c); // ảnh đại diện (hoặc chữ cái) bên trái tên
@@ -2337,9 +2338,9 @@ function callReminder(c) {
 // Hẹn lại / Huỷ lịch. Chưa có lịch → nút "＋ Đặt lịch gọi".
 function renderDetailCall(c) {
   const card = $('#detail-next-action');
-  const schedBtn = $('#detail-schedule-btn');
+  const tasksWrap = $('#detail-tasks-wrap');
   if (c.next_call_at) {
-    // Dòng "khi": "Ngày mai · 09:00–10:00" (ngăn cách ngày/giờ bằng ·).
+    // CÓ lịch → thẻ nhắc gọi là "next action". Dòng "khi": "Ngày mai · 09:00–10:00".
     const s = new Date(c.next_call_at);
     const e = c.next_call_end ? new Date(c.next_call_end) : s;
     const tt = fmtClock(s.getTime()) + (e.getTime() !== s.getTime() ? '–' + fmtClock(e.getTime()) : '');
@@ -2354,13 +2355,91 @@ function renderDetailCall(c) {
     else { badge.hidden = true; }
     card.className = 'next-action' + (rem ? ' na-' + rem.state : ''); // viền trái theo độ gấp
     card.hidden = false;
-    schedBtn.hidden = true;
+    tasksWrap.hidden = true;
   } else {
+    // CHƯA có lịch → "Việc tiếp theo": danh sách việc tự do.
     card.hidden = true;
-    schedBtn.hidden = false;
-    schedBtn.textContent = '＋ Đặt lịch gọi';
+    tasksWrap.hidden = false;
+    renderDetailTasks(c);
   }
 }
+
+// ---- "Việc tiếp theo": danh sách việc tự do (chỉ hiện khi khách chưa có lịch gọi) ----
+let editingTaskAt = null; // null = không sửa; 1 'at' = sửa việc đó; 'new' = đang thêm việc mới
+function taskEditorHtml(at, isNew) {
+  return `<div class="task-item task-editing">
+      <textarea class="task-edit-input" rows="2" placeholder="Nội dung việc cần làm..."></textarea>
+      <div class="task-edit-btns">
+        <button class="btn-small btn-primary" data-task-save="${at}">✓ Lưu</button>
+        <button class="btn-small btn-danger" data-task-del="${at}">${isNew ? 'Huỷ' : '🗑 Xoá việc'}</button>
+      </div>
+    </div>`;
+}
+function renderDetailTasks(c) {
+  const box = $('#detail-tasks');
+  const tasks = Array.isArray(c.next_tasks) ? c.next_tasks : [];
+  let html = '';
+  for (const t of tasks) {
+    const at = escapeHtml(t.at || '');
+    if (t.at === editingTaskAt) {
+      html += taskEditorHtml(at, false);
+    } else {
+      html += `<div class="task-item">
+          <span class="task-bullet">•</span>
+          <span class="task-text">${escapeHtml(t.text || '')}</span>
+          <button class="task-act" data-task-edit="${at}" title="Sửa việc">✎</button>
+        </div>`;
+    }
+  }
+  if (editingTaskAt === 'new') html += taskEditorHtml('new', true);
+  if (!html) html = '<div class="tasks-empty">Chưa có việc nào.</div>';
+  box.innerHTML = html;
+  // Đang sửa/thêm → nạp nội dung cũ (nếu sửa) + focus, con trỏ cuối chuỗi.
+  if (editingTaskAt) {
+    const ta = box.querySelector('.task-edit-input');
+    if (ta) {
+      const entry = tasks.find((t) => t.at === editingTaskAt);
+      ta.value = entry ? (entry.text || '') : '';
+      ta.focus();
+      ta.setSelectionRange(ta.value.length, ta.value.length);
+    }
+  }
+}
+function rerenderTasks() {
+  const c = allCustomers.find((x) => x.id === detailId);
+  if (c) renderDetailTasks(c);
+}
+async function afterTaskChange() {
+  await refreshList(); // cập nhật allCustomers
+  const c = allCustomers.find((x) => x.id === detailId);
+  if (c) renderDetailCall(c); // vẽ lại khu next action
+}
+async function saveTask(at, text) {
+  const t = (text || '').trim();
+  if (at === 'new') {
+    if (t && detailId) await CRM.addTask(detailId, t); // trống → không thêm
+  } else if (detailId) {
+    await CRM.updateTask(detailId, at, t || null); // trống = xoá
+  }
+  editingTaskAt = null;
+  await afterTaskChange();
+}
+async function deleteTaskEntry(at) {
+  if (at === 'new') { editingTaskAt = null; rerenderTasks(); return; } // "Huỷ" thêm mới
+  if (!confirm('Xoá việc này?')) return;
+  if (detailId) await CRM.deleteTask(detailId, at);
+  editingTaskAt = null;
+  await afterTaskChange();
+}
+$('#detail-task-add-btn')?.addEventListener('click', () => { editingTaskAt = 'new'; rerenderTasks(); });
+$('#detail-tasks')?.addEventListener('click', (e) => {
+  const ed = e.target.closest('[data-task-edit]');
+  if (ed) { editingTaskAt = ed.dataset.taskEdit; rerenderTasks(); return; }
+  const sv = e.target.closest('[data-task-save]');
+  if (sv) { const ta = $('#detail-tasks .task-edit-input'); saveTask(sv.dataset.taskSave, ta ? ta.value : ''); return; }
+  const dl = e.target.closest('[data-task-del]');
+  if (dl) { deleteTaskEntry(dl.dataset.taskDel); return; }
+});
 
 // ---- Dialog đặt lịch gọi (dùng chung) ----
 let schedulingId = null, schedTime = null, schedDate = null;

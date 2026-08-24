@@ -277,6 +277,53 @@ const CRM = {
     return record;
   },
 
+  // ---- VIỆC TIẾP THEO (next_tasks): mảng {text, at}, GIỮ thứ tự tạo (cũ → mới) ----
+  // Chỉ đồng bộ riêng cột next_tasks (partial update) → không đụng field khác.
+
+  /** Thêm 1 việc mới (xuống cuối danh sách). */
+  async addTask(id, text) {
+    const t = (text || '').trim();
+    const existing = (await localGetAll()).find((r) => r.id === id);
+    if (!existing || !t) return;
+    const now = new Date().toISOString();
+    const list = Array.isArray(existing.next_tasks) ? existing.next_tasks.slice() : [];
+    list.push({ text: t, at: now }); // việc mới xuống cuối
+    const record = { ...existing, next_tasks: list, updated_at: now };
+    await localPut(record);
+    await queueAdd({ type: 'update', recordId: id, payload: { next_tasks: list, updated_at: now }, ts: now });
+    this.flushQueue();
+    return record;
+  },
+
+  /** Sửa nội dung 1 việc (nhận diện theo `at`). Để trống = xoá việc đó. */
+  async updateTask(id, at, text) {
+    const existing = (await localGetAll()).find((r) => r.id === id);
+    if (!existing) return;
+    const t = (text || '').trim();
+    let list = Array.isArray(existing.next_tasks) ? existing.next_tasks.slice() : [];
+    const idx = list.findIndex((n) => n.at === at);
+    if (idx === -1) return;
+    if (!t) list.splice(idx, 1);
+    else list[idx] = { ...list[idx], text: t };
+    const record = { ...existing, next_tasks: list };
+    await localPut(record);
+    await queueAdd({ type: 'update', recordId: id, payload: { next_tasks: list }, ts: new Date().toISOString() });
+    this.flushQueue();
+    return record;
+  },
+
+  /** Xoá 1 việc (nhận diện theo `at`). */
+  async deleteTask(id, at) {
+    const existing = (await localGetAll()).find((r) => r.id === id);
+    if (!existing) return;
+    const list = (Array.isArray(existing.next_tasks) ? existing.next_tasks : []).filter((n) => n.at !== at);
+    const record = { ...existing, next_tasks: list };
+    await localPut(record);
+    await queueAdd({ type: 'update', recordId: id, payload: { next_tasks: list }, ts: new Date().toISOString() });
+    this.flushQueue();
+    return record;
+  },
+
   // ---- TÀI LIỆU (ảnh/PDF) — ONLINE-ONLY, KHÔNG qua hàng đợi offline ----
   // File nằm ở Supabase Storage (bucket customer-docs, riêng tư); metadata ở bảng
   // documents. Cần mạng để dùng (khác dữ liệu chữ của khách vốn offline-first).

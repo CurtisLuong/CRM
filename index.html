@@ -245,8 +245,16 @@
         <span id="detail-na-when" class="na-when"></span>
         <span id="detail-na-reason" class="na-reason" hidden></span>
       </button>
-      <!-- CHƯA có lịch → nút tạo lịch -->
-      <button id="detail-schedule-btn" class="btn-small">＋ Đặt lịch gọi</button>
+      <!-- CHƯA có lịch → "VIỆC TIẾP THEO": danh sách việc tự do (sửa/xoá từng việc) +
+           nút thêm việc / đặt lịch gọi. -->
+      <div id="detail-tasks-wrap" class="tasks-wrap" hidden>
+        <span class="na-eyebrow">Việc tiếp theo</span>
+        <div id="detail-tasks" class="tasks-list"></div>
+        <div class="tasks-actions">
+          <button type="button" id="detail-task-add-btn" class="btn-small">＋ Thêm việc</button>
+          <button type="button" id="detail-schedule-btn" class="btn-small">＋ Đặt lịch gọi</button>
+        </div>
+      </div>
     </div>
 
     <section class="detail-section">

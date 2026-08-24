@@ -6,6 +6,27 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-24 — "Việc tiếp theo": danh sách to-do khi chưa có lịch gọi
+
+Khu "Hành động tiếp theo" trang chi tiết (ngay dưới "Mức độ quan tâm") có 2 trạng thái:
+- **Có lịch gọi** → thẻ nhắc gọi như cũ (lịch chính là next action).
+- **Chưa có lịch** → **"VIỆC TIẾP THEO"**: danh sách việc tự do, mỗi việc có nút ✎ (mở
+  textarea sửa + nút Lưu / 🗑 Xoá việc), cùng nút "＋ Thêm việc" và "＋ Đặt lịch gọi".
+
+- **DB (cần chạy `add_next_tasks.sql`):** thêm cột `customers.next_tasks jsonb default '[]'`
+  — mảng `{text, at}`, giữ thứ tự tạo. Không cần GRANT thêm. **Chạy TRƯỚC khi deploy** kẻo
+  lưu việc báo "column does not exist" và kẹt hàng đợi.
+- **db.js:** thêm `addTask` / `updateTask` (trống = xoá) / `deleteTask` — đồng bộ riêng cột
+  `next_tasks`, offline-first như `notes_manual`.
+- **app.js:** `renderDetailCall` phân nhánh thẻ gọi vs `renderDetailTasks`; state sửa/thêm
+  qua `editingTaskAt` ('new' = đang thêm), reset khi mở khách khác. `#detail-schedule-btn`
+  chuyển vào trong khối việc (cạnh "Thêm việc").
+- **index.html/style.css:** khối `#detail-tasks-wrap` + style `.tasks-*` / `.task-*`.
+
+File: `add_next_tasks.sql` (migration mới), `js/db.js`, `js/app.js`, `index.html`, `css/style.css`
+
+---
+
 ## 2026-08-24 — Hộp thoại gọi PHẲNG + viền section đậm hơn
 
 **1) Gộp luồng xác nhận gọi thành 1 hộp thoại phẳng.** Bỏ hộp thoại ghi chú riêng

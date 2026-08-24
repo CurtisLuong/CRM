@@ -1065,6 +1065,21 @@ input[name="apt_type_other"] { margin-top: 8px; }
 .na-when { display: block; font-size: 16px; font-weight: 600; margin-top: 5px; }
 .na-reason { display: block; font-size: 13px; color: #6b6b60; margin-top: 3px; white-space: pre-wrap; }
 
+/* "Việc tiếp theo" (khi chưa có lịch gọi) */
+.tasks-wrap { display: block; }
+.tasks-wrap .na-eyebrow { display: block; margin-bottom: 8px; }
+.tasks-list { display: flex; flex-direction: column; gap: 7px; margin-bottom: 10px; }
+.tasks-empty { font-size: 13px; color: #9a9a8e; }
+.task-item { display: flex; align-items: flex-start; gap: 8px; font-size: 14px; color: var(--ink); }
+.task-bullet { color: var(--seal); line-height: 1.45; }
+.task-text { flex: 1; white-space: pre-wrap; line-height: 1.45; }
+.task-act { flex: 0 0 auto; border: none; background: transparent; cursor: pointer; color: #8a8a7e; font-size: 14px; padding: 0 4px; line-height: 1.4; }
+.task-act:hover { color: var(--ink); }
+.task-editing { flex-direction: column; align-items: stretch; }
+.task-edit-input { width: 100%; resize: vertical; min-height: 52px; font: inherit; font-size: 14px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; }
+.task-edit-btns { display: flex; gap: 8px; margin-top: 6px; }
+.tasks-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
 /* Dialog đặt lịch gọi + xác nhận gọi */
 dialog#schedule-modal, dialog#call-action-modal {
   border: none; border-radius: var(--radius); padding: 0; width: min(430px, 92vw);
