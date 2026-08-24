@@ -259,13 +259,16 @@
 
     <section class="detail-section">
       <h3>Ghi chú</h3>
-      <div id="detail-notes" class="detail-notes-box"></div>
-      <div id="detail-note-add" class="note-add">
-        <button id="detail-note-add-btn" class="btn-small" type="button">＋ Thêm ghi chú</button>
-        <div id="detail-note-add-form" class="cs-note-edit" hidden>
-          <input id="detail-note-add-input" class="cs-note-input" type="text" placeholder="Nhập ghi chú của bạn..." />
-          <button id="detail-note-add-save" class="btn-small" type="button">Lưu</button>
-          <button id="detail-note-add-cancel" class="btn-small" type="button">Huỷ</button>
+      <!-- Khung ghi chú: danh sách + nút "Thêm ghi chú" nằm CHUNG trong 1 khung. -->
+      <div class="notes-frame">
+        <div id="detail-notes" class="detail-notes-box"></div>
+        <div id="detail-note-add" class="note-add">
+          <button id="detail-note-add-btn" class="btn-small" type="button">＋ Thêm ghi chú</button>
+          <div id="detail-note-add-form" class="cs-note-edit" hidden>
+            <input id="detail-note-add-input" class="cs-note-input" type="text" placeholder="Nhập ghi chú của bạn..." />
+            <button id="detail-note-add-save" class="btn-small" type="button">Lưu</button>
+            <button id="detail-note-add-cancel" class="btn-small" type="button">Huỷ</button>
+          </div>
         </div>
       </div>
     </section>

@@ -738,11 +738,14 @@ input:focus, select:focus, textarea:focus {
   color: #6b6b60;
   margin-bottom: 8px;
 }
-.detail-notes-box {
+/* Khung ghi chú: bao cả danh sách + nút "Thêm ghi chú" trong 1 khung. */
+.notes-frame {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--panel);
   padding: 14px;
+}
+.detail-notes-box {
   font-size: 14px;
   color: #3a3a34;
   white-space: pre-wrap;
@@ -775,7 +778,10 @@ input:focus, select:focus, textarea:focus {
   font: inherit; font-size: 13px; color: #b06a4f; padding: 0 3px;
 }
 .note-act:hover { color: var(--teal); }
-.note-edit-input { min-width: 200px; flex: 1; }
+/* Chế độ sửa 1 ghi chú: input full-width + hàng nút Lưu/Huỷ/Xoá bên dưới. */
+.note-item.note-editing { flex-direction: column; align-items: stretch; gap: 6px; }
+.note-item.note-editing .note-edit-input { width: 100%; flex: none; min-width: 0; }
+.note-edit-btns { display: flex; gap: 6px; flex-wrap: wrap; }
 .note-add { margin-top: 10px; }
 /* Note tự động trên card: chữ thường (không bold), màu xanh rêu #486A51 để phân biệt. */
 .card-notes .note-auto { font-weight: 400; color: #486A51; }

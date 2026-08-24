@@ -1462,23 +1462,30 @@ let detailId = null; // khách đang xem ở trang chi tiết
 let editingHistoryAt = null; // mốc lịch sử đang sửa note (theo 'at'), null = không sửa
 let editingNoteAt = null; // ghi chú tự nhập đang sửa (theo 'at'), null = không sửa
 
-// Chuỗi HTML các "chấm" tiến độ: 7 chấm, tô màu bậc cho tới level hiện tại.
+// Chuỗi HTML các "chấm" tiến độ: 7 chấm, tô tới level hiện tại. MỖI chấm mang màu
+// riêng của BẬC đó (đỏ đất bậc 1 → xanh lá bậc 7) để đồng bộ màu bậc với phần còn lại;
+// chấm chưa đạt → xám. Trạng thái kết thúc (không mua) → xám toàn bộ (phân biệt "đã ký").
 function stageDotsHtml(stage) {
   const level = careLevel(stage);
-  const color = careColor(stage);
+  const dropped = stage === CARE_STAGE_DROPPED;
   let out = '';
   for (let i = 1; i <= 7; i++) {
-    out += `<span class="dot" style="background:${i <= level ? color : '#dcd9cf'}"></span>`;
+    const bg = i > level ? '#dcd9cf'
+      : dropped ? CARE_STAGE_COLORS[CARE_STAGE_DROPPED]
+      : (CARE_STAGE_COLORS[CARE_STAGES[i - 1]] || '#dcd9cf');
+    out += `<span class="dot" style="background:${bg}"></span>`;
   }
   return out;
 }
 
-// 5 chấm mức quan tâm (mỗi chấm ~20%).
+// 5 chấm mức quan tâm (mỗi chấm ~20%). Chấm đã tô mang MÀU THEO MỐC hiện tại
+// (nguội/ấm/nóng/rất nóng) — cùng quy ước màu với tag mức quan tâm ngoài card.
 function interestDotsHtml(interest) {
   const filled = Math.round((interest || 0) / 20);
+  const color = interestTier(interest).color;
   let out = '';
   for (let i = 1; i <= 5; i++) {
-    out += `<span class="dot" style="background:${i <= filled ? 'var(--terracotta)' : '#dcd9cf'}"></span>`;
+    out += `<span class="dot" style="background:${i <= filled ? color : '#dcd9cf'}"></span>`;
   }
   return out;
 }
@@ -1799,18 +1806,22 @@ function renderDetailNotes(c) {
   for (const n of manual) {
     const at = escapeHtml(n.at || '');
     if (n.at === editingNoteAt) {
+      // Chế độ sửa: textarea 1 dòng + 3 nút Lưu / Huỷ / Xoá.
       html += `<div class="note-item note-editing">
           <input class="cs-note-input note-edit-input" type="text" placeholder="Nội dung ghi chú..." />
-          <button class="btn-small" data-note-save="${at}">Lưu</button>
-          <button class="btn-small" data-note-cancel="${at}">Huỷ</button>
+          <div class="note-edit-btns">
+            <button class="btn-small btn-primary" data-note-save="${at}">Lưu</button>
+            <button class="btn-small" data-note-cancel="${at}">Huỷ</button>
+            <button class="btn-small btn-danger" data-note-del="${at}">Xoá</button>
+          </div>
         </div>`;
     } else {
+      // Dòng ghi chú: [nội dung] [thời gian] [✎ sửa]. Nút xoá chuyển vào trong chế độ sửa.
       html += `<div class="note-item">
           <span class="note-bullet">•</span>
           <span class="note-text">${escapeHtml(n.text || '')}</span>
           <span class="note-meta">${escapeHtml(formatLogTime(n.at))}</span>
           <button class="note-act" data-note-edit="${at}" title="Sửa">✎</button>
-          <button class="note-act" data-note-del="${at}" title="Xoá">✕</button>
         </div>`;
     }
   }
@@ -1853,6 +1864,7 @@ async function saveEditNote(at, text) {
 }
 async function deleteNoteEntry(at) {
   if (!confirm('Xoá ghi chú này?')) return;
+  editingNoteAt = null; // thoát chế độ sửa (nút Xoá nằm trong đó)
   if (detailId) { await CRM.deleteNote(detailId, at); await afterNoteChange(); }
 }
 

@@ -6,6 +6,24 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-24 — Ghi chú gọn hơn + badge tiến độ/quan tâm đổi màu
+
+**1) Ghi chú (trang chi tiết):**
+- Dòng ghi chú còn `[nội dung] [thời gian] [✎ sửa]` — **bỏ nút xoá ✕** ở dòng.
+- Bấm ✎ → chế độ sửa có **3 nút Lưu / Huỷ / Xoá** (nút xoá chuyển vào đây).
+- Nút **"＋ Thêm ghi chú" nằm trong khung** cùng danh sách: thêm wrapper `.notes-frame`
+  (giữ viền/nền), `#detail-notes` bỏ viền riêng.
+
+**2) Badge Tiến độ & Mức quan tâm** (giữ cấu trúc, chỉ đổi màu cho đồng bộ quy ước màu):
+- **Tiến độ:** 7 chấm nay tô **màu riêng theo từng bậc** (đỏ đất bậc 1 → xanh lá bậc 7) tới
+  bậc hiện tại, thay vì cùng 1 màu. Trạng thái kết thúc (không mua) → xám toàn bộ.
+- **Mức quan tâm:** chấm tô **màu theo mốc** nguội/ấm/nóng/rất nóng (`INTEREST_TIERS`) thay vì
+  luôn dùng `--terracotta` — cùng màu với tag mức quan tâm ngoài card.
+
+File: `index.html`, `css/style.css`, `js/app.js`
+
+---
+
 ## 2026-08-24 — Khu "next action" thành THẺ NỔI (elevated card)
 
 Làm nổi bật khu "Hành động tiếp theo" (thẻ nhắc gọi + danh sách việc) — chọn phương án C
