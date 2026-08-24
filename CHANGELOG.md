@@ -6,6 +6,16 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-24 — Chặn đặt lịch gọi vào thời gian đã qua
+
+`saveSchedule`: thêm kiểm tra lịch hẹn phải ở TƯƠNG LAI — lấy mốc **KẾT THÚC** khung giờ
+(`next_call_end`) so với hiện tại. `end <= now` → chặn, báo "Khung giờ này đã qua...".
+Vd bây giờ 9:30, hẹn 9–10h hôm nay → mốc 10:00 > 9:30 → hợp lệ; hẹn 20–21h khi đã 23:23 → chặn.
+
+File: `js/app.js`
+
+---
+
 ## 2026-08-24 — Căn hộ quan tâm: thêm Tài chính + Mục đích, gộp dòng hiển thị
 
 - **DB (cần chạy `add_apt_finance_purpose.sql`):** thêm 2 cột `finance numeric` (tiền khách có

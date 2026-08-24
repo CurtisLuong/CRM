@@ -2493,6 +2493,12 @@ async function saveSchedule() {
   } else { [sh, sm, eh, em] = CALL_SLOTS[schedTime]; }
   const start = new Date(base); start.setHours(sh, sm, 0, 0);
   const end = new Date(base); end.setHours(eh, em, 0, 0);
+  // Lịch hẹn phải ở TƯƠNG LAI: lấy mốc KẾT THÚC khung giờ so với hiện tại (vd bây giờ
+  // 9:30, hẹn 9–10h hôm nay → mốc 10:00 > 9:30 → hợp lệ). Khung đã kết thúc → chặn.
+  if (end.getTime() <= Date.now()) {
+    err.textContent = 'Khung giờ này đã qua. Chọn khung giờ kết thúc sau thời điểm hiện tại.';
+    return;
+  }
   const reason = $('#sched-reason').value.trim() || null; // optional
   await CRM.update(schedulingId, { next_call_at: start.toISOString(), next_call_end: end.toISOString(), next_call_reason: reason });
   await refreshList();
