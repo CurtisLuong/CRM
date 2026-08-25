@@ -6,6 +6,23 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-24 — Trang chi tiết: ẩn thuộc tính chưa xác định (null)
+
+Rule chung: thuộc tính có giá trị null/rỗng/`—` thì KHÔNG hiển thị ở trang chi tiết. Áp cho cả
+section Cá nhân + Căn hộ, và tái dùng được cho section mới.
+
+- Thêm helper `isBlank(v)` + `renderInlineKV(el, pairs)` (danh sách "nhãn: giá trị" inline,
+  ngăn ·) + `renderTableKV(el, groups)` (bảng KV; nhóm nhiều cặp gộp 1 dòng).
+- **Cá nhân:** bỏ các mục rỗng (Hôn nhân/Công việc/Thu nhập/... khi trống). Nguồn khách luôn
+  có (mặc định Quảng cáo) nên luôn hiện.
+- **Căn hộ:** dòng gộp ("Mã căn | Mã toà", "Hướng | Tầng", "Ngân sách | Giá") **ẩn từng phần
+  null** — nếu 1 vế trống thì nhãn tự rút gọn (vd chỉ "Mã căn: A-1203"); cả 2 trống → ẩn cả dòng.
+- Section mới sau này chỉ cần dựng `[nhãn, giá trị]` rồi gọi 2 helper trên là tự áp rule.
+
+File: `js/app.js`
+
+---
+
 ## 2026-08-24 — Đổi nhãn "Tài chính" → "Ngân sách"
 
 Chỉ đổi NHÃN HIỂN THỊ (tránh nhầm), bản chất vẫn là số tiền khách có sẵn — cột DB `finance`

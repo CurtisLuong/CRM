@@ -1566,6 +1566,36 @@ function capitalize(s) {
 
 const DASH = '—'; // giá trị trống
 
+// RULE hiển thị trang chi tiết: thuộc tính "chưa xác định" (null/rỗng/placeholder gạch)
+// thì KHÔNG hiển thị. Dùng chung cho mọi section (cá nhân, căn hộ, và section mới sau này).
+function isBlank(v) {
+  if (v == null) return true;
+  const s = String(v).trim();
+  return s === '' || s === DASH || s === '-' || s === '—';
+}
+// Render danh sách "Nhãn: giá trị" dạng inline (ngăn nhau bằng ·). Bỏ mục chưa xác định.
+// pairs: [[nhãn, giá trị], ...]
+function renderInlineKV(el, pairs) {
+  el.innerHTML = pairs
+    .filter(([, v]) => !isBlank(v))
+    .map(([k, v]) => `<span class="pi-item"><span class="pi-label">${k}:</span> ${escapeHtml(String(v))}</span>`)
+    .join(' <span class="pi-sep">·</span> ');
+}
+// Render bảng KV (mỗi NHÓM = 1 dòng). Nhóm có nhiều cặp → gộp "A | B" trên 1 dòng cho dễ so
+// sánh; cặp nào chưa xác định thì bỏ, cả nhóm rỗng thì bỏ luôn dòng đó.
+// groups: [ [[nhãn, giá trị], ...], ... ]
+function renderTableKV(el, groups) {
+  el.innerHTML = groups
+    .map((group) => {
+      const present = group.filter(([, v]) => !isBlank(v));
+      if (!present.length) return '';
+      const k = present.map(([l]) => l).join(' | ');
+      const v = present.map(([, val]) => val).join(' | ');
+      return `<tr><th>${k}</th><td>${escapeHtml(String(v))}</td></tr>`;
+    })
+    .join('');
+}
+
 function openDetail(id) {
   const c = allCustomers.find((x) => x.id === id);
   if (!c) return;
@@ -1612,35 +1642,30 @@ function openDetail(id) {
   $('#detail-note-add-btn').hidden = false;
   $('#detail-note-add-input').value = '';
 
-  // Căn hộ quan tâm
-  const aptRows = [
-    ['Dự án', (Array.isArray(c.projects) && c.projects.length) ? c.projects.join(', ') : DASH],
-    ['Loại căn', c.apt_type || DASH],
-    ['Diện tích', c.apt_area != null ? c.apt_area + ' m²' : DASH],
-    ['Hướng | Tầng', `${c.apt_direction || DASH} | ${c.apt_floor != null ? c.apt_floor : DASH}`],
-    // Gộp 2 giá trị/1 dòng cho dễ nắm bắt & so sánh.
-    ['Mã căn | Mã toà', `${c.apt_code || DASH} | ${c.building_code || DASH}`],
-    ['Ngân sách | Giá', `${formatPrice(c.finance)} | ${formatPrice(c.apt_price)}`],
-    ['Mục đích', c.purpose || DASH],
-  ];
-  $('#detail-apt').innerHTML = aptRows
-    .map(([k, v]) => `<tr><th>${k}</th><td>${escapeHtml(String(v))}</td></tr>`)
-    .join('');
+  // Căn hộ quan tâm — nhóm nhiều cặp gộp 1 dòng ("Mã căn | Mã toà"...) cho dễ so sánh.
+  // Cặp/dòng nào chưa xác định thì tự ẩn (xem renderTableKV).
+  renderTableKV($('#detail-apt'), [
+    [['Dự án', (Array.isArray(c.projects) && c.projects.length) ? c.projects.join(', ') : null]],
+    [['Loại căn', c.apt_type || null]],
+    [['Diện tích', c.apt_area != null ? c.apt_area + ' m²' : null]],
+    [['Hướng', c.apt_direction || null], ['Tầng', c.apt_floor != null ? c.apt_floor : null]],
+    [['Mã căn', c.apt_code || null], ['Mã toà', c.building_code || null]],
+    [['Ngân sách', formatPrice(c.finance)], ['Giá', formatPrice(c.apt_price)]],
+    [['Mục đích', c.purpose || null]],
+  ]);
 
-  // Thông tin cá nhân — mỗi mục "Nhãn: giá trị", ngăn nhau bằng dấu ·
-  const personal = [
-    ['Giới tính', c.gender ? capitalize(c.gender) : DASH],
-    ['Hôn nhân', c.marital_status ? capitalize(c.marital_status) : DASH],
-    ['Ngày sinh', formatDate(c.dob)],
-    ['Mệnh', c.menh ? c.menh.replace(/^Mệnh\s+/, '') : DASH],
-    ['Công việc', c.occupation || DASH],
-    ['Thu nhập', c.income || DASH],
-    ['Thường trú', c.residence || DASH],
+  // Thông tin cá nhân — mỗi mục "Nhãn: giá trị", ngăn nhau bằng dấu · (ẩn mục chưa xác định).
+  // Nguồn khách luôn có giá trị (mặc định Quảng cáo) nên luôn hiện.
+  renderInlineKV($('#detail-personal'), [
+    ['Giới tính', c.gender ? capitalize(c.gender) : null],
+    ['Hôn nhân', c.marital_status ? capitalize(c.marital_status) : null],
+    ['Ngày sinh', c.dob ? formatDate(c.dob) : null],
+    ['Mệnh', c.menh ? c.menh.replace(/^Mệnh\s+/, '') : null],
+    ['Công việc', c.occupation || null],
+    ['Thu nhập', c.income || null],
+    ['Thường trú', c.residence || null],
     ['Nguồn khách', sourceDisplay(c.source)],
-  ];
-  $('#detail-personal').innerHTML = personal
-    .map(([k, v]) => `<span class="pi-item"><span class="pi-label">${k}:</span> ${escapeHtml(String(v))}</span>`)
-    .join(' <span class="pi-sep">·</span> '); // có khoảng trắng để dòng tự ngắt khi hẹp
+  ]);
 
   renderCareHistory(c.care_stage_history, c.registered_at || c.created_at);
 
