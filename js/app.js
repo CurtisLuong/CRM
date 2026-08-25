@@ -956,6 +956,8 @@ function openForm(id) {
   f.apt_code.value = c.apt_code || '';
   f.building_code.value = c.building_code || '';
   f.apt_area.value = c.apt_area || '';
+  f.apt_direction.value = c.apt_direction || '';
+  f.apt_floor.value = c.apt_floor || '';
   f.apt_price.value = c.apt_price || '';
   f.finance.value = c.finance || '';
   f.purpose.value = c.purpose || '';
@@ -1079,6 +1081,8 @@ async function handleFormSubmit(e) {
     apt_code: f.apt_code.value.trim() || null,
     building_code: f.building_code.value.trim() || null,
     apt_area: f.apt_area.value ? Number(f.apt_area.value) : null,
+    apt_direction: f.apt_direction.value || null,
+    apt_floor: f.apt_floor.value ? Number(f.apt_floor.value) : null,
     apt_price: f.apt_price.value ? Number(f.apt_price.value) : null,
     finance: f.finance.value ? Number(f.finance.value) : null,
     purpose: f.purpose.value || null,
@@ -1613,6 +1617,7 @@ function openDetail(id) {
     ['Dự án', (Array.isArray(c.projects) && c.projects.length) ? c.projects.join(', ') : DASH],
     ['Loại căn', c.apt_type || DASH],
     ['Diện tích', c.apt_area != null ? c.apt_area + ' m²' : DASH],
+    ['Hướng | Tầng', `${c.apt_direction || DASH} | ${c.apt_floor != null ? c.apt_floor : DASH}`],
     // Gộp 2 giá trị/1 dòng cho dễ nắm bắt & so sánh.
     ['Mã căn | Mã toà', `${c.apt_code || DASH} | ${c.building_code || DASH}`],
     ['Tài chính | Giá', `${formatPrice(c.finance)} | ${formatPrice(c.apt_price)}`],

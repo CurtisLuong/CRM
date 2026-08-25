@@ -412,6 +412,22 @@
           <label>Diện tích (m²)
             <input name="apt_area" type="number" min="0" step="0.1" placeholder="vd: 68.5" />
           </label>
+          <label>Hướng căn
+            <select name="apt_direction">
+              <option value="">— Chưa rõ —</option>
+              <option value="Đông">Đông</option>
+              <option value="Tây">Tây</option>
+              <option value="Nam">Nam</option>
+              <option value="Bắc">Bắc</option>
+              <option value="Đông Bắc">Đông Bắc</option>
+              <option value="Đông Nam">Đông Nam</option>
+              <option value="Tây Bắc">Tây Bắc</option>
+              <option value="Tây Nam">Tây Nam</option>
+            </select>
+          </label>
+          <label>Tầng
+            <input name="apt_floor" type="number" min="1" step="1" placeholder="vd: 12" />
+          </label>
           <label>Mã căn
             <input name="apt_code" type="text" />
           </label>

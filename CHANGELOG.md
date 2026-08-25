@@ -6,6 +6,19 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-24 — Thêm "Hướng căn" + "Tầng" cho căn hộ quan tâm
+
+- **DB (cần chạy `add_apt_direction_floor.sql`):** thêm `customers.apt_direction text` +
+  `customers.apt_floor integer` (đều nullable). Không cần GRANT thêm. **Chạy TRƯỚC khi deploy.**
+- **Form:** "Hướng căn" (dropdown 8 hướng: Đông/Tây/Nam/Bắc/Đông Bắc/Đông Nam/Tây Bắc/Tây Nam)
+  + "Tầng" (số nguyên) — đặt **sau Diện tích, trước Mã căn**.
+- **Hiển thị chi tiết:** gộp 1 dòng "Hướng | Tầng: [hướng] | [tầng]" ngay sau Diện tích.
+- (Chưa đụng OCR — nếu muốn Gemini tự trích hướng/tầng từ ảnh thì báo mình thêm.)
+
+File: `add_apt_direction_floor.sql` (migration mới), `index.html`, `js/app.js`
+
+---
+
 ## 2026-08-24 — OCR (Gemini): tách diện tích ra field apt_area, bỏ khỏi note
 
 Bổ sung việc trích xuất "Diện tích" cho luồng nhập từ ảnh (worker Gemini). Ảnh lead thường ghi
