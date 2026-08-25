@@ -6,6 +6,22 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-24 — OCR (Gemini): tách diện tích ra field apt_area, bỏ khỏi note
+
+Bổ sung việc trích xuất "Diện tích" cho luồng nhập từ ảnh (worker Gemini). Ảnh lead thường ghi
+diện tích trong ngoặc ngay sau loại căn, vd "2N+, 2WC (68.6 m2)".
+
+- **worker/intake-worker.js:** thêm `apt_area` (NUMBER) vào `RESPONSE_SCHEMA`; thêm hướng dẫn
+  trích `apt_area` (lấy số trong ngoặc sau loại căn, bỏ "m2", không có → null); sửa mô tả `note`
+  để **KHÔNG** còn nhét diện tích vào note (đã có field riêng).
+- **js/app.js:** áp `d.apt_area` (nếu > 0) vào ô Diện tích khi nhận kết quả OCR.
+- ⚠️ Worker deploy RIÊNG (`wrangler deploy`) mới ăn prompt/schema mới. Cột `apt_area` cần đã
+  chạy `add_apt_area.sql` (xem mục trước).
+
+File: `worker/intake-worker.js`, `js/app.js`
+
+---
+
 ## 2026-08-24 — Thêm "Diện tích" cho căn hộ quan tâm
 
 - **DB (cần chạy `add_apt_area.sql`):** thêm cột `customers.apt_area numeric`, ràng buộc

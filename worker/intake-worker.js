@@ -44,6 +44,7 @@ const RESPONSE_SCHEMA = {
     income:         { type: 'STRING',  nullable: true },
     residence:      { type: 'STRING',  nullable: true },
     apt_type:       { type: 'STRING',  nullable: true },
+    apt_area:       { type: 'NUMBER',  nullable: true }, // diện tích m² (vd 68.6), thường trong ngoặc sau loại căn
     apt_code:       { type: 'STRING',  nullable: true },
     building_code:  { type: 'STRING',  nullable: true },
     apt_price:      { type: 'NUMBER',  nullable: true },
@@ -97,12 +98,15 @@ CÁC FIELD (đúng thuộc tính CRM):
 - apt_type: loại căn theo số phòng ngủ - WC. Ánh xạ về ĐÚNG 1 giá trị chuẩn nếu khớp:
   ['1N-1WC','1N+, 1WC','2N-2WC','2N+, 2WC','3N-2WC'] (vd khách ghi "3N, 2WC" → "3N-2WC").
   Không khớp giá trị chuẩn nào → giữ nguyên chữ khách ghi.
+- apt_area: DIỆN TÍCH căn hộ (m²), SỐ THỰC (vd 68.6). Thường ghi TRONG NGOẶC ngay SAU loại
+  căn, vd "2N+, 2WC (68.6 m2)" → apt_area = 68.6. Chỉ lấy phần SỐ (bỏ "m2"/"m²"). Không có → null.
 - apt_code: mã căn. building_code: mã toà.
 - apt_price: số tiền VND (vd "2 tỷ" → 2000000000).
 - projects: mảng tên dự án khách quan tâm (nếu có).
 - interest_level: số 0-100, chỉ khi ảnh thể hiện rõ; không rõ → null.
-- note: gom thông tin đáng lưu ý KHÁC chưa có field riêng (vd diện tích "76.3 m2",
-  nhu cầu, hoàn cảnh, câu khách nói) thành 1 câu ngắn; không có → null.
+- note: gom thông tin đáng lưu ý KHÁC chưa có field riêng (nhu cầu, hoàn cảnh, câu khách
+  nói) thành 1 câu ngắn; không có → null. LƯU Ý: DIỆN TÍCH đã có field apt_area riêng —
+  TUYỆT ĐỐI KHÔNG đưa diện tích vào note.
 - message_time / message_day / message_month / message_year: MỐC THỜI GIAN của tin nhắn
   khách gửi cho page, hiển thị trong cuộc trò chuyện (thường ở dòng header phía TRÊN tin
   nhắn, vd "22:51 22 THG 8" hoặc chỉ "07:28").

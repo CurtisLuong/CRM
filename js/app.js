@@ -1328,6 +1328,7 @@ function applyOcrToForm(d) {
     else { f.apt_type_select.value = '__other'; f.apt_type_other.value = raw; }
     toggleAptOther();
   }
+  if (d.apt_area != null && Number(d.apt_area) > 0) f.apt_area.value = Number(d.apt_area);
   if (d.apt_code) f.apt_code.value = String(d.apt_code).trim();
   if (d.building_code) f.building_code.value = String(d.building_code).trim();
   if (d.apt_price != null && !isNaN(Number(d.apt_price))) f.apt_price.value = Number(d.apt_price);
