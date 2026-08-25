@@ -738,6 +738,20 @@ input:focus, select:focus, textarea:focus {
   color: #6b6b60;
   margin-bottom: 8px;
 }
+
+/* Section "Nâng cao" (details gập) — dùng chung form + trang chi tiết. Mặc định collapsed. */
+.adv-section { border: 1.5px solid #C7BEA9; border-radius: 8px; background: transparent; }
+.adv-section > summary {
+  cursor: pointer; list-style: none; user-select: none;
+  padding: 11px 14px; display: flex; align-items: center; gap: 8px;
+  font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--ink);
+}
+.adv-section > summary::-webkit-details-marker { display: none; }
+.adv-section > summary::before { content: '▸'; color: #8a8a7e; font-size: 12px; transition: transform .15s; }
+.adv-section[open] > summary::before { transform: rotate(90deg); }
+.adv-hint { font-weight: 400; text-transform: none; letter-spacing: 0; color: #9a9a8e; font-size: 11px; }
+.adv-section > div { padding: 0 14px 14px; }        /* thân (không phải summary) */
+.adv-group-title { font-size: 12px; font-weight: 700; color: var(--seal); margin: 12px 0 6px; }
 /* Khung ghi chú: bao cả danh sách + nút "Thêm ghi chú" trong 1 khung. */
 .notes-frame {
   border: 1px solid var(--line);

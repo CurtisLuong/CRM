@@ -42,6 +42,56 @@ function isRepeatableStage(stage) {
   return CARE_STAGES_REPEATABLE.includes(stage);
 }
 
+// ---- Hồ sơ "NÂNG CAO" (cột JSONB customers.advanced) ----
+// 1 nguồn duy nhất cho cả: dựng form, lưu, và hiển thị chi tiết. Thêm/bớt field chỉ sửa ở đây.
+// type: 'textarea' | 'text' | 'number' (number = VNĐ, hiển thị qua formatPrice).
+const ADVANCED_GROUPS = [
+  { title: 'Bối cảnh sống', fields: [
+    { key: 'life_stage',           label: 'Giai đoạn cuộc sống',        type: 'textarea', ph: 'Độc thân, mới cưới, gia đình có con nhỏ, chăm cha mẹ, chuẩn bị về hưu...' },
+    { key: 'household',            label: 'Hộ gia đình',                type: 'textarea', ph: 'Số người ở cùng, số con/người phụ thuộc...' },
+    { key: 'housing_status',       label: 'Tình trạng nhà ở',           type: 'textarea', ph: 'Chưa có nhà, nhà thuê, nhà chật, thiếu chỗ đậu xe...' },
+    { key: 'pain_points',          label: 'Nỗi đau hiện tại',           type: 'textarea', ph: 'Tiền thuê tăng, nhà chật, đi làm xa, tiền rảnh muốn đầu tư...' },
+    { key: 'mobility',            label: 'Thói quen di chuyển',        type: 'textarea', ph: 'Ô tô, thời gian đi lại chấp nhận được...' },
+    { key: 'decision_influencers', label: 'Người ảnh hưởng quyết định', type: 'textarea', ph: 'Vợ/chồng, cha mẹ, anh chị em, người đồng sở hữu...' },
+    { key: 'timeline_events',      label: 'Mốc thời gian',              type: 'textarea', ph: 'Sinh nhật, hết hợp đồng thuê, chuyển việc, con vào năm học mới...' },
+  ] },
+  { title: 'Sở thích bất động sản', fields: [
+    { key: 'pref_area',    label: 'Khu vực quan tâm', type: 'text', ph: 'Trung tâm, Thuỷ Nguyên, gần khu công nghiệp...' },
+    { key: 'pref_product', label: 'Loại sản phẩm',    type: 'text', ph: 'Shophouse, liền kề, căn hộ cao tầng...' },
+    { key: 'must_have',    label: 'Tiêu chí bắt buộc', type: 'text', ph: 'Gần nơi làm, trường học, bệnh viện, pháp lý rõ, có thang máy...' },
+    { key: 'deal_breakers', label: 'Điều không chấp nhận', type: 'text', ph: 'Xa hơn X phút, giá vượt ngưỡng, tầng quá cao/thấp, gần KCN...' },
+  ] },
+  { title: 'Năng lực tài chính', fields: [
+    { key: 'asset_value',     label: 'Giá trị tài sản',                 type: 'number', ph: 'VNĐ' },
+    { key: 'capital',        label: 'Vốn',                             type: 'number', ph: 'VNĐ' },
+    { key: 'loan_need',      label: 'Nhu cầu vay',                     type: 'number', ph: 'VNĐ' },
+    { key: 'monthly_payment', label: 'Khoản trả hàng tháng chấp nhận', type: 'number', ph: 'VNĐ' },
+    { key: 'financial_barriers', label: 'Rào cản tài chính',           type: 'text',   ph: 'Nợ xấu, thiếu thanh khoản, thiếu vốn đối ứng, lo lãi suất, thu nhập khó chứng minh...' },
+  ] },
+];
+const ADVANCED_FIELDS = ADVANCED_GROUPS.flatMap((g) => g.fields);
+
+// Dựng input cho hồ sơ Nâng cao trong FORM (gọi 1 lần lúc init). name = "adv_<key>".
+function buildAdvancedForm() {
+  const body = $('#form-advanced-body');
+  if (!body) return;
+  body.innerHTML = ADVANCED_GROUPS.map((g) => `
+    <div class="adv-group">
+      <div class="adv-group-title">${escapeHtml(g.title)}</div>
+      <div class="form-grid">
+        ${g.fields.map((fld) => {
+          const n = 'adv_' + fld.key, ph = escapeHtml(fld.ph);
+          const input = fld.type === 'textarea'
+            ? `<textarea name="${n}" rows="2" placeholder="${ph}"></textarea>`
+            : fld.type === 'number'
+              ? `<input name="${n}" type="number" min="0" step="1000000" placeholder="${ph}" />`
+              : `<input name="${n}" type="text" placeholder="${ph}" />`;
+          return `<label class="span-2">${escapeHtml(fld.label)} ${input}</label>`;
+        }).join('')}
+      </div>
+    </div>`).join('');
+}
+
 // Ghi chú TỰ ĐỘNG: lấy note của mốc care stage MỚI NHẤT có ghi chú (quét lịch sử
 // từ mới → cũ, lấy note đầu tiên khác rỗng). Không có note nào → null. KHÔNG lưu
 // xuống DB — tính lại mỗi lần hiển thị nên luôn bám theo note care stage mới nhất.
@@ -961,6 +1011,13 @@ function openForm(id) {
   f.apt_price.value = c.apt_price || '';
   f.finance.value = c.finance || '';
   f.purpose.value = c.purpose || '';
+  // Hồ sơ Nâng cao: nạp từng field từ c.advanced; luôn GẬP LẠI mỗi lần mở form.
+  const adv = (c && c.advanced && typeof c.advanced === 'object') ? c.advanced : {};
+  for (const fld of ADVANCED_FIELDS) {
+    const el = f.elements['adv_' + fld.key];
+    if (el) el.value = adv[fld.key] != null ? adv[fld.key] : '';
+  }
+  const advDetails = $('#form-advanced'); if (advDetails) advDetails.open = false;
   f.interest_level.value = c.interest_level ?? 50;
   $('#interest-output').textContent = (c.interest_level ?? 50) + '%';
   f.care_stage.value = c.care_stage || '';
@@ -1091,6 +1148,16 @@ async function handleFormSubmit(e) {
     evaluation: f.evaluation.value || null,
     evaluation_reason: f.evaluation.value === 'không nên chăm' ? (f.evaluation_reason.value || null) : null,
   };
+  // Hồ sơ Nâng cao → gom thành 1 object (bỏ field trống). Number cho field số.
+  const advanced = {};
+  for (const fld of ADVANCED_FIELDS) {
+    const el = f.elements['adv_' + fld.key];
+    if (!el) continue;
+    const raw = String(el.value).trim();
+    if (raw === '') continue;
+    advanced[fld.key] = fld.type === 'number' ? Number(raw) : raw;
+  }
+  payload.advanced = advanced;
   // Chuẩn hoá SĐT (master key) NGAY: bỏ dấu cách, +84→0... để mọi so trùng & lưu đều
   // dùng 1 dạng chuẩn ("0123 456 789" và "0123456789" là một).
   payload.phone = normalizePhoneVN(payload.phone);
@@ -1596,6 +1663,33 @@ function renderTableKV(el, groups) {
     .join('');
 }
 
+// Hồ sơ Nâng cao ở trang chi tiết: gộp theo nhóm, mỗi field có giá trị = 1 dòng bảng.
+// Field số → hiển thị dạng VNĐ (formatPrice). Ẩn field trống; cả section rỗng → ẩn luôn.
+function formatAdvValue(fld, v) {
+  if (v == null || String(v).trim() === '') return null;
+  return fld.type === 'number' ? formatPrice(v) : String(v);
+}
+function renderDetailAdvanced(c) {
+  const adv = (c && c.advanced && typeof c.advanced === 'object') ? c.advanced : {};
+  let html = '', anyShown = false;
+  for (const g of ADVANCED_GROUPS) {
+    const rows = g.fields
+      .map((fld) => [fld.label, formatAdvValue(fld, adv[fld.key])])
+      .filter(([, v]) => !isBlank(v));
+    if (!rows.length) continue;
+    anyShown = true;
+    html += `<div class="adv-group-title">${escapeHtml(g.title)}</div>`
+      + `<table class="detail-table"><tbody>`
+      + rows.map(([k, v]) => `<tr><th>${escapeHtml(k)}</th><td>${escapeHtml(String(v))}</td></tr>`).join('')
+      + `</tbody></table>`;
+  }
+  const section = $('#detail-advanced-section');
+  if (!anyShown) { section.hidden = true; section.open = false; $('#detail-advanced').innerHTML = ''; return; }
+  $('#detail-advanced').innerHTML = html;
+  section.hidden = false;
+  section.open = false; // luôn gập lại mỗi lần mở khách
+}
+
 function openDetail(id) {
   const c = allCustomers.find((x) => x.id === id);
   if (!c) return;
@@ -1678,6 +1772,9 @@ function openDetail(id) {
     $('#detail-log-add-form').hidden = true;
     $('#detail-log-add-input').value = '';
   }
+
+  // Hồ sơ Nâng cao (gập; chỉ hiện field có giá trị; ẩn cả section nếu trống).
+  renderDetailAdvanced(c);
 
   // Tài liệu (online-only, CHỈ XEM) — nạp danh sách, mục thu gọn mặc định.
   loadDetailDocs(c.id);
@@ -3121,6 +3218,7 @@ function resetAdvancedFilters() {
 
 document.addEventListener('DOMContentLoaded', () => {
   populateSelects();
+  buildAdvancedForm(); // dựng input hồ sơ Nâng cao 1 lần
   boot();
   setTimeout(hideSplash, 8000); // lưới an toàn: nếu boot treo, vẫn bỏ splash sau 8s
 

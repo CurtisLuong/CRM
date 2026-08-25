@@ -6,6 +6,27 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-24 — Section "NÂNG CAO" (hồ sơ sâu, tuỳ chọn)
+
+Hồ sơ sâu cho khách khó tính / cam kết đủ sâu: 16 trường trong 3 nhóm (Bối cảnh sống · Sở thích
+BĐS · Năng lực tài chính). Section GẬP (details), mặc định collapsed, mở khi user chủ động bấm.
+
+- **DB (cần chạy `add_advanced.sql`):** thêm cột `customers.advanced jsonb default '{}'`. Lưu
+  trên bảng customers → tự offline-first (không bảng riêng, không khoá SĐT). **Chạy TRƯỚC deploy.**
+- **1 nguồn cấu hình duy nhất** `ADVANCED_GROUPS` (js/app.js) dùng cho cả dựng form, lưu, hiển
+  thị — thêm/bớt field chỉ sửa 1 chỗ.
+- **Form:** section "Nâng cao" (details gập) đặt DƯỚI Chăm sóc, TRÊN Tài liệu (add mới: Tài
+  liệu đang ẩn nên Nâng cao là mục cuối). Input do JS dựng (`buildAdvancedForm`), name `adv_<key>`.
+- **Chi tiết:** đặt DƯỚI Lịch sử chăm sóc, TRÊN Tài liệu. Gập mặc định; **chỉ hiện field có giá
+  trị**; cả section rỗng → ẩn luôn. Trường số (Giá trị tài sản/Vốn/Nhu cầu vay/Khoản trả tháng)
+  hiển thị dạng VNĐ (formatPrice) — coi là số tiền VNĐ.
+- Lưu: `handleFormSubmit` gom `payload.advanced = {key: value}` (bỏ trống). `create` spread
+  payload nên khách mới cũng lưu.
+
+File: `add_advanced.sql` (migration mới), `index.html`, `css/style.css`, `js/app.js`
+
+---
+
 ## 2026-08-24 — Trang chi tiết: ẩn thuộc tính chưa xác định (null)
 
 Rule chung: thuộc tính có giá trị null/rỗng/`—` thì KHÔNG hiển thị ở trang chi tiết. Áp cho cả
