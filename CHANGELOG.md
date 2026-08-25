@@ -6,15 +6,16 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
-## 2026-08-24 — Ghi chú tự động: giảm độ nổi bật
+## 2026-08-24 — Ghi chú tự động: giảm độ nổi bật + tinh chỉnh
 
 Note "Tự động" (từ care stage mới nhất) ở trang chi tiết trước đây quá nổi (hộp nền be +
 viền trái đỏ + nhãn pill đỏ chữ trắng). Nay chỉ phân biệt NHẸ với note tự nhập:
 - Bỏ hộp nền + viền trái đỏ.
-- Nhãn "TỰ ĐỘNG" → pill **viền mờ, chữ xám**, nền trong suốt (thay vì nền đỏ chữ trắng).
+- Thêm **bullet đỏ** (`• `) đầu dòng giống các note khác.
+- Nhãn "TỰ ĐỘNG" → pill **viền xám, nền trắng, chữ đỏ son** (`--seal`).
 - Chữ note tự động nhạt hơn (`#7a7a70`) so với note tự nhập.
 
-File: `css/style.css`
+File: `css/style.css`, `js/app.js`
 
 ---
 

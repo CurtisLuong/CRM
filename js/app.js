@@ -1801,6 +1801,7 @@ function renderDetailNotes(c) {
   // Note tự động lên đầu (mang tính cập nhật nhất), có nhãn "Tự động", không sửa được.
   if (autoNote) {
     html += `<div class="note-item note-auto">
+        <span class="note-bullet">•</span>
         <span class="note-badge">Tự động</span>
         <span class="note-text">${escapeHtml(autoNote)}</span>
       </div>`;

@@ -767,7 +767,7 @@ input:focus, select:focus, textarea:focus {
 .note-item.note-auto .note-text { color: #7a7a70; }
 .note-badge {
   font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .3px;
-  color: #9a9a90; background: transparent; border: 1px solid var(--line);
+  color: var(--seal); background: #fff; border: 1px solid var(--line);
   border-radius: 100px; padding: 1px 7px; flex-shrink: 0;
 }
 /* Nút sửa ✎ / xoá ✕ cạnh mỗi ghi chú tự nhập */
