@@ -762,9 +762,8 @@ input:focus, select:focus, textarea:focus {
 .note-bullet { color: var(--seal); font-weight: 700; }
 .note-text { flex: 1 1 60%; min-width: 0; word-break: break-word; }
 .note-meta { font-size: 11px; color: #9a9a90; white-space: nowrap; }
-/* Note tự động: chỉ phân biệt NHẸ với note tự nhập — nhãn "Tự động" mờ + chữ nhạt hơn,
-   KHÔNG dùng hộp nền/viền đỏ nổi bật nữa. */
-.note-item.note-auto .note-text { color: #7a7a70; }
+/* Note tự động: chỉ phân biệt NHẸ với note tự nhập bằng bullet đỏ + nhãn "Tự động".
+   Màu chữ nội dung dùng CHUNG với note thường (thừa kế màu của .detail-notes-box). */
 .note-badge {
   font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .3px;
   color: var(--seal); background: #fff; border: 1px solid var(--line);

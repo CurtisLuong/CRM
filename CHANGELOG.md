@@ -13,7 +13,8 @@ viền trái đỏ + nhãn pill đỏ chữ trắng). Nay chỉ phân biệt NH�
 - Bỏ hộp nền + viền trái đỏ.
 - Thêm **bullet đỏ** (`• `) đầu dòng giống các note khác.
 - Nhãn "TỰ ĐỘNG" → pill **viền xám, nền trắng, chữ đỏ son** (`--seal`).
-- Chữ note tự động nhạt hơn (`#7a7a70`) so với note tự nhập.
+- Màu chữ nội dung note tự động dùng **CHUNG** với note thường (`#3a3a34`) — chỉ phân biệt
+  bằng bullet đỏ + nhãn "TỰ ĐỘNG".
 
 File: `css/style.css`, `js/app.js`
 
