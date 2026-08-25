@@ -6,6 +6,18 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-24 — Thêm "Diện tích" cho căn hộ quan tâm
+
+- **DB (cần chạy `add_apt_area.sql`):** thêm cột `customers.apt_area numeric`, ràng buộc
+  `apt_area is null or apt_area > 0`. Không cần GRANT thêm. **Chạy TRƯỚC khi deploy.**
+- **Form:** ô "Diện tích (m²)" (`type=number`, `step=0.1`) đặt **sau Loại căn, trước Mã căn**.
+  Không bắt buộc, nhưng nếu nhập thì phải **dương** (validate ở `handleFormSubmit` + check DB).
+- **Hiển thị chi tiết:** thêm dòng "Diện tích: [x] m²" ngay sau Loại căn, trước "Mã căn | Mã toà".
+
+File: `add_apt_area.sql` (migration mới), `index.html`, `js/app.js`
+
+---
+
 ## 2026-08-24 — Ghi chú tự động: giảm độ nổi bật + tinh chỉnh
 
 Note "Tự động" (từ care stage mới nhất) ở trang chi tiết trước đây quá nổi (hộp nền be +

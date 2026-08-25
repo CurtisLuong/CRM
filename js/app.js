@@ -955,6 +955,7 @@ function openForm(id) {
   toggleAptOther();
   f.apt_code.value = c.apt_code || '';
   f.building_code.value = c.building_code || '';
+  f.apt_area.value = c.apt_area || '';
   f.apt_price.value = c.apt_price || '';
   f.finance.value = c.finance || '';
   f.purpose.value = c.purpose || '';
@@ -1077,6 +1078,7 @@ async function handleFormSubmit(e) {
     projects: selectedProjects,
     apt_code: f.apt_code.value.trim() || null,
     building_code: f.building_code.value.trim() || null,
+    apt_area: f.apt_area.value ? Number(f.apt_area.value) : null,
     apt_price: f.apt_price.value ? Number(f.apt_price.value) : null,
     finance: f.finance.value ? Number(f.finance.value) : null,
     purpose: f.purpose.value || null,
@@ -1088,6 +1090,11 @@ async function handleFormSubmit(e) {
   // Chuẩn hoá SĐT (master key) NGAY: bỏ dấu cách, +84→0... để mọi so trùng & lưu đều
   // dùng 1 dạng chuẩn ("0123 456 789" và "0123456789" là một).
   payload.phone = normalizePhoneVN(payload.phone);
+  // Diện tích không bắt buộc, nhưng nếu có nhập thì phải là số DƯƠNG.
+  if (f.apt_area.value !== '' && !(Number(f.apt_area.value) > 0)) {
+    alert('Diện tích phải là số dương (vd: 68.5).');
+    return;
+  }
   if (!payload.phone || !payload.full_name) {
     alert('Cần nhập ít nhất Số điện thoại và Họ tên.');
     return;
@@ -1604,6 +1611,7 @@ function openDetail(id) {
   const aptRows = [
     ['Dự án', (Array.isArray(c.projects) && c.projects.length) ? c.projects.join(', ') : DASH],
     ['Loại căn', c.apt_type || DASH],
+    ['Diện tích', c.apt_area != null ? c.apt_area + ' m²' : DASH],
     // Gộp 2 giá trị/1 dòng cho dễ nắm bắt & so sánh.
     ['Mã căn | Mã toà', `${c.apt_code || DASH} | ${c.building_code || DASH}`],
     ['Tài chính | Giá', `${formatPrice(c.finance)} | ${formatPrice(c.apt_price)}`],
