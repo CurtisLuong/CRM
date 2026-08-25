@@ -762,15 +762,13 @@ input:focus, select:focus, textarea:focus {
 .note-bullet { color: var(--seal); font-weight: 700; }
 .note-text { flex: 1 1 60%; min-width: 0; word-break: break-word; }
 .note-meta { font-size: 11px; color: #9a9a90; white-space: nowrap; }
-/* Note tự động: nổi bật hơn, có nhãn, không có nút sửa/xoá */
-.note-item.note-auto {
-  background: #f2efe8; border-radius: 8px; padding: 8px 10px; margin-bottom: 6px;
-  border-left: 3px solid var(--seal);
-}
-.note-item.note-auto + .note-item { border-top: none; }
+/* Note tự động: chỉ phân biệt NHẸ với note tự nhập — nhãn "Tự động" mờ + chữ nhạt hơn,
+   KHÔNG dùng hộp nền/viền đỏ nổi bật nữa. */
+.note-item.note-auto .note-text { color: #7a7a70; }
 .note-badge {
-  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .3px;
-  color: #fff; background: var(--seal); border-radius: 100px; padding: 2px 7px; flex-shrink: 0;
+  font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .3px;
+  color: #9a9a90; background: transparent; border: 1px solid var(--line);
+  border-radius: 100px; padding: 1px 7px; flex-shrink: 0;
 }
 /* Nút sửa ✎ / xoá ✕ cạnh mỗi ghi chú tự nhập */
 .note-act {

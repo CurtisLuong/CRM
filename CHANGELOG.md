@@ -6,6 +6,18 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-24 — Ghi chú tự động: giảm độ nổi bật
+
+Note "Tự động" (từ care stage mới nhất) ở trang chi tiết trước đây quá nổi (hộp nền be +
+viền trái đỏ + nhãn pill đỏ chữ trắng). Nay chỉ phân biệt NHẸ với note tự nhập:
+- Bỏ hộp nền + viền trái đỏ.
+- Nhãn "TỰ ĐỘNG" → pill **viền mờ, chữ xám**, nền trong suốt (thay vì nền đỏ chữ trắng).
+- Chữ note tự động nhạt hơn (`#7a7a70`) so với note tự nhập.
+
+File: `css/style.css`
+
+---
+
 ## 2026-08-24 — Chặn đặt lịch gọi vào thời gian đã qua
 
 `saveSchedule`: thêm kiểm tra lịch hẹn phải ở TƯƠNG LAI — lấy mốc **KẾT THÚC** khung giờ
