@@ -6,6 +6,17 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-24 — Đổi nhãn "Tài chính" → "Ngân sách"
+
+Chỉ đổi NHÃN HIỂN THỊ (tránh nhầm), bản chất vẫn là số tiền khách có sẵn — cột DB `finance`
+giữ nguyên, KHÔNG migration.
+- Form: label "Tài chính (VNĐ)" → "Ngân sách (VNĐ)".
+- Hiển thị chi tiết: dòng "Tài chính | Giá" → "Ngân sách | Giá".
+
+File: `index.html`, `js/app.js`
+
+---
+
 ## 2026-08-24 — Thêm "Hướng căn" + "Tầng" cho căn hộ quan tâm
 
 - **DB (cần chạy `add_apt_direction_floor.sql`):** thêm `customers.apt_direction text` +

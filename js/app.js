@@ -1620,7 +1620,7 @@ function openDetail(id) {
     ['Hướng | Tầng', `${c.apt_direction || DASH} | ${c.apt_floor != null ? c.apt_floor : DASH}`],
     // Gộp 2 giá trị/1 dòng cho dễ nắm bắt & so sánh.
     ['Mã căn | Mã toà', `${c.apt_code || DASH} | ${c.building_code || DASH}`],
-    ['Tài chính | Giá', `${formatPrice(c.finance)} | ${formatPrice(c.apt_price)}`],
+    ['Ngân sách | Giá', `${formatPrice(c.finance)} | ${formatPrice(c.apt_price)}`],
     ['Mục đích', c.purpose || DASH],
   ];
   $('#detail-apt').innerHTML = aptRows
