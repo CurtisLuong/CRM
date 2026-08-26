@@ -795,16 +795,16 @@ function renderList() {
     const tier = interestTier(c.interest_level ?? 0);
     card.style.setProperty('--tier', tier.color);
 
-    // Tiến độ chăm sóc → GỘP thành 1 pill: nền pill tô đầy theo % bậc (bậc/7), tên
-    // bậc bên trái + "x/7" bên phải. Riêng bậc 'Loại' → pill đỏ nhạt "✕ Loại"
-    // (không phải bước phễu nên không có thanh tiến độ).
+    // Tiến độ chăm sóc → GỘP thành 1 pill nền tint theo màu bậc: vòng tròn nhỏ (đĩa
+    // conic đầy theo % bậc) + "x/7" + tên bậc. Riêng bậc 'Loại' → pill đỏ nhạt
+    // "✕ Loại" (không phải bước phễu nên không có vòng tiến độ).
     const isDropped = c.care_stage === CARE_STAGE_DROPPED;
     const level = careLevel(c.care_stage);
     const ringPct = Math.round((level / 7) * 100);
     const ringColor = careColor(c.care_stage);
     const stagePill = isDropped
-      ? `<span class="stage-pill is-dropped">✕ ${escapeHtml(careLabel(c.care_stage))}</span>`
-      : `<span class="stage-pill" style="--ring:${ringColor}; --pct:${ringPct}" title="${escapeHtml(careLabel(c.care_stage))}"><span class="sp-name">${escapeHtml(careLabel(c.care_stage))}</span><span class="sp-frac">${level}/7</span></span>`;
+      ? `<span class="stage-pill is-dropped" title="${escapeHtml(careLabel(c.care_stage))}"><span class="sp-xmark">✕</span><span class="sp-name">${escapeHtml(careLabel(c.care_stage))}</span></span>`
+      : `<span class="stage-pill" style="--ring:${ringColor}; --pct:${ringPct}" title="${escapeHtml(careLabel(c.care_stage))}"><span class="sp-ring"></span><span class="sp-frac">${level}/7</span><span class="sp-name">${escapeHtml(careLabel(c.care_stage))}</span></span>`;
     // Timestamp phản ánh lần đổi Tiến độ chăm sóc cuối (không phải mọi lần sửa).
     // Dòng cũ chưa có care_stage_updated_at thì tạm dùng updated_at.
     const updated = timeAgo(c.care_stage_updated_at || c.updated_at);

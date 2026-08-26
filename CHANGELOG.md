@@ -27,18 +27,18 @@ File: `js/app.js` (màu bậc), `css/style.css`
 
 ---
 
-## 2026-08-26 — Gộp nhóm Tiến độ trên card thành 1 pill (kiểu thanh tiến độ)
+## 2026-08-26 — Gộp nhóm Tiến độ trên card thành 1 pill (nền tint + vòng tròn)
 
-Nhóm `[vòng tròn] [x/7] [tên bậc]` trên card (3 khối rời) gộp lại thành **1 pill**:
-nền pill được tô đầy theo % bậc (bậc/7) như một thanh tiến độ ngầm, tên bậc bên
-trái + "x/7" bên phải. Gọn gàng hơn, nhìn 1 phát biết đã đi tới đâu.
+Nhóm `[vòng tròn] [x/7] [tên bậc]` trên card (3 khối rời) gộp lại thành **1 pill**
+nền tint theo màu bậc: vòng tròn nhỏ (đĩa conic đầy dần theo % bậc) + "x/7" + tên
+bậc. Gọn gàng, vẫn giữ vòng tròn tiến độ quen thuộc.
 
-- Chữ trong pill để **font thường** (như các badge khác), màu = sắc đậm cùng tông
-  màu bậc (color-mix với đen) để đủ tương phản trên nền tint nhạt.
-- Bậc **Loại** → pill đỏ nhạt "✕ Loại" (không có thanh tiến độ).
+- Chữ trong pill **đậm** (theo chuẩn badge), màu = sắc đậm cùng tông màu bậc
+  (color-mix với đen) để đủ tương phản trên nền tint nhạt.
+- Bậc **Loại** → pill đỏ nhạt, dấu ✕ đỏ đặc + "Loại".
 - Bỏ các class cũ chỉ dùng cho card: `.mini-ring` / `.mini-frac` / `.stage-name` /
-  `.mini-x` → thay bằng `.stage-pill` (+ `.sp-name` / `.sp-frac` / `.is-dropped`).
-  Trang chi tiết vẫn dùng dãy 7 chấm + `.stage-x` như cũ (không đổi).
+  `.mini-x` → thay bằng `.stage-pill` (+ `.sp-ring` / `.sp-frac` / `.sp-name` /
+  `.sp-xmark`). Trang chi tiết vẫn dùng dãy 7 chấm + `.stage-x` như cũ (không đổi).
 
 File: `js/app.js`, `css/style.css`
 
