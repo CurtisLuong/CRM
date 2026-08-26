@@ -6,6 +6,30 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-26 — Care timeline chuyển sang cấu trúc PHÂN CẤP (bậc → ghi chú)
+
+Trang chi tiết: timeline lịch sử chăm sóc đổi từ danh sách phẳng (mỗi mốc 1 khối,
+kể cả "lần N" cùng bậc) sang **phân cấp**:
+
+- **BẬC (care stage) = node cấp cao**: chấm màu + khối tên bậc + timestamp lúc vào bậc.
+  Các mốc CÙNG bậc liên tiếp nay gộp chung 1 node (thay vì mỗi mốc 1 khối "lần N").
+- **Mỗi cập nhật = 1 GHI CHÚ con** (chấm nhỏ, thụt vào, có **timestamp riêng** + nút
+  sửa ✎). Note đi kèm lúc đổi bậc là ghi chú đầu tiên của bậc; các lần thêm sau xếp kế.
+- **Khoảng thời gian** hiển thị giữa 2 bậc (trên đường nối dọc).
+- **"＋ Thêm ghi chú"** nay nằm ngay trong node bậc HIỆN TẠI (bỏ khối "Ghi thêm lần"
+  riêng bên dưới) và áp dụng cho MỌI bậc hiện tại — không còn giới hạn ở bậc "lặp được".
+  *(Chỉ thêm được vào bậc hiện tại: note tạo mốc "bây giờ" nên thuộc bậc đang ở, không
+  chèn ngược vào bậc đã qua.)*
+
+Không đổi schema/dữ liệu — vẫn dùng `care_stage_history` như cũ, chỉ đổi cách nhóm khi
+render + cách thêm note (dùng lại `CRM.addCareLog`). Bỏ các class CSS cũ (`.cs-entry`,
+`.cs-meta`, `.cs-attempt`, `.cs-gap` cũ...) → thay bằng `.cs-node` / `.cs-stage-head` /
+`.cs-notes` / `.cs-note` / `.cs-note-addbtn`. Gỡ khối `#detail-log-add` khỏi HTML.
+
+File: `js/app.js`, `css/style.css`, `index.html`
+
+---
+
 ## 2026-08-26 — Chuẩn hoá thiết kế badge trên card khách hàng
 
 Thống nhất kiểu chữ + kiểu pill cho mọi badge trên card. Từ nay chỉ có **3 mức độ

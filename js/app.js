@@ -1598,6 +1598,7 @@ async function pasteOcrFromClipboard() {
 
 let detailId = null; // khách đang xem ở trang chi tiết
 let editingHistoryAt = null; // mốc lịch sử đang sửa note (theo 'at'), null = không sửa
+let addingCareNote = false;  // đang mở ô "+ Thêm ghi chú" dưới bậc hiện tại?
 let editingNoteAt = null; // ghi chú tự nhập đang sửa (theo 'at'), null = không sửa
 
 // Chuỗi HTML các "chấm" tiến độ: 7 chấm, tô tới bậc hiện tại. Tất cả các chấm đã tô
@@ -1751,6 +1752,7 @@ function openDetail(id) {
   if (!c) return;
   detailId = id;
   editingHistoryAt = null; // mở khách mới → thoát chế độ sửa note cũ
+  addingCareNote = false;  // thoát chế độ thêm ghi chú
   editingTaskAt = null;    // và thoát chế độ sửa/thêm việc
 
   $('#detail-name').textContent = c.full_name || '(chưa có tên)';
@@ -1830,17 +1832,9 @@ function openDetail(id) {
     ['Nguồn khách', sourceDisplay(c.source)],
   ]);
 
+  // Timeline lịch sử: nút "+ Thêm ghi chú" nay nằm ngay trong bậc hiện tại (xem
+  // renderCareHistory) nên không còn khối riêng bên dưới.
   renderCareHistory(c.care_stage_history, c.registered_at || c.created_at);
-
-  // Nút "ghi thêm lần" chỉ hiện khi bậc hiện tại là bậc lặp được.
-  const logAdd = $('#detail-log-add');
-  if (logAdd) {
-    logAdd.hidden = !isRepeatableStage(c.care_stage);
-    $('#detail-log-add-btn').textContent = `＋ Ghi thêm lần "${c.care_stage}"`;
-    $('#detail-log-add-btn').hidden = false;
-    $('#detail-log-add-form').hidden = true;
-    $('#detail-log-add-input').value = '';
-  }
 
   // Hồ sơ Nâng cao (gập; chỉ hiện field có giá trị; ẩn cả section nếu trống).
   renderDetailAdvanced(c);
@@ -1852,81 +1846,108 @@ function openDetail(id) {
   window.scrollTo(0, 0);
 }
 
-// Timeline lịch sử chăm sóc: mỗi mốc là 1 khối ô (tô màu theo bậc), giữa các
-// mốc hiện khoảng thời gian; timestamp + note để mờ hơn. Cũ ở trên, mới ở dưới.
-// LUÔN bắt đầu bằng mốc "Bắt đầu đăng ký" (kèm thời gian đăng ký). Note của mốc
-// chăm sóc sửa được tại chỗ; riêng mốc "Bắt đầu đăng ký" không sửa note.
+// Timeline lịch sử chăm sóc — CẤU TRÚC PHÂN CẤP:
+//   • BẬC (care stage) = node cấp cao nhất: chấm + khối tên bậc + timestamp lúc vào bậc.
+//   • Mỗi CẬP NHẬT trong bậc = 1 GHI CHÚ con (có timestamp riêng). Note đi kèm lúc đổi
+//     bậc là ghi chú đầu tiên của bậc; các lần "+ Thêm ghi chú" sau là ghi chú kế tiếp.
+//   • Giữa 2 bậc hiện KHOẢNG THỜI GIAN. Nút "+ Thêm ghi chú" chỉ ở BẬC HIỆN TẠI (mới
+//     nhất) — thêm note tạo mốc "bây giờ" nên chỉ thuộc bậc đang ở.
+// Bắt đầu bằng node tổng hợp "Bắt đầu đăng ký" (kèm thời gian đăng ký, không có ghi chú).
 function renderCareHistory(history, registeredAt) {
   const section = $('#detail-history-section');
   const box = $('#detail-history');
-  const list = [];
-  if (registeredAt) list.push({ synthetic: true, stage: 'Bắt đầu đăng ký', at: registeredAt });
-  if (Array.isArray(history)) list.push(...history);
-  if (list.length === 0) { section.hidden = true; box.innerHTML = ''; return; }
+  const flat = [];
+  if (registeredAt) flat.push({ synthetic: true, stage: 'Bắt đầu đăng ký', at: registeredAt });
+  if (Array.isArray(history)) flat.push(...history);
+  if (flat.length === 0) { section.hidden = true; box.innerHTML = ''; return; }
   section.hidden = false;
-  list.sort((a, b) => (a.at || '').localeCompare(b.at || '')); // theo thời gian tăng dần
+  flat.sort((a, b) => (a.at || '').localeCompare(b.at || '')); // thời gian tăng dần
 
-  // Đánh số "lần N" khi HIỂN THỊ (không lưu xuống DB): bậc chỉ có 1 mốc → không
-  // hiện số; từ 2 mốc trở lên → tự đánh lần 1, lần 2... theo thứ tự thời gian.
-  // Tính lại mỗi lần render nên thêm/xoá mốc thì số luôn tự đúng.
-  const stageCounts = {};
-  list.forEach((e) => { if (!e.synthetic) stageCounts[e.stage] = (stageCounts[e.stage] || 0) + 1; });
-  const stageSeen = {};
+  // GOM thành node theo bậc: đổi bậc → node mới; cùng bậc liên tiếp → gộp làm ghi chú.
+  const nodes = [];
+  for (const e of flat) {
+    const prev = nodes[nodes.length - 1];
+    if (prev && !prev.synthetic && !e.synthetic && prev.stage === e.stage) {
+      prev.entries.push(e);
+    } else {
+      nodes.push({ synthetic: !!e.synthetic, stage: e.stage, at: e.at, entries: [e] });
+    }
+  }
 
   let html = '';
-  list.forEach((entry, i) => {
-    if (i > 0) {
-      const gap = new Date(entry.at) - new Date(list[i - 1].at);
-      html += `<div class="cs-gap">${escapeHtml(formatDuration(gap))}</div>`;
+  nodes.forEach((node, ni) => {
+    const isLast = ni === nodes.length - 1;
+    const color = node.synthetic ? '#1A2E29' : careColor(node.stage);
+
+    // Ghi chú con: mỗi entry CÓ note → 1 dòng ghi chú (kèm timestamp + nút sửa ✎).
+    let notesItems = '';
+    if (!node.synthetic) {
+      node.entries.forEach((entry) => {
+        const at = escapeHtml(entry.at || '');
+        if (entry.at === editingHistoryAt) {
+          notesItems += `
+            <div class="cs-note cs-note-editing">
+              <input class="cs-note-input" type="text" placeholder="Ghi chú..." />
+              <button class="btn-small" data-hist-save="${at}">Lưu</button>
+              <button class="btn-small" data-hist-cancel="${at}">Huỷ</button>
+            </div>`;
+        } else if (entry.note) {
+          notesItems += `
+            <div class="cs-note">
+              <span class="cs-note-body">${escapeHtml(entry.note)}</span>
+              <span class="cs-note-time">${escapeHtml(formatLogTime(entry.at))}</span>
+              <button class="cs-note-btn" data-hist-edit="${at}" title="Sửa ghi chú">✎</button>
+            </div>`;
+        }
+      });
     }
-    const color = entry.synthetic ? '#1A2E29' : careColor(entry.stage);
-    const at = escapeHtml(entry.at || '');
-    const editing = !entry.synthetic && entry.at === editingHistoryAt;
-    let noteHtml;
-    if (entry.synthetic) {
-      noteHtml = ''; // mốc đăng ký: không có note
-    } else if (editing) {
-      // Giá trị input sẽ set bằng JS sau khi render (tránh lỗi escape dấu ").
-      noteHtml = `
-        <div class="cs-note-edit">
-          <input class="cs-note-input" type="text" placeholder="Ghi chú cho mốc này..." />
-          <button class="btn-small" data-hist-save="${at}">Lưu</button>
-          <button class="btn-small" data-hist-cancel="${at}">Huỷ</button>
-        </div>`;
-    } else if (entry.note) {
-      noteHtml = `<span class="cs-sep"> · </span><span class="cs-note-text">${escapeHtml(entry.note)}</span>
-        <button class="cs-note-btn" data-hist-edit="${at}" title="Sửa ghi chú">✎</button>`;
-    } else {
-      noteHtml = `<span class="cs-sep"> · </span><button class="cs-note-add" data-hist-edit="${at}">+ ghi chú</button>`;
+    // Nút "+ Thêm ghi chú" chỉ ở bậc HIỆN TẠI (node cuối, không phải node đăng ký).
+    if (!node.synthetic && isLast) {
+      notesItems += addingCareNote
+        ? `
+          <div class="cs-note cs-note-editing">
+            <input class="cs-note-input cs-addnote-input" type="text" placeholder="Nhập ghi chú mới cho bậc này..." />
+            <button class="btn-small" data-note-add-save>Lưu</button>
+            <button class="btn-small" data-note-add-cancel>Huỷ</button>
+          </div>`
+        : `<button class="cs-note-addbtn" data-note-add>＋ Thêm ghi chú</button>`;
     }
-    // Tên bậc + "lần N" (nếu bậc đó có từ 2 mốc trở lên).
-    let stageInner = escapeHtml(entry.stage);
-    if (!entry.synthetic) {
-      stageSeen[entry.stage] = (stageSeen[entry.stage] || 0) + 1;
-      if (stageCounts[entry.stage] > 1) {
-        stageInner += ` <span class="cs-attempt">lần ${stageSeen[entry.stage]}</span>`;
-      }
+    const notesBlock = notesItems ? `<div class="cs-notes">${notesItems}</div>` : '';
+
+    // Khoảng thời gian tới bậc kế tiếp (đặt cuối node, nằm trên đường nối).
+    let gapHtml = '';
+    if (!isLast) {
+      const gap = new Date(nodes[ni + 1].at) - new Date(node.at);
+      gapHtml = `<div class="cs-gap">${escapeHtml(formatDuration(gap))}</div>`;
     }
+
     html += `
-      <div class="cs-entry${entry.synthetic ? ' cs-start' : ''}" style="--ring:${color}">
-        <span class="cs-stage">${stageInner}</span>
-        <div class="cs-meta">
-          <span class="cs-time">${escapeHtml(formatLogTime(entry.at))}</span>
-          <span class="cs-note-wrap">${noteHtml}</span>
+      <div class="cs-node${node.synthetic ? ' cs-node-start' : ''}${isLast ? ' cs-node-last' : ''}" style="--ring:${color}">
+        <span class="cs-stage-dot"></span>
+        <div class="cs-stage-head">
+          <span class="cs-stage">${escapeHtml(node.stage)}</span>
+          <span class="cs-stage-time">${escapeHtml(formatLogTime(node.at))}</span>
         </div>
+        ${notesBlock}
+        ${gapHtml}
       </div>`;
   });
   box.innerHTML = html;
 
-  // Đang sửa 1 mốc → nạp note cũ vào input + focus (đặt con trỏ cuối chuỗi).
+  // Đang SỬA 1 ghi chú → nạp note cũ vào ô + focus (con trỏ cuối chuỗi).
   if (editingHistoryAt) {
-    const inp = box.querySelector('.cs-note-input');
-    const entry = list.find((e) => !e.synthetic && e.at === editingHistoryAt);
+    const inp = box.querySelector('.cs-note-input:not(.cs-addnote-input)');
+    const entry = flat.find((e) => !e.synthetic && e.at === editingHistoryAt);
     if (inp) {
       inp.value = entry && entry.note ? entry.note : '';
       inp.focus();
       inp.setSelectionRange(inp.value.length, inp.value.length);
     }
+  }
+  // Đang THÊM ghi chú → focus ô nhập.
+  if (addingCareNote) {
+    const inp = box.querySelector('.cs-addnote-input');
+    if (inp) inp.focus();
   }
 }
 
@@ -1946,10 +1967,19 @@ async function saveHistoryNote(at, note) {
   rerenderCareHistory();
 }
 
-// Bấm trong timeline lịch sử: ✎/+ghi chú → vào sửa; Lưu/Huỷ → thoát.
+// Thêm 1 ghi chú mới cho BẬC HIỆN TẠI (tạo 1 mốc cùng bậc, có timestamp "bây giờ").
+async function saveNewCareNote(note) {
+  addingCareNote = false;
+  if (!detailId || !note) { rerenderCareHistory(); return; } // trống → chỉ đóng ô
+  await CRM.addCareLog(detailId, note);
+  await refreshList();     // cập nhật mốc "cập nhật cuối" trên card danh sách
+  openDetail(detailId);    // vẽ lại chi tiết (timeline + card)
+}
+
+// Bấm trong timeline: ✎ → sửa note; Lưu/Huỷ (sửa); + Thêm ghi chú → mở ô; Lưu/Huỷ (thêm).
 $('#detail-history')?.addEventListener('click', (e) => {
   const editBtn = e.target.closest('[data-hist-edit]');
-  if (editBtn) { editingHistoryAt = editBtn.dataset.histEdit; rerenderCareHistory(); return; }
+  if (editBtn) { editingHistoryAt = editBtn.dataset.histEdit; addingCareNote = false; rerenderCareHistory(); return; }
   const saveBtn = e.target.closest('[data-hist-save]');
   if (saveBtn) {
     const inp = $('#detail-history .cs-note-input');
@@ -1957,42 +1987,29 @@ $('#detail-history')?.addEventListener('click', (e) => {
     return;
   }
   const cancelBtn = e.target.closest('[data-hist-cancel]');
-  if (cancelBtn) { editingHistoryAt = null; rerenderCareHistory(); }
+  if (cancelBtn) { editingHistoryAt = null; rerenderCareHistory(); return; }
+  const addBtn = e.target.closest('[data-note-add]');
+  if (addBtn) { addingCareNote = true; editingHistoryAt = null; rerenderCareHistory(); return; }
+  const addSaveBtn = e.target.closest('[data-note-add-save]');
+  if (addSaveBtn) {
+    const inp = $('#detail-history .cs-addnote-input');
+    saveNewCareNote(inp ? inp.value.trim() || null : null);
+    return;
+  }
+  const addCancelBtn = e.target.closest('[data-note-add-cancel]');
+  if (addCancelBtn) { addingCareNote = false; rerenderCareHistory(); }
 });
 
-// Trong ô sửa note: Enter = Lưu, Esc = Huỷ.
+// Trong ô nhập: Enter = Lưu, Esc = Huỷ (phân biệt ô THÊM và ô SỬA).
 $('#detail-history')?.addEventListener('keydown', (e) => {
+  if (e.target.classList.contains('cs-addnote-input')) {
+    if (e.key === 'Enter') { e.preventDefault(); saveNewCareNote(e.target.value.trim() || null); }
+    else if (e.key === 'Escape') { e.preventDefault(); addingCareNote = false; rerenderCareHistory(); }
+    return;
+  }
   if (!e.target.classList.contains('cs-note-input')) return;
   if (e.key === 'Enter') { e.preventDefault(); saveHistoryNote(editingHistoryAt, e.target.value.trim() || null); }
   else if (e.key === 'Escape') { e.preventDefault(); editingHistoryAt = null; rerenderCareHistory(); }
-});
-
-// ---- Ghi thêm 1 lần liên hệ cùng bậc (nút nhanh ở trang chi tiết) ----
-function openLogAddForm() {
-  $('#detail-log-add-form').hidden = false;
-  $('#detail-log-add-btn').hidden = true;
-  const inp = $('#detail-log-add-input');
-  inp.value = '';
-  inp.focus();
-}
-function closeLogAddForm() {
-  $('#detail-log-add-form').hidden = true;
-  $('#detail-log-add-btn').hidden = false;
-}
-async function saveNewCareLog(note) {
-  if (!detailId) return;
-  await CRM.addCareLog(detailId, note);
-  await refreshList();     // cập nhật mốc "cập nhật cuối" trên card danh sách
-  openDetail(detailId);    // vẽ lại chi tiết: timeline + đánh số "lần N"
-}
-$('#detail-log-add-btn')?.addEventListener('click', openLogAddForm);
-$('#detail-log-add-cancel')?.addEventListener('click', closeLogAddForm);
-$('#detail-log-add-save')?.addEventListener('click', () => {
-  saveNewCareLog($('#detail-log-add-input').value.trim() || null);
-});
-$('#detail-log-add-input')?.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') { e.preventDefault(); saveNewCareLog(e.target.value.trim() || null); }
-  else if (e.key === 'Escape') { e.preventDefault(); closeLogAddForm(); }
 });
 
 // ---- Ghi chú: note TỰ ĐỘNG (từ care stage) + note tự nhập (bullet, có ngày giờ) ----
