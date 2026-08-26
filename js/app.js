@@ -134,14 +134,20 @@ function buildAdvancedForm() {
 // Ghi chú TỰ ĐỘNG: lấy note của mốc care stage MỚI NHẤT có ghi chú (quét lịch sử
 // từ mới → cũ, lấy note đầu tiên khác rỗng). Không có note nào → null. KHÔNG lưu
 // xuống DB — tính lại mỗi lần hiển thị nên luôn bám theo note care stage mới nhất.
-function autoNoteFromHistory(history) {
+// Trả cả {note, at} của mốc care stage mới nhất có ghi chú (để hiển thị kèm timestamp).
+function autoNoteEntryFromHistory(history) {
   if (!Array.isArray(history) || history.length === 0) return null;
   const sorted = [...history].sort((a, b) => (a.at || '').localeCompare(b.at || ''));
   for (let i = sorted.length - 1; i >= 0; i--) {
     const n = (sorted[i].note || '').trim();
-    if (n) return n;
+    if (n) return { note: n, at: sorted[i].at || null };
   }
   return null;
+}
+// Chỉ lấy TEXT của ghi chú tự động (dùng ở card, vCard...). Giữ nguyên chữ ký cũ.
+function autoNoteFromHistory(history) {
+  const e = autoNoteEntryFromHistory(history);
+  return e ? e.note : null;
 }
 
 // Màu từng bậc (đỏ đất → xanh lá: càng về sau càng "chín"). Giữ nguyên color scheme
@@ -2019,17 +2025,19 @@ $('#detail-history')?.addEventListener('keydown', (e) => {
 // ---- Ghi chú: note TỰ ĐỘNG (từ care stage) + note tự nhập (bullet, có ngày giờ) ----
 function renderDetailNotes(c) {
   const box = $('#detail-notes');
-  const autoNote = autoNoteFromHistory(c.care_stage_history);
+  const autoEntry = autoNoteEntryFromHistory(c.care_stage_history);
   // Note tự nhập: sắp MỚI NHẤT LÊN TRÊN (tạo sau = cập nhật hơn), theo mốc 'at'.
   const manual = (Array.isArray(c.notes_manual) ? [...c.notes_manual] : [])
     .sort((a, b) => (b.at || '').localeCompare(a.at || ''));
   let html = '';
-  // Note tự động lên đầu (mang tính cập nhật nhất), có nhãn "Tự động", không sửa được.
-  if (autoNote) {
+  // Note tự động lên đầu (mang tính cập nhật nhất), có nhãn "Tự động" + timestamp của
+  // mốc care stage tương ứng, không sửa được.
+  if (autoEntry) {
     html += `<div class="note-item note-auto">
         <span class="note-bullet">•</span>
         <span class="note-badge">Tự động</span>
-        <span class="note-text">${escapeHtml(autoNote)}</span>
+        <span class="note-text">${escapeHtml(autoEntry.note)}</span>
+        ${autoEntry.at ? `<span class="note-meta">${escapeHtml(formatLogTime(autoEntry.at))}</span>` : ''}
       </div>`;
   }
   // Note tự nhập xếp sau, mới nhất ở trên (db lưu unshift), có ngày giờ + sửa/xoá.
@@ -2055,8 +2063,8 @@ function renderDetailNotes(c) {
         </div>`;
     }
   }
-  box.classList.toggle('is-empty', !autoNote && manual.length === 0);
-  box.innerHTML = (!autoNote && manual.length === 0) ? 'Chưa có ghi chú.' : html;
+  box.classList.toggle('is-empty', !autoEntry && manual.length === 0);
+  box.innerHTML = (!autoEntry && manual.length === 0) ? 'Chưa có ghi chú.' : html;
 
   // Đang sửa 1 ghi chú → nạp nội dung cũ vào input + focus.
   if (editingNoteAt) {

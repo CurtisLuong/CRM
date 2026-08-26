@@ -19,10 +19,13 @@ kể cả "lần N" cùng bậc) sang **phân cấp**:
   *(2026-08-26 đổi tiếp: khoảng thời gian tách hẳn khỏi cột ghi chú — dạng DẤU NGẮT
   (divider): đường ngăn mảnh + pill "🕐 X sau" ở giữa, có icon đồng hồ (SVG inline).
   Đồng thời mọi TIMESTAMP trong timeline chuyển sang **in nghiêng (italic)**.)*
-  *(2026-08-26 mở rộng: italic cho TẤT CẢ timestamp toàn app — card "Cập nhật …"
-  (`.card-updated`), giờ ghi chú (`.note-meta`), giờ tài liệu (`.doc-meta`), giờ hẹn
-  gọi ở thẻ next-action (`.na-when`). Các nhãn trạng thái nhắc gọi (Đến giờ gọi / Quên
-  gọi) KHÔNG đổi vì là nhãn trạng thái, không phải mốc thời gian.)*
+  *(2026-08-26 mở rộng: italic cho timestamp bản ghi toàn app — card "Cập nhật …"
+  (`.card-updated`), giờ ghi chú (`.note-meta`), giờ tài liệu (`.doc-meta`). KHÔNG
+  italic: giờ hẹn gọi ở thẻ next-action (`.na-when`) và các nhãn nhắc gọi (Đến giờ
+  gọi / Quên gọi) — đây là thông tin lịch hẹn/trạng thái, không phải mốc bản ghi.)*
+  *(2026-08-26 bổ sung: ghi chú "Tự động" (lấy từ care stage mới nhất) nay hiện kèm
+  TIMESTAMP của mốc care stage tương ứng (italic, `.note-meta`) — trước đó thiếu. Tách
+  helper `autoNoteEntryFromHistory` trả `{note, at}`; `autoNoteFromHistory` giữ nguyên.)*
 - **"＋ Thêm ghi chú"** nay nằm ngay trong node bậc HIỆN TẠI (bỏ khối "Ghi thêm lần"
   riêng bên dưới) và áp dụng cho MỌI bậc hiện tại — không còn giới hạn ở bậc "lặp được".
   *(Chỉ thêm được vào bậc hiện tại: note tạo mốc "bây giờ" nên thuộc bậc đang ở, không
