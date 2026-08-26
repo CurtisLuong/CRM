@@ -216,6 +216,9 @@ const OCCUPATIONS = ['Tự do', 'Công ty, DN', 'Công, viên chức', 'Công an
 // Zalo dùng ảnh icons/Zalo-icon.png (đặt trong <img>).
 const PHONE_SVG = '<svg class="ic-phone" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>';
 
+// Icon đồng hồ nhỏ (SVG inline) — dùng cho pill khoảng thời gian giữa 2 bậc trên timeline.
+const CLOCK_SVG = '<svg class="cs-gap-ic" viewBox="0 0 24 24" width="12" height="12" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 7.5V12l3 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
 let sb = null;
 let currentUser = null;
 let allCustomers = [];
@@ -1914,11 +1917,12 @@ function renderCareHistory(history, registeredAt) {
     }
     const notesBlock = notesItems ? `<div class="cs-notes">${notesItems}</div>` : '';
 
-    // Khoảng thời gian tới bậc kế tiếp (đặt cuối node, nằm trên đường nối).
+    // Khoảng thời gian tới bậc kế tiếp — DẤU NGẮT (divider) giữa 2 bậc, tách hẳn
+    // khỏi cột ghi chú để không bị đọc lướt như 1 note.
     let gapHtml = '';
     if (!isLast) {
       const gap = new Date(nodes[ni + 1].at) - new Date(node.at);
-      gapHtml = `<div class="cs-gap">${escapeHtml(formatDuration(gap))}</div>`;
+      gapHtml = `<div class="cs-gap"><span class="cs-gap-pill">${CLOCK_SVG} ${escapeHtml(formatDuration(gap))} sau</span></div>`;
     }
 
     html += `

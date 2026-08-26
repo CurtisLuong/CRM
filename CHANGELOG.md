@@ -15,7 +15,14 @@ kể cả "lần N" cùng bậc) sang **phân cấp**:
   Các mốc CÙNG bậc liên tiếp nay gộp chung 1 node (thay vì mỗi mốc 1 khối "lần N").
 - **Mỗi cập nhật = 1 GHI CHÚ con** (chấm nhỏ, thụt vào, có **timestamp riêng** + nút
   sửa ✎). Note đi kèm lúc đổi bậc là ghi chú đầu tiên của bậc; các lần thêm sau xếp kế.
-- **Khoảng thời gian** hiển thị giữa 2 bậc (trên đường nối dọc).
+- **Khoảng thời gian** hiển thị giữa 2 bậc.
+  *(2026-08-26 đổi tiếp: khoảng thời gian tách hẳn khỏi cột ghi chú — dạng DẤU NGẮT
+  (divider): đường ngăn mảnh + pill "🕐 X sau" ở giữa, có icon đồng hồ (SVG inline).
+  Đồng thời mọi TIMESTAMP trong timeline chuyển sang **in nghiêng (italic)**.)*
+  *(2026-08-26 mở rộng: italic cho TẤT CẢ timestamp toàn app — card "Cập nhật …"
+  (`.card-updated`), giờ ghi chú (`.note-meta`), giờ tài liệu (`.doc-meta`), giờ hẹn
+  gọi ở thẻ next-action (`.na-when`). Các nhãn trạng thái nhắc gọi (Đến giờ gọi / Quên
+  gọi) KHÔNG đổi vì là nhãn trạng thái, không phải mốc thời gian.)*
 - **"＋ Thêm ghi chú"** nay nằm ngay trong node bậc HIỆN TẠI (bỏ khối "Ghi thêm lần"
   riêng bên dưới) và áp dụng cho MỌI bậc hiện tại — không còn giới hạn ở bậc "lặp được".
   *(Chỉ thêm được vào bậc hiện tại: note tạo mốc "bây giờ" nên thuộc bậc đang ở, không

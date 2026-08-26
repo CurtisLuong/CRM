@@ -696,7 +696,7 @@ input:focus, select:focus, textarea:focus {
 }
 /* Footer: timestamp cập nhật (nhỏ, xám, trái) + nút Sửa (phải) */
 .card-footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: auto; padding-top: 8px; flex-shrink: 0; }
-.card-updated { font-size: 11px; color: #9a9a90; }
+.card-updated { font-size: 11px; color: #9a9a90; font-style: italic; }
 
 .empty-state { text-align: center; padding: 60px 20px; color: #8a8a7d; }
 
@@ -814,7 +814,7 @@ input:focus, select:focus, textarea:focus {
 .note-item + .note-item { border-top: 1px dashed var(--line); }
 .note-bullet { color: var(--seal); font-weight: 700; }
 .note-text { flex: 1 1 60%; min-width: 0; word-break: break-word; }
-.note-meta { font-size: 11px; color: #9a9a90; white-space: nowrap; }
+.note-meta { font-size: 11px; color: #9a9a90; white-space: nowrap; font-style: italic; }
 /* Note tự động: chỉ phân biệt NHẸ với note tự nhập bằng bullet đỏ + nhãn "Tự động".
    Màu chữ nội dung dùng CHUNG với note thường (thừa kế màu của .detail-notes-box). */
 .note-badge {
@@ -882,7 +882,7 @@ input:focus, select:focus, textarea:focus {
   border: 1px solid var(--line);
   border-left: 4px solid var(--ring);
 }
-.cs-stage-time { font-size: 12px; color: #9a9a90; } /* timestamp vào bậc */
+.cs-stage-time { font-size: 12px; color: #9a9a90; font-style: italic; } /* timestamp vào bậc (nghiêng) */
 .cs-node-start .cs-stage { background: var(--paper); } /* "Bắt đầu đăng ký": nền giấy */
 
 /* Danh sách GHI CHÚ con của 1 bậc — thụt vào, có chấm nhỏ dẫn dòng. */
@@ -900,7 +900,7 @@ input:focus, select:focus, textarea:focus {
   background: color-mix(in srgb, var(--ring) 55%, #fff);
 }
 .cs-note-body { color: #4a4a42; flex: 1 1 auto; min-width: 120px; }
-.cs-note-time { font-size: 12px; color: #9a9a90; white-space: nowrap; }
+.cs-note-time { font-size: 12px; color: #9a9a90; white-space: nowrap; font-style: italic; } /* timestamp ghi chú (nghiêng) */
 .cs-note-btn { /* nút sửa ✎: kín đáo, rõ hơn khi rê chuột */
   border: none; background: transparent; cursor: pointer;
   font: inherit; font-size: 12px; color: #b06a4f; padding: 0 4px;
@@ -920,11 +920,22 @@ input:focus, select:focus, textarea:focus {
   border: 1px solid var(--line); border-radius: 6px; min-width: 180px; flex: 1;
 }
 .cs-note-editing .btn-small { padding: 5px 10px; font-size: 12px; }
-/* Khoảng thời gian giữa 2 bậc — nằm trên đường nối dọc, dưới phần ghi chú của bậc. */
+/* Khoảng thời gian giữa 2 bậc — DẤU NGẮT (divider): đường ngăn mảnh + pill thời gian
+   ở giữa. Tách hẳn khỏi cột ghi chú để không bị đọc lướt như 1 note. */
 .cs-gap {
-  padding: 8px 0 8px 0;
-  font-size: 12px; color: #6b6b60;
+  display: flex; align-items: center; gap: 9px;
+  margin: 8px 0 6px -20px;
+  font-size: 11px;
 }
+.cs-gap::before, .cs-gap::after {
+  content: ''; height: 1px; background: var(--line); flex: 1;
+}
+.cs-gap-pill {
+  display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;
+  color: #8a7a5e; background: #f3eee2;
+  padding: 3px 11px; border-radius: 100px;
+}
+.cs-gap-ic { flex: 0 0 auto; }
 
 /* (Tab đã chuyển vào header — xem .topbar .tab-btn ở phần TOPBAR) */
 
@@ -981,7 +992,7 @@ input:focus, select:focus, textarea:focus {
 .doc-icon { font-size: 18px; }
 .doc-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .doc-kind { font-size: 13px; font-weight: 600; }
-.doc-meta { font-size: 11px; color: #9a9a90; }
+.doc-meta { font-size: 11px; color: #9a9a90; font-style: italic; }
 .doc-del { border: none; background: transparent; cursor: pointer; color: var(--bad); font-size: 14px; padding: 0 4px; }
 .docs-add { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
 
@@ -1139,7 +1150,7 @@ input[name="apt_type_other"] { margin-top: 8px; }
 
 .na-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .na-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--seal); }
-.na-when { display: block; font-size: 16px; font-weight: 600; margin-top: 5px; }
+.na-when { display: block; font-size: 16px; font-weight: 600; margin-top: 5px; font-style: italic; }
 .na-reason { display: block; font-size: 13px; color: #6b6b60; margin-top: 3px; white-space: pre-wrap; }
 
 /* "Việc tiếp theo" (khi chưa có lịch gọi) */
