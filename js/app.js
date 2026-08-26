@@ -851,10 +851,10 @@ function renderList() {
         ${stagePill}
         ${c.contact_status ? `<span class="tag tag-contact" style="--cs:${contactColor(c.contact_status)}">${escapeHtml(c.contact_status)}</span>` : ''}
         ${contactLostWarning(c) ? `<span class="tag tag-contact-warn" title="Đã >7 ngày chưa tương tác — kiểm tra lại">⚠ nghi mất liên lạc</span>` : ''}
+        <span class="tag tag-interest ti-${tier.key}"><span class="ti-dot">◆</span> ${tier.label}</span>
         ${c.apt_type ? `<span class="tag">${escapeHtml(c.apt_type)}</span>` : ''}
         ${c.evaluation ? `<span class="tag ${c.evaluation === 'nên chăm' ? 'tag-good' : 'tag-bad'}">${escapeHtml(c.evaluation)}</span>` : ''}
         ${menhShort ? `<span class="tag tag-menh">${escapeHtml(menhShort)}</span>` : ''}
-        <span class="tag tag-interest ti-${tier.key}"><span class="ti-dot">◆</span> ${tier.label}</span>
       </div>
       <div class="card-notes">${cardNotesInner}</div>
       <div class="card-footer">

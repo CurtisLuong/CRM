@@ -611,12 +611,12 @@ input:focus, select:focus, textarea:focus {
 /* Cảnh báo GỢI Ý mất liên lạc — nền hổ phách nhạt, chỉ để nhắc, không phải trạng thái thật. */
 .tag-contact-warn { background: #fbeccd; color: #9c6f1a; font-weight: var(--badge-fw-bold); }
 
-/* Badge MỨC QUAN TÂM trên card: ◆ MÀU theo bậc + nhãn. Cùng khuôn với contact status
-   (nền pill trung tính, không viền màu), nhưng chữ THƯỜNG. Chỉ ◆ mang màu bậc. */
+/* Badge MỨC QUAN TÂM trên card: cùng THIẾT KẾ với Loại căn & Mệnh (nền xám #eee,
+   chữ #444, font thường) — CHỈ KHÁC là có chấm ◆ mang màu theo bậc quan tâm. */
 .tag.tag-interest {
   font-weight: var(--badge-fw-normal);
   display: inline-flex; align-items: center; gap: 4px;
-  background: #f0efe9; color: #4a4a42;
+  background: #eee; color: #444;
 }
 .tag-interest .ti-dot { font-size: 9px; line-height: 1; }
 /* Base .ti-* chỉ tô MÀU ◆ (không đụng nền/chữ pill trên card). List view có rule

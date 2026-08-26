@@ -19,6 +19,9 @@ Thống nhất kiểu chữ + kiểu pill cho mọi badge trên card. Từ nay c
   màu trạng thái; chữ **đậm**.
 - **Quan tâm**: cùng khuôn với contact (nền trung tính, không viền, ◆ mang màu bậc),
   nhưng chữ **thường** — bỏ nền tint màu + chữ màu như trước.
+  *(2026-08-26 tinh chỉnh tiếp: đổi Quan tâm về ĐÚNG thiết kế Loại căn/Mệnh — nền
+  `#eee`, chữ `#444`, thường — chỉ khác là có ◆ màu; và đẩy Quan tâm lên vị trí thứ
+  3, ngay sau Contact status.)*
 - **Mệnh**: đổi về **giống Loại căn** (nền xám trung tính, chữ thường) — bỏ nền be
   riêng.
 - **Loại căn**: giữ nguyên (nền xám, chữ thường).
