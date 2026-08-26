@@ -6,6 +6,23 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-26 — Gộp nhóm Tiến độ trên card thành 1 pill (kiểu thanh tiến độ)
+
+Nhóm `[vòng tròn] [x/7] [tên bậc]` trên card (3 khối rời) gộp lại thành **1 pill**:
+nền pill được tô đầy theo % bậc (bậc/7) như một thanh tiến độ ngầm, tên bậc bên
+trái + "x/7" bên phải. Gọn gàng hơn, nhìn 1 phát biết đã đi tới đâu.
+
+- Chữ trong pill để **font thường** (như các badge khác), màu = sắc đậm cùng tông
+  màu bậc (color-mix với đen) để đủ tương phản trên nền tint nhạt.
+- Bậc **Loại** → pill đỏ nhạt "✕ Loại" (không có thanh tiến độ).
+- Bỏ các class cũ chỉ dùng cho card: `.mini-ring` / `.mini-frac` / `.stage-name` /
+  `.mini-x` → thay bằng `.stage-pill` (+ `.sp-name` / `.sp-frac` / `.is-dropped`).
+  Trang chi tiết vẫn dùng dãy 7 chấm + `.stage-x` như cũ (không đổi).
+
+File: `js/app.js`, `css/style.css`
+
+---
+
 ## 2026-08-26 — Đổi bộ Tiến độ chăm sóc + tách Trạng thái liên lạc
 
 Thiết kế lại phễu: bộ `care_stage` cũ TRỘN LẪN 2 trục — kênh liên lạc (chưa gọi

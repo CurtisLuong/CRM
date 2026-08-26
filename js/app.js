@@ -795,15 +795,16 @@ function renderList() {
     const tier = interestTier(c.interest_level ?? 0);
     card.style.setProperty('--tier', tier.color);
 
-    // Tiến độ chăm sóc → vòng NHỎ (đĩa conic đầy theo bậc) + "x/7" + tên bước.
-    // Riêng bậc 'Loại' → dấu ✕ đỏ thay cho vòng tròn (không phải bước phễu).
+    // Tiến độ chăm sóc → GỘP thành 1 pill: nền pill tô đầy theo % bậc (bậc/7), tên
+    // bậc bên trái + "x/7" bên phải. Riêng bậc 'Loại' → pill đỏ nhạt "✕ Loại"
+    // (không phải bước phễu nên không có thanh tiến độ).
     const isDropped = c.care_stage === CARE_STAGE_DROPPED;
     const level = careLevel(c.care_stage);
     const ringPct = Math.round((level / 7) * 100);
     const ringColor = careColor(c.care_stage);
-    const progressLead = isDropped
-      ? `<span class="mini-x" title="Loại" style="--ring:${ringColor}">✕</span>`
-      : `<span class="mini-ring" style="--pct:${ringPct}; --ring:${ringColor}" title="${escapeHtml(careLabel(c.care_stage))}"></span><span class="mini-frac">${level}/7</span>`;
+    const stagePill = isDropped
+      ? `<span class="stage-pill is-dropped">✕ ${escapeHtml(careLabel(c.care_stage))}</span>`
+      : `<span class="stage-pill" style="--ring:${ringColor}; --pct:${ringPct}" title="${escapeHtml(careLabel(c.care_stage))}"><span class="sp-name">${escapeHtml(careLabel(c.care_stage))}</span><span class="sp-frac">${level}/7</span></span>`;
     // Timestamp phản ánh lần đổi Tiến độ chăm sóc cuối (không phải mọi lần sửa).
     // Dòng cũ chưa có care_stage_updated_at thì tạm dùng updated_at.
     const updated = timeAgo(c.care_stage_updated_at || c.updated_at);
@@ -847,8 +848,7 @@ function renderList() {
         </div>
       </div>
       <div class="card-progress">
-        ${progressLead}
-        <span class="stage-name">${escapeHtml(careLabel(c.care_stage))}</span>
+        ${stagePill}
         ${c.contact_status ? `<span class="tag tag-contact" style="--cs:${contactColor(c.contact_status)}">${escapeHtml(c.contact_status)}</span>` : ''}
         ${contactLostWarning(c) ? `<span class="tag tag-contact-warn" title="Đã >7 ngày chưa tương tác — kiểm tra lại">⚠ nghi mất liên lạc</span>` : ''}
         ${c.apt_type ? `<span class="tag">${escapeHtml(c.apt_type)}</span>` : ''}
