@@ -1910,11 +1910,12 @@ function renderCareHistory(history, registeredAt) {
         }
       });
     }
-    // Nút "+ Thêm ghi chú" chỉ ở bậc HIỆN TẠI (node cuối, không phải node đăng ký).
+    // Nút/ô "+ Thêm ghi chú" chỉ ở bậc HIỆN TẠI (node cuối, không phải node đăng ký).
+    // Đặt TRONG khối ghi chú, căn "＋" thẳng hàng với CHẤM của các note (xem CSS).
     if (!node.synthetic && isLast) {
       notesItems += addingCareNote
         ? `
-          <div class="cs-note cs-note-editing">
+          <div class="cs-addnote cs-note-editing">
             <input class="cs-note-input cs-addnote-input" type="text" placeholder="Nhập ghi chú mới cho bậc này..." />
             <button class="btn-small" data-note-add-save>Lưu</button>
             <button class="btn-small" data-note-add-cancel>Huỷ</button>

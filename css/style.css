@@ -808,13 +808,15 @@ input:focus, select:focus, textarea:focus {
 /* Danh sách ghi chú (bullet): note tự động ở trên (nhãn riêng), note tự nhập dưới */
 .detail-notes-box:not(.is-empty) { white-space: normal; }
 .note-item {
-  display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px;
+  display: flex; align-items: baseline; flex-wrap: wrap; gap: 3px 8px;
   padding: 5px 0; line-height: 1.5;
 }
 .note-item + .note-item { border-top: 1px dashed var(--line); }
-.note-bullet { color: var(--seal); font-weight: 700; }
-.note-text { flex: 1 1 60%; min-width: 0; word-break: break-word; }
-.note-meta { font-size: 11px; color: #9a9a90; white-space: nowrap; font-style: italic; }
+.note-bullet { color: var(--seal); font-weight: 700; flex: 0 0 auto; }
+/* Nội dung chiếm phần lớn (đủ dài → đẩy timestamp xuống dòng). */
+.note-text { flex: 1 1 62%; min-width: 0; word-break: break-word; }
+/* Timestamp LUÔN dính lề phải — cùng dòng nếu vừa, xuống dòng canh phải nếu chật. */
+.note-meta { font-size: 11px; color: #9a9a90; white-space: nowrap; font-style: italic; margin-left: auto; }
 /* Note tự động: chỉ phân biệt NHẸ với note tự nhập bằng bullet đỏ + nhãn "Tự động".
    Màu chữ nội dung dùng CHUNG với note thường (thừa kế màu của .detail-notes-box). */
 .note-badge {
@@ -906,12 +908,21 @@ input:focus, select:focus, textarea:focus {
   font: inherit; font-size: 12px; color: #b06a4f; padding: 0 4px;
 }
 .cs-note-btn:hover { color: var(--teal); text-decoration: underline; }
-.cs-note-addbtn { /* + Thêm ghi chú (chỉ ở bậc hiện tại) */
+/* "+ Thêm ghi chú" (chỉ ở bậc hiện tại) — nằm TRONG cột note, căn "＋" thẳng hàng với
+   CHẤM của các note (chấm note ở mép trái cột; padding-left 0 để "＋" trùng cột đó). */
+.cs-note-addbtn {
+  display: block;
   border: none; background: transparent; cursor: pointer;
   font: inherit; font-size: 12.5px; color: #a08a70; font-style: italic;
-  padding: 5px 0 4px 12px;
+  margin: 5px 0 2px -1px; padding: 4px 0;
 }
 .cs-note-addbtn:hover { color: var(--teal); text-decoration: underline; }
+/* Ô nhập khi đang thêm ghi chú — cùng canh lề cột note. */
+.cs-addnote {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  margin: 5px 0 2px -1px;
+}
+.cs-addnote .btn-small { padding: 5px 10px; font-size: 12px; }
 /* Ô nhập (thêm/sửa ghi chú) tại chỗ */
 .cs-note.cs-note-editing { padding-left: 12px; }
 .cs-note.cs-note-editing::before { display: none; }

@@ -6,6 +6,17 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-26 — Tinh chỉnh notes + căn "+ Thêm ghi chú" theo spine
+
+- **Notes**: timestamp LUÔN dính lề phải (`margin-left:auto` trên `.note-meta`) — cùng
+  dòng nếu đủ chỗ, canh phải nếu wrap. Áp cho cả ghi chú tự nhập lẫn ghi chú "Tự động".
+- **Timeline**: nút "＋ Thêm ghi chú" (và ô nhập khi thêm) nằm TRONG cột note, căn "＋"
+  thẳng hàng với CHẤM của các note phía trên — đã đo `btnLeft == (dot của note)`.
+
+File: `js/app.js`, `css/style.css`
+
+---
+
 ## 2026-08-26 — Care timeline chuyển sang cấu trúc PHÂN CẤP (bậc → ghi chú)
 
 Trang chi tiết: timeline lịch sử chăm sóc đổi từ danh sách phẳng (mỗi mốc 1 khối,
