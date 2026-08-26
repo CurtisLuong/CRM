@@ -194,7 +194,7 @@ const CRM = {
         // CẬP NHẬT LÙI: chỉ giữ các mốc thuộc bậc <= bậc mới (danh sách keepStages
         // do app.js tính theo thứ hạng phễu), xoá mọi mốc bậc cao hơn — coi các
         // bước sau là nhầm/thử. Nếu mốc cuối còn lại đã đúng bậc mới thì KHÔNG thêm
-        // mốc trùng (tránh nhân đôi vd "Chưa gọi được" khi tua hẳn về đầu phễu).
+        // mốc trùng (tránh nhân đôi vd "Đăng kí mới" khi tua hẳn về đầu phễu).
         history = history.filter((h) => opts.keepStages.includes(h.stage));
         const last = history[history.length - 1];
         if (!last || last.stage !== payload.care_stage) {
@@ -220,8 +220,8 @@ const CRM = {
   },
 
   /**
-   * Ghi thêm 1 lần liên hệ CÙNG bậc hiện tại (vd "Chưa gọi được" lần 2, "Hẹn gọi
-   * lại" lần 3...) — bản chất vẫn ở nguyên bậc, chỉ thêm 1 mốc vào timeline để
+   * Ghi thêm 1 lần liên hệ CÙNG bậc hiện tại (vd "Đăng kí mới" lần 2, "Đang tiếp
+   * cận" lần 3...) — bản chất vẫn ở nguyên bậc, chỉ thêm 1 mốc vào timeline để
    * theo dõi. Dùng lại update() với cờ forceLog.
    */
   async addCareLog(id, note) {

@@ -6,6 +6,39 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-26 — Đổi bộ Tiến độ chăm sóc + tách Trạng thái liên lạc
+
+Thiết kế lại phễu: bộ `care_stage` cũ TRỘN LẪN 2 trục — kênh liên lạc (chưa gọi
+được / hẹn gọi lại / chờ kết bạn Zalo / đang chăm qua Zalo) và độ sâu phễu. Tách ra:
+`care_stage` = độ sâu phễu; thêm cột mới `contact_status` = kênh/kết quả liên lạc,
+**độc lập** hoàn toàn.
+
+- **Bộ care_stage MỚI (7 bậc + Loại):** Đăng kí mới *(mặc định khách mới)* → Đang
+  tiếp cận → Đang chăm sóc → Xem dự án → Hỗ trợ hồ sơ → Booking → Kí HĐMB; và **Loại**
+  (kết thúc, không chốt — hiển thị **dấu ✕ ĐỎ** thay vòng tròn). Giữ nguyên color
+  scheme cũ theo vị trí bậc.
+- **contact_status MỚI (5 giá trị):** Chưa gọi được · Hẹn gọi lại · Chờ kết bạn Zalo ·
+  Phản hồi tốt · Mất liên lạc. Là dropdown người dùng tự chọn; hiển thị badge "◆ tên"
+  trên card + trang chi tiết; đưa vào universal search. "Mất liên lạc" còn được app
+  **gợi ý** bằng badge cảnh báo "⚠ nghi mất liên lạc" khi >7 ngày không tương tác —
+  CHỈ hiển thị, KHÔNG tự ghi đè dữ liệu (an toàn cho offline-first).
+- **Migrate dữ liệu cũ** (`change_care_stages_and_contact_status.sql`, **CẦN CHẠY
+  TRƯỚC/NGAY KHI deploy**): map care_stage cũ → mới + backfill contact_status theo bảng
+  yêu cầu (các bậc từ "đang chăm qua Zalo" trở lên: Phản hồi tốt nếu cập nhật <7 ngày,
+  Mất liên lạc nếu ≥7 ngày; "Không chốt-kết thúc" → Loại, để trống liên lạc). Đồng thời
+  **đổi tên bậc cũ trong `care_stage_history`** sang bậc mới để timeline/phễu/biểu đồ
+  "thời gian mỗi bậc" hiện đúng màu/đúng bậc. Migration an toàn chạy lại nhiều lần.
+- **Không cần GRANT lại** (quyền bảng customers là table-level → cột mới tự có quyền).
+- Cập nhật `notifications.js doneStages = ['Kí HĐMB','Loại']`; fallback bậc trong
+  `logCallAction` → 'Đăng kí mới'; các bậc "lặp được" (cho ghi thêm lần) → 'Đăng kí
+  mới' / 'Đang tiếp cận'. `STAGE_INTEREST` remap sang bậc mới.
+- **sw.js KHÔNG đổi** (network-first, APP_SHELL không thêm file → không cần tăng version).
+
+File: `change_care_stages_and_contact_status.sql` (migration cần chạy), `schema.sql`,
+`js/app.js`, `js/db.js`, `js/notifications.js`, `index.html`, `css/style.css`
+
+---
+
 ## 2026-08-24 — Section "NÂNG CAO" (hồ sơ sâu, tuỳ chọn)
 
 Hồ sơ sâu cho khách khó tính / cam kết đủ sâu: 16 trường trong 3 nhóm (Bối cảnh sống · Sở thích

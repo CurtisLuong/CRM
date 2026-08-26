@@ -576,6 +576,29 @@ input:focus, select:focus, textarea:focus {
 .mini-frac { font-size: 12px; font-weight: 700; color: #3a3a34; }
 .stage-name { font-size: 12px; color: #4a4a42; margin-right: 2px; }
 
+/* Bậc 'Loại' → dấu ✕ đỏ (thay vòng tròn phễu) trên card. */
+.mini-x {
+  --ring: #c0392b;
+  width: 16px; height: 16px; border-radius: 50%;
+  flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; line-height: 1;
+  color: #fff; background: var(--ring);
+}
+/* Dấu ✕ ở trang chi tiết (hàng "Tiến độ") — cỡ to hơn, không nền. */
+.stage-x { font-size: 15px; font-weight: 800; color: #c0392b; line-height: 1; }
+
+/* Badge TRẠNG THÁI LIÊN LẠC (độc lập tiến độ): chấm ◆ màu theo trạng thái + nhãn. */
+.tag-contact {
+  --cs: #8b93a0;
+  font-weight: 600; display: inline-flex; align-items: center; gap: 4px;
+  background: #f0efe9; color: #4a4a42;
+  border: 1px solid color-mix(in srgb, var(--cs) 45%, transparent);
+}
+.tag-contact::before { content: '◆'; font-size: 9px; line-height: 1; color: var(--cs); }
+/* Cảnh báo GỢI Ý mất liên lạc — nền hổ phách nhạt, chỉ để nhắc, không phải trạng thái thật. */
+.tag-contact-warn { background: #fbeccd; color: #9c6f1a; font-weight: 600; }
+
 /* Badge MỨC QUAN TÂM trên card: ◆ + nhãn bậc, nền tint nhạt + chữ/◆ theo màu bậc.
    (Thay cho thanh "Quan tâm" cũ — mức quan tâm giờ thể hiện qua viền trái + badge này.) */
 .tag-interest { font-weight: 600; display: inline-flex; align-items: center; gap: 4px; }

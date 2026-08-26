@@ -56,15 +56,26 @@ create table if not exists public.customers (
   apt_price numeric,
   notes text,                         -- freeform, dài ngắn tuỳ khách
   interest_level int check (interest_level between 0 and 100),
+  -- Tiến độ phễu bán hàng (xem change_care_stages_and_contact_status.sql — bộ bậc
+  -- này thay thế bộ cũ vốn lẫn cả kênh liên lạc; kênh liên lạc nay ở contact_status).
   care_stage text check (care_stage in (
+    'Đăng kí mới',
+    'Đang tiếp cận',
+    'Đang chăm sóc',
+    'Xem dự án',
+    'Hỗ trợ hồ sơ',
+    'Booking',
+    'Kí HĐMB',
+    'Loại'                     -- kết thúc chăm sóc, không chốt được (bị loại)
+  )),
+  -- Trạng thái LIÊN LẠC gần nhất — ĐỘC LẬP với care_stage (kênh/kết quả liên hệ,
+  -- không phải độ sâu phễu). Xem change_care_stages_and_contact_status.sql.
+  contact_status text check (contact_status in (
     'Chưa gọi được',
     'Hẹn gọi lại',
     'Chờ kết bạn Zalo',
-    'Đang chăm sóc qua Zalo',
-    'Đã yêu cầu hỗ trợ hồ sơ',
-    'Đã booking',
-    'Đã ký hợp đồng mua bán',
-    'Không chốt-kết thúc'      -- kết thúc chăm sóc, không chốt được (xem add_care_stage_ket_thuc.sql + rename_care_stage_khong_chot.sql)
+    'Phản hồi tốt',
+    'Mất liên lạc'
   )),
   evaluation text check (evaluation in ('nên chăm','không nên chăm')),
   evaluation_reason text,
@@ -96,6 +107,7 @@ create unique index if not exists customers_phone_owner_unique
 
 create index if not exists customers_full_name_idx on public.customers (full_name);
 create index if not exists customers_care_stage_idx on public.customers (care_stage);
+create index if not exists customers_contact_status_idx on public.customers (contact_status);
 create index if not exists customers_evaluation_idx on public.customers (evaluation);
 
 -- Tự cập nhật updated_at / updated_by mỗi lần sửa

@@ -25,7 +25,7 @@ const NOTIF_CONFIG = {
   callGraceMin: 30,   // phút ân hạn sau khi hết khung giờ gọi vẫn còn nhắc
   // Các bậc "kết thúc chăm sóc" — khách đã xong thì KHÔNG nhắc nữa.
   // (Giữ khớp với CARE_DONE_STAGES trong app.js — nếu đổi 1 bên nhớ đổi bên kia.)
-  doneStages: ['Đã ký hợp đồng mua bán', 'Không chốt-kết thúc'],
+  doneStages: ['Kí HĐMB', 'Loại'],
 };
 
 // ─── Helper thời gian (nội bộ, không đụng helper của app.js) ────────────────

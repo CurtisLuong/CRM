@@ -1,45 +1,84 @@
 /* app.js — UI + điều phối chính của CRM */
 
 // 7 bậc tiến độ chăm sóc "đi tới" (bậc 1 → bậc 7), theo đúng thứ tự phễu bán hàng.
-// Bậc 7 ('Đã ký hợp đồng mua bán') = chăm sóc XONG, chốt thành công.
+// Bậc 1 ('Đăng kí mới') = mặc định khi vừa tạo khách. Bậc 7 ('Kí HĐMB') = chăm sóc
+// XONG, chốt thành công. (Trước 2026-08-26 danh sách này mô tả LẪN cả kênh liên
+// lạc — nay kênh liên lạc tách sang CONTACT_STATUS bên dưới, xem CHANGELOG.)
 const CARE_STAGES = [
-  'Chưa gọi được',
-  'Hẹn gọi lại',
-  'Chờ kết bạn Zalo',
-  'Đang chăm sóc qua Zalo',
-  'Đã yêu cầu hỗ trợ hồ sơ',
-  'Đã booking',
-  'Đã ký hợp đồng mua bán',
+  'Đăng kí mới',
+  'Đang tiếp cận',
+  'Đang chăm sóc',
+  'Xem dự án',
+  'Hỗ trợ hồ sơ',
+  'Booking',
+  'Kí HĐMB',
 ];
 
-// 'Không chốt-kết thúc' KHÔNG phải bậc thứ 8 của phễu — nó là 1 trạng thái
-// KẾT THÚC quá trình chăm sóc mà không chốt được khách. Về mặt "đã xong hay chưa"
-// nó tương đương bậc 7 (đều là xong), nhưng hiển thị vòng tròn màu xám để phân
-// biệt "kết thúc nhưng không mua" với "đã ký hợp đồng".
-const CARE_STAGE_DROPPED = 'Không chốt-kết thúc';
+// Bậc mặc định cho khách MỚI — form tạo khách tự chọn sẵn bậc này.
+const CARE_STAGE_DEFAULT = 'Đăng kí mới';
+
+// 'Loại' KHÔNG phải bậc thứ 8 của phễu — nó là 1 trạng thái KẾT THÚC quá trình
+// chăm sóc mà không chốt được (khách bị loại). Về mặt "đã xong hay chưa" nó tương
+// đương bậc 7 (đều là xong), nhưng hiển thị dấu ✕ ĐỎ để phân biệt "loại" với "đã
+// ký hợp đồng".
+const CARE_STAGE_DROPPED = 'Loại';
 
 // Danh sách đổ vào các <select>: 7 bậc + trạng thái kết thúc ở cuối cùng.
 const CARE_STAGE_OPTIONS = [...CARE_STAGES, CARE_STAGE_DROPPED];
 
 // Hai trạng thái coi là "chăm sóc đã xong" — mặc định ẩn khỏi dashboard.
-const CARE_DONE_STAGES = ['Đã ký hợp đồng mua bán', CARE_STAGE_DROPPED];
+const CARE_DONE_STAGES = ['Kí HĐMB', CARE_STAGE_DROPPED];
 
 // Đổi bậc chăm sóc → TỰ set mức quan tâm (chỉ các bậc dưới; bậc khác giữ nguyên).
-// Kéo slider bằng tay sẽ ghi đè giá trị tự động này. 'Không chốt-kết thúc' → 0%.
+// Kéo slider bằng tay sẽ ghi đè giá trị tự động này. 'Loại' → 0%.
 const STAGE_INTEREST = {
-  'Đang chăm sóc qua Zalo': 60,
-  'Đã yêu cầu hỗ trợ hồ sơ': 70,
-  'Đã booking': 90,
-  'Đã ký hợp đồng mua bán': 100,
+  'Đang chăm sóc': 60,
+  'Xem dự án': 75,
+  'Hỗ trợ hồ sơ': 85,
+  'Booking': 95,
+  'Kí HĐMB': 100,
   [CARE_STAGE_DROPPED]: 0,
 };
 
 // Các bậc có thể LẶP LẠI nhiều lần mà vẫn ở nguyên bậc đó — mỗi lần liên hệ là 1
-// mốc riêng trong lịch sử để tiện theo dõi (vd gọi mãi không nghe, hẹn lại nhiều
-// lần). Chỉ những bậc này mới cho "ghi thêm lần".
-const CARE_STAGES_REPEATABLE = ['Chưa gọi được', 'Hẹn gọi lại'];
+// mốc riêng trong lịch sử để tiện theo dõi (vd gọi tiếp cận nhiều lần chưa được).
+// Chỉ những bậc đầu phễu (chưa vào giao dịch) mới cho "ghi thêm lần".
+const CARE_STAGES_REPEATABLE = ['Đăng kí mới', 'Đang tiếp cận'];
 function isRepeatableStage(stage) {
   return CARE_STAGES_REPEATABLE.includes(stage);
+}
+
+// ---- CONTACT STATUS (trạng thái liên lạc) — ĐỘC LẬP với care_stage ----
+// Mô tả KÊNH/kết quả liên lạc gần nhất (không phải độ sâu phễu). Lưu ở cột riêng
+// customers.contact_status (xem change_care_stages_and_contact_status.sql). Người
+// dùng tự chọn; 'Mất liên lạc' còn được app GỢI Ý (badge cảnh báo) khi >7 ngày
+// không tương tác — chỉ hiển thị, KHÔNG tự ghi đè dữ liệu.
+const CONTACT_STATUSES = [
+  'Chưa gọi được',
+  'Hẹn gọi lại',
+  'Chờ kết bạn Zalo',
+  'Phản hồi tốt',
+  'Mất liên lạc',
+];
+const CONTACT_STATUS_COLORS = {
+  'Chưa gọi được':    '#b0463a', // đỏ đất — gọi không bắt máy
+  'Hẹn gọi lại':      '#c96a4f', // cam đất — có nghe, đang bận
+  'Chờ kết bạn Zalo': '#d29b2c', // vàng cam — đã gửi lời mời, chờ accept
+  'Phản hồi tốt':     '#3f8f6b', // xanh ngọc — tích cực
+  'Mất liên lạc':     '#9a9a90', // xám — không phản hồi >7 ngày
+};
+function contactColor(s) {
+  return CONTACT_STATUS_COLORS[s] || '#8b93a0';
+}
+
+// GỢI Ý "nghi mất liên lạc": contact_status đang tích cực (khác 'Mất liên lạc' và
+// khác rỗng), khách chưa kết thúc chăm sóc, nhưng đã >7 ngày không có tương tác
+// (mốc care_stage_updated_at). Chỉ để HIỂN THỊ badge nhắc — không đổi dữ liệu.
+function contactLostWarning(c) {
+  if (!c || isCareDone(c.care_stage)) return false;
+  const cs = c.contact_status;
+  if (!cs || cs === 'Mất liên lạc') return false;
+  return daysSince(c.care_stage_updated_at || c.updated_at) > 7;
 }
 
 // ---- Hồ sơ "NÂNG CAO" (cột JSONB customers.advanced) ----
@@ -105,19 +144,20 @@ function autoNoteFromHistory(history) {
   return null;
 }
 
-// Màu từng bậc (đỏ đất → xanh lá: càng về sau càng "chín"). Bậc kết thúc = xám.
+// Màu từng bậc (đỏ đất → xanh lá: càng về sau càng "chín"). Giữ nguyên color scheme
+// cũ theo VỊ TRÍ bậc. Bậc 'Loại' = ĐỎ (kèm dấu ✕) để nổi bật là khách bị loại.
 const CARE_STAGE_COLORS = {
-  'Chưa gọi được':           '#b0463a', // đỏ đất — mới, chưa liên hệ được
-  'Hẹn gọi lại':             '#c96a4f', // cam đất
-  'Chờ kết bạn Zalo':        '#d29b2c', // vàng cam
-  'Đang chăm sóc qua Zalo':  '#b6a92f', // vàng xanh
-  'Đã yêu cầu hỗ trợ hồ sơ': '#7f9b3f', // xanh cốm
-  'Đã booking':              '#3f8f6b', // xanh ngọc
-  'Đã ký hợp đồng mua bán':  '#2f7d5e', // xanh lá đậm — chốt thành công
-  [CARE_STAGE_DROPPED]:      '#9a9a90', // xám — kết thúc, không mua
+  'Đăng kí mới':    '#b0463a', // đỏ đất — vừa tạo, chưa tiếp cận
+  'Đang tiếp cận':  '#c96a4f', // cam đất
+  'Đang chăm sóc':  '#d29b2c', // vàng cam
+  'Xem dự án':      '#b6a92f', // vàng xanh
+  'Hỗ trợ hồ sơ':   '#7f9b3f', // xanh cốm
+  'Booking':        '#3f8f6b', // xanh ngọc
+  'Kí HĐMB':        '#2f7d5e', // xanh lá đậm — chốt thành công
+  [CARE_STAGE_DROPPED]: '#c0392b', // đỏ — bị loại (kèm dấu ✕)
 };
 
-// Khách chưa đặt tiến độ (bỏ trống) coi như bậc 1 'Chưa gọi được' (theo yêu cầu).
+// Khách chưa đặt tiến độ (bỏ trống) coi như bậc 1 'Đăng kí mới' (theo yêu cầu).
 function careLevel(stage) {
   if (stage === CARE_STAGE_DROPPED) return 7; // vòng đầy như bậc 7
   const idx = CARE_STAGES.indexOf(stage);
@@ -125,11 +165,11 @@ function careLevel(stage) {
 }
 
 function careColor(stage) {
-  return CARE_STAGE_COLORS[stage] || CARE_STAGE_COLORS['Chưa gọi được'];
+  return CARE_STAGE_COLORS[stage] || CARE_STAGE_COLORS[CARE_STAGE_DEFAULT];
 }
 
 function careLabel(stage) {
-  return stage || 'Chưa gọi được';
+  return stage || CARE_STAGE_DEFAULT;
 }
 
 function isCareDone(stage) {
@@ -137,7 +177,7 @@ function isCareDone(stage) {
 }
 
 // Thứ hạng để SẮP XẾP theo tiến độ (khác careLevel dùng để vẽ vòng tròn):
-// bỏ trống → 1, 7 bậc phễu → 1-7, 'Không chốt-kết thúc' → 8 (xếp cuối cùng).
+// bỏ trống → 1, 7 bậc phễu → 1-7, 'Loại' → 8 (xếp cuối cùng).
 function careSortRank(stage) {
   if (stage === CARE_STAGE_DROPPED) return 8;
   const idx = CARE_STAGES.indexOf(stage);
@@ -618,7 +658,7 @@ function customerSearchBlob(c) {
   const parts = [
     c.phone, c.full_name, c.gender, c.dob, c.dob ? formatDate(c.dob) : '',
     c.menh, c.marital_status, c.occupation, c.income, c.residence,
-    c.apt_type, c.apt_code, c.building_code, c.care_stage, c.evaluation,
+    c.apt_type, c.apt_code, c.building_code, c.care_stage, c.contact_status, c.evaluation,
     c.evaluation_reason, sourceDisplay(c.source),
     c.apt_price != null ? String(c.apt_price) : '',
     c.apt_price ? formatPrice(c.apt_price) : '',
@@ -756,9 +796,14 @@ function renderList() {
     card.style.setProperty('--tier', tier.color);
 
     // Tiến độ chăm sóc → vòng NHỎ (đĩa conic đầy theo bậc) + "x/7" + tên bước.
+    // Riêng bậc 'Loại' → dấu ✕ đỏ thay cho vòng tròn (không phải bước phễu).
+    const isDropped = c.care_stage === CARE_STAGE_DROPPED;
     const level = careLevel(c.care_stage);
     const ringPct = Math.round((level / 7) * 100);
     const ringColor = careColor(c.care_stage);
+    const progressLead = isDropped
+      ? `<span class="mini-x" title="Loại" style="--ring:${ringColor}">✕</span>`
+      : `<span class="mini-ring" style="--pct:${ringPct}; --ring:${ringColor}" title="${escapeHtml(careLabel(c.care_stage))}"></span><span class="mini-frac">${level}/7</span>`;
     // Timestamp phản ánh lần đổi Tiến độ chăm sóc cuối (không phải mọi lần sửa).
     // Dòng cũ chưa có care_stage_updated_at thì tạm dùng updated_at.
     const updated = timeAgo(c.care_stage_updated_at || c.updated_at);
@@ -802,9 +847,10 @@ function renderList() {
         </div>
       </div>
       <div class="card-progress">
-        <span class="mini-ring" style="--pct:${ringPct}; --ring:${ringColor}" title="${escapeHtml(careLabel(c.care_stage))}"></span>
-        <span class="mini-frac">${level}/7</span>
+        ${progressLead}
         <span class="stage-name">${escapeHtml(careLabel(c.care_stage))}</span>
+        ${c.contact_status ? `<span class="tag tag-contact" style="--cs:${contactColor(c.contact_status)}">${escapeHtml(c.contact_status)}</span>` : ''}
+        ${contactLostWarning(c) ? `<span class="tag tag-contact-warn" title="Đã >7 ngày chưa tương tác — kiểm tra lại">⚠ nghi mất liên lạc</span>` : ''}
         ${c.apt_type ? `<span class="tag">${escapeHtml(c.apt_type)}</span>` : ''}
         ${c.evaluation ? `<span class="tag ${c.evaluation === 'nên chăm' ? 'tag-good' : 'tag-bad'}">${escapeHtml(c.evaluation)}</span>` : ''}
         ${menhShort ? `<span class="tag tag-menh">${escapeHtml(menhShort)}</span>` : ''}
@@ -1020,7 +1066,9 @@ function openForm(id) {
   const advDetails = $('#form-advanced'); if (advDetails) advDetails.open = false;
   f.interest_level.value = c.interest_level ?? 50;
   $('#interest-output').textContent = (c.interest_level ?? 50) + '%';
-  f.care_stage.value = c.care_stage || '';
+  // Khách MỚI mặc định bậc 'Đăng kí mới'; khách cũ giữ bậc đang có.
+  f.care_stage.value = c.care_stage || (id ? '' : CARE_STAGE_DEFAULT);
+  f.contact_status.value = c.contact_status || '';
   f.evaluation.value = c.evaluation || '';
   f.evaluation_reason.value = c.evaluation_reason || '';
 
@@ -1038,7 +1086,8 @@ function openForm(id) {
   f.new_note.value = '';
 
   // Ô "Ghi chú cho lần đổi tiến độ" chỉ hiện khi bậc thực sự khác lúc mở form.
-  formOriginalStage = c.care_stage || '';
+  // Với khách mới, bậc mặc định 'Đăng kí mới' chính là bậc gốc (chưa coi là "đổi").
+  formOriginalStage = f.care_stage.value || '';
   f.care_stage_note.value = '';
   toggleCareStageNote();
 
@@ -1068,12 +1117,15 @@ function toggleAptOther() {
 }
 
 // Hiện ô ghi chú khi: (a) đổi sang bậc khác, HOẶC (b) chọn lại ĐÚNG bậc cũ nhưng
-// là bậc lặp được (Chưa gọi được / Hẹn gọi lại) → cho ghi thêm 1 lần liên hệ mới.
+// là bậc lặp được (Đăng kí mới / Đang tiếp cận) → cho ghi thêm 1 lần liên hệ mới.
 function toggleCareStageNote() {
   const f = $('#customer-form');
   const val = f.care_stage.value;
   const changed = !!val && val !== formOriginalStage;
-  const relog = !!val && val === formOriginalStage && isRepeatableStage(val);
+  // "Ghi thêm lần cùng bậc" chỉ có nghĩa khi ĐANG SỬA khách cũ (thêm 1 lần liên hệ
+  // mới ở bậc hiện tại) — không áp cho form TẠO mới (bậc mặc định 'Đăng kí mới' vốn
+  // là bậc lặp được, nếu không chặn sẽ tự bật ô ghi chú ngay khi mở form tạo khách).
+  const relog = !!val && val === formOriginalStage && isRepeatableStage(val) && !!editingId;
   const show = changed || relog;
   $('#care-stage-note-wrap').hidden = !show;
   // Nhãn đổi theo ngữ cảnh để người dùng hiểu đang làm gì.
@@ -1085,7 +1137,7 @@ function toggleCareStageNote() {
 }
 
 // Khi ĐỔI bậc chăm sóc: tự chỉnh mức quan tâm theo bậc (nếu bậc có map). Riêng
-// 'Không chốt-kết thúc' → 0% + tự đánh giá 'không nên chăm'. Người dùng kéo
+// 'Loại' → 0% + tự đánh giá 'không nên chăm'. Người dùng kéo
 // slider tay sau đó sẽ ghi đè (giá trị hiển thị lúc Lưu là giá trị cuối cùng).
 function onCareStageChange() {
   toggleCareStageNote();
@@ -1145,6 +1197,7 @@ async function handleFormSubmit(e) {
     purpose: f.purpose.value || null,
     interest_level: Number(f.interest_level.value),
     care_stage: f.care_stage.value || null,
+    contact_status: f.contact_status.value || null,
     evaluation: f.evaluation.value || null,
     evaluation_reason: f.evaluation.value === 'không nên chăm' ? (f.evaluation_reason.value || null) : null,
   };
@@ -1301,6 +1354,7 @@ function buildContactNote(c) {
   push('Thu nhập', c.income);
   push('Mức quan tâm', c.interest_level != null ? c.interest_level + '%' : '');
   push('Tiến độ', c.care_stage);
+  push('Liên lạc', c.contact_status);
   push('Đánh giá', c.evaluation);
   const autoNote = autoNoteFromHistory(c.care_stage_history);
   const manual = Array.isArray(c.notes_manual) ? c.notes_manual.map((n) => n.text).filter(Boolean) : [];
@@ -1550,6 +1604,8 @@ let editingNoteAt = null; // ghi chú tự nhập đang sửa (theo 'at'), null 
 // mang CÙNG 1 màu = màu của BẬC HIỆN TẠI (vd bậc 4 → 4 chấm cùng màu vàng xanh; bậc 7
 // → 7 chấm cùng màu xanh lá). Chấm chưa đạt bậc → xám. Cùng màu với vòng tiến độ ngoài card.
 function stageDotsHtml(stage) {
+  // Bậc 'Loại' → dấu ✕ đỏ (không vẽ 7 chấm phễu).
+  if (stage === CARE_STAGE_DROPPED) return `<span class="stage-x">✕</span>`;
   const level = careLevel(stage);
   const color = careColor(stage);
   let out = '';
@@ -1712,6 +1768,19 @@ function openDetail(id) {
   $('#detail-stage-dots').innerHTML = stageDotsHtml(c.care_stage);
   $('#detail-stage-dots').style.color = careColor(c.care_stage);
   $('#detail-stage-text').textContent = careLabel(c.care_stage);
+  // Trạng thái liên lạc (độc lập; ẩn nếu chưa đặt). Kèm cảnh báo "nghi mất liên lạc".
+  const contactBadge = $('#detail-contact-badge');
+  if (contactBadge) {
+    if (c.contact_status) {
+      contactBadge.hidden = false;
+      const warn = contactLostWarning(c) ? ' ⚠' : '';
+      $('#detail-contact-text').textContent = c.contact_status + warn;
+      $('#detail-contact-text').style.color = contactColor(c.contact_status);
+      $('#detail-contact-text').title = contactLostWarning(c) ? 'Đã >7 ngày chưa tương tác — kiểm tra lại' : '';
+    } else {
+      contactBadge.hidden = true;
+    }
+  }
   // Mức quan tâm
   const interest = c.interest_level ?? 0;
   $('#detail-interest-dots').innerHTML = interestDotsHtml(interest);
@@ -2682,13 +2751,13 @@ function callStamp(d) {
 // Note = "[hành động] hh:mm, dd.mm.yyyy" + ". [ghi chú]" nếu có (ô ghi chú chung, không bắt
 // buộc). Timestamp chốt NGAY lúc bấm. clearSchedule=true → xoá lịch hẹn (đã gọi / huỷ gọi);
 // false → giữ lịch để bước hẹn lại tiếp tục (scheduler sẽ ghi đè). Khách chưa đặt bậc (null)
-// coi như bậc 1 'Chưa gọi được' để không tạo mốc trống.
+// coi như bậc 1 'Đăng kí mới' để không tạo mốc trống.
 async function logCallAction(prefix, clearSchedule) {
   const id = callActionId;
   const c = allCustomers.find((x) => x.id === id);
   const extra = $('#callact-note').value.trim();
   const note = prefix + ' ' + callStamp(new Date()) + (extra ? '. ' + extra : '');
-  const stage = (c && c.care_stage) || 'Chưa gọi được';
+  const stage = (c && c.care_stage) || CARE_STAGE_DEFAULT;
   const payload = { care_stage: stage };
   if (clearSchedule) { payload.next_call_at = null; payload.next_call_end = null; payload.next_call_reason = null; }
   await CRM.update(id, payload, { careStageNote: note, forceLog: true });
@@ -2765,7 +2834,7 @@ function lastNWeeks(n) {
 function ddmm(d) { return `${d.getDate()}/${d.getMonth() + 1}`; }
 
 // Chỉ số bậc tuyến tính CAO NHẤT khách đã đạt (cho phễu). Suy từ lịch sử + bậc
-// hiện tại. Bậc trống coi như 0 (Chưa gọi được); 'Không chốt-kết thúc' dựa
+// hiện tại. Bậc trống coi như 0 (Đăng kí mới); 'Loại' dựa
 // vào lịch sử để biết đã đi tới đâu trước khi rớt. -1 = chưa vào phễu.
 function funnelMaxIndex(c) {
   let maxIdx = c.care_stage ? CARE_STAGES.indexOf(c.care_stage) : 0;
@@ -2858,7 +2927,7 @@ function renderDashboard() {
   });
   funnelHtml += '</div>';
   const dropped = all.filter((c) => c.care_stage === CARE_STAGE_DROPPED).length;
-  if (dropped) funnelHtml += `<div class="funnel-dropped">Đã kết thúc "không quan tâm": ${dropped} khách</div>`;
+  if (dropped) funnelHtml += `<div class="funnel-dropped">Đã loại (kết thúc, không chốt): ${dropped} khách</div>`;
   cards.push(dashCard('Phễu bán hàng theo tiến độ', funnelHtml, '% là tỉ lệ khách đi tiếp sang bước sau — bước "nút thắt" là nơi rớt nhiều nhất.'));
 
   // 2) ĐÁNH GIÁ + lý do loại ---------------------------------------------
@@ -3004,6 +3073,10 @@ function populateSelects() {
 
   const formStageOptions = ['<option value="">— Chưa xác định —</option>', ...CARE_STAGE_OPTIONS.map((s) => `<option value="${s}">${s}</option>`)].join('');
   $('#customer-form').care_stage.innerHTML = formStageOptions;
+
+  // Trạng thái liên lạc (độc lập với tiến độ) — dropdown trong form.
+  const formContactOptions = ['<option value="">— Chưa xác định —</option>', ...CONTACT_STATUSES.map((s) => `<option value="${s}">${s}</option>`)].join('');
+  $('#customer-form').contact_status.innerHTML = formContactOptions;
 
   $('#eval-reason-datalist').innerHTML = EVAL_REASONS.map((r) => `<option value="${r}">`).join('');
 }
