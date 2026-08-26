@@ -1904,8 +1904,7 @@ function renderCareHistory(history, registeredAt) {
           notesItems += `
             <div class="cs-note">
               <span class="cs-note-body">${escapeHtml(entry.note)}</span>
-              <span class="cs-note-time">${escapeHtml(formatLogTime(entry.at))}</span>
-              <button class="cs-note-btn" data-hist-edit="${at}" title="Sửa ghi chú">✎</button>
+              <span class="cs-note-right"><span class="cs-note-time">${escapeHtml(formatLogTime(entry.at))}</span><button class="cs-note-btn" data-hist-edit="${at}" title="Sửa ghi chú">✎</button></span>
             </div>`;
         }
       });
@@ -1960,6 +1959,8 @@ function renderCareHistory(history, registeredAt) {
     const inp = box.querySelector('.cs-addnote-input');
     if (inp) inp.focus();
   }
+  // Quyết định timestamp cùng dòng hay xuống dòng cho note timeline (đo sau layout).
+  requestAnimationFrame(relayoutNoteTimestamps);
 }
 
 // Vẽ lại riêng phần lịch sử của khách đang xem (sau khi đổi trạng thái sửa).
@@ -2076,20 +2077,31 @@ function renderDetailNotes(c) {
   requestAnimationFrame(relayoutNoteTimestamps);
 }
 
-// Với mỗi ghi chú: nếu nội dung + timestamp KHÔNG vừa 1 dòng (text bị wrap >1 dòng khi
-// timestamp nằm cạnh) → cho timestamp XUỐNG DÒNG riêng, canh phải (class .ts-stacked).
-// Nếu vừa → giữ cùng dòng, timestamp dính lề phải. Tính lại khi render/đổi cỡ màn hình.
+// Với mỗi ghi chú: nếu nội dung + timestamp KHÔNG vừa 1 dòng (phần nội dung bị wrap >1
+// dòng khi timestamp nằm cạnh) → cho timestamp XUỐNG DÒNG riêng, canh phải (.ts-stacked).
+// Nếu vừa → giữ cùng dòng, timestamp dính lề phải.
+function relayoutTimestampRow(item, bodySel, rightSel) {
+  item.classList.remove('ts-stacked');
+  const body = item.querySelector(bodySel);
+  const right = item.querySelector(rightSel);
+  if (!body || !right) return;
+  // Đo chiều cao 1 DÒNG thực tế bằng span thăm dò — line-height có thể là 'normal'
+  // (đọc qua getComputedStyle ra NaN), nên không dựa vào computed lineHeight.
+  const probe = document.createElement('span');
+  probe.textContent = 'X';
+  probe.style.cssText = 'visibility:hidden;position:absolute;white-space:nowrap';
+  body.appendChild(probe);
+  const oneLine = probe.getBoundingClientRect().height || 16;
+  body.removeChild(probe);
+  if (body.offsetHeight > oneLine * 1.5) item.classList.add('ts-stacked');
+}
+// Áp cho CẢ phần "Ghi chú" (note tự nhập/tự động) LẪN note trong care timeline.
+// Tính lại khi render/đổi cỡ màn hình.
 function relayoutNoteTimestamps() {
-  const box = $('#detail-notes');
-  if (!box) return;
-  box.querySelectorAll('.note-item').forEach((item) => {
-    item.classList.remove('ts-stacked');
-    const text = item.querySelector('.note-text');
-    const right = item.querySelector('.note-right');
-    if (!text || !right) return;
-    const lh = parseFloat(getComputedStyle(text).lineHeight) || 20;
-    if (text.offsetHeight > lh * 1.5) item.classList.add('ts-stacked');
-  });
+  const notesBox = $('#detail-notes');
+  if (notesBox) notesBox.querySelectorAll('.note-item').forEach((it) => relayoutTimestampRow(it, '.note-text', '.note-right'));
+  const histBox = $('#detail-history');
+  if (histBox) histBox.querySelectorAll('.cs-note').forEach((it) => relayoutTimestampRow(it, '.cs-note-body', '.cs-note-right'));
 }
 // Đổi cỡ màn hình khi đang xem chi tiết → tính lại vị trí timestamp trong ghi chú
 // (rAF để đo SAU khi trình duyệt reflow theo bề rộng mới).

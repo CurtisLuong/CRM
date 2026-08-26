@@ -905,7 +905,12 @@ input:focus, select:focus, textarea:focus {
   width: 6px; height: 6px; border-radius: 50%;
   background: color-mix(in srgb, var(--ring) 55%, #fff);
 }
-.cs-note-body { color: #4a4a42; flex: 1 1 auto; min-width: 120px; }
+/* flex-basis 0 để nội dung giãn đẩy nhóm phải sát lề (giống phần "Ghi chú"). */
+.cs-note-body { color: #4a4a42; flex: 1 1 0; min-width: 0; word-break: break-word; }
+/* Nhóm phải (timestamp + ✎) — cùng dòng nếu đủ chỗ; note dài → JS thêm .ts-stacked
+   cho cả nhóm xuống dòng riêng, canh phải. */
+.cs-note-right { display: inline-flex; align-items: baseline; gap: 6px; white-space: nowrap; }
+.cs-note.ts-stacked .cs-note-right { flex-basis: 100%; justify-content: flex-end; }
 .cs-note-time { font-size: 12px; color: #9a9a90; white-space: nowrap; font-style: italic; } /* timestamp ghi chú (nghiêng) */
 .cs-note-btn { /* nút sửa ✎: kín đáo, rõ hơn khi rê chuột */
   border: none; background: transparent; cursor: pointer;

@@ -14,6 +14,10 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
   nằm cạnh → thêm `.ts-stacked` cho timestamp xuống dòng. Tính lại khi render + đổi cỡ màn
   hình. `.note-text { flex:1 1 0 }` để chấm bullet + nội dung luôn cùng dòng. Áp cho cả
   ghi chú tự nhập lẫn ghi chú "Tự động".
+  *(2026-08-26 áp dụng CÙNG logic cho note trong CARE TIMELINE (`.cs-note`): bọc time+✎
+  vào `.cs-note-right`, thêm `.ts-stacked`, `.cs-note-body { flex:1 1 0 }`. Đồng thời
+  sửa cách đo 1 dòng — dùng span thăm dò thay computed `lineHeight` (vì `.cs-note` để
+  line-height 'normal' → parseFloat ra NaN → ngưỡng sai, note 2 dòng không stack).)*
 - **Timeline**: nút "＋ Thêm ghi chú" (và ô nhập khi thêm) nằm TRONG cột note, căn "＋"
   thẳng hàng với CHẤM của các note phía trên — đã đo `btnLeft == (dot của note)`.
 
