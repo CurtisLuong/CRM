@@ -889,7 +889,6 @@ input:focus, select:focus, textarea:focus {
   border-left: 4px solid var(--ring);
 }
 .cs-stage-time { font-size: 12px; color: #9a9a90; font-style: italic; } /* timestamp vào bậc (nghiêng) */
-.cs-node-start .cs-stage { background: var(--paper); } /* "Bắt đầu đăng ký": nền giấy */
 
 /* Danh sách GHI CHÚ con của 1 bậc — thụt vào, có chấm nhỏ dẫn dòng. */
 .cs-notes { margin: 6px 0 2px 6px; padding-left: 14px; border-left: 2px solid var(--line); }

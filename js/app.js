@@ -1861,13 +1861,12 @@ function openDetail(id) {
 //     bậc là ghi chú đầu tiên của bậc; các lần "+ Thêm ghi chú" sau là ghi chú kế tiếp.
 //   • Giữa 2 bậc hiện KHOẢNG THỜI GIAN. Nút "+ Thêm ghi chú" chỉ ở BẬC HIỆN TẠI (mới
 //     nhất) — thêm note tạo mốc "bây giờ" nên chỉ thuộc bậc đang ở.
-// Bắt đầu bằng node tổng hợp "Bắt đầu đăng ký" (kèm thời gian đăng ký, không có ghi chú).
+// Bậc ĐẦU TIÊN 'Đăng kí mới' dùng luôn mốc "thời gian đăng ký" (registered_at) làm
+// timestamp — không tách riêng node "Bắt đầu đăng ký" nữa (data integrity).
 function renderCareHistory(history, registeredAt) {
   const section = $('#detail-history-section');
   const box = $('#detail-history');
-  const flat = [];
-  if (registeredAt) flat.push({ synthetic: true, stage: 'Bắt đầu đăng ký', at: registeredAt });
-  if (Array.isArray(history)) flat.push(...history);
+  const flat = Array.isArray(history) ? [...history] : [];
   if (flat.length === 0) { section.hidden = true; box.innerHTML = ''; return; }
   section.hidden = false;
   flat.sort((a, b) => (a.at || '').localeCompare(b.at || '')); // thời gian tăng dần
@@ -1876,42 +1875,45 @@ function renderCareHistory(history, registeredAt) {
   const nodes = [];
   for (const e of flat) {
     const prev = nodes[nodes.length - 1];
-    if (prev && !prev.synthetic && !e.synthetic && prev.stage === e.stage) {
+    if (prev && prev.stage === e.stage) {
       prev.entries.push(e);
     } else {
-      nodes.push({ synthetic: !!e.synthetic, stage: e.stage, at: e.at, entries: [e] });
+      nodes.push({ stage: e.stage, at: e.at, entries: [e] });
     }
+  }
+  // Bậc đầu 'Đăng kí mới' CHÍNH LÀ mốc đăng ký (gộp node "Bắt đầu đăng ký" cũ vào đây để
+  // đảm bảo data integrity): dùng thời gian ĐĂNG KÝ (field registered_at) làm mốc bậc.
+  if (registeredAt && nodes.length && nodes[0].stage === CARE_STAGE_DEFAULT) {
+    nodes[0].at = registeredAt;
   }
 
   let html = '';
   nodes.forEach((node, ni) => {
     const isLast = ni === nodes.length - 1;
-    const color = node.synthetic ? '#1A2E29' : careColor(node.stage);
+    const color = careColor(node.stage);
 
     // Ghi chú con: mỗi entry CÓ note → 1 dòng ghi chú (kèm timestamp + nút sửa ✎).
     let notesItems = '';
-    if (!node.synthetic) {
-      node.entries.forEach((entry) => {
-        const at = escapeHtml(entry.at || '');
-        if (entry.at === editingHistoryAt) {
-          notesItems += `
-            <div class="cs-note cs-note-editing">
-              <input class="cs-note-input" type="text" placeholder="Ghi chú..." />
-              <button class="btn-small" data-hist-save="${at}">Lưu</button>
-              <button class="btn-small" data-hist-cancel="${at}">Huỷ</button>
-            </div>`;
-        } else if (entry.note) {
-          notesItems += `
-            <div class="cs-note">
-              <span class="cs-note-body">${escapeHtml(entry.note)}</span>
-              <span class="cs-note-right"><span class="cs-note-time">${escapeHtml(formatLogTime(entry.at))}</span><button class="cs-note-btn" data-hist-edit="${at}" title="Sửa ghi chú">✎</button></span>
-            </div>`;
-        }
-      });
-    }
-    // Nút/ô "+ Thêm ghi chú" chỉ ở bậc HIỆN TẠI (node cuối, không phải node đăng ký).
+    node.entries.forEach((entry) => {
+      const at = escapeHtml(entry.at || '');
+      if (entry.at === editingHistoryAt) {
+        notesItems += `
+          <div class="cs-note cs-note-editing">
+            <input class="cs-note-input" type="text" placeholder="Ghi chú..." />
+            <button class="btn-small" data-hist-save="${at}">Lưu</button>
+            <button class="btn-small" data-hist-cancel="${at}">Huỷ</button>
+          </div>`;
+      } else if (entry.note) {
+        notesItems += `
+          <div class="cs-note">
+            <span class="cs-note-body">${escapeHtml(entry.note)}</span>
+            <span class="cs-note-right"><span class="cs-note-time">${escapeHtml(formatLogTime(entry.at))}</span><button class="cs-note-btn" data-hist-edit="${at}" title="Sửa ghi chú">✎</button></span>
+          </div>`;
+      }
+    });
+    // Nút/ô "+ Thêm ghi chú" chỉ ở bậc HIỆN TẠI (node cuối).
     // Đặt TRONG khối ghi chú, căn "＋" thẳng hàng với CHẤM của các note (xem CSS).
-    if (!node.synthetic && isLast) {
+    if (isLast) {
       notesItems += addingCareNote
         ? `
           <div class="cs-addnote cs-note-editing">
@@ -1932,7 +1934,7 @@ function renderCareHistory(history, registeredAt) {
     }
 
     html += `
-      <div class="cs-node${node.synthetic ? ' cs-node-start' : ''}${isLast ? ' cs-node-last' : ''}" style="--ring:${color}">
+      <div class="cs-node${isLast ? ' cs-node-last' : ''}" style="--ring:${color}">
         <span class="cs-stage-dot"></span>
         <div class="cs-stage-head">
           <span class="cs-stage">${escapeHtml(node.stage)}</span>
@@ -1947,7 +1949,7 @@ function renderCareHistory(history, registeredAt) {
   // Đang SỬA 1 ghi chú → nạp note cũ vào ô + focus (con trỏ cuối chuỗi).
   if (editingHistoryAt) {
     const inp = box.querySelector('.cs-note-input:not(.cs-addnote-input)');
-    const entry = flat.find((e) => !e.synthetic && e.at === editingHistoryAt);
+    const entry = flat.find((e) => e.at === editingHistoryAt);
     if (inp) {
       inp.value = entry && entry.note ? entry.note : '';
       inp.focus();

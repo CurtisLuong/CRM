@@ -6,6 +6,18 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-26 — Gộp "Bắt đầu đăng ký" vào bậc "Đăng kí mới" (timeline)
+
+Trước đây timeline tách 2 mốc: node tổng hợp "Bắt đầu đăng ký" (tại `registered_at`)
++ bậc "Đăng kí mới" (tại thời điểm tạo). Nay GỘP làm MỘT node "Đăng kí mới" duy nhất,
+timestamp = giá trị field **thời gian đăng ký** (`registered_at`) → 1 nguồn sự thật,
+data integrity. Node "Đăng kí mới" vẫn giữ các ghi chú của nó; khoảng thời gian tới bậc
+kế tính từ mốc đăng ký. Bỏ hẳn node synthetic + class `.cs-node-start`.
+
+File: `js/app.js`, `css/style.css`
+
+---
+
 ## 2026-08-26 — Tinh chỉnh notes + căn "+ Thêm ghi chú" theo spine
 
 - **Notes**: timestamp (bọc trong `.note-right` cùng nút ✎) dính lề phải — CÙNG DÒNG
