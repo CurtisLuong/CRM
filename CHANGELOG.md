@@ -17,6 +17,9 @@ Thống nhất kiểu chữ + kiểu pill cho mọi badge trên card. Từ nay c
   đỏ → cam → vàng tách bạch rõ.
 - **Contact status**: bỏ **viền màu** quanh pill; nền pill trung tính; chấm ◆ mang
   màu trạng thái; chữ **đậm**.
+  *(2026-08-26 đổi tiếp: contact status là mức quan trọng THỨ 2 sau progress → cho
+  MANG MÀU riêng theo trạng thái — nền tint + chữ đậm-màu cùng tông, BỎ chấm ◆, font
+  **thường**. Cùng "ngôn ngữ màu" với progress pill, nổi hơn hẳn badge Quan tâm xám.)*
 - **Quan tâm**: cùng khuôn với contact (nền trung tính, không viền, ◆ mang màu bậc),
   nhưng chữ **thường** — bỏ nền tint màu + chữ màu như trước.
   *(2026-08-26 tinh chỉnh tiếp: đổi Quan tâm về ĐÚNG thiết kế Loại căn/Mệnh — nền

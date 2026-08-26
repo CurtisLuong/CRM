@@ -599,15 +599,16 @@ input:focus, select:focus, textarea:focus {
 /* Dấu ✕ ở trang chi tiết (hàng "Tiến độ") — cỡ to hơn, không nền. */
 .stage-x { font-size: 15px; font-weight: 800; color: #c0392b; line-height: 1; }
 
-/* Badge TRẠNG THÁI LIÊN LẠC (độc lập tiến độ): chấm ◆ MÀU theo trạng thái + nhãn.
-   Nền pill TRUNG TÍNH (không viền màu), chữ ĐẬM. Màu ◆ do biến --cs (đặt inline). */
+/* Badge TRẠNG THÁI LIÊN LẠC (độc lập tiến độ) — quan trọng THỨ 2 sau progress.
+   Mang MÀU riêng theo trạng thái: nền tint + chữ đậm-màu cùng tông (không icon),
+   font THƯỜNG. Cùng "ngôn ngữ màu" với progress pill → đọc ra là tầng 2, trên badge
+   Quan tâm (xám). Màu do biến --cs (đặt inline = contactColor). */
 .tag.tag-contact {
   --cs: #8b93a0;
-  font-weight: var(--badge-fw-bold);
-  display: inline-flex; align-items: center; gap: 4px;
-  background: #f0efe9; color: #4a4a42;
+  font-weight: var(--badge-fw-normal);
+  background: color-mix(in srgb, var(--cs) 16%, #fff);
+  color: color-mix(in srgb, var(--cs) 64%, #000);
 }
-.tag-contact::before { content: '◆'; font-size: 9px; line-height: 1; color: var(--cs); }
 /* Cảnh báo GỢI Ý mất liên lạc — nền hổ phách nhạt, chỉ để nhắc, không phải trạng thái thật. */
 .tag-contact-warn { background: #fbeccd; color: #9c6f1a; font-weight: var(--badge-fw-bold); }
 
