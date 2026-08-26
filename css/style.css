@@ -13,6 +13,11 @@
   --bad: #B0342A;        /* không nên chăm / nguy hiểm — dùng đỏ son */
   --line: #E4DFD3;       /* đường kẻ nhạt trên giấy */
   --radius: 10px;
+  /* ĐỘ ĐẬM CHỮ DÙNG CHUNG cho MỌI badge trên card — chỉ 3 mức: đậm / thường / nhạt.
+     Đổi ở đây là đổi đồng loạt. Từng badge chỉ được chọn 1 trong 3 biến này. */
+  --badge-fw-bold: 600;
+  --badge-fw-normal: 400;
+  --badge-fw-light: 300;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
@@ -575,7 +580,7 @@ input:focus, select:focus, textarea:focus {
   position: relative; overflow: hidden;
   display: inline-flex; align-items: center; justify-content: space-between; gap: 10px;
   min-width: 148px; padding: 4px 12px; border-radius: 100px;
-  font-size: 12px; line-height: 1.3;
+  font-size: 12px; line-height: 1.3; font-weight: var(--badge-fw-bold);
   color: color-mix(in srgb, var(--ring) 62%, #000);
   background: color-mix(in srgb, var(--ring) 12%, #fff);
 }
@@ -597,28 +602,31 @@ input:focus, select:focus, textarea:focus {
 /* Dấu ✕ ở trang chi tiết (hàng "Tiến độ") — cỡ to hơn, không nền. */
 .stage-x { font-size: 15px; font-weight: 800; color: #c0392b; line-height: 1; }
 
-/* Badge TRẠNG THÁI LIÊN LẠC (độc lập tiến độ): chấm ◆ màu theo trạng thái + nhãn. */
-.tag-contact {
+/* Badge TRẠNG THÁI LIÊN LẠC (độc lập tiến độ): chấm ◆ MÀU theo trạng thái + nhãn.
+   Nền pill TRUNG TÍNH (không viền màu), chữ ĐẬM. Màu ◆ do biến --cs (đặt inline). */
+.tag.tag-contact {
   --cs: #8b93a0;
-  font-weight: 600; display: inline-flex; align-items: center; gap: 4px;
+  font-weight: var(--badge-fw-bold);
+  display: inline-flex; align-items: center; gap: 4px;
   background: #f0efe9; color: #4a4a42;
-  border: 1px solid color-mix(in srgb, var(--cs) 45%, transparent);
 }
 .tag-contact::before { content: '◆'; font-size: 9px; line-height: 1; color: var(--cs); }
 /* Cảnh báo GỢI Ý mất liên lạc — nền hổ phách nhạt, chỉ để nhắc, không phải trạng thái thật. */
-.tag-contact-warn { background: #fbeccd; color: #9c6f1a; font-weight: 600; }
+.tag-contact-warn { background: #fbeccd; color: #9c6f1a; font-weight: var(--badge-fw-bold); }
 
-/* Badge MỨC QUAN TÂM trên card: ◆ + nhãn bậc, nền tint nhạt + chữ/◆ theo màu bậc.
-   (Thay cho thanh "Quan tâm" cũ — mức quan tâm giờ thể hiện qua viền trái + badge này.) */
-.tag-interest { font-weight: 600; display: inline-flex; align-items: center; gap: 4px; }
+/* Badge MỨC QUAN TÂM trên card: ◆ MÀU theo bậc + nhãn. Cùng khuôn với contact status
+   (nền pill trung tính, không viền màu), nhưng chữ THƯỜNG. Chỉ ◆ mang màu bậc. */
+.tag.tag-interest {
+  font-weight: var(--badge-fw-normal);
+  display: inline-flex; align-items: center; gap: 4px;
+  background: #f0efe9; color: #4a4a42;
+}
 .tag-interest .ti-dot { font-size: 9px; line-height: 1; }
-.ti-nguoi   { background: #edeff2; color: #5f6b7a; }
+/* Base .ti-* chỉ tô MÀU ◆ (không đụng nền/chữ pill trên card). List view có rule
+   riêng, cụ thể hơn (.cust-row .tag-interest.ti-*) nên vẫn giữ nền tint bên đó. */
 .ti-nguoi   .ti-dot { color: #8b93a0; }
-.ti-am      { background: #fbeccd; color: #9c6f1a; }
 .ti-am      .ti-dot { color: #e8a33d; }
-.ti-nong    { background: #f7ddd7; color: #a83f30; }
 .ti-nong    .ti-dot { color: #c94f3e; }
-.ti-ratnong { background: #f2d3d0; color: #8f231d; }
 .ti-ratnong .ti-dot { color: #a8302a; }
 
 /* ===== LIST VIEW (dòng gọn) — bật khi #customer-list có class .list-mode =====
@@ -667,11 +675,12 @@ input:focus, select:focus, textarea:focus {
 .cust-row .tag-interest.ti-nong    { background: #f7ddd7; color: #a83f30; }
 .cust-row .tag-interest.ti-ratnong { background: #f2d3d0; color: #8f231d; }
 
-.tag { font-size: 11px; padding: 3px 8px; border-radius: 100px; background: #eee; color: #444; }
+.tag { font-size: 11px; padding: 3px 8px; border-radius: 100px; background: #eee; color: #444; font-weight: var(--badge-fw-normal); }
 .tag-stage { background: #e4ecec; color: var(--teal); }
 .tag-good { background: #e2f0e8; color: var(--good); }
 .tag-bad { background: #f5e3e0; color: var(--bad); }
-.tag-menh { background: #f2e8da; color: #7a5a2f; }
+/* Mệnh: cùng thiết kế với Loại căn (nền xám trung tính, chữ thường) — không nền be riêng. */
+.tag-menh { background: #eee; color: #444; }
 
 /* "Chi tiết" freeform: chỉ hiện tối đa 2 dòng, dư ra cắt + "..." (bấm card xem đủ).
    flex:1 để chiếm chỗ trống giữa card → đẩy footer xuống đáy. */

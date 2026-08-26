@@ -147,8 +147,8 @@ function autoNoteFromHistory(history) {
 // Màu từng bậc (đỏ đất → xanh lá: càng về sau càng "chín"). Giữ nguyên color scheme
 // cũ theo VỊ TRÍ bậc. Bậc 'Loại' = ĐỎ (kèm dấu ✕) để nổi bật là khách bị loại.
 const CARE_STAGE_COLORS = {
-  'Đăng kí mới':    '#b0463a', // đỏ đất — vừa tạo, chưa tiếp cận
-  'Đang tiếp cận':  '#c96a4f', // cam đất
+  'Đăng kí mới':    '#a8382f', // đỏ son — vừa tạo, chưa tiếp cận (rõ ĐỎ, tách bậc 2)
+  'Đang tiếp cận':  '#d1743a', // cam đất — rõ CAM để không lẫn với bậc 1
   'Đang chăm sóc':  '#d29b2c', // vàng cam
   'Xem dự án':      '#b6a92f', // vàng xanh
   'Hỗ trợ hồ sơ':   '#7f9b3f', // xanh cốm

@@ -6,6 +6,27 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-26 — Chuẩn hoá thiết kế badge trên card khách hàng
+
+Thống nhất kiểu chữ + kiểu pill cho mọi badge trên card. Từ nay chỉ có **3 mức độ
+đậm** dùng chung (token `--badge-fw-bold/normal/light` trong `:root` — đổi 1 chỗ là
+đổi đồng loạt).
+
+- **Progress pill**: chữ **đậm**. Sửa màu 2 bậc đầu vốn nhìn giống nhau — `Đăng kí
+  mới` `#b0463a → #a8382f` (rõ đỏ), `Đang tiếp cận` `#c96a4f → #d1743a` (rõ cam) →
+  đỏ → cam → vàng tách bạch rõ.
+- **Contact status**: bỏ **viền màu** quanh pill; nền pill trung tính; chấm ◆ mang
+  màu trạng thái; chữ **đậm**.
+- **Quan tâm**: cùng khuôn với contact (nền trung tính, không viền, ◆ mang màu bậc),
+  nhưng chữ **thường** — bỏ nền tint màu + chữ màu như trước.
+- **Mệnh**: đổi về **giống Loại căn** (nền xám trung tính, chữ thường) — bỏ nền be
+  riêng.
+- **Loại căn**: giữ nguyên (nền xám, chữ thường).
+
+File: `js/app.js` (màu bậc), `css/style.css`
+
+---
+
 ## 2026-08-26 — Gộp nhóm Tiến độ trên card thành 1 pill (kiểu thanh tiến độ)
 
 Nhóm `[vòng tròn] [x/7] [tên bậc]` trên card (3 khối rời) gộp lại thành **1 pill**:
