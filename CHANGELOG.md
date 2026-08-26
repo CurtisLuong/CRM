@@ -8,8 +8,12 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ## 2026-08-26 — Tinh chỉnh notes + căn "+ Thêm ghi chú" theo spine
 
-- **Notes**: timestamp LUÔN dính lề phải (`margin-left:auto` trên `.note-meta`) — cùng
-  dòng nếu đủ chỗ, canh phải nếu wrap. Áp cho cả ghi chú tự nhập lẫn ghi chú "Tự động".
+- **Notes**: timestamp (bọc trong `.note-right` cùng nút ✎) dính lề phải — CÙNG DÒNG
+  với note nếu đủ chỗ, XUỐNG DÒNG riêng canh phải nếu note dài không đủ chỗ. Quyết định
+  bằng 1 đoạn JS đo (`relayoutNoteTimestamps`): nếu nội dung bị wrap >1 dòng khi timestamp
+  nằm cạnh → thêm `.ts-stacked` cho timestamp xuống dòng. Tính lại khi render + đổi cỡ màn
+  hình. `.note-text { flex:1 1 0 }` để chấm bullet + nội dung luôn cùng dòng. Áp cho cả
+  ghi chú tự nhập lẫn ghi chú "Tự động".
 - **Timeline**: nút "＋ Thêm ghi chú" (và ô nhập khi thêm) nằm TRONG cột note, căn "＋"
   thẳng hàng với CHẤM của các note phía trên — đã đo `btnLeft == (dot của note)`.
 

@@ -2038,7 +2038,7 @@ function renderDetailNotes(c) {
         <span class="note-bullet">•</span>
         <span class="note-badge">Tự động</span>
         <span class="note-text">${escapeHtml(autoEntry.note)}</span>
-        ${autoEntry.at ? `<span class="note-meta">${escapeHtml(formatLogTime(autoEntry.at))}</span>` : ''}
+        ${autoEntry.at ? `<span class="note-right"><span class="note-meta">${escapeHtml(formatLogTime(autoEntry.at))}</span></span>` : ''}
       </div>`;
   }
   // Note tự nhập xếp sau, mới nhất ở trên (db lưu unshift), có ngày giờ + sửa/xoá.
@@ -2059,8 +2059,7 @@ function renderDetailNotes(c) {
       html += `<div class="note-item">
           <span class="note-bullet">•</span>
           <span class="note-text">${escapeHtml(n.text || '')}</span>
-          <span class="note-meta">${escapeHtml(formatLogTime(n.at))}</span>
-          <button class="note-act" data-note-edit="${at}" title="Sửa">✎</button>
+          <span class="note-right"><span class="note-meta">${escapeHtml(formatLogTime(n.at))}</span><button class="note-act" data-note-edit="${at}" title="Sửa">✎</button></span>
         </div>`;
     }
   }
@@ -2073,7 +2072,30 @@ function renderDetailNotes(c) {
     const entry = manual.find((n) => n.at === editingNoteAt);
     if (inp) { inp.value = entry ? (entry.text || '') : ''; inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }
   }
+  // Quyết định timestamp cùng dòng hay xuống dòng (đo sau khi layout xong).
+  requestAnimationFrame(relayoutNoteTimestamps);
 }
+
+// Với mỗi ghi chú: nếu nội dung + timestamp KHÔNG vừa 1 dòng (text bị wrap >1 dòng khi
+// timestamp nằm cạnh) → cho timestamp XUỐNG DÒNG riêng, canh phải (class .ts-stacked).
+// Nếu vừa → giữ cùng dòng, timestamp dính lề phải. Tính lại khi render/đổi cỡ màn hình.
+function relayoutNoteTimestamps() {
+  const box = $('#detail-notes');
+  if (!box) return;
+  box.querySelectorAll('.note-item').forEach((item) => {
+    item.classList.remove('ts-stacked');
+    const text = item.querySelector('.note-text');
+    const right = item.querySelector('.note-right');
+    if (!text || !right) return;
+    const lh = parseFloat(getComputedStyle(text).lineHeight) || 20;
+    if (text.offsetHeight > lh * 1.5) item.classList.add('ts-stacked');
+  });
+}
+// Đổi cỡ màn hình khi đang xem chi tiết → tính lại vị trí timestamp trong ghi chú
+// (rAF để đo SAU khi trình duyệt reflow theo bề rộng mới).
+window.addEventListener('resize', () => {
+  if (detailId && !$('#detail-screen').hidden) requestAnimationFrame(relayoutNoteTimestamps);
+});
 
 // Vẽ lại card + phần ghi chú chi tiết sau mỗi thay đổi ghi chú.
 async function afterNoteChange() {

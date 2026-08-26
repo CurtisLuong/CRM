@@ -813,10 +813,14 @@ input:focus, select:focus, textarea:focus {
 }
 .note-item + .note-item { border-top: 1px dashed var(--line); }
 .note-bullet { color: var(--seal); font-weight: 700; flex: 0 0 auto; }
-/* Nội dung chiếm phần lớn (đủ dài → đẩy timestamp xuống dòng). */
-.note-text { flex: 1 1 62%; min-width: 0; word-break: break-word; }
-/* Timestamp LUÔN dính lề phải — cùng dòng nếu vừa, xuống dòng canh phải nếu chật. */
-.note-meta { font-size: 11px; color: #9a9a90; white-space: nowrap; font-style: italic; margin-left: auto; }
+/* flex-basis 0 (không phải auto) để chấm bullet + nội dung LUÔN cùng dòng khi note dài;
+   text tự grow đẩy nhóm phải sát lề. */
+.note-text { flex: 1 1 0; min-width: 0; word-break: break-word; }
+/* Nhóm phải (timestamp + nút ✎) — bị text đẩy sát lề phải. Khi note dài, JS thêm
+   .ts-stacked để cả nhóm này XUỐNG DÒNG riêng, vẫn canh phải. */
+.note-right { display: inline-flex; align-items: baseline; gap: 6px; white-space: nowrap; }
+.note-item.ts-stacked .note-right { flex-basis: 100%; justify-content: flex-end; }
+.note-meta { font-size: 11px; color: #9a9a90; white-space: nowrap; font-style: italic; }
 /* Note tự động: chỉ phân biệt NHẸ với note tự nhập bằng bullet đỏ + nhãn "Tự động".
    Màu chữ nội dung dùng CHUNG với note thường (thừa kế màu của .detail-notes-box). */
 .note-badge {
