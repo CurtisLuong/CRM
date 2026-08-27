@@ -421,7 +421,8 @@ const CRM = {
 
   /**
    * Sửa RIÊNG note của 1 mốc trong lịch sử chăm sóc (nhận diện mốc theo `at`).
-   * KHÔNG đụng stage, at, updated_at hay care_stage_updated_at — chỉ đổi note.
+   * KHÔNG đụng stage, at, updated_at hay care_stage_updated_at (giữ nguyên sort). CHỈ đổi
+   * note + đánh dấu `edited_at` = giờ sửa (để card tính "Cập nhật" theo hoạt động ghi chú).
    */
   async updateCareHistoryNote(id, at, note) {
     const existing = (await localGetAll()).find((r) => r.id === id);
@@ -429,7 +430,7 @@ const CRM = {
     const history = Array.isArray(existing.care_stage_history) ? existing.care_stage_history.slice() : [];
     const idx = history.findIndex((h) => h.at === at);
     if (idx === -1) return;
-    history[idx] = { ...history[idx], note: note || null };
+    history[idx] = { ...history[idx], note: note || null, edited_at: new Date().toISOString() };
     const record = { ...existing, care_stage_history: history };
     await localPut(record);
     // Đồng bộ CHỈ cột care_stage_history → không làm nhảy timestamp/sort nào.

@@ -6,6 +6,36 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-26 — Card "Cập nhật" đổi theo hoạt động GHI CHÚ (thay vì đổi bậc)
+
+Dòng "Cập nhật ..." trên card khách hàng TRƯỚC dựa vào `care_stage_updated_at` (đổi khi
+đổi care stage). NAY dựa vào lần GHI hoặc SỬA ghi chú trong care timeline gần nhất:
+
+- Thêm helper `lastNoteActivity(care_stage_history)` = mốc lớn nhất của (`at` khi ghi,
+  `edited_at` khi sửa), CHỈ tính entry CÓ ghi chú. Đổi bậc mà không kèm ghi chú → không
+  làm nhảy "Cập nhật". Không có ghi chú nào → fallback `care_stage_updated_at`/`updated_at`.
+- `db.js updateCareHistoryNote` giờ ghi thêm `edited_at = now` vào entry khi sửa note
+  (vẫn KHÔNG đụng `at`/`updated_at`/`care_stage_updated_at` → sort không nhảy). `edited_at`
+  nằm trong JSONB `care_stage_history` nên KHÔNG cần migration.
+- `care_stage_updated_at` giữ nguyên ý nghĩa (đổi bậc) cho dashboard "khách bị bỏ quên",
+  "khách nóng" và thông báo — không đổi.
+
+File: `js/app.js`, `js/db.js`
+
+---
+
+## 2026-08-26 — Nhãn "tự động" chuyển xuống cạnh timestamp (đỡ bó note dài)
+
+Badge "TỰ ĐỘNG" (chữ hoa, viền pill) đứng TRƯỚC nội dung khiến note dài bị bó chiều
+ngang. Nay bỏ badge đầu note; đặt nhãn "tự động" (nhỏ, nghiêng, màu hổ phách) xuống
+CẠNH timestamp ở góc phải (trong `.note-right`, có dấu · ngăn khi có timestamp). Nội
+dung ghi chú tự động giờ chiếm TRỌN chiều ngang; vẫn giữ chữ "tự động" để nhận diện.
+Thay `.note-badge` → `.note-auto-label`.
+
+File: `js/app.js`, `css/style.css`
+
+---
+
 ## 2026-08-26 — Gộp "Bắt đầu đăng ký" vào bậc "Đăng kí mới" (timeline)
 
 Trước đây timeline tách 2 mốc: node tổng hợp "Bắt đầu đăng ký" (tại `registered_at`)

@@ -821,13 +821,11 @@ input:focus, select:focus, textarea:focus {
 .note-right { display: inline-flex; align-items: baseline; gap: 6px; white-space: nowrap; }
 .note-item.ts-stacked .note-right { flex-basis: 100%; justify-content: flex-end; }
 .note-meta { font-size: 11px; color: #9a9a90; white-space: nowrap; font-style: italic; }
-/* Note tự động: chỉ phân biệt NHẸ với note tự nhập bằng bullet đỏ + nhãn "Tự động".
-   Màu chữ nội dung dùng CHUNG với note thường (thừa kế màu của .detail-notes-box). */
-.note-badge {
-  font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .3px;
-  color: var(--seal); background: #fff; border: 1px solid var(--line);
-  border-radius: 100px; padding: 1px 7px; flex-shrink: 0;
-}
+/* Note tự động: nhãn "tự động" đưa xuống CẠNH timestamp (góc phải) thay vì badge ở đầu
+   → nội dung chiếm trọn chiều ngang (đỡ bó note dài). Nhãn nhỏ, nghiêng, màu hổ phách.
+   Dấu · ngăn với timestamp chỉ hiện khi có timestamp theo sau. */
+.note-auto-label { font-size: 11px; color: #a88a4e; font-style: italic; white-space: nowrap; flex: 0 0 auto; }
+.note-auto-label:not(:last-child)::after { content: '·'; margin-left: 6px; color: #c9c2b2; }
 /* Nút sửa ✎ / xoá ✕ cạnh mỗi ghi chú tự nhập */
 .note-act {
   border: none; background: transparent; cursor: pointer;

@@ -150,6 +150,21 @@ function autoNoteFromHistory(history) {
   return e ? e.note : null;
 }
 
+// Thời điểm gần nhất 1 GHI CHÚ trong care timeline được GHI hoặc SỬA. Ghi = mốc `at`
+// của entry; Sửa = `edited_at` (đặt lúc sửa). Chỉ tính entry CÓ ghi chú. Dùng cho dòng
+// "Cập nhật ..." trên card — thay cho care_stage_updated_at (vốn đổi khi đổi bậc).
+function lastNoteActivity(history) {
+  if (!Array.isArray(history)) return null;
+  let max = null;
+  for (const h of history) {
+    if (!h || !(h.note && String(h.note).trim())) continue;
+    for (const t of [h.at, h.edited_at]) {
+      if (t && (!max || t > max)) max = t;
+    }
+  }
+  return max;
+}
+
 // Màu từng bậc (đỏ đất → xanh lá: càng về sau càng "chín"). Giữ nguyên color scheme
 // cũ theo VỊ TRÍ bậc. Bậc 'Loại' = ĐỎ (kèm dấu ✕) để nổi bật là khách bị loại.
 const CARE_STAGE_COLORS = {
@@ -814,9 +829,9 @@ function renderList() {
     const stagePill = isDropped
       ? `<span class="stage-pill is-dropped" title="${escapeHtml(careLabel(c.care_stage))}"><span class="sp-xmark">✕</span><span class="sp-name">${escapeHtml(careLabel(c.care_stage))}</span></span>`
       : `<span class="stage-pill" style="--ring:${ringColor}; --pct:${ringPct}" title="${escapeHtml(careLabel(c.care_stage))}"><span class="sp-ring"></span><span class="sp-frac">${level}/7</span><span class="sp-name">${escapeHtml(careLabel(c.care_stage))}</span></span>`;
-    // Timestamp phản ánh lần đổi Tiến độ chăm sóc cuối (không phải mọi lần sửa).
-    // Dòng cũ chưa có care_stage_updated_at thì tạm dùng updated_at.
-    const updated = timeAgo(c.care_stage_updated_at || c.updated_at);
+    // Timestamp "Cập nhật" = lần GHI/SỬA ghi chú care timeline gần nhất (không phải lần
+    // đổi bậc). Không có ghi chú nào → tạm dùng care_stage_updated_at / updated_at.
+    const updated = timeAgo(lastNoteActivity(c.care_stage_history) || c.care_stage_updated_at || c.updated_at);
     const menhShort = c.menh ? c.menh.split(' — ')[0] : ''; // "Mệnh Kim" (bỏ nạp âm dài phía sau)
     // Link Zalo: web (http) mở tab mới; app native (zalo://) mở app tại chỗ, không target.
     const zaloHref = zaloLink(c.phone);
@@ -2039,9 +2054,8 @@ function renderDetailNotes(c) {
   if (autoEntry) {
     html += `<div class="note-item note-auto">
         <span class="note-bullet">•</span>
-        <span class="note-badge">Tự động</span>
         <span class="note-text">${escapeHtml(autoEntry.note)}</span>
-        ${autoEntry.at ? `<span class="note-right"><span class="note-meta">${escapeHtml(formatLogTime(autoEntry.at))}</span></span>` : ''}
+        <span class="note-right"><span class="note-auto-label">tự động</span>${autoEntry.at ? `<span class="note-meta">${escapeHtml(formatLogTime(autoEntry.at))}</span>` : ''}</span>
       </div>`;
   }
   // Note tự nhập xếp sau, mới nhất ở trên (db lưu unshift), có ngày giờ + sửa/xoá.
