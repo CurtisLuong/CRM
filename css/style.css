@@ -1070,36 +1070,38 @@ dialog#form-modal::backdrop { background: rgba(20, 30, 30, 0.5); }
    Màu bậc do JS bơm vào (biến --intr-color + nền gradient inline), khớp
    INTEREST_TIERS trong app.js. Nguội #8b93a0 / Ấm #e8a33d / Nóng #c94f3e /
    Rất nóng #a8302a. */
-.interest-readout { display: flex; align-items: center; gap: 8px; }
-#interest-output { font-weight: 700; font-size: 15px; color: #3a3a34; }
+.interest-readout { display: flex; align-items: center; gap: 6px; }
+/* Chữ % cùng cỡ + độ đậm với nhãn "Mức độ quan tâm" (13px, thường). */
+#interest-output { font-weight: 400; font-size: 13px; color: #4a4a42; }
 .interest-tier-badge {
-  font-size: 12px; font-weight: 700; line-height: 1; color: #fff;
-  padding: 3px 10px; border-radius: 999px;
+  font-size: 11px; font-weight: 600; line-height: 1; color: #fff;
+  padding: 2px 7px; border-radius: 999px;
   background: #8b93a0; /* mặc định Nguội; JS ghi đè theo bậc */
 }
 /* Slider: bỏ giao diện mặc định để tự tô track + thumb theo màu bậc.
-   Nền track (linear-gradient) set inline trong JS; ở đây chỉ lo hình dạng. */
+   Nền track (linear-gradient) set inline trong JS; ở đây chỉ lo hình dạng.
+   Track mảnh (4px); thumb vừa đủ để bấm/kéo. */
 .interest-range {
   -webkit-appearance: none; appearance: none;
-  width: 100%; height: 8px; border-radius: 999px;
+  width: 100%; height: 4px; border-radius: 999px;
   background: #e5e5e5; /* fallback trước khi JS bơm gradient */
-  outline: none; cursor: pointer; margin: 2px 0;
+  outline: none; cursor: pointer; margin: 4px 0;
 }
 .interest-range::-webkit-slider-thumb {
   -webkit-appearance: none; appearance: none;
-  width: 20px; height: 20px; border-radius: 50%;
+  width: 14px; height: 14px; border-radius: 50%;
   background: var(--intr-color, #8b93a0);
-  border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  border: 2px solid #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
   cursor: pointer;
 }
 .interest-range::-moz-range-thumb {
-  width: 20px; height: 20px; border-radius: 50%;
+  width: 14px; height: 14px; border-radius: 50%;
   background: var(--intr-color, #8b93a0);
-  border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  border: 2px solid #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
   cursor: pointer;
 }
 /* Firefox: track dùng nền gradient inline; ẩn viền mặc định. */
-.interest-range::-moz-range-track { background: transparent; height: 8px; border-radius: 999px; }
+.interest-range::-moz-range-track { background: transparent; height: 4px; border-radius: 999px; }
 /* Viền section đậm hơn ~50% so với viền field (field: 1px #E4DFD3) → dày 1.5px +
    màu taupe đậm hơn, đủ để mắt phân biệt khung section với khung của từng field. */
 fieldset { border: 1.5px solid #C7BEA9; border-radius: 8px; padding: 12px; }
