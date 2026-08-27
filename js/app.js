@@ -687,8 +687,8 @@ function customerSearchBlob(c) {
   const cached = _searchBlobCache.get(c);
   if (cached && cached.key === key) return cached.blob;
   const parts = [
-    c.phone, c.full_name, c.gender, c.dob, c.dob ? formatDate(c.dob) : '',
-    c.menh, c.marital_status, c.occupation, c.income, c.residence,
+    c.phone, c.full_name, c.gender, c.dob, c.dob ? formatDob(c.dob) : '',
+    c.menh, c.cung, c.marital_status, c.occupation, c.income, c.residence,
     c.apt_type, c.apt_code, c.building_code, c.care_stage, c.contact_status,
     sourceDisplay(c.source),
     c.apt_price != null ? String(c.apt_price) : '',
@@ -1064,7 +1064,7 @@ function openForm(id) {
   f.phone.value = c.phone || '';
   f.full_name.value = c.full_name || '';
   f.gender.value = c.gender || '';
-  f.dob.value = c.dob || '';
+  setDobInput(c.dob); // nạp ngày sinh vào 3 đoạn dd/MM/YYYY + preview Mệnh/Cung
   f.marital_status.value = c.marital_status || '';
   f.occupation.value = c.occupation || '';
   f.income.value = c.income || '';
@@ -1132,7 +1132,6 @@ function openForm(id) {
   $('#form-doc-file').value = '';
   if (id) loadFormDocs(id);
 
-  updateMenhPreview();
   $('#form-modal').showModal();
 }
 
@@ -1180,22 +1179,109 @@ function closeForm() {
   editingId = null;
 }
 
-function updateMenhPreview() {
-  const dob = $('#customer-form').dob.value;
+// ==================== Ô NGÀY SINH dd/MM/YYYY (1 ô, tự nhảy đoạn) ====================
+// 3 đoạn input (ngày/tháng/năm) trông như 1 ô. Năm bỏ trống / <4 số hợp lệ → partial
+// ('--MM-DD', chỉ Cung). Đủ ngày+tháng+năm → 'YYYY-MM-DD' (Mệnh + Cung).
+const DOB_DIM = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+function dobMaxDay(m, y) {
+  if (!m) return 31;
+  if (m === 2) return (!y) ? 29 : (((y % 4 === 0 && y % 100 !== 0) || y % 400 === 0) ? 29 : 28);
+  return DOB_DIM[m - 1];
+}
+function readDobInput() {
+  const dd = +$('#dob-day').value || 0, mm = +$('#dob-mon').value || 0;
+  const ys = $('#dob-year').value, yy = (ys.length === 4) ? +ys : 0;
+  return { dd, mm, ys, yy };
+}
+// Chuỗi dob để LƯU, hoặc null nếu chưa đủ / không hợp lệ.
+function buildDobFromInput() {
+  const { dd, mm, yy } = readDobInput();
+  if (!(dd >= 1 && dd <= 31) || !(mm >= 1 && mm <= 12) || dd > dobMaxDay(mm, yy)) return null;
+  const md = ('0' + mm).slice(-2) + '-' + ('0' + dd).slice(-2);
+  const nowY = new Date().getFullYear();
+  if (yy && yy >= 1900 && yy <= nowY) return yy + '-' + md;
+  return '--' + md; // partial (không năm hợp lệ)
+}
+// Nạp dob (chuỗi) vào 3 đoạn input.
+function setDobInput(dobStr) {
+  const p = window.LunarUtil.parseDob(dobStr);
+  if (!p) { $('#dob-day').value = ''; $('#dob-mon').value = ''; $('#dob-year').value = ''; }
+  else {
+    $('#dob-day').value = ('0' + p.day).slice(-2);
+    $('#dob-mon').value = ('0' + p.month).slice(-2);
+    $('#dob-year').value = p.year ? String(p.year) : '';
+  }
+  updateDobDerived();
+}
+// Cập nhật lỗi + preview Mệnh/Cung theo giá trị đang gõ.
+function updateDobDerived() {
+  const { dd, mm, ys, yy } = readDobInput();
+  const nowY = new Date().getFullYear();
+  let msg = '';
+  if (dd && (dd < 1 || dd > 31)) msg = 'Ngày phải 1–31.';
+  else if (mm && (mm < 1 || mm > 12)) msg = 'Tháng phải 1–12.';
+  else if (dd && mm && dd > dobMaxDay(mm, yy)) msg = 'Tháng ' + mm + (mm === 2 && !yy ? ' tối đa 29 ngày' : ' chỉ có ' + dobMaxDay(mm, yy) + ' ngày') + '.';
+  else if (ys.length === 4 && (yy < 1900 || yy > nowY)) msg = 'Năm phải 1900–' + nowY + '.';
+  $('#dob-box').classList.toggle('invalid', !!msg);
+  $('#dob-err').textContent = msg;
+  const dob = buildDobFromInput();
+  const cung = dob ? window.LunarUtil.calcCungFromDOB(dob) : '';
   const menh = dob ? window.LunarUtil.calcMenhFromSolarDOB(dob) : '';
-  $('#menh-preview').textContent = menh || '— nhập ngày sinh để tính mệnh —';
+  $('#cung-preview').textContent = cung || '—';
+  $('#menh-preview').textContent = menh || (cung ? '— (cần đủ năm sinh)' : '—');
+}
+// Gắn hành vi gõ cho 3 đoạn (gọi 1 lần lúc init).
+function wireDobInput() {
+  const d = $('#dob-day'), m = $('#dob-mon'), y = $('#dob-year');
+  if (!d) return;
+  const dg = (el) => { el.value = el.value.replace(/\D/g, ''); return el.value; };
+  d.addEventListener('input', () => {
+    let v = dg(d).slice(0, 2);
+    if (v.length === 1 && +v > 3) { d.value = '0' + v; m.focus(); updateDobDerived(); return; } // 4–9 → 0X
+    if (v.length === 2) { const n = +v; if (n < 1 || n > 31) v = v[0]; else { d.value = v; m.focus(); updateDobDerived(); return; } }
+    d.value = v; updateDobDerived();
+  });
+  m.addEventListener('input', () => {
+    let v = dg(m).slice(0, 2);
+    if (v.length === 1 && +v > 1) { m.value = '0' + v; y.focus(); updateDobDerived(); return; } // 2–9 → 0X
+    if (v.length === 2) { const n = +v; if (n < 1 || n > 12) v = v[0]; else { m.value = v; y.focus(); updateDobDerived(); return; } }
+    m.value = v; updateDobDerived();
+  });
+  y.addEventListener('input', () => { y.value = dg(y).slice(0, 4); updateDobDerived(); });
+  // Tab: 1 số → tự đệm 0 rồi nhảy. Backspace ở ô rỗng → về đoạn trước.
+  d.addEventListener('keydown', (e) => { if (e.key === 'Tab' && !e.shiftKey && d.value.length === 1) { e.preventDefault(); d.value = '0' + d.value; m.focus(); updateDobDerived(); } });
+  m.addEventListener('keydown', (e) => {
+    if (e.key === 'Tab' && !e.shiftKey && m.value.length === 1) { e.preventDefault(); m.value = '0' + m.value; y.focus(); updateDobDerived(); }
+    if (e.key === 'Backspace' && m.value === '') { e.preventDefault(); d.focus(); }
+  });
+  y.addEventListener('keydown', (e) => { if (e.key === 'Backspace' && y.value === '') { e.preventDefault(); m.focus(); } });
+  d.addEventListener('blur', () => { if (d.value.length === 1) d.value = '0' + d.value; updateDobDerived(); });
+  m.addEventListener('blur', () => { if (m.value.length === 1) m.value = '0' + m.value; updateDobDerived(); });
+}
+// Hiển thị ngày sinh: full → DD/MM/YYYY, partial → DD/MM.
+function formatDob(dobStr) {
+  const p = window.LunarUtil.parseDob(dobStr);
+  if (!p) return '';
+  const dd = ('0' + p.day).slice(-2), mm = ('0' + p.month).slice(-2);
+  return p.year ? `${dd}/${mm}/${p.year}` : `${dd}/${mm}`;
 }
 
 async function handleFormSubmit(e) {
   e.preventDefault();
   const f = $('#customer-form');
-  const dob = f.dob.value || null;
+  // Chặn lưu khi ngày sinh đang nhập sai (viền đỏ) — có nhập nhưng không hợp lệ.
+  if ($('#dob-box').classList.contains('invalid')) {
+    alert('Ngày sinh không hợp lệ — kiểm tra lại (ngày/tháng/năm).');
+    return;
+  }
+  const dob = buildDobFromInput(); // 'YYYY-MM-DD' | '--MM-DD' | null
   const payload = {
     phone: f.phone.value.trim(),
     full_name: f.full_name.value.trim(),
     gender: f.gender.value || null,
     dob,
-    menh: dob ? window.LunarUtil.calcMenhFromSolarDOB(dob) : null,
+    menh: dob ? (window.LunarUtil.calcMenhFromSolarDOB(dob) || null) : null,
+    cung: dob ? (window.LunarUtil.calcCungFromDOB(dob) || null) : null,
     marital_status: f.marital_status.value || null,
     occupation: f.occupation.value || null,
     income: f.income.value.trim() || null,
@@ -1381,7 +1467,8 @@ function buildVCard(c) {
   const fn = (c.full_name || '(chưa có tên)') + (c.apt_type ? ' - ' + c.apt_type : '');
   const lines = ['BEGIN:VCARD', 'VERSION:3.0', 'N:;' + vcardEsc(fn) + ';;;', 'FN:' + vcardEsc(fn)];
   if (c.phone) lines.push('TEL;TYPE=CELL:' + vcardEsc(c.phone));
-  if (c.dob && /^\d{4}-\d{2}-\d{2}$/.test(c.dob)) lines.push('BDAY:' + c.dob);
+  // BDAY chấp nhận cả 'YYYY-MM-DD' (đủ) lẫn '--MM-DD' (không năm) theo RFC 6350.
+  if (c.dob && window.LunarUtil.parseDob(c.dob)) lines.push('BDAY:' + c.dob);
   if (c.residence) lines.push('ADR;TYPE=HOME:;;;' + vcardEsc(c.residence) + ';;;'); // thường trú → phần "tỉnh/thành"
   const note = buildContactNote(c);
   if (note) lines.push('NOTE:' + vcardEsc(note));
@@ -1450,7 +1537,7 @@ function applyOcrToForm(d) {
   // Tên: viết hoa chữ ĐẦU mỗi từ ("ngo thi minh thu" / "NGO THI MINH THU" → "Ngo Thi Minh Thu").
   if (d.full_name) f.full_name.value = toTitleCaseName(d.full_name);
   if (['nam', 'nữ', 'khác'].includes(d.gender)) f.gender.value = d.gender;
-  if (d.dob && /^\d{4}-\d{2}-\d{2}$/.test(d.dob)) { f.dob.value = d.dob; updateMenhPreview(); }
+  if (d.dob && /^\d{4}-\d{2}-\d{2}$/.test(d.dob)) setDobInput(d.dob);
   if (['đã kết hôn', 'chưa kết hôn'].includes(d.marital_status)) f.marital_status.value = d.marital_status;
   if (OCCUPATIONS.includes(d.occupation)) f.occupation.value = d.occupation;
   if (d.income) f.income.value = String(d.income).trim();
@@ -1849,8 +1936,9 @@ function openDetail(id) {
   renderInlineKV($('#detail-personal'), [
     ['Giới tính', c.gender ? capitalize(c.gender) : null],
     ['Hôn nhân', c.marital_status ? capitalize(c.marital_status) : null],
-    ['Ngày sinh', c.dob ? formatDate(c.dob) : null],
+    ['Ngày sinh', c.dob ? formatDob(c.dob) : null],
     ['Mệnh', c.menh ? c.menh.replace(/^Mệnh\s+/, '') : null],
+    ['Cung', c.cung || null],
     ['Công việc', c.occupation || null],
     ['Thu nhập', c.income || null],
     ['Thường trú', c.residence || null],
@@ -3329,7 +3417,7 @@ document.addEventListener('DOMContentLoaded', () => {
   $('#customer-form').addEventListener('submit', handleFormSubmit);
   $('#cancel-form-btn').addEventListener('click', closeForm);
   $('#delete-customer-btn').addEventListener('click', () => { if (editingId) confirmDelete(editingId); });
-  $('#customer-form').dob.addEventListener('input', updateMenhPreview);
+  wireDobInput(); // ô ngày sinh dd/MM/YYYY (tự nhảy đoạn + preview Mệnh/Cung)
   $('#customer-form').care_stage.addEventListener('change', onCareStageChange);
   $('#customer-form').apt_type_select.addEventListener('change', toggleAptOther);
 

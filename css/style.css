@@ -1070,6 +1070,26 @@ fieldset { border: 1.5px solid #C7BEA9; border-radius: 8px; padding: 12px; }
 legend { font-size: 12px; color: var(--ink); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; padding: 0 6px; }
 .menh-preview { padding: 10px 12px; background: #f2e8da; border-radius: 8px; font-size: 13px; color: #7a5a2f; }
 
+/* Ô NGÀY SINH dd/MM/YYYY: 3 đoạn input trông như 1 ô, tự nhảy đoạn (xem wireDobInput). */
+.seg-box {
+  display: flex; align-items: center; gap: 1px; justify-content: flex-start; /* full-width như ô khác, nội dung căn trái */
+  border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; background: #fff;
+  color: var(--ink); font-variant-numeric: tabular-nums; letter-spacing: .3px;
+}
+.seg-box:focus-within { outline: 2px solid var(--teal-light); outline-offset: 1px; }
+.seg-box.invalid { border-color: var(--seal); }
+.seg-box .seg {
+  border: none; padding: 0; margin: 0; background: transparent; border-radius: 0;
+  text-align: center; font: inherit; color: var(--ink);
+}
+.seg-box .seg:focus { outline: none; }
+.seg-box .seg-d, .seg-box .seg-m { width: 2.2ch; }
+.seg-box .seg-y { width: 4.2ch; }
+.seg-box .seg::placeholder { color: #c4bda6; }
+.seg-box .sep { color: #b0a894; }
+.dob-err { font-size: 12px; color: var(--seal); }
+.dob-err:empty { display: none; }
+
 /* Trường "Dự án" (multi-select bằng chip) */
 .proj-field { display: flex; flex-direction: column; gap: 6px; }
 .proj-head { display: flex; align-items: center; justify-content: space-between; }

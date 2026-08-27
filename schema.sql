@@ -44,8 +44,9 @@ create table if not exists public.customers (
   phone text not null,
   full_name text not null,
   gender text check (gender in ('nam','nữ','khác')),
-  dob date,
-  menh text,                          -- tính sẵn ở client, lưu lại để search/filter nhanh
+  dob text,                           -- 'YYYY-MM-DD' (đủ) HOẶC '--MM-DD' (chỉ ngày+tháng, không năm) — xem add_cung_partial_dob.sql
+  menh text,                          -- tính sẵn ở client (cần đủ năm), lưu lại để search/filter nhanh
+  cung text,                          -- cung hoàng đạo, tính từ ngày+tháng (không cần năm)
   marital_status text check (marital_status in ('đã kết hôn','chưa kết hôn')),
   income text,
   residence text,

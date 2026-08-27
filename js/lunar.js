@@ -198,14 +198,47 @@ function getMenh(lunarYear) {
  * vd: "Mệnh Kim — Hải Trung Kim (Ất Sửu, 1985)"
  */
 function calcMenhFromSolarDOB(isoDateStr) {
-  if (!isoDateStr) return '';
-  const [y, m, d] = isoDateStr.split('-').map(Number);
-  if (!y || !m || !d) return '';
-  const lunar = convertSolar2Lunar(d, m, y, 7);
+  const p = parseDob(isoDateStr);
+  if (!p || !p.year) return ''; // Mệnh CẦN năm sinh (partial '--MM-DD' → không có Mệnh)
+  const lunar = convertSolar2Lunar(p.day, p.month, p.year, 7);
   const menh = getMenh(lunar.year);
   if (!menh) return '';
   return `Mệnh ${menh.element} — ${menh.name} (${menh.canChi}, ${lunar.year} AL)`;
 }
 
+// ---- CUNG (cung hoàng đạo phương Tây) — CHỈ cần ngày + tháng (không cần năm) ----
+const CUNG_NAMES = ['Ma Kết', 'Bảo Bình', 'Song Ngư', 'Bạch Dương', 'Kim Ngưu', 'Song Tử',
+  'Cự Giải', 'Sư Tử', 'Xử Nữ', 'Thiên Bình', 'Thần Nông', 'Nhân Mã'];
+const CUNG_LAST_DAY = [19, 18, 20, 19, 20, 20, 22, 22, 22, 22, 21, 21]; // ngày cuối của cung "gốc" mỗi tháng
+function calcCungFromDayMonth(day, month) {
+  const d = Number(day), m = Number(month);
+  if (!(d >= 1 && d <= 31) || !(m >= 1 && m <= 12)) return '';
+  const idx = (d <= CUNG_LAST_DAY[m - 1]) ? (m - 1) : (m % 12);
+  return CUNG_NAMES[idx];
+}
+
+// Tách ngày sinh (chuỗi 'YYYY-MM-DD' hoặc '--MM-DD') → {day, month, year|null}. null nếu lỗi.
+function parseDob(dobStr) {
+  if (!dobStr || typeof dobStr !== 'string') return null;
+  let yr = null, mo, da;
+  if (dobStr.slice(0, 2) === '--') {            // partial '--MM-DD'
+    const p = dobStr.slice(2).split('-');
+    mo = Number(p[0]); da = Number(p[1]);
+  } else {                                       // full 'YYYY-MM-DD'
+    const p = dobStr.split('-');
+    if (p.length !== 3) return null;
+    yr = Number(p[0]) || null; mo = Number(p[1]); da = Number(p[2]);
+  }
+  if (!(mo >= 1 && mo <= 12) || !(da >= 1 && da <= 31)) return null;
+  return { day: da, month: mo, year: yr };
+}
+function calcCungFromDOB(dobStr) {
+  const p = parseDob(dobStr);
+  return p ? calcCungFromDayMonth(p.day, p.month) : '';
+}
+
 // export cho app.js dùng
-window.LunarUtil = { convertSolar2Lunar, getCanChi, getMenh, calcMenhFromSolarDOB };
+window.LunarUtil = {
+  convertSolar2Lunar, getCanChi, getMenh, calcMenhFromSolarDOB,
+  calcCungFromDayMonth, calcCungFromDOB, parseDob,
+};

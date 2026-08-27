@@ -6,6 +6,31 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-26 — Ngày sinh partial (chỉ ngày+tháng) + thuộc tính Cung
+
+- **Ngày sinh partial:** cột `dob` đổi `date` → **text**. Lưu `'YYYY-MM-DD'` (đủ) hoặc
+  `'--MM-DD'` (chỉ ngày+tháng, không năm — chuẩn vCard).
+- **Cung** (mới): thêm cột `cung` + hàm `calcCungFromDayMonth`/`calcCungFromDOB`/`parseDob`
+  trong `lunar.js` (12 cung, chỉ cần ngày+tháng). Đủ ngày/tháng/năm → **Mệnh + Cung**; chỉ
+  ngày/tháng → **Cung** (không Mệnh). `calcMenhFromSolarDOB` nay cần đủ năm (partial → '').
+- **Ô nhập mới:** thay `<input type=date>` bằng ô **dd/MM/YYYY một ô** (3 đoạn), tự nhảy
+  đoạn (2 số hoặc Tab; số đầu >3 ngày / >1 tháng → tự đệm 0), Tab/blur đệm 0, Backspace lùi
+  đoạn; ràng buộc ngày 1–31, tháng 1–12, số ngày theo tháng (nhuận), năm 1900–nay; năm bỏ
+  trống/<4 số = partial. Sai → viền đỏ + báo lỗi + chặn Lưu. (`wireDobInput`/`updateDobDerived`/
+  `buildDobFromInput`/`setDobInput`/`formatDob`.) Ô full-width như các field khác, nội dung
+  dd/MM/YYYY căn trái.
+- **Thứ tự form** (thông tin cá nhân): SĐT·Tên / Giới tính·Ngày sinh / Mệnh·Cung /
+  Hôn nhân·Thường trú / Công việc·Thu nhập.
+- Hiển thị: chi tiết thêm dòng "Cung"; "Ngày sinh" hiện `DD/MM/YYYY` (đủ) hoặc `DD/MM`
+  (partial). Search + vCard BDAY hỗ trợ cả 2 dạng. OCR trả full date → điền như cũ.
+- **DB (CẦN CHẠY `add_cung_partial_dob.sql`):** `alter column dob type text` + `add column
+  cung`. Không mất dữ liệu; chạy TRƯỚC/ngay khi deploy.
+
+File: `add_cung_partial_dob.sql` (migration cần chạy), `schema.sql`, `js/lunar.js`,
+`index.html`, `js/app.js`, `css/style.css`
+
+---
+
 ## 2026-08-26 — Sắp xếp card khớp countdown (chỉ đổi khi care timeline có hoạt động)
 
 **Lỗi:** đổi avatar / thêm ghi chú chung / sửa field bất kỳ đều bump `updated_at` → sắp
