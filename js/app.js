@@ -230,6 +230,24 @@ function interestTier(pct) {
   return INTEREST_TIERS.find((t) => v >= t.min) || INTEREST_TIERS[INTEREST_TIERS.length - 1];
 }
 
+// Cập nhật giao diện "Mức độ quan tâm" trong form: chữ %, nhãn bậc, và MÀU thanh
+// trượt (track đã đạt + thumb) đổi theo bậc THỜI GIAN THỰC. Gọi ở mọi nơi set giá
+// trị slider (mở form, đổi bậc chăm sóc, OCR, kéo tay) để màu luôn khớp giá trị.
+function updateInterestUI(pct) {
+  const v = Math.max(0, Math.min(100, Math.round(Number(pct) || 0)));
+  const tier = interestTier(v);
+  const out = $('#interest-output');
+  if (out) out.textContent = v + '%';
+  const badge = $('#interest-tier-badge');
+  if (badge) { badge.textContent = tier.label; badge.style.background = tier.color; }
+  const sl = $('#customer-form').interest_level;
+  if (sl) {
+    // Phần đã đạt (0→v%) tô màu bậc, phần còn lại xám nhạt.
+    sl.style.background = `linear-gradient(to right, ${tier.color} 0%, ${tier.color} ${v}%, #e5e5e5 ${v}%, #e5e5e5 100%)`;
+    sl.style.setProperty('--intr-color', tier.color);
+  }
+}
+
 // Loại căn có sẵn (select + "Khác" tự nhập, không lưu vào danh sách chung).
 const APT_TYPES = ['1N-1WC', '1N+, 1WC', '2N-2WC', '2N+, 2WC', '3N-2WC'];
 
@@ -1096,7 +1114,7 @@ function openForm(id) {
   }
   const advDetails = $('#form-advanced'); if (advDetails) advDetails.open = false;
   f.interest_level.value = c.interest_level ?? 50;
-  $('#interest-output').textContent = (c.interest_level ?? 50) + '%';
+  updateInterestUI(f.interest_level.value);
   // Khách MỚI mặc định bậc 'Đăng kí mới'; khách cũ giữ bậc đang có.
   f.care_stage.value = c.care_stage || (id ? '' : CARE_STAGE_DEFAULT);
   f.contact_status.value = c.contact_status || '';
@@ -1172,7 +1190,7 @@ function onCareStageChange() {
   if (Object.prototype.hasOwnProperty.call(STAGE_INTEREST, stage)) {
     const v = STAGE_INTEREST[stage];
     f.interest_level.value = v;
-    $('#interest-output').textContent = v + '%';
+    updateInterestUI(v);
   }
 }
 
@@ -1567,7 +1585,7 @@ function applyOcrToForm(d) {
   if (d.interest_level != null && !isNaN(Number(d.interest_level))) {
     const lv = Math.max(0, Math.min(100, Math.round(Number(d.interest_level))));
     f.interest_level.value = lv;
-    $('#interest-output').textContent = lv + '%';
+    updateInterestUI(lv);
   }
   // Dự án: chỉ chọn tên trùng danh sách có sẵn (tên lạ để user tự thêm).
   if (Array.isArray(d.projects)) {
@@ -3527,7 +3545,7 @@ document.addEventListener('DOMContentLoaded', () => {
   $('#proj-add-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('#proj-add-ok').click(); } });
   $('#proj-add-cancel').addEventListener('click', () => { $('#proj-add-row').hidden = true; $('#proj-add-btn').hidden = false; });
   $('#customer-form').interest_level.addEventListener('input', (e) => {
-    $('#interest-output').textContent = e.target.value + '%';
+    updateInterestUI(e.target.value);
   });
 
   $('#search-input').addEventListener('input', () => {

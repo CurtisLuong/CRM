@@ -477,8 +477,12 @@
             <span id="care-stage-note-label">Ghi chú cho lần đổi tiến độ này</span>
             <input name="care_stage_note" type="text" placeholder="vd: Khách không nghe máy, hẹn gọi lại chiều mai..." />
           </label>
-          <label class="span-2">Mức độ quan tâm: <span id="interest-output">50%</span>
-            <input name="interest_level" type="range" min="0" max="100" value="50" />
+          <label class="span-2">Mức độ quan tâm:
+            <span class="interest-readout">
+              <span id="interest-output">50%</span>
+              <span id="interest-tier-badge" class="interest-tier-badge">Ấm</span>
+            </span>
+            <input name="interest_level" type="range" min="0" max="100" value="50" class="interest-range" />
           </label>
           <label class="span-2">Ghi chú
             <textarea name="new_note" rows="3" placeholder="Ghi chú lúc tạo khách (sẽ thành 1 mục ghi chú)..."></textarea>

@@ -6,6 +6,18 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-27 — Slider "Mức độ quan tâm" đổi màu thời gian thực + nhãn bậc
+
+- **Bố cục mới trong form:** dòng "Mức độ quan tâm:" → dòng readout (`[%]` + huy hiệu
+  bậc Nguội/Ấm/Nóng/Rất nóng) → thanh trượt bên dưới.
+- **Slider đổi màu theo bậc:** track (phần đã đạt) + thumb + huy hiệu tô đúng màu bậc
+  theo `INTEREST_TIERS` (Nguội #8b93a0 / Ấm #e8a33d / Nóng #c94f3e / Rất nóng #a8302a),
+  cập nhật ngay khi kéo. Gom vào 1 hàm `updateInterestUI(pct)` dùng chung cho mọi nơi
+  set giá trị slider (mở/sửa form, đổi bậc chăm sóc tự map %, OCR điền, kéo tay).
+- **File:** `index.html` (readout + class slider), `css/style.css` (style `.interest-range`
+  + `.interest-tier-badge`, tô thumb bằng `--intr-color`, nền track gradient inline từ JS),
+  `js/app.js` (hàm `updateInterestUI` + 4 call-site cũ chuyển sang gọi hàm này).
+
 ## 2026-08-26 — Ngày sinh partial (chỉ ngày+tháng) + thuộc tính Cung
 
 - **Ngày sinh partial:** cột `dob` đổi `date` → **text**. Lưu `'YYYY-MM-DD'` (đủ) hoặc
