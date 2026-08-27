@@ -240,6 +240,9 @@ const PHONE_SVG = '<svg class="ic-phone" viewBox="0 0 24 24" aria-hidden="true">
 // Icon đồng hồ nhỏ (SVG inline) — dùng cho pill khoảng thời gian giữa 2 bậc trên timeline.
 const CLOCK_SVG = '<svg class="cs-gap-ic" viewBox="0 0 24 24" width="12" height="12" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 7.5V12l3 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
+// Icon tia sét (SVG inline) — thay cho chấm "•" ở đầu ghi chú TỰ ĐỘNG để làm nổi bật.
+const BOLT_SVG = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M7 2v11h3v9l7-12h-4l4-8z" fill="currentColor"/></svg>';
+
 let sb = null;
 let currentUser = null;
 let allCustomers = [];
@@ -2053,7 +2056,7 @@ function renderDetailNotes(c) {
   // mốc care stage tương ứng, không sửa được.
   if (autoEntry) {
     html += `<div class="note-item note-auto">
-        <span class="note-bullet">•</span>
+        <span class="note-bolt" title="Ghi chú tự động">${BOLT_SVG}</span>
         <span class="note-text">${escapeHtml(autoEntry.note)}</span>
         <span class="note-right"><span class="note-auto-label">tự động</span>${autoEntry.at ? `<span class="note-meta">${escapeHtml(formatLogTime(autoEntry.at))}</span>` : ''}</span>
       </div>`;

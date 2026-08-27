@@ -826,6 +826,8 @@ input:focus, select:focus, textarea:focus {
    Dấu · ngăn với timestamp chỉ hiện khi có timestamp theo sau. */
 .note-auto-label { font-size: 11px; color: #a88a4e; font-style: italic; white-space: nowrap; flex: 0 0 auto; }
 .note-auto-label:not(:last-child)::after { content: '·'; margin-left: 6px; color: #c9c2b2; }
+/* Icon tia sét THAY chấm "•" ở đầu note tự động (nổi bật hơn). Cùng ô như bullet. */
+.note-bolt { flex: 0 0 auto; align-self: flex-start; margin-top: 2px; color: var(--seal); line-height: 0; }
 /* Nút sửa ✎ / xoá ✕ cạnh mỗi ghi chú tự nhập */
 .note-act {
   border: none; background: transparent; cursor: pointer;

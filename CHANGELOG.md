@@ -31,6 +31,9 @@ ngang. Nay bỏ badge đầu note; đặt nhãn "tự động" (nhỏ, nghiêng,
 CẠNH timestamp ở góc phải (trong `.note-right`, có dấu · ngăn khi có timestamp). Nội
 dung ghi chú tự động giờ chiếm TRỌN chiều ngang; vẫn giữ chữ "tự động" để nhận diện.
 Thay `.note-badge` → `.note-auto-label`.
+*(2026-08-26 bổ sung: thêm icon TIA SÉT (`BOLT_SVG`, đỏ son) THAY cho chấm "•" ở đầu
+note tự động — nằm đúng vị trí dot, làm note nổi bật; kết hợp với nhãn "tự động" ở góc
+phải. `.note-bolt` thay `.note-bullet` cho note tự động.)*
 
 File: `js/app.js`, `css/style.css`
 
