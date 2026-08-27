@@ -15,7 +15,8 @@ const DB_NAME = 'crm_khach_hang';
 const DB_VERSION = 1;
 const STORE_CUSTOMERS = 'customers';
 const STORE_QUEUE = 'queue';
-const DOC_BUCKET = 'customer-docs'; // Supabase Storage bucket cho tài liệu khách
+const DOC_BUCKET = 'customer-docs'; // Supabase Storage bucket cho tài liệu khách (PRIVATE)
+const AVATAR_BUCKET = 'customer-avatars'; // bucket PUBLIC riêng cho ảnh đại diện (xem add_avatar_public_bucket.sql)
 
 let _db = null;
 let _supabase = null;
@@ -369,9 +370,10 @@ const CRM = {
     if (error) throw error;
   },
 
-  // ---- ẢNH ĐẠI DIỆN (avatar) — ONLINE-ONLY, lưu cùng bucket với tài liệu ----
-  // File nằm ở '<owner>/<customerId>/avatar-<ts>.<ext>'; đường dẫn lưu ở cột customers.avatar_path
-  // (đồng bộ offline-first qua update()). Xem hiển thị bằng signedDocUrl như tài liệu.
+  // ---- ẢNH ĐẠI DIỆN (avatar) — bucket PUBLIC riêng (customer-avatars) ----
+  // File ở '<owner>/<customerId>/avatar-<ts>.<ext>'; đường dẫn lưu ở cột customers.avatar_path.
+  // Hiển thị bằng PUBLIC URL (đồng bộ, không cần ký, trình duyệt tự cache) → hiện gần như
+  // tức thì, khác tài liệu (private, xem qua signedDocUrl). Xem add_avatar_public_bucket.sql.
 
   /** Đổi/đặt avatar: upload ảnh mới → set avatar_path → xoá file avatar cũ (nếu có). */
   async uploadAvatar(customerId, file) {
@@ -381,14 +383,24 @@ const CRM = {
     const mime = file.type || 'image/jpeg';
     const ext = mime.startsWith('image/') ? (mime.split('/')[1] || 'jpg') : 'jpg';
     const path = `${_currentUserId}/${customerId}/avatar-${Date.now()}.${ext}`;
-    const up = await _supabase.storage.from(DOC_BUCKET).upload(path, file, { contentType: mime, upsert: false });
+    const up = await _supabase.storage.from(AVATAR_BUCKET).upload(path, file, { contentType: mime, upsert: false });
     if (up.error) throw up.error;
     await this.update(customerId, { avatar_path: path }); // ghi vào record (offline-first + đồng bộ)
-    // Dọn file avatar cũ (không chặn nếu lỗi — chỉ là rác nhẹ trong bucket).
+    // Dọn file avatar cũ (không chặn nếu lỗi — chỉ là rác nhẹ trong bucket). File cũ có thể
+    // còn nằm ở bucket tài liệu (trước migrate) → thử xoá ở CẢ 2 bucket cho sạch.
     if (oldPath && oldPath !== path) {
-      try { await _supabase.storage.from(DOC_BUCKET).remove([oldPath]); } catch (e) { console.warn('Xoá avatar cũ lỗi:', e); }
+      for (const b of [AVATAR_BUCKET, DOC_BUCKET]) {
+        try { await _supabase.storage.from(b).remove([oldPath]); } catch (e) { /* bỏ qua */ }
+      }
     }
     return path;
+  },
+
+  /** Public URL của 1 avatar (đồng bộ, không cần mạng để dựng URL). null nếu không có path. */
+  avatarUrl(path) {
+    if (!path || !_supabase) return null;
+    const { data } = _supabase.storage.from(AVATAR_BUCKET).getPublicUrl(path);
+    return (data && data.publicUrl) || null;
   },
 
   /** Gỡ avatar: xoá file + đặt avatar_path = null. */
@@ -396,9 +408,39 @@ const CRM = {
     const existing = (await localGetAll()).find((r) => r.id === customerId);
     const oldPath = existing && existing.avatar_path;
     if (oldPath && this.isOnline() && _supabase) {
-      try { await _supabase.storage.from(DOC_BUCKET).remove([oldPath]); } catch (e) { console.warn('Xoá avatar lỗi:', e); }
+      for (const b of [AVATAR_BUCKET, DOC_BUCKET]) {
+        try { await _supabase.storage.from(b).remove([oldPath]); } catch (e) { /* bỏ qua */ }
+      }
     }
     await this.update(customerId, { avatar_path: null });
+  },
+
+  /**
+   * Migrate 1 lần: chuyển file avatar cũ từ bucket private (customer-docs) sang bucket
+   * public (customer-avatars), GIỮ NGUYÊN path (nên avatar_path không đổi). Idempotent:
+   * file nào không còn ở bucket cũ (đã chuyển / vốn ở bucket mới) → bỏ qua. Chỉ chạy khi
+   * online. Gọi 1 lần sau đăng nhập (app.js đặt cờ localStorage để không lặp).
+   */
+  async migrateAvatarsToPublicBucket() {
+    if (!this.isOnline() || !_supabase) return { moved: 0 };
+    const all = await localGetAll();
+    let moved = 0;
+    for (const c of all) {
+      if (!c.avatar_path) continue;
+      try {
+        // Tải bytes từ bucket cũ (nếu không có ở đó → lỗi → bỏ qua, coi như đã ở bucket mới).
+        const dl = await _supabase.storage.from(DOC_BUCKET).download(c.avatar_path);
+        if (dl.error || !dl.data) continue;
+        const blob = dl.data;
+        const up = await _supabase.storage.from(AVATAR_BUCKET)
+          .upload(c.avatar_path, blob, { contentType: blob.type || 'image/jpeg', upsert: true });
+        if (up.error) continue;
+        // Chuyển xong → xoá file cũ ở bucket private cho sạch (không chặn nếu lỗi).
+        try { await _supabase.storage.from(DOC_BUCKET).remove([c.avatar_path]); } catch (e) { /* bỏ qua */ }
+        moved++;
+      } catch (e) { console.warn('Migrate avatar lỗi:', c.avatar_path, e); }
+    }
+    return { moved };
   },
 
   /** Link ký tạm để xem 1 file (mặc định hết hạn sau 60s). */
@@ -407,16 +449,6 @@ const CRM = {
     const { data, error } = await _supabase.storage.from(DOC_BUCKET).createSignedUrl(storagePath, expires);
     if (error) { console.warn('signedDocUrl lỗi:', error); return null; }
     return data.signedUrl;
-  },
-
-  /** Link ký tạm cho NHIỀU path trong 1 lần gọi (cho avatar trên card). Trả Map(path → url). */
-  async signedDocUrls(paths, expires = 600) {
-    const out = new Map();
-    if (!this.isOnline() || !_supabase || !paths || !paths.length) return out;
-    const { data, error } = await _supabase.storage.from(DOC_BUCKET).createSignedUrls(paths, expires);
-    if (error) { console.warn('signedDocUrls lỗi:', error); return out; }
-    for (const it of (data || [])) { if (it && it.signedUrl && !it.error) out.set(it.path, it.signedUrl); }
-    return out;
   },
 
   /**

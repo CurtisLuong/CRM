@@ -362,6 +362,7 @@ async function onLoggedIn(user) {
   await loadProjectOptions();
   await refreshList();
   hideSplash(); // dữ liệu đã sẵn sàng → ẩn màn hình tải
+  maybeMigrateAvatars(user.id); // chuyển avatar cũ sang bucket public (chạy nền, 1 lần)
   setInterval(async () => {
     await CRM.flushQueue();
     // Nếu lần kéo trước lỗi mạng → thử KÉO LẠI (mạng chập chờn có thể không bắn event
@@ -891,7 +892,6 @@ function renderList() {
     `;
     container.appendChild(card);
   }
-  resolveCardAvatars(); // đổi chữ cái → ảnh cho card có avatar (batch signed URL + cache)
 }
 
 function escapeHtml(s) {
@@ -2276,60 +2276,39 @@ function avatarColor(name) {
   return AVATAR_COLORS[h % AVATAR_COLORS.length];
 }
 
-// ---- Avatar trên CARD (danh sách) ----
-// Nhiều card → cần signed URL cho từng ảnh → cache + BATCH (createSignedUrls) để đỡ gọi mạng.
-const _avatarUrlCache = new Map(); // path → { url, exp(ms) }
-function cachedAvatarUrl(path) {
-  const e = _avatarUrlCache.get(path);
-  return (e && e.exp > Date.now()) ? e.url : null;
+// ---- Avatar trên CARD / CHI TIẾT ----
+// Avatar nằm ở bucket PUBLIC (customer-avatars) → dựng public URL ĐỒNG BỘ (không cần ký,
+// trình duyệt tự cache → hiện gần như tức thì, không nháy chữ cái ở lần sau). Vẽ chữ cái
+// làm NỀN + ảnh phủ lên; ảnh lỗi (offline/thiếu file) → tự ẩn, lộ lại chữ cái.
+function avatarImgTag(path) {
+  const url = CRM.avatarUrl(path);
+  if (!url) return '';
+  return `<img src="${escapeHtml(url)}" alt="" loading="lazy" onerror="this.style.display='none'">`;
 }
-// Markup avatar trên card: LUÔN vẽ chữ cái trước (render nhanh); nếu khách có ảnh → gắn
-// data-avatar-path để resolveCardAvatars() đổi thành ảnh sau (từ cache hoặc batch fetch).
 function cardAvatarMarkup(c) {
-  const cached = c.avatar_path ? cachedAvatarUrl(c.avatar_path) : null;
-  if (cached) return `<div class="card-avatar"><img src="${escapeHtml(cached)}" alt=""></div>`;
-  const attr = c.avatar_path ? ` data-avatar-path="${escapeHtml(c.avatar_path)}"` : ''; // → resolveCardAvatars đổi sang ảnh
-  return `<div class="card-avatar" style="background:${avatarColor(c.full_name || '')}"${attr}>${escapeHtml(lastWordInitial(c.full_name))}</div>`;
+  const bg = avatarColor(c.full_name || '');
+  const letter = escapeHtml(lastWordInitial(c.full_name));
+  const img = c.avatar_path ? avatarImgTag(c.avatar_path) : '';
+  return `<div class="card-avatar" style="background:${bg}">${letter}${img}</div>`;
 }
-function setCardAvatarImg(el, url) {
-  const img = document.createElement('img'); img.src = url; img.alt = '';
-  el.textContent = ''; el.style.background = ''; el.appendChild(img);
-  el.removeAttribute('data-avatar-path');
-}
-async function resolveCardAvatars() {
-  if (!CRM.isOnline()) return;
-  const els = $$('#customer-list .card-avatar[data-avatar-path]');
-  if (!els.length) return;
-  const need = [];
-  for (const el of els) {
-    const p = el.dataset.avatarPath;
-    const url = cachedAvatarUrl(p);
-    if (url) setCardAvatarImg(el, url);
-    else if (!need.includes(p)) need.push(p);
-  }
-  if (!need.length) return;
-  const map = await CRM.signedDocUrls(need, 600);
-  const exp = Date.now() + 590 * 1000;
-  for (const [p, url] of map) _avatarUrlCache.set(p, { url, exp });
-  // Cập nhật những card còn trong trang (có thể đã render lại → query lại).
-  for (const el of $$('#customer-list .card-avatar[data-avatar-path]')) {
-    const url = cachedAvatarUrl(el.dataset.avatarPath);
-    if (url) setCardAvatarImg(el, url);
-  }
-}
-// Vẽ avatar ở trang chi tiết: có avatar_path + online → ảnh (cover); còn lại → chữ cái + màu.
-async function renderDetailAvatar(c) {
+function renderDetailAvatar(c) {
   const el = $('#detail-avatar');
   if (!el) return;
   el.style.background = avatarColor(c.full_name || '');
-  el.textContent = lastWordInitial(c.full_name);
-  if (c.avatar_path && CRM.isOnline()) {
-    const url = await CRM.signedDocUrl(c.avatar_path, 600);
-    if (url && detailId === c.id) { // tránh race khi đổi khách nhanh
-      const img = document.createElement('img'); img.src = url; img.alt = 'Ảnh đại diện';
-      el.textContent = ''; el.style.background = ''; el.appendChild(img);
-    }
-  }
+  el.innerHTML = escapeHtml(lastWordInitial(c.full_name)) + (c.avatar_path ? avatarImgTag(c.avatar_path) : '');
+}
+// Migrate 1 LẦN (theo user + trình duyệt): chuyển file avatar cũ từ bucket private sang
+// bucket public. Chạy NỀN, không chặn UI. Chỉ đặt cờ khi đã chạy xong (online) → offline/
+// lỗi thì lần đăng nhập online sau tự thử lại. Không có avatar cũ → no-op nhẹ.
+async function maybeMigrateAvatars(userId) {
+  const key = 'avatars_migrated_v1_' + userId;
+  try { if (localStorage.getItem(key)) return; } catch { /* ignore */ }
+  if (!CRM.isOnline()) return; // chưa online → để lần sau (chưa đặt cờ)
+  try {
+    const r = await CRM.migrateAvatarsToPublicBucket();
+    try { localStorage.setItem(key, '1'); } catch { /* ignore */ }
+    if (r && r.moved > 0) await refreshList(); // vẽ lại card với ảnh ở bucket mới
+  } catch (e) { console.warn('maybeMigrateAvatars lỗi:', e); }
 }
 
 // ---- Trình xem + ĐỔI ảnh đại diện (dùng lại #file-viewer) ----
@@ -2358,15 +2337,13 @@ async function openAvatarViewer(customerId) {
 // Hiển thị avatar hiện tại trong viewer: ảnh gốc (có zoom) hoặc placeholder chữ cái.
 async function showAvatarInViewer(c) {
   const body = $('#file-viewer-body');
-  if (c && c.avatar_path && CRM.isOnline()) {
+  if (c && c.avatar_path) {
     $('#fv-zoom').hidden = false; $('#file-viewer-open').hidden = false;
     body.classList.add('fv-zoomable');
-    body.innerHTML = '<div class="fv-loading">Đang tải...</div>';
-    const url = await CRM.signedDocUrl(c.avatar_path, 300);
-    if (avatarViewerCid !== c.id) return; // đã đóng/đổi
-    if (!url) { body.innerHTML = '<div class="fv-loading">Không tải được (cần mạng?).</div>'; return; }
+    const url = CRM.avatarUrl(c.avatar_path); // public URL (đồng bộ)
     body.innerHTML = '';
-    const el = document.createElement('img'); el.className = 'fv-img'; el.src = url;
+    const el = document.createElement('img'); el.className = 'fv-img'; el.src = url; el.alt = 'Ảnh đại diện';
+    el.onerror = () => { if (avatarViewerCid === c.id) body.innerHTML = '<div class="fv-loading">Không tải được (cần mạng?).</div>'; };
     body.appendChild(el); fvImg = el; fvResetZoom();
     $('#file-viewer-open').onclick = () => window.open(url, '_blank');
   } else {

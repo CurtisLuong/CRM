@@ -6,6 +6,34 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-26 — Avatar sang bucket PUBLIC riêng → hiển thị tức thì
+
+**Hiện tượng:** avatar custom (ảnh upload) hiện chậm 2-3s + nháy chữ cái trước; avatar
+chữ cái thì tức thì. Nguyên nhân: avatar nằm chung bucket private `customer-docs` →
+mỗi lần hiển thị phải (1) xin signed URL (async) + (2) tải bytes; cache signed URL chỉ
+trong RAM, bytes không cache → tải lại mỗi lần load/chuyển trang.
+
+**Cách sửa:** tách avatar sang bucket **PUBLIC riêng `customer-avatars`**; tài liệu vẫn
+ở `customer-docs` **private**. Avatar hiển thị bằng **public URL đồng bộ** (không cần
+ký, trình duyệt tự cache) → gần như tức thì, không lặp lại tải.
+
+- **Bảo mật:** chỉ FILE ẢNH đại diện là public; dữ liệu khách + tài liệu KHÔNG đổi
+  (vẫn private). Policy read của bucket avatar vẫn giới hạn thư mục của mình (chống dò
+  qua API); ghi/xoá chỉ authenticated + thư mục của mình.
+- **DB/Storage (CẦN CHẠY `add_avatar_public_bucket.sql`):** tạo bucket public + policy.
+  Sau đó **mở app 1 lần khi ONLINE** để app tự MIGRATE file avatar cũ (nếu có) từ
+  `customer-docs` sang `customer-avatars` (`migrateAvatarsToPublicBucket`, chạy nền,
+  1 lần/user, idempotent — giữ nguyên `avatar_path`).
+- **Code:** `db.js` thêm `AVATAR_BUCKET` + `avatarUrl()` (public URL đồng bộ) +
+  `migrateAvatarsToPublicBucket()`; `uploadAvatar`/`removeAvatar` dùng bucket mới. `app.js`
+  render avatar ĐỒNG BỘ (chữ cái nền + ảnh phủ, `onerror` lộ lại chữ cái khi offline/lỗi);
+  bỏ `resolveCardAvatars`/cache signed URL/`signedDocUrls`. `css` cho ảnh phủ tuyệt đối.
+- **sw.js KHÔNG đổi.** `avatar_path` không đổi format → không cần migration cột DB.
+
+File: `add_avatar_public_bucket.sql` (migration cần chạy), `js/db.js`, `js/app.js`, `css/style.css`
+
+---
+
 ## 2026-08-26 — Card "Cập nhật" đổi theo hoạt động GHI CHÚ (thay vì đổi bậc)
 
 Dòng "Cập nhật ..." trên card khách hàng TRƯỚC dựa vào `care_stage_updated_at` (đổi khi
