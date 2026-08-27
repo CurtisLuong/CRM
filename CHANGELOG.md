@@ -6,6 +6,22 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-26 — Dán ảnh bằng Ctrl/Cmd+V, Windows+V, trình quản lý clipboard
+
+Nút "📋 Dán ảnh" chỉ đọc ảnh MỚI NHẤT (`navigator.clipboard.read()`) → không chọn được
+item. Cách CHỌN item (Ctrl/Cmd+V, Windows+V, Maccy…) đi qua **`paste` event**. Form OCR
+đã có paste-event; **avatar thì chưa** → chỉ dán được ảnh mới nhất.
+
+- **Gộp 1 ROUTER paste** (thay listener OCR-only cũ): dán ảnh bằng phím/picker → định
+  tuyến theo modal đang mở — đang xem AVATAR → dán vào avatar; đang mở FORM khách → OCR.
+  Dán CHỮ (vd SĐT) vào ô input vẫn chạy bình thường (không có ảnh → bỏ qua). Nay avatar
+  cũng dán được bằng Ctrl/Cmd+V / Windows+V / Maccy.
+- Nút "Dán ảnh" giữ làm fallback 1 chạm; thêm tooltip nhắc dùng phím/picker để CHỌN ảnh.
+
+File: `js/app.js`, `index.html`
+
+---
+
 ## 2026-08-26 — Bỏ thuộc tính "Đánh giá" (nên chăm / không nên chăm)
 
 Gỡ hẳn thuộc tính `evaluation` + `evaluation_reason` khỏi app theo yêu cầu.

@@ -3320,19 +3320,24 @@ document.addEventListener('DOMContentLoaded', () => {
   $('#ocr-btn').addEventListener('click', () => $('#ocr-file').click());
   $('#ocr-file').addEventListener('change', (e) => handleOcrImage(e.target.files && e.target.files[0]));
   $('#ocr-retry-btn').addEventListener('click', () => { if (lastOcrFile) handleOcrImage(lastOcrFile); });
-  // Dán ảnh từ clipboard: (a) nút bấm dùng Clipboard API; (b) Ctrl/Cmd+V khi form khách
-  // đang mở dán thẳng — đường tin cậy nhất, không cần xin quyền. Chỉ chặn khi clipboard
-  // thực sự CÓ ảnh; dán chữ (vd SĐT) vào ô input vẫn hoạt động bình thường.
+  // Nút "Dán" (Clipboard API) chỉ lấy item MỚI NHẤT — giữ làm fallback 1 chạm.
   $('#ocr-paste-btn').addEventListener('click', pasteOcrFromClipboard);
+
+  // ROUTER DÁN ẢNH bằng PHÍM/PICKER: Ctrl/Cmd+V, Windows+V, trình quản lý clipboard
+  // (Maccy...). Các cách này để BẠN CHỌN đúng ảnh cần dán rồi OS "paste" → bắn 'paste'
+  // event kèm ảnh đó (khác nút "Dán" chỉ lấy ảnh mới nhất). Định tuyến theo modal đang mở:
+  //   • Đang xem AVATAR (file-viewer ở chế độ avatar) → dán vào avatar.
+  //   • Đang mở FORM khách → đưa vào OCR (intake-worker).
+  // Dán CHỮ (vd SĐT) vào ô input vẫn chạy bình thường (không có ảnh → bỏ qua).
   document.addEventListener('paste', (e) => {
-    if (!$('#form-modal').open) return; // chỉ khi form Thêm/Sửa khách đang mở
     const items = (e.clipboardData && e.clipboardData.items) || [];
+    let blob = null;
     for (const it of items) {
-      if (it.type && it.type.startsWith('image/')) {
-        const blob = it.getAsFile();
-        if (blob) { e.preventDefault(); handleOcrImage(blob); return; }
-      }
+      if (it.type && it.type.startsWith('image/')) { blob = it.getAsFile(); if (blob) break; }
     }
+    if (!blob) return; // không phải ảnh → để hành vi dán mặc định (dán chữ vào ô input)
+    if ($('#file-viewer').open && avatarViewerCid) { e.preventDefault(); avatarPreview(blob); return; }
+    if ($('#form-modal').open) { e.preventDefault(); handleOcrImage(blob); return; }
   });
 
   // --- Dropdown dự án (chọn nhiều / thêm / xoá) ---
