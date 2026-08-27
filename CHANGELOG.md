@@ -6,6 +6,24 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-26 — Bỏ thuộc tính "Đánh giá" (nên chăm / không nên chăm)
+
+Gỡ hẳn thuộc tính `evaluation` + `evaluation_reason` khỏi app theo yêu cầu.
+
+- **UI/code:** bỏ select "Đánh giá" + ô "Lý do" trong form; bỏ badge đánh giá trên card
+  + trang chi tiết; bỏ card "Đánh giá khách" (kèm biểu đồ lý do loại) trong dashboard;
+  bỏ khỏi universal search, vCard note, và tự-set 'không nên chăm' khi chọn bậc Loại.
+  Dọn: `EVAL_REASONS`, `toggleEvalReason`, datalist, CSS `.tag-good`/`.tag-bad`.
+- **Card mờ (is-dropped):** trước dựa vào evaluation='không nên chăm' → nay dựa vào
+  care_stage = 'Loại' (khách bị loại → card mờ đi).
+- **DB:** đã bỏ 2 cột + index khỏi `schema.sql` (baseline). File `drop_evaluation.sql`
+  để XOÁ 2 cột khỏi project hiện tại — **thao tác xoá dữ liệu, TUỲ CHỌN**: chạy nếu muốn
+  dọn sạch DB; không chạy thì cột nằm đó vô hại (app không đọc/ghi nữa).
+
+File: `index.html`, `js/app.js`, `css/style.css`, `schema.sql`, `drop_evaluation.sql` (migration tuỳ chọn)
+
+---
+
 ## 2026-08-26 — Avatar sang bucket PUBLIC riêng → hiển thị tức thì
 
 **Hiện tượng:** avatar custom (ảnh upload) hiện chậm 2-3s + nháy chữ cái trước; avatar

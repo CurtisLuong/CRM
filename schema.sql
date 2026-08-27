@@ -77,8 +77,6 @@ create table if not exists public.customers (
     'Phản hồi tốt',
     'Mất liên lạc'
   )),
-  evaluation text check (evaluation in ('nên chăm','không nên chăm')),
-  evaluation_reason text,
   occupation text check (occupation in ('Tự do','Công ty, DN','Công, viên chức','Công an, Bộ đội')),
   next_call_at timestamptz,        -- mốc bắt đầu khung giờ hẹn gọi (xem add_occupation_and_call_schedule.sql)
   next_call_end timestamptz,       -- mốc kết thúc khung giờ hẹn gọi (preset = +1h; tùy chọn = = next_call_at)
@@ -108,7 +106,6 @@ create unique index if not exists customers_phone_owner_unique
 create index if not exists customers_full_name_idx on public.customers (full_name);
 create index if not exists customers_care_stage_idx on public.customers (care_stage);
 create index if not exists customers_contact_status_idx on public.customers (contact_status);
-create index if not exists customers_evaluation_idx on public.customers (evaluation);
 
 -- Tự cập nhật updated_at / updated_by mỗi lần sửa
 create or replace function public.set_updated_meta()

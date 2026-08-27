@@ -219,14 +219,6 @@ function interestTier(pct) {
   return INTEREST_TIERS.find((t) => v >= t.min) || INTEREST_TIERS[INTEREST_TIERS.length - 1];
 }
 
-const EVAL_REASONS = [
-  'Không đủ điều kiện',
-  'Khách dò giá',
-  'Khách hồ sơ quá phức tạp',
-  'Khách không quan tâm',
-  'Khác',
-];
-
 // Loại căn có sẵn (select + "Khác" tự nhập, không lưu vào danh sách chung).
 const APT_TYPES = ['1N-1WC', '1N+, 1WC', '2N-2WC', '2N+, 2WC', '3N-2WC'];
 
@@ -686,8 +678,8 @@ function customerSearchBlob(c) {
   const parts = [
     c.phone, c.full_name, c.gender, c.dob, c.dob ? formatDate(c.dob) : '',
     c.menh, c.marital_status, c.occupation, c.income, c.residence,
-    c.apt_type, c.apt_code, c.building_code, c.care_stage, c.contact_status, c.evaluation,
-    c.evaluation_reason, sourceDisplay(c.source),
+    c.apt_type, c.apt_code, c.building_code, c.care_stage, c.contact_status,
+    sourceDisplay(c.source),
     c.apt_price != null ? String(c.apt_price) : '',
     c.apt_price ? formatPrice(c.apt_price) : '',
     c.purpose, c.finance != null ? String(c.finance) : '',
@@ -818,7 +810,7 @@ function renderList() {
     const card = document.createElement('div');
     card.className = 'customer-card';
     card.dataset.id = c.id; // để bấm vào thân card mở xem/sửa đầy đủ
-    if (c.evaluation === 'không nên chăm') card.classList.add('is-dropped');
+    if (c.care_stage === CARE_STAGE_DROPPED) card.classList.add('is-dropped'); // khách bị Loại → mờ đi
     // Viền trái card = màu bậc mức quan tâm (Nguội/Ấm/Nóng/Rất nóng).
     const tier = interestTier(c.interest_level ?? 0);
     card.style.setProperty('--tier', tier.color);
@@ -881,7 +873,6 @@ function renderList() {
         ${contactLostWarning(c) ? `<span class="tag tag-contact-warn" title="Đã >7 ngày chưa tương tác — kiểm tra lại">⚠ nghi mất liên lạc</span>` : ''}
         <span class="tag tag-interest ti-${tier.key}"><span class="ti-dot">◆</span> ${tier.label}</span>
         ${c.apt_type ? `<span class="tag">${escapeHtml(c.apt_type)}</span>` : ''}
-        ${c.evaluation ? `<span class="tag ${c.evaluation === 'nên chăm' ? 'tag-good' : 'tag-bad'}">${escapeHtml(c.evaluation)}</span>` : ''}
         ${menhShort ? `<span class="tag tag-menh">${escapeHtml(menhShort)}</span>` : ''}
       </div>
       <div class="card-notes">${cardNotesInner}</div>
@@ -1096,8 +1087,6 @@ function openForm(id) {
   // Khách MỚI mặc định bậc 'Đăng kí mới'; khách cũ giữ bậc đang có.
   f.care_stage.value = c.care_stage || (id ? '' : CARE_STAGE_DEFAULT);
   f.contact_status.value = c.contact_status || '';
-  f.evaluation.value = c.evaluation || '';
-  f.evaluation_reason.value = c.evaluation_reason || '';
 
   // Dự án: khách cũ dùng lịch sử của khách; khách mới lấy lựa chọn gần nhất
   // (localStorage) làm mặc định nếu chưa chủ động set.
@@ -1133,7 +1122,6 @@ function openForm(id) {
   if (id) loadFormDocs(id);
 
   updateMenhPreview();
-  toggleEvalReason();
   $('#form-modal').showModal();
 }
 
@@ -1163,9 +1151,8 @@ function toggleCareStageNote() {
   if (!show) f.care_stage_note.value = '';
 }
 
-// Khi ĐỔI bậc chăm sóc: tự chỉnh mức quan tâm theo bậc (nếu bậc có map). Riêng
-// 'Loại' → 0% + tự đánh giá 'không nên chăm'. Người dùng kéo
-// slider tay sau đó sẽ ghi đè (giá trị hiển thị lúc Lưu là giá trị cuối cùng).
+// Khi ĐỔI bậc chăm sóc: tự chỉnh mức quan tâm theo bậc (nếu bậc có map). 'Loại' → 0%.
+// Người dùng kéo slider tay sau đó sẽ ghi đè (giá trị lúc Lưu là giá trị cuối cùng).
 function onCareStageChange() {
   toggleCareStageNote();
   const f = $('#customer-form');
@@ -1174,10 +1161,6 @@ function onCareStageChange() {
     const v = STAGE_INTEREST[stage];
     f.interest_level.value = v;
     $('#interest-output').textContent = v + '%';
-  }
-  if (stage === CARE_STAGE_DROPPED) {
-    f.evaluation.value = 'không nên chăm';
-    toggleEvalReason();
   }
 }
 
@@ -1190,11 +1173,6 @@ function updateMenhPreview() {
   const dob = $('#customer-form').dob.value;
   const menh = dob ? window.LunarUtil.calcMenhFromSolarDOB(dob) : '';
   $('#menh-preview').textContent = menh || '— nhập ngày sinh để tính mệnh —';
-}
-
-function toggleEvalReason() {
-  const isBad = $('#customer-form').evaluation.value === 'không nên chăm';
-  $('#evaluation-reason-wrap').hidden = !isBad;
 }
 
 async function handleFormSubmit(e) {
@@ -1225,8 +1203,6 @@ async function handleFormSubmit(e) {
     interest_level: Number(f.interest_level.value),
     care_stage: f.care_stage.value || null,
     contact_status: f.contact_status.value || null,
-    evaluation: f.evaluation.value || null,
-    evaluation_reason: f.evaluation.value === 'không nên chăm' ? (f.evaluation_reason.value || null) : null,
   };
   // Hồ sơ Nâng cao → gom thành 1 object (bỏ field trống). Number cho field số.
   const advanced = {};
@@ -1382,7 +1358,6 @@ function buildContactNote(c) {
   push('Mức quan tâm', c.interest_level != null ? c.interest_level + '%' : '');
   push('Tiến độ', c.care_stage);
   push('Liên lạc', c.contact_status);
-  push('Đánh giá', c.evaluation);
   const autoNote = autoNoteFromHistory(c.care_stage_history);
   const manual = Array.isArray(c.notes_manual) ? c.notes_manual.map((n) => n.text).filter(Boolean) : [];
   const notes = [autoNote, ...manual].filter(Boolean);
@@ -1814,15 +1789,6 @@ function openDetail(id) {
   const interest = c.interest_level ?? 0;
   $('#detail-interest-dots').innerHTML = interestDotsHtml(interest);
   $('#detail-interest-text').textContent = interest + '%';
-  // Đánh giá
-  const evalBox = $('#detail-eval');
-  if (c.evaluation) {
-    evalBox.hidden = false;
-    evalBox.className = 'tag ' + (c.evaluation === 'nên chăm' ? 'tag-good' : 'tag-bad');
-    evalBox.textContent = c.evaluation;
-  } else {
-    evalBox.hidden = true;
-  }
 
   // Lịch gọi + badge đếm ngược (bấm badge để "đã gọi"/"hẹn lại").
   renderDetailCall(c);
@@ -2990,28 +2956,7 @@ function renderDashboard() {
   if (dropped) funnelHtml += `<div class="funnel-dropped">Đã loại (kết thúc, không chốt): ${dropped} khách</div>`;
   cards.push(dashCard('Phễu bán hàng theo tiến độ', funnelHtml, '% là tỉ lệ khách đi tiếp sang bước sau — bước "nút thắt" là nơi rớt nhiều nhất.'));
 
-  // 2) ĐÁNH GIÁ + lý do loại ---------------------------------------------
-  const evalGood = all.filter((c) => c.evaluation === 'nên chăm').length;
-  const evalBad = all.filter((c) => c.evaluation === 'không nên chăm').length;
-  const evalNone = all.length - evalGood - evalBad;
-  const evalHtml = hbars([
-    { label: 'Nên chăm', value: evalGood, color: 'var(--good)', sub: `${pctOf(evalGood, all.length)}%` },
-    { label: 'Không nên chăm', value: evalBad, color: 'var(--bad)', sub: `${pctOf(evalBad, all.length)}%` },
-    { label: 'Chưa đánh giá', value: evalNone, color: '#c9c4b6', sub: `${pctOf(evalNone, all.length)}%` },
-  ]);
-  // lý do trong nhóm "không nên chăm"
-  const reasonMap = {};
-  all.filter((c) => c.evaluation === 'không nên chăm').forEach((c) => {
-    const r = (c.evaluation_reason && c.evaluation_reason.trim()) || '(chưa ghi lý do)';
-    reasonMap[r] = (reasonMap[r] || 0) + 1;
-  });
-  const reasonItems = Object.entries(reasonMap).sort((a, b) => b[1] - a[1])
-    .map(([label, value]) => ({ label, value, color: 'var(--bad)', sub: `${pctOf(value, evalBad)}%` }));
-  const reasonHtml = evalBad ? `<div class="dash-sub-title">Lý do "không nên chăm"</div>` + hbars(reasonItems) : '';
-  cards.push(dashCard('Đánh giá khách', evalHtml + reasonHtml,
-    'Đào sâu lý do loại: "dò giá" → cần chốt giá rõ hơn; "không đủ điều kiện" → cần sàng lọc kỹ hơn.'));
-
-  // 3) KHÁCH MỚI THEO TUẦN -----------------------------------------------
+  // 2) KHÁCH MỚI THEO TUẦN -----------------------------------------------
   const newByWeek = weeks.map(() => 0);
   all.forEach((c) => { const i = weekIdx(c.created_at); if (i >= 0) newByWeek[i]++; });
   cards.push(dashCard('Khách mới theo tuần', vbars(newByWeek, weeks.map(ddmm)),
@@ -3137,8 +3082,6 @@ function populateSelects() {
   // Trạng thái liên lạc (độc lập với tiến độ) — dropdown trong form.
   const formContactOptions = ['<option value="">— Chưa xác định —</option>', ...CONTACT_STATUSES.map((s) => `<option value="${s}">${s}</option>`)].join('');
   $('#customer-form').contact_status.innerHTML = formContactOptions;
-
-  $('#eval-reason-datalist').innerHTML = EVAL_REASONS.map((r) => `<option value="${r}">`).join('');
 }
 
 // ---- SẮP XẾP: trạng thái + render panel ----
@@ -3369,7 +3312,6 @@ document.addEventListener('DOMContentLoaded', () => {
   $('#cancel-form-btn').addEventListener('click', closeForm);
   $('#delete-customer-btn').addEventListener('click', () => { if (editingId) confirmDelete(editingId); });
   $('#customer-form').dob.addEventListener('input', updateMenhPreview);
-  $('#customer-form').evaluation.addEventListener('change', toggleEvalReason);
   $('#customer-form').care_stage.addEventListener('change', onCareStageChange);
   $('#customer-form').apt_type_select.addEventListener('change', toggleAptOther);
 

@@ -676,8 +676,6 @@ input:focus, select:focus, textarea:focus {
 
 .tag { font-size: 11px; padding: 3px 8px; border-radius: 100px; background: #eee; color: #444; font-weight: var(--badge-fw-normal); }
 .tag-stage { background: #e4ecec; color: var(--teal); }
-.tag-good { background: #e2f0e8; color: var(--good); }
-.tag-bad { background: #f5e3e0; color: var(--bad); }
 /* Mệnh: cùng thiết kế với Loại căn (nền xám trung tính, chữ thường) — không nền be riêng. */
 .tag-menh { background: #eee; color: #444; }
 
