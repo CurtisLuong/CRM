@@ -678,6 +678,7 @@ input:focus, select:focus, textarea:focus {
 .tag-stage { background: #e4ecec; color: var(--teal); }
 /* Mệnh: cùng thiết kế với Loại căn (nền xám trung tính, chữ thường) — không nền be riêng. */
 .tag-menh { background: #eee; color: #444; }
+.tag-cung { background: #eee; color: #444; } /* copy style của badge Mệnh */
 
 /* "Chi tiết" freeform: chỉ hiện tối đa 2 dòng, dư ra cắt + "..." (bấm card xem đủ).
    flex:1 để chiếm chỗ trống giữa card → đẩy footer xuống đáy. */
@@ -855,10 +856,12 @@ input:focus, select:focus, textarea:focus {
 .detail-table th { width: 38%; color: #6b6b60; font-weight: 500; background: var(--paper); }
 .detail-table td { color: var(--ink); font-weight: 600; }
 
-.detail-personal { font-size: 14px; color: var(--ink); line-height: 1.9; }
+.detail-personal { font-size: 14px; color: var(--ink); line-height: 1.85; }
 .pi-item { white-space: nowrap; }
 .pi-label { color: #6b6b60; }
 .pi-sep { color: #cfcabd; }
+/* Nhóm thông tin cá nhân (kiểu C): mỗi nhóm 1 dòng inline, cách nhau bằng đường mảnh. */
+.pi-group + .pi-group { margin-top: 8px; padding-top: 8px; border-top: 1px dashed #e6ddcb; }
 
 /* Timeline lịch sử chăm sóc — PHÂN CẤP: BẬC là node cấp cao (chấm to + khối tên bậc
    + timestamp); mỗi GHI CHÚ là mục con (chấm nhỏ, thụt vào) có timestamp riêng. Đường

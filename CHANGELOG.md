@@ -28,6 +28,11 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 File: `add_cung_partial_dob.sql` (migration cần chạy), `schema.sql`, `js/lunar.js`,
 `index.html`, `js/app.js`, `css/style.css`
+*(2026-08-26 tinh chỉnh hiển thị: trang chi tiết "Thông tin cá nhân" chia 3 NHÓM (kiểu C —
+inline "·", nhóm cách nhau bằng đường mảnh, `renderGroupedKV`/`.pi-group`): [Giới tính·Hôn
+nhân] / [Ngày sinh·Mệnh·Cung] / [Công việc·Thu nhập·Thường trú·Nguồn khách]. Card thêm badge
+**Cung** (`.tag-cung`, copy style Mệnh). Cung có `cungOf()` — fallback tính từ dob nếu chưa
+lưu → khách cũ vẫn hiện Cung ngay.)*
 
 ---
 

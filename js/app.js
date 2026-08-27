@@ -840,6 +840,7 @@ function renderList() {
     // Dùng chung với sắp xếp (cardUpdatedAt) → thứ tự card khớp con số hiển thị.
     const updated = timeAgo(cardUpdatedAt(c));
     const menhShort = c.menh ? c.menh.split(' — ')[0] : ''; // "Mệnh Kim" (bỏ nạp âm dài phía sau)
+    const cung = cungOf(c); // Cung (fallback tính từ dob nếu chưa lưu)
     // Link Zalo: web (http) mở tab mới; app native (zalo://) mở app tại chỗ, không target.
     const zaloHref = zaloLink(c.phone);
     const zaloAttr = zaloHref.startsWith('http') ? 'target="_blank" rel="noopener"' : '';
@@ -885,6 +886,7 @@ function renderList() {
         <span class="tag tag-interest ti-${tier.key}"><span class="ti-dot">◆</span> ${tier.label}</span>
         ${c.apt_type ? `<span class="tag">${escapeHtml(c.apt_type)}</span>` : ''}
         ${menhShort ? `<span class="tag tag-menh">${escapeHtml(menhShort)}</span>` : ''}
+        ${cung ? `<span class="tag tag-cung">${escapeHtml(cung)}</span>` : ''}
       </div>
       <div class="card-notes">${cardNotesInner}</div>
       <div class="card-footer">
@@ -1264,6 +1266,11 @@ function formatDob(dobStr) {
   if (!p) return '';
   const dd = ('0' + p.day).slice(-2), mm = ('0' + p.month).slice(-2);
   return p.year ? `${dd}/${mm}/${p.year}` : `${dd}/${mm}`;
+}
+// Cung của khách: ưu tiên giá trị đã lưu; nếu chưa có (khách lưu trước khi có feature)
+// thì tính lại từ dob → khách cũ vẫn hiện Cung ngay mà không cần lưu lại.
+function cungOf(c) {
+  return c.cung || (c.dob ? (window.LunarUtil.calcCungFromDOB(c.dob) || null) : null);
 }
 
 async function handleFormSubmit(e) {
@@ -1826,6 +1833,19 @@ function renderInlineKV(el, pairs) {
     .map(([k, v]) => `<span class="pi-item"><span class="pi-label">${k}:</span> ${escapeHtml(String(v))}</span>`)
     .join(' <span class="pi-sep">·</span> ');
 }
+// Như renderInlineKV nhưng theo NHÓM: mỗi nhóm 1 dòng inline "·", các nhóm cách nhau
+// bằng đường ngăn mảnh. Thuộc tính trống → bỏ; cả nhóm rỗng → bỏ luôn dòng (kiểu C).
+function renderGroupedKV(el, groups) {
+  el.innerHTML = groups
+    .map((pairs) => {
+      const inner = pairs
+        .filter(([, v]) => !isBlank(v))
+        .map(([k, v]) => `<span class="pi-item"><span class="pi-label">${k}:</span> ${escapeHtml(String(v))}</span>`)
+        .join(' <span class="pi-sep">·</span> ');
+      return inner ? `<div class="pi-group">${inner}</div>` : '';
+    })
+    .join('');
+}
 // Render bảng KV (mỗi NHÓM = 1 dòng). Nhóm có nhiều cặp → gộp "A | B" trên 1 dòng cho dễ so
 // sánh; cặp nào chưa xác định thì bỏ, cả nhóm rỗng thì bỏ luôn dòng đó.
 // groups: [ [[nhãn, giá trị], ...], ... ]
@@ -1933,16 +1953,22 @@ function openDetail(id) {
 
   // Thông tin cá nhân — mỗi mục "Nhãn: giá trị", ngăn nhau bằng dấu · (ẩn mục chưa xác định).
   // Nguồn khách luôn có giá trị (mặc định Quảng cáo) nên luôn hiện.
-  renderInlineKV($('#detail-personal'), [
-    ['Giới tính', c.gender ? capitalize(c.gender) : null],
-    ['Hôn nhân', c.marital_status ? capitalize(c.marital_status) : null],
-    ['Ngày sinh', c.dob ? formatDob(c.dob) : null],
-    ['Mệnh', c.menh ? c.menh.replace(/^Mệnh\s+/, '') : null],
-    ['Cung', c.cung || null],
-    ['Công việc', c.occupation || null],
-    ['Thu nhập', c.income || null],
-    ['Thường trú', c.residence || null],
-    ['Nguồn khách', sourceDisplay(c.source)],
+  renderGroupedKV($('#detail-personal'), [
+    [ // Nhóm 1
+      ['Giới tính', c.gender ? capitalize(c.gender) : null],
+      ['Hôn nhân', c.marital_status ? capitalize(c.marital_status) : null],
+    ],
+    [ // Nhóm 2: ngày sinh + tử vi (Mệnh, Cung cộng hưởng)
+      ['Ngày sinh', c.dob ? formatDob(c.dob) : null],
+      ['Mệnh', c.menh ? c.menh.replace(/^Mệnh\s+/, '') : null],
+      ['Cung', cungOf(c)],
+    ],
+    [ // Nhóm 3
+      ['Công việc', c.occupation || null],
+      ['Thu nhập', c.income || null],
+      ['Thường trú', c.residence || null],
+      ['Nguồn khách', sourceDisplay(c.source)],
+    ],
   ]);
 
   // Timeline lịch sử: nút "+ Thêm ghi chú" nay nằm ngay trong bậc hiện tại (xem
