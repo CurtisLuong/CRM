@@ -165,6 +165,17 @@ function lastNoteActivity(history) {
   return max;
 }
 
+// Mốc "CẬP NHẬT" của card = hoạt động CARE TIMELINE mới nhất: muộn hơn giữa (đổi bậc
+// care_stage → care_stage_updated_at) và (ghi/sửa note trong timeline → lastNoteActivity).
+// KHÔNG tính các thay đổi khác (avatar, ghi chú chung, sửa field...) — chúng chỉ bump
+// updated_at. Dùng CHUNG cho cả dòng "Cập nhật ..." LẪN sắp xếp → hai thứ luôn khớp nhau.
+function cardUpdatedAt(c) {
+  const a = c.care_stage_updated_at || '';
+  const b = lastNoteActivity(c.care_stage_history) || '';
+  const m = a > b ? a : b; // ISO 8601 cùng định dạng → so chuỗi = so thời gian
+  return m || c.updated_at || '';
+}
+
 // Màu từng bậc (đỏ đất → xanh lá: càng về sau càng "chín"). Giữ nguyên color scheme
 // cũ theo VỊ TRÍ bậc. Bậc 'Loại' = ĐỎ (kèm dấu ✕) để nổi bật là khách bị loại.
 const CARE_STAGE_COLORS = {
@@ -737,7 +748,7 @@ function matchesFilters(c) {
 function sortCompareOne(key, a, b) {
   if (key === 'care') return careSortRank(a.care_stage) - careSortRank(b.care_stage);
   if (key === 'interest') return (a.interest_level || 0) - (b.interest_level || 0);
-  if (key === 'updated') return (a.updated_at || '').localeCompare(b.updated_at || '');
+  if (key === 'updated') return cardUpdatedAt(a).localeCompare(cardUpdatedAt(b));
   if (key === 'name') return (a.full_name || '').localeCompare(b.full_name || '', 'vi');
   return 0;
 }
@@ -825,9 +836,9 @@ function renderList() {
     const stagePill = isDropped
       ? `<span class="stage-pill is-dropped" title="${escapeHtml(careLabel(c.care_stage))}"><span class="sp-xmark">✕</span><span class="sp-name">${escapeHtml(careLabel(c.care_stage))}</span></span>`
       : `<span class="stage-pill" style="--ring:${ringColor}; --pct:${ringPct}" title="${escapeHtml(careLabel(c.care_stage))}"><span class="sp-ring"></span><span class="sp-frac">${level}/7</span><span class="sp-name">${escapeHtml(careLabel(c.care_stage))}</span></span>`;
-    // Timestamp "Cập nhật" = lần GHI/SỬA ghi chú care timeline gần nhất (không phải lần
-    // đổi bậc). Không có ghi chú nào → tạm dùng care_stage_updated_at / updated_at.
-    const updated = timeAgo(lastNoteActivity(c.care_stage_history) || c.care_stage_updated_at || c.updated_at);
+    // Timestamp "Cập nhật" = hoạt động care timeline mới nhất (đổi bậc HOẶC ghi/sửa note).
+    // Dùng chung với sắp xếp (cardUpdatedAt) → thứ tự card khớp con số hiển thị.
+    const updated = timeAgo(cardUpdatedAt(c));
     const menhShort = c.menh ? c.menh.split(' — ')[0] : ''; // "Mệnh Kim" (bỏ nạp âm dài phía sau)
     // Link Zalo: web (http) mở tab mới; app native (zalo://) mở app tại chỗ, không target.
     const zaloHref = zaloLink(c.phone);

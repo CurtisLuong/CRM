@@ -6,6 +6,22 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-26 — Sắp xếp card khớp countdown (chỉ đổi khi care timeline có hoạt động)
+
+**Lỗi:** đổi avatar / thêm ghi chú chung / sửa field bất kỳ đều bump `updated_at` → sắp
+xếp theo "Cập nhật" (dùng `updated_at`) TỰ ĐẢO thứ tự card, dù con số "Cập nhật" hiển thị
+(dùng hoạt động note) không đổi → sort ≠ countdown.
+
+**Fix:** gộp 1 hàm `cardUpdatedAt(c)` = MUỘN HƠN giữa `care_stage_updated_at` (đổi bậc) và
+`lastNoteActivity` (ghi/sửa note timeline), fallback `updated_at`. Dùng CHUNG cho cả dòng
+"Cập nhật ..." LẪN khoá sắp xếp 'updated' → hai thứ luôn khớp. Nay card CHỈ đảo thứ tự khi
+đổi bậc care_stage hoặc thêm/sửa note trong care timeline; đổi avatar / ghi chú chung / sửa
+field khác (chỉ bump `updated_at`) KHÔNG làm đảo thứ tự.
+
+File: `js/app.js`
+
+---
+
 ## 2026-08-26 — Modal "Chọn ảnh" dùng chung (OCR + avatar), luồng rõ ràng
 
 Giao diện nhập ảnh cũ (nút Chọn/Dán nằm lẫn inline) gây hiểu lầm. Nay gom vào **1 modal
