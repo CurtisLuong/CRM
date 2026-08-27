@@ -1569,30 +1569,51 @@ async function handleOcrImage(file) {
     console.warn('OCR lỗi:', e);
     status.textContent = '⚠️ Đọc ảnh thất bại: ' + (e.message || 'lỗi không rõ');
     if (retryBtn && lastOcrFile) retryBtn.hidden = false; // cho thử lại ngay cùng ảnh đó
-  } finally {
-    $('#ocr-file').value = ''; // cho phép chọn lại đúng ảnh đó lần nữa
   }
 }
 
-// Dán ảnh từ CLIPBOARD qua nút bấm (Clipboard API). Cần HTTPS + user gesture (nút bấm
-// thoả) + có thể hỏi quyền. Lấy được ảnh → đưa vào đúng luồng OCR như chọn từ file.
-// Không hỗ trợ / bị chặn quyền → báo nhẹ, gợi ý dùng Ctrl/Cmd+V hoặc "Nhập từ ảnh".
-async function pasteOcrFromClipboard() {
-  const status = $('#ocr-status');
+// ==================== MODAL CHỌN ẢNH (dùng chung: OCR + avatar) ====================
+// Mở từ "Nhập từ ảnh" (mode 'ocr') hoặc "Sửa ảnh" (mode 'avatar'). Người dùng chọn file
+// / dán ảnh (nút Dán = ảnh mới nhất; Ctrl/Cmd+V / Windows+V / Maccy = CHỌN ảnh cũ, qua
+// paste router). Có ảnh → tự ĐÓNG modal + trả ảnh về đúng luồng (OCR hoặc avatar preview).
+let imgPickerMode = null; // 'ocr' | 'avatar' | null
+function openImagePicker(mode) {
+  imgPickerMode = mode;
+  const dlg = $('#img-picker');
+  $('#imgp-status').textContent = '';
+  $('#imgp-file-input').value = '';
+  if (!dlg.open) dlg.showModal();
+}
+function closeImagePicker() {
+  const dlg = $('#img-picker');
+  if (dlg.open) dlg.close();
+}
+// Nhận ảnh (từ file / dán) → đóng modal → định tuyến theo mode đang mở.
+function onImagePicked(blob) {
+  if (!blob) return;
+  const mode = imgPickerMode;
+  imgPickerMode = null;
+  closeImagePicker();
+  if (mode === 'ocr') handleOcrImage(blob);
+  else if (mode === 'avatar') avatarPreview(blob);
+}
+// Nút "Dán ảnh" trong modal: đọc ảnh MỚI NHẤT qua Clipboard API (fallback 1 chạm).
+async function imgPickerPasteBtn() {
+  const status = $('#imgp-status');
   if (!navigator.clipboard || !navigator.clipboard.read) {
-    status.textContent = 'ℹ️ Trình duyệt không đọc được clipboard — thử Ctrl/Cmd+V, hoặc "Nhập từ ảnh".';
+    status.textContent = 'ℹ️ Trình duyệt không đọc được clipboard — dùng Ctrl/Cmd+V.';
     return;
   }
   try {
     const items = await navigator.clipboard.read();
     for (const item of items) {
-      const imgType = item.types.find((t) => t.startsWith('image/'));
-      if (imgType) { handleOcrImage(await item.getType(imgType)); return; }
+      const t = item.types.find((x) => x.startsWith('image/'));
+      if (t) { onImagePicked(await item.getType(t)); return; }
     }
-    status.textContent = 'ℹ️ Clipboard chưa có ảnh — copy 1 ảnh (hoặc chụp màn hình) rồi bấm lại.';
+    status.textContent = 'ℹ️ Clipboard chưa có ảnh — copy 1 ảnh (hoặc chụp màn hình) rồi bấm lại, hoặc Ctrl/Cmd+V.';
   } catch (e) {
     console.warn('Đọc clipboard lỗi:', e);
-    status.textContent = '⚠️ Không đọc được clipboard (chặn quyền?) — thử Ctrl/Cmd+V, hoặc "Nhập từ ảnh".';
+    status.textContent = '⚠️ Không đọc được clipboard (chặn quyền?) — thử Ctrl/Cmd+V.';
   }
 }
 
@@ -2377,22 +2398,8 @@ async function avatarRemove() {
     status.textContent = '✅ Đã gỡ ảnh đại diện.';
   } catch (e) { console.warn('avatar remove lỗi:', e); status.textContent = '⚠️ Gỡ thất bại.'; }
 }
-async function avatarPasteFromClipboard() {
-  const status = $('#avatar-status');
-  if (!navigator.clipboard || !navigator.clipboard.read) { status.textContent = 'ℹ️ Trình duyệt không đọc được clipboard — dùng "Chọn ảnh".'; return; }
-  try {
-    const items = await navigator.clipboard.read();
-    for (const item of items) {
-      const t = item.types.find((x) => x.startsWith('image/'));
-      if (t) { avatarPreview(await item.getType(t)); return; }
-    }
-    status.textContent = 'ℹ️ Clipboard chưa có ảnh — copy 1 ảnh rồi bấm lại.';
-  } catch (e) { console.warn('paste avatar lỗi:', e); status.textContent = '⚠️ Không đọc được clipboard.'; }
-}
 $('#detail-avatar')?.addEventListener('click', () => { if (detailId) openAvatarViewer(detailId); });
-$('#avatar-pick-btn')?.addEventListener('click', () => $('#avatar-file').click());
-$('#avatar-file')?.addEventListener('change', (e) => { avatarPreview(e.target.files && e.target.files[0]); e.target.value = ''; });
-$('#avatar-paste-btn')?.addEventListener('click', avatarPasteFromClipboard);
+$('#avatar-edit-btn')?.addEventListener('click', () => openImagePicker('avatar')); // mở modal Chọn ảnh
 $('#avatar-save-btn')?.addEventListener('click', avatarSave);
 $('#avatar-cancel-btn')?.addEventListener('click', avatarCancel);
 $('#avatar-remove-btn')?.addEventListener('click', avatarRemove);
@@ -3315,29 +3322,31 @@ document.addEventListener('DOMContentLoaded', () => {
   $('#customer-form').care_stage.addEventListener('change', onCareStageChange);
   $('#customer-form').apt_type_select.addEventListener('change', toggleAptOther);
 
-  // --- OCR: nhập từ ảnh (chỉ hiện nút nếu đã cấu hình WORKER_URL) ---
+  // --- OCR: "Nhập từ ảnh" mở modal Chọn ảnh (chỉ hiện nút nếu đã cấu hình WORKER_URL) ---
   if ((window.APP_CONFIG.WORKER_URL || '').trim()) $('#ocr-row').hidden = false;
-  $('#ocr-btn').addEventListener('click', () => $('#ocr-file').click());
-  $('#ocr-file').addEventListener('change', (e) => handleOcrImage(e.target.files && e.target.files[0]));
+  $('#ocr-btn').addEventListener('click', () => openImagePicker('ocr'));
   $('#ocr-retry-btn').addEventListener('click', () => { if (lastOcrFile) handleOcrImage(lastOcrFile); });
-  // Nút "Dán" (Clipboard API) chỉ lấy item MỚI NHẤT — giữ làm fallback 1 chạm.
-  $('#ocr-paste-btn').addEventListener('click', pasteOcrFromClipboard);
 
-  // ROUTER DÁN ẢNH bằng PHÍM/PICKER: Ctrl/Cmd+V, Windows+V, trình quản lý clipboard
-  // (Maccy...). Các cách này để BẠN CHỌN đúng ảnh cần dán rồi OS "paste" → bắn 'paste'
-  // event kèm ảnh đó (khác nút "Dán" chỉ lấy ảnh mới nhất). Định tuyến theo modal đang mở:
-  //   • Đang xem AVATAR (file-viewer ở chế độ avatar) → dán vào avatar.
-  //   • Đang mở FORM khách → đưa vào OCR (intake-worker).
-  // Dán CHỮ (vd SĐT) vào ô input vẫn chạy bình thường (không có ảnh → bỏ qua).
+  // --- Modal Chọn ảnh (dùng chung OCR + avatar) ---
+  $('#imgp-file').addEventListener('click', () => $('#imgp-file-input').click());
+  $('#imgp-file-input').addEventListener('change', (e) => {
+    const f = e.target.files && e.target.files[0]; e.target.value = ''; onImagePicked(f);
+  });
+  $('#imgp-paste').addEventListener('click', imgPickerPasteBtn);
+  $('#imgp-close').addEventListener('click', () => { imgPickerMode = null; closeImagePicker(); });
+
+  // ROUTER DÁN ẢNH bằng PHÍM/PICKER (Ctrl/Cmd+V, Windows+V, Maccy...): các cách này để BẠN
+  // CHỌN đúng ảnh rồi OS "paste" → bắn 'paste' event kèm ảnh đó. Chỉ nhận khi modal Chọn
+  // ảnh đang mở → đưa ảnh vào đúng luồng. Dán CHỮ (SĐT) vào ô input vẫn chạy bình thường.
   document.addEventListener('paste', (e) => {
+    if (!$('#img-picker').open) return; // chỉ khi modal Chọn ảnh đang mở
     const items = (e.clipboardData && e.clipboardData.items) || [];
-    let blob = null;
     for (const it of items) {
-      if (it.type && it.type.startsWith('image/')) { blob = it.getAsFile(); if (blob) break; }
+      if (it.type && it.type.startsWith('image/')) {
+        const blob = it.getAsFile();
+        if (blob) { e.preventDefault(); onImagePicked(blob); return; }
+      }
     }
-    if (!blob) return; // không phải ảnh → để hành vi dán mặc định (dán chữ vào ô input)
-    if ($('#file-viewer').open && avatarViewerCid) { e.preventDefault(); avatarPreview(blob); return; }
-    if ($('#form-modal').open) { e.preventDefault(); handleOcrImage(blob); return; }
   });
 
   // --- Dropdown dự án (chọn nhiều / thêm / xoá) ---

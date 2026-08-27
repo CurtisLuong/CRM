@@ -317,8 +317,6 @@
          Tự ẩn nếu chưa cấu hình WORKER_URL trong config.js. -->
     <div id="ocr-row" class="ocr-row" hidden>
       <button type="button" id="ocr-btn" class="btn-small">📷 Nhập từ ảnh</button>
-      <button type="button" id="ocr-paste-btn" class="btn-small" title="Lấy ảnh mới nhất trong clipboard. Hoặc bấm Ctrl/Cmd+V (Windows+V / Maccy…) để CHỌN ảnh cần dán từ lịch sử clipboard.">📋 Dán ảnh</button>
-      <input type="file" id="ocr-file" accept="image/*" hidden />
       <span id="ocr-status" class="ocr-status"></span>
       <button type="button" id="ocr-retry-btn" class="btn-small" hidden>↻ Thử lại</button>
     </div>
@@ -522,11 +520,9 @@
   <div id="file-viewer-body" class="fv-body"></div>
   <!-- Khu ĐỔI ẢNH ĐẠI DIỆN — chỉ hiện khi mở ở chế độ avatar (openAvatarViewer). -->
   <div id="fv-avatar-actions" class="fv-avatar-actions" hidden>
-    <input type="file" id="avatar-file" accept="image/*" hidden />
     <div id="fv-av-choose" class="fv-av-row">
-      <button type="button" id="avatar-pick-btn" class="btn-small">📷 Chọn ảnh</button>
-      <button type="button" id="avatar-paste-btn" class="btn-small" title="Lấy ảnh mới nhất trong clipboard. Hoặc bấm Ctrl/Cmd+V (Windows+V / Maccy…) để CHỌN ảnh cần dán từ lịch sử clipboard.">📋 Dán ảnh</button>
-      <button type="button" id="avatar-remove-btn" class="btn-small btn-danger" hidden>🗑 Gỡ ảnh</button>
+      <button type="button" id="avatar-edit-btn" class="btn-small">✎ Sửa ảnh</button>
+      <button type="button" id="avatar-remove-btn" class="btn-small btn-danger" hidden>🗑 Xoá ảnh</button>
     </div>
     <div id="fv-av-confirm" class="fv-av-row" hidden>
       <button type="button" id="avatar-cancel-btn" class="btn-ghost btn-small">Huỷ</button>
@@ -534,6 +530,27 @@
     </div>
     <div id="avatar-status" class="ocr-status"></div>
   </div>
+</dialog>
+
+<!-- ============ MODAL CHỌN ẢNH (dùng chung: OCR nhập từ ảnh + đổi avatar) ============
+     Mở từ "Nhập từ ảnh" (form khách) hoặc "Sửa ảnh" (avatar). Có ảnh → tự đóng, trả ảnh
+     về đúng luồng. -->
+<dialog id="img-picker" class="img-picker">
+  <button type="button" id="imgp-close" class="imgp-close" aria-label="Đóng">✕</button>
+  <div class="imgp-title">Chọn ảnh</div>
+  <div class="imgp-choices">
+    <button type="button" id="imgp-file" class="imgp-choice">
+      <span class="imgp-ic" aria-hidden="true">📁</span>
+      <span>Chọn từ máy</span>
+    </button>
+    <button type="button" id="imgp-paste" class="imgp-choice">
+      <span class="imgp-ic" aria-hidden="true">📋</span>
+      <span>Dán ảnh</span>
+    </button>
+  </div>
+  <p class="imgp-hint">Hoặc bấm <kbd>Ctrl/Cmd</kbd> + <kbd>V</kbd> để dán ảnh <span class="imgp-hint-dim">(Windows+V / Maccy… để chọn ảnh cũ trong clipboard)</span></p>
+  <div id="imgp-status" class="ocr-status"></div>
+  <input type="file" id="imgp-file-input" accept="image/*" hidden />
 </dialog>
 
 <!-- ============ ĐẶT LỊCH GỌI (dùng chung: trang chi tiết + "hẹn lại") ============ -->

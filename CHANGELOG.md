@@ -6,6 +6,25 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-26 — Modal "Chọn ảnh" dùng chung (OCR + avatar), luồng rõ ràng
+
+Giao diện nhập ảnh cũ (nút Chọn/Dán nằm lẫn inline) gây hiểu lầm. Nay gom vào **1 modal
+"Chọn ảnh" dùng chung**:
+
+- **Form khách:** nút "📷 Nhập từ ảnh" → mở modal Chọn ảnh (heading "Chọn ảnh" + tile
+  "📁 Chọn từ máy" + "📋 Dán ảnh" + gợi ý Ctrl/Cmd+V). Có ảnh → **tự đóng modal** → hiện
+  "⏳ Đang đọc ảnh..." → về form để chỉnh tay (OCR đã điền).
+- **Avatar:** footer đổi thành **[✎ Sửa ảnh] [🗑 Xoá ảnh]**. "Sửa ảnh" → mở CÙNG modal Chọn
+  ảnh → có ảnh → tự đóng → về khung xem avatar ở chế độ xem trước → **[Lưu ảnh] [Huỷ]** (như cũ).
+- **Paste router** giờ chỉ nhận khi modal Chọn ảnh đang mở (Ctrl/Cmd+V, Windows+V, Maccy…
+  để chọn ảnh cũ). Dán chữ (SĐT) vào ô input vẫn bình thường.
+- Bỏ các nút/handler cũ: `pasteOcrFromClipboard`, `avatarPasteFromClipboard`, `#ocr-file`,
+  `#ocr-paste-btn`, `#avatar-file`, `#avatar-pick-btn`, `#avatar-paste-btn`.
+
+File: `index.html`, `js/app.js`, `css/style.css`
+
+---
+
 ## 2026-08-26 — Dán ảnh bằng Ctrl/Cmd+V, Windows+V, trình quản lý clipboard
 
 Nút "📋 Dán ảnh" chỉ đọc ảnh MỚI NHẤT (`navigator.clipboard.read()`) → không chọn được
