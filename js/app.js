@@ -3138,7 +3138,17 @@ function renderDashboard() {
   const timeShift = Math.round(_ctx.measureText('2 ngày 10 giờ').width / 2);
   let funnelHtml = `<div class="funnel2" style="--t-shift:${timeShift}px">`;
   const maxCount = sCount[CARE_STAGE_DEFAULT] || 1; // 'Đăng kí mới' = tổng khách → thanh dài nhất
-  CARE_STAGES.forEach((s) => {
+  // % chuyển đổi từ bậc trước sang bậc này (= số khách bậc này / số khách bậc trước) +
+  // tìm "nút thắt" (bước rớt nhiều nhất — % thấp nhất mà bậc trước còn khách).
+  const convs = CARE_STAGES.map((s, i) => (i === 0 ? null : pctOf(sCount[s] || 0, sCount[CARE_STAGES[i - 1]] || 0)));
+  let worst = -1, worstV = 101;
+  convs.forEach((v, i) => { if (v != null && (sCount[CARE_STAGES[i - 1]] || 0) > 0 && v < worstV) { worstV = v; worst = i; } });
+  CARE_STAGES.forEach((s, i) => {
+    // Dòng % chuyển đổi giữa bậc trước và bậc này (không có ở bậc đầu).
+    if (i > 0) {
+      const bn = i === worst;
+      funnelHtml += `<div class="funnel2-conv${bn ? ' is-bottleneck' : ''}">↓ ${convs[i]}%${bn ? ' · nút thắt' : ''}</div>`;
+    }
     const n = sCount[s] || 0;
     const avgMs = sCnt[s] ? sSum[s] / sCnt[s] : null;
     const barPct = Math.max(pctOf(n, maxCount), 2);
@@ -3156,8 +3166,8 @@ function renderDashboard() {
   funnelHtml += '</div>';
   const dropped = all.filter((c) => c.care_stage === CARE_STAGE_DROPPED).length;
   if (dropped) funnelHtml += `<div class="funnel-dropped">Đã loại (kết thúc, không chốt): ${dropped} khách</div>`;
-  cards.push(dashCard('PHỄU BÁN HÀNG VÀ THỜI GIAN TRUNG BÌNH THEO TIẾN ĐỘ', funnelHtml,
-    'Thanh dài = nhiều khách (dạng phễu). Mỗi thanh: tên bậc · thời gian TB ở bậc · số khách đã/đang ở bậc.'));
+  cards.push(dashCard('PHỄU KHÁCH HÀNG', funnelHtml,
+    'Thanh dài = nhiều khách (dạng phễu). Mỗi thanh: tên bậc · thời gian TB ở bậc · số khách đã/đang ở bậc. Dòng % = tỉ lệ đi tiếp sang bậc sau (nút thắt = rớt nhiều nhất).'));
 
   // 2) KHÁCH MỚI THEO TUẦN -----------------------------------------------
   // Tính theo NGÀY ĐĂNG KÝ (registered_at) — đúng nghĩa "khách mới" hơn ngày tạo

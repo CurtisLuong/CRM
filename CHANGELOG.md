@@ -8,8 +8,7 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ## 2026-08-28 — Dashboard: gộp phễu + thời gian TB; khách mới theo ngày đăng ký
 
-- **Gộp 2 chart thành 1 — "PHỄU BÁN HÀNG VÀ THỜI GIAN TRUNG BÌNH THEO TIẾN ĐỘ"**
-  (tên IN HOA): 7 thanh ngang dày, màu theo bậc (opacity giảm để chữ nổi). Chữ CHÌM
+- **Gộp 2 chart thành 1 — "PHỄU KHÁCH HÀNG"** (tên IN HOA): 7 thanh ngang dày, màu theo bậc (opacity giảm để chữ nổi). Chữ CHÌM
   trong thanh: tên bậc (trái) · thời gian TB (giữa) · số khách (phải). Độ dài thanh =
   số khách đã từng đạt bậc / số khách 'Đăng kí mới' (dạng phễu). Bỏ chart riêng "Thời
   gian trung bình ở mỗi bậc" + bỏ %/nút thắt của phễu cũ; xoá CSS `.funnel-*` cũ, thêm
@@ -28,6 +27,9 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
   mới' (vd tổng 36 khách nhưng 'Đăng kí mới' chỉ hiện 28). Nay đếm trực tiếp từ các "lượt
   ở bậc" đã chuẩn hoá (mọi khách đều có lượt 'Đăng kí mới') → 'Đăng kí mới' = tổng số
   khách; mỗi bậc = số khách ĐÃ/ĐANG ở bậc đó. Xoá hàm `funnelMaxIndex` (hết dùng).
+- **Khôi phục % chuyển đổi giữa các bậc** (như chart gốc): dòng "↓ X%" giữa 2 thanh =
+  số khách bậc sau / bậc trước, kèm đánh dấu "nút thắt" (bước rớt nhiều nhất). Thêm CSS
+  `.funnel2-conv`.
 - **"Khách mới theo tuần"** nay tính theo `registered_at` (fallback `created_at`) thay vì
   `created_at`. Đồng bộ luôn cách gom tuần của chart "Mức độ quan tâm trung bình".
 - **File:** `js/app.js` (`renderDashboard`), `css/style.css` (`.funnel2*`).

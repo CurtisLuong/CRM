@@ -1030,6 +1030,9 @@ input:focus, select:focus, textarea:focus {
 .funnel2-stage { left: 12px; font-size: 12px; font-weight: 700; color: #3a3a34; }
 .funnel2-time { left: calc(50% - var(--t-shift, 40px)); font-size: 12px; color: #4a4a42; }
 .funnel2-n { right: 12px; font-size: 13px; font-weight: 700; color: #3a3a34; }
+/* Dòng % chuyển đổi giữa 2 thanh (bậc trước → bậc này); nút thắt = đỏ đậm. */
+.funnel2-conv { font-size: 11px; color: #6b6b60; text-align: center; }
+.funnel2-conv.is-bottleneck { color: var(--bad); font-weight: 700; }
 
 .funnel-dropped { font-size: 12px; color: #9a9a90; margin-top: 8px; }
 
