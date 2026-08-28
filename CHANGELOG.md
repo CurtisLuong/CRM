@@ -6,6 +6,17 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-28 — Dashboard: gộp phễu + thời gian TB; khách mới theo ngày đăng ký
+
+- **Gộp 2 chart thành 1:** "Phễu bán hàng theo tiến độ" nay là 7 bar (mỗi bậc 1 thanh,
+  màu theo bậc), giá trị bên phải hiển thị `[Thời gian TB] · [Số khách đã từng ở bậc]`.
+  Bỏ chart riêng "Thời gian trung bình ở mỗi bậc" (đã gộp) và bỏ % chuyển đổi/nút thắt
+  của phễu cũ. Dùng lại style `.hbars`; xoá CSS phễu cũ không còn dùng.
+- **"Khách mới theo tuần"** nay tính theo `registered_at` (fallback `created_at`) thay vì
+  `created_at` — đúng nghĩa "khách mới". Đồng bộ luôn cách gom tuần của chart "Mức độ
+  quan tâm trung bình".
+- **File:** `js/app.js` (`renderDashboard`), `css/style.css` (dọn `.funnel-*`).
+
 ## 2026-08-28 — Chuẩn hoá care timeline: luôn bắt đầu bằng 'Đăng kí mới'
 
 - **Vấn đề:** khách tạo thẳng ở bậc cao hơn (data cũ, hoặc đổi dropdown trước khi lưu

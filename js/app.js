@@ -3091,40 +3091,53 @@ function renderDashboard() {
 
   const cards = [];
 
-  // 1) PHỄU + % chuyển đổi ------------------------------------------------
+  // 1) PHỄU BÁN HÀNG (gộp: số khách mỗi bậc + thời gian TB mỗi bậc) -------
+  // fc[i] = số khách ĐÃ TỪNG đạt bậc i (suy từ bậc cao nhất đã tới) → dạng phễu.
   const fc = CARE_STAGES.map(() => 0);
   all.forEach((c) => { const m = funnelMaxIndex(c); for (let i = 0; i <= m && i < fc.length; i++) fc[i]++; });
-  // % chuyển đổi giữa các bước + tìm nút thắt (bước rớt nhiều nhất)
-  const convs = fc.map((v, i) => (i === 0 ? null : pctOf(fc[i], fc[i - 1])));
-  let worst = -1, worstV = 101;
-  convs.forEach((v, i) => { if (v != null && fc[i - 1] > 0 && v < worstV) { worstV = v; worst = i; } });
-  let funnelHtml = '<div class="funnel">';
-  CARE_STAGES.forEach((s, i) => {
-    if (i > 0) {
-      const bottleneck = i === worst;
-      funnelHtml += `<div class="funnel-conv ${bottleneck ? 'is-bottleneck' : ''}">↓ ${convs[i]}%${bottleneck ? ' · nút thắt' : ''}</div>`;
+  // Thời gian TB ở mỗi bậc: cộng các khoảng giữa 2 mốc liên tiếp trong lịch sử,
+  // rồi chia số lượt. Bậc cuối (Kí HĐMB) không có mốc kế tiếp → không có số liệu.
+  const sSum = {}, sCnt = {};
+  all.forEach((c) => {
+    const h = Array.isArray(c.care_stage_history) ? [...c.care_stage_history].sort((a, b) => (a.at || '').localeCompare(b.at || '')) : [];
+    for (let i = 0; i < h.length - 1; i++) {
+      const dur = new Date(h[i + 1].at) - new Date(h[i].at);
+      if (dur >= 0 && h[i].stage) { sSum[h[i].stage] = (sSum[h[i].stage] || 0) + dur; sCnt[h[i].stage] = (sCnt[h[i].stage] || 0) + 1; }
     }
-    funnelHtml += `<div class="funnel-step" style="--ring:${careColor(s)}">
-      <div class="funnel-bar" style="width:${Math.max(pctOf(fc[i], fc[0]), 3)}%"></div>
-      <div class="funnel-txt"><span class="funnel-stage">${escapeHtml(s)}</span><span class="funnel-n">${fc[i]}</span></div>
-    </div>`;
+  });
+  // 7 bar (mỗi bậc 1 thanh, MÀU theo bậc). Thanh dài = nhiều khách (dạng phễu).
+  // Giá trị bên phải: [Thời gian TB] · [Số khách đã từng ở bậc này].
+  let funnelHtml = '<div class="hbars">';
+  CARE_STAGES.forEach((s, i) => {
+    const avgMs = sCnt[s] ? sSum[s] / sCnt[s] : null;
+    const barPct = Math.max(pctOf(fc[i], fc[0] || 1), 3);
+    funnelHtml += `
+      <div class="hbar-row">
+        <div class="hbar-label" title="${escapeHtml(s)}">${escapeHtml(s)}</div>
+        <div class="hbar-track"><div class="hbar-fill" style="width:${barPct}%;background:${careColor(s)}"></div></div>
+        <div class="hbar-val">${avgMs != null ? escapeHtml(formatDuration(avgMs)) : '—'}<span class="hbar-sub"> · ${fc[i]} khách</span></div>
+      </div>`;
   });
   funnelHtml += '</div>';
   const dropped = all.filter((c) => c.care_stage === CARE_STAGE_DROPPED).length;
   if (dropped) funnelHtml += `<div class="funnel-dropped">Đã loại (kết thúc, không chốt): ${dropped} khách</div>`;
-  cards.push(dashCard('Phễu bán hàng theo tiến độ', funnelHtml, '% là tỉ lệ khách đi tiếp sang bước sau — bước "nút thắt" là nơi rớt nhiều nhất.'));
+  cards.push(dashCard('Phễu bán hàng theo tiến độ', funnelHtml,
+    'Mỗi bậc: thời gian trung bình khách ở lại + số khách đã từng đạt bậc đó (thanh dài = nhiều khách).'));
 
   // 2) KHÁCH MỚI THEO TUẦN -----------------------------------------------
+  // Tính theo NGÀY ĐĂNG KÝ (registered_at) — đúng nghĩa "khách mới" hơn ngày tạo
+  // bản ghi; fallback created_at nếu khách cũ chưa có registered_at.
   const newByWeek = weeks.map(() => 0);
-  all.forEach((c) => { const i = weekIdx(c.created_at); if (i >= 0) newByWeek[i]++; });
+  all.forEach((c) => { const i = weekIdx(c.registered_at || c.created_at); if (i >= 0) newByWeek[i]++; });
   cards.push(dashCard('Khách mới theo tuần', vbars(newByWeek, weeks.map(ddmm)),
-    '8 tuần gần nhất (theo ngày tạo).'));
+    '8 tuần gần nhất (theo ngày đăng ký).'));
 
   // 4) ĐIỂM QUAN TÂM TRUNG BÌNH + xu hướng --------------------------------
   const withInterest = all.filter((c) => c.interest_level != null);
   const avgAll = withInterest.length ? Math.round(withInterest.reduce((s, c) => s + c.interest_level, 0) / withInterest.length) : 0;
   const wSum = weeks.map(() => 0), wCnt = weeks.map(() => 0);
-  all.forEach((c) => { const i = weekIdx(c.created_at); if (i >= 0 && c.interest_level != null) { wSum[i] += c.interest_level; wCnt[i]++; } });
+  // Cũng gom theo NGÀY ĐĂNG KÝ để khớp với chart "Khách mới theo tuần" ở trên.
+  all.forEach((c) => { const i = weekIdx(c.registered_at || c.created_at); if (i >= 0 && c.interest_level != null) { wSum[i] += c.interest_level; wCnt[i]++; } });
   const avgByWeek = weeks.map((w, i) => (wCnt[i] ? Math.round(wSum[i] / wCnt[i]) : null));
   const trendHtml = `<div class="big-stat">${avgAll}%<span class="big-stat-cap">quan tâm TB toàn pipeline</span></div>`
     + `<div class="dash-sub-title">Xu hướng khách mới theo tuần</div>` + sparkline(avgByWeek, weeks.map(ddmm));
@@ -3158,21 +3171,7 @@ function renderDashboard() {
   cards.push(dashCard(`Khách bị bỏ quên (${stuck.length})`, stuckHtml,
     'Đang chăm nhưng chưa đổi tiến độ quá 7 ngày — cần theo sát lại.'));
 
-  // 7) THỜI GIAN TRUNG BÌNH Ở MỖI BẬC ------------------------------------
-  const sSum = {}, sCnt = {};
-  all.forEach((c) => {
-    const h = Array.isArray(c.care_stage_history) ? [...c.care_stage_history].sort((a, b) => (a.at || '').localeCompare(b.at || '')) : [];
-    for (let i = 0; i < h.length - 1; i++) {
-      const dur = new Date(h[i + 1].at) - new Date(h[i].at);
-      if (dur >= 0 && h[i].stage) { sSum[h[i].stage] = (sSum[h[i].stage] || 0) + dur; sCnt[h[i].stage] = (sCnt[h[i].stage] || 0) + 1; }
-    }
-  });
-  const stageTimeItems = CARE_STAGES.filter((s) => sCnt[s]).map((s) => ({
-    label: s, value: sSum[s] / sCnt[s], color: careColor(s), sub: `(${sCnt[s]} lượt)`,
-  }));
-  cards.push(dashCard('Thời gian trung bình ở mỗi bậc',
-    hbars(stageTimeItems, { fmt: (ms) => formatDuration(ms), empty: 'Chưa đủ dữ liệu chuyển bậc' }),
-    'Bậc nào tốn nhiều thời gian nhất trước khi khách đi tiếp.'));
+  // (Chart "Thời gian trung bình ở mỗi bậc" đã GỘP vào "Phễu bán hàng" ở mục 1.)
 
   // 8) KHÁCH NÓNG CẦN GỌI NGAY (quan tâm >70% & >7 ngày chưa cập nhật) ----
   const hot = active.filter((c) => (c.interest_level || 0) > 70 && daysSince(c.care_stage_updated_at) > 7)
