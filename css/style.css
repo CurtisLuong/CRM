@@ -722,7 +722,7 @@ input:focus, select:focus, textarea:focus {
    mảnh; có ảnh → object-fit cover. */
 .detail-cover {
   position: relative; width: 100%; max-width: 720px; margin: 0 auto;
-  height: calc(var(--av) * 2.2); cursor: pointer;
+  height: calc(var(--av) * 3); cursor: pointer; border-radius: 12px;
   background: var(--paper);
   background-image: repeating-linear-gradient(45deg, rgba(26, 46, 41, 0.06) 0 1px, transparent 1px 11px);
   overflow: hidden;

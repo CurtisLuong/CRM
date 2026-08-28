@@ -10,9 +10,9 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 - **Thêm ảnh bìa** ở đầu trang chi tiết: khách VIP tải ảnh riêng; khách còn lại dùng
   **cover mặc định** (giấy ngà + kẻ mảnh, hợp tông "con dấu mộc đỏ"). Cover cao =
-  **2.2 × avatar**, ảnh fill `object-fit: cover`. Avatar tròn (viền trắng) đè lên mép dưới.
-  Cover giới hạn ngang bằng content (`max-width: 720px`, canh giữa như `.detail-body`) —
-  không tràn hết bề ngang cửa sổ.
+  **3 × avatar**, bo góc 12px, ảnh fill `object-fit: cover`. Avatar tròn (viền trắng) đè
+  lên mép dưới. Cover giới hạn ngang bằng content (`max-width: 720px`, canh giữa như
+  `.detail-body`) — không tràn hết bề ngang cửa sổ.
 - **Bỏ topbar xanh riêng:** 2 nút Quay lại/Sửa **nổi đè lên cover**; khi cuộn qua khỏi
   cover thì hiện **thanh mini dính đỉnh** (fixed, trượt xuống — IntersectionObserver theo
   dõi cover). Tên khách hiển thị trên thanh mini.
