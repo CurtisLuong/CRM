@@ -3189,18 +3189,22 @@ function renderDashboard() {
   cards.push(dashCard('Mức độ quan tâm trung bình', trendHtml,
     'Đường đi lên = khách mới vào đang "nóng" hơn; đi xuống = "nguội" hơn.'));
 
-  // 5) PHÂN BỔ LOẠI CĂN / TOÀ (khách đang chăm) --------------------------
-  const tally = (arr, key) => {
+  // 5) PHÂN BỔ LOẠI CĂN / TOÀ (TẤT CẢ khách, mọi bậc) --------------------
+  // limit: chỉ giữ top-N (bỏ trống = lấy hết). Loại căn để hết → tổng phân bổ = tổng
+  // khách (mọi khách đều có loại căn). Mã toà giữ top 6 (toà có thể rất nhiều).
+  const tally = (arr, key, limit) => {
     const m = {};
     arr.forEach((c) => { const v = (c[key] && String(c[key]).trim()); if (v) m[v] = (m[v] || 0) + 1; });
-    return Object.entries(m).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([label, value]) => ({ label, value }));
+    let entries = Object.entries(m).sort((a, b) => b[1] - a[1]);
+    if (limit) entries = entries.slice(0, limit);
+    return entries.map(([label, value]) => ({ label, value }));
   };
-  const aptItems = tally(active, 'apt_type');
-  const bldItems = tally(active, 'building_code');
+  const aptItems = tally(all, 'apt_type');
+  const bldItems = tally(all, 'building_code', 6);
   const distHtml = `<div class="dash-sub-title">Loại căn</div>${hbars(aptItems, { empty: 'Chưa có dữ liệu loại căn' })}`
     + `<div class="dash-sub-title">Mã toà</div>${hbars(bldItems, { empty: 'Chưa có dữ liệu mã toà', color: '#8a7bb0' })}`;
-  cards.push(dashCard('Căn hộ quan tâm (khách đang chăm)', distHtml,
-    'Căn/toà "hot" nhất trong pipeline — feedback ngược cho đội dự án nên đẩy bán căn nào.'));
+  cards.push(dashCard('Căn hộ quan tâm', distHtml,
+    'Loại căn/toà "hot" nhất trên TẤT CẢ khách — feedback ngược cho đội dự án nên đẩy bán căn nào.'));
 
   // 6) KHÁCH BỊ BỎ QUÊN (kẹt bậc > 7 ngày) --------------------------------
   const stuck = active.filter((c) => daysSince(c.care_stage_updated_at) > 7)

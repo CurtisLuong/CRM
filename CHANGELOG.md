@@ -32,6 +32,9 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
   `.funnel2-conv`.
 - **"Khách mới theo tuần"** nay tính theo `registered_at` (fallback `created_at`) thay vì
   `created_at`. Đồng bộ luôn cách gom tuần của chart "Mức độ quan tâm trung bình".
+- **Chart "Căn hộ quan tâm"** nay tính trên TẤT CẢ khách (mọi bậc) thay vì chỉ khách đang
+  chăm; đổi tên card (bỏ "(khách đang chăm)"). Loại căn bỏ giới hạn top-6 → tổng phân bổ =
+  tổng khách; Mã toà giữ top-6.
 - **File:** `js/app.js` (`renderDashboard`), `css/style.css` (`.funnel2*`).
 
 ## 2026-08-28 — Chuẩn hoá care timeline: luôn bắt đầu bằng 'Đăng kí mới'
