@@ -8,14 +8,19 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ## 2026-08-28 — Dashboard: gộp phễu + thời gian TB; khách mới theo ngày đăng ký
 
-- **Gộp 2 chart thành 1:** "Phễu bán hàng theo tiến độ" nay là 7 bar (mỗi bậc 1 thanh,
-  màu theo bậc), giá trị bên phải hiển thị `[Thời gian TB] · [Số khách đã từng ở bậc]`.
-  Bỏ chart riêng "Thời gian trung bình ở mỗi bậc" (đã gộp) và bỏ % chuyển đổi/nút thắt
-  của phễu cũ. Dùng lại style `.hbars`; xoá CSS phễu cũ không còn dùng.
+- **Gộp 2 chart thành 1 — "PHỄU BÁN HÀNG VÀ THỜI GIAN TRUNG BÌNH THEO TIẾN ĐỘ"**
+  (tên IN HOA): 7 thanh ngang dày, màu theo bậc (opacity giảm để chữ nổi). Chữ CHÌM
+  trong thanh: tên bậc (trái) · thời gian TB (giữa) · số khách (phải). Độ dài thanh =
+  số khách đã từng đạt bậc / số khách 'Đăng kí mới' (dạng phễu). Bỏ chart riêng "Thời
+  gian trung bình ở mỗi bậc" + bỏ %/nút thắt của phễu cũ; xoá CSS `.funnel-*` cũ, thêm
+  `.funnel2*`.
+- **Cách tính thời gian TB (mới, đúng nghĩa):** với mỗi khách, thời gian ở 1 bậc = từ
+  lúc VÀO bậc đến khi CHUYỂN sang bậc khác; gộp các lần ghi cùng bậc thành 1 lượt (không
+  đếm lặp), bậc hiện tại chưa rời thì không tính. Trung bình trên các khách. 'Kí HĐMB' và
+  'Loại' là bậc thời điểm → luôn null (bỏ trống).
 - **"Khách mới theo tuần"** nay tính theo `registered_at` (fallback `created_at`) thay vì
-  `created_at` — đúng nghĩa "khách mới". Đồng bộ luôn cách gom tuần của chart "Mức độ
-  quan tâm trung bình".
-- **File:** `js/app.js` (`renderDashboard`), `css/style.css` (dọn `.funnel-*`).
+  `created_at`. Đồng bộ luôn cách gom tuần của chart "Mức độ quan tâm trung bình".
+- **File:** `js/app.js` (`renderDashboard`), `css/style.css` (`.funnel2*`).
 
 ## 2026-08-28 — Chuẩn hoá care timeline: luôn bắt đầu bằng 'Đăng kí mới'
 

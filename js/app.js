@@ -3091,38 +3091,62 @@ function renderDashboard() {
 
   const cards = [];
 
-  // 1) PHỄU BÁN HÀNG (gộp: số khách mỗi bậc + thời gian TB mỗi bậc) -------
-  // fc[i] = số khách ĐÃ TỪNG đạt bậc i (suy từ bậc cao nhất đã tới) → dạng phễu.
+  // 1) PHỄU BÁN HÀNG + THỜI GIAN TRUNG BÌNH THEO TIẾN ĐỘ (gộp 2 chart) -----
+  // fc[i] = số khách ĐÃ TỪNG đạt bậc i (suy từ bậc cao nhất đã tới). Mọi khách đều
+  // qua 'Đăng kí mới' nên fc[0] lớn nhất → thanh dài nhất; bậc sau ngắn dần theo tỉ
+  // lệ fc[i]/fc[0] (dạng phễu).
   const fc = CARE_STAGES.map(() => 0);
   all.forEach((c) => { const m = funnelMaxIndex(c); for (let i = 0; i <= m && i < fc.length; i++) fc[i]++; });
-  // Thời gian TB ở mỗi bậc: cộng các khoảng giữa 2 mốc liên tiếp trong lịch sử,
-  // rồi chia số lượt. Bậc cuối (Kí HĐMB) không có mốc kế tiếp → không có số liệu.
+
+  // Thời gian TB ở mỗi bậc = trung bình (trên các khách) của khoảng: từ lúc VÀO bậc
+  // đến lúc CHUYỂN sang bậc khác (vd 'Đăng kí mới' 5:00 → 'Loại' 5:30 = 30 phút ở
+  // 'Đăng kí mới'). Gom các mốc CÙNG bậc liên tiếp thành 1 "lượt ở bậc" (ghi cùng bậc
+  // nhiều lần vẫn là 1 lượt) → tính đúng thời gian mỗi khách, không đếm lặp. Bậc hiện
+  // tại (lượt cuối, chưa rời) không tính. 'Kí HĐMB' và 'Loại' là bậc THỜI ĐIỂM (không
+  // có thời lượng) → luôn null.
+  const TERMINAL_STAGES = new Set(['Kí HĐMB', CARE_STAGE_DROPPED]);
   const sSum = {}, sCnt = {};
   all.forEach((c) => {
-    const h = Array.isArray(c.care_stage_history) ? [...c.care_stage_history].sort((a, b) => (a.at || '').localeCompare(b.at || '')) : [];
-    for (let i = 0; i < h.length - 1; i++) {
-      const dur = new Date(h[i + 1].at) - new Date(h[i].at);
-      if (dur >= 0 && h[i].stage) { sSum[h[i].stage] = (sSum[h[i].stage] || 0) + dur; sCnt[h[i].stage] = (sCnt[h[i].stage] || 0) + 1; }
+    const flat = Array.isArray(c.care_stage_history)
+      ? [...c.care_stage_history].sort((a, b) => (a.at || '').localeCompare(b.at || ''))
+      : [];
+    // Rút gọn thành danh sách LƯỢT: at = mốc VÀO bậc (mốc đầu của chuỗi cùng bậc).
+    const runs = [];
+    for (const e of flat) {
+      const prev = runs[runs.length - 1];
+      if (prev && prev.stage === e.stage) continue;
+      runs.push({ stage: e.stage, at: e.at });
+    }
+    for (let i = 0; i < runs.length - 1; i++) {
+      const st = runs[i].stage;
+      if (!st || TERMINAL_STAGES.has(st)) continue;
+      const dur = new Date(runs[i + 1].at) - new Date(runs[i].at);
+      if (dur >= 0) { sSum[st] = (sSum[st] || 0) + dur; sCnt[st] = (sCnt[st] || 0) + 1; }
     }
   });
-  // 7 bar (mỗi bậc 1 thanh, MÀU theo bậc). Thanh dài = nhiều khách (dạng phễu).
-  // Giá trị bên phải: [Thời gian TB] · [Số khách đã từng ở bậc này].
-  let funnelHtml = '<div class="hbars">';
+
+  // 7 thanh (mỗi bậc 1 thanh, màu theo bậc, opacity giảm để chữ nổi). Chữ CHÌM trong
+  // thanh: [Tên bậc] trái · [Thời gian TB] giữa · [Số khách] phải.
+  let funnelHtml = '<div class="funnel2">';
   CARE_STAGES.forEach((s, i) => {
     const avgMs = sCnt[s] ? sSum[s] / sCnt[s] : null;
-    const barPct = Math.max(pctOf(fc[i], fc[0] || 1), 3);
+    const barPct = Math.max(pctOf(fc[i], fc[0] || 1), 2);
+    const timeTxt = avgMs != null ? escapeHtml(formatDuration(avgMs)) : '';
     funnelHtml += `
-      <div class="hbar-row">
-        <div class="hbar-label" title="${escapeHtml(s)}">${escapeHtml(s)}</div>
-        <div class="hbar-track"><div class="hbar-fill" style="width:${barPct}%;background:${careColor(s)}"></div></div>
-        <div class="hbar-val">${avgMs != null ? escapeHtml(formatDuration(avgMs)) : '—'}<span class="hbar-sub"> · ${fc[i]} khách</span></div>
+      <div class="funnel2-row">
+        <div class="funnel2-fill" style="width:${barPct}%;background:${careColor(s)}"></div>
+        <div class="funnel2-txt">
+          <span class="funnel2-stage">${escapeHtml(s)}</span>
+          <span class="funnel2-time">${timeTxt}</span>
+          <span class="funnel2-n">${fc[i]} khách</span>
+        </div>
       </div>`;
   });
   funnelHtml += '</div>';
   const dropped = all.filter((c) => c.care_stage === CARE_STAGE_DROPPED).length;
   if (dropped) funnelHtml += `<div class="funnel-dropped">Đã loại (kết thúc, không chốt): ${dropped} khách</div>`;
-  cards.push(dashCard('Phễu bán hàng theo tiến độ', funnelHtml,
-    'Mỗi bậc: thời gian trung bình khách ở lại + số khách đã từng đạt bậc đó (thanh dài = nhiều khách).'));
+  cards.push(dashCard('PHỄU BÁN HÀNG VÀ THỜI GIAN TRUNG BÌNH THEO TIẾN ĐỘ', funnelHtml,
+    'Thanh dài = nhiều khách (dạng phễu). Mỗi thanh: tên bậc · thời gian TB ở bậc · số khách đã từng ở bậc.'));
 
   // 2) KHÁCH MỚI THEO TUẦN -----------------------------------------------
   // Tính theo NGÀY ĐĂNG KÝ (registered_at) — đúng nghĩa "khách mới" hơn ngày tạo

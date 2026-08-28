@@ -1018,7 +1018,16 @@ input:focus, select:focus, textarea:focus {
 .doc-del { border: none; background: transparent; cursor: pointer; color: var(--bad); font-size: 14px; padding: 0 4px; }
 .docs-add { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
 
-/* Phễu — nay dùng chung style .hbars (bar ngang); chỉ còn dòng "đã loại". */
+/* Phễu bán hàng + thời gian TB: mỗi bậc 1 thanh ngang DÀY, chữ CHÌM trong thanh
+   (tên bậc trái · thời gian TB giữa · số khách phải). Fill giảm opacity để chữ nổi. */
+.funnel2 { display: flex; flex-direction: column; gap: 6px; }
+.funnel2-row { position: relative; height: 34px; border-radius: 6px; background: var(--paper); overflow: hidden; }
+.funnel2-fill { position: absolute; inset: 0 auto 0 0; border-radius: 6px; opacity: 0.5; }
+.funnel2-txt { position: absolute; inset: 0; display: flex; align-items: center; gap: 8px; padding: 0 12px; }
+.funnel2-stage { flex: 0 0 auto; font-size: 12px; font-weight: 700; color: #3a3a34; white-space: nowrap; }
+.funnel2-time { flex: 1 1 auto; text-align: center; font-size: 12px; color: #4a4a42; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.funnel2-n { flex: 0 0 auto; font-size: 13px; font-weight: 700; color: #3a3a34; white-space: nowrap; }
+
 .funnel-dropped { font-size: 12px; color: #9a9a90; margin-top: 8px; }
 
 /* Danh sách khách trong dashboard */
