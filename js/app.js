@@ -1719,6 +1719,7 @@ function onImagePicked(blob) {
   closeImagePicker();
   if (mode === 'ocr') handleOcrImage(blob);
   else if (mode === 'avatar') avatarPreview(blob);
+  else if (mode === 'cover') coverPreview(blob);
 }
 // Nút "Dán ảnh" trong modal: đọc ảnh MỚI NHẤT qua Clipboard API (fallback 1 chạm).
 async function imgPickerPasteBtn() {
@@ -1916,6 +1917,9 @@ function openDetail(id) {
 
   $('#detail-name').textContent = c.full_name || '(chưa có tên)';
   renderDetailAvatar(c); // ảnh đại diện (hoặc chữ cái) bên trái tên
+  renderDetailCover(c);  // ảnh bìa (hoặc cover mặc định)
+  $('#detail-stickybar-name').textContent = c.full_name || '(chưa có tên)';
+  $('#detail-stickybar').classList.remove('is-visible'); // mở khách mới → bắt đầu ở đỉnh, ẩn thanh mini
   $('#detail-phone').textContent = c.phone || DASH;
   $('#detail-call-btn').href = c.phone ? `tel:${normalizePhone(c.phone)}` : '#';
   const zaloHref = zaloLink(c.phone);
@@ -2435,6 +2439,14 @@ function renderDetailAvatar(c) {
   el.style.background = avatarColor(c.full_name || '');
   el.innerHTML = escapeHtml(lastWordInitial(c.full_name)) + (c.avatar_path ? avatarImgTag(c.avatar_path) : '');
 }
+// Ảnh bìa: có cover_path → hiện ảnh (object-fit cover); không → ẩn ảnh, để lộ cover mặc định (CSS).
+function renderDetailCover(c) {
+  const img = $('#detail-cover-img');
+  if (!img) return;
+  const url = c && c.cover_path ? CRM.coverUrl(c.cover_path) : null;
+  if (url) { img.src = url; img.hidden = false; }
+  else { img.removeAttribute('src'); img.hidden = true; }
+}
 // Migrate 1 LẦN (theo user + trình duyệt): chuyển file avatar cũ từ bucket private sang
 // bucket public. Chạy NỀN, không chặn UI. Chỉ đặt cờ khi đã chạy xong (online) → offline/
 // lỗi thì lần đăng nhập online sau tự thử lại. Không có avatar cũ → no-op nhẹ.
@@ -2449,9 +2461,10 @@ async function maybeMigrateAvatars(userId) {
   } catch (e) { console.warn('maybeMigrateAvatars lỗi:', e); }
 }
 
-// ---- Trình xem + ĐỔI ảnh đại diện (dùng lại #file-viewer) ----
-let avatarViewerCid = null;   // khách đang mở avatar viewer
-let avatarPendingBlob = null; // ảnh vừa chọn (đã nén) chờ Lưu/Huỷ
+// ---- Trình xem + ĐỔI ảnh đại diện / ảnh bìa (dùng chung #file-viewer) ----
+let avatarViewerCid = null;   // khách đang mở viewer (dùng chung avatar & cover)
+let avatarPendingBlob = null; // ảnh vừa chọn (đã nén) chờ Lưu/Huỷ (dùng chung)
+let fvEditMode = 'avatar';    // 'avatar' | 'cover' — quyết định nút Lưu/Huỷ/Xoá thao tác gì
 
 function resetAvatarActionsUI() {
   $('#fv-av-choose').hidden = false;
@@ -2461,6 +2474,7 @@ function resetAvatarActionsUI() {
 async function openAvatarViewer(customerId) {
   const c = allCustomers.find((x) => x.id === customerId);
   if (!c) return;
+  fvEditMode = 'avatar';
   avatarViewerCid = customerId; avatarPendingBlob = null;
   const dlg = $('#file-viewer');
   $('#file-viewer-title').textContent = 'Ảnh đại diện';
@@ -2549,11 +2563,105 @@ async function avatarRemove() {
     status.textContent = '✅ Đã gỡ ảnh đại diện.';
   } catch (e) { console.warn('avatar remove lỗi:', e); status.textContent = '⚠️ Gỡ thất bại.'; }
 }
+// ---- ẢNH BÌA (cover) — dùng lại #file-viewer y như avatar, chỉ khác API + tỉ lệ nén ----
+async function openCoverViewer(customerId) {
+  const c = allCustomers.find((x) => x.id === customerId);
+  if (!c) return;
+  fvEditMode = 'cover';
+  avatarViewerCid = customerId; avatarPendingBlob = null;
+  const dlg = $('#file-viewer');
+  $('#file-viewer-title').textContent = 'Ảnh bìa';
+  $('#file-viewer-open').onclick = null;
+  fvImg = null; fvResetZoom();
+  $('#fv-avatar-actions').hidden = false;
+  resetAvatarActionsUI();
+  $('#avatar-remove-btn').hidden = !c.cover_path;
+  if (!dlg.open) dlg.showModal();
+  await showCoverInViewer(c);
+}
+async function showCoverInViewer(c) {
+  const body = $('#file-viewer-body');
+  if (c && c.cover_path) {
+    $('#fv-zoom').hidden = false; $('#file-viewer-open').hidden = false;
+    body.classList.add('fv-zoomable');
+    const url = CRM.coverUrl(c.cover_path);
+    body.innerHTML = '';
+    const el = document.createElement('img'); el.className = 'fv-img'; el.src = url; el.alt = 'Ảnh bìa';
+    el.onerror = () => { if (avatarViewerCid === c.id) body.innerHTML = '<div class="fv-loading">Không tải được (cần mạng?).</div>'; };
+    body.appendChild(el); fvImg = el; fvResetZoom();
+    $('#file-viewer-open').onclick = () => window.open(url, '_blank');
+  } else {
+    // chưa có ảnh bìa → hiện thông báo đang dùng cover mặc định
+    $('#fv-zoom').hidden = true; $('#file-viewer-open').hidden = true;
+    body.classList.remove('fv-zoomable'); fvImg = null;
+    body.innerHTML = '<div class="fv-cover-default">Chưa có ảnh bìa — đang dùng cover mặc định.<br>Bấm "Sửa ảnh" để tải ảnh bìa riêng.</div>';
+  }
+}
+async function coverPreview(file) {
+  if (!file) return;
+  const status = $('#avatar-status');
+  if (!CRM.isOnline()) { status.textContent = '⚠️ Cần mạng để đổi ảnh bìa.'; return; }
+  try {
+    status.textContent = '⏳ Đang xử lý ảnh...';
+    const { blob } = await fileToScaled(file, 1280, 0.85); // cover ngang → cần rộng hơn avatar
+    avatarPendingBlob = blob;
+    const body = $('#file-viewer-body');
+    $('#fv-zoom').hidden = true; $('#file-viewer-open').hidden = true;
+    body.classList.remove('fv-zoomable'); fvImg = null;
+    body.innerHTML = '';
+    const img = document.createElement('img'); img.className = 'fv-img'; img.src = URL.createObjectURL(blob);
+    body.appendChild(img);
+    $('#fv-av-choose').hidden = true; $('#fv-av-confirm').hidden = false;
+    status.textContent = 'Xem trước — bấm "Lưu ảnh" để cập nhật.';
+  } catch (e) { console.warn('cover preview lỗi:', e); status.textContent = '⚠️ Không xử lý được ảnh.'; }
+}
+async function coverSave() {
+  if (!avatarPendingBlob || !avatarViewerCid) return;
+  const status = $('#avatar-status');
+  status.textContent = '⏳ Đang lưu...';
+  try {
+    await CRM.uploadCover(avatarViewerCid, avatarPendingBlob);
+    allCustomers = await CRM.list();
+    avatarPendingBlob = null;
+    const c = allCustomers.find((x) => x.id === avatarViewerCid);
+    if (detailId === avatarViewerCid && c) renderDetailCover(c);
+    resetAvatarActionsUI();
+    $('#avatar-remove-btn').hidden = false;
+    await showCoverInViewer(c);
+    status.textContent = '✅ Đã lưu ảnh bìa.';
+  } catch (e) { console.warn('cover save lỗi:', e); status.textContent = '⚠️ Lưu thất bại: ' + (e.message || 'lỗi'); }
+}
+async function coverCancel() {
+  avatarPendingBlob = null;
+  resetAvatarActionsUI();
+  await showCoverInViewer(allCustomers.find((x) => x.id === avatarViewerCid));
+}
+async function coverRemove() {
+  if (!avatarViewerCid) return;
+  const status = $('#avatar-status');
+  status.textContent = '⏳ Đang gỡ...';
+  try {
+    await CRM.removeCover(avatarViewerCid);
+    allCustomers = await CRM.list();
+    const c = allCustomers.find((x) => x.id === avatarViewerCid);
+    if (detailId === avatarViewerCid && c) renderDetailCover(c);
+    $('#avatar-remove-btn').hidden = true;
+    await showCoverInViewer(c);
+    status.textContent = '✅ Đã gỡ ảnh bìa.';
+  } catch (e) { console.warn('cover remove lỗi:', e); status.textContent = '⚠️ Gỡ thất bại.'; }
+}
+
+// Bấm vùng cover (trừ 2 nút nổi Quay lại/Sửa) → mở viewer ảnh bìa.
+$('#detail-cover')?.addEventListener('click', (e) => {
+  if (e.target.closest('.cover-btn')) return;
+  if (detailId) openCoverViewer(detailId);
+});
 $('#detail-avatar')?.addEventListener('click', () => { if (detailId) openAvatarViewer(detailId); });
-$('#avatar-edit-btn')?.addEventListener('click', () => openImagePicker('avatar')); // mở modal Chọn ảnh
-$('#avatar-save-btn')?.addEventListener('click', avatarSave);
-$('#avatar-cancel-btn')?.addEventListener('click', avatarCancel);
-$('#avatar-remove-btn')?.addEventListener('click', avatarRemove);
+// Nút trong #file-viewer DÙNG CHUNG cho avatar & cover — định tuyến theo fvEditMode.
+$('#avatar-edit-btn')?.addEventListener('click', () => openImagePicker(fvEditMode)); // 'avatar' | 'cover'
+$('#avatar-save-btn')?.addEventListener('click', () => (fvEditMode === 'cover' ? coverSave() : avatarSave()));
+$('#avatar-cancel-btn')?.addEventListener('click', () => (fvEditMode === 'cover' ? coverCancel() : avatarCancel()));
+$('#avatar-remove-btn')?.addEventListener('click', () => (fvEditMode === 'cover' ? coverRemove() : avatarRemove()));
 
 // ---- Zoom cho ảnh trong trình xem ----
 const FV_MIN = 1, FV_MAX = 6;
@@ -3513,6 +3621,19 @@ document.addEventListener('DOMContentLoaded', () => {
   $('#tab-dashboard').addEventListener('click', showDashboardView);
   $('#detail-back-btn').addEventListener('click', closeDetailToList);
   $('#detail-edit-btn').addEventListener('click', () => { if (detailId) openForm(detailId); });
+  // Nút trên thanh mini dính đỉnh (kiểu FB) — cùng hành vi với nút nổi trên cover.
+  $('#detail-back-btn-sticky').addEventListener('click', closeDetailToList);
+  $('#detail-edit-btn-sticky').addEventListener('click', () => { if (detailId) openForm(detailId); });
+  // Hiện thanh mini khi CUỘN qua khỏi cover (cover rời khỏi đỉnh viewport). IntersectionObserver
+  // theo dõi cover: còn thấy cover → ẩn thanh; cover trôi lên hết → hiện thanh.
+  const coverEl = $('#detail-cover');
+  if (coverEl && 'IntersectionObserver' in window) {
+    const io = new IntersectionObserver((entries) => {
+      const showBar = !entries[0].isIntersecting && !$('#detail-screen').hidden;
+      $('#detail-stickybar').classList.toggle('is-visible', showBar);
+    }, { threshold: 0, rootMargin: '-4px 0px 0px 0px' });
+    io.observe(coverEl);
+  }
   $('#detail-schedule-btn').addEventListener('click', () => { if (detailId) openScheduler(detailId); });
   $('#customer-form').addEventListener('submit', handleFormSubmit);
   $('#cancel-form-btn').addEventListener('click', closeForm);

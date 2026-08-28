@@ -6,6 +6,23 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-28 — Ảnh bìa (cover photo) cho trang chi tiết khách (kiểu Facebook)
+
+- **Thêm ảnh bìa** ở đầu trang chi tiết: khách VIP tải ảnh riêng; khách còn lại dùng
+  **cover mặc định** (giấy ngà + kẻ mảnh, hợp tông "con dấu mộc đỏ"). Cover cao =
+  **2.2 × avatar**, ảnh fill `object-fit: cover`. Avatar tròn (viền trắng) đè lên mép dưới.
+- **Bỏ topbar xanh riêng:** 2 nút Quay lại/Sửa **nổi đè lên cover**; khi cuộn qua khỏi
+  cover thì hiện **thanh mini dính đỉnh** (fixed, trượt xuống — IntersectionObserver theo
+  dõi cover). Tên khách hiển thị trên thanh mini.
+- **Đổi ảnh bìa:** bấm vùng cover → mở **modal xem ảnh dùng chung với avatar** (`#file-viewer`),
+  có nút Sửa ảnh / Xoá ảnh. Định tuyến theo `fvEditMode` ('avatar' | 'cover').
+- **Lưu trữ:** cột mới `cover_path`; **tái dùng bucket public `customer-avatars`** (file
+  `cover-<ts>`), không cần bucket/policy mới. Ảnh nén ~1280px ngang.
+- **Migration cần chạy:** `add_cover_photo.sql` (chỉ thêm 1 cột, an toàn).
+- **File:** `add_cover_photo.sql` (mới), `js/db.js` (uploadCover/coverUrl/removeCover),
+  `index.html` (cover + sticky bar), `css/style.css` (cover/sticky/avatar đè),
+  `js/app.js` (renderDetailCover + luồng viewer cover + sticky observer).
+
 ## 2026-08-28 — Dashboard: gộp phễu + thời gian TB; khách mới theo ngày đăng ký
 
 - **Gộp 2 chart thành 1 — "PHỄU KHÁCH HÀNG"** (tên IN HOA): 7 thanh ngang dày, màu theo bậc (opacity giảm để chữ nổi). Chữ CHÌM

@@ -415,6 +415,44 @@ const CRM = {
     await this.update(customerId, { avatar_path: null });
   },
 
+  // ---- ẢNH BÌA (cover) — TÁI DÙNG bucket PUBLIC customer-avatars (xem add_cover_photo.sql).
+  // File ở '<owner>/<customerId>/cover-<ts>.<ext>'; đường dẫn lưu ở cột customers.cover_path.
+  // Cùng bucket + cùng thư mục owner nên RLS/public URL dùng chung với avatar.
+
+  /** Đổi/đặt ảnh bìa: upload ảnh mới → set cover_path → xoá file bìa cũ (nếu có). */
+  async uploadCover(customerId, file) {
+    if (!this.isOnline() || !_supabase) throw new Error('Cần mạng để đổi ảnh bìa');
+    const existing = (await localGetAll()).find((r) => r.id === customerId);
+    const oldPath = existing && existing.cover_path;
+    const mime = file.type || 'image/jpeg';
+    const ext = mime.startsWith('image/') ? (mime.split('/')[1] || 'jpg') : 'jpg';
+    const path = `${_currentUserId}/${customerId}/cover-${Date.now()}.${ext}`;
+    const up = await _supabase.storage.from(AVATAR_BUCKET).upload(path, file, { contentType: mime, upsert: false });
+    if (up.error) throw up.error;
+    await this.update(customerId, { cover_path: path });
+    if (oldPath && oldPath !== path) {
+      try { await _supabase.storage.from(AVATAR_BUCKET).remove([oldPath]); } catch (e) { /* bỏ qua */ }
+    }
+    return path;
+  },
+
+  /** Public URL của 1 ảnh bìa (đồng bộ). null nếu không có path. */
+  coverUrl(path) {
+    if (!path || !_supabase) return null;
+    const { data } = _supabase.storage.from(AVATAR_BUCKET).getPublicUrl(path);
+    return (data && data.publicUrl) || null;
+  },
+
+  /** Gỡ ảnh bìa: xoá file + đặt cover_path = null. */
+  async removeCover(customerId) {
+    const existing = (await localGetAll()).find((r) => r.id === customerId);
+    const oldPath = existing && existing.cover_path;
+    if (oldPath && this.isOnline() && _supabase) {
+      try { await _supabase.storage.from(AVATAR_BUCKET).remove([oldPath]); } catch (e) { /* bỏ qua */ }
+    }
+    await this.update(customerId, { cover_path: null });
+  },
+
   /**
    * Migrate 1 lần: chuyển file avatar cũ từ bucket private (customer-docs) sang bucket
    * public (customer-avatars), GIỮ NGUYÊN path (nên avatar_path không đổi). Idempotent:

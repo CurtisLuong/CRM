@@ -188,10 +188,22 @@
 
 <!-- ============ MÀN HÌNH CHI TIẾT KHÁCH ============ -->
 <section id="detail-screen" hidden>
-  <header class="detail-topbar">
-    <button id="detail-back-btn" class="btn-ghost">← Quay lại</button>
-    <button id="detail-edit-btn" class="btn-primary">Sửa</button>
+  <!-- Thanh mini DÍNH ĐỈNH — ẩn mặc định, trượt xuống khi CUỘN qua khỏi cover (kiểu Facebook). -->
+  <header class="detail-stickybar" id="detail-stickybar">
+    <button id="detail-back-btn-sticky" class="stickybar-btn" type="button" aria-label="Quay lại">←</button>
+    <span id="detail-stickybar-name" class="stickybar-name"></span>
+    <button id="detail-edit-btn-sticky" class="stickybar-edit" type="button">Sửa</button>
   </header>
+
+  <!-- Ảnh bìa (cover): bấm vùng bìa để xem/đổi ảnh. 2 nút Quay lại/Sửa nổi đè lên. -->
+  <div class="detail-cover" id="detail-cover">
+    <img id="detail-cover-img" class="cover-img" alt="" hidden />
+    <button id="detail-back-btn" class="cover-btn cover-btn-back" type="button">← Quay lại</button>
+    <button id="detail-edit-btn" class="cover-btn cover-btn-edit" type="button">✎ Sửa</button>
+    <span class="cover-cam" aria-hidden="true">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.2"/></svg>
+    </span>
+  </div>
 
   <div class="detail-body">
     <div class="detail-id-row">
