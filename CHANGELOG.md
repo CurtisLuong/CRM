@@ -6,6 +6,17 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-28 — Chuẩn hoá care timeline: luôn bắt đầu bằng 'Đăng kí mới'
+
+- **Vấn đề:** khách tạo thẳng ở bậc cao hơn (data cũ, hoặc đổi dropdown trước khi lưu
+  lần đầu) có `care_stage_history` bắt đầu bằng 'Đang tiếp cận' → timeline thiếu bậc
+  'Đăng kí mới' dù `registered_at` có giá trị.
+- **Sửa (tầng hiển thị):** `renderCareHistory` nay LUÔN đảm bảo node đầu là 'Đăng kí
+  mới' tại mốc `registered_at`; nếu lịch sử gốc không có thì CHÈN 1 node tổng hợp ở
+  đầu (kẹp mốc ≤ mốc bậc kế tiếp để khoảng thời gian không âm). KHÔNG sửa dữ liệu gốc
+  `care_stage_history`, không migration, không đụng schema/RLS/service worker.
+- **File:** `js/app.js` (`renderCareHistory`).
+
 ## 2026-08-27 — Slider "Mức độ quan tâm" đổi màu thời gian thực + nhãn bậc
 
 - **Bố cục mới trong form:** dòng "Mức độ quan tâm:" → dòng readout (`[%]` + huy hiệu

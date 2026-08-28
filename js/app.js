@@ -2029,10 +2029,18 @@ function renderCareHistory(history, registeredAt) {
       nodes.push({ stage: e.stage, at: e.at, entries: [e] });
     }
   }
-  // Bậc đầu 'Đăng kí mới' CHÍNH LÀ mốc đăng ký (gộp node "Bắt đầu đăng ký" cũ vào đây để
-  // đảm bảo data integrity): dùng thời gian ĐĂNG KÝ (field registered_at) làm mốc bậc.
-  if (registeredAt && nodes.length && nodes[0].stage === CARE_STAGE_DEFAULT) {
-    nodes[0].at = registeredAt;
+  // CHUẨN HOÁ: mọi timeline PHẢI bắt đầu bằng bậc 'Đăng kí mới' tại mốc đăng ký.
+  //  • Node đầu đã là 'Đăng kí mới' → chỉ gắn lại mốc = thời gian đăng ký.
+  //  • Node đầu KHÁC (khách cũ / tạo thẳng ở bậc cao hơn) → CHÈN 1 node 'Đăng kí mới'
+  //    tổng hợp ở đầu. Đây là sửa ở TẦNG HIỂN THỊ (không đổi care_stage_history gốc):
+  //    mốc = thời gian đăng ký, kẹp không muộn hơn mốc bậc kế tiếp để khoảng thời gian
+  //    giữa 2 bậc không bị âm. (nodes chắc chắn ≥1 vì flat rỗng đã return ở trên.)
+  if (nodes[0].stage === CARE_STAGE_DEFAULT) {
+    if (registeredAt) nodes[0].at = registeredAt;
+  } else {
+    let at = registeredAt || nodes[0].at || '';
+    if (nodes[0].at && at && at > nodes[0].at) at = nodes[0].at;
+    nodes.unshift({ stage: CARE_STAGE_DEFAULT, at, entries: [] });
   }
 
   let html = '';
