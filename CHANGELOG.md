@@ -18,6 +18,9 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
   lúc VÀO bậc đến khi CHUYỂN sang bậc khác; gộp các lần ghi cùng bậc thành 1 lượt (không
   đếm lặp), bậc hiện tại chưa rời thì không tính. Trung bình trên các khách. 'Kí HĐMB' và
   'Loại' là bậc thời điểm → luôn null (bỏ trống).
+- **Căn chữ thời gian TB:** cả 3 cụm chữ định vị tuyệt đối; chữ thời gian căn TRÁI theo
+  1 trục dọc chung = `50% thanh − nửa bề rộng chuỗi mẫu '2 ngày 10 giờ'` (đo theo font
+  thực của thiết bị, bơm vào CSS qua biến `--t-shift`) → chuỗi cỡ đó nằm đúng giữa thanh.
 - **"Khách mới theo tuần"** nay tính theo `registered_at` (fallback `created_at`) thay vì
   `created_at`. Đồng bộ luôn cách gom tuần của chart "Mức độ quan tâm trung bình".
 - **File:** `js/app.js` (`renderDashboard`), `css/style.css` (`.funnel2*`).

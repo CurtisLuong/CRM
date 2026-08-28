@@ -3127,7 +3127,14 @@ function renderDashboard() {
 
   // 7 thanh (mỗi bậc 1 thanh, màu theo bậc, opacity giảm để chữ nổi). Chữ CHÌM trong
   // thanh: [Tên bậc] trái · [Thời gian TB] giữa · [Số khách] phải.
-  let funnelHtml = '<div class="funnel2">';
+  // Trục căn chữ thời gian (căn TRÁI từ trục này): dịch trái NỬA bề rộng chuỗi mẫu
+  // '2 ngày 10 giờ' để chuỗi cỡ đó nằm ĐÚNG GIỮA thanh. Đo theo font THỰC của thiết bị
+  // (Android/Mac khác nhau) → luôn chuẩn. Bơm vào CSS qua biến --t-shift.
+  const _cv = renderDashboard._cv || (renderDashboard._cv = document.createElement('canvas'));
+  const _ctx = _cv.getContext('2d');
+  _ctx.font = `12px ${getComputedStyle(document.body).fontFamily}`;
+  const timeShift = Math.round(_ctx.measureText('2 ngày 10 giờ').width / 2);
+  let funnelHtml = `<div class="funnel2" style="--t-shift:${timeShift}px">`;
   CARE_STAGES.forEach((s, i) => {
     const avgMs = sCnt[s] ? sSum[s] / sCnt[s] : null;
     const barPct = Math.max(pctOf(fc[i], fc[0] || 1), 2);
