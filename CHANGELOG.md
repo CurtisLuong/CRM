@@ -15,7 +15,8 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
   `.detail-body`) — không tràn hết bề ngang cửa sổ.
 - **Bỏ topbar xanh riêng:** 2 nút Quay lại/Sửa **nổi đè lên cover**; khi cuộn qua khỏi
   cover thì hiện **thanh mini dính đỉnh** (fixed, trượt xuống — IntersectionObserver theo
-  dõi cover). Tên khách hiển thị trên thanh mini.
+  dõi cover). Tên khách hiển thị trên thanh mini. Nút Sửa: trên cover = chữ+icon ĐỎ son;
+  trên sticky bar = NỀN đỏ son chữ trắng (như nút primary cũ) để dễ phân biệt.
 - **Đổi ảnh bìa:** bấm vùng cover → mở **modal xem ảnh dùng chung với avatar** (`#file-viewer`),
   có nút Sửa ảnh / Xoá ảnh. Định tuyến theo `fvEditMode` ('avatar' | 'cover').
 - **Lưu trữ:** cột mới `cover_path`; **tái dùng bucket public `customer-avatars`** (file

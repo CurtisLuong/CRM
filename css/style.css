@@ -715,7 +715,7 @@ input:focus, select:focus, textarea:focus {
 .detail-stickybar.is-visible { transform: translateY(0); }
 .stickybar-btn { flex: none; background: transparent; border: none; color: #fff; cursor: pointer; font-size: 22px; line-height: 1; padding: 2px 6px; }
 .stickybar-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: "Georgia", "Times New Roman", serif; font-size: 17px; }
-.stickybar-edit { flex: none; background: #fff; color: var(--teal); border: none; cursor: pointer; font-size: 13px; font-weight: 600; padding: 5px 12px; border-radius: 6px; }
+.stickybar-edit { flex: none; background: var(--seal); color: #fff; border: none; cursor: pointer; font-size: 13px; font-weight: 600; padding: 5px 12px; border-radius: 6px; }
 
 /* Ảnh bìa (cover): cao = 2.2 × avatar. Cùng giới hạn ngang với content (max-width 720,
    canh giữa như .detail-body) — KHÔNG tràn hết bề ngang cửa sổ. Mặc định = giấy ngà + kẻ
@@ -735,7 +735,8 @@ input:focus, select:focus, textarea:focus {
   font-size: 13px; padding: 6px 12px; -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
 }
 .cover-btn-back { left: 12px; }
-.cover-btn-edit { right: 12px; }
+/* Nút Sửa nổi trên cover: chữ + icon (✎) màu đỏ son cho dễ nhìn/nổi bật. */
+.cover-btn-edit { right: 12px; color: var(--seal); font-weight: 600; }
 .cover-btn:active { background: rgba(0, 0, 0, 0.6); }
 /* Gợi ý "đổi ảnh bìa" — icon máy ảnh mờ góc dưới phải (trang trí, không chặn click bìa). */
 .cover-cam { position: absolute; right: 12px; bottom: 10px; z-index: 1; pointer-events: none; color: rgba(255, 255, 255, 0.92); background: rgba(0, 0, 0, 0.32); width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
