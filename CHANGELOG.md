@@ -23,6 +23,11 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 - **Căn chữ thời gian TB:** cả 3 cụm chữ định vị tuyệt đối; chữ thời gian căn TRÁI theo
   1 trục dọc chung = `50% thanh − nửa bề rộng chuỗi mẫu '2 ngày 10 giờ'` (đo theo font
   thực của thiết bị, bơm vào CSS qua biến `--t-shift`) → chuỗi cỡ đó nằm đúng giữa thanh.
+- **Sửa đếm số khách mỗi bậc:** trước dùng `funnelMaxIndex` (độ sâu tối đa) nên khách
+  đang ở 'Loại' mà lịch sử không có bậc phễu nào bị trả -1 → KHÔNG được đếm vào 'Đăng kí
+  mới' (vd tổng 36 khách nhưng 'Đăng kí mới' chỉ hiện 28). Nay đếm trực tiếp từ các "lượt
+  ở bậc" đã chuẩn hoá (mọi khách đều có lượt 'Đăng kí mới') → 'Đăng kí mới' = tổng số
+  khách; mỗi bậc = số khách ĐÃ/ĐANG ở bậc đó. Xoá hàm `funnelMaxIndex` (hết dùng).
 - **"Khách mới theo tuần"** nay tính theo `registered_at` (fallback `created_at`) thay vì
   `created_at`. Đồng bộ luôn cách gom tuần của chart "Mức độ quan tâm trung bình".
 - **File:** `js/app.js` (`renderDashboard`), `css/style.css` (`.funnel2*`).

@@ -3017,19 +3017,6 @@ function lastNWeeks(n) {
 }
 function ddmm(d) { return `${d.getDate()}/${d.getMonth() + 1}`; }
 
-// Chỉ số bậc tuyến tính CAO NHẤT khách đã đạt (cho phễu). Suy từ lịch sử + bậc
-// hiện tại. Bậc trống coi như 0 (Đăng kí mới); 'Loại' dựa
-// vào lịch sử để biết đã đi tới đâu trước khi rớt. -1 = chưa vào phễu.
-function funnelMaxIndex(c) {
-  let maxIdx = c.care_stage ? CARE_STAGES.indexOf(c.care_stage) : 0;
-  const hist = Array.isArray(c.care_stage_history) ? c.care_stage_history : [];
-  for (const h of hist) {
-    const i = CARE_STAGES.indexOf(h.stage);
-    if (i > maxIdx) maxIdx = i;
-  }
-  return maxIdx;
-}
-
 // Bar ngang dùng chung: items = [{label, value, sub?, color?}]
 function hbars(items, opts = {}) {
   if (!items.length) return `<div class="dash-empty">${opts.empty || 'Chưa có dữ liệu'}</div>`;
@@ -3092,23 +3079,20 @@ function renderDashboard() {
   const cards = [];
 
   // 1) PHỄU BÁN HÀNG + THỜI GIAN TRUNG BÌNH THEO TIẾN ĐỘ (gộp 2 chart) -----
-  // fc[i] = số khách ĐÃ TỪNG đạt bậc i (suy từ bậc cao nhất đã tới). Mọi khách đều
-  // qua 'Đăng kí mới' nên fc[0] lớn nhất → thanh dài nhất; bậc sau ngắn dần theo tỉ
-  // lệ fc[i]/fc[0] (dạng phễu).
-  const fc = CARE_STAGES.map(() => 0);
-  all.forEach((c) => { const m = funnelMaxIndex(c); for (let i = 0; i <= m && i < fc.length; i++) fc[i]++; });
-
-  // Thời gian TB ở mỗi bậc = trung bình (trên TẤT CẢ khách từng ở bậc, kể cả đang ở)
-  // của khoảng thời gian ở bậc:
-  //   • Khách ĐÃ đổi bậc: từ lúc VÀO bậc → lúc VÀO bậc kế tiếp (= lúc rời bậc này).
-  //   • Khách ĐANG ở bậc (lượt cuối): từ lúc VÀO bậc → BÂY GIỜ (lúc load chart).
-  // Gom các mốc CÙNG bậc liên tiếp thành 1 "lượt ở bậc" (ghi cùng bậc nhiều lần vẫn là
-  // 1 lượt) → tính đúng thời gian mỗi khách, không đếm lặp. Chuẩn hoá lượt ĐẦU = 'Đăng
-  // kí mới' tại mốc ĐĂNG KÝ (khớp timeline) để MỌI khách đều được tính cho bậc này.
-  // 'Kí HĐMB' và 'Loại' là bậc THỜI ĐIỂM (không có thời lượng) → luôn null.
+  // Với MỖI khách: rút lịch sử thành các "lượt ở bậc" (gom mốc cùng bậc liên tiếp),
+  // rồi chuẩn hoá lượt ĐẦU = 'Đăng kí mới' tại mốc ĐĂNG KÝ (khớp timeline) → mọi khách
+  // đều có lượt 'Đăng kí mới'. Từ đó, 1 vòng qua tất cả các lượt tính:
+  //   • sCount[bậc] = SỐ KHÁCH đã/đang ở bậc (mỗi khách đếm 1 lần/bậc, kể cả bậc đang ở
+  //     và bậc thời điểm) → dùng cho độ dài thanh + số khách hiển thị. Vì mọi khách đều
+  //     qua 'Đăng kí mới' nên sCount['Đăng kí mới'] = tổng số khách (thanh dài nhất).
+  //   • sSum/sCnt = tổng thời lượng + số lượt để tính THỜI GIAN TB ở bậc:
+  //       - khách ĐÃ đổi bậc: từ lúc VÀO bậc → lúc VÀO bậc kế tiếp (= lúc rời).
+  //       - khách ĐANG ở bậc (lượt cuối): từ lúc VÀO bậc → BÂY GIỜ (lúc load chart).
+  //     'Kí HĐMB' và 'Loại' là bậc THỜI ĐIỂM (không thời lượng) → thời gian null nhưng
+  //     VẪN đếm vào sCount.
   const nowMs = Date.now();
   const TERMINAL_STAGES = new Set(['Kí HĐMB', CARE_STAGE_DROPPED]);
-  const sSum = {}, sCnt = {};
+  const sCount = {}, sSum = {}, sCnt = {};
   all.forEach((c) => {
     const flat = Array.isArray(c.care_stage_history)
       ? [...c.care_stage_history].sort((a, b) => (a.at || '').localeCompare(b.at || ''))
@@ -3131,11 +3115,12 @@ function renderDashboard() {
       if (runs[0].at && at && at > runs[0].at) at = runs[0].at; // không muộn hơn lượt sau
       runs.unshift({ stage: CARE_STAGE_DEFAULT, at });
     }
-    // Mỗi lượt (kể cả lượt cuối = bậc đang ở): mốc rời = lượt sau, hoặc BÂY GIỜ nếu là
-    // bậc hiện tại. Bậc thời điểm (Kí HĐMB, Loại) → bỏ (null).
+    const seen = new Set(); // mỗi bậc đếm 1 lần cho 1 khách (phòng khách quay lại bậc cũ)
     for (let i = 0; i < runs.length; i++) {
       const st = runs[i].stage;
-      if (!st || TERMINAL_STAGES.has(st)) continue;
+      if (!st) continue;
+      if (!seen.has(st)) { seen.add(st); sCount[st] = (sCount[st] || 0) + 1; }
+      if (TERMINAL_STAGES.has(st)) continue; // bậc thời điểm → không tính thời lượng
       const endMs = (i < runs.length - 1) ? new Date(runs[i + 1].at).getTime() : nowMs;
       const dur = endMs - new Date(runs[i].at).getTime();
       if (dur >= 0) { sSum[st] = (sSum[st] || 0) + dur; sCnt[st] = (sCnt[st] || 0) + 1; }
@@ -3152,9 +3137,11 @@ function renderDashboard() {
   _ctx.font = `12px ${getComputedStyle(document.body).fontFamily}`;
   const timeShift = Math.round(_ctx.measureText('2 ngày 10 giờ').width / 2);
   let funnelHtml = `<div class="funnel2" style="--t-shift:${timeShift}px">`;
-  CARE_STAGES.forEach((s, i) => {
+  const maxCount = sCount[CARE_STAGE_DEFAULT] || 1; // 'Đăng kí mới' = tổng khách → thanh dài nhất
+  CARE_STAGES.forEach((s) => {
+    const n = sCount[s] || 0;
     const avgMs = sCnt[s] ? sSum[s] / sCnt[s] : null;
-    const barPct = Math.max(pctOf(fc[i], fc[0] || 1), 2);
+    const barPct = Math.max(pctOf(n, maxCount), 2);
     const timeTxt = avgMs != null ? escapeHtml(formatDuration(avgMs)) : '';
     funnelHtml += `
       <div class="funnel2-row">
@@ -3162,7 +3149,7 @@ function renderDashboard() {
         <div class="funnel2-txt">
           <span class="funnel2-stage">${escapeHtml(s)}</span>
           <span class="funnel2-time">${timeTxt}</span>
-          <span class="funnel2-n">${fc[i]} khách</span>
+          <span class="funnel2-n">${n} khách</span>
         </div>
       </div>`;
   });
@@ -3170,7 +3157,7 @@ function renderDashboard() {
   const dropped = all.filter((c) => c.care_stage === CARE_STAGE_DROPPED).length;
   if (dropped) funnelHtml += `<div class="funnel-dropped">Đã loại (kết thúc, không chốt): ${dropped} khách</div>`;
   cards.push(dashCard('PHỄU BÁN HÀNG VÀ THỜI GIAN TRUNG BÌNH THEO TIẾN ĐỘ', funnelHtml,
-    'Thanh dài = nhiều khách (dạng phễu). Mỗi thanh: tên bậc · thời gian TB ở bậc · số khách đã từng ở bậc.'));
+    'Thanh dài = nhiều khách (dạng phễu). Mỗi thanh: tên bậc · thời gian TB ở bậc · số khách đã/đang ở bậc.'));
 
   // 2) KHÁCH MỚI THEO TUẦN -----------------------------------------------
   // Tính theo NGÀY ĐĂNG KÝ (registered_at) — đúng nghĩa "khách mới" hơn ngày tạo
