@@ -3098,18 +3098,22 @@ function renderDashboard() {
   const fc = CARE_STAGES.map(() => 0);
   all.forEach((c) => { const m = funnelMaxIndex(c); for (let i = 0; i <= m && i < fc.length; i++) fc[i]++; });
 
-  // Thời gian TB ở mỗi bậc = trung bình (trên các khách) của khoảng: từ lúc VÀO bậc
-  // đến lúc CHUYỂN sang bậc khác (vd 'Đăng kí mới' 5:00 → 'Loại' 5:30 = 30 phút ở
-  // 'Đăng kí mới'). Gom các mốc CÙNG bậc liên tiếp thành 1 "lượt ở bậc" (ghi cùng bậc
-  // nhiều lần vẫn là 1 lượt) → tính đúng thời gian mỗi khách, không đếm lặp. Bậc hiện
-  // tại (lượt cuối, chưa rời) không tính. 'Kí HĐMB' và 'Loại' là bậc THỜI ĐIỂM (không
-  // có thời lượng) → luôn null.
+  // Thời gian TB ở mỗi bậc = trung bình (trên TẤT CẢ khách từng ở bậc, kể cả đang ở)
+  // của khoảng thời gian ở bậc:
+  //   • Khách ĐÃ đổi bậc: từ lúc VÀO bậc → lúc VÀO bậc kế tiếp (= lúc rời bậc này).
+  //   • Khách ĐANG ở bậc (lượt cuối): từ lúc VÀO bậc → BÂY GIỜ (lúc load chart).
+  // Gom các mốc CÙNG bậc liên tiếp thành 1 "lượt ở bậc" (ghi cùng bậc nhiều lần vẫn là
+  // 1 lượt) → tính đúng thời gian mỗi khách, không đếm lặp. Chuẩn hoá lượt ĐẦU = 'Đăng
+  // kí mới' tại mốc ĐĂNG KÝ (khớp timeline) để MỌI khách đều được tính cho bậc này.
+  // 'Kí HĐMB' và 'Loại' là bậc THỜI ĐIỂM (không có thời lượng) → luôn null.
+  const nowMs = Date.now();
   const TERMINAL_STAGES = new Set(['Kí HĐMB', CARE_STAGE_DROPPED]);
   const sSum = {}, sCnt = {};
   all.forEach((c) => {
     const flat = Array.isArray(c.care_stage_history)
       ? [...c.care_stage_history].sort((a, b) => (a.at || '').localeCompare(b.at || ''))
       : [];
+    if (!flat.length) return;
     // Rút gọn thành danh sách LƯỢT: at = mốc VÀO bậc (mốc đầu của chuỗi cùng bậc).
     const runs = [];
     for (const e of flat) {
@@ -3117,10 +3121,23 @@ function renderDashboard() {
       if (prev && prev.stage === e.stage) continue;
       runs.push({ stage: e.stage, at: e.at });
     }
-    for (let i = 0; i < runs.length - 1; i++) {
+    // Chuẩn hoá lượt đầu = 'Đăng kí mới' tại mốc đăng ký (giống renderCareHistory):
+    // lượt đầu đã đúng bậc → gắn lại mốc; chưa có → chèn 1 lượt tổng hợp ở đầu.
+    const regAt = c.registered_at || c.created_at || null;
+    if (runs[0].stage === CARE_STAGE_DEFAULT) {
+      if (regAt) runs[0].at = regAt;
+    } else {
+      let at = regAt || runs[0].at;
+      if (runs[0].at && at && at > runs[0].at) at = runs[0].at; // không muộn hơn lượt sau
+      runs.unshift({ stage: CARE_STAGE_DEFAULT, at });
+    }
+    // Mỗi lượt (kể cả lượt cuối = bậc đang ở): mốc rời = lượt sau, hoặc BÂY GIỜ nếu là
+    // bậc hiện tại. Bậc thời điểm (Kí HĐMB, Loại) → bỏ (null).
+    for (let i = 0; i < runs.length; i++) {
       const st = runs[i].stage;
       if (!st || TERMINAL_STAGES.has(st)) continue;
-      const dur = new Date(runs[i + 1].at) - new Date(runs[i].at);
+      const endMs = (i < runs.length - 1) ? new Date(runs[i + 1].at).getTime() : nowMs;
+      const dur = endMs - new Date(runs[i].at).getTime();
       if (dur >= 0) { sSum[st] = (sSum[st] || 0) + dur; sCnt[st] = (sCnt[st] || 0) + 1; }
     }
   });

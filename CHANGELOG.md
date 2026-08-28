@@ -16,8 +16,10 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
   `.funnel2*`.
 - **Cách tính thời gian TB (mới, đúng nghĩa):** với mỗi khách, thời gian ở 1 bậc = từ
   lúc VÀO bậc đến khi CHUYỂN sang bậc khác; gộp các lần ghi cùng bậc thành 1 lượt (không
-  đếm lặp), bậc hiện tại chưa rời thì không tính. Trung bình trên các khách. 'Kí HĐMB' và
-  'Loại' là bậc thời điểm → luôn null (bỏ trống).
+  đếm lặp). Tính TẤT CẢ khách: khách đang ở bậc (chưa rời) tính từ lúc vào bậc → BÂY GIỜ
+  (lúc load chart). Lượt đầu chuẩn hoá về 'Đăng kí mới' tại mốc đăng ký (khớp timeline)
+  để mọi khách đều được tính cho bậc này. 'Kí HĐMB' và 'Loại' là bậc thời điểm → luôn
+  null (bỏ trống).
 - **Căn chữ thời gian TB:** cả 3 cụm chữ định vị tuyệt đối; chữ thời gian căn TRÁI theo
   1 trục dọc chung = `50% thanh − nửa bề rộng chuỗi mẫu '2 ngày 10 giờ'` (đo theo font
   thực của thiết bị, bơm vào CSS qua biến `--t-shift`) → chuỗi cỡ đó nằm đúng giữa thanh.
