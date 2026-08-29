@@ -6,6 +6,16 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-28 — Đổi text form xác nhận cuộc gọi (call-action-modal)
+
+- Nút "✓ Đã gọi" → "✓ Gọi xong"; placeholder ghi chú → "Ghi chú cuộc gọi (không bắt buộc,
+  chỉ ghi khi đã gọi)...". Chỉ đổi chữ hiển thị, giữ nguyên id/logic. **File:** `index.html`.
+
+## 2026-08-28 — Đổi nhãn "Lý do" → "Nội dung gọi" (form đặt lịch gọi)
+
+- Chỉ đổi CHỮ nhãn trong form đặt lịch gọi cho dễ hiểu; giữ nguyên id `sched-reason`,
+  placeholder, cột `next_call_reason` và mọi logic. **File:** `index.html`.
+
 ## 2026-08-28 — Hiện tuổi ở trang chi tiết + bỏ Mệnh/Cung khỏi form
 
 - **Tuổi (trang chi tiết):** (a) cạnh TÊN khách hiện "N tuổi" chữ nhỏ, font thường (không
