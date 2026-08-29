@@ -365,12 +365,8 @@
             </div>
             <div id="dob-err" class="dob-err"></div>
           </label>
-          <label>Mệnh (tự tính, cần đủ năm)
-            <div id="menh-preview" class="menh-preview">—</div>
-          </label>
-          <label>Cung (tự tính từ ngày + tháng)
-            <div id="cung-preview" class="menh-preview">—</div>
-          </label>
+          <!-- Mệnh & Cung được SUY từ ngày sinh (tính lúc lưu trong handleFormSubmit), không
+               cần nhập/sửa nên đã bỏ khỏi form cho gọn. Vẫn hiển thị ở trang chi tiết. -->
           <label>Trạng thái hôn nhân
             <select name="marital_status">
               <option value="">— Chưa rõ —</option>

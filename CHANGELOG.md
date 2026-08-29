@@ -6,6 +6,18 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-28 — Hiện tuổi ở trang chi tiết + bỏ Mệnh/Cung khỏi form
+
+- **Tuổi (trang chi tiết):** cạnh "Ngày sinh" hiện thêm "(N tuổi)" bằng chữ nhỏ mờ — CHỈ
+  khi có năm sinh (YYYY); không có năm → để trống. Hàm `ageFromDob` (trừ 1 nếu chưa tới
+  sinh nhật năm nay), `dobWithAge` trả HTML tin cậy; `renderGroupedKV` nay nhận value dạng
+  `{ html }`. CSS `.pi-note`.
+- **Bỏ Mệnh & Cung khỏi form nhập/sửa:** 2 thuộc tính này SUY từ ngày sinh (tính lúc lưu
+  trong `handleFormSubmit`), không cần nhập/sửa → gỡ khỏi form cho gọn. Vẫn tính & lưu
+  bình thường, vẫn hiển thị ở trang chi tiết + card. `updateDobDerived` bỏ phần preview;
+  xoá CSS `.menh-preview` không còn dùng.
+- **File:** `index.html` (gỡ Mệnh/Cung), `js/app.js` (`ageFromDob`/`dobWithAge`/`renderGroupedKV`/`updateDobDerived`), `css/style.css` (`.pi-note`, bỏ `.menh-preview`).
+
 ## 2026-08-28 — Ảnh bìa (cover photo) cho trang chi tiết khách (kiểu Facebook)
 
 - **Thêm ảnh bìa** ở đầu trang chi tiết: khách VIP tải ảnh riêng; khách còn lại dùng

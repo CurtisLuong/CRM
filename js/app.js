@@ -1233,7 +1233,7 @@ function setDobInput(dobStr) {
   }
   updateDobDerived();
 }
-// Cập nhật lỗi + preview Mệnh/Cung theo giá trị đang gõ.
+// Kiểm tra hợp lệ ô ngày sinh (Mệnh/Cung nay suy lúc lưu, không preview trong form nữa).
 function updateDobDerived() {
   const { dd, mm, ys, yy } = readDobInput();
   const nowY = new Date().getFullYear();
@@ -1244,11 +1244,6 @@ function updateDobDerived() {
   else if (ys.length === 4 && (yy < 1900 || yy > nowY)) msg = 'Năm phải 1900–' + nowY + '.';
   $('#dob-box').classList.toggle('invalid', !!msg);
   $('#dob-err').textContent = msg;
-  const dob = buildDobFromInput();
-  const cung = dob ? window.LunarUtil.calcCungFromDOB(dob) : '';
-  const menh = dob ? window.LunarUtil.calcMenhFromSolarDOB(dob) : '';
-  $('#cung-preview').textContent = cung || '—';
-  $('#menh-preview').textContent = menh || (cung ? '— (cần đủ năm sinh)' : '—');
 }
 // Gắn hành vi gõ cho 3 đoạn (gọi 1 lần lúc init).
 function wireDobInput() {
@@ -1284,6 +1279,26 @@ function formatDob(dobStr) {
   if (!p) return '';
   const dd = ('0' + p.day).slice(-2), mm = ('0' + p.month).slice(-2);
   return p.year ? `${dd}/${mm}/${p.year}` : `${dd}/${mm}`;
+}
+// Số tuổi suy từ dob — CHỈ khi có năm sinh (YYYY). Trừ 1 nếu chưa tới sinh nhật năm nay
+// (khi đủ ngày+tháng). Trả null nếu không có năm hoặc giá trị vô lý → chỗ gọi để trống.
+function ageFromDob(dobStr) {
+  const p = window.LunarUtil.parseDob(dobStr);
+  if (!p || !p.year) return null;
+  const now = new Date();
+  let age = now.getFullYear() - p.year;
+  if (p.month && p.day) {
+    const passed = (now.getMonth() + 1 > p.month) || (now.getMonth() + 1 === p.month && now.getDate() >= p.day);
+    if (!passed) age -= 1;
+  }
+  return (age >= 0 && age < 150) ? age : null;
+}
+// Giá trị "Ngày sinh" cho trang chi tiết: ngày sinh + (nếu có năm) tuổi dạng chữ nhỏ.
+// Trả { html } tin cậy (đã escape phần ngày) để renderGroupedKV chèn nguyên.
+function dobWithAge(dobStr) {
+  const base = escapeHtml(formatDob(dobStr));
+  const age = ageFromDob(dobStr);
+  return { html: age != null ? `${base} <span class="pi-note">(${age} tuổi)</span>` : base };
 }
 // Cung của khách: ưu tiên giá trị đã lưu; nếu chưa có (khách lưu trước khi có feature)
 // thì tính lại từ dob → khách cũ vẫn hiện Cung ngay mà không cần lưu lại.
@@ -1855,11 +1870,16 @@ function renderInlineKV(el, pairs) {
 // Như renderInlineKV nhưng theo NHÓM: mỗi nhóm 1 dòng inline "·", các nhóm cách nhau
 // bằng đường ngăn mảnh. Thuộc tính trống → bỏ; cả nhóm rỗng → bỏ luôn dòng (kiểu C).
 function renderGroupedKV(el, groups) {
+  // value có thể là chuỗi (sẽ escape) HOẶC { html } = HTML tin cậy (đã tự escape phần
+  // biến, dùng cho ghi chú nhỏ như "(30 tuổi)" cạnh ngày sinh).
+  const isHtmlVal = (v) => v && typeof v === 'object' && typeof v.html === 'string';
+  const blank = (v) => isHtmlVal(v) ? v.html.trim() === '' : isBlank(v);
+  const valHtml = (v) => isHtmlVal(v) ? v.html : escapeHtml(String(v));
   el.innerHTML = groups
     .map((pairs) => {
       const inner = pairs
-        .filter(([, v]) => !isBlank(v))
-        .map(([k, v]) => `<span class="pi-item"><span class="pi-label">${k}:</span> ${escapeHtml(String(v))}</span>`)
+        .filter(([, v]) => !blank(v))
+        .map(([k, v]) => `<span class="pi-item"><span class="pi-label">${k}:</span> ${valHtml(v)}</span>`)
         .join(' <span class="pi-sep">·</span> ');
       return inner ? `<div class="pi-group">${inner}</div>` : '';
     })
@@ -1981,7 +2001,7 @@ function openDetail(id) {
       ['Hôn nhân', c.marital_status ? capitalize(c.marital_status) : null],
     ],
     [ // Nhóm 2: ngày sinh + tử vi (Mệnh, Cung cộng hưởng)
-      ['Ngày sinh', c.dob ? formatDob(c.dob) : null],
+      ['Ngày sinh', c.dob ? dobWithAge(c.dob) : null],
       ['Mệnh', c.menh ? c.menh.replace(/^Mệnh\s+/, '') : null],
       ['Cung', cungOf(c)],
     ],
