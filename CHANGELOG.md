@@ -9,7 +9,8 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 ## 2026-08-28 — Hiện tuổi ở trang chi tiết + bỏ Mệnh/Cung khỏi form
 
 - **Tuổi (trang chi tiết):** (a) cạnh TÊN khách hiện "N tuổi" chữ nhỏ, font thường (không
-  đậm), mờ — CSS `.detail-name-age`; (b) cạnh "Ngày sinh" hiện "(N tuổi)" chữ nhỏ mờ. Cả
+  đậm), mờ — CSS `.detail-name-age` (dùng font sans hệ thống để số canh đều, tránh kiểu
+  số cổ old-style của Georgia bị nhảy lên/xuống); (b) cạnh "Ngày sinh" hiện "(N tuổi)" chữ nhỏ mờ. Cả
   hai CHỈ khi có năm sinh (YYYY); không có năm → để trống. Hàm `ageFromDob` (trừ 1 nếu chưa
   tới sinh nhật năm nay), `dobWithAge` trả HTML tin cậy; `renderGroupedKV` nay nhận value
   dạng `{ html }`. CSS `.pi-note`.
