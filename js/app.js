@@ -1935,7 +1935,10 @@ function openDetail(id) {
   addingCareNote = false;  // thoát chế độ thêm ghi chú
   editingTaskAt = null;    // và thoát chế độ sửa/thêm việc
 
-  $('#detail-name').textContent = c.full_name || '(chưa có tên)';
+  // Tên + tuổi (chữ nhỏ, không đậm) — tuổi CHỈ hiện khi có năm sinh (YYYY).
+  const nameAge = ageFromDob(c.dob);
+  $('#detail-name').innerHTML = escapeHtml(c.full_name || '(chưa có tên)')
+    + (nameAge != null ? ` <span class="detail-name-age">${nameAge} tuổi</span>` : '');
   renderDetailAvatar(c); // ảnh đại diện (hoặc chữ cái) bên trái tên
   renderDetailCover(c);  // ảnh bìa (hoặc cover mặc định)
   $('#detail-stickybar-name').textContent = c.full_name || '(chưa có tên)';
