@@ -251,6 +251,17 @@ function updateInterestUI(pct) {
 // Loại căn có sẵn (select + "Khác" tự nhập, không lưu vào danh sách chung).
 const APT_TYPES = ['1N-1WC', '1N+, 1WC', '2N-2WC', '2N+, 2WC', '3N-2WC'];
 
+// Chuẩn hoá "loại căn" về đúng 1 dạng chuẩn trong APT_TYPES nếu khớp — BẤT KỂ khác dấu
+// cách/phẩy/gạch, hoa/thường. Vd "2N+,2WC" và "2N+, 2WC" → cùng "2N+, 2WC" (không còn
+// đếm thành 2 loại). Không khớp (giá trị "Khác" tự nhập) → giữ nguyên (chỉ trim).
+function canonicalAptType(raw) {
+  if (!raw) return raw;
+  const s = String(raw).trim();
+  const norm = (x) => x.toLowerCase().replace(/[^a-z0-9+]/g, '');
+  const key = norm(s);
+  return APT_TYPES.find((t) => norm(t) === key) || s;
+}
+
 // Nghề nghiệp (khớp enum ở schema) — dùng để lọc giá trị OCR trả về cho hợp lệ.
 const OCCUPATIONS = ['Tự do', 'Công ty, DN', 'Công, viên chức', 'Công an, Bộ đội'];
 
@@ -815,7 +826,7 @@ function renderList() {
       const digits = (c.phone || '').replace(/\D/g, '');
       // data-digits = toàn bộ số; fitListRow chọn hiển thị bao nhiêu số cuối cho vừa.
       const phoneHtml = digits ? `<span class="row-phone-num" data-digits="${escapeHtml(digits)}">${escapeHtml(digits)}</span>` : '';
-      const aptHtml = c.apt_type ? `<span class="row-apt">${escapeHtml(c.apt_type)}</span>` : '';
+      const aptHtml = c.apt_type ? `<span class="row-apt">${escapeHtml(canonicalAptType(c.apt_type))}</span>` : '';
       // Thẻ mức quan tâm: nhãn bậc (Nguội/Ấm/Nóng/Rất nóng) — dùng chung style thẻ trên card.
       let interestHtml = '';
       if (c.interest_level != null) {
@@ -902,7 +913,7 @@ function renderList() {
         ${c.contact_status ? `<span class="tag tag-contact" style="--cs:${contactColor(c.contact_status)}">${escapeHtml(c.contact_status)}</span>` : ''}
         ${contactLostWarning(c) ? `<span class="tag tag-contact-warn" title="Đã >7 ngày chưa tương tác — kiểm tra lại">⚠ nghi mất liên lạc</span>` : ''}
         <span class="tag tag-interest ti-${tier.key}"><span class="ti-dot">◆</span> ${tier.label}</span>
-        ${c.apt_type ? `<span class="tag">${escapeHtml(c.apt_type)}</span>` : ''}
+        ${c.apt_type ? `<span class="tag">${escapeHtml(canonicalAptType(c.apt_type))}</span>` : ''}
         ${menhShort ? `<span class="tag tag-menh">${escapeHtml(menhShort)}</span>` : ''}
         ${cung ? `<span class="tag tag-cung">${escapeHtml(cung)}</span>` : ''}
       </div>
@@ -1092,8 +1103,8 @@ function openForm(id) {
   // Thời gian đăng ký: khách cũ dùng registered_at (hoặc created_at); khách mới = giờ hiện tại.
   const reg = c.registered_at ? new Date(c.registered_at) : (c.created_at ? new Date(c.created_at) : new Date());
   f.registered_at.value = toLocalDatetimeInput(reg);
-  // Loại căn: nếu khớp option có sẵn → chọn; nếu khác → "Khác" + ô tự nhập.
-  const at = c.apt_type || '';
+  // Loại căn: chuẩn hoá về dạng chuẩn trước → khớp option có sẵn → chọn; nếu khác → "Khác".
+  const at = canonicalAptType(c.apt_type || '');
   if (!at) { f.apt_type_select.value = ''; f.apt_type_other.value = ''; }
   else if (APT_TYPES.includes(at)) { f.apt_type_select.value = at; f.apt_type_other.value = ''; }
   else { f.apt_type_select.value = '__other'; f.apt_type_other.value = at; }
@@ -1327,7 +1338,7 @@ async function handleFormSubmit(e) {
     income: f.income.value.trim() || null,
     residence: f.residence.value.trim() || null,
     registered_at: f.registered_at.value ? new Date(f.registered_at.value).toISOString() : null,
-    apt_type: (f.apt_type_select.value === '__other' ? f.apt_type_other.value.trim() : f.apt_type_select.value) || null,
+    apt_type: canonicalAptType(f.apt_type_select.value === '__other' ? f.apt_type_other.value.trim() : f.apt_type_select.value) || null,
     projects: selectedProjects,
     apt_code: f.apt_code.value.trim() || null,
     building_code: f.building_code.value.trim() || null,
@@ -1482,7 +1493,7 @@ function vcardEsc(s) {
 function buildContactNote(c) {
   const L = [];
   const push = (label, val) => { if (val != null && String(val).trim() !== '') L.push(`${label}: ${val}`); };
-  push('Loại căn', c.apt_type);
+  push('Loại căn', canonicalAptType(c.apt_type));
   push('Dự án', Array.isArray(c.projects) && c.projects.length ? c.projects.join(', ') : '');
   push('Giá', c.apt_price ? formatPrice(c.apt_price) : '');
   push('Mã căn', c.apt_code);
@@ -1988,7 +1999,7 @@ function openDetail(id) {
   // Cặp/dòng nào chưa xác định thì tự ẩn (xem renderTableKV).
   renderTableKV($('#detail-apt'), [
     [['Dự án', (Array.isArray(c.projects) && c.projects.length) ? c.projects.join(', ') : null]],
-    [['Loại căn', c.apt_type || null]],
+    [['Loại căn', canonicalAptType(c.apt_type) || null]],
     [['Diện tích', c.apt_area != null ? c.apt_area + ' m²' : null]],
     [['Hướng', c.apt_direction || null], ['Tầng', c.apt_floor != null ? c.apt_floor : null]],
     [['Mã căn', c.apt_code || null], ['Mã toà', c.building_code || null]],
@@ -3323,14 +3334,19 @@ function renderDashboard() {
   // 5) PHÂN BỔ LOẠI CĂN / TOÀ (TẤT CẢ khách, mọi bậc) --------------------
   // limit: chỉ giữ top-N (bỏ trống = lấy hết). Loại căn để hết → tổng phân bổ = tổng
   // khách (mọi khách đều có loại căn). Mã toà giữ top 6 (toà có thể rất nhiều).
-  const tally = (arr, key, limit) => {
+  // normFn: chuẩn hoá giá trị trước khi gộp (vd loại căn: "2N+,2WC" → "2N+, 2WC").
+  const tally = (arr, key, limit, normFn) => {
     const m = {};
-    arr.forEach((c) => { const v = (c[key] && String(c[key]).trim()); if (v) m[v] = (m[v] || 0) + 1; });
+    arr.forEach((c) => {
+      let v = (c[key] && String(c[key]).trim());
+      if (v && normFn) v = normFn(v);
+      if (v) m[v] = (m[v] || 0) + 1;
+    });
     let entries = Object.entries(m).sort((a, b) => b[1] - a[1]);
     if (limit) entries = entries.slice(0, limit);
     return entries.map(([label, value]) => ({ label, value }));
   };
-  const aptItems = tally(all, 'apt_type');
+  const aptItems = tally(all, 'apt_type', 0, canonicalAptType);
   const bldItems = tally(all, 'building_code', 6);
   const distHtml = `<div class="dash-sub-title">Loại căn</div>${hbars(aptItems, { empty: 'Chưa có dữ liệu loại căn' })}`
     + `<div class="dash-sub-title">Mã toà</div>${hbars(bldItems, { empty: 'Chưa có dữ liệu mã toà', color: '#8a7bb0' })}`;

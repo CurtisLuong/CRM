@@ -6,6 +6,16 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-28 — Chuẩn hoá "loại căn" (gộp biến thể khác dấu cách/phẩy)
+
+- **Vấn đề:** `apt_type` lưu với định dạng khác nhau ("2N+,2WC" vs "2N+, 2WC") → chart
+  "Căn hộ quan tâm" đếm thành 2 loại riêng.
+- **Sửa:** thêm helper `canonicalAptType()` (bỏ dấu cách/phẩy/gạch + hoa/thường rồi khớp
+  `APT_TYPES`; không khớp = giá trị "Khác" → giữ nguyên). Áp dụng ở: chart (gộp đếm), lưu
+  form, mở form (khớp đúng dropdown thay vì rơi vào "Khác"), và hiển thị card + chi tiết +
+  export. Không cần migration; dữ liệu cũ hiển thị chuẩn ngay, tự chuẩn hoá khi lưu lại.
+- **File:** `js/app.js`.
+
 ## 2026-08-28 — Đổi text form xác nhận cuộc gọi (call-action-modal)
 
 - Nút "✓ Đã gọi" → "✓ Gọi xong"; placeholder ghi chú → "Ghi chú cuộc gọi (không bắt buộc,
