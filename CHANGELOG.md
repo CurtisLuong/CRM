@@ -6,6 +6,22 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-28 — Xuất / Nhập Excel (SheetJS nạp động)
+
+- **Thư viện:** SheetJS (xlsx) nạp từ CDN jsdelivr, LAZY — chỉ tải khi bấm Xuất/Nhập
+  (không đụng APP_SHELL/sw.js). 2 nút icon trong toolbar list view.
+- **Xuất Excel:** xuất danh sách theo LỌC + SẮP XẾP hiện tại (dùng chung `visibleCustomers()`).
+  Modal tick chọn cột theo đúng thứ tự yêu cầu; mặc định tick: Họ tên, SĐT, Dự án, Loại căn.
+  Tên file `khach-hang-YYYYMMDD.xlsx`.
+- **Nhập Excel:** chọn file .xlsx/.xls/.csv → app đọc, hiện bảng GÁN CỘT (tên cột + ví dụ +
+  dropdown thuộc tính). Tự đoán theo tiêu đề; cột không khớp thuộc tính nào → mặc định
+  "Ghi chú" (gộp vào note kèm tên cột); có tuỳ chọn "Bỏ qua". Tick "dòng đầu là tiêu đề".
+  LƯU 2 mẫu gán cột gần nhất (localStorage) để tái dùng. Bắt buộc gán SĐT + Họ tên; trùng
+  SĐT → bỏ qua; parse dob/ngày/giới tính/hôn nhân/nghề/loại căn/mức quan tâm/tiến độ; menh/cung
+  suy từ dob; interest mặc định 50; care_stage mặc định 'Đăng kí mới'. Cần mạng khi nhập.
+- **File:** `index.html` (nút + 2 modal), `css/style.css` (`.io-*`), `js/app.js`
+  (loadXLSX, IO_FIELDS, export/import + parse), tách `visibleCustomers()`.
+
 ## 2026-08-28 — Chuẩn hoá "loại căn" (gộp biến thể khác dấu cách/phẩy)
 
 - **Vấn đề:** `apt_type` lưu với định dạng khác nhau ("2N+,2WC" vs "2N+, 2WC") → chart

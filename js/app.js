@@ -795,10 +795,10 @@ function sortCustomers(list) {
   return arr;
 }
 
-function renderList() {
+// Danh sách khách ĐANG HIỂN THỊ = lọc + sắp xếp hiện tại, kèm ĐẨY nhắc-gọi lên đầu.
+// Dùng chung cho renderList và Export (xuất đúng thứ tự đang thấy).
+function visibleCustomers() {
   let list = sortCustomers(allCustomers.filter(matchesFilters));
-  // Nhắc gọi ĐÈ sort hiện tại: card có tag nhắc gọi luôn nổi lên đầu, sắp theo
-  // giờ hẹn tăng dần (quá/đến giờ → sắp gọi nhất → xa hơn).
   const reminders = new Map();
   for (const c of list) { const r = callReminder(c); if (r) reminders.set(c.id, r); }
   if (reminders.size) {
@@ -807,6 +807,14 @@ function renderList() {
     withR.sort((a, b) => reminders.get(a.id).sort - reminders.get(b.id).sort);
     list = [...withR, ...without];
   }
+  return list;
+}
+
+function renderList() {
+  const list = visibleCustomers();
+  // Map nhắc-gọi để hiển thị nhãn trên card/dòng (danh sách đã được đẩy nhắc-gọi lên đầu).
+  const reminders = new Map();
+  for (const c of list) { const r = callReminder(c); if (r) reminders.set(c.id, r); }
   const container = $('#customer-list');
   container.innerHTML = '';
   container.classList.toggle('list-mode', viewMode === 'list');
@@ -3645,6 +3653,261 @@ function resetAdvancedFilters() {
   renderList();
 }
 
+// ============ XUẤT / NHẬP EXCEL (SheetJS nạp động khi cần) ============
+// Nạp SheetJS 1 lần từ CDN (giống Supabase). CHỈ tải khi bấm Xuất/Nhập → nhẹ lúc khởi động.
+let _xlsxPromise = null;
+function loadXLSX() {
+  if (window.XLSX) return Promise.resolve(window.XLSX);
+  if (_xlsxPromise) return _xlsxPromise;
+  _xlsxPromise = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+    s.onload = () => (window.XLSX ? resolve(window.XLSX) : reject(new Error('Không nạp được thư viện Excel.')));
+    s.onerror = () => { _xlsxPromise = null; reject(new Error('Không tải được thư viện Excel (cần mạng).')); };
+    document.head.appendChild(s);
+  });
+  return _xlsxPromise;
+}
+
+// Catalog thuộc tính dùng CHUNG cho export + import. def = tick sẵn khi export.
+const IO_FIELDS = [
+  { key: 'full_name',      label: 'Họ tên',              def: true  },
+  { key: 'phone',          label: 'Số điện thoại',       def: true  },
+  { key: 'gender',         label: 'Giới tính',           def: false },
+  { key: 'dob',            label: 'Ngày sinh',           def: false },
+  { key: 'marital_status', label: 'Hôn nhân',            def: false },
+  { key: 'residence',      label: 'Thường trú',          def: false },
+  { key: 'occupation',     label: 'Công việc',           def: false },
+  { key: 'income',         label: 'Thu nhập',            def: false },
+  { key: 'projects',       label: 'Dự án',               def: true  },
+  { key: 'apt_type',       label: 'Loại căn',            def: true  },
+  { key: 'registered_at',  label: 'Thời gian đăng kí',   def: false },
+  { key: 'interest_level', label: 'Mức quan tâm',        def: false },
+  { key: 'care_stage',     label: 'Tiến độ chăm sóc',    def: false },
+  { key: 'contact_status', label: 'Trạng thái liên lạc', def: false },
+];
+const IO_LABEL = Object.fromEntries(IO_FIELDS.map((f) => [f.key, f.label]));
+
+function ioFmtDateTime(iso) {
+  const d = new Date(iso); if (isNaN(d)) return '';
+  const p = (n) => ('0' + n).slice(-2);
+  return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+// Giá trị 1 ô khi XUẤT.
+function exportCell(c, key) {
+  switch (key) {
+    case 'full_name': return c.full_name || '';
+    case 'phone': return c.phone || '';
+    case 'gender': return c.gender ? capitalize(c.gender) : '';
+    case 'dob': return c.dob ? formatDob(c.dob) : '';
+    case 'marital_status': return c.marital_status ? capitalize(c.marital_status) : '';
+    case 'residence': return c.residence || '';
+    case 'occupation': return c.occupation || '';
+    case 'income': return c.income || '';
+    case 'projects': return Array.isArray(c.projects) ? c.projects.join(', ') : '';
+    case 'apt_type': return canonicalAptType(c.apt_type) || '';
+    case 'registered_at': return c.registered_at ? ioFmtDateTime(c.registered_at) : '';
+    case 'interest_level': return c.interest_level != null ? c.interest_level : '';
+    case 'care_stage': return c.care_stage || '';
+    case 'contact_status': return c.contact_status || '';
+    default: return '';
+  }
+}
+
+// ---- XUẤT ----
+function openExportModal() {
+  $('#export-fields').innerHTML = IO_FIELDS.map((f) =>
+    `<label><input type="checkbox" value="${f.key}"${f.def ? ' checked' : ''} /> ${escapeHtml(f.label)}</label>`
+  ).join('');
+  $('#export-count').textContent = `Sẽ xuất ${visibleCustomers().length} khách (theo lọc + sắp xếp hiện tại).`;
+  $('#export-status').textContent = '';
+  $('#export-modal').showModal();
+}
+async function doExport() {
+  const keys = [...$('#export-fields').querySelectorAll('input:checked')].map((i) => i.value);
+  if (!keys.length) { $('#export-status').textContent = '⚠️ Chọn ít nhất 1 cột.'; return; }
+  const list = visibleCustomers();
+  if (!list.length) { $('#export-status').textContent = '⚠️ Không có khách nào để xuất.'; return; }
+  $('#export-status').textContent = '⏳ Đang tạo file…';
+  try {
+    const XLSX = await loadXLSX();
+    const rows = [keys.map((k) => IO_LABEL[k]), ...list.map((c) => keys.map((k) => exportCell(c, k)))];
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols'] = keys.map((k) => ({ wch: (k === 'full_name' || k === 'residence') ? 22 : 16 }));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Khách hàng');
+    const d = new Date(), p = (n) => ('0' + n).slice(-2);
+    XLSX.writeFile(wb, `khach-hang-${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}.xlsx`);
+    $('#export-status').textContent = `✅ Đã xuất ${list.length} khách.`;
+  } catch (e) { console.warn('export lỗi:', e); $('#export-status').textContent = '⚠️ ' + (e.message || 'Xuất thất bại.'); }
+}
+
+// ---- NHẬP ----
+const IMPORT_TPL_KEY = 'crm_import_templates'; // 2 mẫu gán cột gần nhất
+let importRows = null;   // toàn bộ dòng đọc từ file (array-of-arrays)
+let importColCount = 0;
+
+function importColOptions(selected) {
+  let html = `<option value=""${selected === '' ? ' selected' : ''}>— Bỏ qua cột này —</option>`;
+  for (const f of IO_FIELDS) html += `<option value="${f.key}"${selected === f.key ? ' selected' : ''}>${escapeHtml(f.label)}</option>`;
+  html += `<option value="__note"${selected === '__note' ? ' selected' : ''}>Ghi chú</option>`;
+  return html;
+}
+function loadImportTemplates() {
+  try { const t = JSON.parse(localStorage.getItem(IMPORT_TPL_KEY) || '[]'); return Array.isArray(t) ? t : []; } catch { return []; }
+}
+function saveImportTemplate(mapping, headerRow) {
+  let tpls = loadImportTemplates().filter((t) => JSON.stringify(t.mapping) !== JSON.stringify(mapping));
+  tpls.unshift({ mapping, headerRow, at: new Date().toISOString() });
+  try { localStorage.setItem(IMPORT_TPL_KEY, JSON.stringify(tpls.slice(0, 2))); } catch { /* ignore */ }
+}
+function openImportModal() {
+  importRows = null; importColCount = 0;
+  $('#import-step-file').hidden = false;
+  $('#import-step-map').hidden = true;
+  $('#import-status').textContent = '';
+  $('#import-file-input').value = '';
+  $('#import-modal').showModal();
+}
+async function onImportFile(file) {
+  if (!file) return;
+  $('#import-status').textContent = '⏳ Đang đọc file…';
+  try {
+    const XLSX = await loadXLSX();
+    const wb = XLSX.read(await file.arrayBuffer(), { type: 'array', cellDates: true });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: '' });
+    importRows = rows.filter((r) => r.some((v) => String(v).trim() !== '')); // bỏ dòng rỗng
+    if (!importRows.length) { $('#import-status').textContent = '⚠️ File trống.'; return; }
+    importColCount = Math.max(...importRows.map((r) => r.length));
+    $('#import-file-name').textContent = `${file.name} — ${importRows.length} dòng, ${importColCount} cột.`;
+    renderImportMap();
+    $('#import-step-file').hidden = true;
+    $('#import-step-map').hidden = false;
+    $('#import-status').textContent = '';
+  } catch (e) { console.warn('đọc file lỗi:', e); $('#import-status').textContent = '⚠️ ' + (e.message || 'Không đọc được file.'); }
+}
+// Đoán thuộc tính cho 1 cột theo tên tiêu đề:
+//  • khớp label thuộc tính → thuộc tính đó;
+//  • có tiêu đề nhưng KHÔNG khớp → mặc định "Ghi chú" (cột dư → ghi chú, theo yêu cầu);
+//  • không có tiêu đề (không tick dòng tiêu đề) → để trống, người dùng tự chọn.
+function guessColKey(headerText) {
+  const s = String(headerText || '').trim();
+  if (!s) return '';
+  const low = s.toLowerCase();
+  const f = IO_FIELDS.find((x) => x.label.toLowerCase() === low);
+  if (f) return f.key;
+  return '__note';
+}
+function renderImportMap(presetMapping) {
+  const headerRow = $('#import-header').checked;
+  const headers = headerRow && importRows.length ? importRows[0] : [];
+  const sampleRow = importRows[headerRow ? 1 : 0] || [];
+  let html = '';
+  for (let i = 0; i < importColCount; i++) {
+    const sel = presetMapping ? (presetMapping[i] || '') : guessColKey(headers[i]);
+    const colName = headerRow && headers[i] ? escapeHtml(String(headers[i])) : `Cột ${i + 1}`;
+    const sv = sampleRow[i]; const svt = sv == null ? '' : (sv instanceof Date ? ioFmtDateTime(sv.toISOString()) : String(sv).trim());
+    const sample = svt ? `vd: ${escapeHtml(svt.slice(0, 30))}` : 'trống';
+    html += `<div class="io-col">
+      <div class="io-col-info"><div class="io-col-name">${colName}</div><div class="io-col-sample">${sample}</div></div>
+      <select data-col="${i}">${importColOptions(sel)}</select>
+    </div>`;
+  }
+  $('#import-map').innerHTML = html;
+  const tpls = loadImportTemplates();
+  $('#import-templates').innerHTML = tpls.map((t, idx) => `<button type="button" data-tpl="${idx}">Dùng mẫu gần đây ${idx + 1}</button>`).join('');
+}
+function currentImportMapping() {
+  const m = [];
+  $('#import-map').querySelectorAll('select[data-col]').forEach((s) => { m[+s.dataset.col] = s.value; });
+  return m;
+}
+function parseImportDob(raw) {
+  const p = (n) => ('0' + n).slice(-2);
+  if (raw instanceof Date && !isNaN(raw)) return `${raw.getFullYear()}-${p(raw.getMonth() + 1)}-${p(raw.getDate())}`;
+  const s = String(raw || '').trim(); if (!s) return null;
+  let m = s.match(/^(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})$/); if (m) return `${m[1]}-${p(+m[2])}-${p(+m[3])}`;
+  m = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/); if (m) return `${m[3]}-${p(+m[2])}-${p(+m[1])}`;
+  m = s.match(/^(\d{1,2})[\/\-.](\d{1,2})$/); if (m) return `--${p(+m[2])}-${p(+m[1])}`; // chỉ ngày+tháng
+  return null;
+}
+function parseImportDate(raw) {
+  if (raw instanceof Date && !isNaN(raw)) return raw.toISOString();
+  const s = String(raw || '').trim(); if (!s) return null;
+  const m = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})(?:[\sT]+(\d{1,2}):(\d{2}))?$/);
+  if (m) { const d = new Date(+m[3], +m[2] - 1, +m[1], +(m[4] || 0), +(m[5] || 0)); return isNaN(d) ? null : d.toISOString(); }
+  const d = new Date(s); return isNaN(d) ? null : d.toISOString();
+}
+function parseImportValue(key, raw) {
+  const isDate = raw instanceof Date;
+  const s = isDate ? raw : String(raw == null ? '' : raw).trim();
+  if (!isDate && s === '') return null;
+  switch (key) {
+    case 'full_name': case 'phone': case 'residence': case 'income': case 'contact_status':
+      return String(s).trim() || null;
+    case 'gender': { const g = String(s).toLowerCase(); if (['nam', 'male', 'm'].includes(g)) return 'nam'; if (['nữ', 'nu', 'female', 'f'].includes(g)) return 'nữ'; return g ? 'khác' : null; }
+    case 'marital_status': { const g = String(s).toLowerCase(); if (g.includes('đã') || g.includes('married')) return 'đã kết hôn'; if (g.includes('chưa') || g.includes('single')) return 'chưa kết hôn'; return null; }
+    case 'occupation': { const f = OCCUPATIONS.find((o) => o.toLowerCase() === String(s).toLowerCase()); return f || (String(s).trim() || null); }
+    case 'dob': return parseImportDob(raw);
+    case 'registered_at': return parseImportDate(raw);
+    case 'apt_type': return canonicalAptType(String(s).trim()) || null;
+    case 'projects': return String(s).split(/[,;]/).map((x) => x.trim()).filter(Boolean);
+    case 'interest_level': { const n = Math.round(Number(String(s).replace('%', '').trim())); return isFinite(n) ? Math.max(0, Math.min(100, n)) : null; }
+    case 'care_stage': { const st = String(s).trim(); return CARE_STAGE_OPTIONS.find((x) => x.toLowerCase() === st.toLowerCase()) || null; }
+    default: return null;
+  }
+}
+async function doImport() {
+  if (!importRows) return;
+  if (!CRM.isOnline()) { $('#import-status').textContent = '⚠️ Cần mạng để nhập (ghi lên server).'; return; }
+  const headerRow = $('#import-header').checked;
+  const mapping = currentImportMapping();
+  if (!mapping.includes('phone') || !mapping.includes('full_name')) {
+    $('#import-status').textContent = '⚠️ Cần gán ít nhất cột "Số điện thoại" và "Họ tên".'; return;
+  }
+  saveImportTemplate(mapping, headerRow); // lưu mẫu (giữ 2 gần nhất)
+  const dataRows = headerRow ? importRows.slice(1) : importRows;
+  const headers = importRows[0] || [];
+  let added = 0, dup = 0, skipped = 0, err = 0;
+  const seen = new Set(allCustomers.map((c) => normalizePhoneVN(c.phone)));
+  $('#import-status').textContent = '⏳ Đang nhập…';
+  for (const row of dataRows) {
+    try {
+      const payload = {}; const noteParts = [];
+      for (let i = 0; i < mapping.length; i++) {
+        const key = mapping[i]; if (!key) continue;
+        if (key === '__note') {
+          const cell = row[i];
+          const t = cell instanceof Date ? ioFmtDateTime(cell.toISOString()) : String(cell == null ? '' : cell).trim();
+          if (t) noteParts.push((headerRow && headers[i] ? String(headers[i]) + ': ' : '') + t);
+          continue;
+        }
+        const v = parseImportValue(key, row[i]);
+        if (v != null) payload[key] = v;
+      }
+      const phone = payload.phone ? normalizePhoneVN(payload.phone) : '';
+      if (!phone || !payload.full_name) { skipped++; continue; }
+      if (seen.has(phone)) { dup++; continue; }
+      payload.phone = phone;
+      if (payload.dob) {
+        payload.menh = window.LunarUtil.calcMenhFromSolarDOB(payload.dob) || null;
+        payload.cung = window.LunarUtil.calcCungFromDOB(payload.dob) || null;
+      }
+      if (payload.interest_level == null) payload.interest_level = 50; // mặc định như form
+      if (!payload.care_stage) payload.care_stage = CARE_STAGE_DEFAULT;
+      payload.source = 'manual';
+      const rec = await CRM.create(payload, {});
+      const note = noteParts.join(' · ');
+      if (note) await CRM.addNote(rec.id, note);
+      seen.add(phone); added++;
+    } catch (e) { console.warn('import row lỗi:', e); err++; }
+  }
+  allCustomers = await CRM.list();
+  if (!$('#dashboard-view').hidden) renderDashboard(); else renderList();
+  $('#import-status').textContent = `✅ Xong: thêm ${added}, trùng bỏ qua ${dup}, thiếu SĐT/tên ${skipped}` + (err ? `, lỗi ${err}` : '') + '.';
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   populateSelects();
   buildAdvancedForm(); // dựng input hồ sơ Nâng cao 1 lần
@@ -3656,6 +3919,24 @@ document.addEventListener('DOMContentLoaded', () => {
   $('#logout-btn').addEventListener('click', handleLogout);
 
   $('#add-customer-btn').addEventListener('click', () => openForm(null));
+  // Xuất Excel
+  $('#export-btn').addEventListener('click', openExportModal);
+  $('#export-close').addEventListener('click', () => $('#export-modal').close());
+  $('#export-cancel').addEventListener('click', () => $('#export-modal').close());
+  $('#export-do').addEventListener('click', doExport);
+  // Nhập Excel
+  $('#import-btn').addEventListener('click', openImportModal);
+  $('#import-close').addEventListener('click', () => $('#import-modal').close());
+  $('#import-pick').addEventListener('click', () => $('#import-file-input').click());
+  $('#import-file-input').addEventListener('change', (e) => { const f = e.target.files && e.target.files[0]; e.target.value = ''; onImportFile(f); });
+  $('#import-back').addEventListener('click', () => { $('#import-step-map').hidden = true; $('#import-step-file').hidden = false; });
+  $('#import-header').addEventListener('change', () => { if (importRows) renderImportMap(); });
+  $('#import-do').addEventListener('click', doImport);
+  $('#import-templates').addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-tpl]'); if (!b) return;
+    const t = loadImportTemplates()[+b.dataset.tpl];
+    if (t) { $('#import-header').checked = !!t.headerRow; renderImportMap(t.mapping); }
+  });
   $('#tab-list').addEventListener('click', showListView);
   $('#tab-dashboard').addEventListener('click', showDashboardView);
   $('#detail-back-btn').addEventListener('click', closeDetailToList);

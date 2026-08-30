@@ -1373,3 +1373,29 @@ dialog#img-picker .ocr-status { margin-top: 8px; }
     min-width: 0; max-width: none; width: auto;
   }
 }
+
+/* ===== Modal Xuất / Nhập Excel (dùng chung .io-*) ===== */
+.io-modal { border: none; border-radius: 14px; padding: 0; max-width: 460px; width: 92vw; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25); }
+.io-modal::backdrop { background: rgba(0, 0, 0, 0.35); }
+.io-box { padding: 18px 20px 20px; background: var(--panel); color: var(--ink); }
+.io-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.io-head h2 { font-size: 18px; margin: 0; }
+.io-x { background: transparent; border: none; font-size: 18px; color: #8a8a7d; cursor: pointer; padding: 2px 6px; }
+.io-sub { font-size: 13px; color: #6b6b60; margin: 2px 0 12px; }
+.io-hint { font-size: 12px; font-weight: 600; color: #8a8a7d; text-transform: uppercase; letter-spacing: 0.03em; margin: 6px 0 8px; }
+.io-fields { display: flex; flex-direction: column; gap: 2px; max-height: 46vh; overflow-y: auto; }
+.io-fields label { display: flex; align-items: center; gap: 10px; font-size: 14px; padding: 7px 4px; cursor: pointer; border-radius: 8px; }
+.io-fields label:hover { background: var(--paper); }
+.io-fields input[type="checkbox"], .io-check input[type="checkbox"] { width: 17px; height: 17px; flex: none; accent-color: var(--seal); }
+.io-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
+.io-status { font-size: 13px; color: #6b6b60; margin-top: 10px; min-height: 18px; white-space: pre-line; }
+.io-check { display: flex; align-items: center; gap: 8px; font-size: 13px; margin: 4px 0 12px; cursor: pointer; }
+.io-templates { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.io-templates button { font-size: 12px; border: 1px solid var(--line); background: #fff; color: var(--ink); border-radius: 999px; padding: 5px 12px; cursor: pointer; }
+.io-templates button:hover { border-color: var(--teal); }
+.io-map { display: flex; flex-direction: column; gap: 8px; max-height: 44vh; overflow-y: auto; }
+.io-col { display: flex; align-items: center; gap: 10px; }
+.io-col-info { flex: 1 1 0; min-width: 0; }
+.io-col-name { font-size: 13px; font-weight: 600; }
+.io-col-sample { font-size: 12px; color: #8a8a7d; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.io-col select { flex: 0 0 auto; max-width: 47%; font: inherit; font-size: 13px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
