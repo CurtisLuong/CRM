@@ -370,6 +370,27 @@ input:focus, select:focus, textarea:focus {
   border-radius: 50%; background: var(--seal); border: 2px solid #fff;
 }
 
+/* Tooltip hover cho nút toolbar (nội dung = data-tip). */
+.has-tip::after {
+  content: attr(data-tip);
+  position: absolute; top: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+  background: var(--ink); color: #fff; font-size: 12px; font-weight: 500; white-space: nowrap;
+  padding: 4px 9px; border-radius: 6px; pointer-events: none; z-index: 50;
+  opacity: 0; visibility: hidden; transition: opacity 0.12s ease;
+}
+.has-tip:hover::after { opacity: 1; visibility: visible; }
+.has-tip.tip-right::after { left: auto; right: 0; transform: none; } /* nút mép phải: neo phải để khỏi tràn */
+
+/* Nút 3 chấm dọc neo PHẢI của toolbar + menu Nhập/Xuất dữ liệu. (Vị trí panel định nghĩa
+   SAU .pop-panel — xem .io-menu-pop bên dưới — để đè đúng left/right.) */
+.io-menu-wrap { margin-left: auto; }
+.io-menu-item {
+  display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+  background: transparent; border: none; padding: 9px 10px; border-radius: 8px;
+  font-size: 14px; color: var(--ink); cursor: pointer;
+}
+.io-menu-item:hover { background: var(--paper); }
+
 /* Panel xổ xuống dùng chung cho Bộ lọc & Sắp xếp */
 .pop-panel {
   position: absolute; top: calc(100% + 8px); left: 0;
@@ -380,6 +401,8 @@ input:focus, select:focus, textarea:focus {
 /* Panel Sắp xếp neo về MÉP PHẢI của nút (mở sang trái) — nút này lệch phải, nếu neo
    trái sẽ tràn ra ngoài màn hình điện thoại, che mất mũi tên tăng/giảm + nút Áp dụng. */
 #sort-panel { left: auto; right: 0; }
+/* Menu Nhập/Xuất (nút 3 chấm) — neo mép PHẢI như #sort-panel, panel gọn hơn. */
+.io-menu-pop { left: auto; right: 0; min-width: 180px; padding: 6px; }
 .pop-title { font-weight: 700; font-size: 15px; margin-bottom: 10px; color: var(--ink); }
 .pop-group { margin-bottom: 14px; }
 .pop-label { font-size: 12px; font-weight: 700; letter-spacing: 0.02em; color: #8a8a7d; margin-bottom: 8px; text-transform: uppercase; }

@@ -1017,9 +1017,11 @@ function updateViewToggleBtn() {
   const btn = $('#view-toggle');
   if (!btn) return;
   const toList = viewMode === 'card';
+  const label = toList ? 'Xem dạng danh sách' : 'Xem dạng thẻ';
   btn.innerHTML = toList ? VIEW_ICON_LIST : VIEW_ICON_CARD;
-  btn.title = toList ? 'Xem dạng danh sách' : 'Xem dạng thẻ';
-  btn.setAttribute('aria-label', btn.title);
+  btn.setAttribute('data-tip', label);      // tooltip hover (tuỳ biến)
+  btn.setAttribute('aria-label', label);
+  btn.removeAttribute('title');             // tránh tooltip native trùng
 }
 function setViewMode(mode) {
   viewMode = (mode === 'list') ? 'list' : 'card';
@@ -3492,6 +3494,8 @@ function renderSortOptions() {
 // Đóng các pop "chốc lát" (Sắp xếp + dropdown Trạng thái + dropdown Tiến độ). KHÔNG đóng panel Bộ lọc.
 function closeTransientPops() {
   $('#sort-panel').hidden = true; $('#sort-btn').classList.remove('is-open');
+  const io = $('#io-menu-pop');
+  if (io) { io.hidden = true; $('#io-menu-btn').classList.remove('is-open'); $('#io-menu-btn').setAttribute('aria-expanded', 'false'); }
   const pp = $('#progress-pop');
   if (pp) { pp.hidden = true; $('#progress-btn').classList.remove('is-open'); $('#progress-btn').setAttribute('aria-expanded', 'false'); }
   closeStagePop();
@@ -3919,13 +3923,22 @@ document.addEventListener('DOMContentLoaded', () => {
   $('#logout-btn').addEventListener('click', handleLogout);
 
   $('#add-customer-btn').addEventListener('click', () => openForm(null));
-  // Xuất Excel
-  $('#export-btn').addEventListener('click', openExportModal);
+  // Nút 3 chấm (Dữ liệu): mở/đóng menu Nhập/Xuất (mẫu giống Sắp xếp).
+  $('#io-menu-btn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    const willOpen = $('#io-menu-pop').hidden;
+    closeToolPops();
+    $('#io-menu-pop').hidden = !willOpen;
+    $('#io-menu-btn').classList.toggle('is-open', willOpen);
+    $('#io-menu-btn').setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+  });
+  // Xuất Excel (trong menu 3 chấm)
+  $('#export-btn').addEventListener('click', () => { closeTransientPops(); openExportModal(); });
   $('#export-close').addEventListener('click', () => $('#export-modal').close());
   $('#export-cancel').addEventListener('click', () => $('#export-modal').close());
   $('#export-do').addEventListener('click', doExport);
-  // Nhập Excel
-  $('#import-btn').addEventListener('click', openImportModal);
+  // Nhập Excel (trong menu 3 chấm)
+  $('#import-btn').addEventListener('click', () => { closeTransientPops(); openImportModal(); });
   $('#import-close').addEventListener('click', () => $('#import-modal').close());
   $('#import-pick').addEventListener('click', () => $('#import-file-input').click());
   $('#import-file-input').addEventListener('change', (e) => { const f = e.target.files && e.target.files[0]; e.target.value = ''; onImportFile(f); });

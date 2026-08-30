@@ -6,6 +6,16 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-28 — Toolbar: tooltip hover + gộp Nhập/Xuất vào nút 3 chấm
+
+- **Tooltip hover** (tuỳ biến, `data-tip` + `.has-tip::after`) cho các nút toolbar: Lọc,
+  Sắp xếp, Xem dạng danh sách/thẻ (động), Dữ liệu. Bỏ `title` native để khỏi trùng.
+- **Gộp Nhập + Xuất** vào 1 nút **3 chấm dọc** neo góc PHẢI toolbar (`.io-menu-wrap`
+  margin-left auto); bấm mở menu `Nhập dữ liệu` / `Xuất dữ liệu` (panel neo phải như
+  Sắp xếp, đóng khi bấm ra ngoài / mở pop khác). Giữ nguyên id `import-btn`/`export-btn`.
+- **File:** `index.html` (toolbar), `css/style.css` (`.has-tip`, `.io-menu-*`), `js/app.js`
+  (toggle menu + `updateViewToggleBtn` dùng `data-tip` + `closeTransientPops`).
+
 ## 2026-08-28 — Xuất / Nhập Excel (SheetJS nạp động)
 
 - **Thư viện:** SheetJS (xlsx) nạp từ CDN jsdelivr, LAZY — chỉ tải khi bấm Xuất/Nhập
