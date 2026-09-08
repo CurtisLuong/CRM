@@ -6,6 +6,18 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-28 — Lời chào Zalo: copy khi bấm icon Zalo (Zalo không cho điền sẵn)
+
+- **Phân tích:** Zalo deep-link (`zalo://`, `zalo.me`) KHÔNG có tham số điền sẵn ô lời chào
+  (khác WhatsApp `?text=`) → không thể tự điền. Giải pháp khả thi = COPY clipboard.
+- **Chức năng:** bấm icon Zalo (card + trang chi tiết) → copy lời chào (đã điền tên khách)
+  vào clipboard + toast, rồi mở Zalo để DÁN vào ô kết bạn. Lời chào trống → mở Zalo như cũ.
+- **Lời chào** lưu ở `localStorage` (theo TỪNG MÁY), sửa qua nút "Lời chào Zalo" trong menu
+  avatar (modal). Placeholder `{ten}` = tên gọi (từ cuối họ tên), `{hoten}` = họ tên đầy đủ.
+  Có sẵn 1 mẫu mặc định.
+- **Thêm:** helper `showToast` + `copyText` (fallback execCommand). **File:** `index.html`
+  (nút menu + modal), `css/style.css` (toast + modal), `js/app.js` (greeting + intercept Zalo).
+
 ## 2026-08-28 — Toolbar: tooltip hover + gộp Nhập/Xuất vào nút 3 chấm
 
 - **Tooltip hover** (tuỳ biến, `data-tip` + `.has-tip::after`) cho các nút toolbar: Lọc,

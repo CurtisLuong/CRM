@@ -685,6 +685,55 @@ function zaloLink(phone) {
   return `https://zalo.me/${clean}`;
 }
 
+// ---- LỜI CHÀO ZALO ----------------------------------------------------------
+// Zalo KHÔNG cho điền sẵn ô lời chào qua deep-link → giải pháp: bấm icon Zalo sẽ COPY
+// sẵn lời chào (đã điền tên khách) vào clipboard để DÁN vào ô kết bạn. Lời chào lưu ở
+// localStorage (theo TỪNG MÁY), sửa trong menu avatar. Placeholder: {ten} = tên gọi
+// (từ cuối họ tên, vd "Huyền"), {hoten} = họ tên đầy đủ.
+const LS_ZALO_GREETING = 'crm_zalo_greeting';
+const ZALO_GREETING_DEFAULT =
+  'Em chào anh/chị {ten} ạ! Em là tư vấn viên dự án nhà ở xã hội. Em xin phép kết bạn ' +
+  'để gửi thông tin căn hộ phù hợp tới mình ạ. Em cảm ơn!';
+function getZaloGreeting() {
+  try { const v = localStorage.getItem(LS_ZALO_GREETING); return v == null ? ZALO_GREETING_DEFAULT : v; }
+  catch { return ZALO_GREETING_DEFAULT; }
+}
+function setZaloGreeting(text) { try { localStorage.setItem(LS_ZALO_GREETING, text); } catch { /* ignore */ } }
+function fillGreeting(tpl, c) {
+  const full = ((c && c.full_name) || '').trim();
+  const given = full ? full.split(/\s+/).pop() : '';
+  return String(tpl || '').replace(/\{ten\}/gi, given || full).replace(/\{hoten\}/gi, full);
+}
+
+// Copy text vào clipboard (có fallback execCommand cho ngữ cảnh không có Clipboard API).
+function copyText(text) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    try { return navigator.clipboard.writeText(text).catch(() => fallbackCopy(text)); }
+    catch { fallbackCopy(text); }
+  } else { fallbackCopy(text); }
+  return Promise.resolve();
+}
+function fallbackCopy(text) {
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+  } catch { /* ignore */ }
+}
+
+// Toast nhỏ ở đáy màn hình (tự ẩn sau ~2.6s).
+let _toastTimer = null;
+function showToast(msg) {
+  let el = document.getElementById('app-toast');
+  if (!el) { el = document.createElement('div'); el.id = 'app-toast'; el.className = 'app-toast'; document.body.appendChild(el); }
+  el.textContent = msg;
+  // ép reflow để add lại class 'show' luôn chạy transition
+  el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => el.classList.remove('show'), 2600);
+}
+
 // Chuẩn hoá SĐT về chuỗi chỉ chữ số, đưa +84/84 về dạng "0..." để khớp với thói
 // quen gõ số bắt đầu bằng 0 (vd "+84901234567" và "84901234567" đều thành
 // "0901234567"). Chỉ đổi khi đủ 11+ chữ số dạng 84... để không đụng số nội địa.
@@ -910,7 +959,7 @@ function renderList() {
           <div class="phone-row">
             <span class="phone-number">${escapeHtml(c.phone || '')}</span>
             <a class="card-phone" href="tel:${normalizePhone(c.phone)}" aria-label="Gọi ${escapeHtml(c.phone || '')}">${PHONE_SVG}</a>
-            <a class="card-zalo" href="${zaloHref}" ${zaloAttr} aria-label="Nhắn Zalo">
+            <a class="card-zalo" href="${zaloHref}" ${zaloAttr} data-id="${c.id}" aria-label="Nhắn Zalo">
               <img class="ic-zalo" src="/icons/zalo.png" alt="Zalo" />
             </a>
           </div>
@@ -1006,6 +1055,25 @@ $('#customer-list')?.addEventListener('click', (e) => {
 document.addEventListener('click', (e) => {
   if (!e.target.closest('.customer-card')) {
     $$('.customer-card.menu-open').forEach((el) => el.classList.remove('menu-open'));
+  }
+});
+
+// Bấm icon Zalo (card hoặc trang chi tiết) → COPY lời chào (đã điền tên khách) vào clipboard
+// rồi mở Zalo, để DÁN vào ô kết bạn. Không có lời chào → để link mở Zalo bình thường.
+document.addEventListener('click', (e) => {
+  const zaloEl = e.target.closest('#detail-zalo-btn, .card-zalo');
+  if (!zaloEl) return;
+  const greeting = getZaloGreeting();
+  if (!greeting || !greeting.trim()) return; // không đặt lời chào → mở Zalo như cũ
+  const id = zaloEl.dataset.id || detailId;
+  const c = id ? allCustomers.find((x) => x.id === id) : null;
+  e.preventDefault();
+  copyText(fillGreeting(greeting, c)); // khởi tạo copy TRONG cử chỉ click (không await)
+  showToast('Đã copy lời chào — dán vào ô kết bạn Zalo');
+  const href = zaloEl.getAttribute('href');
+  if (href && href !== '#') {
+    if (href.startsWith('http')) window.open(href, '_blank', 'noopener');
+    else window.location.href = href; // scheme zalo:// mở app tại chỗ
   }
 });
 
@@ -3921,6 +3989,19 @@ document.addEventListener('DOMContentLoaded', () => {
   $('#login-form').addEventListener('submit', handleLogin);
   $('#signup-btn').addEventListener('click', handleSignup);
   $('#logout-btn').addEventListener('click', handleLogout);
+
+  // Lời chào Zalo: mở modal chỉnh (từ menu avatar) → nạp giá trị hiện tại → Lưu.
+  $('#zalo-greeting-btn').addEventListener('click', () => {
+    $('#topbar-menu').classList.remove('open'); // đóng menu avatar
+    $('#greeting-text').value = getZaloGreeting();
+    $('#greeting-modal').showModal();
+  });
+  $('#greeting-cancel').addEventListener('click', () => $('#greeting-modal').close());
+  $('#greeting-save').addEventListener('click', () => {
+    setZaloGreeting($('#greeting-text').value);
+    $('#greeting-modal').close();
+    showToast('Đã lưu lời chào Zalo');
+  });
 
   $('#add-customer-btn').addEventListener('click', () => openForm(null));
   // Nút 3 chấm (Dữ liệu): mở/đóng menu Nhập/Xuất (mẫu giống Sắp xếp).

@@ -1422,3 +1422,21 @@ dialog#img-picker .ocr-status { margin-top: 8px; }
 .io-col-name { font-size: 13px; font-weight: 600; }
 .io-col-sample { font-size: 12px; color: #8a8a7d; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .io-col select { flex: 0 0 auto; max-width: 47%; font: inherit; font-size: 13px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+
+/* ---------------- TOAST + LỜI CHÀO ZALO ---------------- */
+.app-toast {
+  position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(12px);
+  background: var(--ink); color: #fff; font-size: 13px; padding: 10px 16px; border-radius: 10px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25); z-index: 200; max-width: 88vw; text-align: center;
+  opacity: 0; visibility: hidden; transition: opacity 0.2s ease, transform 0.2s ease; pointer-events: none;
+}
+.app-toast.show { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0); }
+
+.greeting-modal { border: none; border-radius: 14px; padding: 0; max-width: 460px; width: 92vw; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3); }
+.greeting-modal::backdrop { background: rgba(0, 0, 0, 0.4); }
+.greeting-box { padding: 20px; }
+.greeting-title { font-size: 18px; margin: 0 0 8px; color: var(--ink); }
+.greeting-hint { font-size: 12.5px; color: #6b6b60; line-height: 1.55; margin: 0 0 12px; }
+.greeting-hint code { background: var(--paper); padding: 1px 5px; border-radius: 4px; font-size: 12px; color: var(--seal); }
+.greeting-text { width: 100%; font: inherit; font-size: 14px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; resize: vertical; box-sizing: border-box; }
+.greeting-btns { display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px; }
