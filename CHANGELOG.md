@@ -6,6 +6,18 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-08-30 — Đồng bộ "Lời chào Zalo" đa thiết bị (bảng user_settings)
+
+- **Vấn đề:** lời chào lưu localStorage (theo từng máy) → sửa ở Mac không hiện trên Android.
+- **Sửa:** thêm bảng `public.user_settings` (id + zalo_greeting + updated_at, RLS mỗi user
+  CRUD dòng của mình) — KHÔNG dùng cột profiles vì policy profiles chỉ cho admin UPDATE.
+  localStorage vẫn làm cache offline; khi lưu → đẩy lên Supabase; sau đăng nhập (online) →
+  kéo về từ server (server là nguồn chuẩn; server chưa có thì seed từ local). Code degrade
+  an toàn nếu chưa chạy migration (vẫn chạy bằng localStorage).
+- **Migration cần chạy:** `SQL/add_zalo_greeting_settings.sql`.
+- **File:** `SQL/add_zalo_greeting_settings.sql` (mới), `js/db.js` (get/saveZaloGreetingRemote),
+  `js/app.js` (setZaloGreeting đẩy server + syncZaloGreeting sau đăng nhập).
+
 ## 2026-08-28 — Lời chào Zalo: copy khi bấm icon Zalo (Zalo không cho điền sẵn)
 
 - **Phân tích:** Zalo deep-link (`zalo://`, `zalo.me`) KHÔNG có tham số điền sẵn ô lời chào

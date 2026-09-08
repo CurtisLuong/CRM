@@ -395,6 +395,7 @@ async function onLoggedIn(user) {
   await refreshList();
   hideSplash(); // dữ liệu đã sẵn sàng → ẩn màn hình tải
   maybeMigrateAvatars(user.id); // chuyển avatar cũ sang bucket public (chạy nền, 1 lần)
+  syncZaloGreeting();           // đồng bộ lời chào Zalo từ Supabase (đa thiết bị, chạy nền)
   setInterval(async () => {
     await CRM.flushQueue();
     // Nếu lần kéo trước lỗi mạng → thử KÉO LẠI (mạng chập chờn có thể không bắn event
@@ -698,7 +699,22 @@ function getZaloGreeting() {
   try { const v = localStorage.getItem(LS_ZALO_GREETING); return v == null ? ZALO_GREETING_DEFAULT : v; }
   catch { return ZALO_GREETING_DEFAULT; }
 }
-function setZaloGreeting(text) { try { localStorage.setItem(LS_ZALO_GREETING, text); } catch { /* ignore */ } }
+function setZaloGreeting(text) {
+  try { localStorage.setItem(LS_ZALO_GREETING, text); } catch { /* ignore */ } // cache local (offline-first)
+  CRM.saveZaloGreetingRemote(text); // đẩy lên Supabase để đồng bộ đa thiết bị (offline thì bỏ qua)
+}
+// Đồng bộ lời chào từ server (gọi sau đăng nhập): server có → lấy về; server chưa có → seed từ local.
+async function syncZaloGreeting() {
+  try {
+    const remote = await CRM.getZaloGreetingRemote();
+    if (remote === undefined) return;                    // offline/lỗi → giữ local
+    if (typeof remote === 'string') {
+      try { localStorage.setItem(LS_ZALO_GREETING, remote); } catch { /* ignore */ }
+    } else {
+      CRM.saveZaloGreetingRemote(getZaloGreeting());     // server chưa có → đẩy local lên (seed lần đầu)
+    }
+  } catch (e) { console.warn('syncZaloGreeting lỗi:', e); }
+}
 function fillGreeting(tpl, c) {
   const full = ((c && c.full_name) || '').trim();
   const given = full ? full.split(/\s+/).pop() : '';

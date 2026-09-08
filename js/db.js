@@ -453,6 +453,25 @@ const CRM = {
     await this.update(customerId, { cover_path: null });
   },
 
+  // ---- CÀI ĐẶT RIÊNG CỦA USER (bảng user_settings) — đồng bộ đa thiết bị ----
+  // Lời chào Zalo. Trả: chuỗi nếu server có; null nếu CHƯA có dòng (hoặc cột null);
+  // undefined nếu offline/lỗi (chỗ gọi giữ nguyên local).
+  async getZaloGreetingRemote() {
+    if (!this.isOnline() || !_supabase || !_currentUserId) return undefined;
+    const { data, error } = await _supabase
+      .from('user_settings').select('zalo_greeting').eq('id', _currentUserId).maybeSingle();
+    if (error) { console.warn('getZaloGreeting remote lỗi:', error.message || error); return undefined; }
+    return data ? data.zalo_greeting : null;
+  },
+  // Ghi (upsert) lời chào lên server. Trả true nếu thành công.
+  async saveZaloGreetingRemote(text) {
+    if (!this.isOnline() || !_supabase || !_currentUserId) return false;
+    const { error } = await _supabase.from('user_settings')
+      .upsert({ id: _currentUserId, zalo_greeting: text, updated_at: new Date().toISOString() });
+    if (error) { console.warn('saveZaloGreeting remote lỗi:', error.message || error); return false; }
+    return true;
+  },
+
   /**
    * Migrate 1 lần: chuyển file avatar cũ từ bucket private (customer-docs) sang bucket
    * public (customer-avatars), GIỮ NGUYÊN path (nên avatar_path không đổi). Idempotent:
