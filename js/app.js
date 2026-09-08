@@ -702,7 +702,16 @@ function setZaloGreeting(text) { try { localStorage.setItem(LS_ZALO_GREETING, te
 function fillGreeting(tpl, c) {
   const full = ((c && c.full_name) || '').trim();
   const given = full ? full.split(/\s+/).pop() : '';
-  return String(tpl || '').replace(/\{ten\}/gi, given || full).replace(/\{hoten\}/gi, full);
+  // Xưng hô theo giới tính: Nam→"anh", Nữ→"chị", khác/chưa rõ→giữ "anh/chị".
+  const g = ((c && c.gender) || '').toLowerCase();
+  const sal = g === 'nam' ? 'anh' : (g === 'nữ' ? 'chị' : 'anh/chị');
+  const salCap = sal.charAt(0).toUpperCase() + sal.slice(1);
+  return String(tpl || '')
+    .replace(/\{ten\}/gi, given || full)
+    .replace(/\{hoten\}/gi, full)
+    .replace(/\{anhchi\}/gi, sal)
+    .replace(/Anh\/Chị/g, salCap)   // "Anh/Chị" (đầu câu) → "Anh"/"Chị"
+    .replace(/anh\/chị/gi, sal);    // "anh/chị" → "anh"/"chị"
 }
 
 // Copy text vào clipboard (có fallback execCommand cho ngữ cảnh không có Clipboard API).
