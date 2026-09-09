@@ -1754,22 +1754,51 @@ function buildAnalysisJSON(c) {
   };
 }
 
-// Ghép prompt hoàn chỉnh: phần cố định (do Curtis soạn) + JSON khách chèn vào block ```json.
+// Ghép prompt hoàn chỉnh: phần cố định + JSON khách chèn vào block ```json.
 // Dùng mảng dòng .join('\n') để chứa được ký tự ``` mà không phải escape trong template literal.
+// TRỌNG TÂM: bám GIAI ĐOẠN CHĂM SÓC hiện tại + ghi chú từng cuộc gọi → gợi ý hành động,
+// kịch bản, thời điểm tiếp cận kế tiếp để đẩy khách sang bậc kế, tối ưu chuyển đổi → Booking.
 function buildAnalysisPrompt(c) {
   const jsonStr = JSON.stringify(buildAnalysisJSON(c), null, 2);
+  // Thang phễu dựng ĐỘNG từ CARE_STAGES (khỏi lệch nếu sau này đổi bộ bậc).
+  const ladder = CARE_STAGES.join(' → ') + ` (kèm trạng thái kết thúc "${CARE_STAGE_DROPPED}").`;
+
+  // Tính sẵn bậc hiện tại + bậc KẾ cần đẩy tới → cho LLM tiêu điểm cụ thể.
+  const cur = c.care_stage || CARE_STAGE_DEFAULT;
+  let nextLine;
+  if (cur === CARE_STAGE_DROPPED) {
+    nextLine = `Khách đang ở trạng thái "${CARE_STAGE_DROPPED}" (đã ngừng chăm). Hãy đánh giá CÓ NÊN mở lại không; nếu có, bước đầu tiên để khơi lại là gì.`;
+  } else {
+    const idx = CARE_STAGES.indexOf(cur);
+    const i = idx === -1 ? 0 : idx;
+    if (i >= CARE_STAGES.length - 1) {
+      nextLine = `Khách đã ở bậc cuối "${CARE_STAGES[CARE_STAGES.length - 1]}" — tập trung GIỮ khách & hoàn tất thủ tục, không cần đẩy bậc.`;
+    } else {
+      nextLine = `Bậc HIỆN TẠI của khách: "${cur}". Bậc KẾ cần đẩy tới: "${CARE_STAGES[i + 1]}". Mốc CHUYỂN ĐỔI trọng tâm của cả phễu: "Booking".`;
+    }
+  }
+
   return [
     '### ROLE',
-    'Bạn là chuyên gia tư vấn bán hàng bất động sản (real estate sales consultant)',
-    'với 15 năm kinh nghiệm tại thị trường Việt Nam, chuyên sâu về phân khúc',
-    'nhà ở xã hội (social housing) và tâm lý khách hàng.',
+    'Bạn là chuyên gia tư vấn & huấn luyện bán hàng bất động sản với 15 năm kinh nghiệm',
+    'tại thị trường Việt Nam, chuyên sâu phân khúc nhà ở xã hội (social housing). Thế mạnh',
+    'của bạn là ĐỌC diễn biến chăm sóc qua lịch sử cuộc gọi/ghi chú và vạch nước đi tiếp',
+    'theo để ĐẨY khách tiến bậc trong phễu bán hàng, tối ưu tỉ lệ chuyển đổi (conversion).',
     '',
     '### CONTEXT',
-    'Tôi là nhân viên sales bất động sản đang bán các dự án nhà ở xã hội',
-    'khu vực Hải Phòng / Hưng Yên. Dưới đây là dữ liệu một khách hàng lấy',
-    'từ CRM cá nhân (dạng JSON). Một số trường có thể null vì khách chưa',
-    'cung cấp đủ thông tin — hãy xử lý linh hoạt, không suy diễn quá đà',
-    'khi thiếu dữ liệu.',
+    'Tôi là sale đang bán các dự án nhà ở xã hội khu vực Hải Phòng / Hưng Yên. Dưới đây là',
+    'dữ liệu một khách hàng lấy từ CRM cá nhân (dạng JSON). Một số trường có thể null vì',
+    'khách chưa cung cấp đủ — xử lý linh hoạt, không suy diễn quá đà khi thiếu dữ liệu.',
+    '',
+    'Phễu chăm sóc của tôi theo thứ tự tăng dần:',
+    ladder,
+    '"Booking" (khách đặt cọc giữ chỗ) là MỐC CHUYỂN ĐỔI quan trọng nhất tôi đang nhắm tới.',
+    nextLine,
+    '',
+    'Hai trường QUAN TRỌNG NHẤT để bạn bám vào:',
+    '- `trang_thai_ban_hang.tien_do_cham_soc`: khách đang ở bậc nào của phễu.',
+    '- `ghi_chu.lich_su_cham_soc`: diễn biến qua từng mốc + GHI CHÚ cụ thể mỗi lần gọi/chăm',
+    '  (mối bận tâm, lời từ chối, lý do chần chừ...). Đây là tín hiệu thật, hãy trích dẫn lại.',
     '',
     'Dữ liệu khách hàng:',
     '```json',
@@ -1777,26 +1806,33 @@ function buildAnalysisPrompt(c) {
     '```',
     '',
     '### TASK',
-    'Phân tích khách hàng trên và trả về:',
-    '1. Dự đoán tính cách & thói quen ra quyết định (dựa trên các tín hiệu có trong dữ liệu — nêu rõ tín hiệu nào dẫn đến suy đoán nào, độ tin cậy thấp/trung bình/cao)',
-    '2. Phân khúc khách hàng (vd: người mua ở thực / nhà đầu tư / đang cân nhắc nhiều lựa chọn)',
-    '3. Rủi ro hoặc rào cản có thể gặp khi tiếp cận (tài chính, tâm lý, thời điểm)',
-    '4. Phương án tiếp cận đề xuất (kênh liên hệ, thời điểm gọi, tần suất follow-up)',
-    '5. Kịch bản sale mẫu: 1 đoạn mở đầu cuộc gọi (khoảng 3-4 câu) + 3 câu hỏi khai thác nhu cầu',
+    'Phân tích TẬP TRUNG VÀO TIẾN ĐỘ CHUYỂN ĐỔI và trả về:',
+    '1. Chẩn đoán giai đoạn: khách đang ở bậc nào, có vẻ đã ở đó bao lâu, và các TÍN HIỆU',
+    '   tiến/lùi đọc được từ lịch sử ghi chú — nêu rõ ghi chú/mốc nào cho thấy điều gì, kèm',
+    '   độ tin cậy (thấp/trung bình/cao). Kèm 1-2 câu về kiểu ra quyết định của khách nếu suy ra được.',
+    '2. Rào cản đang GIỮ khách lại, chưa cho tiến sang bậc kế (đích gần nhất hướng tới "Booking"). Phân',
+    '   loại rào cản: tài chính / niềm tin-tâm lý / thiếu thông tin / thời điểm / người ảnh hưởng.',
+    '3. HÀNH ĐỘNG TIẾP THEO cụ thể để đẩy khách sang bậc kế — ghi rõ theo nhãn:',
+    '   • Kênh (gọi / nhắn Zalo / mời đi xem dự án / gặp trực tiếp)',
+    '   • Thời điểm gọi hợp lý (bám công việc & diễn biến gần nhất) + tần suất follow-up',
+    '   • Mục tiêu nhỏ CẦN ĐẠT trong lần chạm kế tiếp (1 kết quả đo được, vd hẹn được lịch xem căn)',
+    '4. Kịch bản tiếp cận lần tới (hội thoại mẫu, tự nhiên như người thật, không sáo rỗng',
+    '   telesale): mở đầu 3-4 câu BÁM ghi chú gần nhất + gọi đúng anh/chị theo giới tính;',
+    '   2-3 câu hỏi/câu chốt để nhích khách sang bậc kế; 1 cách xử lý lời từ chối hay gặp ở bậc này.',
+    '5. Cảnh báo rớt: dấu hiệu nào cho thấy nên hạ ưu tiên hoặc chuyển "Loại", và mốc thời gian nên xem lại.',
     '',
     '### FORMAT',
-    'Trả lời bằng tiếng Việt, dùng heading rõ ràng cho từng mục (1-5 ở trên).',
-    'Mục 1 và 3 trình bày dạng bullet. Mục 5 trình bày dạng hội thoại mẫu,',
-    'ngắn gọn, tự nhiên như người thật nói — không sáo rỗng kiểu telesale.',
+    'Trả lời bằng tiếng Việt, heading rõ cho từng mục (1-5). Mục 1, 2, 5 dạng bullet; mục 3',
+    'gạch đầu dòng có nhãn như trên; mục 4 trình bày dạng hội thoại mẫu. Bám sát ghi chú THẬT',
+    'trong dữ liệu, tránh khuyên chung chung.',
     '',
     '### CONSTRAINTS',
-    '- Nếu trường dữ liệu là null hoặc thiếu, ghi rõ "chưa đủ dữ liệu để',
-    '  suy đoán về [X]" thay vì bịa ra thông tin',
-    '- Không đưa ra cam kết pháp lý hay tài chính thay tôi (vd: lãi suất,',
-    '  điều kiện vay cụ thể) — chỉ gợi ý hướng tiếp cận',
-    '- Toàn bộ phân tích chỉ mang tính tham khảo, không thay thế đánh giá',
-    '  trực tiếp của tôi khi gặp khách',
-    '- Giữ câu trả lời dưới 400 từ, tránh lý thuyết dài dòng',
+    '- Nếu trường dữ liệu là null/thiếu, ghi rõ "chưa đủ dữ liệu về [X]" thay vì bịa.',
+    '- Nếu `lich_su_cham_soc` trống hoặc quá ít: nói rõ chưa đủ dữ liệu để đọc diễn biến, và',
+    '  đề xuất bước KHAI THÁC đầu tiên để lấy tín hiệu, thay vì suy đoán tính cách vô căn cứ.',
+    '- Không cam kết pháp lý/tài chính thay tôi (lãi suất, điều kiện vay cụ thể) — chỉ gợi ý hướng.',
+    '- Toàn bộ chỉ mang tính tham khảo, không thay thế đánh giá trực tiếp của tôi khi gặp khách.',
+    '- Giữ câu trả lời dưới 450 từ, thực dụng, đi thẳng vào hành động đẩy chuyển đổi.',
   ].join('\n');
 }
 

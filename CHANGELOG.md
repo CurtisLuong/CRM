@@ -11,8 +11,17 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 - **Mục đích:** ở trang chi tiết khách, thêm nút **📋 Copy prompt phân tích**. Bấm →
   copy vào clipboard 1 prompt cố định (soạn sẵn: ROLE/CONTEXT/TASK/FORMAT/CONSTRAINTS
   cho tư vấn BĐS nhà ở xã hội) đã nhét sẵn **dữ liệu khách đó dạng JSON** vào block
-  ```json. Sale dán thẳng vào ChatGPT / Claude / Gemini để nhờ phân tích tính cách +
-  gợi ý cách tiếp cận. Kèm toast xác nhận.
+  ```json. Sale dán thẳng vào ChatGPT / Claude / Gemini để nhờ phân tích + gợi ý cách
+  tiếp cận. Kèm toast xác nhận.
+- **Prompt xoáy vào TIẾN ĐỘ CHUYỂN ĐỔI:** thay vì phân tích tính cách chung chung,
+  prompt bám `care_stage` (bậc phễu hiện tại) + `lich_su_cham_soc` (ghi chú từng cuộc
+  gọi) để yêu cầu LLM đưa ra: chẩn đoán giai đoạn + tín hiệu tiến/lùi, rào cản đang giữ
+  khách, HÀNH ĐỘNG tiếp theo (kênh / thời điểm gọi / tần suất / mục tiêu lần chạm kế),
+  kịch bản tiếp cận lần tới bám ghi chú thật, và cảnh báo rớt. Prompt **nhúng động thang
+  phễu** từ `CARE_STAGES` và **tính sẵn bậc hiện tại → bậc kế cần đẩy tới** (xử lý riêng
+  'Loại' = cân nhắc mở lại, 'Kí HĐMB' = giữ khách), lấy **Booking** làm mốc chuyển đổi
+  trọng tâm. Nếu lịch sử chăm sóc trống → yêu cầu LLM nói rõ thiếu dữ liệu + gợi bước khai
+  thác đầu, không bịa.
 - **JSON đầy đủ, khoá tiếng Việt, gom NHÓM:** `thong_tin_ca_nhan` · `tu_vi`
   (mệnh/cung/cầm tinh — suy từ dob) · `can_ho_quan_tam` · `trang_thai_ban_hang`
   (tiến độ, liên lạc, mức quan tâm %+bậc, nguồn) · `ghi_chu` (ghi chú tay + toàn bộ
