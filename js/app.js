@@ -1419,6 +1419,10 @@ function dobWithAge(dobStr) {
 function cungOf(c) {
   return c.cung || (c.dob ? (window.LunarUtil.calcCungFromDOB(c.dob) || null) : null);
 }
+// Cầm tinh (con giáp): suy TRỰC TIẾP từ dob (không lưu DB) — cần năm sinh, trống nếu không có.
+function camTinhOf(c) {
+  return (c && c.dob) ? (window.LunarUtil.calcCamTinhFromDOB(c.dob) || null) : null;
+}
 
 async function handleFormSubmit(e) {
   e.preventDefault();
@@ -2117,10 +2121,11 @@ function openDetail(id) {
       ['Giới tính', c.gender ? capitalize(c.gender) : null],
       ['Hôn nhân', c.marital_status ? capitalize(c.marital_status) : null],
     ],
-    [ // Nhóm 2: ngày sinh + tử vi (Mệnh, Cung cộng hưởng)
+    [ // Nhóm 2: ngày sinh + tử vi (Mệnh, Cung, Cầm tinh — đều suy từ ngày sinh)
       ['Ngày sinh', c.dob ? dobWithAge(c.dob) : null],
       ['Mệnh', c.menh ? c.menh.replace(/^Mệnh\s+/, '') : null],
       ['Cung', cungOf(c)],
+      ['Cầm tinh', camTinhOf(c)],
     ],
     [ // Nhóm 3
       ['Công việc', c.occupation || null],

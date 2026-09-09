@@ -237,8 +237,20 @@ function calcCungFromDOB(dobStr) {
   return p ? calcCungFromDayMonth(p.day, p.month) : '';
 }
 
+// ---- CẦM TINH (con giáp) — theo CHI của năm ÂM LỊCH (CẦN năm sinh) ----
+// Thứ tự khớp mảng CHI ở trên. Dùng quy ước VIỆT NAM: Mão = Mèo (không phải Thỏ).
+const CAM_TINH = ['Chuột', 'Trâu', 'Hổ', 'Mèo', 'Rồng', 'Rắn', 'Ngựa', 'Dê', 'Khỉ', 'Gà', 'Chó', 'Lợn'];
+// Tận dụng convertSolar2Lunar + getCanChi (đang dùng cho Mệnh) → lấy chiIdx của năm âm lịch.
+function calcCamTinhFromDOB(dobStr) {
+  const p = parseDob(dobStr);
+  if (!p || !p.year) return ''; // cần năm sinh (partial '--MM-DD' → không có Cầm tinh)
+  const lunar = convertSolar2Lunar(p.day, p.month, p.year, 7);
+  const { chiIdx } = getCanChi(lunar.year);
+  return CAM_TINH[chiIdx] || '';
+}
+
 // export cho app.js dùng
 window.LunarUtil = {
   convertSolar2Lunar, getCanChi, getMenh, calcMenhFromSolarDOB,
-  calcCungFromDayMonth, calcCungFromDOB, parseDob,
+  calcCungFromDayMonth, calcCungFromDOB, calcCamTinhFromDOB, parseDob,
 };

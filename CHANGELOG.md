@@ -6,6 +6,19 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-09-09 — Thêm thuộc tính Cầm tinh (con giáp) vào hồ sơ khách
+
+- **Cầm tinh** = con giáp theo CHI của năm ÂM LỊCH, suy từ ngày sinh. Tận dụng
+  `convertSolar2Lunar` + `getCanChi` (đang dùng cho Mệnh) → lấy `chiIdx` → map con giáp
+  (quy ước VN: Mão = Mèo). Xử lý đúng ranh giới Tết (sinh trước Tết → tính năm âm lịch trước).
+- **Không cần năm sinh partial** → không có Cầm tinh (để trống, như Mệnh). **Không lưu DB /
+  không migration** — tính lúc hiển thị (như `cungOf`). Hiện ở nhóm "Thông tin cá nhân"
+  trang chi tiết, cạnh Mệnh/Cung.
+- **File:** `js/lunar.js` (`CAM_TINH` + `calcCamTinhFromDOB` + export), `js/app.js`
+  (`camTinhOf` + render trang chi tiết).
+
+---
+
 ## 2026-08-30 — Đồng bộ "Lời chào Zalo" đa thiết bị (bảng user_settings)
 
 - **Vấn đề:** lời chào lưu localStorage (theo từng máy) → sửa ở Mac không hiện trên Android.
