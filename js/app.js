@@ -1663,6 +1663,150 @@ $('#detail-contact-btn')?.addEventListener('click', () => {
   if (c) saveContact(c);
 });
 
+// ---------- PHÂN TÍCH AI: copy prompt (kèm JSON khách) để dán vào LLM ----------
+// Gom dữ liệu khách thành 1 object JSON có NHÓM rõ ràng + khoá tiếng Việt dễ đọc, rồi
+// nhét vào 1 prompt cố định. Bấm nút → copy CẢ prompt vào clipboard (không tải file,
+// không gọi API — thuần client, đọc từ dữ liệu đã có sẵn trong app).
+// QUY ƯỚC: trường trống để null CÓ CHỦ ĐÍCH (không bỏ khỏi JSON) — prompt yêu cầu LLM
+// tự nhận biết "chưa đủ dữ liệu" thay vì bịa; giữ null giúp LLM biết đang thiếu gì.
+
+// Số tiền → chuỗi người-đọc-được (vd "1,5 tỷ"); trống/không hợp lệ → null.
+function moneyOrNull(v) {
+  if (v == null || v === '' || !(Number(v) > 0)) return null;
+  return formatPrice(v);
+}
+// Chuỗi đã trim; rỗng → null (để JSON hiện null thay vì "").
+function textOrNull(v) {
+  const s = (v == null ? '' : String(v)).trim();
+  return s || null;
+}
+
+// Dựng object JSON đầy đủ của 1 khách để đưa vào prompt phân tích.
+function buildAnalysisJSON(c) {
+  // Hồ sơ Nâng cao: chỉ đưa field CÓ giá trị (số → định dạng VNĐ), dùng nhãn tiếng Việt.
+  const advanced = {};
+  const advObj = (c && c.advanced && typeof c.advanced === 'object') ? c.advanced : {};
+  for (const fld of ADVANCED_FIELDS) {
+    const raw = advObj[fld.key];
+    if (raw == null || String(raw).trim() === '') continue;
+    advanced[fld.label] = fld.type === 'number' ? moneyOrNull(raw) : String(raw).trim();
+  }
+
+  // Ghi chú tay (mảng {text, at}) → mảng chuỗi text (bỏ trống, mới nhất giữ nguyên thứ tự lưu).
+  const ghiChuTay = Array.isArray(c.notes_manual)
+    ? c.notes_manual.map((n) => textOrNull(n && n.text)).filter(Boolean)
+    : [];
+
+  // Lịch sử chăm sóc (mảng {stage, note, at}) → gọn {bac, ghi_chu, thoi_diem}, cũ→mới.
+  const lichSuChamSoc = Array.isArray(c.care_stage_history)
+    ? [...c.care_stage_history]
+        .sort((a, b) => (a.at || '').localeCompare(b.at || ''))
+        .map((h) => ({
+          bac: h.stage || null,
+          ghi_chu: textOrNull(h.note),
+          thoi_diem: h.at ? formatLogTime(h.at) : null,
+        }))
+    : [];
+
+  const projects = (Array.isArray(c.projects) && c.projects.length) ? c.projects.slice() : [];
+
+  return {
+    thong_tin_ca_nhan: {
+      ho_ten: textOrNull(c.full_name),
+      so_dien_thoai: textOrNull(c.phone),
+      tuoi: ageFromDob(c.dob),                                  // null nếu không có năm sinh
+      gioi_tinh: c.gender ? capitalize(c.gender) : null,
+      ngay_sinh: c.dob ? formatDob(c.dob) : null,               // DD/MM/YYYY hoặc DD/MM
+      tinh_trang_hon_nhan: c.marital_status ? capitalize(c.marital_status) : null,
+      cong_viec: textOrNull(c.occupation),
+      thu_nhap: textOrNull(c.income),
+      noi_thuong_tru: textOrNull(c.residence),
+    },
+    tu_vi: { // suy từ ngày sinh (âm lịch) — yếu tố văn hoá tham khảo, không phải khách tự khai
+      menh: c.menh ? c.menh.replace(/^Mệnh\s+/, '') : null,
+      cung: cungOf(c),
+      cam_tinh: camTinhOf(c),
+    },
+    can_ho_quan_tam: {
+      du_an: projects,
+      loai_can: canonicalAptType(c.apt_type) || null,
+      dien_tich_m2: (c.apt_area != null && c.apt_area !== '') ? Number(c.apt_area) : null,
+      huong: textOrNull(c.apt_direction),
+      tang: (c.apt_floor != null && c.apt_floor !== '') ? Number(c.apt_floor) : null,
+      ma_can: textOrNull(c.apt_code),
+      ma_toa: textOrNull(c.building_code),
+      ngan_sach_khach_co: moneyOrNull(c.finance),               // tiền khách sẵn có
+      gia_can_quan_tam: moneyOrNull(c.apt_price),               // giá căn đang nhắm
+      muc_dich: textOrNull(c.purpose),                          // Ở / Đầu tư / Cho tặng
+    },
+    trang_thai_ban_hang: {
+      tien_do_cham_soc: c.care_stage || CARE_STAGE_DEFAULT,
+      trang_thai_lien_lac: textOrNull(c.contact_status),
+      muc_do_quan_tam_phan_tram: (c.interest_level != null) ? c.interest_level : null,
+      muc_do_quan_tam_bac: (c.interest_level != null) ? interestTier(c.interest_level).label : null,
+      nguon_khach: sourceDisplay(c.source),
+    },
+    ghi_chu: {
+      ghi_chu_tay: ghiChuTay,
+      lich_su_cham_soc: lichSuChamSoc,
+    },
+    ho_so_nang_cao: advanced,
+  };
+}
+
+// Ghép prompt hoàn chỉnh: phần cố định (do Curtis soạn) + JSON khách chèn vào block ```json.
+// Dùng mảng dòng .join('\n') để chứa được ký tự ``` mà không phải escape trong template literal.
+function buildAnalysisPrompt(c) {
+  const jsonStr = JSON.stringify(buildAnalysisJSON(c), null, 2);
+  return [
+    '### ROLE',
+    'Bạn là chuyên gia tư vấn bán hàng bất động sản (real estate sales consultant)',
+    'với 15 năm kinh nghiệm tại thị trường Việt Nam, chuyên sâu về phân khúc',
+    'nhà ở xã hội (social housing) và tâm lý khách hàng.',
+    '',
+    '### CONTEXT',
+    'Tôi là nhân viên sales bất động sản đang bán các dự án nhà ở xã hội',
+    'khu vực Hải Phòng / Hưng Yên. Dưới đây là dữ liệu một khách hàng lấy',
+    'từ CRM cá nhân (dạng JSON). Một số trường có thể null vì khách chưa',
+    'cung cấp đủ thông tin — hãy xử lý linh hoạt, không suy diễn quá đà',
+    'khi thiếu dữ liệu.',
+    '',
+    'Dữ liệu khách hàng:',
+    '```json',
+    jsonStr,
+    '```',
+    '',
+    '### TASK',
+    'Phân tích khách hàng trên và trả về:',
+    '1. Dự đoán tính cách & thói quen ra quyết định (dựa trên các tín hiệu có trong dữ liệu — nêu rõ tín hiệu nào dẫn đến suy đoán nào, độ tin cậy thấp/trung bình/cao)',
+    '2. Phân khúc khách hàng (vd: người mua ở thực / nhà đầu tư / đang cân nhắc nhiều lựa chọn)',
+    '3. Rủi ro hoặc rào cản có thể gặp khi tiếp cận (tài chính, tâm lý, thời điểm)',
+    '4. Phương án tiếp cận đề xuất (kênh liên hệ, thời điểm gọi, tần suất follow-up)',
+    '5. Kịch bản sale mẫu: 1 đoạn mở đầu cuộc gọi (khoảng 3-4 câu) + 3 câu hỏi khai thác nhu cầu',
+    '',
+    '### FORMAT',
+    'Trả lời bằng tiếng Việt, dùng heading rõ ràng cho từng mục (1-5 ở trên).',
+    'Mục 1 và 3 trình bày dạng bullet. Mục 5 trình bày dạng hội thoại mẫu,',
+    'ngắn gọn, tự nhiên như người thật nói — không sáo rỗng kiểu telesale.',
+    '',
+    '### CONSTRAINTS',
+    '- Nếu trường dữ liệu là null hoặc thiếu, ghi rõ "chưa đủ dữ liệu để',
+    '  suy đoán về [X]" thay vì bịa ra thông tin',
+    '- Không đưa ra cam kết pháp lý hay tài chính thay tôi (vd: lãi suất,',
+    '  điều kiện vay cụ thể) — chỉ gợi ý hướng tiếp cận',
+    '- Toàn bộ phân tích chỉ mang tính tham khảo, không thay thế đánh giá',
+    '  trực tiếp của tôi khi gặp khách',
+    '- Giữ câu trả lời dưới 400 từ, tránh lý thuyết dài dòng',
+  ].join('\n');
+}
+
+$('#detail-ai-export-btn')?.addEventListener('click', () => {
+  const c = allCustomers.find((x) => x.id === detailId);
+  if (!c) return;
+  copyText(buildAnalysisPrompt(c));
+  showToast('Đã copy prompt phân tích — dán vào ChatGPT / Claude / Gemini');
+});
+
 // ------------------------------------------------- OCR: NHẬP TỪ ẢNH --------
 // Gửi ảnh cho Worker (giữ key Gemini) → nhận JSON field → TỰ ĐIỀN form, KHÔNG lưu
 // thẳng. Bắt buộc user rà lại (nhất là SĐT) rồi mới bấm Lưu.

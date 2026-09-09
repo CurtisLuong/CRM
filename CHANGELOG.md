@@ -6,6 +6,31 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-09-09 — "Phân tích AI": copy prompt (kèm JSON khách) để dán vào LLM
+
+- **Mục đích:** ở trang chi tiết khách, thêm nút **📋 Copy prompt phân tích**. Bấm →
+  copy vào clipboard 1 prompt cố định (soạn sẵn: ROLE/CONTEXT/TASK/FORMAT/CONSTRAINTS
+  cho tư vấn BĐS nhà ở xã hội) đã nhét sẵn **dữ liệu khách đó dạng JSON** vào block
+  ```json. Sale dán thẳng vào ChatGPT / Claude / Gemini để nhờ phân tích tính cách +
+  gợi ý cách tiếp cận. Kèm toast xác nhận.
+- **JSON đầy đủ, khoá tiếng Việt, gom NHÓM:** `thong_tin_ca_nhan` · `tu_vi`
+  (mệnh/cung/cầm tinh — suy từ dob) · `can_ho_quan_tam` · `trang_thai_ban_hang`
+  (tiến độ, liên lạc, mức quan tâm %+bậc, nguồn) · `ghi_chu` (ghi chú tay + toàn bộ
+  lịch sử chăm sóc) · `ho_so_nang_cao`. Tiền hiển thị dạng người-đọc-được ("1,5 tỷ").
+  **Trường trống để `null` CÓ CHỦ ĐÍCH** (không bỏ khỏi JSON) — prompt yêu cầu LLM tự
+  báo "chưa đủ dữ liệu" thay vì bịa; giữ null giúp LLM biết đang thiếu gì.
+- **Thuần client, KHÔNG rủi ro hạ tầng:** chỉ đọc dữ liệu đã có trong `allCustomers`,
+  ghép chuỗi rồi `copyText`. Không gọi API, **không đổi schema/RLS/GRANT**, **không đổi
+  sw.js/APP_SHELL** (không cần tăng `CACHE_NAME`), không migration. Tái dùng helper sẵn
+  có (`formatPrice`/`ageFromDob`/`cungOf`/`camTinhOf`/`sourceDisplay`/`interestTier`/
+  `formatLogTime`/`copyText`/`showToast`).
+- **Lưu ý riêng tư:** dữ liệu khách (kể cả ghi chú tay + lịch sử chăm sóc) sẽ được dán
+  sang LLM bên ngoài — Curtis đã chọn phương án "đầy đủ mọi thuộc tính" khi cân nhắc.
+- **File:** `index.html` (section + nút `#detail-ai-export-btn`), `js/app.js`
+  (`buildAnalysisJSON` + `buildAnalysisPrompt` + `moneyOrNull`/`textOrNull` + handler).
+
+---
+
 ## 2026-09-09 — Thêm thuộc tính Cầm tinh (con giáp) vào hồ sơ khách
 
 - **Cầm tinh** = con giáp theo CHI của năm ÂM LỊCH, suy từ ngày sinh. Tận dụng
