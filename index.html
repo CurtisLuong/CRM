@@ -76,6 +76,7 @@
           <button id="user-menu-btn" class="avatar-btn" aria-label="Tài khoản">?</button>
           <div class="menu-pop">
             <div class="menu-email" id="user-email"></div>
+            <button id="catalog-btn" class="menu-item">Giỏ hàng (dự án · toà · căn)</button>
             <button id="zalo-greeting-btn" class="menu-item">Lời chào Zalo</button>
             <button id="logout-btn" class="menu-item">Đăng xuất</button>
           </div>
@@ -493,11 +494,15 @@
           <label>Tầng
             <input name="apt_floor" type="number" min="1" step="1" placeholder="vd: 12" />
           </label>
-          <label>Mã căn
-            <input name="apt_code" type="text" />
-          </label>
+          <!-- Gợi ý từ GIỎ HÀNG (js/catalog.js), lọc theo dự án đã chọn. Chọn mã căn có
+               trong giỏ → tự điền toà, diện tích, loại căn, tầng, hướng. -->
           <label>Mã toà
-            <input name="building_code" type="text" />
+            <input name="building_code" type="text" list="cf-building-list" autocomplete="off" />
+            <datalist id="cf-building-list"></datalist>
+          </label>
+          <label>Mã căn
+            <input name="apt_code" type="text" list="cf-unit-list" autocomplete="off" />
+            <datalist id="cf-unit-list"></datalist>
           </label>
           <label>Giá căn (VNĐ)
             <input name="apt_price" type="number" min="0" step="1000000" />
@@ -689,6 +694,27 @@
   </div>
 </dialog>
 
+<!-- ============ GIỎ HÀNG: Dự án → Toà → Căn ============ -->
+<!-- Logic ở js/catalog-ui.js, dữ liệu ở js/catalog.js. -->
+<dialog id="catalog-modal" class="io-modal cat-modal">
+  <div class="io-box">
+    <div class="io-head">
+      <h2>Giỏ hàng</h2>
+      <button id="catalog-close" class="io-x" type="button" aria-label="Đóng">✕</button>
+    </div>
+    <p class="io-sub">Dự án → Toà (giá duyệt) → Căn. Dùng chung cho form khách và bảng tính vay.</p>
+    <div class="cat-tools">
+      <button id="cat-add-project" class="btn-small" type="button">＋ Dự án</button>
+      <button id="cat-import" class="btn-small" type="button">⬆ Nhập Excel</button>
+      <button id="cat-template" class="btn-small" type="button">⬇ File mẫu</button>
+      <input id="cat-file" type="file" accept=".xlsx,.xls,.csv" hidden />
+    </div>
+    <div id="cat-import-preview" class="cat-preview" hidden></div>
+    <div id="cat-status" class="io-status"></div>
+    <div id="cat-body"></div>
+  </div>
+</dialog>
+
 <!-- ============ NHẬP EXCEL ============ -->
 <dialog id="import-modal" class="io-modal">
   <div class="io-box">
@@ -733,7 +759,9 @@
 <script src="/js/lunar.js"></script>
 <script src="/js/db.js"></script>
 <script src="/js/notifications.js"></script>
+<script src="/js/catalog.js"></script>
 <script src="/js/app.js"></script>
+<script src="/js/catalog-ui.js"></script>
 <!-- Module tính khoản vay — thứ tự BẮT BUỘC: engine → store → pdf → ui → crm -->
 <script src="/js/loan/loan-engine.js"></script>
 <script src="/js/loan/loan-store.js"></script>

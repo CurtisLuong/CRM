@@ -1440,3 +1440,29 @@ dialog#img-picker .ocr-status { margin-top: 8px; }
 .greeting-hint code { background: var(--paper); padding: 1px 5px; border-radius: 4px; font-size: 12px; color: var(--seal); }
 .greeting-text { width: 100%; font: inherit; font-size: 14px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; resize: vertical; box-sizing: border-box; }
 .greeting-btns { display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px; }
+
+/* ---------------- GIỎ HÀNG (Dự án → Toà → Căn) — js/catalog-ui.js ---------------- */
+.cat-modal { max-width: 820px; width: 96vw; max-height: 92vh; }
+.cat-tools { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+.cat-preview { background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; font-size: 13px; line-height: 1.6; margin-bottom: 8px; }
+.cat-muted { color: #8a8a7d; font-size: 12px; font-weight: 400; }
+.cat-proj { border: 1px solid var(--line); border-radius: var(--radius); margin-bottom: 8px; background: #fff; }
+.cat-proj > summary, .cat-b > summary { cursor: pointer; padding: 10px 12px; font-size: 14px; }
+.cat-proj[open] > summary { border-bottom: 1px solid var(--line); }
+.cat-bs { padding: 0 12px; }
+.cat-b { border-left: 3px solid var(--good); margin: 8px 0; background: var(--paper); border-radius: 0 8px 8px 0; }
+.cat-b > summary { padding: 8px 10px; font-size: 13px; }
+.cat-row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px; padding: 10px 12px; }
+.cat-row label { display: flex; flex-direction: column; font-size: 12px; color: #6b6b60; gap: 3px; flex: 1 1 120px; }
+.cat-row label.cat-grow { flex: 2 1 200px; }
+.cat-row input { padding: 6px 8px; font-size: 14px; }
+.cat-add { border-top: 1px dashed var(--line); }
+.cat-table-wrap { overflow-x: auto; padding: 0 10px 10px; }
+.cat-units { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+.cat-units th { text-align: left; font-size: 11px; color: #8a8a7d; font-weight: 600; padding: 4px; white-space: nowrap; }
+.cat-units td { padding: 4px; border-top: 1px solid var(--line); white-space: nowrap; }
+.cat-units tr.is-sold td { color: #9a9a90; }
+.cat-units input, .cat-units select { padding: 4px 6px; font-size: 13px; min-width: 64px; width: 100%; }
+.cat-units td.cat-act { text-align: right; }
+.cat-units td.cat-act .btn-small { padding: 3px 8px; font-size: 12px; }
+.btn-small.btn-danger { color: var(--seal); }

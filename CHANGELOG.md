@@ -6,6 +6,35 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-03 — Giỏ hàng Dự án → Toà → Căn (gộp danh sách dự án, nối form khách + bảng tính vay)
+
+- **Vì sao:** dự án lấy từ `project_options` (chỉ có tên), còn mã toà / mã căn gom từ dữ liệu
+  khách, nên gợi ý bị lẫn giữa các dự án, có cả mã gõ sai, và không có giá duyệt. Giờ dùng
+  1 danh mục chuẩn.
+- **Schema** (`SQL/add_catalog_buildings.sql`, ĐÃ test bằng PGlite, cả khi chạy lại):
+  bảng MỚI `buildings` (mã toà + `approved_price_per_m2`); `projects` thêm
+  `title_after_months` (mặc định 1,5), tên duy nhất theo user; `units` thêm `building_id`,
+  `apt_type`, `direction`, mã căn duy nhất THEO TOÀ; **gộp `project_options` → `projects`**
+  (giữ thứ tự); căn cũ có tên toà dạng chữ được tự gắn vào toà. Không sửa `schema.sql`.
+- **`js/catalog.js` (mới):** tầng dữ liệu giỏ hàng: nạp + cache localStorage (dùng
+  offline), thêm/sửa/xoá, nhập hàng loạt (upsert theo `project_id,code` / `building_id,code`).
+- **`js/catalog-ui.js` (mới), menu avatar → "Giỏ hàng":** sửa trực tiếp dự án (tên, bàn
+  giao, nhận sổ, VAT, KPBT), toà (giá duyệt), căn (bảng sửa từng dòng); **Nhập Excel**
+  (tự nhận cột theo tiêu đề, ô gộp lấy theo dòng trên, có bước xem trước, chỉ ghi đè cột có
+  trong file) + **File mẫu**. Đổi tên dự án → đổi luôn tên trong `customers.projects`.
+- **Form khách:** danh sách dự án lấy từ `projects`. Ô **Mã toà** (đưa lên trước Mã căn) và
+  **Mã căn** gợi ý theo dự án đã chọn; chọn mã căn có trong giỏ → tự điền toà, diện tích,
+  loại căn, tầng, hướng, giá căn (nếu trống), tự tích dự án. Mã căn trùng ở nhiều toà mà
+  chưa chọn toà → không đoán.
+- **Bảng tính vay:** chọn liên hoàn dự án → toà (đơn giá = giá duyệt) → căn (diện tích,
+  loại căn, giá riêng, giá thuần CĐT chốt); mỗi cấp có "Khác…"; danh sách rỗng → ô gõ tự
+  do. Bàn giao / nhận sổ lấy từ dự án, sửa ở bảng tính → **ghi ngược vào dự án** (dự án
+  "Khác…" vẫn nhớ trong `loan_settings`). Giỏ hàng đổi → bảng tính đang mở tự cập nhật.
+- **sw.js:** thêm `catalog.js`, `catalog-ui.js`; `CACHE_NAME` v7 → v8.
+- **File:** `SQL/add_catalog_buildings.sql`, `js/catalog.js`, `js/catalog-ui.js`,
+  `js/app.js`, `index.html`, `css/style.css`, `js/loan/loan-ui.js`, `js/loan/loan-crm.js`,
+  `dev/loan-demo.html`, `sw.js`, `docs/gio-hang.md`, `docs/loan-module.md`.
+
 ## 2026-10-03 — Module vay: rút gọn gói vay còn 4, tự chuyển sang "Khác" khi chỉnh
 
 - **Gói vay** còn: **Dưới 35 tuổi · NQ33 · NHCSXH · Khác** (bỏ HDBank, TPBank — số liệu

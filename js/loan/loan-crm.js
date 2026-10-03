@@ -40,21 +40,15 @@
   }
 
   // ---------- Dữ liệu dùng chung từ CRM ----------
-  // Dự án = bảng project_options (biến projectOptions của app.js); loại căn = APT_TYPES;
-  // gợi ý mã căn / mã toà = các giá trị đã có trong danh sách khách.
-  function distinct(field) {
-    var seen = {};
-    allCustomers.forEach(function (c) { var v = c[field] && String(c[field]).trim(); if (v) seen[v] = 1; });
-    return Object.keys(seen).sort();
-  }
+  // Dự án → Toà → Căn = GIỎ HÀNG (js/catalog.js); loại căn = APT_TYPES của app.js.
   function crmOptions() {
-    return {
-      supabase: sb, consultant: consultant, theme: 'light',
-      projectOptions: projectOptions.map(function (o) { return o.name; }),
-      aptTypes: APT_TYPES.slice(),
-      suggestions: { codes: distinct('apt_code'), buildings: distinct('building_code') }
-    };
+    return { supabase: sb, consultant: consultant, theme: 'light', catalog: Catalog, aptTypes: APT_TYPES.slice() };
   }
+  // Giỏ hàng đổi (sửa ở màn Giỏ hàng / nhập Excel) → bảng tính đang mở cập nhật danh sách chọn
+  Catalog.onChange(function () {
+    if (tabUI) tabUI.refresh();
+    if (detailUI) detailUI.refresh();
+  });
 
   // ---------- A. Tab "Tính vay" ----------
   var tabUI = null;

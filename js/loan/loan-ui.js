@@ -6,22 +6,21 @@
  *     supabase,                                   // client Supabase của CRM (tùy chọn)
  *     customer: { id, name, phone },              // khách đang xem (tùy chọn)
  *     consultant: { name: 'Curtis', phone: '09xx' },
- *     unit: { projectName, aptType, code, building, area },  // điền sẵn (tùy chọn)
- *     projectOptions: ['Vin Tràng Cát', ...],     // danh sách dự án (CRM: bảng project_options)
+ *     unit: { projectName, building, code, aptType, area },  // điền sẵn (tùy chọn)
+ *     catalog: Catalog,                           // giỏ hàng Dự án → Toà → Căn (CRM: js/catalog.js)
  *     aptTypes: ['1N-1WC', '2N-2WC', ...],        // loại căn (CRM: APT_TYPES)
- *     suggestions: { codes: [...], buildings: [...] }, // gợi ý mã căn / mã toà
  *     onSaved: (quoteId) => {}
  *   });
  *
- * Bảng `projects` trên Supabase (nếu có dòng TRÙNG TÊN dự án) chỉ dùng làm cấu hình
- * nâng cao: VAT, KPBT, tiến độ CĐT, ngày bàn giao gợi ý. Không có → VAT 5%, KPBT 2%,
- * tiến độ mẫu trong loan-engine.js.
+ * Chọn dự án → toà (đơn giá = giá duyệt của toà) → căn (diện tích, loại căn, giá riêng).
+ * Mỗi cấp có "Khác…" để gõ tự do khi chưa có trong giỏ hàng. Dự án lấy VAT/KPBT/tiến độ
+ * CĐT/bàn giao/nhận sổ từ giỏ hàng; sửa bàn giao/nhận sổ ở đây → ghi ngược vào dự án.
  */
 (function (root) {
   'use strict';
   var E = root.LoanEngine;
 
-  var DEFAULT_PRICE = 19911530;     // đơn giá mặc định ban đầu (đ/m²) khi dự án chưa có giá nhớ
+  var DEFAULT_PRICE = 19911530;     // đơn giá mặc định ban đầu (đ/m²) khi chưa chọn được toà có giá
   var DEFAULT_TITLE_MONTHS = 1.5;    // nhận sổ sau bàn giao (tháng)
 
   // ---------- Định dạng ----------
@@ -45,18 +44,20 @@
   function mount(el, opts) {
     opts = opts || {};
     var store = root.LoanStore.createStore(opts.supabase);
-    var projectNames = (opts.projectOptions || []).filter(Boolean);
     var aptTypes = opts.aptTypes || [];
-    var sugg = opts.suggestions || {};
-    var cfgs = [];        // cấu hình dự án từ bảng `projects` (khớp theo tên)
-    var perProject = {};  // giá trị "lần cuối" theo từng dự án: bàn giao, nhận sổ, đơn giá
+    // Giỏ hàng: không truyền → mọi ô Dự án/Toà/Căn thành ô gõ tự do
+    var cat = opts.catalog || { projects: function () { return []; }, projectByName: function () { return null; },
+      buildingsOf: function () { return []; }, buildingByCode: function () { return null; },
+      unitsOf: function () { return []; }, unitByCode: function () { return null; },
+      unitPrice: function () { return null; }, statusLabel: function () { return ''; } };
+    var perProject = {};  // "lần cuối" cho dự án NGOÀI giỏ hàng: bàn giao, nhận sổ, đơn giá
     var presets = clone(E.BANK_PRESETS);
     var showMonthly = false;
     var result = null, resultMsg = '';
 
     var state = {
       unit: {
-        projectName: projectNames[0] || '', aptType: '', code: '', building: '',
+        projectName: (cat.projects()[0] || {}).name || '', aptType: '', code: '', building: '',
         area: 53.6, pricePerM2: DEFAULT_PRICE, netOverride: null
       },
       dates: { contractDate: todayISO(), handoverDate: '', titleAfterMonths: DEFAULT_TITLE_MONTHS },
@@ -66,10 +67,20 @@
     if (opts.unit) Object.keys(opts.unit).forEach(function (k) {
       if (opts.unit[k] != null && opts.unit[k] !== '') state.unit[k] = opts.unit[k];
     });
-    var ui = {}; // projectOther / aptOther: đang ở chế độ "Khác…" (nhập tự do)
+    // Mục đang chọn trong giỏ hàng (null = không có / đang gõ "Khác…")
+    function curProject() { return ui.projectOther ? null : cat.projectByName(state.unit.projectName); }
+    function curBuilding() { var p = curProject(); return p && !ui.buildingOther ? cat.buildingByCode(p.id, state.unit.building) : null; }
+    function curUnit() { var b = curBuilding(); return b && !ui.unitOther ? cat.unitByCode(b.id, state.unit.code) : null; }
+
+    var ui = {}; // projectOther / buildingOther / unitOther / aptOther: đang ở "Khác…" (gõ tự do)
     function syncUiFlags() {
-      ui.projectOther = !projectNames.length || (!!state.unit.projectName && projectNames.indexOf(state.unit.projectName) < 0);
-      ui.aptOther = !!state.unit.aptType && aptTypes.indexOf(state.unit.aptType) < 0;
+      var u = state.unit;
+      ui.projectOther = !!u.projectName && !cat.projectByName(u.projectName);
+      var p = curProject();
+      ui.buildingOther = !!u.building && !(p && cat.buildingByCode(p.id, u.building));
+      var b = curBuilding();
+      ui.unitOther = !!u.code && !(b && cat.unitByCode(b.id, u.code));
+      ui.aptOther = !!u.aptType && aptTypes.indexOf(u.aptType) < 0;
     }
     syncUiFlags();
 
@@ -83,24 +94,52 @@
     var resEl = el.querySelector('.lm-results');
 
     function norm(x) { return String(x || '').trim().toLowerCase(); }
-    function projectCfg() {
-      var n = norm(state.unit.projectName);
-      return (n && cfgs.filter(function (p) { return norm(p.name) === n; })[0]) || null;
-    }
+    function projectCfg() { return curProject() || cat.projectByName(state.unit.projectName); }
     function autoNet() { return Math.round((+state.unit.area || 0) * (+state.unit.pricePerM2 || 0)); }
 
-    // Đổi dự án → nạp giá trị "lần cuối" của dự án đó (không có → gợi ý từ bảng projects / mặc định)
+    // Đổi dự án → bàn giao / nhận sổ lấy theo dự án trong giỏ hàng (dự án "Khác…" → lần nhập cuối)
     function applyProjectMemory() {
-      var m = perProject[state.unit.projectName.trim()] || {}, cfg = projectCfg();
-      state.dates.handoverDate = m.handoverDate || (cfg && cfg.handover_date) || '';
-      state.dates.titleAfterMonths = m.titleAfterMonths != null ? m.titleAfterMonths : DEFAULT_TITLE_MONTHS;
-      if (m.pricePerM2) state.unit.pricePerM2 = m.pricePerM2;
-      else if (cfg && cfg.unit_types && cfg.unit_types[0]) state.unit.pricePerM2 = +cfg.unit_types[0].price_per_m2;
+      var p = projectCfg(), m = perProject[state.unit.projectName.trim()] || {};
+      state.dates.handoverDate = (p && p.handover_date) || m.handoverDate || '';
+      state.dates.titleAfterMonths = p && p.title_after_months != null ? +p.title_after_months
+        : (m.titleAfterMonths != null ? m.titleAfterMonths : DEFAULT_TITLE_MONTHS);
+      if (!p && m.pricePerM2) state.unit.pricePerM2 = m.pricePerM2;
       state.unit.netOverride = null;
     }
+    // Chọn toà → đơn giá = giá duyệt của toà
+    function applyBuilding() {
+      var b = curBuilding();
+      if (b && b.approved_price_per_m2) state.unit.pricePerM2 = +b.approved_price_per_m2;
+      state.unit.netOverride = null;
+    }
+    // Chọn căn → diện tích, loại căn, đơn giá (giá riêng của căn > giá toà), giá thuần CĐT chốt
+    function applyUnit() {
+      var u = curUnit();
+      if (!u) return;
+      if (u.area_m2) state.unit.area = +u.area_m2;
+      if (u.apt_type) { state.unit.aptType = u.apt_type; ui.aptOther = aptTypes.indexOf(u.apt_type) < 0; }
+      var price = cat.unitPrice(u);
+      if (price) state.unit.pricePerM2 = price;
+      state.unit.netOverride = u.net_price_override ? +u.net_price_override : null;
+    }
+    // Áp toàn bộ dữ liệu giỏ hàng cho lựa chọn hiện tại (lúc mở bảng tính)
+    function applyCatalog() {
+      applyProjectMemory();
+      if (curBuilding()) applyBuilding();
+      applyUnit();
+    }
+    // Sửa bàn giao / nhận sổ → dự án trong giỏ hàng: ghi ngược vào dự án; dự án "Khác…": nhớ local
+    var writeBack = debounce(function (pid, patch) {
+      cat.updateProject(pid, patch).catch(function (e) { console.warn('[loan] ghi dự án lỗi', e); });
+    }, 1500);
     function rememberProject() {
       var name = state.unit.projectName.trim();
       if (!name) return;
+      var p = curProject();
+      if (p && cat.updateProject) {
+        writeBack(p.id, { handover_date: state.dates.handoverDate || null, title_after_months: +state.dates.titleAfterMonths || 0 });
+        return;
+      }
       perProject[name] = { handoverDate: state.dates.handoverDate || null,
                            titleAfterMonths: state.dates.titleAfterMonths, pricePerM2: state.unit.pricePerM2 };
       persist();
@@ -143,17 +182,29 @@
         (extra.hint ? '<div class="lm-hint">' + extra.hint + '</div>' : '') + '</div>';
     }
 
-    // Dropdown + lựa chọn "Khác…" → hiện ô nhập tự do (giống form khách của CRM)
+    // Dropdown + lựa chọn "Khác…" → hiện ô nhập tự do (giống form khách của CRM).
+    // options: chuỗi hoặc { v, l } (giá trị / nhãn). Danh sách rỗng → chỉ có ô gõ tự do.
     function selectOther(label, bind, options, value, isOther, ph, blank) {
+      var other = '<input type="text" class="lm-other" data-bind="' + bind + '" data-type="text" data-other="1" value="' + esc(value) + '" placeholder="' + esc(ph) + '">';
+      if (!options.length) return '<div class="lm-field"><label>' + label + '</label>' + other.replace(' class="lm-other"', '') + '</div>';
       return '<div class="lm-field"><label>' + label + '</label><select data-bind="' + bind + '" data-type="select-other">' +
-        (blank ? '<option value=""' + (!isOther && !value ? ' selected' : '') + '>— Chọn —</option>' : '') +
-        options.map(function (o) { return '<option value="' + esc(o) + '"' + (!isOther && o === value ? ' selected' : '') + '>' + esc(o) + '</option>'; }).join('') +
+        (blank ? '<option value=""' + (!isOther && !value ? ' selected' : '') + '>' + blank + '</option>' : '') +
+        options.map(function (o) {
+          var v = typeof o === 'string' ? o : o.v, l = typeof o === 'string' ? o : o.l;
+          return '<option value="' + esc(v) + '"' + (!isOther && norm(v) === norm(value) ? ' selected' : '') + '>' + esc(l) + '</option>';
+        }).join('') +
         '<option value="__other"' + (isOther ? ' selected' : '') + '>Khác…</option></select>' +
-        (isOther ? '<input type="text" class="lm-other" data-bind="' + bind + '" data-type="text" data-other="1" value="' + esc(value) + '" placeholder="' + esc(ph) + '">' : '') +
-        '</div>';
+        (isOther ? other : '') + '</div>';
     }
-    function datalist(id, items) {
-      return '<datalist id="' + id + '">' + (items || []).map(function (x) { return '<option value="' + esc(x) + '">'; }).join('') + '</datalist>';
+    function unitLabel(x) {
+      return [x.code, x.area_m2 ? x.area_m2 + 'm²' : '', x.apt_type, x.status && x.status !== 'available' ? cat.statusLabel(x.status) : '']
+        .filter(Boolean).join(' · ');
+    }
+    function priceHint() {
+      var un = curUnit(), b = curBuilding();
+      if (un && un.price_per_m2_override) return 'Giá riêng của căn ' + esc(un.code) + ' (giỏ hàng)';
+      if (b && b.approved_price_per_m2) return 'Giá duyệt toà ' + esc(b.code) + ': ' + money(b.approved_price_per_m2) + 'đ/m²';
+      return 'Chọn toà có giá duyệt để tự điền';
     }
     function netHint() {
       return state.unit.netOverride
@@ -163,6 +214,7 @@
 
     function renderForm() {
       var u = state.unit, d = state.dates, L = state.loan;
+      var cp = curProject(), cb = curBuilding();
       var t1 = L.rateTiers[0] || { months: 60, rate: 6.5 };
       var t2 = L.rateTiers[1] || null;
       var preset = presets.filter(function (x) { return x.key === L.presetKey; })[0];
@@ -174,22 +226,25 @@
 
         // Căn hộ
         '<section class="lm-card"><h3>Căn hộ</h3><div class="lm-grid lm-collapse">' +
-          selectOther('Dự án', 'unit.projectName', projectNames, u.projectName, ui.projectOther, 'Nhập tên dự án', false) +
-          selectOther('Loại căn', 'unit.aptType', aptTypes, u.aptType, ui.aptOther, 'VD: 2N+1, Studio', true) +
-          field('Mã căn', 'unit.code', u.code, 'text', { placeholder: 'VD: R30413', list: 'lm-dl-code' }) +
-          field('Mã toà', 'unit.building', u.building, 'text', { placeholder: 'VD: THE RISE 3', list: 'lm-dl-building' }) +
+          selectOther('Dự án', 'unit.projectName', cat.projects().map(function (x) { return x.name; }), u.projectName, ui.projectOther, 'Nhập tên dự án', false) +
+          selectOther('Mã toà', 'unit.building', (cp ? cat.buildingsOf(cp.id) : []).map(function (x) {
+            return { v: x.code, l: x.code + (x.approved_price_per_m2 ? ' · ' + money(x.approved_price_per_m2) + 'đ/m²' : '') };
+          }), u.building, ui.buildingOther, 'VD: THE RISE 3', '— Chọn toà —') +
+          selectOther('Mã căn', 'unit.code', (cb ? cat.unitsOf(cb.id) : []).map(function (x) { return { v: x.code, l: unitLabel(x) }; }),
+            u.code, ui.unitOther, 'VD: R30413', '— Chọn căn —') +
+          selectOther('Loại căn', 'unit.aptType', aptTypes, u.aptType, ui.aptOther, 'VD: 2N+1, Studio', '— Chọn —') +
           field('Diện tích thông thủy (m²)', 'unit.area', u.area, 'number', { step: 'any' }) +
-          field('Đơn giá (đ/m²)', 'unit.pricePerM2', u.pricePerM2, 'money', { hint: 'Nhớ theo từng dự án' }) +
+          field('Đơn giá (đ/m²)', 'unit.pricePerM2', u.pricePerM2, 'money', { hint: priceHint() }) +
           field('Giá bán thuần', 'unit.netOverride', u.netOverride || autoNet(), 'money', {
             cls: 'lm-full', inputCls: u.netOverride ? 'lm-edited' : '', hint: netHint()
           }) +
-        '</div>' + datalist('lm-dl-code', sugg.codes) + datalist('lm-dl-building', sugg.buildings) + '</section>' +
+        '</div></section>' +
 
         // Mốc thời gian
         '<section class="lm-card"><h3>Mốc thời gian</h3><div class="lm-grid">' +
           field('Ngày ký HĐMB (T)', 'dates.contractDate', d.contractDate, 'date') +
-          field('Bàn giao dự kiến', 'dates.handoverDate', d.handoverDate, 'date', { hint: 'Nhớ theo từng dự án' }) +
-          field('Nhận sổ sau bàn giao (tháng)', 'dates.titleAfterMonths', d.titleAfterMonths, 'number', { cls: 'lm-full', step: 'any', hint: 'Mặc định 1,5 tháng · nhớ theo từng dự án. Dùng tính ngày giải ngân đợt nhận sổ' }) +
+          field('Bàn giao dự kiến', 'dates.handoverDate', d.handoverDate, 'date', { hint: cp ? 'Lưu vào dự án trong giỏ hàng' : 'Nhớ theo từng dự án' }) +
+          field('Nhận sổ sau bàn giao (tháng)', 'dates.titleAfterMonths', d.titleAfterMonths, 'number', { cls: 'lm-full', step: 'any', hint: 'Mặc định 1,5 tháng · ' + (cp ? 'lưu vào dự án trong giỏ hàng' : 'nhớ theo từng dự án') + '. Dùng tính ngày giải ngân đợt nhận sổ' }) +
         '</div></section>' +
 
         // Gói vay
@@ -393,10 +448,16 @@
       // Dropdown có lựa chọn "Khác…" (dự án / loại căn)
       if (inp.getAttribute('data-type') === 'select-other') {
         if (e.type !== 'change') return;
-        var flag = bind === 'unit.projectName' ? 'projectOther' : 'aptOther';
+        var flag = { 'unit.projectName': 'projectOther', 'unit.building': 'buildingOther', 'unit.code': 'unitOther', 'unit.aptType': 'aptOther' }[bind];
         ui[flag] = inp.value === '__other';
         setPath(bind, ui[flag] ? '' : inp.value);
-        if (bind === 'unit.projectName') applyProjectMemory();
+        // Chọn cấp trên → xoá lựa chọn cấp dưới
+        if (bind === 'unit.projectName') {
+          state.unit.building = ''; state.unit.code = ''; ui.buildingOther = false; ui.unitOther = false;
+          applyProjectMemory();
+        }
+        if (bind === 'unit.building') { state.unit.code = ''; ui.unitOther = false; applyBuilding(); }
+        if (bind === 'unit.code') applyUnit();
         renderForm(); recalc();
         if (ui[flag]) { var o = formEl.querySelector('input[data-other][data-bind="' + bind + '"]'); if (o) o.focus(); }
         return;
@@ -531,11 +592,10 @@
     el.addEventListener('click', onClick);
 
     // ---------- Khởi động ----------
-    renderForm(); recalc();
+    applyCatalog(); renderForm(); recalc();
     (async function init() {
-      var ps = await Promise.all([store.loadSettings(), store.loadProjects(), store.loadBankPresets()]);
-      var saved = ps[0], remotePresets = ps[2];
-      cfgs = ps[1] || [];
+      var ps = await Promise.all([store.loadSettings(), store.loadBankPresets()]);
+      var saved = ps[0], remotePresets = ps[1];
       // Supabase chỉ cập nhật SỐ LIỆU cho các gói có trong code (cùng key); tên + danh sách giữ theo code
       if (remotePresets && remotePresets.length) presets = presets.map(function (p) {
         var r = remotePresets.filter(function (x) { return x.key === p.key; })[0];
@@ -544,7 +604,7 @@
       if (saved && saved.perProject) perProject = saved.perProject;
       if (saved && saved.loan) Object.assign(state.loan, saved.loan, { loanOverride: null });
       fixPresetKey();
-      applyProjectMemory();
+      applyCatalog();
       if (opts.initialState) { // mở lại phương án đã lưu → dùng đúng số đã lưu
         Object.assign(state.unit, opts.initialState.unit || {});
         Object.assign(state.dates, opts.initialState.dates || {});
@@ -558,6 +618,11 @@
 
     return {
       getState: function () { return clone(state); },
+      // Giỏ hàng vừa đổi (sửa ở màn Giỏ hàng) → vẽ lại danh sách chọn; bỏ qua khi đang gõ trong form
+      refresh: function () {
+        if (formEl.contains(document.activeElement)) return;
+        syncUiFlags(); renderForm();
+      },
       getResult: function () { return result; },
       destroy: function () {
         el.removeEventListener('input', onInput); el.removeEventListener('change', onInput);

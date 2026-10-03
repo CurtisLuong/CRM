@@ -333,7 +333,6 @@ const DOC_KIND_LABELS = {
 let projectOptions = [];        // [{id, name}]
 let selectedProjects = [];      // tên dự án đang chọn ở form
 let projManageMode = false;     // đang bật chế độ xoá dự án
-const LS_PROJ_CACHE = 'crm_project_options';   // cache đọc offline
 const LS_LAST_PROJECTS = 'crm_last_projects';  // lựa chọn gần nhất → mặc định khách mới
 const LS_LAST_USER = 'crm_last_user';          // {id,email} người dùng đăng nhập gần nhất (cho chế độ offline)
 const LS_VIEW_MODE = 'crm_view_mode';          // 'card' | 'list' — kiểu hiển thị danh sách khách
@@ -1127,41 +1126,41 @@ updateViewToggleBtn(); // đặt icon đúng theo lựa chọn đã lưu ngay kh
 
 // --------------------------------------------------------- DỰ ÁN ----------
 
-// Nạp danh sách dự án: online → lấy từ Supabase + cache; offline → đọc cache.
+// Danh sách dự án = GIỎ HÀNG (bảng projects, js/catalog.js) — gộp từ project_options cũ
+// (SQL/add_catalog_buildings.sql). projectOptions giữ dạng [{id, name}] cho code cũ.
+function syncProjectOptions() {
+  projectOptions = Catalog.projects().map((p) => ({ id: p.id, name: p.name }));
+}
+Catalog.onChange(syncProjectOptions);
+
+// Nạp giỏ hàng: online → Supabase + cache; offline → cache (Catalog tự lo).
 async function loadProjectOptions() {
-  try {
-    if (sb && CRM.isOnline()) {
-      const { data, error } = await sb.from('project_options').select('id,name').order('created_at');
-      if (error) throw error;
-      projectOptions = data || [];
-      localStorage.setItem(LS_PROJ_CACHE, JSON.stringify(projectOptions));
-      return;
-    }
-  } catch (e) { console.warn('Nạp dự án lỗi, dùng cache:', e.message); }
-  try { projectOptions = JSON.parse(localStorage.getItem(LS_PROJ_CACHE) || '[]'); }
-  catch { projectOptions = []; }
+  await Catalog.load();
+  syncProjectOptions();
 }
 
 // Thêm dự án mới (cần online — thao tác hiếm). Trả về true nếu thành công.
 async function addProjectOption(name) {
   name = (name || '').trim();
   if (!name) return false;
-  if (projectOptions.some((o) => o.name === name)) return true; // đã có
-  if (!CRM.isOnline()) { alert('Cần có mạng để thêm dự án mới.'); return false; }
-  const { data, error } = await sb.from('project_options').insert({ name }).select('id,name').single();
-  if (error) { alert('Thêm dự án lỗi: ' + error.message); return false; }
-  projectOptions.push(data);
-  localStorage.setItem(LS_PROJ_CACHE, JSON.stringify(projectOptions));
-  return true;
+  try { await Catalog.addProject(name); return true; }
+  catch (e) { alert('Thêm dự án lỗi: ' + (e.message || e)); return false; }
 }
 
-// Xoá 1 dự án khỏi danh sách (cần online).
+// Xoá 1 dự án khỏi giỏ hàng (cần online) — xoá luôn toà/căn của dự án đó.
 async function removeProjectOption(id) {
-  if (!CRM.isOnline()) { alert('Cần có mạng để xoá dự án.'); return; }
-  const { error } = await sb.from('project_options').delete().eq('id', id);
-  if (error) { alert('Xoá dự án lỗi: ' + error.message); return; }
-  projectOptions = projectOptions.filter((o) => o.id !== id);
-  localStorage.setItem(LS_PROJ_CACHE, JSON.stringify(projectOptions));
+  try { await Catalog.deleteProject(id); }
+  catch (e) { alert('Xoá dự án lỗi: ' + (e.message || e)); }
+}
+
+// Đổi tên dự án → cập nhật luôn các khách đang gắn tên cũ (customers.projects lưu theo TÊN).
+async function renameProjectInCustomers(oldName, newName) {
+  for (const c of allCustomers) {
+    if (Array.isArray(c.projects) && c.projects.includes(oldName)) {
+      await CRM.update(c.id, { projects: c.projects.map((n) => (n === oldName ? newName : n)) });
+    }
+  }
+  await refreshList();
 }
 
 // Vẽ các chip dự án trong form (chọn nhiều; chế độ Quản lý hiện nút xoá).
@@ -1181,6 +1180,7 @@ function renderProjSelect() {
       ${projManageMode ? `<button type="button" class="proj-chip-del" data-projdel="${o.id}" title="Xoá dự án khỏi danh sách">✕</button>` : ''}
     </div>`;
   }).join('') || '<div class="proj-empty">Chưa có dự án nào</div>';
+  refreshAptSuggestions(); // đổi dự án → đổi gợi ý mã toà / mã căn
 }
 
 // -------------------------------------------------------------- FORM ------
@@ -1267,6 +1267,58 @@ function openForm(id) {
   if (id) loadFormDocs(id);
 
   $('#form-modal').showModal();
+}
+
+// ---- Gợi ý Mã toà / Mã căn từ GIỎ HÀNG (js/catalog.js), lọc theo dự án đang chọn ----
+function formCatalogProjects() {
+  const sel = selectedProjects.map((n) => Catalog.projectByName(n)).filter(Boolean);
+  return sel.length ? sel : Catalog.projects(); // chưa chọn dự án → gợi ý từ mọi dự án
+}
+function formCatalogBuildings() { return formCatalogProjects().flatMap((p) => Catalog.buildingsOf(p.id)); }
+function refreshAptSuggestions() {
+  const f = $('#customer-form');
+  const bs = formCatalogBuildings();
+  const multiProj = formCatalogProjects().length > 1;
+  $('#cf-building-list').innerHTML = bs.map((b) => {
+    const p = Catalog.project(b.project_id);
+    return `<option value="${escapeHtml(b.code)}">${multiProj && p ? escapeHtml(p.name) : ''}</option>`;
+  }).join('');
+  const code = f.building_code.value.trim().toLowerCase();
+  const picked = bs.filter((b) => b.code.toLowerCase() === code);
+  const units = (picked.length ? picked : bs).flatMap((b) => Catalog.unitsOf(b.id));
+  $('#cf-unit-list').innerHTML = units.slice(0, 500).map((u) => {
+    const info = [picked.length ? '' : 'Toà ' + u.building, u.apt_type, u.area_m2 ? u.area_m2 + 'm²' : '',
+                  Catalog.statusLabel(u.status)].filter(Boolean).join(' · ');
+    return `<option value="${escapeHtml(u.code)}">${escapeHtml(info)}</option>`;
+  }).join('');
+}
+// Gõ/chọn mã căn có trong giỏ hàng → tự điền toà, diện tích, loại căn, tầng, hướng (+ giá nếu trống)
+function fillFromCatalogUnit() {
+  const f = $('#customer-form');
+  const code = f.apt_code.value.trim().toLowerCase();
+  if (!code) return;
+  const bs = formCatalogBuildings();
+  const bCode = f.building_code.value.trim().toLowerCase();
+  const cands = bs.flatMap((b) => Catalog.unitsOf(b.id)).filter((u) => u.code.toLowerCase() === code);
+  const u = cands.find((x) => x.building.toLowerCase() === bCode) || (cands.length === 1 ? cands[0] : null);
+  if (!u) return; // không có / trùng mã ở nhiều toà mà chưa chọn toà → không đoán
+  f.apt_code.value = u.code;
+  f.building_code.value = u.building;
+  if (u.area_m2) f.apt_area.value = Number(u.area_m2);
+  if (u.floor) f.apt_floor.value = u.floor;
+  if (u.direction && [...f.apt_direction.options].some((o) => o.value === u.direction)) f.apt_direction.value = u.direction;
+  if (u.apt_type) {
+    const at = canonicalAptType(u.apt_type);
+    if (APT_TYPES.includes(at)) { f.apt_type_select.value = at; f.apt_type_other.value = ''; }
+    else { f.apt_type_select.value = '__other'; f.apt_type_other.value = at; }
+    toggleAptOther();
+  }
+  const price = Catalog.unitPrice(u);
+  if (!f.apt_price.value && price && u.area_m2) f.apt_price.value = Math.round(price * u.area_m2);
+  const p = Catalog.project(u.project_id);
+  if (p && !selectedProjects.includes(p.name)) { selectedProjects.push(p.name); renderProjSelect(); }
+  refreshAptSuggestions();
+  showToast('Đã điền thông tin căn từ giỏ hàng');
 }
 
 // Hiện ô "loại căn khác" khi chọn "Khác..."
@@ -4244,6 +4296,8 @@ document.addEventListener('DOMContentLoaded', () => {
   $('#tab-list').addEventListener('click', showListView);
   $('#tab-dashboard').addEventListener('click', showDashboardView);
   $('#tab-loan').addEventListener('click', showLoanView);
+  $('#customer-form').building_code.addEventListener('input', refreshAptSuggestions);
+  $('#customer-form').apt_code.addEventListener('change', fillFromCatalogUnit);
   $('#detail-back-btn').addEventListener('click', closeDetailToList);
   $('#detail-edit-btn').addEventListener('click', () => { if (detailId) openForm(detailId); });
   // Nút trên thanh mini dính đỉnh (kiểu FB) — cùng hành vi với nút nổi trên cover.
@@ -4313,7 +4367,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const del = e.target.closest('[data-projdel]');
     if (!del) return;
     const opt = projectOptions.find((o) => o.id === del.dataset.projdel);
-    if (opt && confirm(`Xoá dự án "${opt.name}" khỏi danh sách? (không ảnh hưởng khách đã lưu)`)) {
+    const nUnits = opt ? Catalog.unitsOfProject(opt.id).length : 0;
+    const nB = opt ? Catalog.buildingsOf(opt.id).length : 0;
+    if (opt && confirm(`Xoá dự án "${opt.name}" khỏi giỏ hàng?` +
+        (nB || nUnits ? `\nSẽ xoá luôn ${nB} toà, ${nUnits} căn của dự án này.` : '') +
+        '\n(Khách đã lưu không bị ảnh hưởng)')) {
       await removeProjectOption(opt.id);
       selectedProjects = selectedProjects.filter((n) => n !== opt.name);
       renderProjSelect();

@@ -46,19 +46,16 @@ tất cả nằm SAU `app.js` (loan-crm.js dùng biến `sb`, `allCustomers` c�
 | `loan_settings` | Lưu "lần chỉnh cuối" (lãi suất, ân hạn…) |
 | `loan_quotes` | Phương án đã lưu, gắn với khách |
 
-**Danh sách dự án & loại căn trong bảng tính lấy từ CRM**, không lấy từ bảng `projects`:
-- Dự án = danh sách dự án của CRM (bảng `project_options`, sửa trong form khách) + lựa chọn "Khác…" để gõ tự do.
-- Loại căn = `APT_TYPES` trong `js/app.js` + "Khác…".
-- Mã căn / mã toà = gợi ý từ các khách đã nhập.
-- Bàn giao dự kiến, nhận sổ sau bàn giao (mặc định 1,5 tháng), đơn giá: tự nhớ lần nhập cuối **theo từng dự án** (lưu trong `loan_settings`).
-
-Bảng `projects` chỉ là **cấu hình nâng cao** (tuỳ chọn): thêm 1 dòng có `name` TRÙNG tên dự án trong CRM để đặt VAT/KPBT/tiến độ CĐT riêng cho dự án đó. Không có dòng trùng tên → VAT 5%, KPBT 2%, tiến độ mẫu.
-
----
+**Dự án → Toà → Căn trong bảng tính lấy từ Giỏ hàng** (bảng `projects` / `buildings` /
+`units`), xem [gio-hang.md](gio-hang.md). Chọn toà thì đơn giá = giá duyệt của toà; chọn căn
+thì tự điền diện tích, loại căn, giá riêng. Bàn giao và nhận sổ (mặc định 1,5 tháng) lấy theo
+dự án; sửa trong bảng tính sẽ **ghi ngược vào dự án**. Dự án gõ tay ("Khác…") thì nhớ lần nhập
+cuối trong `loan_settings`. VAT/KPBT/tiến độ CĐT sửa trong màn Giỏ hàng (VAT, KPBT) hoặc cột
+`payment_schedule` của bảng `projects`. Bảng `project_unit_types` không còn dùng.
 
 ## 4. Offline / PWA
 
-Đã thêm 6 file vào `APP_SHELL` trong `sw.js` (CACHE_NAME v7). Phần tính chạy offline.
+Các file của module đã có trong `APP_SHELL` của `sw.js`. Phần tính chạy offline.
 Xuất PDF cần mạng lần đầu để tải html2pdf. "Lưu phương án" gọi thẳng Supabase (không qua
 hàng đợi offline của `db.js`) → mất mạng sẽ báo lỗi, tính + PDF vẫn dùng bình thường.
 

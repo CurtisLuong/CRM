@@ -41,6 +41,8 @@ js/config.js          SUPABASE_URL + SUPABASE_ANON_KEY (điền tay, không ph�
 js/lunar.js            convert dương lịch → âm lịch + tra Lục Thập Hoa Giáp để tính "Mệnh"
 js/db.js                lớp lưu local (IndexedDB) + hàng đợi đồng bộ (biến toàn cục `window.CRM`)
 js/app.js               logic UI: đăng nhập, CRUD khách, filter/sort/search, render dashboard
+js/catalog.js           GIỎ HÀNG Dự án → Toà → Căn (projects/buildings/units): nguồn dự án cho form khách + bảng tính vay, cache offline
+js/catalog-ui.js        màn "Giỏ hàng" (menu avatar): sửa trực tiếp + nhập Excel + file mẫu — xem docs/gio-hang.md
 js/loan/                module Tính khoản vay NOXH: engine → store → pdf → ui, + loan-crm.js (gắn vào CRM)
 css/loan.css            style module vay (mọi class tiền tố .lm-)
 SQL/                    schema + các migration lẻ (add_loan_module.sql = bảng của module vay)
