@@ -6,6 +6,29 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-03 — Module vay: form "Căn hộ" khớp dữ liệu CRM, nhớ giá trị theo dự án
+
+- **Tư vấn viên** mặc định "Duy · 0389783840" (ô trống → dùng mặc định; sửa được, lưu theo máy).
+- **Dự án** = danh sách `project_options` của CRM (trước đây lấy bảng `projects` của module,
+  chỉ có 1 dự án nên không chọn được dự án khác) + "Khác…" để gõ tự do.
+- **Bỏ "Loại căn / phân khu"** (dữ liệu `project_unit_types` không khớp CRM). Thêm
+  **Loại căn** (`APT_TYPES` + "Khác…"), **Mã căn**, **Mã toà** (gợi ý từ `apt_code` /
+  `building_code` của khách). Mở từ trang khách → điền sẵn dự án đầu tiên, loại căn, mã
+  căn, mã toà, diện tích.
+- **Giá bán thuần** hiện số tự tính (diện tích × đơn giá) theo thời gian thực; sửa tay được
+  (tô vàng + link "tính lại"); đổi diện tích/đơn giá → về lại số tự tính.
+- **Ngày ký HĐMB** = hôm nay. **Bàn giao dự kiến** nhập tay; **Nhận sổ sau bàn giao** mặc
+  định 1,5 tháng — cả hai + **đơn giá** nhớ lần cuối **theo từng dự án** (`loan_settings.settings.perProject`).
+  Chưa nhập ngày bàn giao → hiện nhắc thay vì tính sai.
+- **Engine:** "sau bàn giao X tháng" hỗ trợ số lẻ (1,5 = 1 tháng + 15 ngày) — trước đây
+  `Date.UTC` cắt mất phần lẻ. Thêm test.
+- **PDF:** in Dự án / Loại căn / Mã căn · Toà thay cho "Phân khu / loại căn".
+- Bảng `projects` giờ chỉ là cấu hình nâng cao (VAT/KPBT/tiến độ), khớp theo TÊN dự án.
+  Không đổi schema.
+- **File:** `js/loan/loan-ui.js`, `js/loan/loan-crm.js`, `js/loan/loan-engine.js`,
+  `js/loan/loan-pdf.js`, `css/loan.css`, `tests/loan-engine.test.js`, `dev/loan-demo.html`,
+  `docs/loan-module.md`.
+
 ## 2026-10-03 — Sửa: Xuất PDF module vay ra file trắng
 
 - **Lỗi:** bấm "📄 Xuất PDF" tạo file 2 trang nhưng trắng trơn.

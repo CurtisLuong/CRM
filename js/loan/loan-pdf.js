@@ -37,8 +37,9 @@
 
       '<div class="two"><table>' +
         (ctx.customer && ctx.customer.name ? '<tr><th>Khách hàng</th><td>' + esc(ctx.customer.name) + '</td></tr>' : '') +
-        '<tr><th>Phân khu / loại căn</th><td>' + esc(ctx.unitTypeName) + '</td></tr>' +
-        '<tr><th>Mã căn</th><td><b>' + esc(ctx.unitCode || '—') + '</b></td></tr>' +
+        (ctx.projectName ? '<tr><th>Dự án</th><td>' + esc(ctx.projectName) + '</td></tr>' : '') +
+        (ctx.aptType ? '<tr><th>Loại căn</th><td>' + esc(ctx.aptType) + '</td></tr>' : '') +
+        '<tr><th>Mã căn</th><td><b>' + esc(ctx.unitCode || '—') + '</b>' + (ctx.building ? ' · Toà ' + esc(ctx.building) : '') + '</td></tr>' +
         '<tr><th>Diện tích thông thủy</th><td>' + P.area + ' m²</td></tr>' +
         '<tr><th>Đơn giá</th><td>' + money(P.pricePerM2) + ' đ/m²</td></tr>' +
       '</table><table>' +

@@ -46,7 +46,13 @@ tất cả nằm SAU `app.js` (loan-crm.js dùng biến `sb`, `allCustomers` c�
 | `loan_settings` | Lưu "lần chỉnh cuối" (lãi suất, ân hạn…) |
 | `loan_quotes` | Phương án đã lưu, gắn với khách |
 
-**Thêm dự án / loại căn mới:** vào Table Editor → `projects` → Insert row, rồi `project_unit_types` → Insert row (chọn `project_id`, nhập tên loại và `price_per_m2`). Module tự hiện trong danh sách.
+**Danh sách dự án & loại căn trong bảng tính lấy từ CRM**, không lấy từ bảng `projects`:
+- Dự án = danh sách dự án của CRM (bảng `project_options`, sửa trong form khách) + lựa chọn "Khác…" để gõ tự do.
+- Loại căn = `APT_TYPES` trong `js/app.js` + "Khác…".
+- Mã căn / mã toà = gợi ý từ các khách đã nhập.
+- Bàn giao dự kiến, nhận sổ sau bàn giao (mặc định 1,5 tháng), đơn giá: tự nhớ lần nhập cuối **theo từng dự án** (lưu trong `loan_settings`).
+
+Bảng `projects` chỉ là **cấu hình nâng cao** (tuỳ chọn): thêm 1 dòng có `name` TRÙNG tên dự án trong CRM để đặt VAT/KPBT/tiến độ CĐT riêng cho dự án đó. Không có dòng trùng tên → VAT 5%, KPBT 2%, tiến độ mẫu.
 
 ---
 

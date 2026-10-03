@@ -99,7 +99,11 @@
     var H = parseDate(dates.handoverDate);
     var d = m.due || {};
     if (d.type === 'handover') return H;
-    if (d.type === 'afterHandoverMonths') return addMonths(H, +d.value || 0);
+    if (d.type === 'afterHandoverMonths') {
+      // Hỗ trợ số tháng lẻ (VD 1,5 tháng = 1 tháng + 15 ngày; phần lẻ quy đổi 30 ngày/tháng)
+      var v = +d.value || 0, whole = Math.floor(v);
+      return addDays(addMonths(H, whole), Math.round((v - whole) * 30));
+    }
     if (d.type === 'date') return parseDate(d.value);
     return addDays(T, +d.value || 0);
   }

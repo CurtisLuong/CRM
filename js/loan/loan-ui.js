@@ -6,19 +6,23 @@
  *     supabase,                                   // client Supabase của CRM (tùy chọn)
  *     customer: { id, name, phone },              // khách đang xem (tùy chọn)
  *     consultant: { name: 'Curtis', phone: '09xx' },
- *     unit: { code: 'R30413', area: 53.6 },       // điền sẵn (tùy chọn)
+ *     unit: { projectName, aptType, code, building, area },  // điền sẵn (tùy chọn)
+ *     projectOptions: ['Vin Tràng Cát', ...],     // danh sách dự án (CRM: bảng project_options)
+ *     aptTypes: ['1N-1WC', '2N-2WC', ...],        // loại căn (CRM: APT_TYPES)
+ *     suggestions: { codes: [...], buildings: [...] }, // gợi ý mã căn / mã toà
  *     onSaved: (quoteId) => {}
  *   });
+ *
+ * Bảng `projects` trên Supabase (nếu có dòng TRÙNG TÊN dự án) chỉ dùng làm cấu hình
+ * nâng cao: VAT, KPBT, tiến độ CĐT, ngày bàn giao gợi ý. Không có → VAT 5%, KPBT 2%,
+ * tiến độ mẫu trong loan-engine.js.
  */
 (function (root) {
   'use strict';
   var E = root.LoanEngine;
 
-  var FALLBACK_PROJECTS = [{
-    id: 'local-trang-cat', name: 'Happy Home Tràng Cát', vat_rate: 5, kpbt_rate: 2,
-    handover_date: '2027-11-15', payment_schedule: null,
-    unit_types: [{ id: 'local-the-rise', name: 'The Rise', price_per_m2: 19911530 }]
-  }];
+  var DEFAULT_PRICE = 19911530;     // đơn giá mặc định ban đầu (đ/m²) khi dự án chưa có giá nhớ
+  var DEFAULT_TITLE_MONTHS = 1.5;    // nhận sổ sau bàn giao (tháng)
 
   // ---------- Định dạng ----------
   function money(n) { return (Math.round(n) || 0).toLocaleString('vi-VN'); }
@@ -41,22 +45,33 @@
   function mount(el, opts) {
     opts = opts || {};
     var store = root.LoanStore.createStore(opts.supabase);
-    var projects = clone(opts.projects || FALLBACK_PROJECTS);
+    var projectNames = (opts.projectOptions || []).filter(Boolean);
+    var aptTypes = opts.aptTypes || [];
+    var sugg = opts.suggestions || {};
+    var cfgs = [];        // cấu hình dự án từ bảng `projects` (khớp theo tên)
+    var perProject = {};  // giá trị "lần cuối" theo từng dự án: bàn giao, nhận sổ, đơn giá
     var presets = clone(E.BANK_PRESETS);
     var showMonthly = false;
-    var result = null;
+    var result = null, resultMsg = '';
 
-    var p0 = projects[0];
-    var t0 = p0.unit_types[0];
     var state = {
       unit: {
-        projectId: p0.id, unitTypeId: t0 ? t0.id : null,
-        code: '', area: 53.6, pricePerM2: t0 ? +t0.price_per_m2 : 0, netOverride: null
+        projectName: projectNames[0] || '', aptType: '', code: '', building: '',
+        area: 53.6, pricePerM2: DEFAULT_PRICE, netOverride: null
       },
-      dates: { contractDate: todayISO(), handoverDate: p0.handover_date || '2027-11-15', titleAfterMonths: 12 },
+      dates: { contractDate: todayISO(), handoverDate: '', titleAfterMonths: DEFAULT_TITLE_MONTHS },
       loan: clone(E.DEFAULT_LOAN)
     };
-    if (opts.unit) Object.assign(state.unit, opts.unit);
+    // Chỉ nhận field có giá trị — undefined/rỗng sẽ đè mất mặc định
+    if (opts.unit) Object.keys(opts.unit).forEach(function (k) {
+      if (opts.unit[k] != null && opts.unit[k] !== '') state.unit[k] = opts.unit[k];
+    });
+    var ui = {}; // projectOther / aptOther: đang ở chế độ "Khác…" (nhập tự do)
+    function syncUiFlags() {
+      ui.projectOther = !projectNames.length || (!!state.unit.projectName && projectNames.indexOf(state.unit.projectName) < 0);
+      ui.aptOther = !!state.unit.aptType && aptTypes.indexOf(state.unit.aptType) < 0;
+    }
+    syncUiFlags();
 
     el.classList.add('lm-root');
     if (opts.theme) el.setAttribute('data-theme', opts.theme);
@@ -67,13 +82,33 @@
     var formEl = el.querySelector('.lm-form');
     var resEl = el.querySelector('.lm-results');
 
-    function project() { return projects.filter(function (p) { return p.id === state.unit.projectId; })[0] || projects[0]; }
-    function unitType() { var p = project(); return (p.unit_types || []).filter(function (t) { return t.id === state.unit.unitTypeId; })[0] || null; }
-    function standardPrice() { var t = unitType(); return t ? +t.price_per_m2 : 0; }
+    function norm(x) { return String(x || '').trim().toLowerCase(); }
+    function projectCfg() {
+      var n = norm(state.unit.projectName);
+      return (n && cfgs.filter(function (p) { return norm(p.name) === n; })[0]) || null;
+    }
+    function autoNet() { return Math.round((+state.unit.area || 0) * (+state.unit.pricePerM2 || 0)); }
+
+    // Đổi dự án → nạp giá trị "lần cuối" của dự án đó (không có → gợi ý từ bảng projects / mặc định)
+    function applyProjectMemory() {
+      var m = perProject[state.unit.projectName.trim()] || {}, cfg = projectCfg();
+      state.dates.handoverDate = m.handoverDate || (cfg && cfg.handover_date) || '';
+      state.dates.titleAfterMonths = m.titleAfterMonths != null ? m.titleAfterMonths : DEFAULT_TITLE_MONTHS;
+      if (m.pricePerM2) state.unit.pricePerM2 = m.pricePerM2;
+      else if (cfg && cfg.unit_types && cfg.unit_types[0]) state.unit.pricePerM2 = +cfg.unit_types[0].price_per_m2;
+      state.unit.netOverride = null;
+    }
+    function rememberProject() {
+      var name = state.unit.projectName.trim();
+      if (!name) return;
+      perProject[name] = { handoverDate: state.dates.handoverDate || null,
+                           titleAfterMonths: state.dates.titleAfterMonths, pricePerM2: state.unit.pricePerM2 };
+      persist();
+    }
 
     // ---------- Tính ----------
     function buildInput() {
-      var p = project();
+      var p = projectCfg() || {};
       var schedule = clone(p.payment_schedule || E.DEFAULT_SCHEDULE).map(function (m) {
         if (m.role === 'title' && m.due && m.due.type === 'afterHandoverMonths') m.due.value = +state.dates.titleAfterMonths || 0;
         return m;
@@ -87,8 +122,12 @@
       };
     }
     function recalc() {
-      try { result = E.compute(buildInput()); }
-      catch (e) { console.error(e); result = null; }
+      resultMsg = '';
+      if (!state.dates.handoverDate) { result = null; resultMsg = 'Nhập ngày bàn giao dự kiến để tính tiến độ thanh toán.'; }
+      else {
+        try { result = E.compute(buildInput()); }
+        catch (e) { console.error(e); result = null; }
+      }
       renderResults();
     }
 
@@ -100,14 +139,30 @@
       return '<div class="lm-field ' + (extra.cls || '') + '"><label>' + label + '</label>' +
         '<input type="' + t + '" data-bind="' + bind + '" data-type="' + type + '" value="' + esc(v) + '"' +
         (extra.step ? ' step="' + extra.step + '"' : '') + (extra.placeholder ? ' placeholder="' + esc(extra.placeholder) + '"' : '') +
-        (extra.inputCls ? ' class="' + extra.inputCls + '"' : '') + '>' +
+        (extra.inputCls ? ' class="' + extra.inputCls + '"' : '') + (extra.list ? ' list="' + extra.list + '"' : '') + '>' +
         (extra.hint ? '<div class="lm-hint">' + extra.hint + '</div>' : '') + '</div>';
     }
 
+    // Dropdown + lựa chọn "Khác…" → hiện ô nhập tự do (giống form khách của CRM)
+    function selectOther(label, bind, options, value, isOther, ph, blank) {
+      return '<div class="lm-field"><label>' + label + '</label><select data-bind="' + bind + '" data-type="select-other">' +
+        (blank ? '<option value=""' + (!isOther && !value ? ' selected' : '') + '>— Chọn —</option>' : '') +
+        options.map(function (o) { return '<option value="' + esc(o) + '"' + (!isOther && o === value ? ' selected' : '') + '>' + esc(o) + '</option>'; }).join('') +
+        '<option value="__other"' + (isOther ? ' selected' : '') + '>Khác…</option></select>' +
+        (isOther ? '<input type="text" class="lm-other" data-bind="' + bind + '" data-type="text" data-other="1" value="' + esc(value) + '" placeholder="' + esc(ph) + '">' : '') +
+        '</div>';
+    }
+    function datalist(id, items) {
+      return '<datalist id="' + id + '">' + (items || []).map(function (x) { return '<option value="' + esc(x) + '">'; }).join('') + '</datalist>';
+    }
+    function netHint() {
+      return state.unit.netOverride
+        ? 'Đã nhập tay (tự tính: ' + money(autoNet()) + ') · <a href="#" data-act="resetNet">tính lại</a>'
+        : 'Tự tính = diện tích × đơn giá · sửa được để khớp phiếu CĐT';
+    }
+
     function renderForm() {
-      var u = state.unit, d = state.dates, L = state.loan, p = project();
-      var std = standardPrice();
-      var edited = std && +u.pricePerM2 !== std;
+      var u = state.unit, d = state.dates, L = state.loan;
       var t1 = L.rateTiers[0] || { months: 60, rate: 6.5 };
       var t2 = L.rateTiers[1] || null;
       var preset = presets.filter(function (x) { return x.key === L.presetKey; })[0];
@@ -119,28 +174,22 @@
 
         // Căn hộ
         '<section class="lm-card"><h3>Căn hộ</h3><div class="lm-grid lm-collapse">' +
-          '<div class="lm-field"><label>Dự án</label><select data-bind="unit.projectId">' +
-            projects.map(function (x) { return '<option value="' + esc(x.id) + '"' + (x.id === u.projectId ? ' selected' : '') + '>' + esc(x.name) + '</option>'; }).join('') +
-          '</select></div>' +
-          '<div class="lm-field"><label>Loại căn / phân khu</label><select data-bind="unit.unitTypeId">' +
-            (p.unit_types || []).map(function (x) { return '<option value="' + esc(x.id) + '"' + (x.id === u.unitTypeId ? ' selected' : '') + '>' + esc(x.name) + ' — ' + money(x.price_per_m2) + 'đ/m²</option>'; }).join('') +
-          '</select></div>' +
-          field('Mã căn', 'unit.code', u.code, 'text', { placeholder: 'VD: R30413' }) +
+          selectOther('Dự án', 'unit.projectName', projectNames, u.projectName, ui.projectOther, 'Nhập tên dự án', false) +
+          selectOther('Loại căn', 'unit.aptType', aptTypes, u.aptType, ui.aptOther, 'VD: 2N+1, Studio', true) +
+          field('Mã căn', 'unit.code', u.code, 'text', { placeholder: 'VD: R30413', list: 'lm-dl-code' }) +
+          field('Mã toà', 'unit.building', u.building, 'text', { placeholder: 'VD: THE RISE 3', list: 'lm-dl-building' }) +
           field('Diện tích thông thủy (m²)', 'unit.area', u.area, 'number', { step: 'any' }) +
-          field('Đơn giá (đ/m²)', 'unit.pricePerM2', u.pricePerM2, 'money', {
-            inputCls: edited ? 'lm-edited' : '',
-            hint: edited ? 'Đã chỉnh so với giá chuẩn ' + money(std) + ' · <a href="#" data-act="resetPrice">khôi phục</a>' : 'Giá chuẩn của loại căn, sửa được theo hướng/tầng'
+          field('Đơn giá (đ/m²)', 'unit.pricePerM2', u.pricePerM2, 'money', { hint: 'Nhớ theo từng dự án' }) +
+          field('Giá bán thuần', 'unit.netOverride', u.netOverride || autoNet(), 'money', {
+            cls: 'lm-full', inputCls: u.netOverride ? 'lm-edited' : '', hint: netHint()
           }) +
-          field('Giá bán thuần nhập tay (tùy chọn)', 'unit.netOverride', u.netOverride, 'money', {
-            placeholder: 'Để trống = diện tích × đơn giá', hint: 'Dùng khi muốn khớp tuyệt đối phiếu CĐT'
-          }) +
-        '</div></section>' +
+        '</div>' + datalist('lm-dl-code', sugg.codes) + datalist('lm-dl-building', sugg.buildings) + '</section>' +
 
         // Mốc thời gian
         '<section class="lm-card"><h3>Mốc thời gian</h3><div class="lm-grid">' +
           field('Ngày ký HĐMB (T)', 'dates.contractDate', d.contractDate, 'date') +
-          field('Bàn giao dự kiến', 'dates.handoverDate', d.handoverDate, 'date') +
-          field('Nhận sổ sau bàn giao (tháng)', 'dates.titleAfterMonths', d.titleAfterMonths, 'number', { cls: 'lm-full', hint: 'Dùng để tính ngày ngân hàng giải ngân đợt cuối' }) +
+          field('Bàn giao dự kiến', 'dates.handoverDate', d.handoverDate, 'date', { hint: 'Nhớ theo từng dự án' }) +
+          field('Nhận sổ sau bàn giao (tháng)', 'dates.titleAfterMonths', d.titleAfterMonths, 'number', { cls: 'lm-full', step: 'any', hint: 'Mặc định 1,5 tháng · nhớ theo từng dự án. Dùng tính ngày giải ngân đợt nhận sổ' }) +
         '</div></section>' +
 
         // Gói vay
@@ -180,7 +229,7 @@
     // ---------- Kết quả ----------
     function renderResults() {
       if (!result || !result.schedule) {
-        resEl.innerHTML = '<div class="lm-card"><div class="lm-alert">Chưa đủ dữ liệu để tính. Kiểm tra diện tích, đơn giá và tỷ lệ vay.</div></div>';
+        resEl.innerHTML = '<div class="lm-card"><div class="lm-alert">' + esc(resultMsg || 'Chưa đủ dữ liệu để tính. Kiểm tra diện tích, đơn giá và tỷ lệ vay.') + '</div></div>';
         return;
       }
       var r = result, P = r.price, S = r.schedule;
@@ -301,7 +350,7 @@
     // ---------- Lưu cài đặt "lần cuối" ----------
     var persist = debounce(function () {
       var s = clone(state.loan); delete s.loanOverride;
-      store.saveSettings({ loan: s, dates: { titleAfterMonths: state.dates.titleAfterMonths } });
+      store.saveSettings({ loan: s, perProject: perProject });
     }, 1200);
 
     // ---------- Sự kiện ----------
@@ -318,9 +367,44 @@
       return inp.value;
     }
 
+    // Cập nhật giá trị các ô phụ thuộc dự án mà KHÔNG vẽ lại form (giữ con trỏ đang gõ)
+    function setInputValue(bind, v) {
+      var inp = formEl.querySelector('input[data-bind="' + bind + '"]');
+      if (inp && inp !== document.activeElement) inp.value = v == null ? '' : v;
+    }
+    function syncNetField() {
+      var inp = formEl.querySelector('input[data-bind="unit.netOverride"]');
+      if (!inp) return;
+      if (inp !== document.activeElement) inp.value = money(state.unit.netOverride || autoNet());
+      inp.classList.toggle('lm-edited', !!state.unit.netOverride);
+      var h = inp.parentNode.querySelector('.lm-hint');
+      if (h) h.innerHTML = netHint();
+    }
+    function syncProjectFields() {
+      setInputValue('dates.handoverDate', state.dates.handoverDate);
+      setInputValue('dates.titleAfterMonths', state.dates.titleAfterMonths);
+      setInputValue('unit.pricePerM2', money(state.unit.pricePerM2));
+      syncNetField();
+    }
+
     function onInput(e) {
       var inp = e.target, bind = inp.getAttribute('data-bind');
       if (!bind) return;
+      // Dropdown có lựa chọn "Khác…" (dự án / loại căn)
+      if (inp.getAttribute('data-type') === 'select-other') {
+        if (e.type !== 'change') return;
+        var flag = bind === 'unit.projectName' ? 'projectOther' : 'aptOther';
+        ui[flag] = inp.value === '__other';
+        setPath(bind, ui[flag] ? '' : inp.value);
+        if (bind === 'unit.projectName') applyProjectMemory();
+        renderForm(); recalc();
+        if (ui[flag]) { var o = formEl.querySelector('input[data-other][data-bind="' + bind + '"]'); if (o) o.focus(); }
+        return;
+      }
+      // Gõ xong tên dự án tự do (rời ô) → nạp giá trị "lần cuối" của dự án đó
+      if (e.type === 'change' && bind === 'unit.projectName') { applyProjectMemory(); syncProjectFields(); recalc(); return; }
+      // Rời ô giá bán thuần mà để trống → hiện lại giá tự tính
+      if (e.type === 'change' && bind === 'unit.netOverride') { syncNetField(); return; }
       // Ô văn bản/số đã xử lý ở sự kiện 'input' → bỏ qua 'change' để không vẽ lại 2 lần
       if (e.type === 'change' && inp.tagName === 'INPUT' && /^(text|number)$/.test(inp.type)) return;
       var val = readInput(inp);
@@ -341,30 +425,20 @@
       }
 
       var structural = false;
-      if (bind === 'unit.projectId') {
-        var p = project();
-        state.unit.unitTypeId = p.unit_types && p.unit_types[0] ? p.unit_types[0].id : null;
-        state.unit.pricePerM2 = standardPrice();
-        if (p.handover_date) state.dates.handoverDate = p.handover_date;
-        structural = true;
-      }
-      if (bind === 'unit.unitTypeId') { state.unit.pricePerM2 = standardPrice(); structural = true; }
       if (bind === 'loan.graceEnabled') structural = true;
       if (bind === 'loan.graceEnabled' || bind === 'loan.graceMonths') {
         var pr = presets.filter(function (x) { return x.key === state.loan.presetKey; })[0];
         if (pr && state.loan.graceMonths > pr.maxGraceMonths) state.loan.graceMonths = pr.maxGraceMonths;
       }
-      if (bind === 'unit.pricePerM2') {
-        var hint = inp.parentNode.querySelector('.lm-hint');
-        var std = standardPrice(), edited = std && state.unit.pricePerM2 !== std;
-        inp.classList.toggle('lm-edited', !!edited);
-        if (hint) hint.innerHTML = edited ? 'Đã chỉnh so với giá chuẩn ' + money(std) + ' · <a href="#" data-act="resetPrice">khôi phục</a>' : 'Giá chuẩn của loại căn, sửa được theo hướng/tầng';
-      }
+      // Diện tích / đơn giá đổi → giá bán thuần tự tính lại theo thời gian thực
+      if (bind === 'unit.area' || bind === 'unit.pricePerM2') { state.unit.netOverride = null; syncNetField(); }
+      if (bind === 'unit.netOverride') syncNetField();
+      if (bind === 'unit.pricePerM2' || bind === 'dates.handoverDate' || bind === 'dates.titleAfterMonths') rememberProject();
       if (/months$|payoffMonth/.test(bind) && inp.type === 'number') {
         var h = inp.parentNode.querySelector('.lm-hint');
         if (h && val != null) h.textContent = monthsLabel(+val);
       }
-      if (bind.indexOf('loan.') === 0 || bind.indexOf('tier.') === 0 || bind === 'dates.titleAfterMonths') persist();
+      if (bind.indexOf('loan.') === 0 || bind.indexOf('tier.') === 0) persist();
       if (structural && e.type === 'change') renderForm();
       recalc();
     }
@@ -386,7 +460,7 @@
         persist(); renderForm(); recalc(); return;
       }
       var act = b.getAttribute('data-act');
-      if (act === 'resetPrice') { e.preventDefault(); state.unit.pricePerM2 = standardPrice(); renderForm(); recalc(); }
+      if (act === 'resetNet') { e.preventDefault(); state.unit.netOverride = null; syncNetField(); recalc(); }
       if (act === 'yearly' || act === 'monthly') { showMonthly = act === 'monthly'; renderResults(); }
       if (act === 'pdf') exportPdf(b);
       if (act === 'save') saveQuote(b);
@@ -398,8 +472,8 @@
     }
 
     function context() {
-      var p = project(), t = unitType();
-      return { projectName: p.name, unitTypeName: t ? t.name : '', unitCode: state.unit.code,
+      var u = state.unit;
+      return { projectName: u.projectName, aptType: u.aptType, unitCode: u.code, building: u.building,
                customer: opts.customer || null, consultant: opts.consultant || null };
     }
 
@@ -417,7 +491,7 @@
       try {
         var steadyIdx = Math.min(Math.max(result.schedule.lastDisbMonth, result.schedule.principalStartMonth), result.schedule.rows.length - 1);
         var id = await store.saveQuote({
-          customerId: opts.customer && opts.customer.id, projectId: /^local-/.test(state.unit.projectId) ? null : state.unit.projectId,
+          customerId: opts.customer && opts.customer.id, projectId: projectCfg() ? projectCfg().id : null,
           unitCode: state.unit.code, inputs: clone(state),
           summary: {
             full: result.price.full, loan: result.loan.amount, customerTotal: result.loan.customerTotal,
@@ -439,20 +513,19 @@
     renderForm(); recalc();
     (async function init() {
       var ps = await Promise.all([store.loadSettings(), store.loadProjects(), store.loadBankPresets()]);
-      var saved = ps[0], remoteProjects = ps[1], remotePresets = ps[2];
+      var saved = ps[0], remotePresets = ps[2];
+      cfgs = ps[1] || [];
       if (remotePresets && remotePresets.length) presets = remotePresets;
-      if (remoteProjects && remoteProjects.length) {
-        projects = remoteProjects;
-        var want = opts.unit && opts.unit.projectId;
-        var p = projects.filter(function (x) { return x.id === want; })[0] || projects[0];
-        state.unit.projectId = p.id;
-        if (!(opts.unit && opts.unit.unitTypeId)) state.unit.unitTypeId = p.unit_types && p.unit_types[0] ? p.unit_types[0].id : null;
-        if (!(opts.unit && opts.unit.pricePerM2)) state.unit.pricePerM2 = standardPrice();
-        if (p.handover_date) state.dates.handoverDate = p.handover_date;
-      }
+      if (saved && saved.perProject) perProject = saved.perProject;
       if (saved && saved.loan) Object.assign(state.loan, saved.loan, { loanOverride: null });
-      if (saved && saved.dates && saved.dates.titleAfterMonths != null) state.dates.titleAfterMonths = saved.dates.titleAfterMonths;
-      if (opts.initialState) { Object.assign(state.unit, opts.initialState.unit || {}); Object.assign(state.dates, opts.initialState.dates || {}); Object.assign(state.loan, opts.initialState.loan || {}); }
+      applyProjectMemory();
+      if (opts.initialState) { // mở lại phương án đã lưu → dùng đúng số đã lưu
+        Object.assign(state.unit, opts.initialState.unit || {});
+        Object.assign(state.dates, opts.initialState.dates || {});
+        Object.assign(state.loan, opts.initialState.loan || {});
+        if (state.unit.projectName == null) state.unit.projectName = ''; // phương án lưu từ bản cũ
+        syncUiFlags();
+      }
       renderForm(); recalc();
     })();
 

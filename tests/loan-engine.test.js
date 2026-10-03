@@ -49,5 +49,11 @@ console.log('Ân hạn → bắt đầu trả gốc tháng', g.schedule.principa
 const m = E.calcPrice({ area: 53.6, pricePerM2: 19911530 });
 console.log('Theo đơn giá m2 → giá thuần', m.net, '(lệch', m.net - 1067258010, 'đ so với CĐT)');
 
+// Nhận sổ sau bàn giao 1,5 tháng: 15/11/2027 + 1 tháng + 15 ngày = 30/12/2027
+const h = E.calcMilestones(E.calcPrice({ area: 50, pricePerM2: 20000000 }),
+  E.DEFAULT_SCHEDULE.map((x) => x.role === 'title' ? Object.assign({}, x, { due: { type: 'afterHandoverMonths', value: 1.5 } }) : x),
+  { contractDate: '2026-10-05', handoverDate: '2027-11-15' });
+eq('Ngày nhận sổ (1,5 tháng)', h.rows[6].date, '2027-12-30');
+
 console.log(fail ? `\n${fail} lỗi` : '\nTất cả khớp ✅');
 process.exit(fail ? 1 : 0);
