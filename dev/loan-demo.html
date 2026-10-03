@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tính khoản vay NOXH – demo</title>
+  <link rel="stylesheet" href="../css/loan.css">
+  <style>body{margin:0;background:#F7F4EE;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}</style>
+</head>
+<body>
+  <!-- Trang chạy thử độc lập, không cần Supabase. Mở bằng Live Server hoặc kéo thả vào trình duyệt. -->
+  <div id="loan-app"></div>
+
+  <script src="../js/loan/loan-engine.js"></script>
+  <script src="../js/loan/loan-store.js"></script>
+  <script src="../js/loan/loan-pdf.js"></script>
+  <script src="../js/loan/loan-ui.js"></script>
+  <script>
+    LoanModule.mount(document.getElementById('loan-app'), {
+      supabase: null,                                   // demo: không kết nối
+      customer: { name: 'Khách demo' },
+      consultant: { name: 'Curtis', phone: '' },
+      unit: { code: 'R30413', area: 53.6, netOverride: 1067258010 }
+    });
+  </script>
+</body>
+</html>

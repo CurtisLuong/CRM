@@ -41,6 +41,12 @@ js/config.js          SUPABASE_URL + SUPABASE_ANON_KEY (điền tay, không ph�
 js/lunar.js            convert dương lịch → âm lịch + tra Lục Thập Hoa Giáp để tính "Mệnh"
 js/db.js                lớp lưu local (IndexedDB) + hàng đợi đồng bộ (biến toàn cục `window.CRM`)
 js/app.js               logic UI: đăng nhập, CRUD khách, filter/sort/search, render dashboard
+js/loan/                module Tính khoản vay NOXH: engine → store → pdf → ui, + loan-crm.js (gắn vào CRM)
+css/loan.css            style module vay (mọi class tiền tố .lm-)
+SQL/                    schema + các migration lẻ (add_loan_module.sql = bảng của module vay)
+docs/loan-module.md     tài liệu module vay (quy tắc tính, cập nhật lãi suất, gỡ lỗi)
+tests/                  test chạy bằng Node: `node tests/loan-engine.test.js`
+dev/loan-demo.html      trang chạy thử module vay độc lập (không cần đăng nhập)
 schema.sql              schema Supabase gốc (đã vá đầy đủ — xem mục 5)
 fix_rls_recursion.sql   migration đã áp dụng — giữ lại để tham khảo, KHÔNG cần chạy lại
 fix_table_grants.sql    migration đã áp dụng — giữ lại để tham khảo, KHÔNG cần chạy lại

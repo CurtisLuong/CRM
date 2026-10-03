@@ -10,6 +10,7 @@
 <link rel="icon" type="image/svg+xml" href="/icons/logo.svg" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png" />
 <link rel="stylesheet" href="/css/style.css" />
+<link rel="stylesheet" href="/css/loan.css" />
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 </head>
 <body>
@@ -84,6 +85,7 @@
     <nav class="tab-nav">
       <button id="tab-list" class="tab-btn is-active">Khách hàng</button>
       <button id="tab-dashboard" class="tab-btn">Tổng quan</button>
+      <button id="tab-loan" class="tab-btn">Tính vay</button>
     </nav>
     <div class="topbar-search-wrap">
       <span class="search-ic" aria-hidden="true">🔍</span>
@@ -202,6 +204,17 @@
   <div id="dashboard-view" hidden>
     <div id="dashboard-content" class="dash-grid"></div>
   </div>
+
+  <!-- TÍNH VAY — bảng tính khoản vay NOXH độc lập (không gắn khách). Module ở js/loan/,
+       gắn vào CRM qua js/loan/loan-crm.js. Mount lần đầu khi bấm tab. -->
+  <div id="loan-view" hidden>
+    <div class="loan-consultant">
+      <span>Tư vấn viên in trên PDF:</span>
+      <input id="loan-consultant-name" type="text" placeholder="Tên" />
+      <input id="loan-consultant-phone" type="tel" placeholder="SĐT" />
+    </div>
+    <div id="loan-app"></div>
+  </div>
 </section>
 
 <!-- ============ MÀN HÌNH CHI TIẾT KHÁCH ============ -->
@@ -309,6 +322,15 @@
     <section class="detail-section">
       <h3>Căn hộ quan tâm</h3>
       <table class="detail-table"><tbody id="detail-apt"></tbody></table>
+    </section>
+
+    <!-- TÍNH KHOẢN VAY — phương án đã lưu của khách + bảng tính (điền sẵn mã căn/diện tích).
+         Logic ở js/loan/loan-crm.js. -->
+    <section class="detail-section" id="detail-loan-section">
+      <h3>Tính khoản vay</h3>
+      <div id="detail-loan-quotes" class="loan-quotes" hidden></div>
+      <button id="detail-loan-btn" class="btn-small" type="button">💰 Tính khoản vay</button>
+      <div id="detail-loan-panel" hidden></div>
     </section>
 
     <section class="detail-section">
@@ -712,5 +734,11 @@
 <script src="/js/db.js"></script>
 <script src="/js/notifications.js"></script>
 <script src="/js/app.js"></script>
+<!-- Module tính khoản vay — thứ tự BẮT BUỘC: engine → store → pdf → ui → crm -->
+<script src="/js/loan/loan-engine.js"></script>
+<script src="/js/loan/loan-store.js"></script>
+<script src="/js/loan/loan-pdf.js"></script>
+<script src="/js/loan/loan-ui.js"></script>
+<script src="/js/loan/loan-crm.js"></script>
 </body>
 </html>

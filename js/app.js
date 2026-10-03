@@ -2293,6 +2293,8 @@ function openDetail(id) {
     [['Ngân sách', formatPrice(c.finance)], ['Giá', formatPrice(c.apt_price)]],
     [['Mục đích', c.purpose || null]],
   ]);
+  // Tính khoản vay: đóng bảng tính của khách trước, nạp phương án đã lưu (js/loan/loan-crm.js).
+  if (window.LoanCRM) LoanCRM.onOpenDetail(c);
 
   // Thông tin cá nhân — mỗi mục "Nhãn: giá trị", ngăn nhau bằng dấu · (ẩn mục chưa xác định).
   // Nguồn khách luôn có giá trị (mặc định Quảng cáo) nên luôn hiện.
@@ -3412,20 +3414,18 @@ setInterval(() => {
 
 // ---------------------------------------------------------- DASHBOARD -----
 
-// Chuyển tab giữa danh sách khách và bảng tổng quan.
-function showListView() {
-  $('#list-view').hidden = false;
-  $('#dashboard-view').hidden = true;
-  $('#tab-list').classList.add('is-active');
-  $('#tab-dashboard').classList.remove('is-active');
+// Chuyển tab giữa danh sách khách, bảng tổng quan và bảng tính vay.
+function setActiveView(name) { // 'list' | 'dashboard' | 'loan'
+  $('#list-view').hidden = name !== 'list';
+  $('#dashboard-view').hidden = name !== 'dashboard';
+  $('#loan-view').hidden = name !== 'loan';
+  $('#tab-list').classList.toggle('is-active', name === 'list');
+  $('#tab-dashboard').classList.toggle('is-active', name === 'dashboard');
+  $('#tab-loan').classList.toggle('is-active', name === 'loan');
 }
-function showDashboardView() {
-  $('#list-view').hidden = true;
-  $('#dashboard-view').hidden = false;
-  $('#tab-list').classList.remove('is-active');
-  $('#tab-dashboard').classList.add('is-active');
-  renderDashboard();
-}
+function showListView() { setActiveView('list'); }
+function showDashboardView() { setActiveView('dashboard'); renderDashboard(); }
+function showLoanView() { setActiveView('loan'); if (window.LoanCRM) LoanCRM.mountTab(); } // js/loan/loan-crm.js
 
 // ---- helper nhỏ ----
 function pctOf(n, d) { return d > 0 ? Math.round((n / d) * 100) : 0; }
@@ -4243,6 +4243,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   $('#tab-list').addEventListener('click', showListView);
   $('#tab-dashboard').addEventListener('click', showDashboardView);
+  $('#tab-loan').addEventListener('click', showLoanView);
   $('#detail-back-btn').addEventListener('click', closeDetailToList);
   $('#detail-edit-btn').addEventListener('click', () => { if (detailId) openForm(detailId); });
   // Nút trên thanh mini dính đỉnh (kiểu FB) — cùng hành vi với nút nổi trên cover.
@@ -4350,8 +4351,8 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   $('#search-input').addEventListener('input', () => {
-    // Gõ tìm khi đang ở tab Tổng quan → tự chuyển sang tab Khách hàng để thấy kết quả.
-    if ($('#search-input').value.trim() && $('#dashboard-view').hidden === false) showListView();
+    // Gõ tìm khi đang ở tab Tổng quan / Tính vay → tự chuyển sang tab Khách hàng để thấy kết quả.
+    if ($('#search-input').value.trim() && $('#list-view').hidden) showListView();
     renderList();
   });
   $('#user-menu-btn').addEventListener('click', (e) => {

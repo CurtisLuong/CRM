@@ -34,7 +34,7 @@ Chưa cái nào được làm. Sắp xếp thô theo mức độ nên làm sớm
      điểm quan tâm TB + xu hướng, phân bổ căn/toà, khách bị bỏ quên (>7 ngày),
      thời gian TB mỗi bậc, khách nóng cần gọi. Tự vẽ chart bằng CSS/SVG (KHÔNG dùng
      thư viện ngoài — giữ offline + không build). Xem CHANGELOG. -->
-- **Xuất dashboard ra ảnh/PDF để gửi báo cáo.** Hiện dashboard chỉ xem trong app.
+<!--- **Xuất dashboard ra ảnh/PDF để gửi báo cáo.** Hiện dashboard chỉ xem trong app.-->
 - **Gắn nhãn tự do (tags) ngoài các field cố định.** Một số khách có đặc
   điểm không nằm trong field nào (vd "khách VIP giới thiệu", "khách cũ quay
   lại") — thêm mảng `tags text[]` cho phép gắn nhãn tự do, filter theo tag.
@@ -45,10 +45,10 @@ Chưa cái nào được làm. Sắp xếp thô theo mức độ nên làm sớm
 <!-- ĐÃ LÀM 2026-08-19: Tìm kiếm bỏ dấu — thêm removeVietnameseTones() trong
      app.js, áp vào matchesFilters. Gõ "huong" ra "Hương", "hu" ra ngay. Xem
      CHANGELOG.md. (Chưa xử lý gõ SAI dấu kiểu typo — chỉ bỏ dấu, đủ dùng.) -->
-- **Nhắc trùng SĐT khi nhập khách mới.** Hiện unique index chặn ở tầng DB
+<!--- **Nhắc trùng SĐT khi nhập khách mới.** Hiện unique index chặn ở tầng DB
   nhưng lỗi trả về khá kỹ thuật; nên check trước ở client và hỏi "Khách này
   đã tồn tại, xem lại thông tin cũ?" thay vì để lỗi INSERT rớt xuống hàng
-  đợi đồng bộ.
+  đợi đồng bộ.-->
 
 ## Dài hạn / cân nhắc kỹ trước khi làm
 

@@ -6,6 +6,40 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-03 — Tích hợp module "Tính khoản vay NOXH" (tiến độ trả, lãi suất, xuất PDF)
+
+- **Mục đích:** tính dòng tiền cho khách — phiếu giá (giá thuần/VAT/KPBT/giá FULL),
+  7 đợt thanh toán theo tiến độ CĐT (khách trả / ngân hàng giải ngân), lịch trả nợ từng
+  tháng & từng năm (lãi theo dư nợ thực tế × số ngày/365, gốc giảm dần, ân hạn), tất toán
+  sớm + phí trả trước, **xuất PDF A4**. Module gốc nằm ở thư mục `loan-module/` (đã sắp
+  xếp lại, xoá thư mục cũ).
+- **Sắp xếp lại cây thư mục** theo cách CRM đang chia: `modules/loan/*.js` → `js/loan/`,
+  `loan.css` → `css/loan.css`, `sql/loan-module.sql` → `SQL/add_loan_module.sql`,
+  `test/engine.test.js` → `tests/loan-engine.test.js`, `README.md` →
+  `docs/loan-module.md`, `loan-demo.html` → `dev/loan-demo.html`.
+- **2 điểm gắn vào CRM** (glue mới `js/loan/loan-crm.js`, tải SAU `app.js`, dùng lại
+  `sb`/`allCustomers`/`escapeHtml` của app.js):
+  - **Tab "Tính vay"** trên header — bảng tính độc lập, mount lần đầu khi bấm tab, giữ
+    nguyên số đã nhập khi qua lại giữa các tab. Có ô "Tư vấn viên in trên PDF" (tên + SĐT,
+    lưu localStorage theo máy).
+  - **Trang chi tiết khách → mục "Tính khoản vay"**: nút mở bảng tính điền sẵn **mã căn +
+    diện tích** của khách; "Lưu phương án" gắn với khách; danh sách phương án đã lưu (bấm
+    "Mở" để mở lại). Vẽ lại cùng khách (vd thêm ghi chú) KHÔNG đóng bảng tính đang mở.
+- **Sửa module gốc:** SQL thiếu `GRANT` (bẫy CLAUDE.md 5.3) → đã thêm; đổi màu
+  `css/loan.css` sang tông CRM + dùng font CRM (bỏ "Be Vietnam Pro" chưa được tải);
+  toast `.lm-toast` gắn vào `<body>` (ngoài `.lm-root`) nên mất màu → thêm màu dự phòng.
+- **Schema mới (CHƯA chạy):** `SQL/add_loan_module.sql` tạo 6 bảng mới `projects`,
+  `project_unit_types`, `units`, `bank_presets`, `loan_settings`, `loan_quotes` — không
+  đụng `customers` / `project_options`. Chưa chạy thì module vẫn chạy với dữ liệu mặc định
+  (Happy Home Tràng Cát) nhưng không lưu được phương án.
+- **Offline:** phần tính + PDF (cần mạng lần đầu để tải html2pdf) chạy offline; lưu phương
+  án gọi thẳng Supabase, KHÔNG qua hàng đợi `db.js`.
+- **sw.js:** thêm 6 file vào APP_SHELL, tăng `CACHE_NAME` v6 → v7.
+- **File:** `index.html`, `js/app.js` (`setActiveView`/`showLoanView`, hook trong
+  `openDetail`, search tự về tab Khách hàng), `js/loan/*`, `css/loan.css`, `sw.js`,
+  `SQL/add_loan_module.sql`, `tests/loan-engine.test.js`, `docs/loan-module.md`,
+  `dev/loan-demo.html`.
+
 ## 2026-09-09 — "Phân tích AI": copy prompt (kèm JSON khách) để dán vào LLM
 
 - **Mục đích:** ở trang chi tiết khách, thêm nút **📋 Copy prompt phân tích**. Bấm →
