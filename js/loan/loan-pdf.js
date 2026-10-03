@@ -132,7 +132,9 @@
         margin: [8, 6, 10, 6],
         filename: fileName(ctx || {}),
         image: { type: 'jpeg', quality: 0.95 },
-        html2canvas: { scale: 2, backgroundColor: '#ffffff' },
+        // scrollX/scrollY = 0: html2canvas mặc định trừ vị trí cuộn của trang → bấm Xuất PDF
+        // khi đã cuộn xuống (luôn vậy trên điện thoại) thì nội dung bị đẩy ra ngoài, PDF trắng.
+        html2canvas: { scale: 2, backgroundColor: '#ffffff', scrollX: 0, scrollY: 0 },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
         pagebreak: { mode: ['css', 'legacy'], avoid: 'tr' }
       }).from(holder.firstChild).save();

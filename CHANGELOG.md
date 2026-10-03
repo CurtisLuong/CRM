@@ -6,6 +6,17 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-03 — Sửa: Xuất PDF module vay ra file trắng
+
+- **Lỗi:** bấm "📄 Xuất PDF" tạo file 2 trang nhưng trắng trơn.
+- **Nguyên nhân:** html2canvas (bên trong html2pdf) mặc định trừ vị trí cuộn của trang
+  khi chụp. Nút Xuất PDF nằm dưới cùng kết quả → lúc bấm trang luôn đang cuộn xuống xa
+  (nhất là trên điện thoại) → nội dung bị đẩy ra ngoài khung chụp → PDF trắng. Ở đầu trang
+  (chưa cuộn) thì không lỗi nên lúc tích hợp không phát hiện.
+- **Sửa:** thêm `scrollX: 0, scrollY: 0` vào tuỳ chọn `html2canvas`. Đã kiểm tra: trang
+  cuộn 3000px vẫn ra đủ nội dung.
+- **File:** `js/loan/loan-pdf.js`.
+
 ## 2026-10-03 — Tích hợp module "Tính khoản vay NOXH" (tiến độ trả, lãi suất, xuất PDF)
 
 - **Mục đích:** tính dòng tiền cho khách — phiếu giá (giá thuần/VAT/KPBT/giá FULL),
