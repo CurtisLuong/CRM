@@ -40,23 +40,19 @@
   ];
 
   // Preset gói vay. Lãi suất NQ33 / người trẻ do NHNN công bố lại 6 tháng/lần → chỉ là giả định.
+  // Chỉ giữ 3 gói khác biệt thật + "Khác" (custom). Danh sách & tên hiển thị QUYẾT ĐỊNH Ở ĐÂY;
+  // bảng bank_presets trên Supabase chỉ cập nhật số liệu (lãi suất, phí...) cho đúng key.
   var BANK_PRESETS = [
-    { key: 'young35', name: 'Người trẻ <35 tuổi (9 NHTM)', ltv: 70, termYears: 25,
+    { key: 'young35', name: 'Dưới 35 tuổi', ltv: 70, termYears: 25,
       rateTiers: [{ months: 60, rate: 6.5 }, { months: 120, rate: 7.5 }], floatingRate: 10,
       maxGraceMonths: 24, prepayFees: [3, 3, 2, 1, 1] },
-    { key: 'nq33', name: 'NQ33 – Agribank/VCB/BIDV/Vietin', ltv: 70, termYears: 25,
+    { key: 'nq33', name: 'NQ33', ltv: 70, termYears: 25,
       rateTiers: [{ months: 60, rate: 6.5 }], floatingRate: 10,
       maxGraceMonths: 24, prepayFees: [3, 3, 2, 1, 1] },
-    { key: 'vbsp', name: 'NH Chính sách xã hội', ltv: 80, termYears: 25,
+    { key: 'vbsp', name: 'NHCSXH', ltv: 80, termYears: 25,
       rateTiers: [{ months: 300, rate: 5.4 }], floatingRate: 5.4,
       maxGraceMonths: 12, prepayFees: [0] },
-    { key: 'hdbank', name: 'HDBank', ltv: 70, termYears: 25,
-      rateTiers: [{ months: 60, rate: 6.5 }], floatingRate: 10,
-      maxGraceMonths: 24, prepayFees: [3, 3, 2, 1, 1] },
-    { key: 'tpbank', name: 'TPBank', ltv: 70, termYears: 25,
-      rateTiers: [{ months: 60, rate: 6.5 }], floatingRate: 10,
-      maxGraceMonths: 24, prepayFees: [3, 3, 2, 1] },
-    { key: 'custom', name: 'Tùy chỉnh', ltv: 70, termYears: 25,
+    { key: 'custom', name: 'Khác', ltv: 70, termYears: 25,
       rateTiers: [{ months: 60, rate: 6.5 }], floatingRate: 10,
       maxGraceMonths: 60, prepayFees: [3, 3, 2, 1, 1] }
   ];

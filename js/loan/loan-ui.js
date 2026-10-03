@@ -417,12 +417,15 @@
         if (i === 1 && !tiers[1]) tiers[1] = { months: 120, rate: null };
         if (tiers[i]) tiers[i][key] = val;
         if (tiers[1] && (tiers[1].rate == null || tiers[1].rate === '')) tiers.splice(1, 1);
-        state.loan.presetKey = state.loan.presetKey === 'custom' ? 'custom' : state.loan.presetKey;
       } else if (bind === 'loan.prepayFees') {
         state.loan.prepayFees = String(val).split(/[,;\s]+/).filter(Boolean).map(Number).filter(function (x) { return !isNaN(x); });
       } else {
         setPath(bind, val);
       }
+
+      // Sửa 1 thông số định nghĩa gói (tỷ lệ vay, thời hạn, lãi, phí trả trước) → không còn
+      // đúng gói đang chọn nữa → tự chuyển sang "Khác" (giữ nguyên các số đang nhập).
+      if (/^(loan\.(ltv|termYears|floatingRate|prepayFees)$|tier\.)/.test(bind)) markCustom();
 
       var structural = false;
       if (bind === 'loan.graceEnabled') structural = true;
@@ -443,11 +446,29 @@
       recalc();
     }
 
+    // Gói cũ đã bỏ (HDBank, TPBank...) trong cài đặt / phương án đã lưu → coi là "Khác"
+    function fixPresetKey() {
+      if (!presets.some(function (p) { return p.key === state.loan.presetKey; })) state.loan.presetKey = 'custom';
+    }
+    function markCustom() {
+      if (state.loan.presetKey === 'custom') return;
+      state.loan.presetKey = 'custom';
+      // Cập nhật nút gói vay tại chỗ, KHÔNG vẽ lại form (đang gõ dở trong ô)
+      formEl.querySelectorAll('[data-preset]').forEach(function (b) {
+        b.setAttribute('aria-pressed', String(b.getAttribute('data-preset') === 'custom'));
+      });
+      var c = presets.filter(function (p) { return p.key === 'custom'; })[0];
+      var note = formEl.querySelector('[data-bind="loan.graceMonths"] ~ .lm-note');
+      if (c && note) note.textContent = 'tháng (tối đa ' + c.maxGraceMonths + ')';
+    }
+
     function onClick(e) {
       var b = e.target.closest('[data-preset],[data-seg],[data-act]');
       if (!b || !el.contains(b)) return;
       if (b.hasAttribute('data-preset')) {
         var pr = presets.filter(function (x) { return x.key === b.getAttribute('data-preset'); })[0];
+        // Bấm "Khác" → giữ nguyên số đang có, chỉ mở khoá để tự chỉnh
+        if (pr.key === 'custom') { state.loan.presetKey = 'custom'; persist(); renderForm(); recalc(); return; }
         Object.assign(state.loan, {
           presetKey: pr.key, ltv: pr.ltv, termYears: pr.termYears, rateTiers: clone(pr.rateTiers),
           floatingRate: pr.floatingRate, prepayFees: clone(pr.prepayFees), loanOverride: null
@@ -515,15 +536,21 @@
       var ps = await Promise.all([store.loadSettings(), store.loadProjects(), store.loadBankPresets()]);
       var saved = ps[0], remotePresets = ps[2];
       cfgs = ps[1] || [];
-      if (remotePresets && remotePresets.length) presets = remotePresets;
+      // Supabase chỉ cập nhật SỐ LIỆU cho các gói có trong code (cùng key); tên + danh sách giữ theo code
+      if (remotePresets && remotePresets.length) presets = presets.map(function (p) {
+        var r = remotePresets.filter(function (x) { return x.key === p.key; })[0];
+        return r ? Object.assign({}, r, { key: p.key, name: p.name }) : p;
+      });
       if (saved && saved.perProject) perProject = saved.perProject;
       if (saved && saved.loan) Object.assign(state.loan, saved.loan, { loanOverride: null });
+      fixPresetKey();
       applyProjectMemory();
       if (opts.initialState) { // mở lại phương án đã lưu → dùng đúng số đã lưu
         Object.assign(state.unit, opts.initialState.unit || {});
         Object.assign(state.dates, opts.initialState.dates || {});
         Object.assign(state.loan, opts.initialState.loan || {});
         if (state.unit.projectName == null) state.unit.projectName = ''; // phương án lưu từ bản cũ
+        fixPresetKey();
         syncUiFlags();
       }
       renderForm(); recalc();

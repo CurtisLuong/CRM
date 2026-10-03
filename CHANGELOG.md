@@ -6,6 +6,19 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-03 — Module vay: rút gọn gói vay còn 4, tự chuyển sang "Khác" khi chỉnh
+
+- **Gói vay** còn: **Dưới 35 tuổi · NQ33 · NHCSXH · Khác** (bỏ HDBank, TPBank — số liệu
+  trùng NQ33). Danh sách + tên quyết định trong `BANK_PRESETS` (`loan-engine.js`); bảng
+  `bank_presets` trên Supabase chỉ cập nhật số liệu cho đúng key (dòng hdbank/tpbank cũ
+  trong DB bị bỏ qua, không cần xoá).
+- **Tự chuyển "Khác":** đang ở 1 gói mà sửa tỷ lệ vay / thời hạn / lãi ưu đãi / giai đoạn 2
+  / lãi thả nổi / phí trả trước → nút gói tự chuyển sang "Khác", giữ nguyên số đang gõ
+  (không vẽ lại form, không mất con trỏ). Bấm "Khác" cũng giữ số hiện tại. Các lựa chọn
+  của khách (số tiền vay, ân hạn, cách tính lãi, tất toán) KHÔNG làm đổi gói.
+- Cài đặt / phương án cũ đang lưu gói đã bỏ → hiện là "Khác".
+- **File:** `js/loan/loan-engine.js`, `js/loan/loan-ui.js`.
+
 ## 2026-10-03 — Module vay: form "Căn hộ" khớp dữ liệu CRM, nhớ giá trị theo dự án
 
 - **Tư vấn viên** mặc định "Duy · 0389783840" (ô trống → dùng mặc định; sửa được, lưu theo máy).
