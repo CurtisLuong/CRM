@@ -6,6 +6,56 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-03 — Form khách: ô Loại căn lọc theo dự án / toà
+
+- **Lỗi:** chọn Marquee Homes trong form khách vẫn hiện đủ 7 loại căn. Lần trước mới lọc ở
+  bảng tính vay, ô Loại căn của form khách vẫn là danh sách cố định trong `index.html`.
+- **Sửa:** ô Loại căn dựng lại mỗi khi đổi dự án / gõ mã toà: chỉ hiện loại căn của dự án đã
+  chọn (đã nhập toà → loại căn của toà), kèm diện tích điển hình; chọn nhiều dự án → gộp danh
+  sách (loại trùng thì không hiện diện tích); chưa chọn dự án hoặc dự án chưa khai báo loại căn
+  → danh sách chuẩn. Giá trị đang có mà không nằm trong danh sách → giữ ở "Khác..." (không mất
+  dữ liệu). Gom việc chọn giá trị vào `setFormAptType` (openForm, điền theo căn, OCR).
+- **File:** `js/app.js`.
+
+## 2026-10-03 — Loại căn mới + loại căn & diện tích điển hình theo Dự án → Toà
+
+- **Danh sách loại căn** (`APT_TYPES`, select form khách): thêm **Studio**, **2N-2WC-G** →
+  Studio, 1N-1WC, 1N+, 1WC, 2N-2WC, 2N+, 2WC, 2N-2WC-G, 3N-2WC. Giá trị cũ vẫn hợp lệ, không cần
+  chuyển dữ liệu. `canonicalAptType` vẫn phân biệt "2N-2WC-G" với "2N-2WC".
+- **Database** (`SQL/add_apt_types_by_project.sql`, đã test bằng PGlite, cả khi chạy lại):
+  - `project_apt_types` (loại căn của dự án + `typical_area_m2`), `building_apt_types` (loại
+    căn của toà + `area_m2` chỉnh theo toà). Khoá ngoại kép bảo đảm loại căn của toà ∈ loại
+    căn của dự án và toà/dự án khớp nhau; đổi tên/xoá loại ở dự án → toà tự theo (cascade).
+  - Trigger: đổi tên loại căn ở dự án → `units.apt_type` đổi theo.
+  - View `v_building_apt_types`, `v_units` (`effective_area_m2` = căn > toà > dự án,
+    `area_source`), `security_invoker` để RLS vẫn áp dụng (đã test user khác thấy 0 dòng).
+  - Khởi tạo từ căn đã có (loại căn + diện tích hay gặp nhất). RLS + GRANT đầy đủ.
+  - `merge_project_trang_cat.sql`: chuyển loại căn của dự án bị gộp TRƯỚC khi chuyển toà
+    (nếu không, khoá ngoại mới sẽ báo lỗi khi chạy gộp sau migration này).
+- **`js/catalog.js`:** nạp 2 bảng mới; `projectTypes`, `buildingTypes` (hiệu lực), `typicalArea`,
+  `unitArea`; ghi `saveProjectType`, `deleteProjectType`, `setBuildingTypes`; lưu/nhập căn có
+  loại căn lạ → tự khai báo vào dự án (và toà nếu toà có danh sách riêng).
+- **Màn Giỏ hàng:** mục "Loại căn của dự án" (thêm/sửa/xoá + diện tích điển hình) và "Loại căn
+  của toà" (tích chọn + diện tích theo toà); cột DT của căn chưa nhập riêng hiện diện tích điển
+  hình (xám).
+- **Bảng tính vay:** ô Loại căn chỉ hiện loại của toà đang chọn (kèm diện tích); chọn loại →
+  điền diện tích điển hình; chọn căn chưa có diện tích riêng → dùng diện tích điển hình; có
+  gợi ý nguồn diện tích dưới ô.
+- **Form khách:** chọn mã căn → diện tích theo quy tắc trên; chọn loại căn khi ô diện tích
+  trống → điền diện tích điển hình (toà đã nhập > dự án đã chọn).
+- **File:** `SQL/add_apt_types_by_project.sql`, `SQL/merge_project_trang_cat.sql`, `js/app.js`,
+  `index.html`, `js/catalog.js`, `js/catalog-ui.js`, `css/style.css`, `js/loan/loan-ui.js`,
+  `dev/loan-demo.html`, `docs/gio-hang.md`.
+
+## 2026-10-03 — SQL gộp dự án "Happy Home Tràng Cát" vào "Vin Tràng Cát"
+
+- 2 tên là cùng 1 dự án. `SQL/merge_project_trang_cat.sql` giữ "Vin Tràng Cát" (tên khách
+  đang dùng), chuyển toà/căn/phương án vay sang; toà trùng mã thì gộp căn (căn trùng mã giữ
+  bản của Vin); bàn giao/tiến độ CĐT lấy từ Happy Home nếu Vin chưa có; đổi tên trong
+  `customers.projects` (bỏ trùng, giữ thứ tự), `loan_quotes.inputs`, `loan_settings.perProject`.
+  Đã test bằng PGlite (cả khi chạy lại). Đổi tên giữ lại ở 2 dòng `v_keep`/`v_drop`.
+- **File:** `SQL/merge_project_trang_cat.sql`.
+
 ## 2026-10-03 — Giỏ hàng Dự án → Toà → Căn (gộp danh sách dự án, nối form khách + bảng tính vay)
 
 - **Vì sao:** dự án lấy từ `project_options` (chỉ có tên), còn mã toà / mã căn gom từ dữ liệu

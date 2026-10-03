@@ -35,10 +35,10 @@
     u = u || {};
     return `<tr class="cat-edit" data-form="${u.id ? 'unit' : 'unit-add'}" data-uid="${u.id || ''}" data-bid="${bid}">
       <td><input name="code" value="${escapeHtml(u.code || '')}" placeholder="Mã căn"></td>
-      <td><input name="area_m2" inputmode="decimal" value="${u.area_m2 ?? ''}" placeholder="m²"></td>
+      <td><input name="area_m2" inputmode="decimal" value="${u.area_m2 ?? ''}" placeholder="${Catalog.typicalArea(Catalog.building(bid).project_id, bid, u.apt_type) || 'theo loại'}"></td>
       <td><input name="floor" inputmode="numeric" value="${u.floor ?? ''}"></td>
       <td><select name="direction">${opt('', u.direction, '—')}${DIRECTIONS.map((d) => opt(d, u.direction)).join('')}</select></td>
-      <td><input name="apt_type" list="cat-apt-types" value="${escapeHtml(u.apt_type || '')}"></td>
+      <td><input name="apt_type" list="cat-types-${bid}" value="${escapeHtml(u.apt_type || '')}"></td>
       <td>${moneyInp('price_per_m2_override', u.price_per_m2_override, 'theo toà')}</td>
       <td><select name="status">${Object.entries(Catalog.STATUS).map(([k, l]) => opt(k, u.status || 'available', l)).join('')}</select></td>
       <td class="cat-act">${u.id
@@ -47,11 +47,42 @@
   }
   function unitRow(u) {
     return `<tr class="${u.status === 'sold' ? 'is-sold' : ''}"><td><b>${escapeHtml(u.code)}</b></td>
-      <td>${u.area_m2 ?? ''}</td><td>${u.floor ?? ''}</td><td>${escapeHtml(u.direction || '')}</td>
+      <td>${u.area_m2 != null ? u.area_m2 : (Catalog.unitArea(u) ? `<span class="cat-muted" title="Diện tích điển hình của loại căn">${Catalog.unitArea(u)}</span>` : '')}</td><td>${u.floor ?? ''}</td><td>${escapeHtml(u.direction || '')}</td>
       <td>${escapeHtml(u.apt_type || '')}</td><td>${u.price_per_m2_override ? fmt(u.price_per_m2_override) : '<span class="cat-muted">theo toà</span>'}</td>
       <td>${Catalog.statusLabel(u.status)}</td>
       <td class="cat-act"><button type="button" data-act="unit-edit" data-uid="${u.id}" class="btn-small">Sửa</button>
         <button type="button" data-act="unit-del" data-uid="${u.id}" class="btn-small" aria-label="Xoá căn">✕</button></td></tr>`;
+  }
+  // Loại căn của toà: tích chọn trong các loại của dự án + chỉnh diện tích theo toà
+  function buildingTypesHtml(b) {
+    const pts = Catalog.projectTypes(b.project_id);
+    if (!pts.length) return '<div class="cat-types-note">Dự án chưa có loại căn — khai báo ở mục "Loại căn của dự án" phía trên.</div>';
+    const own = Catalog.buildingTypeRows(b.id);
+    return `<div class="cat-types" data-form="building-types" data-bid="${b.id}">
+      <div class="cat-types-title">Loại căn của toà <span class="cat-muted">(không tích loại nào = dùng tất cả loại của dự án)</span></div>
+      ${pts.map((pt) => {
+        const bt = own.find((x) => x.apt_type === pt.apt_type);
+        return `<label class="cat-type-chk"><input type="checkbox" data-type-chk value="${escapeHtml(pt.apt_type)}"${bt ? ' checked' : ''}>
+          <span>${escapeHtml(pt.apt_type)}</span>
+          <input data-type-area="${escapeHtml(pt.apt_type)}" inputmode="decimal" value="${bt && bt.area_m2 ? bt.area_m2 : ''}"
+            placeholder="${pt.typical_area_m2 ? pt.typical_area_m2 + ' (dự án)' : 'm²'}" title="Diện tích điển hình riêng của toà (trống = theo dự án)"> m²</label>`;
+      }).join('')}
+      <button type="button" data-act="building-types-save" class="btn-small">Lưu loại căn của toà</button></div>`;
+  }
+  // Loại căn của dự án + diện tích điển hình chung
+  function projectTypesHtml(p) {
+    const rows = Catalog.projectTypes(p.id);
+    return `<div class="cat-types cat-ptypes">
+      <div class="cat-types-title">Loại căn của dự án <span class="cat-muted">· diện tích điển hình (căn có diện tích riêng sẽ ghi đè)</span></div>
+      ${rows.map((t) => `<div class="cat-ptype" data-form="ptype" data-tid="${t.id}" data-pid="${p.id}">
+        <input name="apt_type" list="cat-apt-types" value="${escapeHtml(t.apt_type)}">
+        <input name="typical_area_m2" inputmode="decimal" value="${t.typical_area_m2 ?? ''}" placeholder="m²"> m²
+        <button type="button" data-act="ptype-save" class="btn-small">Lưu</button>
+        <button type="button" data-act="ptype-del" class="btn-small" aria-label="Xoá loại căn">✕</button></div>`).join('')}
+      <div class="cat-ptype" data-form="ptype-add" data-pid="${p.id}">
+        <input name="apt_type" list="cat-apt-types" placeholder="Loại căn (VD: 2N-2WC)">
+        <input name="typical_area_m2" inputmode="decimal" placeholder="m²"> m²
+        <button type="button" data-act="ptype-add" class="btn-small">＋ Thêm</button></div></div>`;
   }
   function buildingHtml(b) {
     const units = Catalog.unitsOf(b.id);
@@ -63,6 +94,8 @@
         <label>Giá duyệt (đ/m²)${moneyInp('approved_price_per_m2', b.approved_price_per_m2)}</label>
         <button type="button" data-act="building-save" class="btn-small">Lưu toà</button>
         <button type="button" data-act="building-del" class="btn-small btn-danger">Xoá toà</button></div>
+      ${buildingTypesHtml(b)}
+      <datalist id="cat-types-${b.id}">${Catalog.buildingTypes(b.id).map((t) => `<option value="${escapeHtml(t.apt_type)}">`).join('')}</datalist>
       <div class="cat-table-wrap"><table class="cat-units"><thead><tr><th>Mã căn</th><th>DT (m²)</th><th>Tầng</th><th>Hướng</th><th>Loại căn</th><th>Giá riêng (đ/m²)</th><th>Trạng thái</th><th></th></tr></thead><tbody>
         ${units.map((u) => (u.id === editingUnit ? unitRowEdit(u, b.id) : unitRow(u))).join('')}
         ${unitRowEdit(null, b.id)}
@@ -83,6 +116,7 @@
         <label>KPBT %<input name="kpbt_rate" inputmode="decimal" value="${p.kpbt_rate ?? 2}"></label>
         <button type="button" data-act="project-save" class="btn-small">Lưu dự án</button>
         <button type="button" data-act="project-del" class="btn-small btn-danger">Xoá dự án</button></div>
+      ${projectTypesHtml(p)}
       <div class="cat-bs">${bs.map(buildingHtml).join('')}</div>
       <div class="cat-row cat-add" data-form="building-add" data-pid="${p.id}">
         <label>Mã toà mới<input name="code" placeholder="VD: S1"></label>
@@ -125,6 +159,11 @@
     if (el.hasAttribute && el.hasAttribute('data-money')) { const v = digits(el.value); el.value = v == null ? '' : fmt(v); }
   });
 
+  body.addEventListener('input', (e) => { // gõ diện tích cho loại căn chưa tích → tự tích
+    const a = e.target.closest && e.target.closest('[data-type-area]');
+    if (a && a.value.trim()) { const cb = a.parentNode.querySelector('[data-type-chk]'); if (cb) cb.checked = true; }
+  });
+
   body.addEventListener('keydown', (e) => { // Enter trong ô = bấm nút chính của dòng đó
     if (e.key !== 'Enter' || e.target.tagName !== 'INPUT') return;
     const row = e.target.closest('[data-form]');
@@ -164,6 +203,27 @@
       const bd = Catalog.building(row.dataset.bid), n = Catalog.unitsOf(bd.id).length;
       if (!confirm(`Xoá toà "${bd.code}"${n ? ` cùng ${n} căn` : ''}?`)) return;
       return run(() => Catalog.deleteBuilding(bd.id), 'Đã xoá toà');
+    }
+    if (act === 'ptype-add' || act === 'ptype-save') {
+      const o = readRow(row);
+      const area = num(o.typical_area_m2);
+      if (o.typical_area_m2 && !(area > 0)) return setStatus('⚠️ Diện tích không hợp lệ');
+      return run(() => Catalog.saveProjectType({ id: row.dataset.tid || null, project_id: row.dataset.pid,
+        apt_type: canonicalAptType(o.apt_type), typical_area_m2: area }), act === 'ptype-add' ? 'Đã thêm loại căn' : 'Đã lưu loại căn');
+    }
+    if (act === 'ptype-del') {
+      const t = Catalog.projectTypes(row.dataset.pid).find((x) => x.id === row.dataset.tid);
+      if (t && confirm(`Xoá loại căn "${t.apt_type}" khỏi dự án? (các toà cũng bỏ loại này; căn đã nhập giữ nguyên)`)) {
+        run(() => Catalog.deleteProjectType(t.id), 'Đã xoá loại căn');
+      }
+      return;
+    }
+    if (act === 'building-types-save') {
+      const rows = [...row.querySelectorAll('[data-type-chk]:checked')].map((cb) => {
+        const a = num(row.querySelector(`[data-type-area="${CSS.escape(cb.value)}"]`).value);
+        return { apt_type: cb.value, area_m2: a > 0 ? a : null };
+      });
+      return run(() => Catalog.setBuildingTypes(row.dataset.bid, rows), 'Đã lưu loại căn của toà');
     }
     if (act === 'unit-add') return run(() => Catalog.saveUnit(unitPayload(row)), 'Đã thêm căn');
     if (act === 'unit-save') return run(async () => { await Catalog.saveUnit(unitPayload(row)); editingUnit = null; }, 'Đã lưu căn');

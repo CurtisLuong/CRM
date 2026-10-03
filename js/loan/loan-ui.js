@@ -8,7 +8,8 @@
  *     consultant: { name: 'Curtis', phone: '09xx' },
  *     unit: { projectName, building, code, aptType, area },  // điền sẵn (tùy chọn)
  *     catalog: Catalog,                           // giỏ hàng Dự án → Toà → Căn (CRM: js/catalog.js)
- *     aptTypes: ['1N-1WC', '2N-2WC', ...],        // loại căn (CRM: APT_TYPES)
+ *     aptTypes: ['Studio', '1N-1WC', ...],        // loại căn chuẩn (CRM: APT_TYPES) — dùng khi
+ *                                                 // dự án/toà chưa khai báo loại căn trong giỏ hàng
  *     onSaved: (quoteId) => {}
  *   });
  *
@@ -49,7 +50,9 @@
     var cat = opts.catalog || { projects: function () { return []; }, projectByName: function () { return null; },
       buildingsOf: function () { return []; }, buildingByCode: function () { return null; },
       unitsOf: function () { return []; }, unitByCode: function () { return null; },
-      unitPrice: function () { return null; }, statusLabel: function () { return ''; } };
+      unitPrice: function () { return null; }, statusLabel: function () { return ''; },
+      projectTypes: function () { return []; }, buildingTypes: function () { return []; },
+      typicalArea: function () { return null; }, unitArea: function (u) { return u && u.area_m2 ? +u.area_m2 : null; } };
     var perProject = {};  // "lần cuối" cho dự án NGOÀI giỏ hàng: bàn giao, nhận sổ, đơn giá
     var presets = clone(E.BANK_PRESETS);
     var showMonthly = false;
@@ -72,6 +75,18 @@
     function curBuilding() { var p = curProject(); return p && !ui.buildingOther ? cat.buildingByCode(p.id, state.unit.building) : null; }
     function curUnit() { var b = curBuilding(); return b && !ui.unitOther ? cat.unitByCode(b.id, state.unit.code) : null; }
 
+    // Loại căn cho ô chọn: của toà đang chọn > của dự án > danh sách chuẩn. [{ v, area }]
+    function typeOptions() {
+      var b = curBuilding(), p = curProject();
+      var list = b ? cat.buildingTypes(b.id) : p ? cat.projectTypes(p.id).map(function (t) {
+        return { apt_type: t.apt_type, area: t.typical_area_m2 ? +t.typical_area_m2 : null };
+      }) : [];
+      if (!list.length) return aptTypes.map(function (t) { return { v: t, area: null }; });
+      return list.map(function (t) { return { v: t.apt_type, area: t.area }; });
+    }
+    function isKnownType(t) { return typeOptions().some(function (o) { return norm(o.v) === norm(t); }); }
+    var areaSource = ''; // nguồn diện tích đang hiển thị (gợi ý dưới ô diện tích)
+
     var ui = {}; // projectOther / buildingOther / unitOther / aptOther: đang ở "Khác…" (gõ tự do)
     function syncUiFlags() {
       var u = state.unit;
@@ -80,7 +95,7 @@
       ui.buildingOther = !!u.building && !(p && cat.buildingByCode(p.id, u.building));
       var b = curBuilding();
       ui.unitOther = !!u.code && !(b && cat.unitByCode(b.id, u.code));
-      ui.aptOther = !!u.aptType && aptTypes.indexOf(u.aptType) < 0;
+      ui.aptOther = !!u.aptType && !isKnownType(u.aptType);
     }
     syncUiFlags();
 
@@ -116,11 +131,26 @@
     function applyUnit() {
       var u = curUnit();
       if (!u) return;
-      if (u.area_m2) state.unit.area = +u.area_m2;
-      if (u.apt_type) { state.unit.aptType = u.apt_type; ui.aptOther = aptTypes.indexOf(u.apt_type) < 0; }
+      if (u.apt_type) { state.unit.aptType = u.apt_type; ui.aptOther = !isKnownType(u.apt_type); }
+      var area = cat.unitArea(u); // riêng của căn > điển hình của toà > của dự án
+      if (area) {
+        state.unit.area = area;
+        areaSource = u.area_m2 ? 'Diện tích riêng của căn ' + u.code : 'Diện tích điển hình ' + u.apt_type + ' (căn chưa nhập riêng)';
+      }
       var price = cat.unitPrice(u);
       if (price) state.unit.pricePerM2 = price;
       state.unit.netOverride = u.net_price_override ? +u.net_price_override : null;
+    }
+    // Chọn loại căn (chưa chọn căn cụ thể) → diện tích điển hình của loại đó: toà > dự án
+    function applyType() {
+      if (curUnit()) return;
+      var p = curProject(), b = curBuilding();
+      var a = p && cat.typicalArea(p.id, b && b.id, state.unit.aptType);
+      if (!a) return;
+      state.unit.area = a;
+      state.unit.netOverride = null;
+      var fromB = b && cat.buildingTypes(b.id).some(function (t) { return t.apt_type === state.unit.aptType && t.source === 'toà'; });
+      areaSource = 'Diện tích điển hình ' + state.unit.aptType + ' của ' + (fromB ? 'toà ' + b.code : 'dự án');
     }
     // Áp toàn bộ dữ liệu giỏ hàng cho lựa chọn hiện tại (lúc mở bảng tính)
     function applyCatalog() {
@@ -197,7 +227,8 @@
         (isOther ? other : '') + '</div>';
     }
     function unitLabel(x) {
-      return [x.code, x.area_m2 ? x.area_m2 + 'm²' : '', x.apt_type, x.status && x.status !== 'available' ? cat.statusLabel(x.status) : '']
+      var a = x.area_m2 || cat.unitArea(x); // chưa có diện tích riêng → "~" diện tích điển hình
+      return [x.code, a ? (x.area_m2 ? '' : '~') + String(+a).replace('.', ',') + 'm²' : '', x.apt_type, x.status && x.status !== 'available' ? cat.statusLabel(x.status) : '']
         .filter(Boolean).join(' · ');
     }
     function priceHint() {
@@ -232,8 +263,10 @@
           }), u.building, ui.buildingOther, 'VD: THE RISE 3', '— Chọn toà —') +
           selectOther('Mã căn', 'unit.code', (cb ? cat.unitsOf(cb.id) : []).map(function (x) { return { v: x.code, l: unitLabel(x) }; }),
             u.code, ui.unitOther, 'VD: R30413', '— Chọn căn —') +
-          selectOther('Loại căn', 'unit.aptType', aptTypes, u.aptType, ui.aptOther, 'VD: 2N+1, Studio', '— Chọn —') +
-          field('Diện tích thông thủy (m²)', 'unit.area', u.area, 'number', { step: 'any' }) +
+          selectOther('Loại căn', 'unit.aptType', typeOptions().map(function (o) {
+            return { v: o.v, l: o.v + (o.area ? ' · ' + String(o.area).replace('.', ',') + 'm²' : '') };
+          }), u.aptType, ui.aptOther, 'VD: 2N+1, Studio', '— Chọn —') +
+          field('Diện tích thông thủy (m²)', 'unit.area', u.area, 'number', { step: 'any', hint: esc(areaSource) || 'Diện tích điển hình chỉ để tham khảo — sửa theo căn thực tế' }) +
           field('Đơn giá (đ/m²)', 'unit.pricePerM2', u.pricePerM2, 'money', { hint: priceHint() }) +
           field('Giá bán thuần', 'unit.netOverride', u.netOverride || autoNet(), 'money', {
             cls: 'lm-full', inputCls: u.netOverride ? 'lm-edited' : '', hint: netHint()
@@ -458,6 +491,7 @@
         }
         if (bind === 'unit.building') { state.unit.code = ''; ui.unitOther = false; applyBuilding(); }
         if (bind === 'unit.code') applyUnit();
+        if (bind === 'unit.aptType' && !ui.aptOther) applyType();
         renderForm(); recalc();
         if (ui[flag]) { var o = formEl.querySelector('input[data-other][data-bind="' + bind + '"]'); if (o) o.focus(); }
         return;
@@ -496,6 +530,7 @@
       }
       // Diện tích / đơn giá đổi → giá bán thuần tự tính lại theo thời gian thực
       if (bind === 'unit.area' || bind === 'unit.pricePerM2') { state.unit.netOverride = null; syncNetField(); }
+      if (bind === 'unit.area') { areaSource = ''; var ah = inp.parentNode.querySelector('.lm-hint'); if (ah) ah.textContent = 'Đã nhập tay'; }
       if (bind === 'unit.netOverride') syncNetField();
       if (bind === 'unit.pricePerM2' || bind === 'dates.handoverDate' || bind === 'dates.titleAfterMonths') rememberProject();
       if (/months$|payoffMonth/.test(bind) && inp.type === 'number') {

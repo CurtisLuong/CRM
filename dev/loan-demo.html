@@ -22,6 +22,11 @@
              { id: 'b2', project_id: 'p1', code: 'THE RISE 5', approved_price_per_m2: 19500000 }];
     var U = [{ id: 'u1', project_id: 'p1', building_id: 'b1', code: 'R30413', area_m2: 53.6, apt_type: '2N-2WC', status: 'available', net_price_override: 1067258010 },
              { id: 'u2', project_id: 'p1', building_id: 'b1', code: 'R30414', area_m2: 60.2, apt_type: '2N+, 2WC', price_per_m2_override: 20500000, status: 'holding' }];
+    // Loại căn: dự án có Studio/1N/2N/2N-G; toà THE RISE 3 chỉ bán 2N-2WC (55m²) và 2N-2WC-G
+    var PT = [{ project_id: 'p1', apt_type: 'Studio', typical_area_m2: 32 }, { project_id: 'p1', apt_type: '1N-1WC', typical_area_m2: 45 },
+              { project_id: 'p1', apt_type: '2N-2WC', typical_area_m2: 53.6 }, { project_id: 'p1', apt_type: '2N-2WC-G', typical_area_m2: 68 }];
+    var BT = [{ building_id: 'b1', apt_type: '2N-2WC', area_m2: 55 }, { building_id: 'b1', apt_type: '2N-2WC-G', area_m2: null }];
+    U.push({ id: 'u3', project_id: 'p1', building_id: 'b1', code: 'R30415', apt_type: '2N-2WC-G', status: 'available' }); // chưa nhập diện tích riêng
     var eq = function (a, b) { return String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase(); };
     var demoCatalog = {
       projects: function () { return P; },
@@ -32,6 +37,21 @@
       unitByCode: function (bid, c) { return U.filter(function (u) { return u.building_id === bid && eq(u.code, c); })[0] || null; },
       unitPrice: function (u) { var b = B.filter(function (x) { return x.id === u.building_id; })[0]; return u.price_per_m2_override || (b && b.approved_price_per_m2) || null; },
       statusLabel: function (s) { return { available: 'Còn', holding: 'Giữ chỗ', sold: 'Đã bán' }[s] || 'Còn'; },
+      projectTypes: function (pid) { return PT.filter(function (t) { return t.project_id === pid; }); },
+      buildingTypes: function (bid) {
+        var b = B.filter(function (x) { return x.id === bid; })[0]; if (!b) return [];
+        var own = BT.filter(function (t) { return t.building_id === bid; });
+        return PT.filter(function (pt) { return pt.project_id === b.project_id && (!own.length || own.some(function (x) { return x.apt_type === pt.apt_type; })); })
+          .map(function (pt) { var bt = own.filter(function (x) { return x.apt_type === pt.apt_type; })[0];
+            return { apt_type: pt.apt_type, area: (bt && bt.area_m2) || pt.typical_area_m2, source: bt && bt.area_m2 ? 'toà' : 'dự án' }; });
+      },
+      typicalArea: function (pid, bid, t) {
+        var bt = BT.filter(function (x) { return x.building_id === bid && x.apt_type === t; })[0];
+        if (bt && bt.area_m2) return bt.area_m2;
+        var pt = PT.filter(function (x) { return x.project_id === pid && x.apt_type === t; })[0];
+        return pt ? pt.typical_area_m2 : null;
+      },
+      unitArea: function (u) { return u.area_m2 || demoCatalog.typicalArea(u.project_id, u.building_id, u.apt_type); },
       updateProject: function (id, patch) { Object.assign(P.filter(function (p) { return p.id === id; })[0], patch); return Promise.resolve(); }
     };
     LoanModule.mount(document.getElementById('loan-app'), {
@@ -39,7 +59,7 @@
       customer: { name: 'Khách demo' },
       consultant: { name: 'Duy', phone: '0389783840' },
       catalog: demoCatalog,
-      aptTypes: ['1N-1WC', '1N+, 1WC', '2N-2WC', '2N+, 2WC', '3N-2WC'],
+      aptTypes: ['Studio', '1N-1WC', '1N+, 1WC', '2N-2WC', '2N+, 2WC', '2N-2WC-G', '3N-2WC'],
       unit: { projectName: 'Happy Home Tràng Cát', building: 'THE RISE 3', code: 'R30413' }
     });
   </script>

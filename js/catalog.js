@@ -6,19 +6,24 @@
 // - Ghi (thêm/sửa/xoá/nhập Excel): cần mạng, ghi thẳng Supabase rồi nạp lại.
 // - Dùng biến `sb` và `CRM` của app.js lúc CHẠY (không lúc tải file) → tải file này
 //   trước hay sau app.js đều được. KHÔNG đặt tên biến `supabase` (CLAUDE.md mục 5.1).
-// - Schema: SQL/add_loan_module.sql + SQL/add_catalog_buildings.sql.
+// - Schema: SQL/add_loan_module.sql + SQL/add_catalog_buildings.sql + SQL/add_apt_types_by_project.sql.
+// - Loại căn + diện tích điển hình: dự án (project_apt_types) → toà (building_apt_types, tập con
+//   của dự án). Diện tích căn = riêng của căn > của loại căn trong toà > của loại căn trong dự án.
 
 const Catalog = (() => {
   const LS_CACHE = 'crm_catalog_v1';
   const STATUS = { available: 'Còn', holding: 'Giữ chỗ', sold: 'Đã bán' };
-  let data = { projects: [], buildings: [], units: [] };
+  let data = { projects: [], buildings: [], units: [], projectTypes: [], buildingTypes: [] };
   const listeners = [];
 
-  try { const c = JSON.parse(localStorage.getItem(LS_CACHE)); if (c && c.projects) data = c; } catch { /* bỏ qua */ }
+  try { const c = JSON.parse(localStorage.getItem(LS_CACHE)); if (c && c.projects) data = Object.assign(data, c); } catch { /* bỏ qua */ }
 
   const norm = (s) => String(s == null ? '' : s).trim().toLowerCase();
   const byOrder = (a, b) => (a.sort_order || 0) - (b.sort_order || 0) ||
     String(a.created_at || '').localeCompare(String(b.created_at || ''));
+  // Loại căn: theo thứ tự danh sách chuẩn APT_TYPES (Studio, 1N…), loại tự gõ xếp sau
+  const typeRank = (t) => { const L = typeof APT_TYPES !== 'undefined' ? APT_TYPES : []; const i = L.indexOf(t); return i < 0 ? 99 : i; };
+  const byTypeOrder = (a, b) => typeRank(a.apt_type) - typeRank(b.apt_type) || String(a.apt_type).localeCompare(String(b.apt_type));
   const byCode = (a, b) => String(a.code).localeCompare(String(b.code), 'vi', { numeric: true });
 
   function online() { return typeof sb !== 'undefined' && sb && (typeof CRM === 'undefined' || CRM.isOnline()); }
@@ -32,12 +37,15 @@ const Catalog = (() => {
   async function load() {
     if (!online()) return false;
     try {
-      const [p, b, u] = await Promise.all([
+      const [p, b, u, pt, bt] = await Promise.all([
         sb.from('projects').select('id,name,vat_rate,kpbt_rate,handover_date,title_after_months,payment_schedule,sort_order,created_at'),
         sb.from('buildings').select('id,project_id,code,approved_price_per_m2,note,sort_order,created_at'),
         sb.from('units').select('id,project_id,building_id,code,area_m2,floor,direction,apt_type,price_per_m2_override,net_price_override,status,note'),
+        sb.from('project_apt_types').select('id,project_id,apt_type,typical_area_m2,sort_order'),
+        sb.from('building_apt_types').select('id,building_id,project_id,apt_type,area_m2'),
       ]);
-      data = { projects: check(p).sort(byOrder), buildings: check(b).sort(byOrder), units: check(u).sort(byCode) };
+      data = { projects: check(p).sort(byOrder), buildings: check(b).sort(byOrder), units: check(u).sort(byCode),
+               projectTypes: check(pt).sort(byTypeOrder), buildingTypes: check(bt) };
       emit();
       return true;
     } catch (e) { console.warn('[catalog] load lỗi, dùng cache:', e.message || e); return false; }
@@ -63,6 +71,39 @@ const Catalog = (() => {
   }
   const statusLabel = (s) => STATUS[s] || STATUS.available;
 
+  // ---------- Loại căn + diện tích điển hình ----------
+  // Loại căn của dự án: [{ apt_type, typical_area_m2 }]
+  const projectTypes = (projectId) => data.projectTypes.filter((t) => t.project_id === projectId);
+  // Loại căn ĐÃ KHAI BÁO riêng cho toà (có thể rỗng = toà dùng mọi loại của dự án)
+  const buildingTypeRows = (buildingId) => data.buildingTypes.filter((t) => t.building_id === buildingId);
+  // Loại căn HIỆU LỰC của toà: [{ apt_type, area, source: 'toà' | 'dự án' | null }]
+  function buildingTypes(buildingId) {
+    const b = building(buildingId);
+    if (!b) return [];
+    const own = buildingTypeRows(buildingId);
+    return projectTypes(b.project_id)
+      .filter((pt) => !own.length || own.some((x) => x.apt_type === pt.apt_type))
+      .map((pt) => {
+        const bt = own.find((x) => x.apt_type === pt.apt_type);
+        const area = (bt && bt.area_m2) || pt.typical_area_m2 || null;
+        return { apt_type: pt.apt_type, area: area ? +area : null,
+                 source: bt && bt.area_m2 ? 'toà' : pt.typical_area_m2 ? 'dự án' : null };
+      });
+  }
+  // Diện tích điển hình của 1 loại căn: toà > dự án
+  function typicalArea(projectId, buildingId, aptType) {
+    if (!aptType) return null;
+    const bt = buildingId && data.buildingTypes.find((x) => x.building_id === buildingId && x.apt_type === aptType);
+    if (bt && bt.area_m2) return +bt.area_m2;
+    const pt = data.projectTypes.find((x) => x.project_id === projectId && x.apt_type === aptType);
+    return pt && pt.typical_area_m2 ? +pt.typical_area_m2 : null;
+  }
+  // Diện tích hiệu lực của căn: riêng của căn > toà > dự án
+  function unitArea(u) {
+    if (!u) return null;
+    return u.area_m2 ? +u.area_m2 : typicalArea(u.project_id, u.building_id, u.apt_type);
+  }
+
   // ---------- Ghi ----------
   async function addProject(name, extra) {
     needOnline();
@@ -87,6 +128,8 @@ const Catalog = (() => {
     data.projects = data.projects.filter((p) => p.id !== id);
     data.buildings = data.buildings.filter((b) => b.project_id !== id);
     data.units = data.units.filter((u) => u.project_id !== id && !bIds.includes(u.building_id));
+    data.projectTypes = data.projectTypes.filter((t) => t.project_id !== id);
+    data.buildingTypes = data.buildingTypes.filter((t) => t.project_id !== id);
     emit();
   }
   async function saveBuilding(b) { // có id → sửa, không → thêm
@@ -107,6 +150,7 @@ const Catalog = (() => {
     check(await sb.from('buildings').delete().eq('id', id));
     data.buildings = data.buildings.filter((b) => b.id !== id);
     data.units = data.units.filter((u) => u.building_id !== id);
+    data.buildingTypes = data.buildingTypes.filter((t) => t.building_id !== id);
     emit();
   }
   async function saveUnit(u) {
@@ -119,6 +163,7 @@ const Catalog = (() => {
       price_per_m2_override: u.price_per_m2_override || null, status: u.status || 'available',
     };
     if (!payload.code) throw new Error('Thiếu mã căn');
+    if (await ensureTypes([payload])) await load(); // loại căn mới → khai báo trước (ràng buộc DB)
     if (u.id) {
       const row = check(await sb.from('units').update(payload).eq('id', u.id).select().single());
       Object.assign(data.units.find((x) => x.id === u.id), row);
@@ -131,6 +176,51 @@ const Catalog = (() => {
     needOnline();
     check(await sb.from('units').delete().eq('id', id));
     data.units = data.units.filter((u) => u.id !== id); emit();
+  }
+
+  // Căn mang loại căn chưa khai báo → tự thêm vào dự án (và vào toà nếu toà đã có danh sách riêng)
+  async function ensureTypes(units) {
+    const pNeed = new Map(), bNeed = new Map();
+    units.forEach((u) => {
+      if (!u.apt_type) return;
+      if (!data.projectTypes.some((t) => t.project_id === u.project_id && t.apt_type === u.apt_type)) {
+        pNeed.set(u.project_id + '|' + u.apt_type, { project_id: u.project_id, apt_type: u.apt_type });
+      }
+      const own = buildingTypeRows(u.building_id);
+      if (own.length && !own.some((t) => t.apt_type === u.apt_type)) {
+        bNeed.set(u.building_id + '|' + u.apt_type, { building_id: u.building_id, project_id: u.project_id, apt_type: u.apt_type });
+      }
+    });
+    if (pNeed.size) check(await sb.from('project_apt_types').upsert([...pNeed.values()], { onConflict: 'project_id,apt_type', ignoreDuplicates: true }));
+    if (bNeed.size) check(await sb.from('building_apt_types').upsert([...bNeed.values()], { onConflict: 'building_id,apt_type', ignoreDuplicates: true }));
+    return pNeed.size + bNeed.size > 0;
+  }
+
+  // Loại căn của dự án: thêm / sửa (đổi tên → DB tự đổi theo ở toà + căn), xoá (toà mất theo)
+  async function saveProjectType(t) {
+    needOnline();
+    const payload = { project_id: t.project_id, apt_type: String(t.apt_type || '').trim(), typical_area_m2: t.typical_area_m2 || null };
+    if (!payload.apt_type) throw new Error('Thiếu tên loại căn');
+    if (t.id) check(await sb.from('project_apt_types').update(payload).eq('id', t.id));
+    else check(await sb.from('project_apt_types').insert(payload));
+    await load();
+  }
+  async function deleteProjectType(id) {
+    needOnline();
+    check(await sb.from('project_apt_types').delete().eq('id', id));
+    await load();
+  }
+  // Ghi lại toàn bộ loại căn của 1 toà: rows = [{ apt_type, area_m2 }] (rỗng = dùng mọi loại của dự án)
+  async function setBuildingTypes(buildingId, rows) {
+    needOnline();
+    const b = building(buildingId);
+    check(await sb.from('building_apt_types').delete().eq('building_id', buildingId));
+    if (rows.length) {
+      check(await sb.from('building_apt_types').insert(rows.map((r) => ({
+        building_id: buildingId, project_id: b.project_id, apt_type: r.apt_type, area_m2: r.area_m2 || null,
+      }))));
+    }
+    await load();
   }
 
   // ---------- Nhập hàng loạt (Excel) ----------
@@ -181,6 +271,7 @@ const Catalog = (() => {
       check(await sb.from('units').upsert(uRows.slice(i, i + 500), { onConflict: 'building_id,code' }));
     }
     stat.units = uRows.length;
+    await ensureTypes(uRows);
     await load();
     return stat;
   }
@@ -189,6 +280,8 @@ const Catalog = (() => {
     STATUS, load, onChange: (fn) => listeners.push(fn),
     projects, project, projectByName, buildingsOf, building, buildingByCode,
     unitsOf, unitByCode, unitsOfProject, unitPrice, statusLabel,
+    projectTypes, buildingTypeRows, buildingTypes, typicalArea, unitArea,
     addProject, updateProject, deleteProject, saveBuilding, deleteBuilding, saveUnit, deleteUnit, importRows,
+    saveProjectType, deleteProjectType, setBuildingTypes,
   };
 })();

@@ -249,7 +249,9 @@ function updateInterestUI(pct) {
 }
 
 // Loại căn có sẵn (select + "Khác" tự nhập, không lưu vào danh sách chung).
-const APT_TYPES = ['1N-1WC', '1N+, 1WC', '2N-2WC', '2N+, 2WC', '3N-2WC'];
+// Mỗi dự án / toà chỉ dùng 1 phần danh sách này + diện tích điển hình riêng — lưu ở bảng
+// project_apt_types / building_apt_types (SQL/add_apt_types_by_project.sql, js/catalog.js).
+const APT_TYPES = ['Studio', '1N-1WC', '1N+, 1WC', '2N-2WC', '2N+, 2WC', '2N-2WC-G', '3N-2WC'];
 
 // Chuẩn hoá "loại căn" về đúng 1 dạng chuẩn trong APT_TYPES nếu khớp — BẤT KỂ khác dấu
 // cách/phẩy/gạch, hoa/thường. Vd "2N+,2WC" và "2N+, 2WC" → cùng "2N+, 2WC" (không còn
@@ -1207,11 +1209,7 @@ function openForm(id) {
   const reg = c.registered_at ? new Date(c.registered_at) : (c.created_at ? new Date(c.created_at) : new Date());
   f.registered_at.value = toLocalDatetimeInput(reg);
   // Loại căn: chuẩn hoá về dạng chuẩn trước → khớp option có sẵn → chọn; nếu khác → "Khác".
-  const at = canonicalAptType(c.apt_type || '');
-  if (!at) { f.apt_type_select.value = ''; f.apt_type_other.value = ''; }
-  else if (APT_TYPES.includes(at)) { f.apt_type_select.value = at; f.apt_type_other.value = ''; }
-  else { f.apt_type_select.value = '__other'; f.apt_type_other.value = at; }
-  toggleAptOther();
+  setFormAptType(c.apt_type || ''); // danh sách sẽ lọc lại theo dự án ở renderProjSelect() bên dưới
   f.apt_code.value = c.apt_code || '';
   f.building_code.value = c.building_code || '';
   f.apt_area.value = c.apt_area || '';
@@ -1276,6 +1274,7 @@ function formCatalogProjects() {
 }
 function formCatalogBuildings() { return formCatalogProjects().flatMap((p) => Catalog.buildingsOf(p.id)); }
 function refreshAptSuggestions() {
+  refreshAptTypeOptions();
   const f = $('#customer-form');
   const bs = formCatalogBuildings();
   const multiProj = formCatalogProjects().length > 1;
@@ -1304,21 +1303,75 @@ function fillFromCatalogUnit() {
   if (!u) return; // không có / trùng mã ở nhiều toà mà chưa chọn toà → không đoán
   f.apt_code.value = u.code;
   f.building_code.value = u.building;
-  if (u.area_m2) f.apt_area.value = Number(u.area_m2);
+  const area = Catalog.unitArea(u); // riêng của căn > điển hình của loại căn (toà > dự án)
+  if (area) f.apt_area.value = area;
   if (u.floor) f.apt_floor.value = u.floor;
   if (u.direction && [...f.apt_direction.options].some((o) => o.value === u.direction)) f.apt_direction.value = u.direction;
-  if (u.apt_type) {
-    const at = canonicalAptType(u.apt_type);
-    if (APT_TYPES.includes(at)) { f.apt_type_select.value = at; f.apt_type_other.value = ''; }
-    else { f.apt_type_select.value = '__other'; f.apt_type_other.value = at; }
-    toggleAptOther();
-  }
+  if (u.apt_type) setFormAptType(u.apt_type);
   const price = Catalog.unitPrice(u);
-  if (!f.apt_price.value && price && u.area_m2) f.apt_price.value = Math.round(price * u.area_m2);
+  if (!f.apt_price.value && price && area) f.apt_price.value = Math.round(price * area);
   const p = Catalog.project(u.project_id);
   if (p && !selectedProjects.includes(p.name)) { selectedProjects.push(p.name); renderProjSelect(); }
   refreshAptSuggestions();
   showToast('Đã điền thông tin căn từ giỏ hàng');
+}
+
+// ---- Ô Loại căn: chỉ hiện loại căn của dự án đã chọn (toà đã nhập → loại căn của toà) ----
+// Chưa chọn dự án / dự án chưa khai báo loại căn trong Giỏ hàng → danh sách chuẩn APT_TYPES.
+// Trả về [[loại, diện tích điển hình | null], ...] hoặc null (= dùng danh sách chuẩn).
+function formTypeList() {
+  const f = $('#customer-form');
+  const ps = selectedProjects.map((n) => Catalog.projectByName(n)).filter(Boolean);
+  if (!ps.length) return null;
+  const bCode = f.building_code.value.trim().toLowerCase();
+  const map = new Map();
+  for (const p of ps) {
+    const b = bCode && Catalog.buildingsOf(p.id).find((x) => x.code.toLowerCase() === bCode);
+    const list = b ? Catalog.buildingTypes(b.id)
+      : Catalog.projectTypes(p.id).map((t) => ({ apt_type: t.apt_type, area: t.typical_area_m2 ? +t.typical_area_m2 : null }));
+    // Nhiều dự án cùng có 1 loại → không hiện diện tích (mỗi dự án 1 số)
+    list.forEach((t) => map.set(t.apt_type, map.has(t.apt_type) ? null : t.area));
+  }
+  if (!map.size) return null;
+  const rank = (t) => { const i = APT_TYPES.indexOf(t); return i < 0 ? 99 : i; };
+  return [...map].sort((a, b) => rank(a[0]) - rank(b[0]) || a[0].localeCompare(b[0]));
+}
+function getFormAptType() {
+  const f = $('#customer-form');
+  return canonicalAptType(f.apt_type_select.value === '__other' ? f.apt_type_other.value.trim() : f.apt_type_select.value) || '';
+}
+// Chọn 1 loại căn: có trong danh sách đang hiện → chọn; không có → "Khác..." + ghi sẵn tên (giữ dữ liệu)
+function setFormAptType(raw) {
+  const f = $('#customer-form');
+  const at = canonicalAptType(raw || '') || '';
+  const has = at && [...f.apt_type_select.options].some((o) => o.value === at);
+  if (!at) { f.apt_type_select.value = ''; f.apt_type_other.value = ''; }
+  else if (has) { f.apt_type_select.value = at; f.apt_type_other.value = ''; }
+  else { f.apt_type_select.value = '__other'; f.apt_type_other.value = at; }
+  toggleAptOther();
+}
+function refreshAptTypeOptions() {
+  const f = $('#customer-form');
+  const cur = getFormAptType();
+  const list = formTypeList() || APT_TYPES.map((t) => [t, null]);
+  f.apt_type_select.innerHTML = '<option value="">— Chưa rõ —</option>' +
+    list.map(([t, a]) => `<option value="${escapeHtml(t)}">${escapeHtml(t)}${a ? ' · ' + String(a).replace('.', ',') + 'm²' : ''}</option>`).join('') +
+    '<option value="__other">Khác...</option>';
+  setFormAptType(cur);
+}
+
+// Chọn loại căn khi ô diện tích còn trống → điền diện tích điển hình (toà đã nhập > dự án đã chọn)
+function fillTypicalArea() {
+  const f = $('#customer-form');
+  if (f.apt_area.value) return; // đã có diện tích (nhập tay / theo căn) → không đè
+  const type = canonicalAptType(f.apt_type_select.value === '__other' ? f.apt_type_other.value : f.apt_type_select.value);
+  if (!type) return;
+  const bCode = f.building_code.value.trim().toLowerCase();
+  for (const p of formCatalogProjects()) {
+    const b = Catalog.buildingsOf(p.id).find((x) => x.code.toLowerCase() === bCode);
+    const a = Catalog.typicalArea(p.id, b && b.id, type);
+    if (a && (b || selectedProjects.length === 1)) { f.apt_area.value = a; return; } // nhiều dự án mà chưa có toà → không đoán
+  }
 }
 
 // Hiện ô "loại căn khác" khi chọn "Khác..."
@@ -1934,15 +1987,8 @@ function applyOcrToForm(d) {
   if (d.residence) f.residence.value = String(d.residence).trim();
   // Loại căn: khớp option có sẵn bất kể dấu cách/phẩy/gạch ("3N, 2WC" ↔ "3N-2WC");
   // khớp → chọn giá trị chuẩn, không khớp → "Khác" + giữ nguyên chữ OCR.
-  if (d.apt_type) {
-    const raw = String(d.apt_type).trim();
-    // Giữ '+' (phân biệt "2N+" với "2N"); chỉ bỏ dấu cách/phẩy/gạch.
-    const norm = (s) => s.toLowerCase().replace(/[^a-z0-9+]/g, '');
-    const canon = APT_TYPES.find((t) => norm(t) === norm(raw));
-    if (canon) { f.apt_type_select.value = canon; f.apt_type_other.value = ''; }
-    else { f.apt_type_select.value = '__other'; f.apt_type_other.value = raw; }
-    toggleAptOther();
-  }
+  // (canonicalAptType giữ '+' để phân biệt "2N+" với "2N"; setFormAptType theo danh sách đang hiện)
+  if (d.apt_type) setFormAptType(String(d.apt_type).trim());
   if (d.apt_area != null && Number(d.apt_area) > 0) f.apt_area.value = Number(d.apt_area);
   if (d.apt_code) f.apt_code.value = String(d.apt_code).trim();
   if (d.building_code) f.building_code.value = String(d.building_code).trim();
@@ -4320,6 +4366,7 @@ document.addEventListener('DOMContentLoaded', () => {
   wireDobInput(); // ô ngày sinh dd/MM/YYYY (tự nhảy đoạn + preview Mệnh/Cung)
   $('#customer-form').care_stage.addEventListener('change', onCareStageChange);
   $('#customer-form').apt_type_select.addEventListener('change', toggleAptOther);
+  $('#customer-form').apt_type_select.addEventListener('change', fillTypicalArea);
 
   // --- OCR: "Nhập từ ảnh" mở modal Chọn ảnh (chỉ hiện nút nếu đã cấu hình WORKER_URL) ---
   if ((window.APP_CONFIG.WORKER_URL || '').trim()) $('#ocr-row').hidden = false;

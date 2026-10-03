@@ -25,6 +25,32 @@ Một danh mục chung cho cả CRM:
 
 Migration: `SQL/add_catalog_buildings.sql` (chạy sau `SQL/add_loan_module.sql`).
 
+## Loại căn & diện tích điển hình
+
+Danh sách loại căn chuẩn: **Studio, 1N-1WC, 1N+, 1WC, 2N-2WC, 2N+, 2WC, 2N-2WC-G, 3N-2WC**
+(`APT_TYPES` trong `js/app.js`), có thêm "Khác" để gõ tay.
+
+| Cấp | Bảng | Lưu gì |
+|---|---|---|
+| Dự án | `project_apt_types` | Các loại căn dự án có + **diện tích điển hình chung** |
+| Toà | `building_apt_types` | Các loại căn của toà (bắt buộc nằm trong danh sách của dự án — DB chặn nếu sai) + diện tích chỉnh riêng theo toà (trống = theo dự án) |
+| Căn | `units.area_m2` | Diện tích riêng của căn |
+
+**Diện tích của 1 căn = riêng của căn → điển hình của loại căn trong toà → điển hình trong dự án.**
+Diện tích điển hình chỉ để gợi ý: bảng tính vay và form khách tự điền, sửa tay được.
+
+- Toà chưa tích loại căn nào thì dùng tất cả loại căn của dự án.
+- Đổi tên loại căn ở dự án: toà và căn đang dùng tên cũ được database tự đổi theo.
+- Xoá loại căn ở dự án: toà cũng bỏ loại đó, còn căn đã nhập vẫn giữ nguyên.
+- Lưu hoặc nhập Excel một căn có loại căn chưa khai báo thì loại đó tự được thêm vào dự án
+  (và vào toà, nếu toà đang có danh sách riêng).
+- Sửa trong màn Giỏ hàng: mở dự án → mục **Loại căn của dự án**; mở toà → **Loại căn của toà**
+  (gõ diện tích cho loại chưa tích thì ô đó tự được tích).
+- Xem nhanh trong Supabase: view `v_building_apt_types` (loại căn hiệu lực của từng toà) và
+  `v_units` (cột `effective_area_m2`, `area_source` = căn / toà / dự án).
+
+Migration: `SQL/add_apt_types_by_project.sql` (chạy sau `add_catalog_buildings.sql`).
+
 ## 3 cách nhập dữ liệu
 
 1. **Trong app**: menu avatar → **Giỏ hàng**. Thêm/sửa/xoá dự án, toà (kèm giá duyệt),
