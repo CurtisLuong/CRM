@@ -12,6 +12,7 @@
   const openP = new Set(), openB = new Set(); // dự án / toà đang mở (giữ khi vẽ lại)
   let editingUnit = null;                     // id căn đang sửa
   let pendingImport = null;                   // { rows, cols, fileName }
+  const schedDraft = new Map();               // pid → tiến độ đang sửa (chưa lưu)
 
   const fmt = (n) => (n == null || n === '' ? '' : Math.round(+n).toLocaleString('vi-VN'));
   const digits = (s) => { const d = String(s == null ? '' : s).replace(/[^\d]/g, ''); return d ? +d : null; };
@@ -69,6 +70,82 @@
       }).join('')}
       <button type="button" data-act="building-types-save" class="btn-small">Lưu loại căn của toà</button></div>`;
   }
+  // ---------- Tiến độ thanh toán của dự án (projects.payment_schedule; null = mặc định 7 đợt) ----------
+  // Cách chia VAT / KPBT theo đợt: xem calcMilestones trong js/loan/loan-engine.js.
+  const DUE = [['offsetDays', 'Sau ký HĐ (ngày)'], ['handover', 'Ngày bàn giao'], ['afterHandoverMonths', 'Sau bàn giao (tháng)'], ['date', 'Ngày cố định']];
+  const ROLE = [['', 'Thường'], ['handover', 'Bàn giao (+KPBT)'], ['title', 'Nhận sổ (không VAT)']];
+  const clone = (o) => JSON.parse(JSON.stringify(o));
+  function schedOf(p) {
+    if (!schedDraft.has(p.id)) schedDraft.set(p.id, clone(p.payment_schedule && p.payment_schedule.length ? p.payment_schedule : LoanEngine.DEFAULT_SCHEDULE));
+    return schedDraft.get(p.id);
+  }
+  function schedMeta(rows) {
+    const total = Math.round(rows.reduce((s, m) => s + (+m.pct || 0), 0) * 100) / 100;
+    let vat = [];
+    try { vat = LoanEngine.vatPercents(rows); } catch { /* đang nhập dở */ }
+    return { total, vat, errors: LoanEngine.validateSchedule(rows) };
+  }
+  function scheduleHtml(p) {
+    const rows = schedOf(p);
+    const custom = !!(p.payment_schedule && p.payment_schedule.length);
+    const dirty = JSON.stringify(rows) !== JSON.stringify(custom ? p.payment_schedule : LoanEngine.DEFAULT_SCHEDULE);
+    const m = schedMeta(rows);
+    return `<div class="cat-types cat-sched" data-form="schedule" data-pid="${p.id}">
+      <div class="cat-types-title">Tiến độ thanh toán ·
+        ${custom ? `<b>riêng của dự án (${p.payment_schedule.length} đợt)</b>` : '<span class="cat-muted">đang dùng mặc định 7 đợt — sửa rồi bấm Lưu để tạo tiến độ riêng</span>'}
+        ${dirty ? ' <span class="cat-dirty">• chưa lưu</span>' : ''}</div>
+      <div class="cat-table-wrap"><table class="cat-units cat-sched-table"><thead><tr>
+        <th>#</th><th>Tên đợt</th><th>% giá trị</th><th>Thời điểm</th><th></th><th>Loại đợt</th><th>% VAT</th><th></th></tr></thead><tbody>
+        ${rows.map((r, i) => {
+          const d = r.due || { type: 'offsetDays', value: 0 };
+          const valInp = r.role === 'title' ? `<span class="cat-muted" title="Sửa ở ô 'Nhận sổ sau BG' của dự án">${String(+p.title_after_months || 1.5).replace('.', ',')} tháng (theo dự án)</span>`
+            : d.type === 'handover' ? '<span class="cat-muted">—</span>'
+            : d.type === 'date' ? `<input data-s="value" data-i="${i}" type="date" value="${escapeHtml(d.value || '')}">`
+            : `<input data-s="value" data-i="${i}" inputmode="decimal" value="${d.value ?? ''}" style="width:70px">`;
+          return `<tr><td>${i + 1}</td>
+            <td><input data-s="label" data-i="${i}" value="${escapeHtml(r.label || '')}" placeholder="Đợt ${i + 1}"></td>
+            <td><input data-s="pct" data-i="${i}" inputmode="decimal" value="${r.pct ?? ''}" style="width:64px"></td>
+            <td>${r.role === 'title' ? '<span class="cat-muted">Sau bàn giao</span>'
+              : `<select data-s="dueType" data-i="${i}">${DUE.map(([v, l]) => opt(v, d.type, l)).join('')}</select>`}</td>
+            <td>${valInp}</td>
+            <td><select data-s="role" data-i="${i}">${ROLE.map(([v, l]) => opt(v, r.role || '', l)).join('')}</select></td>
+            <td class="cat-vat" data-vat="${i}">${m.vat[i] != null ? m.vat[i] + '%' : ''}</td>
+            <td class="cat-act"><button type="button" data-act="sched-del" data-i="${i}" class="btn-small" aria-label="Xoá đợt">✕</button></td></tr>`;
+        }).join('')}
+      </tbody></table></div>
+      <div class="cat-sched-foot"><span data-sched-total>Tổng: <b>${m.total}%</b></span>
+        <span class="cat-sched-err" data-sched-err>${m.errors.map(escapeHtml).join(' · ')}</span></div>
+      <div class="cat-sched-btns">
+        <button type="button" data-act="sched-add" class="btn-small">＋ Thêm đợt</button>
+        <button type="button" data-act="sched-save" class="btn-small">Lưu tiến độ</button>
+        ${dirty ? '<button type="button" data-act="sched-undo" class="btn-small">Huỷ thay đổi</button>' : ''}
+        ${custom ? '<button type="button" data-act="sched-default" class="btn-small btn-danger">Về mặc định 7 đợt</button>' : ''}
+      </div>
+      <div class="cat-muted">VAT: đợt nào vào X% giá trị căn thì vào X% tổng VAT; đợt nhận sổ không VAT — phần đó dồn vào đợt ngay trước nó. KPBT thu ở đợt bàn giao. Ngân hàng giải ngân từ đợt 2.</div>
+    </div>`;
+  }
+  // Sửa 1 ô trong bảng tiến độ → cập nhật bản nháp + % VAT / tổng tại chỗ (không vẽ lại, giữ con trỏ)
+  function onSchedInput(el) {
+    const box = el.closest('[data-form="schedule"]');
+    const p = Catalog.project(box.dataset.pid), rows = schedOf(p), i = +el.dataset.i, r = rows[i], k = el.dataset.s;
+    if (k === 'label') r.label = el.value;
+    if (k === 'pct') r.pct = num(el.value);
+    if (k === 'value') r.due = Object.assign({}, r.due, { value: r.due && r.due.type === 'date' ? el.value : num(el.value) });
+    if (k === 'dueType' || k === 'role') {
+      if (k === 'dueType') r.due = { type: el.value, value: el.value === 'handover' ? undefined : el.value === 'date' ? '' : 0 };
+      if (k === 'role') {
+        if (el.value) r.role = el.value; else delete r.role;
+        if (el.value === 'handover') r.due = { type: 'handover' };
+        if (el.value === 'title') r.due = { type: 'afterHandoverMonths', value: +p.title_after_months || 1.5 };
+      }
+      render(); return;
+    }
+    const m = schedMeta(rows);
+    box.querySelectorAll('[data-vat]').forEach((td) => { const v = m.vat[+td.dataset.vat]; td.textContent = v != null ? v + '%' : ''; });
+    box.querySelector('[data-sched-total]').innerHTML = `Tổng: <b>${m.total}%</b>`;
+    box.querySelector('[data-sched-err]').textContent = m.errors.join(' · ');
+  }
+
   // Loại căn của dự án + diện tích điển hình chung
   function projectTypesHtml(p) {
     const rows = Catalog.projectTypes(p.id);
@@ -116,6 +193,7 @@
         <label>KPBT %<input name="kpbt_rate" inputmode="decimal" value="${p.kpbt_rate ?? 2}"></label>
         <button type="button" data-act="project-save" class="btn-small">Lưu dự án</button>
         <button type="button" data-act="project-del" class="btn-small btn-danger">Xoá dự án</button></div>
+      ${scheduleHtml(p)}
       ${projectTypesHtml(p)}
       <div class="cat-bs">${bs.map(buildingHtml).join('')}</div>
       <div class="cat-row cat-add" data-form="building-add" data-pid="${p.id}">
@@ -159,6 +237,9 @@
     if (el.hasAttribute && el.hasAttribute('data-money')) { const v = digits(el.value); el.value = v == null ? '' : fmt(v); }
   });
 
+  body.addEventListener('input', (e) => { if (e.target.dataset && e.target.dataset.s && e.target.tagName === 'INPUT') onSchedInput(e.target); });
+  body.addEventListener('change', (e) => { if (e.target.dataset && e.target.dataset.s && e.target.tagName === 'SELECT') onSchedInput(e.target); });
+
   body.addEventListener('input', (e) => { // gõ diện tích cho loại căn chưa tích → tự tích
     const a = e.target.closest && e.target.closest('[data-type-area]');
     if (a && a.value.trim()) { const cb = a.parentNode.querySelector('[data-type-chk]'); if (cb) cb.checked = true; }
@@ -167,6 +248,7 @@
   body.addEventListener('keydown', (e) => { // Enter trong ô = bấm nút chính của dòng đó
     if (e.key !== 'Enter' || e.target.tagName !== 'INPUT') return;
     const row = e.target.closest('[data-form]');
+    if (row && row.dataset.form === 'schedule') { e.preventDefault(); return; } // bảng tiến độ: Enter không làm gì
     const btn = row && row.querySelector('[data-act$="-save"],[data-act$="-add"]');
     if (btn) { e.preventDefault(); btn.click(); }
   });
@@ -224,6 +306,34 @@
         return { apt_type: cb.value, area_m2: a > 0 ? a : null };
       });
       return run(() => Catalog.setBuildingTypes(row.dataset.bid, rows), 'Đã lưu loại căn của toà');
+    }
+    if (act && act.startsWith('sched-')) {
+      const p = Catalog.project(row.dataset.pid), rows = schedOf(p);
+      if (act === 'sched-add') { // thêm đợt thường TRƯỚC đợt bàn giao/nhận sổ, cách đợt trước 60 ngày
+        let at = rows.findIndex((r) => r.role === 'handover' || r.role === 'title');
+        if (at < 0) at = rows.length;
+        const prev = rows.slice(0, at).reverse().find((r) => r.due && r.due.type === 'offsetDays');
+        rows.splice(at, 0, { label: '', pct: 0, due: { type: 'offsetDays', value: prev ? (+prev.due.value || 0) + 60 : 0 } });
+        render(); return;
+      }
+      if (act === 'sched-del') { rows.splice(+b.dataset.i, 1); render(); return; }
+      if (act === 'sched-undo') { schedDraft.delete(p.id); render(); return; }
+      if (act === 'sched-default') {
+        if (!confirm(`Dự án "${p.name}" quay về tiến độ mặc định 7 đợt?`)) return;
+        return run(async () => { await Catalog.updateProject(p.id, { payment_schedule: null }); schedDraft.delete(p.id); }, 'Đã về tiến độ mặc định');
+      }
+      if (act === 'sched-save') {
+        const errs = LoanEngine.validateSchedule(rows);
+        if (errs.length) return setStatus('⚠️ Tiến độ chưa hợp lệ: ' + errs.join(' · '));
+        const clean = rows.map((r, i) => {
+          const o = { label: (r.label || '').trim() || 'Đợt ' + (i + 1), pct: +r.pct, due: { type: r.due.type } };
+          if (r.due.type !== 'handover') o.due.value = r.due.type === 'date' ? r.due.value : (+r.due.value || 0);
+          if (r.role === 'title') o.due = { type: 'afterHandoverMonths', value: +p.title_after_months || 1.5 }; // 1 chỗ nhập: ô của dự án
+          if (r.role) o.role = r.role;
+          return o;
+        });
+        return run(async () => { await Catalog.updateProject(p.id, { payment_schedule: clean }); schedDraft.delete(p.id); }, 'Đã lưu tiến độ thanh toán');
+      }
     }
     if (act === 'unit-add') return run(() => Catalog.saveUnit(unitPayload(row)), 'Đã thêm căn');
     if (act === 'unit-save') return run(async () => { await Catalog.saveUnit(unitPayload(row)); editingUnit = null; }, 'Đã lưu căn');
@@ -360,7 +470,7 @@
   // ---------- Mở / đóng ----------
   $('#catalog-btn').addEventListener('click', async () => {
     $('#topbar-menu').classList.remove('open'); // đóng menu avatar
-    pendingImport = null; editingUnit = null;
+    pendingImport = null; editingUnit = null; schedDraft.clear();
     $('#cat-import-preview').hidden = true;
     setStatus('');
     modal.showModal();

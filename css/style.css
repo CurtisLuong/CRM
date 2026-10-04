@@ -1477,3 +1477,12 @@ dialog#img-picker .ocr-status { margin-top: 8px; }
 .cat-type-chk { display: inline-flex; align-items: center; gap: 6px; margin: 0 14px 6px 0; white-space: nowrap; }
 .cat-type-chk input[type="checkbox"] { width: 16px; height: 16px; }
 .cat-type-chk input[data-type-area] { width: 96px; padding: 4px 6px; font-size: 13px; }
+/* Tiến độ thanh toán theo dự án */
+.cat-sched { border-top: 1px dashed var(--line); }
+.cat-sched-table input, .cat-sched-table select { min-width: 0; }
+.cat-sched-table td:nth-child(2) input { min-width: 130px; }
+.cat-sched-table td.cat-vat { font-variant-numeric: tabular-nums; color: var(--good); font-weight: 600; }
+.cat-sched-foot { display: flex; gap: 12px; flex-wrap: wrap; align-items: baseline; margin: 6px 0; font-size: 13px; }
+.cat-sched-err { color: var(--seal); font-size: 12px; }
+.cat-sched-btns { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+.cat-dirty { color: var(--seal); font-weight: 600; font-size: 12px; }

@@ -345,14 +345,16 @@
       '</div></section>';
 
       // Tiến độ
-      html += '<section class="lm-card"><h3>Tiến độ thanh toán</h3><div class="lm-table-wrap"><table class="lm-table">' +
+      var pc = projectCfg(), customSched = !!(pc && pc.payment_schedule && pc.payment_schedule.length);
+      html += '<section class="lm-card"><h3>Tiến độ thanh toán · ' + r.milestones.length + ' đợt' + (customSched ? ' (riêng của dự án)' : ' (mặc định)') + '</h3><div class="lm-table-wrap"><table class="lm-table">' +
         '<thead><tr><th>Đợt</th><th class="n">Số tiền</th><th class="n">Ai trả</th></tr></thead><tbody>' +
         r.milestones.map(function (m, i) {
           var who = [];
           if (m.customer > 0) who.push('<span class="lm-pill own">Khách ' + money(m.customer) + '</span>');
           if (m.bank > 0) who.push('<span class="lm-pill bank">NH ' + money(m.bank) + '</span>');
           return '<tr><td><b>Đợt ' + (i + 1) + '</b> · ' + m.pct + '%<span class="lm-sub">' + esc(m.label) + '</span><span class="lm-sub">' + dateVN(m.date) + '</span></td>' +
-            '<td class="n">' + money(m.amount) + (m.kpbt ? '<span class="lm-sub">gồm KPBT ' + money(m.kpbt) + '</span>' : '') + '</td>' +
+            '<td class="n">' + money(m.amount) + (m.vat ? '<span class="lm-sub">gồm VAT ' + money(m.vat) + '</span>' : (m.role === 'title' ? '<span class="lm-sub">không VAT</span>' : '')) +
+            (m.kpbt ? '<span class="lm-sub">gồm KPBT ' + money(m.kpbt) + '</span>' : '') + '</td>' +
             '<td class="n">' + who.join('<br>') + '</td></tr>';
         }).join('') +
         '</tbody><tfoot><tr><td>Tổng</td><td class="n">' + money(P.full) + '</td><td class="n"><span class="lm-pill own">Khách ' + money(r.loan.customerTotal) + '</span><br><span class="lm-pill bank">NH ' + money(r.loan.amount) + '</span></td></tr></tfoot>' +

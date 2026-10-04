@@ -104,30 +104,74 @@
     return addDays(T, +d.value || 0);
   }
 
+  // Quy tắc chia tiền từng đợt (áp cho MỌI tiến độ, không riêng 7 đợt):
+  //  - Đợt thường: X% giá trị căn hộ (giá thuần) + X% tổng VAT.
+  //  - Đợt nhận sổ (role 'title', là đợt cuối): chỉ X% giá thuần, KHÔNG VAT.
+  //  - VAT phải thu đủ TRƯỚC đợt nhận sổ: phần VAT của đợt nhận sổ (+ phần lẻ làm tròn) dồn vào
+  //    đợt KẾ CUỐI (đợt ngay trước đợt nhận sổ — thường chính là đợt bàn giao).
+  //  - Kinh phí bảo trì (KPBT) thu ở đợt bàn giao (role 'handover').
+  //  VD 10 đợt: Đ1 30% (+30% VAT) · Đ2–8 mỗi đợt 5% (+5% VAT) · Đ9 bàn giao 30% (+35% VAT) + KPBT
+  //  · Đ10 nhận sổ 5% (không VAT).
   function calcMilestones(price, schedule, dates) {
-    schedule = schedule || DEFAULT_SCHEDULE;
+    schedule = schedule && schedule.length ? schedule : DEFAULT_SCHEDULE;
     var warnings = [];
     var pctSum = schedule.reduce(function (s, m) { return s + (+m.pct || 0); }, 0);
     if (Math.abs(pctSum - 100) > 0.001) warnings.push('Tổng tỷ lệ các đợt = ' + pctSum + '% (khác 100%)');
 
     var rows = schedule.map(function (m, i) {
-      var amount = 0, vatPart = 0;
-      if (m.role === 'title') { amount = round(price.net * m.pct / 100); vatPart = 0; }
-      else if (m.role !== 'handover') { amount = round(price.gross * m.pct / 100); vatPart = round(price.vat * m.pct / 100); }
-      return { index: i, label: m.label, pct: +m.pct, role: m.role || null,
-               date: toISO(dueDate(m, dates)), amount: amount, vat: vatPart, kpbt: 0 };
+      return { index: i, label: m.label, pct: +m.pct || 0, role: m.role || null,
+               date: toISO(dueDate(m, dates)), amount: 0, vat: 0, kpbt: 0 };
     });
-    var h = rows.filter(function (r) { return r.role === 'handover'; })[0];
-    if (h) {
-      var others = rows.reduce(function (s, r) { return r === h ? s : s + r.amount; }, 0);
-      var othersVat = rows.reduce(function (s, r) { return r === h ? s : s + r.vat; }, 0);
-      h.amount = price.full - others;
-      h.vat = price.vat - othersVat;
-      h.kpbt = price.kpbt;
-    } else {
-      warnings.push('Không có đợt bàn giao — KPBT chưa được thu');
-    }
-    return { rows: rows, warnings: warnings };
+    // Đợt "gánh" phần VAT còn lại: đợt ngay trước đợt nhận sổ đầu tiên; không có đợt nhận sổ
+    // → đợt bàn giao; không có cả hai → đợt cuối.
+    var firstTitle = -1;
+    rows.forEach(function (r, i) { if (firstTitle < 0 && r.role === 'title') firstTitle = i; });
+    var hIdx = -1;
+    rows.forEach(function (r, i) { if (hIdx < 0 && r.role === 'handover') hIdx = i; });
+    var absorb = firstTitle > 0 ? firstTitle - 1 : (hIdx >= 0 ? hIdx : rows.length - 1);
+    if (firstTitle === 0) warnings.push('Đợt nhận sổ không thể là đợt đầu tiên');
+    rows.slice(firstTitle + 1).forEach(function (r) {
+      if (firstTitle >= 0 && r.role !== 'title') warnings.push('Có đợt sau đợt nhận sổ ("' + r.label + '") — VAT vẫn dồn vào đợt trước nhận sổ');
+    });
+
+    rows.forEach(function (r, i) {
+      if (i === absorb) return;
+      if (r.role === 'title') { r.amount = round(price.net * r.pct / 100); r.vat = 0; }
+      else { r.amount = round(price.gross * r.pct / 100); r.vat = round(price.vat * r.pct / 100); }
+    });
+    // KPBT: đợt bàn giao; không có đợt bàn giao → đợt gánh VAT (để tổng vẫn = giá FULL)
+    var kIdx = hIdx >= 0 ? hIdx : absorb;
+    if (hIdx < 0) warnings.push('Không có đợt bàn giao — KPBT tính vào đợt ' + (absorb + 1));
+    rows[kIdx].kpbt = price.kpbt;
+    if (kIdx !== absorb) rows[kIdx].amount += price.kpbt;
+    // Đợt gánh = phần còn lại để tổng các đợt đúng bằng giá FULL (gồm VAT dư + làm tròn)
+    var A = rows[absorb];
+    A.amount = price.full - rows.reduce(function (s, r, i) { return i === absorb ? s : s + r.amount; }, 0);
+    A.vat = price.vat - rows.reduce(function (s, r, i) { return i === absorb ? s : s + r.vat; }, 0);
+    return { rows: rows, warnings: warnings, absorbIndex: absorb };
+  }
+
+  // Kiểm tra 1 tiến độ (dùng ở màn cấu hình): trả về danh sách lỗi/cảnh báo, rỗng = hợp lệ
+  function validateSchedule(schedule) {
+    var out = [];
+    if (!schedule || !schedule.length) return ['Chưa có đợt nào'];
+    var sum = schedule.reduce(function (s, m) { return s + (+m.pct || 0); }, 0);
+    if (Math.abs(sum - 100) > 0.001) out.push('Tổng tỷ lệ = ' + (Math.round(sum * 100) / 100) + '% (phải đúng 100%)');
+    var nH = schedule.filter(function (m) { return m.role === 'handover'; }).length;
+    var nT = schedule.filter(function (m) { return m.role === 'title'; }).length;
+    if (nH !== 1) out.push(nH ? 'Chỉ được 1 đợt bàn giao' : 'Cần 1 đợt "Bàn giao" (thu KPBT)');
+    if (nT > 1) out.push('Chỉ được 1 đợt nhận sổ');
+    if (nT === 1 && schedule[schedule.length - 1].role !== 'title') out.push('Đợt nhận sổ phải là đợt cuối');
+    if (nT === 1 && schedule.length < 2) out.push('Cần ít nhất 1 đợt trước đợt nhận sổ');
+    schedule.forEach(function (m, i) { if (!(+m.pct > 0)) out.push('Đợt ' + (i + 1) + ': tỷ lệ phải > 0'); });
+    return out;
+  }
+
+  // % VAT của từng đợt theo quy tắc trên (để hiển thị khi cấu hình tiến độ)
+  function vatPercents(schedule) {
+    var ms = calcMilestones({ net: 1e12, vat: 1e12, gross: 2e12, kpbt: 0, full: 2e12 }, schedule,
+      { contractDate: '2026-01-01', handoverDate: '2027-01-01' });
+    return ms.rows.map(function (r) { return Math.round(r.vat / 1e12 * 10000) / 100; });
   }
 
   // ---------- 3. Phân bổ khách trả / ngân hàng giải ngân ----------
@@ -305,6 +349,7 @@
   var api = {
     DEFAULT_SCHEDULE: DEFAULT_SCHEDULE, BANK_PRESETS: BANK_PRESETS, DEFAULT_LOAN: DEFAULT_LOAN,
     calcPrice: calcPrice, calcMilestones: calcMilestones, allocateLoan: allocateLoan,
+    validateSchedule: validateSchedule, vatPercents: vatPercents,
     simulate: simulate, payoff: payoff, compute: compute,
     util: { parseDate: parseDate, toISO: toISO, addMonths: addMonths, addDays: addDays }
   };

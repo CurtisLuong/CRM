@@ -6,6 +6,24 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-04 — Tiến độ thanh toán riêng theo dự án + quy tắc VAT tổng quát
+
+- **Cấu hình tiến độ** (màn Giỏ hàng → dự án → "Tiến độ thanh toán"): số đợt tuỳ ý; mỗi đợt có
+  tên, %, thời điểm (sau ký HĐ X ngày / ngày bàn giao / sau bàn giao X tháng / ngày cố định),
+  loại đợt (Thường / Bàn giao / Nhận sổ); cột % VAT tự tính; kiểm tra trước khi lưu (tổng 100%,
+  đúng 1 đợt bàn giao, nhận sổ là đợt cuối); "Về mặc định 7 đợt". Lưu vào `projects.payment_schedule`
+  (cột đã có sẵn, **không cần SQL**). Chưa cấu hình → mặc định 7 đợt. Thời điểm đợt nhận sổ lấy theo
+  `title_after_months` của dự án (chỉ nhập ở một chỗ).
+- **Engine `calcMilestones` (quy tắc tổng quát):** đợt thường X% giá thuần + X% VAT; đợt nhận sổ
+  không VAT; VAT còn lại + phần lẻ làm tròn dồn vào **đợt ngay trước đợt nhận sổ** (trước đây dồn cứng
+  vào đợt bàn giao — giống nhau khi bàn giao là đợt kế cuối); KPBT ở đợt bàn giao; không có đợt bàn
+  giao → KPBT vào đợt gánh VAT, kèm cảnh báo. Thêm `validateSchedule`, `vatPercents`.
+  Phiếu CĐT R30413 (7 đợt) vẫn khớp; thêm test 10 đợt (VAT 30·5×7·35·0) + trường hợp bàn giao không ở vị trí kế cuối.
+- **Bảng tính vay:** tiêu đề "Tiến độ thanh toán · N đợt (riêng của dự án / mặc định)"; mỗi đợt
+  hiện "gồm VAT …" / "không VAT".
+- **File:** `js/loan/loan-engine.js`, `js/loan/loan-ui.js`, `js/catalog-ui.js`, `css/style.css`,
+  `tests/loan-engine.test.js`, `docs/gio-hang.md`.
+
 ## 2026-10-03 — Form khách: ô Loại căn lọc theo dự án / toà
 
 - **Lỗi:** chọn Marquee Homes trong form khách vẫn hiện đủ 7 loại căn. Lần trước mới lọc ở

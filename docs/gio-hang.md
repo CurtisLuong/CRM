@@ -25,6 +25,29 @@ Một danh mục chung cho cả CRM:
 
 Migration: `SQL/add_catalog_buildings.sql` (chạy sau `SQL/add_loan_module.sql`).
 
+## Tiến độ thanh toán theo dự án
+
+Mỗi dự án có thể có tiến độ riêng, với số đợt tuỳ ý (cột `projects.payment_schedule`). Dự án
+chưa cấu hình thì dùng **mẫu mặc định 7 đợt** (`DEFAULT_SCHEDULE` trong `js/loan/loan-engine.js`).
+
+Cấu hình trong màn Giỏ hàng → mở dự án → **Tiến độ thanh toán**:
+- Mỗi đợt gồm: tên, % giá trị căn, thời điểm (sau ký HĐ X ngày / ngày bàn giao / sau bàn giao
+  X tháng / ngày cố định), loại đợt (Thường / **Bàn giao** / **Nhận sổ**).
+- Cột **% VAT** tự tính để soát. App chặn lưu nếu tổng khác 100%, nếu không có đúng 1 đợt bàn
+  giao, hoặc nếu đợt nhận sổ không phải đợt cuối.
+- Thời điểm của đợt nhận sổ lấy theo ô "Nhận sổ sau BG" của dự án (chỉ nhập ở một chỗ).
+- "Về mặc định 7 đợt" xoá tiến độ riêng của dự án.
+
+**Quy tắc tính tiền từng đợt** (áp cho mọi tiến độ):
+- Đợt thường: X% giá thuần + **X% tổng VAT**.
+- Đợt nhận sổ (đợt cuối): X% giá thuần, **không VAT**. Phần VAT đó (cùng phần lẻ do làm tròn)
+  dồn vào **đợt ngay trước đợt nhận sổ**.
+- **KPBT** thu ở đợt bàn giao.
+- Ngân hàng giải ngân từ đợt 2.
+
+Ví dụ 10 đợt: Đ1 30% (30% VAT) · Đ2–8 mỗi đợt 5% (5% VAT) · Đ9 bàn giao 30% (35% VAT) + KPBT
+· Đ10 nhận sổ 5% (0% VAT).
+
 ## Loại căn & diện tích điển hình
 
 Danh sách loại căn chuẩn: **Studio, 1N-1WC, 1N+, 1WC, 2N-2WC, 2N+, 2WC, 2N-2WC-G, 3N-2WC**
