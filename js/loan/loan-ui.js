@@ -52,7 +52,9 @@
       unitsOf: function () { return []; }, unitByCode: function () { return null; },
       unitPrice: function () { return null; }, statusLabel: function () { return ''; },
       projectTypes: function () { return []; }, buildingTypes: function () { return []; },
-      typicalArea: function () { return null; }, unitArea: function (u) { return u && u.area_m2 ? +u.area_m2 : null; } };
+      typicalArea: function () { return null; }, unitArea: function (u) { return u && u.area_m2 ? +u.area_m2 : null; },
+      projectPrice: function () { return null; }, buildingPrice: function () { return null; },
+      buildingHandover: function () { return null; } };
     var perProject = {};  // "lần cuối" cho dự án NGOÀI giỏ hàng: bàn giao, nhận sổ, đơn giá
     var presets = clone(E.BANK_PRESETS);
     var showMonthly = false;
@@ -118,13 +120,18 @@
       state.dates.handoverDate = (p && p.handover_date) || m.handoverDate || '';
       state.dates.titleAfterMonths = p && p.title_after_months != null ? +p.title_after_months
         : (m.titleAfterMonths != null ? m.titleAfterMonths : DEFAULT_TITLE_MONTHS);
-      if (!p && m.pricePerM2) state.unit.pricePerM2 = m.pricePerM2;
+      var pp = p && cat.projectPrice(p);           // giá điển hình của dự án
+      if (pp) state.unit.pricePerM2 = pp;
+      else if (!p && m.pricePerM2) state.unit.pricePerM2 = m.pricePerM2;
       state.unit.netOverride = null;
     }
-    // Chọn toà → đơn giá = giá duyệt của toà
+    // Chọn toà → đơn giá + bàn giao theo toà (toà để trống → theo dự án)
     function applyBuilding() {
       var b = curBuilding();
-      if (b && b.approved_price_per_m2) state.unit.pricePerM2 = +b.approved_price_per_m2;
+      if (!b) return;
+      var price = cat.buildingPrice(b), ho = cat.buildingHandover(b);
+      if (price) state.unit.pricePerM2 = price;
+      if (ho) state.dates.handoverDate = ho;
       state.unit.netOverride = null;
     }
     // Chọn căn → diện tích, loại căn, đơn giá (giá riêng của căn > giá toà), giá thuần CĐT chốt
@@ -158,16 +165,24 @@
       if (curBuilding()) applyBuilding();
       applyUnit();
     }
-    // Sửa bàn giao / nhận sổ → dự án trong giỏ hàng: ghi ngược vào dự án; dự án "Khác…": nhớ local
-    var writeBack = debounce(function (pid, patch) {
-      cat.updateProject(pid, patch).catch(function (e) { console.warn('[loan] ghi dự án lỗi', e); });
+    // Sửa bàn giao / nhận sổ → ghi ngược vào giỏ hàng, đúng LỚP đang cung cấp giá trị đó:
+    // bàn giao: toà đang có ngày riêng → sửa toà, không → sửa dự án; nhận sổ: luôn ở dự án.
+    // Dự án "Khác…" (ngoài giỏ hàng): nhớ local.
+    var writeBack = debounce(function (fn) {
+      fn().catch(function (e) { console.warn('[loan] ghi giỏ hàng lỗi', e); });
     }, 1500);
     function rememberProject() {
       var name = state.unit.projectName.trim();
       if (!name) return;
-      var p = curProject();
+      var p = curProject(), b = curBuilding();
       if (p && cat.updateProject) {
-        writeBack(p.id, { handover_date: state.dates.handoverDate || null, title_after_months: +state.dates.titleAfterMonths || 0 });
+        var ho = state.dates.handoverDate || null, title = +state.dates.titleAfterMonths || 0;
+        writeBack(function () {
+          if (b && b.handover_date && cat.updateBuilding) {
+            return Promise.all([cat.updateBuilding(b.id, { handover_date: ho }), cat.updateProject(p.id, { title_after_months: title })]);
+          }
+          return cat.updateProject(p.id, { handover_date: ho, title_after_months: title });
+        });
         return;
       }
       perProject[name] = { handoverDate: state.dates.handoverDate || null,
@@ -231,11 +246,19 @@
       return [x.code, a ? (x.area_m2 ? '' : '~') + String(+a).replace('.', ',') + 'm²' : '', x.apt_type, x.status && x.status !== 'available' ? cat.statusLabel(x.status) : '']
         .filter(Boolean).join(' · ');
     }
+    // Nguồn của đơn giá đang hiện: căn > toà > dự án (theo giỏ hàng)
     function priceHint() {
-      var un = curUnit(), b = curBuilding();
-      if (un && un.price_per_m2_override) return 'Giá riêng của căn ' + esc(un.code) + ' (giỏ hàng)';
-      if (b && b.approved_price_per_m2) return 'Giá duyệt toà ' + esc(b.code) + ': ' + money(b.approved_price_per_m2) + 'đ/m²';
-      return 'Chọn toà có giá duyệt để tự điền';
+      var un = curUnit(), b = curBuilding(), p = curProject();
+      if (un && un.price_per_m2_override) return 'Giá riêng của căn ' + esc(un.code);
+      if (b && b.approved_price_per_m2) return 'Giá điển hình toà ' + esc(b.code) + ': ' + money(b.approved_price_per_m2) + 'đ/m²';
+      if (p && cat.projectPrice(p)) return 'Giá điển hình dự án: ' + money(cat.projectPrice(p)) + 'đ/m²';
+      return 'Dự án chưa có giá điển hình — nhập tay hoặc khai báo trong Giỏ hàng';
+    }
+    function handoverHint() {
+      var b = curBuilding(), p = curProject();
+      if (b && b.handover_date) return 'Theo toà ' + esc(b.code) + ' · sửa sẽ lưu vào toà';
+      if (p) return 'Theo dự án · sửa sẽ lưu vào dự án';
+      return 'Nhớ theo từng dự án';
     }
     function netHint() {
       return state.unit.netOverride
@@ -259,7 +282,8 @@
         '<section class="lm-card"><h3>Căn hộ</h3><div class="lm-grid lm-collapse">' +
           selectOther('Dự án', 'unit.projectName', cat.projects().map(function (x) { return x.name; }), u.projectName, ui.projectOther, 'Nhập tên dự án', false) +
           selectOther('Mã toà', 'unit.building', (cp ? cat.buildingsOf(cp.id) : []).map(function (x) {
-            return { v: x.code, l: x.code + (x.approved_price_per_m2 ? ' · ' + money(x.approved_price_per_m2) + 'đ/m²' : '') };
+            var bp = cat.buildingPrice(x);
+            return { v: x.code, l: x.code + (bp ? ' · ' + money(bp) + 'đ/m²' : '') };
           }), u.building, ui.buildingOther, 'VD: THE RISE 3', '— Chọn toà —') +
           selectOther('Mã căn', 'unit.code', (cb ? cat.unitsOf(cb.id) : []).map(function (x) { return { v: x.code, l: unitLabel(x) }; }),
             u.code, ui.unitOther, 'VD: R30413', '— Chọn căn —') +
@@ -276,7 +300,7 @@
         // Mốc thời gian
         '<section class="lm-card"><h3>Mốc thời gian</h3><div class="lm-grid">' +
           field('Ngày ký HĐMB (T)', 'dates.contractDate', d.contractDate, 'date') +
-          field('Bàn giao dự kiến', 'dates.handoverDate', d.handoverDate, 'date', { hint: cp ? 'Lưu vào dự án trong giỏ hàng' : 'Nhớ theo từng dự án' }) +
+          field('Bàn giao dự kiến', 'dates.handoverDate', d.handoverDate, 'date', { hint: handoverHint() }) +
           field('Nhận sổ sau bàn giao (tháng)', 'dates.titleAfterMonths', d.titleAfterMonths, 'number', { cls: 'lm-full', step: 'any', hint: 'Mặc định 1,5 tháng · ' + (cp ? 'lưu vào dự án trong giỏ hàng' : 'nhớ theo từng dự án') + '. Dùng tính ngày giải ngân đợt nhận sổ' }) +
         '</div></section>' +
 
@@ -491,7 +515,8 @@
           state.unit.building = ''; state.unit.code = ''; ui.buildingOther = false; ui.unitOther = false;
           applyProjectMemory();
         }
-        if (bind === 'unit.building') { state.unit.code = ''; ui.unitOther = false; applyBuilding(); }
+        // Đổi toà → về giá trị của dự án trước, rồi áp ghi đè của toà mới (nếu có)
+        if (bind === 'unit.building') { state.unit.code = ''; ui.unitOther = false; applyProjectMemory(); applyBuilding(); }
         if (bind === 'unit.code') applyUnit();
         if (bind === 'unit.aptType' && !ui.aptOther) applyType();
         renderForm(); recalc();

@@ -1361,6 +1361,7 @@ function refreshAptTypeOptions() {
 }
 
 // Chọn loại căn khi ô diện tích còn trống → điền diện tích điển hình (toà đã nhập > dự án đã chọn)
+// + giá căn (nếu trống) = diện tích × giá điển hình (toà > dự án)
 function fillTypicalArea() {
   const f = $('#customer-form');
   if (f.apt_area.value) return; // đã có diện tích (nhập tay / theo căn) → không đè
@@ -1370,7 +1371,12 @@ function fillTypicalArea() {
   for (const p of formCatalogProjects()) {
     const b = Catalog.buildingsOf(p.id).find((x) => x.code.toLowerCase() === bCode);
     const a = Catalog.typicalArea(p.id, b && b.id, type);
-    if (a && (b || selectedProjects.length === 1)) { f.apt_area.value = a; return; } // nhiều dự án mà chưa có toà → không đoán
+    if (a && (b || selectedProjects.length === 1)) { // nhiều dự án mà chưa có toà → không đoán
+      f.apt_area.value = a;
+      const price = b ? Catalog.buildingPrice(b) : Catalog.projectPrice(p); // giá điển hình: toà > dự án
+      if (!f.apt_price.value && price) f.apt_price.value = Math.round(a * price);
+      return;
+    }
   }
 }
 

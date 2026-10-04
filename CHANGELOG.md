@@ -6,6 +6,34 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-04 — Giỏ hàng 3 lớp Dự án → Toà → Căn (lớp dưới ghi đè lớp trên), áp dụng xuyên suốt app
+
+- **Database** (`SQL/catalog_layers_v2.sql`, đã test bằng PGlite, cả khi chạy lại):
+  - `projects.typical_price_per_m2` (giá điển hình dự án; tự lấy từ đơn giá chuẩn cũ của module vay
+    nếu có), `buildings.handover_date` (bàn giao riêng của toà). `buildings.approved_price_per_m2`
+    giữ tên cột, nghĩa mới = giá điển hình toà (trống = dự án).
+  - Ràng buộc **loại căn của căn ⊂ loại căn hiệu lực của toà** (trigger + hàm
+    `building_allows_apt_type`; toà chưa tích loại = mọi loại của dự án). Sửa tầng/giá… mà không đổi
+    loại căn thì không kiểm tra lại. Dữ liệu cũ: loại căn chưa khai báo được tự khai báo trước khi bật
+    ràng buộc. Đổi tên loại căn ở dự án vẫn lan xuống được.
+  - View `v_buildings` (giá + bàn giao hiệu lực, nguồn), `v_units` thêm `effective_price_per_m2`,
+    `price_source`, `effective_handover_date` (`security_invoker`).
+- **`js/catalog.js`:** `projectPrice`, `buildingPrice`, `unitPrice` (căn > toà > dự án), `buildingHandover`,
+  các hàm `*Source`, `updateBuilding`; `saveBuilding` lưu bàn giao; nhập Excel khai báo loại căn TRƯỚC khi
+  ghi căn (để qua được ràng buộc DB).
+- **Màn Giỏ hàng** sắp lại đúng thứ tự: Dự án (tên · loại căn + diện tích · giá tr/m² · VAT · KPBT · bàn
+  giao · nhận sổ · tiến độ) → Toà (mã · loại căn + diện tích · giá · bàn giao, gợi ý giá trị kế thừa) → Căn
+  (mã · loại căn [chọn trong loại của toà] · tầng · hướng · diện tích · giá). Giá nhập theo tr/m² (vẫn nhận
+  số đồng). Giá trị kế thừa hiện màu xám, kèm nhãn nguồn "toà / dự án". Toà chỉ còn 1 nút "Lưu toà" (lưu cả
+  loại căn); bỏ tích loại căn đang có căn dùng thì hỏi lại. Enter chỉ bấm nút chính của đúng form đó.
+  Excel: cột giá theo tr/m², file mẫu cập nhật.
+- **Bảng tính vay:** chọn dự án → đơn giá = giá điển hình dự án; chọn toà → giá + bàn giao của toà (trống =
+  dự án); chọn căn → giá căn > toà > dự án; đổi / bỏ chọn toà thì quay về giá trị dự án trước. Gợi ý nguồn
+  dưới ô đơn giá và ô bàn giao. Sửa bàn giao thì ghi vào đúng lớp đang cung cấp giá trị.
+- **Form khách:** chọn mã căn / loại căn → diện tích + giá căn (nếu trống) theo cùng quy tắc.
+- **File:** `SQL/catalog_layers_v2.sql`, `js/catalog.js`, `js/catalog-ui.js`, `js/loan/loan-ui.js`,
+  `js/app.js`, `index.html`, `css/style.css`, `dev/loan-demo.html`, `docs/gio-hang.md`.
+
 ## 2026-10-04 — Tiến độ thanh toán riêng theo dự án + quy tắc VAT tổng quát
 
 - **Cấu hình tiến độ** (màn Giỏ hàng → dự án → "Tiến độ thanh toán"): số đợt tuỳ ý; mỗi đợt có

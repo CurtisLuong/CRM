@@ -7,8 +7,12 @@
 // - Dùng biến `sb` và `CRM` của app.js lúc CHẠY (không lúc tải file) → tải file này
 //   trước hay sau app.js đều được. KHÔNG đặt tên biến `supabase` (CLAUDE.md mục 5.1).
 // - Schema: SQL/add_loan_module.sql + SQL/add_catalog_buildings.sql + SQL/add_apt_types_by_project.sql.
-// - Loại căn + diện tích điển hình: dự án (project_apt_types) → toà (building_apt_types, tập con
-//   của dự án). Diện tích căn = riêng của căn > của loại căn trong toà > của loại căn trong dự án.
+// - 3 lớp, lớp dưới GHI ĐÈ lớp trên (SQL/catalog_layers_v2.sql):
+//     Dự án: loại căn + diện tích điển hình, giá điển hình, VAT, KPBT, bàn giao, nhận sổ, tiến độ
+//     Toà:   loại căn (⊂ dự án) + diện tích theo loại, giá điển hình, bàn giao  (trống = dự án)
+//     Căn:   loại căn (⊂ toà), tầng, hướng, diện tích, giá                    (trống = toà → dự án)
+//   Mọi chỗ trong app lấy giá trị HIỆU LỰC qua các hàm ở đây (unitArea, unitPrice, buildingPrice,
+//   buildingHandover...) để form khách, bảng tính vay, màn Giỏ hàng luôn khớp nhau.
 
 const Catalog = (() => {
   const LS_CACHE = 'crm_catalog_v1';
@@ -38,8 +42,8 @@ const Catalog = (() => {
     if (!online()) return false;
     try {
       const [p, b, u, pt, bt] = await Promise.all([
-        sb.from('projects').select('id,name,vat_rate,kpbt_rate,handover_date,title_after_months,payment_schedule,sort_order,created_at'),
-        sb.from('buildings').select('id,project_id,code,approved_price_per_m2,note,sort_order,created_at'),
+        sb.from('projects').select('id,name,typical_price_per_m2,vat_rate,kpbt_rate,handover_date,title_after_months,payment_schedule,sort_order,created_at'),
+        sb.from('buildings').select('id,project_id,code,approved_price_per_m2,handover_date,note,sort_order,created_at'),
         sb.from('units').select('id,project_id,building_id,code,area_m2,floor,direction,apt_type,price_per_m2_override,net_price_override,status,note'),
         sb.from('project_apt_types').select('id,project_id,apt_type,typical_area_m2,sort_order'),
         sb.from('building_apt_types').select('id,building_id,project_id,apt_type,area_m2'),
@@ -63,11 +67,41 @@ const Catalog = (() => {
   const unitByCode = (buildingId, code) =>
     (norm(code) && data.units.find((u) => u.building_id === buildingId && norm(u.code) === norm(code))) || null;
   const unitsOfProject = (projectId) => data.units.filter((u) => u.project_id === projectId);
-  // Đơn giá áp cho căn: giá riêng của căn > giá duyệt của toà
+  // ---------- Giá trị HIỆU LỰC (đã áp ghi đè) ----------
+  const projectPrice = (p) => (p && p.typical_price_per_m2 ? +p.typical_price_per_m2 : null);
+  // Giá điển hình của toà: riêng của toà > dự án
+  function buildingPrice(b) {
+    if (!b) return null;
+    return b.approved_price_per_m2 ? +b.approved_price_per_m2 : projectPrice(project(b.project_id));
+  }
+  // Đơn giá của căn: riêng của căn > toà > dự án
   function unitPrice(u) {
-    if (u && u.price_per_m2_override) return +u.price_per_m2_override;
-    const b = u && building(u.building_id);
-    return b && b.approved_price_per_m2 ? +b.approved_price_per_m2 : null;
+    if (!u) return null;
+    if (u.price_per_m2_override) return +u.price_per_m2_override;
+    return buildingPrice(building(u.building_id)) || projectPrice(project(u.project_id));
+  }
+  // Nguồn của giá trị: 'căn' | 'toà' | 'dự án' | null
+  function unitPriceSource(u) {
+    if (!u) return null;
+    if (u.price_per_m2_override) return 'căn';
+    const b = building(u.building_id);
+    if (b && b.approved_price_per_m2) return 'toà';
+    return projectPrice(project(u.project_id)) ? 'dự án' : null;
+  }
+  const buildingPriceSource = (b) => (b && b.approved_price_per_m2 ? 'toà' : projectPrice(b && project(b.project_id)) ? 'dự án' : null);
+  // Bàn giao dự kiến: riêng của toà > dự án
+  function buildingHandover(b) {
+    if (!b) return null;
+    const p = project(b.project_id);
+    return b.handover_date || (p && p.handover_date) || null;
+  }
+  const buildingHandoverSource = (b) => (b && b.handover_date ? 'toà' : buildingHandover(b) ? 'dự án' : null);
+  function unitAreaSource(u) {
+    if (!u) return null;
+    if (u.area_m2) return 'căn';
+    const bt = data.buildingTypes.find((x) => x.building_id === u.building_id && x.apt_type === u.apt_type);
+    if (bt && bt.area_m2) return 'toà';
+    return typicalArea(u.project_id, null, u.apt_type) ? 'dự án' : null;
   }
   const statusLabel = (s) => STATUS[s] || STATUS.available;
 
@@ -135,7 +169,7 @@ const Catalog = (() => {
   async function saveBuilding(b) { // có id → sửa, không → thêm
     needOnline();
     const payload = { project_id: b.project_id, code: String(b.code || '').trim(),
-                      approved_price_per_m2: b.approved_price_per_m2 || null, note: b.note || null };
+                      approved_price_per_m2: b.approved_price_per_m2 || null, handover_date: b.handover_date || null };
     if (!payload.code) throw new Error('Thiếu mã toà');
     if (b.id) {
       const row = check(await sb.from('buildings').update(payload).eq('id', b.id).select().single());
@@ -144,6 +178,12 @@ const Catalog = (() => {
       data.buildings.push(check(await sb.from('buildings').insert(payload).select().single()));
     }
     emit();
+  }
+  async function updateBuilding(id, patch) {
+    needOnline();
+    const row = check(await sb.from('buildings').update(patch).eq('id', id).select().single());
+    Object.assign(building(id), row); emit();
+    return row;
   }
   async function deleteBuilding(id) {
     needOnline();
@@ -253,7 +293,7 @@ const Catalog = (() => {
     const noPrice = bRows.filter((b) => !('approved_price_per_m2' in b));
     if (withPrice.length) check(await sb.from('buildings').upsert(withPrice, { onConflict: 'project_id,code' }));
     if (noPrice.length) check(await sb.from('buildings').upsert(noPrice, { onConflict: 'project_id,code', ignoreDuplicates: true }));
-    data.buildings = check(await sb.from('buildings').select('id,project_id,code,approved_price_per_m2,note,sort_order,created_at')).sort(byOrder);
+    data.buildings = check(await sb.from('buildings').select('id,project_id,code,approved_price_per_m2,handover_date,note,sort_order,created_at')).sort(byOrder);
     stat.buildings = data.buildings.length - before;
     // 3) Căn: upsert theo (toà, mã căn)
     const FIELDS = ['area_m2', 'floor', 'direction', 'apt_type', 'price_per_m2_override', 'status'];
@@ -267,11 +307,11 @@ const Catalog = (() => {
       uMap.set(b.id + '|' + norm(u.code), u); // trùng dòng → lấy dòng sau
     });
     const uRows = [...uMap.values()];
+    if (await ensureTypes(uRows)) await load(); // khai báo loại căn mới TRƯỚC khi ghi căn (DB kiểm tra)
     for (let i = 0; i < uRows.length; i += 500) { // chia lô cho file lớn
       check(await sb.from('units').upsert(uRows.slice(i, i + 500), { onConflict: 'building_id,code' }));
     }
     stat.units = uRows.length;
-    await ensureTypes(uRows);
     await load();
     return stat;
   }
@@ -280,8 +320,9 @@ const Catalog = (() => {
     STATUS, load, onChange: (fn) => listeners.push(fn),
     projects, project, projectByName, buildingsOf, building, buildingByCode,
     unitsOf, unitByCode, unitsOfProject, unitPrice, statusLabel,
-    projectTypes, buildingTypeRows, buildingTypes, typicalArea, unitArea,
-    addProject, updateProject, deleteProject, saveBuilding, deleteBuilding, saveUnit, deleteUnit, importRows,
+    projectTypes, buildingTypeRows, buildingTypes, typicalArea, unitArea, unitAreaSource,
+    projectPrice, buildingPrice, buildingPriceSource, unitPriceSource, buildingHandover, buildingHandoverSource,
+    addProject, updateProject, deleteProject, saveBuilding, updateBuilding, deleteBuilding, saveUnit, deleteUnit, importRows,
     saveProjectType, deleteProjectType, setBuildingTypes,
   };
 })();

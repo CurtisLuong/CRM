@@ -21,6 +21,19 @@
     const t = String(s == null ? '' : s).replace(/[^\d,.\-]/g, '').replace(',', '.');
     return t === '' || isNaN(+t) ? null : +t;
   };
+  // Giá nhập/hiển thị theo TRIỆU/m² (19,91153), lưu theo đồng (19911530).
+  // Gõ số < 1000 → hiểu là triệu; gõ đủ số đồng (19911530 / 19.911.530) cũng nhận.
+  const trStr = (d) => (d ? (+d / 1e6).toLocaleString('vi-VN', { maximumFractionDigits: 6 }) : '');
+  function trToDong(v) {
+    if (v == null || v === '') return null;
+    if (typeof v === 'number') return v >= 1000 ? Math.round(v) : Math.round(v * 1e6);
+    const t = String(v).replace(/\s/g, '');
+    if (/^\d{1,3}(\.\d{3}){2,}$/.test(t)) return digits(t); // 19.911.530 (đồng, có dấu chấm)
+    const n = num(t);
+    return n == null ? null : n >= 1000 ? Math.round(n) : Math.round(n * 1e6);
+  }
+  const fmtDate = (iso) => (iso ? iso.split('-').reverse().join('/') : '');
+  const src = (s) => (s ? `<span class="cat-src">${s}</span>` : '');
   const noAccent = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/gi, 'd').toLowerCase().trim();
   function setStatus(msg) { statusEl.textContent = msg || ''; }
   async function run(fn, okMsg) {
@@ -29,27 +42,34 @@
   }
 
   // ---------- Vẽ ----------
-  const moneyInp = (name, v, ph) => `<input name="${name}" inputmode="numeric" data-money value="${fmt(v)}" placeholder="${ph || ''}">`;
+  const trInp = (name, v, ph) => `<input name="${name}" inputmode="decimal" data-tr value="${trStr(v)}" placeholder="${ph || ''}">`;
   const opt = (v, cur, label) => `<option value="${escapeHtml(v)}"${v === (cur || '') ? ' selected' : ''}>${escapeHtml(label == null ? v : label)}</option>`;
 
+  // Căn: Mã căn · Loại căn (⊂ toà) · Tầng · Hướng · Diện tích · Giá · Trạng thái
   function unitRowEdit(u, bid) {
     u = u || {};
+    const b = Catalog.building(bid);
+    const types = Catalog.buildingTypes(bid).map((t) => t.apt_type);
+    if (u.apt_type && !types.includes(u.apt_type)) types.push(u.apt_type); // dữ liệu cũ ngoài danh sách → vẫn hiện
+    const inhArea = Catalog.typicalArea(b.project_id, bid, u.apt_type);
     return `<tr class="cat-edit" data-form="${u.id ? 'unit' : 'unit-add'}" data-uid="${u.id || ''}" data-bid="${bid}">
       <td><input name="code" value="${escapeHtml(u.code || '')}" placeholder="Mã căn"></td>
-      <td><input name="area_m2" inputmode="decimal" value="${u.area_m2 ?? ''}" placeholder="${Catalog.typicalArea(Catalog.building(bid).project_id, bid, u.apt_type) || 'theo loại'}"></td>
+      <td><select name="apt_type" data-unit-type>${opt('', u.apt_type, '—')}${types.map((t) => opt(t, u.apt_type)).join('')}</select></td>
       <td><input name="floor" inputmode="numeric" value="${u.floor ?? ''}"></td>
       <td><select name="direction">${opt('', u.direction, '—')}${DIRECTIONS.map((d) => opt(d, u.direction)).join('')}</select></td>
-      <td><input name="apt_type" list="cat-types-${bid}" value="${escapeHtml(u.apt_type || '')}"></td>
-      <td>${moneyInp('price_per_m2_override', u.price_per_m2_override, 'theo toà')}</td>
+      <td><input name="area_m2" inputmode="decimal" value="${u.area_m2 ?? ''}" placeholder="${inhArea ? String(inhArea).replace('.', ',') : 'theo loại'}"></td>
+      <td>${trInp('price_per_m2_override', u.price_per_m2_override, trStr(Catalog.buildingPrice(b)) || 'theo toà')}</td>
       <td><select name="status">${Object.entries(Catalog.STATUS).map(([k, l]) => opt(k, u.status || 'available', l)).join('')}</select></td>
       <td class="cat-act">${u.id
-        ? '<button type="button" data-act="unit-save" class="btn-small">Lưu</button><button type="button" data-act="unit-cancel" class="btn-small">Huỷ</button>'
-        : '<button type="button" data-act="unit-add" class="btn-small">＋ Thêm</button>'}</td></tr>`;
+        ? '<button type="button" data-act="unit-save" data-primary class="btn-small">Lưu</button><button type="button" data-act="unit-cancel" class="btn-small">Huỷ</button>'
+        : '<button type="button" data-act="unit-add" data-primary class="btn-small">＋ Thêm</button>'}</td></tr>`;
   }
   function unitRow(u) {
+    const a = Catalog.unitArea(u), pr = Catalog.unitPrice(u);
     return `<tr class="${u.status === 'sold' ? 'is-sold' : ''}"><td><b>${escapeHtml(u.code)}</b></td>
-      <td>${u.area_m2 != null ? u.area_m2 : (Catalog.unitArea(u) ? `<span class="cat-muted" title="Diện tích điển hình của loại căn">${Catalog.unitArea(u)}</span>` : '')}</td><td>${u.floor ?? ''}</td><td>${escapeHtml(u.direction || '')}</td>
-      <td>${escapeHtml(u.apt_type || '')}</td><td>${u.price_per_m2_override ? fmt(u.price_per_m2_override) : '<span class="cat-muted">theo toà</span>'}</td>
+      <td>${escapeHtml(u.apt_type || '')}</td><td>${u.floor ?? ''}</td><td>${escapeHtml(u.direction || '')}</td>
+      <td>${u.area_m2 != null ? String(u.area_m2).replace('.', ',') : a ? `<span class="cat-muted" title="Theo ${Catalog.unitAreaSource(u)}">${String(a).replace('.', ',')}</span>` : ''}</td>
+      <td>${u.price_per_m2_override ? trStr(u.price_per_m2_override) : pr ? `<span class="cat-muted" title="Theo ${Catalog.unitPriceSource(u)}">${trStr(pr)}</span>` : ''}</td>
       <td>${Catalog.statusLabel(u.status)}</td>
       <td class="cat-act"><button type="button" data-act="unit-edit" data-uid="${u.id}" class="btn-small">Sửa</button>
         <button type="button" data-act="unit-del" data-uid="${u.id}" class="btn-small" aria-label="Xoá căn">✕</button></td></tr>`;
@@ -59,16 +79,15 @@
     const pts = Catalog.projectTypes(b.project_id);
     if (!pts.length) return '<div class="cat-types-note">Dự án chưa có loại căn — khai báo ở mục "Loại căn của dự án" phía trên.</div>';
     const own = Catalog.buildingTypeRows(b.id);
-    return `<div class="cat-types" data-form="building-types" data-bid="${b.id}">
-      <div class="cat-types-title">Loại căn của toà <span class="cat-muted">(không tích loại nào = dùng tất cả loại của dự án)</span></div>
+    return `<div class="cat-types cat-btypes">
+      <div class="cat-types-title">Loại căn của toà · diện tích điển hình <span class="cat-muted">(không tích loại nào = dùng tất cả loại của dự án; diện tích trống = theo dự án)</span></div>
       ${pts.map((pt) => {
         const bt = own.find((x) => x.apt_type === pt.apt_type);
         return `<label class="cat-type-chk"><input type="checkbox" data-type-chk value="${escapeHtml(pt.apt_type)}"${bt ? ' checked' : ''}>
           <span>${escapeHtml(pt.apt_type)}</span>
           <input data-type-area="${escapeHtml(pt.apt_type)}" inputmode="decimal" value="${bt && bt.area_m2 ? bt.area_m2 : ''}"
             placeholder="${pt.typical_area_m2 ? pt.typical_area_m2 + ' (dự án)' : 'm²'}" title="Diện tích điển hình riêng của toà (trống = theo dự án)"> m²</label>`;
-      }).join('')}
-      <button type="button" data-act="building-types-save" class="btn-small">Lưu loại căn của toà</button></div>`;
+      }).join('')}</div>`;
   }
   // ---------- Tiến độ thanh toán của dự án (projects.payment_schedule; null = mặc định 7 đợt) ----------
   // Cách chia VAT / KPBT theo đợt: xem calcMilestones trong js/loan/loan-engine.js.
@@ -150,56 +169,68 @@
   function projectTypesHtml(p) {
     const rows = Catalog.projectTypes(p.id);
     return `<div class="cat-types cat-ptypes">
-      <div class="cat-types-title">Loại căn của dự án <span class="cat-muted">· diện tích điển hình (căn có diện tích riêng sẽ ghi đè)</span></div>
+      <div class="cat-types-title">Loại căn · diện tích điển hình <span class="cat-muted">(toà / căn có diện tích riêng sẽ ghi đè)</span></div>
       ${rows.map((t) => `<div class="cat-ptype" data-form="ptype" data-tid="${t.id}" data-pid="${p.id}">
         <input name="apt_type" list="cat-apt-types" value="${escapeHtml(t.apt_type)}">
         <input name="typical_area_m2" inputmode="decimal" value="${t.typical_area_m2 ?? ''}" placeholder="m²"> m²
-        <button type="button" data-act="ptype-save" class="btn-small">Lưu</button>
+        <button type="button" data-act="ptype-save" data-primary class="btn-small">Lưu</button>
         <button type="button" data-act="ptype-del" class="btn-small" aria-label="Xoá loại căn">✕</button></div>`).join('')}
       <div class="cat-ptype" data-form="ptype-add" data-pid="${p.id}">
         <input name="apt_type" list="cat-apt-types" placeholder="Loại căn (VD: 2N-2WC)">
         <input name="typical_area_m2" inputmode="decimal" placeholder="m²"> m²
-        <button type="button" data-act="ptype-add" class="btn-small">＋ Thêm</button></div></div>`;
+        <button type="button" data-act="ptype-add" data-primary class="btn-small">＋ Thêm</button></div></div>`;
   }
+  // Toà: Mã toà · Loại căn (⊂ dự án) + diện tích · Giá điển hình · Dự kiến bàn giao  (trống = theo dự án)
   function buildingHtml(b) {
     const units = Catalog.unitsOf(b.id);
     const isOpen = openB.has(b.id);
+    const p = Catalog.project(b.project_id);
+    const price = Catalog.buildingPrice(b), ho = Catalog.buildingHandover(b);
     return `<details class="cat-b" data-bid="${b.id}"${isOpen ? ' open' : ''}>
-      <summary><b>Toà ${escapeHtml(b.code)}</b> · ${b.approved_price_per_m2 ? fmt(b.approved_price_per_m2) + ' đ/m²' : '<span class="cat-muted">chưa có giá duyệt</span>'} · ${units.length} căn</summary>
-      ${isOpen ? `<div class="cat-row" data-form="building" data-bid="${b.id}">
-        <label>Mã toà<input name="code" value="${escapeHtml(b.code)}"></label>
-        <label>Giá duyệt (đ/m²)${moneyInp('approved_price_per_m2', b.approved_price_per_m2)}</label>
-        <button type="button" data-act="building-save" class="btn-small">Lưu toà</button>
-        <button type="button" data-act="building-del" class="btn-small btn-danger">Xoá toà</button></div>
-      ${buildingTypesHtml(b)}
-      <datalist id="cat-types-${b.id}">${Catalog.buildingTypes(b.id).map((t) => `<option value="${escapeHtml(t.apt_type)}">`).join('')}</datalist>
-      <div class="cat-table-wrap"><table class="cat-units"><thead><tr><th>Mã căn</th><th>DT (m²)</th><th>Tầng</th><th>Hướng</th><th>Loại căn</th><th>Giá riêng (đ/m²)</th><th>Trạng thái</th><th></th></tr></thead><tbody>
+      <summary><b>Toà ${escapeHtml(b.code)}</b> · ${price ? trStr(price) + ' tr/m² ' + src(Catalog.buildingPriceSource(b)) : '<span class="cat-muted">chưa có giá</span>'}
+        · BG ${ho ? fmtDate(ho) + ' ' + src(Catalog.buildingHandoverSource(b)) : '<span class="cat-muted">chưa có</span>'} · ${units.length} căn</summary>
+      ${isOpen ? `<div data-form="building" data-bid="${b.id}">
+        <div class="cat-row"><label class="cat-grow">Mã toà<input name="code" value="${escapeHtml(b.code)}"></label></div>
+        ${buildingTypesHtml(b)}
+        <div class="cat-row">
+          <label>Giá điển hình (tr/m²)${trInp('approved_price_per_m2', b.approved_price_per_m2, p && p.typical_price_per_m2 ? trStr(p.typical_price_per_m2) + ' (dự án)' : 'theo dự án')}</label>
+          <label>Dự kiến bàn giao<input name="handover_date" type="date" value="${b.handover_date || ''}">
+            <span class="cat-muted">${p && p.handover_date ? 'Trống = theo dự án (' + fmtDate(p.handover_date) + ')' : 'Trống = theo dự án'}</span></label>
+          <button type="button" data-act="building-save" data-primary class="btn-small">Lưu toà</button>
+          <button type="button" data-act="building-del" class="btn-small btn-danger">Xoá toà</button></div>
+      </div>
+      <div class="cat-table-wrap"><table class="cat-units"><thead><tr><th>Mã căn</th><th>Loại căn</th><th>Tầng</th><th>Hướng</th><th>Diện tích (m²)</th><th>Giá (tr/m²)</th><th>Trạng thái</th><th></th></tr></thead><tbody>
         ${units.map((u) => (u.id === editingUnit ? unitRowEdit(u, b.id) : unitRow(u))).join('')}
         ${unitRowEdit(null, b.id)}
-      </tbody></table></div>` : ''}
+      </tbody></table></div>
+      <div class="cat-muted cat-legend">Số màu xám = đang lấy theo toà / dự án (căn chưa nhập riêng).</div>` : ''}
     </details>`;
   }
+  // Dự án: Tên · Loại căn + diện tích · Giá điển hình · VAT · KPBT · Bàn giao · Nhận sổ · Tiến độ
   function projectHtml(p) {
     const bs = Catalog.buildingsOf(p.id);
     const nU = Catalog.unitsOfProject(p.id).length;
     const isOpen = openP.has(p.id);
     return `<details class="cat-proj" data-pid="${p.id}"${isOpen ? ' open' : ''}>
-      <summary><b>${escapeHtml(p.name)}</b> <span class="cat-muted">${bs.length} toà · ${nU} căn</span></summary>
-      ${isOpen ? `<div class="cat-row" data-form="project" data-pid="${p.id}">
-        <label class="cat-grow">Tên dự án<input name="name" value="${escapeHtml(p.name)}"></label>
-        <label>Bàn giao dự kiến<input name="handover_date" type="date" value="${p.handover_date || ''}"></label>
-        <label>Nhận sổ sau BG (tháng)<input name="title_after_months" inputmode="decimal" value="${p.title_after_months ?? 1.5}"></label>
-        <label>VAT %<input name="vat_rate" inputmode="decimal" value="${p.vat_rate ?? 5}"></label>
-        <label>KPBT %<input name="kpbt_rate" inputmode="decimal" value="${p.kpbt_rate ?? 2}"></label>
-        <button type="button" data-act="project-save" class="btn-small">Lưu dự án</button>
-        <button type="button" data-act="project-del" class="btn-small btn-danger">Xoá dự án</button></div>
-      ${scheduleHtml(p)}
-      ${projectTypesHtml(p)}
+      <summary><b>${escapeHtml(p.name)}</b> <span class="cat-muted">${p.typical_price_per_m2 ? trStr(p.typical_price_per_m2) + ' tr/m² · ' : ''}${bs.length} toà · ${nU} căn</span></summary>
+      ${isOpen ? `<div data-form="project" data-pid="${p.id}">
+        <div class="cat-row"><label class="cat-grow">Tên dự án<input name="name" value="${escapeHtml(p.name)}"></label></div>
+        ${projectTypesHtml(p)}
+        <div class="cat-row">
+          <label>Giá điển hình (tr/m²)${trInp('typical_price_per_m2', p.typical_price_per_m2, 'VD: 19,9')}</label>
+          <label>VAT (% giá thuần)<input name="vat_rate" inputmode="decimal" value="${p.vat_rate ?? 5}"></label>
+          <label>KPBT (% giá thuần)<input name="kpbt_rate" inputmode="decimal" value="${p.kpbt_rate ?? 2}"></label>
+          <label>Bàn giao dự kiến<input name="handover_date" type="date" value="${p.handover_date || ''}"></label>
+          <label>Nhận sổ sau BG (tháng)<input name="title_after_months" inputmode="decimal" value="${String(p.title_after_months ?? 1.5).replace('.', ',')}"></label>
+          <button type="button" data-act="project-save" data-primary class="btn-small">Lưu dự án</button>
+          <button type="button" data-act="project-del" class="btn-small btn-danger">Xoá dự án</button></div>
+        ${scheduleHtml(p)}
+      </div>
       <div class="cat-bs">${bs.map(buildingHtml).join('')}</div>
       <div class="cat-row cat-add" data-form="building-add" data-pid="${p.id}">
         <label>Mã toà mới<input name="code" placeholder="VD: S1"></label>
-        <label>Giá duyệt (đ/m²)${moneyInp('approved_price_per_m2', null)}</label>
-        <button type="button" data-act="building-add" class="btn-small">＋ Thêm toà</button></div>` : ''}
+        <label>Giá điển hình (tr/m²)${trInp('approved_price_per_m2', null, 'trống = theo dự án')}</label>
+        <button type="button" data-act="building-add" data-primary class="btn-small">＋ Thêm toà</button></div>` : ''}
     </details>`;
   }
   function render() {
@@ -212,7 +243,10 @@
   // ---------- Đọc form ----------
   function readRow(row) {
     const o = {};
-    row.querySelectorAll('input[name],select[name]').forEach((el) => { o[el.name] = el.hasAttribute('data-money') ? digits(el.value) : el.value.trim(); });
+    row.querySelectorAll('input[name],select[name]').forEach((el) => {
+      if (el.closest('[data-form]') !== row) return; // ô của form lồng bên trong (vd loại căn trong dự án)
+      o[el.name] = el.hasAttribute('data-tr') ? trToDong(el.value) : el.value.trim();
+    });
     return o;
   }
   function unitPayload(row) {
@@ -232,9 +266,13 @@
     if (was !== d.open) render(); // vẽ phần bên trong khi mở (lười vẽ cho giỏ hàng lớn)
   }, true);
 
-  body.addEventListener('input', (e) => { // định dạng ô tiền 19.911.530
-    const el = e.target;
-    if (el.hasAttribute && el.hasAttribute('data-money')) { const v = digits(el.value); el.value = v == null ? '' : fmt(v); }
+  // Đổi loại căn khi sửa căn → gợi ý diện tích (placeholder) theo loại mới
+  body.addEventListener('change', (e) => {
+    const sel = e.target.closest && e.target.closest('[data-unit-type]');
+    if (!sel) return;
+    const row = sel.closest('[data-bid]'), b = Catalog.building(row.dataset.bid);
+    const a = Catalog.typicalArea(b.project_id, b.id, sel.value);
+    row.querySelector('[name="area_m2"]').placeholder = a ? String(a).replace('.', ',') : 'theo loại';
   });
 
   body.addEventListener('input', (e) => { if (e.target.dataset && e.target.dataset.s && e.target.tagName === 'INPUT') onSchedInput(e.target); });
@@ -249,7 +287,7 @@
     if (e.key !== 'Enter' || e.target.tagName !== 'INPUT') return;
     const row = e.target.closest('[data-form]');
     if (row && row.dataset.form === 'schedule') { e.preventDefault(); return; } // bảng tiến độ: Enter không làm gì
-    const btn = row && row.querySelector('[data-act$="-save"],[data-act$="-add"]');
+    const btn = row && [...row.querySelectorAll('[data-primary]')].find((x) => x.closest('[data-form]') === row);
     if (btn) { e.preventDefault(); btn.click(); }
   });
 
@@ -259,8 +297,8 @@
     const act = b.dataset.act, row = b.closest('[data-form]');
     if (act === 'project-save') {
       const o = readRow(row), p = Catalog.project(row.dataset.pid), oldName = p.name;
-      const patch = { name: o.name, handover_date: o.handover_date || null, title_after_months: num(o.title_after_months) ?? 1.5,
-                      vat_rate: num(o.vat_rate) ?? 5, kpbt_rate: num(o.kpbt_rate) ?? 2 };
+      const patch = { name: o.name, typical_price_per_m2: o.typical_price_per_m2, handover_date: o.handover_date || null,
+                      title_after_months: num(o.title_after_months) ?? 1.5, vat_rate: num(o.vat_rate) ?? 5, kpbt_rate: num(o.kpbt_rate) ?? 2 };
       if (!patch.name) return setStatus('⚠️ Thiếu tên dự án');
       return run(async () => {
         await Catalog.updateProject(p.id, patch);
@@ -279,7 +317,23 @@
     }
     if (act === 'building-save') {
       const o = readRow(row), bd = Catalog.building(row.dataset.bid);
-      return run(() => Catalog.saveBuilding({ id: bd.id, project_id: bd.project_id, code: o.code, approved_price_per_m2: o.approved_price_per_m2 }), 'Đã lưu toà');
+      const types = [...row.querySelectorAll('[data-type-chk]:checked')].map((cb) => {
+        const a = num(row.querySelector(`[data-type-area="${CSS.escape(cb.value)}"]`).value);
+        return { apt_type: cb.value, area_m2: a > 0 ? a : null };
+      });
+      const norm = (rs) => JSON.stringify(rs.map((r) => [r.apt_type, r.area_m2 ? +r.area_m2 : null]).sort());
+      const typesChanged = norm(types) !== norm(Catalog.buildingTypeRows(bd.id));
+      // Bỏ tích loại căn mà toà đang có căn dùng → hỏi lại
+      if (typesChanged && types.length) {
+        const allowed = types.map((t) => t.apt_type);
+        const bad = Catalog.unitsOf(bd.id).filter((u) => u.apt_type && !allowed.includes(u.apt_type));
+        if (bad.length && !confirm(`${bad.length} căn đang dùng loại căn bị bỏ tích (${[...new Set(bad.map((u) => u.apt_type))].join(', ')}).\nVẫn lưu? (các căn đó giữ nguyên, nhưng phải đổi loại căn khi sửa)`)) return;
+      }
+      return run(async () => {
+        await Catalog.saveBuilding({ id: bd.id, project_id: bd.project_id, code: o.code,
+          approved_price_per_m2: o.approved_price_per_m2, handover_date: o.handover_date || null });
+        if (typesChanged) await Catalog.setBuildingTypes(bd.id, types);
+      }, 'Đã lưu toà');
     }
     if (act === 'building-del') {
       const bd = Catalog.building(row.dataset.bid), n = Catalog.unitsOf(bd.id).length;
@@ -299,13 +353,6 @@
         run(() => Catalog.deleteProjectType(t.id), 'Đã xoá loại căn');
       }
       return;
-    }
-    if (act === 'building-types-save') {
-      const rows = [...row.querySelectorAll('[data-type-chk]:checked')].map((cb) => {
-        const a = num(row.querySelector(`[data-type-area="${CSS.escape(cb.value)}"]`).value);
-        return { apt_type: cb.value, area_m2: a > 0 ? a : null };
-      });
-      return run(() => Catalog.setBuildingTypes(row.dataset.bid, rows), 'Đã lưu loại căn của toà');
     }
     if (act && act.startsWith('sched-')) {
       const p = Catalog.project(row.dataset.pid), rows = schedOf(p);
@@ -355,7 +402,7 @@
   // Nhận diện cột theo tiêu đề (không phân biệt dấu/hoa thường). Thứ tự quan trọng:
   // cột GIÁ xét trước để "Giá duyệt toà" không bị nhận nhầm thành "Mã toà".
   const COLS = [
-    ['buildingPrice', ['gia duyet', 'gia toa', 'gia trung binh', 'don gia toa']],
+    ['buildingPrice', ['gia toa', 'gia dien hinh toa', 'gia duyet', 'gia trung binh', 'don gia toa']],
     ['price_per_m2_override', ['gia rieng', 'don gia can', 'gia can']],
     ['project', ['du an', 'project']],
     ['code', ['ma can', 'can ho', 'so can', 'can']],
@@ -366,7 +413,7 @@
     ['apt_type', ['loai can', 'loai']],
     ['status', ['trang thai', 'status']],
   ];
-  const HEAD = ['Dự án', 'Mã toà', 'Giá duyệt toà (đ/m²)', 'Mã căn', 'Diện tích (m²)', 'Tầng', 'Hướng', 'Loại căn', 'Giá riêng (đ/m²)', 'Trạng thái'];
+  const HEAD = ['Dự án', 'Mã toà', 'Giá toà (tr/m²)', 'Mã căn', 'Loại căn', 'Tầng', 'Hướng', 'Diện tích (m²)', 'Giá riêng (tr/m²)', 'Trạng thái'];
 
   function detectCols(header) {
     const map = {}; // field → index cột
@@ -407,10 +454,10 @@
         lastP = project; lastB = bCode;
         return {
           project, building: bCode,
-          buildingPrice: digits(g('buildingPrice')), code: String(g('code')).trim(),
+          buildingPrice: trToDong(g('buildingPrice')), code: String(g('code')).trim(),
           area_m2: num(g('area_m2')), floor: g('floor') === '' ? null : parseInt(g('floor'), 10) || null,
           direction: String(g('direction')).trim() || null, apt_type: String(g('apt_type')).trim() || null,
-          price_per_m2_override: digits(g('price_per_m2_override')), status: parseStatus(g('status')),
+          price_per_m2_override: trToDong(g('price_per_m2_override')), status: parseStatus(g('status')),
         };
       }).filter((r) => r.project && r.building);
       const newP = new Set(rows.map((r) => r.project).filter((n) => !Catalog.projectByName(n)));
@@ -425,9 +472,9 @@
         if (b && Catalog.unitByCode(b.id, r.code)) nUpd++; else nNew++;
       });
       pendingImport = { rows, cols };
-      const labels = { project: 'Dự án', building: 'Mã toà', buildingPrice: 'Giá duyệt toà', code: 'Mã căn', area_m2: 'Diện tích', floor: 'Tầng', direction: 'Hướng', apt_type: 'Loại căn', price_per_m2_override: 'Giá riêng', status: 'Trạng thái' };
+      const labels = { project: 'Dự án', building: 'Mã toà', buildingPrice: 'Giá toà', code: 'Mã căn', area_m2: 'Diện tích', floor: 'Tầng', direction: 'Hướng', apt_type: 'Loại căn', price_per_m2_override: 'Giá riêng', status: 'Trạng thái' };
       $('#cat-import-preview').innerHTML = `<b>${escapeHtml(file.name)}</b> — ${rows.length} dòng.<br>
-        Cột nhận ra: ${Object.keys(map).map((k) => labels[k]).join(', ')}.<br>
+        Cột nhận ra: ${Object.keys(map).map((k) => labels[k]).join(', ')}. Giá: số nhỏ hơn 1000 hiểu là triệu/m².<br>
         Sẽ tạo <b>${newP.size}</b> dự án mới, <b>${newB.size}</b> toà mới; <b>${nNew}</b> căn mới, <b>${nUpd}</b> căn cập nhật.
         <div class="cat-muted">Cột có trong file sẽ ghi đè dữ liệu cũ (ô trống = xoá giá trị đó); cột không có trong file giữ nguyên.</div>
         <div class="io-actions"><button type="button" id="cat-import-cancel" class="btn-ghost btn-small">Huỷ</button>
@@ -456,9 +503,9 @@
     try {
       const XLSX = await loadXLSX();
       const ws = XLSX.utils.aoa_to_sheet([HEAD,
-        ['Happy Home Tràng Cát', 'THE RISE 3', 19911530, 'R30413', 53.6, 4, 'Đông Nam', '2N-2WC', '', 'Còn'],
-        ['', '', '', 'R30414', 60.2, 4, 'Tây Bắc', '2N+, 2WC', 20500000, 'Giữ chỗ'],
-        ['Happy Home Tràng Cát', 'THE RISE 5', 19500000, '', '', '', '', '', '', ''],
+        ['Vin Tràng Cát', 'THE RISE 3', 19.91153, 'R30413', '2N-2WC', 4, 'Đông Nam', 53.6, '', 'Còn'],
+        ['', '', '', 'R30414', '2N-2WC-G', 4, 'Tây Bắc', '', 20.5, 'Giữ chỗ'],
+        ['Vin Tràng Cát', 'THE RISE 5', '', '', '', '', '', '', '', ''],
       ]);
       ws['!cols'] = HEAD.map((h) => ({ wch: Math.max(12, h.length + 2) }));
       const wb = XLSX.utils.book_new();

@@ -1486,3 +1486,8 @@ dialog#img-picker .ocr-status { margin-top: 8px; }
 .cat-sched-err { color: var(--seal); font-size: 12px; }
 .cat-sched-btns { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
 .cat-dirty { color: var(--seal); font-weight: 600; font-size: 12px; }
+/* Nguồn giá trị (toà / dự án) trong Giỏ hàng */
+.cat-src { display: inline-block; font-size: 10px; font-weight: 600; color: #6b6b60; background: var(--paper); border: 1px solid var(--line); border-radius: 6px; padding: 0 5px; margin-left: 2px; vertical-align: 1px; }
+.cat-btypes { padding-top: 0; }
+.cat-legend { padding: 0 10px 8px; }
+.cat-row label .cat-muted { font-size: 11px; }

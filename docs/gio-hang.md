@@ -8,71 +8,42 @@ Một danh mục chung cho cả CRM:
   thì lấy giá duyệt của toà. Bàn giao và nhận sổ lấy theo dự án. Cấp nào cũng có "Khác…"
   để gõ tay.
 
-## Dữ liệu (Supabase)
+## 3 lớp dữ liệu: lớp dưới để trống thì dùng giá trị lớp trên
 
-| Bảng | Nội dung chính |
-|---|---|
-| `projects` | Tên dự án, bàn giao dự kiến, nhận sổ sau bàn giao (tháng), VAT %, KPBT %, tiến độ CĐT (`payment_schedule`) |
-| `buildings` | Mã toà, **giá trung bình được duyệt** (`approved_price_per_m2`, đ/m²) |
-| `units` | Mã căn, diện tích, tầng, hướng, loại căn, giá riêng (`price_per_m2_override`, để trống = theo toà), trạng thái (`available` / `holding` / `sold`) |
+Thứ tự hiển thị trong màn Giỏ hàng đúng theo bảng dưới.
 
-- Mã căn **duy nhất trong 1 toà** (2 toà khác nhau được trùng số căn, vd "0808").
-- Xoá dự án thì xoá luôn toà và căn của nó; xoá toà thì xoá luôn căn. Khách đã lưu không
-  bị ảnh hưởng.
-- Đổi tên dự án trong màn Giỏ hàng thì các khách đang gắn tên cũ cũng được đổi theo.
-- `project_options` (danh sách dự án cũ) đã gộp vào `projects`. Bảng cũ vẫn giữ để tham
-  khảo, app không dùng nữa.
-
-Migration: `SQL/add_catalog_buildings.sql` (chạy sau `SQL/add_loan_module.sql`).
-
-## Tiến độ thanh toán theo dự án
-
-Mỗi dự án có thể có tiến độ riêng, với số đợt tuỳ ý (cột `projects.payment_schedule`). Dự án
-chưa cấu hình thì dùng **mẫu mặc định 7 đợt** (`DEFAULT_SCHEDULE` trong `js/loan/loan-engine.js`).
-
-Cấu hình trong màn Giỏ hàng → mở dự án → **Tiến độ thanh toán**:
-- Mỗi đợt gồm: tên, % giá trị căn, thời điểm (sau ký HĐ X ngày / ngày bàn giao / sau bàn giao
-  X tháng / ngày cố định), loại đợt (Thường / **Bàn giao** / **Nhận sổ**).
-- Cột **% VAT** tự tính để soát. App chặn lưu nếu tổng khác 100%, nếu không có đúng 1 đợt bàn
-  giao, hoặc nếu đợt nhận sổ không phải đợt cuối.
-- Thời điểm của đợt nhận sổ lấy theo ô "Nhận sổ sau BG" của dự án (chỉ nhập ở một chỗ).
-- "Về mặc định 7 đợt" xoá tiến độ riêng của dự án.
-
-**Quy tắc tính tiền từng đợt** (áp cho mọi tiến độ):
-- Đợt thường: X% giá thuần + **X% tổng VAT**.
-- Đợt nhận sổ (đợt cuối): X% giá thuần, **không VAT**. Phần VAT đó (cùng phần lẻ do làm tròn)
-  dồn vào **đợt ngay trước đợt nhận sổ**.
-- **KPBT** thu ở đợt bàn giao.
-- Ngân hàng giải ngân từ đợt 2.
-
-Ví dụ 10 đợt: Đ1 30% (30% VAT) · Đ2–8 mỗi đợt 5% (5% VAT) · Đ9 bàn giao 30% (35% VAT) + KPBT
-· Đ10 nhận sổ 5% (0% VAT).
-
-## Loại căn & diện tích điển hình
-
-Danh sách loại căn chuẩn: **Studio, 1N-1WC, 1N+, 1WC, 2N-2WC, 2N+, 2WC, 2N-2WC-G, 3N-2WC**
-(`APT_TYPES` trong `js/app.js`), có thêm "Khác" để gõ tay.
-
-| Cấp | Bảng | Lưu gì |
+| Lớp | Thuộc tính | Bảng / cột |
 |---|---|---|
-| Dự án | `project_apt_types` | Các loại căn dự án có + **diện tích điển hình chung** |
-| Toà | `building_apt_types` | Các loại căn của toà (bắt buộc nằm trong danh sách của dự án — DB chặn nếu sai) + diện tích chỉnh riêng theo toà (trống = theo dự án) |
-| Căn | `units.area_m2` | Diện tích riêng của căn |
+| **1. Dự án** | Tên dự án | `projects.name` |
+| | Loại căn + diện tích điển hình theo từng loại | `project_apt_types` |
+| | Giá điển hình (tr/m², lưu theo đồng) | `projects.typical_price_per_m2` |
+| | VAT (% giá thuần) · KPBT (% giá thuần) | `projects.vat_rate`, `kpbt_rate` |
+| | Bàn giao dự kiến · Nhận sổ sau bàn giao | `projects.handover_date`, `title_after_months` |
+| | Tiến độ thanh toán | `projects.payment_schedule` (trống = mặc định 7 đợt) |
+| **2. Toà** | Mã toà | `buildings.code` |
+| | Loại căn (⊂ dự án) + diện tích theo loại (trống = dự án) | `building_apt_types` |
+| | Giá điển hình (trống = dự án) | `buildings.approved_price_per_m2` |
+| | Dự kiến bàn giao (trống = dự án) | `buildings.handover_date` |
+| **3. Căn** | Mã căn · tầng · hướng · trạng thái | `units.code`, `floor`, `direction`, `status` |
+| | Loại căn (⊂ toà — database chặn nếu sai) | `units.apt_type` |
+| | Diện tích (trống = loại căn của toà → dự án) | `units.area_m2` |
+| | Giá (trống = toà → dự án) | `units.price_per_m2_override` |
 
-**Diện tích của 1 căn = riêng của căn → điển hình của loại căn trong toà → điển hình trong dự án.**
-Diện tích điển hình chỉ để gợi ý: bảng tính vay và form khách tự điền, sửa tay được.
+Cả app (form khách, bảng tính vay, màn Giỏ hàng) đều lấy giá trị **hiệu lực** qua cùng các hàm
+trong `js/catalog.js` (`unitArea`, `unitPrice`, `buildingPrice`, `buildingHandover`…), nên số liệu
+luôn khớp nhau. Trong Supabase, xem nhanh ở view `v_units` / `v_buildings` (cột `effective_*` và
+`*_source` = căn / toà / dự án).
 
-- Toà chưa tích loại căn nào thì dùng tất cả loại căn của dự án.
-- Đổi tên loại căn ở dự án: toà và căn đang dùng tên cũ được database tự đổi theo.
-- Xoá loại căn ở dự án: toà cũng bỏ loại đó, còn căn đã nhập vẫn giữ nguyên.
-- Lưu hoặc nhập Excel một căn có loại căn chưa khai báo thì loại đó tự được thêm vào dự án
-  (và vào toà, nếu toà đang có danh sách riêng).
-- Sửa trong màn Giỏ hàng: mở dự án → mục **Loại căn của dự án**; mở toà → **Loại căn của toà**
-  (gõ diện tích cho loại chưa tích thì ô đó tự được tích).
-- Xem nhanh trong Supabase: view `v_building_apt_types` (loại căn hiệu lực của từng toà) và
-  `v_units` (cột `effective_area_m2`, `area_source` = căn / toà / dự án).
+- Bảng tính vay: sửa ngày bàn giao thì lưu vào **đúng lớp đang cung cấp giá trị** (toà có ngày riêng
+  thì lưu vào toà, không thì lưu vào dự án). Nhận sổ sau bàn giao luôn lưu vào dự án.
+- Màn Giỏ hàng: giá nhập theo **tr/m²** (vd `19,91153`). Gõ đủ số đồng (`19911530` hoặc
+  `19.911.530`) app cũng hiểu đúng.
+- Mã căn duy nhất trong 1 toà. Xoá dự án thì xoá luôn toà và căn; xoá toà thì xoá luôn căn. Khách
+  đã lưu không bị ảnh hưởng.
+- Đổi tên dự án thì các khách đang gắn tên cũ cũng được đổi theo.
 
-Migration: `SQL/add_apt_types_by_project.sql` (chạy sau `add_catalog_buildings.sql`).
+Migration theo thứ tự: `add_loan_module.sql` → `add_catalog_buildings.sql` →
+`add_apt_types_by_project.sql` → `catalog_layers_v2.sql`.
 
 ## 3 cách nhập dữ liệu
 
@@ -80,13 +51,16 @@ Migration: `SQL/add_apt_types_by_project.sql` (chạy sau `add_catalog_buildings
    căn. Bấm vào dự án hoặc toà để mở ra. Cần có mạng.
 2. **Nhập Excel**: trong màn Giỏ hàng → **⬇ File mẫu** để lấy đúng định dạng → điền →
    **⬆ Nhập Excel** → xem trước số dự án/toà/căn sẽ tạo hoặc cập nhật → **Nhập**.
-   - Cột bắt buộc: `Dự án`, `Mã toà`. Các cột khác tuỳ chọn: `Giá duyệt toà (đ/m²)`,
-     `Mã căn`, `Diện tích (m²)`, `Tầng`, `Hướng`, `Loại căn`, `Giá riêng (đ/m²)`,
-     `Trạng thái` (Còn / Giữ chỗ / Đã bán). Tên cột không phân biệt dấu hay chữ hoa.
+   - Cột bắt buộc: `Dự án`, `Mã toà`. Các cột khác tuỳ chọn: `Giá toà (tr/m²)`, `Mã căn`,
+     `Loại căn`, `Tầng`, `Hướng`, `Diện tích (m²)`, `Giá riêng (tr/m²)`, `Trạng thái` (Còn /
+     Giữ chỗ / Đã bán). Tên cột không phân biệt dấu hay chữ hoa. Giá nhỏ hơn 1000 được hiểu là
+     triệu/m².
+   - Loại căn chưa khai báo thì tự được khai báo vào dự án (và vào toà nếu toà có danh sách
+     riêng) trước khi ghi căn.
    - Ô Dự án hoặc Mã toà để trống thì lấy theo dòng trên (hợp với file CĐT có ô gộp).
    - Căn đã có (cùng toà + mã căn) thì được **cập nhật**. Cột có trong file sẽ ghi đè (ô
      trống = xoá giá trị đó); cột không có trong file thì giữ nguyên dữ liệu cũ.
-   - Dòng chỉ có Dự án + Mã toà + Giá duyệt (không có mã căn) dùng để cập nhật giá toà.
+   - Dòng chỉ có Dự án + Mã toà + Giá toà (không có mã căn) dùng để cập nhật giá toà.
 3. **Supabase Table Editor**: sửa thẳng các bảng `projects` / `buildings` / `units`. Khi
    thêm căn bằng tay, nhớ điền cả `project_id` và `building_id`. Mở lại app (hoặc mở màn
    Giỏ hàng) để thấy dữ liệu mới.
