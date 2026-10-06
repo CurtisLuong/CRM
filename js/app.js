@@ -1279,8 +1279,9 @@ function openForm(id) {
   const c = id ? allCustomers.find((x) => x.id === id) : {};
   // Header khi sửa: kèm HỌ TÊN ĐÃ LƯU (đọc từ record c — giá trị trước khi sửa),
   // không đổi theo lúc gõ ô Họ tên vì chỉ set 1 lần lúc mở form.
-  $('#form-title').textContent = id
-    ? 'Sửa thông tin khách ' + (c.full_name || '(chưa tên)')
+  // Tiêu đề dính đầu form: tên khách đang sửa (giá trị đã lưu, không đổi theo lúc gõ).
+  $('#form-title').innerHTML = id
+    ? `<span class="form-title-pre">Sửa thông tin</span>${escapeHtml(c.full_name || '(chưa tên)')}`
     : 'Thêm khách mới';
 
   const f = $('#customer-form');
@@ -1351,8 +1352,12 @@ function openForm(id) {
   $('#proj-dropdown-panel').hidden = true; // dropdown thu gọn mỗi lần mở form
   renderProjSelect();
 
-  // Ô "Ghi chú" khi tạo/sửa khách — luôn để trống (là ô THÊM ghi chú mới).
-  f.new_note.value = '';
+  // Ghi chú: nạp BẢN NHÁP từ ghi chú hiện có (sửa/xoá/thêm chỉ ghi khi bấm Lưu).
+  formNotesDraft = (Array.isArray(c.notes_manual) ? c.notes_manual : [])
+    .filter((n) => n && n.text).map((n) => ({ text: n.text, at: n.at }));
+  formRegNote = c.notes || '';
+  renderFormNotes();
+  $('#form-note-new').value = '';
 
   // Ô "Ghi chú cho lần đổi tiến độ" chỉ hiện khi bậc thực sự khác lúc mở form.
   // Với khách mới, bậc mặc định 'Đăng kí mới' chính là bậc gốc (chưa coi là "đổi").
@@ -1374,8 +1379,74 @@ function openForm(id) {
   $('#form-doc-file').value = '';
   if (id) loadFormDocs(id);
 
+  // Nhóm "Mở rộng": luôn GẬP khi mở form; kèm số trường đã có dữ liệu bên trong.
+  $$('#customer-form details.form-more').forEach((d) => { d.open = false; updateMoreCount(d); });
   $('#form-modal').showModal();
+  $('#customer-form').scrollTop = 0;
 }
+
+// Đếm trường có giá trị trong 1 nhóm "Mở rộng" → hiện "· 3 đã điền" cạnh nút (biết có dữ liệu ẩn).
+function updateMoreCount(det) {
+  const n = [...det.querySelectorAll('input:not([type=hidden]):not([hidden]), select')]
+    .filter((el) => String(el.value || '').trim() !== '').length;
+  const out = det.querySelector('.more-count');
+  if (out) out.textContent = n ? ` · ${n} đã điền` : '';
+}
+
+// ---- GHI CHÚ trong form (bản nháp) ----
+let formNotesDraft = []; // [{text, at}] — mới nhất ở ĐẦU (giống notes_manual)
+let formRegNote = '';    // cột notes (vd landing ghi thông tin đăng ký) — sửa được như 1 ghi chú
+function renderFormNotes() {
+  const rows = [];
+  if (formRegNote) {
+    rows.push(`<div class="form-note-row">
+      <textarea class="form-note-text" data-reg="1" rows="2">${escapeHtml(formRegNote)}</textarea>
+      <div class="form-note-meta"><span>Thông tin đăng ký</span><button type="button" class="doc-del" data-note-del="reg" title="Xoá">✕</button></div>
+    </div>`);
+  }
+  formNotesDraft.forEach((n, i) => {
+    rows.push(`<div class="form-note-row">
+      <textarea class="form-note-text" data-idx="${i}" rows="${Math.min(4, Math.max(1, Math.ceil(n.text.length / 60)))}">${escapeHtml(n.text)}</textarea>
+      <div class="form-note-meta"><span>${n.at ? escapeHtml(formatLogTime(n.at)) : 'mới'}</span><button type="button" class="doc-del" data-note-del="${i}" title="Xoá">✕</button></div>
+    </div>`);
+  });
+  $('#form-notes').innerHTML = rows.join('') || '<div class="docs-empty">Chưa có ghi chú.</div>';
+}
+// Đọc lại nội dung đang gõ trong các ô → bản nháp (gọi trước khi render lại / khi lưu).
+function syncFormNotesFromDom() {
+  $$('#form-notes .form-note-text').forEach((el) => {
+    if (el.dataset.reg) formRegNote = el.value;
+    else if (formNotesDraft[+el.dataset.idx]) formNotesDraft[+el.dataset.idx].text = el.value;
+  });
+}
+function addFormNote() {
+  const t = $('#form-note-new').value.trim(); if (!t) return;
+  syncFormNotesFromDom();
+  formNotesDraft.unshift({ text: t, at: null }); // at gán lúc Lưu
+  $('#form-note-new').value = '';
+  renderFormNotes();
+}
+// Kết quả cuối: ghi chú (bỏ ô trống, gán giờ cho ghi chú mới) + cả ô "thêm" chưa bấm ＋.
+function collectFormNotes() {
+  syncFormNotesFromDom();
+  const now = new Date().toISOString();
+  const pending = $('#form-note-new').value.trim();
+  const list = (pending ? [{ text: pending, at: null }] : []).concat(formNotesDraft)
+    .map((n) => ({ text: n.text.trim(), at: n.at || now }))
+    .filter((n) => n.text);
+  return { notes: list, reg: formRegNote.trim() || null };
+}
+$('#form-note-add-btn')?.addEventListener('click', addFormNote);
+$('#form-note-new')?.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); addFormNote(); } });
+$('#form-notes')?.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-note-del]'); if (!b) return;
+  syncFormNotesFromDom();
+  if (b.dataset.noteDel === 'reg') formRegNote = '';
+  else formNotesDraft.splice(+b.dataset.noteDel, 1);
+  renderFormNotes();
+});
+// Nhóm "Mở rộng": cập nhật số trường đã điền khi gập lại.
+$('#customer-form')?.addEventListener('toggle', (e) => { if (e.target.matches?.('details.form-more')) updateMoreCount(e.target); }, true);
 
 // ---- Gợi ý Mã toà / Mã căn từ GIỎ HÀNG (js/catalog.js), lọc theo dự án đang chọn ----
 function formCatalogProjects() {
@@ -1719,8 +1790,8 @@ async function handleFormSubmit(e) {
   // Ghi chú cho lần đổi bậc / lần liên hệ mới.
   const note = f.care_stage_note.value.trim() || null;
   const opts = { careStageNote: note };
-  // Ghi chú nhập ở form (ô "Ghi chú") → thêm thành 1 mục ghi chú sau khi lưu.
-  const formNote = f.new_note.value.trim() || null;
+  // Ghi chú (bản nháp đã sửa/xoá/thêm trong form).
+  const { notes: formNotes, reg: formReg } = collectFormNotes();
   if (editingId) {
     // Chặn SỬA SĐT trùng khách KHÁC: update vi phạm unique (phone,owner) sẽ làm KẸT
     // hàng đợi đồng bộ (khác insert — không tự bỏ được), nên chặn ngay tại đây.
@@ -1747,9 +1818,13 @@ async function handleFormSubmit(e) {
       // (b) Cùng bậc lặp được + có ghi chú → ghi thêm 1 lần liên hệ mới.
       opts.forceLog = true;
     }
+    // Chỉ gửi ghi chú khi thực sự đổi (tránh ghi đè không cần thiết).
+    const curNotes = (editing && Array.isArray(editing.notes_manual)) ? editing.notes_manual : [];
+    const norm = (l) => JSON.stringify(l.map((n) => [n.text, n.at]));
+    if (norm(formNotes) !== norm(curNotes)) payload.notes_manual = formNotes;
+    if ((editing && editing.notes || null) !== formReg) payload.notes = formReg;
     await CRM.update(editingId, payload, opts);
     if (pendingOcrNote) { await CRM.addNote(editingId, pendingOcrNote); pendingOcrNote = null; }
-    if (formNote) await CRM.addNote(editingId, formNote);
   } else {
     // Kênh do sale chọn (source); cách nhập hệ thống tự set: ảnh (OCR) → 'ocr', còn lại 'manual'.
     const newSource = channel || SOURCE_DEFAULT;
@@ -1778,7 +1853,7 @@ async function handleFormSubmit(e) {
       const mergedSource = curSources.concat([newSource]);
       await CRM.update(dup.id, { source: mergedSource });
       if (pendingOcrNote) { await CRM.addNote(dup.id, pendingOcrNote); pendingOcrNote = null; }
-      if (formNote) await CRM.addNote(dup.id, formNote);
+      for (const n of [...formNotes].reverse()) await CRM.addNote(dup.id, n.text); // giữ thứ tự cũ→mới
       if (pendingOcrImage) {
         try { await CRM.uploadDocument(dup.id, pendingOcrImage, 'reg_image', 'Ảnh đăng ký'); }
         catch (err) { console.warn('Lưu ảnh đăng ký lỗi:', err); }
@@ -1793,6 +1868,7 @@ async function handleFormSubmit(e) {
 
     // SĐT mới hoàn toàn → tạo khách. source lưu dạng MẢNG (jsonb).
     payload.source = [newSource];
+    payload.notes_manual = formNotes;
     if (f.qualify_now.checked) {
       // Đã gọi & xác nhận quan tâm ngay lúc nhập → vào thẳng lớp 2, ghi 1 lần gọi "Nói chuyện được".
       const now = new Date().toISOString();
@@ -1806,7 +1882,7 @@ async function handleFormSubmit(e) {
     const created = await CRM.create(payload, opts);
     // Nếu OCR đọc được 1 ghi chú → thêm thành 1 note tự nhập cho khách vừa tạo.
     if (created && pendingOcrNote) { await CRM.addNote(created.id, pendingOcrNote); pendingOcrNote = null; }
-    if (created && formNote) await CRM.addNote(created.id, formNote);
+
     // Lưu ảnh OCR thành tài liệu reg_image (cần mạng; offline thì bỏ qua, không chặn tạo khách).
     if (created && pendingOcrImage) {
       try { await CRM.uploadDocument(created.id, pendingOcrImage, 'reg_image', 'Ảnh đăng ký'); }
@@ -3310,11 +3386,17 @@ async function loadFormDocs(customerId) {
   formDocs = await CRM.listDocuments(customerId);
   renderFormDocs();
 }
+// Chỉ hiện tài liệu MỚI NHẤT; các tài liệu cũ hơn gập dưới "Mở rộng" (2 chiều).
 function renderFormDocs() {
   const box = $('#form-docs');
-  box.innerHTML = formDocs.length
-    ? formDocs.map((d) => docItemHtml(d, 'fdoc')).join('')
-    : '<div class="docs-empty">Chưa có tài liệu.</div>';
+  if (!formDocs.length) { box.innerHTML = '<div class="docs-empty">Chưa có tài liệu.</div>'; return; }
+  const docs = [...formDocs].sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
+  const [latest, ...older] = docs;
+  box.innerHTML = docItemHtml(latest, 'fdoc') + (older.length ? `
+    <details class="form-more">
+      <summary><span class="more-open">Xem thêm ${older.length} tài liệu cũ hơn</span><span class="more-close">Thu gọn</span></summary>
+      <div class="docs-list">${older.map((d) => docItemHtml(d, 'fdoc')).join('')}</div>
+    </details>` : '');
 }
 async function deleteFormDoc(id) {
   const doc = formDocs.find((d) => d.id === id);

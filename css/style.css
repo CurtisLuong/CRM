@@ -1187,7 +1187,7 @@ dialog#form-modal::backdrop { background: rgba(20, 30, 30, 0.5); }
 .interest-range::-moz-range-track { background: transparent; height: 4px; border-radius: 999px; }
 /* Viền section đậm hơn ~50% so với viền field (field: 1px #E4DFD3) → dày 1.5px +
    màu taupe đậm hơn, đủ để mắt phân biệt khung section với khung của từng field. */
-fieldset { border: 1.5px solid #C7BEA9; border-radius: 8px; padding: 12px; }
+fieldset { border: 1.5px solid #C7BEA9; border-radius: 8px; padding: 12px; min-width: 0; } /* min-width:0: fieldset mặc định không co nhỏ hơn nội dung → tràn ngang trên màn hẹp */
 /* Tên section: giữ nguyên cỡ 12px nhưng đậm + màu mực đậm + chữ hoa giãn nhẹ →
    nổi hơn hẳn tên field (13px, #4a4a42, thường) để phân biệt rõ tiêu đề với field. */
 legend { font-size: 12px; color: var(--ink); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; padding: 0 6px; }
@@ -1579,3 +1579,44 @@ dialog#lead-modal::backdrop { background: rgba(20, 30, 30, 0.5); }
 .tool-head h2 { font-family: "Georgia", "Times New Roman", serif; font-size: 20px; margin: 0; color: var(--ink); }
 .tool-back { width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--line); background: #fff; color: var(--ink); font-size: 18px; cursor: pointer; flex: none; }
 .tool-back:hover { background: var(--paper); }
+
+/* ===== FORM KHÁCH: tiêu đề + thanh nút DÍNH, nhóm "Mở rộng", ghi chú sửa được ===== */
+/* #customer-form là vùng cuộn (padding 24px) → dùng margin âm + top/bottom âm để dính sát mép. */
+#customer-form h2.form-sticky-head {
+  position: sticky; top: -24px; z-index: 6;
+  margin: -24px -24px 16px; padding: 16px 24px 12px;
+  background: #fff; border-bottom: 1px solid var(--line);
+  font-family: "Georgia", "Times New Roman", serif; font-size: 20px; line-height: 1.25;
+}
+.form-title-pre { display: block; font-family: inherit; font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: #8a8a7d; margin-bottom: 2px; }
+#customer-form .form-sticky-foot {
+  position: sticky; bottom: -24px; z-index: 6;
+  margin: 20px -24px -24px; padding: 12px 24px;
+  background: #fff; border-top: 1px solid var(--line);
+}
+
+/* Nhóm "Mở rộng" ⇄ "Thu gọn" (details gốc → bấm lại để thu gọn) */
+details.form-more > summary {
+  list-style: none; cursor: pointer; user-select: none; display: inline-flex; align-items: center; gap: 6px;
+  font-size: 13px; font-weight: 600; color: var(--teal-light); padding: 4px 0;
+}
+details.form-more > summary::-webkit-details-marker { display: none; }
+details.form-more > summary::before { content: '▸'; font-size: 11px; transition: transform .15s; }
+details.form-more[open] > summary::before { transform: rotate(90deg); }
+details.form-more .more-close { display: none; }
+details.form-more[open] .more-open { display: none; }
+details.form-more[open] .more-close { display: inline; }
+details.form-more .more-count { font-weight: 400; color: #8a8a7d; }
+details.form-more[open] .more-count { display: none; }
+details.form-more { min-width: 0; }
+details.form-more > .form-grid, details.form-more > .docs-list { margin-top: 10px; }
+
+.form-notes-label { font-size: 13px; color: #4a4a42; margin-bottom: 6px; }
+.form-notes { display: grid; gap: 8px; }
+.form-note-row { border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; background: #fff; }
+.form-note-text { width: 100%; border: none; resize: vertical; font: inherit; font-size: 14px; padding: 2px 0; background: transparent; color: var(--ink); }
+.form-note-text:focus { outline: none; }
+.form-note-row:focus-within { border-color: var(--teal-light); }
+.form-note-meta { display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: #8a8a7d; }
+.form-note-add { display: flex; gap: 8px; margin-top: 8px; }
+.form-note-add input { flex: 1; min-width: 0; }

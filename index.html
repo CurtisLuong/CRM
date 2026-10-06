@@ -452,7 +452,8 @@
 <!-- ============ FORM THÊM / SỬA KHÁCH (modal) ============ -->
 <dialog id="form-modal">
   <form id="customer-form">
-    <h2 id="form-title">Thêm khách mới</h2>
+    <!-- Tiêu đề + thanh nút đáy DÍNH (sticky) trong vùng cuộn của form. -->
+    <h2 id="form-title" class="form-sticky-head">Thêm khách mới</h2>
 
     <!-- Nhập từ ảnh (OCR qua Gemini): tự điền form, KHÔNG lưu thẳng — rà rồi Lưu.
          Tự ẩn nếu chưa cấu hình WORKER_URL trong config.js. -->
@@ -516,28 +517,34 @@
           </label>
           <!-- Mệnh & Cung được SUY từ ngày sinh (tính lúc lưu trong handleFormSubmit), không
                cần nhập/sửa nên đã bỏ khỏi form cho gọn. Vẫn hiển thị ở trang chi tiết. -->
-          <label>Trạng thái hôn nhân
-            <select name="marital_status">
-              <option value="">— Chưa rõ —</option>
-              <option value="đã kết hôn">Đã kết hôn</option>
-              <option value="chưa kết hôn">Chưa kết hôn</option>
-            </select>
-          </label>
-          <label>Thường trú
-            <input name="residence" type="text" placeholder="vd: Hải Phòng" />
-          </label>
-          <label>Công việc
-            <select name="occupation">
-              <option value="">— Chưa rõ —</option>
-              <option value="Tự do">Tự do</option>
-              <option value="Công ty, DN">Công ty, DN</option>
-              <option value="Công, viên chức">Công, viên chức</option>
-              <option value="Công an, Bộ đội">Công an, Bộ đội</option>
-            </select>
-          </label>
-          <label>Thu nhập
-            <input name="income" type="text" placeholder="vd: ~25tr/tháng" />
-          </label>
+          <!-- Trường ít dùng: gập dưới "Mở rộng" (2 chiều, mặc định gập — openForm đóng lại mỗi lần mở). -->
+          <details class="form-more span-2">
+            <summary><span class="more-open">Mở rộng</span><span class="more-close">Thu gọn</span><span class="more-count"></span></summary>
+            <div class="form-grid">
+              <label>Trạng thái hôn nhân
+                <select name="marital_status">
+                  <option value="">— Chưa rõ —</option>
+                  <option value="đã kết hôn">Đã kết hôn</option>
+                  <option value="chưa kết hôn">Chưa kết hôn</option>
+                </select>
+              </label>
+              <label>Thường trú
+                <input name="residence" type="text" placeholder="vd: Hải Phòng" />
+              </label>
+              <label>Công việc
+                <select name="occupation">
+                  <option value="">— Chưa rõ —</option>
+                  <option value="Tự do">Tự do</option>
+                  <option value="Công ty, DN">Công ty, DN</option>
+                  <option value="Công, viên chức">Công, viên chức</option>
+                  <option value="Công an, Bộ đội">Công an, Bộ đội</option>
+                </select>
+              </label>
+              <label>Thu nhập
+                <input name="income" type="text" placeholder="vd: ~25tr/tháng" />
+              </label>
+            </div>
+          </details>
         </div>
       </fieldset>
 
@@ -580,22 +587,6 @@
           <label>Diện tích (m²)
             <input name="apt_area" type="number" min="0" step="0.1" placeholder="vd: 68.5" />
           </label>
-          <label>Hướng căn
-            <select name="apt_direction">
-              <option value="">— Chưa rõ —</option>
-              <option value="Đông">Đông</option>
-              <option value="Tây">Tây</option>
-              <option value="Nam">Nam</option>
-              <option value="Bắc">Bắc</option>
-              <option value="Đông Bắc">Đông Bắc</option>
-              <option value="Đông Nam">Đông Nam</option>
-              <option value="Tây Bắc">Tây Bắc</option>
-              <option value="Tây Nam">Tây Nam</option>
-            </select>
-          </label>
-          <label>Tầng
-            <input name="apt_floor" type="number" min="1" step="1" placeholder="vd: 12" />
-          </label>
           <!-- Gợi ý từ GIỎ HÀNG (js/catalog.js), lọc theo dự án đã chọn. Chọn mã căn có
                trong giỏ → tự điền toà, diện tích, loại căn, tầng, hướng. -->
           <label>Mã toà
@@ -606,23 +597,44 @@
             <input name="apt_code" type="text" list="cf-unit-list" autocomplete="off" />
             <datalist id="cf-unit-list"></datalist>
           </label>
-          <label>Giá căn (VNĐ)
-            <input name="apt_price" type="number" min="0" step="1000000" />
-          </label>
-          <label>Ngân sách (VNĐ)
-            <input name="finance" type="number" min="0" step="1000000" placeholder="Tiền khách có sẵn" />
-          </label>
-          <label>Mục đích
-            <select name="purpose">
-              <option value="">— Chưa rõ —</option>
-              <option value="Ở">Ở</option>
-              <option value="Đầu tư">Đầu tư</option>
-              <option value="Cho tặng">Cho tặng</option>
-            </select>
-          </label>
-          <label>Thời gian đăng ký
-            <input name="registered_at" type="datetime-local" />
-          </label>
+          <details class="form-more span-2">
+            <summary><span class="more-open">Mở rộng</span><span class="more-close">Thu gọn</span><span class="more-count"></span></summary>
+            <div class="form-grid">
+              <label>Hướng căn
+                <select name="apt_direction">
+                  <option value="">— Chưa rõ —</option>
+                  <option value="Đông">Đông</option>
+                  <option value="Tây">Tây</option>
+                  <option value="Nam">Nam</option>
+                  <option value="Bắc">Bắc</option>
+                  <option value="Đông Bắc">Đông Bắc</option>
+                  <option value="Đông Nam">Đông Nam</option>
+                  <option value="Tây Bắc">Tây Bắc</option>
+                  <option value="Tây Nam">Tây Nam</option>
+                </select>
+              </label>
+              <label>Tầng
+                <input name="apt_floor" type="number" min="1" step="1" placeholder="vd: 12" />
+              </label>
+              <label>Giá căn (VNĐ)
+                <input name="apt_price" type="number" min="0" step="1000000" />
+              </label>
+              <label>Ngân sách (VNĐ)
+                <input name="finance" type="number" min="0" step="1000000" placeholder="Tiền khách có sẵn" />
+              </label>
+              <label>Mục đích
+                <select name="purpose">
+                  <option value="">— Chưa rõ —</option>
+                  <option value="Ở">Ở</option>
+                  <option value="Đầu tư">Đầu tư</option>
+                  <option value="Cho tặng">Cho tặng</option>
+                </select>
+              </label>
+              <label>Thời gian đăng ký
+                <input name="registered_at" type="datetime-local" />
+              </label>
+            </div>
+          </details>
         </div>
       </fieldset>
 
@@ -647,9 +659,16 @@
             </span>
             <input name="interest_level" type="range" min="0" max="100" value="50" class="interest-range" />
           </label>
-          <label class="span-2">Ghi chú
-            <textarea name="new_note" rows="3" placeholder="Ghi chú lúc tạo khách (sẽ thành 1 mục ghi chú)..."></textarea>
-          </label>
+          <!-- GHI CHÚ: mọi ghi chú hiện có của khách — sửa/xoá/thêm trên BẢN NHÁP, chỉ ghi khi bấm Lưu
+               (Huỷ = bỏ hết). Logic: renderFormNotes / collectFormNotes trong app.js. -->
+          <div class="span-2 form-notes-wrap">
+            <div class="form-notes-label">Ghi chú</div>
+            <div id="form-notes" class="form-notes"></div>
+            <div class="form-note-add">
+              <input id="form-note-new" type="text" placeholder="Thêm ghi chú mới..." autocomplete="off" />
+              <button type="button" id="form-note-add-btn" class="btn-small">＋ Thêm</button>
+            </div>
+          </div>
         </div>
       </fieldset>
 
@@ -674,7 +693,7 @@
       </fieldset>
     </div>
 
-    <div class="form-actions">
+    <div class="form-actions form-sticky-foot">
       <button type="button" id="delete-customer-btn" class="btn-small btn-danger-outline" hidden>🗑 Xoá khách</button>
       <span class="form-actions-spacer"></span>
       <button type="button" id="cancel-form-btn" class="btn-ghost">Huỷ</button>

@@ -6,6 +6,18 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-06 — Form sửa khách gọn hơn: nhóm "Mở rộng", ghi chú sửa được, tiêu đề/nút dính
+
+- Trường ít dùng gập dưới "Mở rộng ⇄ Thu gọn" (kèm số trường đã điền): cá nhân (hôn nhân, thường trú, công việc,
+  thu nhập); căn hộ (hướng, tầng, giá căn, ngân sách, mục đích, thời gian đăng ký). Mỗi lần mở form đều gập lại.
+- Chăm sóc: hiện MỌI ghi chú của khách (kể cả thông tin đăng ký từ landing — cột `notes`), sửa/xoá/thêm trên bản nháp,
+  chỉ ghi khi bấm Lưu (Huỷ = bỏ). Ô "thêm" đã gõ mà chưa bấm ＋ vẫn được lưu.
+- Tài liệu đính kèm: chỉ hiện tài liệu mới nhất, còn lại gập dưới "Xem thêm N tài liệu cũ hơn".
+- Tên khách dính đầu form, nút Xoá khách / Huỷ / Lưu dính đáy (sticky). Sửa tràn ngang trên màn hẹp (`fieldset min-width: 0`).
+- File: `index.html`, `js/app.js`, `css/style.css`, `sw.js` (cache v14).
+
+---
+
 ## 2026-10-06 — Tab Khách mới: thanh công cụ giống tab Tiềm năng
 
 - Dropdown trạng thái (Cần gọi / Đã loại / Tất cả) · Bộ lọc (kênh; thời gian đăng ký Hôm nay / Tuần này / Tháng này /
