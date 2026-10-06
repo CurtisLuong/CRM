@@ -73,7 +73,8 @@ Quyết định D-001 tại `docs/decisions.md`. Tóm tắt:
 
 - `qualified_at` trống = lớp 1 "Khách mới" (tab riêng, chỉ ghi cuộc gọi `call_attempts`, Đạt/Loại); có giá trị = lớp 2 (trang chủ, trang hồ sơ). `openDetail()` với lead tự mở hộp Khách mới.
 - `source` = kênh (`facebook_ads` | `website` | `referral` | …), `intake_method` = cách nhập, `campaign` = chiến dịch. Danh mục kênh: `SOURCES` trong `js/app.js`.
-- Lead từ landing page được API repo Marquee_Homes ghi thẳng vào bảng (service role, owner = tài khoản Website, `source ["website"]`, cột `web_*` cho UTM) và tự vào lớp 1.
+- Lead từ landing page được API repo Marquee_Homes ghi thẳng vào bảng (service role, `source ["website"]`, cột `web_*` cho UTM) và tự vào lớp 1.
+- `owner_id` của lead landing = `WEB_OWNER_ID` trong API (mặc định `a70e8d12…`). Kiểm tra 2026-10-06: đây chính là tài khoản sale duy nhất của chủ dự án (role `sale`), không có tài khoản "Website" riêng — chú thích "tài khoản Website" trong `lead.js` là tên gọi cũ. Khi thêm đồng nghiệp, lead landing vẫn chỉ vào tài khoản này (người khác không thấy do RLS) — cần quyết định cách giao lead trước khi mở rộng.
 
 ## Bảng profiles và phân quyền
 

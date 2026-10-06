@@ -200,8 +200,13 @@ function careColor(stage) {
   return CARE_STAGE_COLORS[stage] || CARE_STAGE_COLORS[CARE_STAGE_DEFAULT];
 }
 
+// Nhãn HIỂN THỊ của bậc (chỉ để xem). Giá trị lưu + lúc chọn trong form/bộ lọc vẫn là tên
+// bậc gốc: 'Loại' hiển thị "Không chốt" (khách đã chăm nhưng mất deal — khác lead bị loại ở
+// tab Khách mới).
+const CARE_STAGE_DISPLAY = { [CARE_STAGE_DROPPED]: 'Không chốt' };
 function careLabel(stage) {
-  return stage || CARE_STAGE_DEFAULT;
+  const s = stage || CARE_STAGE_DEFAULT;
+  return CARE_STAGE_DISPLAY[s] || s;
 }
 
 function isCareDone(stage) {
@@ -306,7 +311,6 @@ const SOURCES = {
 const SOURCE_DEFAULT = 'facebook_ads';
 // Mã cũ trước 2026-10-06 (app cũ/thiết bị chưa cập nhật có thể còn ghi) → mã kênh mới.
 const SOURCE_LEGACY = { manual: 'facebook_ads', ocr: 'facebook_ads', landing: 'website' };
-const INTAKE_LABELS = { manual: 'Nhập tay', ocr: 'Từ ảnh (OCR)', import: 'Nhập Excel', api: 'Tự động (API)' };
 const LS_LAST_SOURCE = 'crm_last_source'; // kênh chọn gần nhất → mặc định cho khách mới
 
 // Chuẩn hoá source (string cũ | mảng | null) → mảng mã kênh, không trùng.
@@ -377,7 +381,17 @@ const LEAD_DROP_TOP = ['gia_cao', 'pha_campaign', 'khong_du_dieu_kien', 'khong_l
 function dropReasonLabel(code) { return LEAD_DROP_REASONS[code] || code || ''; }
 // Gợi ý loại "Không liên lạc được": ≥3 lần gọi, chưa lần nào nói chuyện được.
 const LEAD_UNREACHABLE_SUGGEST = 3;
-let leadFilter = 'open'; // 'open' (cần gọi) | 'dropped' | 'all'
+let leadFilter = 'open';     // dropdown trạng thái: 'open' (cần gọi) | 'dropped' | 'all'
+let leadSrcFilter = '';      // bộ lọc kênh: '' = tất cả, hoặc mã trong SOURCES
+let leadDatePreset = 'all';  // bộ lọc thời gian đăng ký: 'all' | 'today' | 'week' | 'month'
+// Sắp xếp tab Khách mới: mảng {key, dir}; RỖNG = ưu tiên gọi (sortLeads mặc định).
+const LEAD_SORT_ATTRS = [
+  { key: 'name',     name: 'Tên' },
+  { key: 'reg',      name: 'Thời gian đăng ký' },
+  { key: 'attempts', name: 'Số lần gọi' },
+];
+let leadSort = [];
+let leadSortDraft = {};
 
 // Nhãn hiển thị cho loại tài liệu (kind). Mở rộng khi có loại giấy tờ mới.
 const DOC_KIND_LABELS = {
@@ -442,7 +456,7 @@ async function onLoggedIn(user) {
   try { localStorage.setItem(LS_LAST_USER, JSON.stringify({ id: user.id, email: user.email || '' })); } catch {}
   // Avatar = chữ cái đầu của email; menu hiện email đầy đủ
   const email = user.email || '';
-  $('#user-menu-btn').textContent = (email[0] || '?').toUpperCase();
+  $('#user-menu-btn .avatar-initial').textContent = (email[0] || '?').toUpperCase(); // giữ nguyên mũi tên menu
   $('#user-email').textContent = email;
   showAppScreen();
   focusSearchOnDesktop(); // con trỏ nằm sẵn ở ô tìm kiếm khi vừa vào app
@@ -1065,6 +1079,7 @@ function renderList() {
       </div>
       <div class="card-progress">
         ${stagePill}
+        ${c.care_stage === 'Kí HĐMB' ? '<span class="tag tag-won">✓ Đã chốt</span>' : ''}
         ${c.contact_status ? `<span class="tag tag-contact" style="--cs:${contactColor(c.contact_status)}">${escapeHtml(c.contact_status)}</span>` : ''}
         ${contactLostWarning(c) ? `<span class="tag tag-contact-warn" title="Đã >7 ngày chưa tương tác — kiểm tra lại">⚠ nghi mất liên lạc</span>` : ''}
         <span class="tag tag-interest ti-${tier.key}"><span class="ti-dot">◆</span> ${tier.label}</span>
@@ -3646,12 +3661,45 @@ function leadMatchesFilter(c) {
   const st = leadStatus(c);
   if (leadFilter === 'open' && st === 'dropped') return false;
   if (leadFilter === 'dropped' && st !== 'dropped') return false;
-  const src = $('#lead-source-filter').value;
-  if (src && !sourceListOf(c.source).includes(src)) return false;
+  if (leadSrcFilter && !sourceListOf(c.source).includes(leadSrcFilter)) return false;
+  const range = presetRange(leadDatePreset);
+  if (range) {
+    const t = Date.parse(c.registered_at || c.created_at || '');
+    if (isNaN(t) || t < range.start || t >= range.end) return false;
+  }
   return matchesSearch(c);
 }
 // Thứ tự ưu tiên gọi: đến giờ hẹn → chưa gọi lần nào (mới nhất trước, gọi sớm tỉ lệ
 // bắt máy cao) → đang gọi dở (lần gọi gần nhất cũ nhất trước). Đã loại: mới loại trước.
+// Khoảng thời gian cho preset Hôm nay / Tuần này / Tháng này (null = tất cả).
+function presetRange(p) {
+  const now = new Date();
+  if (p === 'today') { const s = new Date(now); s.setHours(0, 0, 0, 0); return { start: s.getTime(), end: s.getTime() + 86400000 }; }
+  if (p === 'week') { const s = mondayOf(now); const e = new Date(s); e.setDate(e.getDate() + 7); return { start: s.getTime(), end: e.getTime() }; }
+  if (p === 'month') return { start: new Date(now.getFullYear(), now.getMonth(), 1).getTime(), end: new Date(now.getFullYear(), now.getMonth() + 1, 1).getTime() };
+  return null;
+}
+function leadSortCompare(key, a, b) {
+  if (key === 'name') return (a.full_name || '').localeCompare(b.full_name || '', 'vi');
+  if (key === 'reg') return (a.registered_at || a.created_at || '').localeCompare(b.registered_at || b.created_at || '');
+  if (key === 'attempts') return callAttemptsOf(a).length - callAttemptsOf(b).length;
+  return 0;
+}
+// Có tiêu chí sắp xếp → sắp theo đó (lịch hẹn đến giờ vẫn ĐẨY LÊN ĐẦU như tab Tiềm năng);
+// không có → thứ tự ưu tiên gọi.
+function orderLeads(list) {
+  if (!leadSort.length) return sortLeads(list);
+  const arr = [...list].sort((a, b) => {
+    for (const { key, dir } of leadSort) {
+      const d = leadSortCompare(key, a, b);
+      if (d !== 0) return (dir === 'asc' ? 1 : -1) * d;
+    }
+    return 0;
+  });
+  const due = (c) => { const r = !c.disqualified_at && callReminder(c); return r && r.state !== 'soon'; };
+  return [...arr.filter(due), ...arr.filter((c) => !due(c))];
+}
+
 function sortLeads(list) {
   const lastAt = (c) => { const a = callAttemptsOf(c); return a.length ? a[a.length - 1].at : ''; };
   const regAt = (c) => c.registered_at || c.created_at || '';
@@ -3687,7 +3735,8 @@ function renderLeads() {
   const view = $('#lead-view');
   if (!view || view.hidden) return; // tab đang ẩn → chỉ cập nhật badge
 
-  const list = sortLeads(leads.filter(leadMatchesFilter));
+  const list = orderLeads(leads.filter(leadMatchesFilter));
+  syncLeadFilterUI();
   $('#lead-result-count').textContent = `${list.length} khách`;
   $('#lead-empty').hidden = list.length !== 0;
   $('#lead-list').innerHTML = list.map((c) => {
@@ -3749,7 +3798,6 @@ function renderLeadSheet(c) {
   const rows = [
     ['Kênh', sourceDisplay(c.source)],
     ['Chiến dịch', campaignOf(c)],
-    ['Cách nhập', INTAKE_LABELS[c.intake_method] || ''],
     ['Dự án', (Array.isArray(c.projects) && c.projects.length) ? c.projects.join(', ') : ''],
     ['Căn quan tâm', [c.apt_type ? canonicalAptType(c.apt_type) : '', c.apt_code || ''].filter(Boolean).join(' · ')],
     ['Đăng ký', reg ? `${formatLogTime(reg)} (${timeAgo(reg)})` : ''],
@@ -3888,13 +3936,80 @@ $('#lead-list')?.addEventListener('click', (e) => {
   const card = e.target.closest('.lead-card');
   if (card) openLeadSheet(card.dataset.id);
 });
-$('#lead-filter')?.addEventListener('click', (e) => {
-  const b = e.target.closest('[data-lf]'); if (!b) return;
-  leadFilter = b.dataset.lf;
-  $$('#lead-filter [data-lf]').forEach((x) => x.classList.toggle('is-sel', x === b));
+// ---- Thanh công cụ tab Khách mới (cùng kiểu tab Tiềm năng) ----
+const LEAD_POPS = [['#lead-status-pop', '#lead-status-btn'], ['#lead-filter-panel', '#lead-filter-btn'], ['#lead-sort-panel', '#lead-sort-btn']];
+function closeLeadPops(except) {
+  for (const [pop, btn] of LEAD_POPS) {
+    if (pop === except) continue;
+    $(pop).hidden = true; $(btn).classList.remove('is-open'); $(btn).setAttribute('aria-expanded', 'false');
+  }
+}
+function toggleLeadPop(pop, btn) {
+  const willOpen = $(pop).hidden;
+  closeLeadPops(pop);
+  $(pop).hidden = !willOpen; $(btn).classList.toggle('is-open', willOpen); $(btn).setAttribute('aria-expanded', String(willOpen));
+}
+function syncLeadFilterUI() {
+  $('#lead-src-presets').innerHTML = [['', 'Tất cả'], ...Object.entries(SOURCES)].map(([code, label]) =>
+    `<button type="button" class="date-preset${code === leadSrcFilter ? ' is-sel' : ''}" data-src="${code}">${escapeHtml(label)}</button>`).join('');
+  $$('#lead-date-presets .date-preset').forEach((b) => b.classList.toggle('is-sel', b.dataset.preset === leadDatePreset));
+  const active = !!leadSrcFilter || leadDatePreset !== 'all';
+  $('#lead-filter-dot').hidden = !active;
+  $('#lead-clear-filter').hidden = !active;
+}
+function resetLeadFilters() { leadSrcFilter = ''; leadDatePreset = 'all'; renderLeads(); }
+function renderLeadSortOptions() {
+  $('#lead-sort-options').innerHTML = LEAD_SORT_ATTRS.map((a) => {
+    const dir = leadSortDraft[a.key];
+    return `<div class="sort-row">
+        <span class="sort-row-name">${a.name}</span>
+        <span class="sort-tris" data-key="${a.key}">
+          <button type="button" class="tri-btn tri-up${dir === 'asc' ? ' is-on' : ''}" data-dir="asc" aria-label="${a.name} tăng"></button>
+          <button type="button" class="tri-btn tri-down${dir === 'desc' ? ' is-on' : ''}" data-dir="desc" aria-label="${a.name} giảm"></button>
+        </span>
+      </div>`;
+  }).join('');
+}
+$('#lead-status-btn')?.addEventListener('click', (e) => { e.stopPropagation(); toggleLeadPop('#lead-status-pop', '#lead-status-btn'); });
+$('#lead-status-pop')?.addEventListener('click', (e) => {
+  const opt = e.target.closest('.status-opt'); if (!opt) return;
+  e.stopPropagation();
+  leadFilter = opt.dataset.value;
+  $('#lead-status-label').textContent = opt.textContent;
+  $$('#lead-status-pop .status-opt').forEach((o) => o.classList.toggle('is-sel', o === opt));
+  closeLeadPops();
   renderLeads();
 });
-$('#lead-source-filter')?.addEventListener('change', renderLeads);
+$('#lead-filter-btn')?.addEventListener('click', (e) => { e.stopPropagation(); toggleLeadPop('#lead-filter-panel', '#lead-filter-btn'); });
+$('#lead-filter-panel')?.addEventListener('click', (e) => {
+  e.stopPropagation(); // panel render lại nút → giữ panel mở
+  const src = e.target.closest('[data-src]');
+  if (src) { leadSrcFilter = src.dataset.src; renderLeads(); return; }
+  const d = e.target.closest('[data-preset]');
+  if (d) { leadDatePreset = d.dataset.preset; renderLeads(); }
+});
+$('#lead-filter-apply')?.addEventListener('click', () => closeLeadPops());
+$('#lead-filter-reset')?.addEventListener('click', resetLeadFilters);
+$('#lead-clear-filter')?.addEventListener('click', resetLeadFilters);
+$('#lead-sort-btn')?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  if ($('#lead-sort-panel').hidden) { leadSortDraft = Object.fromEntries(leadSort.map((x) => [x.key, x.dir])); renderLeadSortOptions(); }
+  toggleLeadPop('#lead-sort-panel', '#lead-sort-btn');
+});
+$('#lead-sort-panel')?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  const tri = e.target.closest('.tri-btn'); if (!tri) return;
+  const key = tri.closest('.sort-tris').dataset.key, dir = tri.dataset.dir;
+  if (leadSortDraft[key] === dir) delete leadSortDraft[key]; else leadSortDraft[key] = dir;
+  renderLeadSortOptions();
+});
+$('#lead-sort-apply')?.addEventListener('click', () => {
+  leadSort = LEAD_SORT_ATTRS.filter((a) => leadSortDraft[a.key]).map((a) => ({ key: a.key, dir: leadSortDraft[a.key] }));
+  closeLeadPops(); renderLeads();
+});
+$('#lead-sort-reset')?.addEventListener('click', () => { leadSort = []; leadSortDraft = {}; renderLeadSortOptions(); renderLeads(); });
+// Bấm ra ngoài → đóng mọi pop của tab Khách mới.
+document.addEventListener('click', (e) => { if (!e.target.closest('#lead-view .tool-pop')) closeLeadPops(); });
 $('#add-lead-btn')?.addEventListener('click', () => openForm(null));
 $('#lead-result-opts')?.addEventListener('click', (e) => {
   const b = e.target.closest('[data-res]'); if (!b) return;
@@ -3928,6 +4043,7 @@ function setActiveView(name) { // 'list' | 'leads' | 'dashboard' | 'loan'
   $('.topbar').classList.toggle('no-search', !SEARCH_VIEWS.includes(name));
   $('#list-view').hidden = name !== 'list';
   $('#lead-view').hidden = name !== 'leads';
+  closeLeadPops();
   $('#tab-leads').classList.toggle('is-active', name === 'leads');
   $('#dashboard-view').hidden = name !== 'dashboard';
   $('#loan-view').hidden = name !== 'loan';
@@ -4238,10 +4354,9 @@ function populateSelects() {
   const formContactOptions = ['<option value="">— Chưa xác định —</option>', ...CONTACT_STATUSES.map((s) => `<option value="${s}">${s}</option>`)].join('');
   $('#customer-form').contact_status.innerHTML = formContactOptions;
 
-  // Kênh nguồn khách (SOURCES) + bộ lọc kênh ở tab Khách mới.
+  // Kênh nguồn khách (SOURCES) trong form. (Bộ lọc kênh tab Khách mới tự dựng ở syncLeadFilterUI.)
   const srcOpts = Object.entries(SOURCES).map(([code, label]) => `<option value="${code}">${escapeHtml(label)}</option>`).join('');
   $('#customer-form').source_channel.innerHTML = srcOpts;
-  $('#lead-source-filter').innerHTML = '<option value="">Mọi kênh</option>' + srcOpts;
 }
 
 // ---- SẮP XẾP: trạng thái + render panel ----

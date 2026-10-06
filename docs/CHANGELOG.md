@@ -6,13 +6,32 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-06 — Tab Khách mới: thanh công cụ giống tab Tiềm năng
+
+- Dropdown trạng thái (Cần gọi / Đã loại / Tất cả) · Bộ lọc (kênh; thời gian đăng ký Hôm nay / Tuần này / Tháng này /
+  Tất cả) có chấm báo + nút "Xoá lọc ✕" · Sắp xếp đa tiêu chí (Tên, Thời gian đăng ký, Số lần gọi; tăng/giảm). Không
+  chọn tiêu chí = thứ tự ưu tiên gọi; lịch hẹn đến giờ luôn lên đầu.
+- Bỏ dòng "Cách nhập" khỏi giao diện (cột `intake_method` vẫn ghi trong DB để tra bằng SQL).
+- File: `index.html`, `js/app.js`, `css/style.css`, `sw.js` (cache v13).
+
+---
+
+## 2026-10-06 — Nhãn "Đã chốt / Không chốt"
+
+- Tab Tiềm năng: bậc "Loại" HIỂN THỊ là "✕ Không chốt" (card, trang hồ sơ, Tổng quan); khách "Kí HĐMB" có thêm thẻ
+  "✓ Đã chốt". Giá trị lưu và lựa chọn trong form/bộ lọc vẫn là "Loại". Khác với lead bị loại ở tab Khách mới.
+- File: `js/app.js`, `css/style.css`, `sw.js` (cache v12).
+
+---
+
 ## 2026-10-06 — Gọn header: 3 tab chính, Tính vay vào menu
 
 - Tab: **Tổng quan** (mặc định khi mở app) · **Tiềm năng** (đổi tên từ "Khách hàng") · **Khách mới**. Bỏ tab Tính vay.
 - Menu tài khoản chia nhóm *Công cụ* (Tính vay, Giỏ hàng) / *Cài đặt* (Lời chào Zalo). Màn Tính vay có nút ← về Tổng quan.
+  Avatar có mũi tên nhỏ góc dưới-phải (kiểu Facebook) báo hiệu mở được menu; mũi tên xoay lên khi menu mở.
 - Ô tìm kiếm chỉ hiện ở Tiềm năng và Khách mới → header Tổng quan/Tính vay chỉ còn 2 hàng (sửa lỗi header chiếm/mất
   một đoạn trên điện thoại). Quy tắc phân cấp: `docs/design.md`.
-- File: `index.html`, `js/app.js`, `css/style.css`, `sw.js` (cache v10), `js/loan/loan-crm.js` (chú thích), `docs/design.md`.
+- File: `index.html`, `js/app.js`, `css/style.css`, `sw.js` (cache v11), `js/loan/loan-crm.js` (chú thích), `docs/design.md`.
 
 ---
 
