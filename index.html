@@ -85,6 +85,7 @@
     </div>
     <nav class="tab-nav">
       <button id="tab-list" class="tab-btn is-active">Khách hàng</button>
+      <button id="tab-leads" class="tab-btn">Khách mới <span id="lead-count-badge" class="tab-badge" hidden>0</span></button>
       <button id="tab-dashboard" class="tab-btn">Tổng quan</button>
       <button id="tab-loan" class="tab-btn">Tính vay</button>
     </nav>
@@ -201,6 +202,23 @@
   <!-- Nút thêm khách nổi (FAB), chỉ hiện ở tab Khách hàng -->
   <button id="add-customer-btn" class="fab" title="Thêm khách" aria-label="Thêm khách">+</button>
   </div><!-- /#list-view -->
+
+  <!-- LỚP 1 "KHÁCH MỚI": lead chưa xác nhận quan tâm (qualified_at trống). Logic: renderLeads()
+       trong app.js. Đạt → sang tab Khách hàng; Loại → giữ lại kèm lý do để đánh giá campaign. -->
+  <div id="lead-view" hidden>
+    <div class="toolbar lead-toolbar">
+      <div class="date-presets" id="lead-filter">
+        <button type="button" class="date-preset is-sel" data-lf="open">Cần gọi</button>
+        <button type="button" class="date-preset" data-lf="dropped">Đã loại</button>
+        <button type="button" class="date-preset" data-lf="all">Tất cả</button>
+      </div>
+      <select id="lead-source-filter" class="lead-source-filter" aria-label="Lọc theo kênh"></select>
+    </div>
+    <div class="list-meta"><span id="lead-result-count"></span></div>
+    <div id="lead-list" class="customer-list"></div>
+    <div id="lead-empty" class="empty-state" hidden>Không có khách mới nào ở mục này.</div>
+    <button id="add-lead-btn" class="fab" title="Thêm khách mới" aria-label="Thêm khách mới">+</button>
+  </div>
 
   <div id="dashboard-view" hidden>
     <div id="dashboard-content" class="dash-grid"></div>
@@ -384,6 +402,26 @@
 
     <div class="form-grid">
 
+      <!-- 0) NGUỒN KHÁCH — kênh (source) + chiến dịch. Cách nhập (tay/ảnh) hệ thống tự ghi.
+           Danh sách kênh lấy từ SOURCES trong app.js. -->
+      <fieldset class="span-2">
+        <legend>Nguồn khách</legend>
+        <div class="form-grid">
+          <label>Kênh *
+            <select name="source_channel" required></select>
+          </label>
+          <label>Chiến dịch
+            <input name="campaign" type="text" list="cf-campaign-list" autocomplete="off" placeholder="vd: FB-Marquee-T10-video" />
+            <datalist id="cf-campaign-list"></datalist>
+          </label>
+          <!-- Chỉ khi TẠO MỚI: khách đã gọi & xác nhận quan tâm → bỏ qua lớp Khách mới. -->
+          <label class="span-2 form-check" id="qualify-now-wrap">
+            <input name="qualify_now" type="checkbox" />
+            Đã nói chuyện &amp; khách quan tâm → đưa thẳng vào danh sách chăm sóc
+          </label>
+        </div>
+      </fieldset>
+
       <!-- 1) THÔNG TIN CÁ NHÂN -->
       <fieldset class="span-2">
         <legend>Thông tin cá nhân</legend>
@@ -530,10 +568,10 @@
       <fieldset class="span-2">
         <legend>Chăm sóc</legend>
         <div class="form-grid">
-          <label>Tiến độ chăm sóc
+          <label id="care-stage-wrap">Tiến độ chăm sóc
             <select name="care_stage"></select>
           </label>
-          <label>Trạng thái liên lạc
+          <label id="contact-status-wrap">Trạng thái liên lạc
             <select name="contact_status"></select>
           </label>
           <label class="span-2" id="care-stage-note-wrap" hidden>
@@ -675,6 +713,55 @@
       <button type="button" id="callact-resched" class="btn-secondary">Hẹn lại</button>
       <button type="button" id="callact-cancel" class="btn-secondary btn-danger">Huỷ gọi</button>
     </div>
+  </div>
+</dialog>
+
+<!-- ============ KHÁCH MỚI (lớp 1): ghi cuộc gọi · Đạt · Loại ============ -->
+<dialog id="lead-modal">
+  <div class="lead-box">
+    <button type="button" id="lead-close" class="callact-x" aria-label="Đóng">✕</button>
+    <h2 id="lead-name"></h2>
+    <div class="lead-contact">
+      <span id="lead-phone" class="phone-number"></span>
+      <a id="lead-call-btn" class="card-phone" aria-label="Gọi"></a>
+      <a id="lead-zalo-btn" class="card-zalo" target="_blank" rel="noopener" aria-label="Nhắn Zalo"><img class="ic-zalo" src="/icons/zalo.png" alt="Zalo" /></a>
+    </div>
+    <div id="lead-meta" class="lead-meta"></div>
+    <div id="lead-dropped" class="lead-dropped" hidden></div>
+
+    <div class="sched-label">Các lần gọi</div>
+    <div id="lead-attempts" class="lead-attempts"></div>
+    <div id="lead-suggest" class="lead-suggest" hidden></div>
+
+    <div id="lead-log-box">
+      <div class="sched-label">Ghi cuộc gọi vừa rồi</div>
+      <div class="sched-opts" id="lead-result-opts"></div>
+      <input id="lead-attempt-note" class="cs-note-input" type="text" placeholder="Ghi chú (không bắt buộc): khách nói gì, hẹn lúc nào..." />
+      <div class="lead-row-btns">
+        <button type="button" id="lead-attempt-save" class="btn-primary btn-small">Lưu lần gọi</button>
+      </div>
+    </div>
+
+    <div id="lead-drop-box" hidden>
+      <div class="sched-label">Lý do loại</div>
+      <div class="sched-opts" id="lead-reason-opts"></div>
+      <input id="lead-drop-note" class="cs-note-input" type="text" placeholder="Mô tả thêm (bắt buộc nếu chọn Khác)" />
+      <div id="lead-drop-error" class="sched-error"></div>
+      <div class="lead-row-btns">
+        <button type="button" id="lead-drop-cancel" class="btn-ghost btn-small">Huỷ</button>
+        <button type="button" id="lead-drop-save" class="btn-primary btn-small">Xác nhận loại</button>
+      </div>
+    </div>
+
+    <div id="lead-notes" class="lead-notes"></div>
+
+    <div class="lead-actions" id="lead-actions">
+      <button type="button" id="lead-qualify-btn" class="btn-primary">✓ Đạt — chuyển vào chăm sóc</button>
+      <button type="button" id="lead-drop-btn" class="btn-secondary btn-danger">✕ Loại</button>
+      <button type="button" id="lead-reopen-btn" class="btn-secondary" hidden>↺ Mở lại</button>
+      <button type="button" id="lead-edit-btn" class="btn-ghost">Sửa thông tin</button>
+    </div>
+    <div id="lead-qualify-hint" class="lead-hint"></div>
   </div>
 </dialog>
 

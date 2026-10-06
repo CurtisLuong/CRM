@@ -6,6 +6,25 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-06 — Lớp "Khách mới" (lead) tách khỏi trang chủ + chuẩn hoá nguồn khách
+
+- **Database** (`SQL/add_lead_layer.sql`, ⚠️ chạy TRƯỚC khi deploy): thêm `qualified_at`, `disqualified_at`,
+  `disqualify_reason`, `disqualify_note`, `call_attempts`, `intake_method`, `campaign`. Đổi `source` cũ:
+  `manual`/`ocr`/trống → `facebook_ads`, `landing` → `website` (cách nhập chuyển sang `intake_method`). Xếp lớp:
+  khách từng vào bậc ≥ "Đang chăm sóc" → lớp 2; còn lại (kể cả "Loại" khi chưa từng chăm sóc) → lớp 1.
+- **Tab "Khách mới"**: danh sách lead xếp theo ưu tiên gọi, lọc Cần gọi / Đã loại / Tất cả + theo kênh, badge số
+  lead cần gọi. Hộp lead: ghi từng lần gọi (kết quả + ghi chú; giờ gọi và khoảng cách giữa các lần tự tính),
+  "Bận, hẹn gọi lại" mở luôn lịch gọi, gợi ý loại sau 3 lần không liên lạc được, Đạt (cần ≥1 lần "Nói chuyện
+  được") → bậc "Đang chăm sóc" + mở hồ sơ, Loại kèm lý do, Mở lại.
+- **Trang chủ** chỉ hiện khách lớp 2; bộ lọc/form tiến độ bỏ bậc "Đăng kí mới", "Đang tiếp cận".
+- **Form khách**: chọn Kênh + Chiến dịch; ô "đã nói chuyện & quan tâm → vào thẳng chăm sóc" khi tạo mới. Lead
+  không hiện ô Tiến độ/Trạng thái liên lạc. Hồ sơ hiện thêm Chiến dịch. Sửa lỗi lead website hiện "Quảng cáo".
+- Quy tắc nguồn khách: D-001 trong `docs/decisions.md`.
+- File: `SQL/add_lead_layer.sql`, `SQL/schema.sql`, `index.html`, `js/app.js`, `css/style.css`, `sw.js` (cache v9),
+  `docs/decisions.md`, `docs/architecture.md`.
+
+---
+
 ## 2026-10-04 — Giỏ hàng 3 lớp Dự án → Toà → Căn (lớp dưới ghi đè lớp trên), áp dụng xuyên suốt app
 
 - **Database** (`SQL/catalog_layers_v2.sql`, đã test bằng PGlite, cả khi chạy lại):

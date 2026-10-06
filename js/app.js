@@ -291,36 +291,93 @@ let formOriginalStage = ''; // care_stage lúc mở form — để biết có đ
 let pendingOcrNote = null;  // ghi chú OCR đọc được → thêm thành 1 note sau khi tạo khách
 let pendingOcrImage = null; // ảnh OCR (blob đã nén) → lưu thành tài liệu reg_image sau khi tạo khách
 
-// Nhãn "Nguồn khách" (source) — hệ thống tự set, user không sửa.
-// Từ 2026-08-21: source có thể mang NHIỀU giá trị (mảng), vd khách vừa từ Quảng cáo
-// vừa từ Landing page → gộp nguồn vào 1 khách thay vì tạo bản trùng (xem handleFormSubmit).
-// Nhóm nguồn (group): manual + ocr đều thuộc "Quảng cáo"; landing riêng. So trùng/gộp
-// và hiển thị đều theo NHÓM (quyết định của chủ dự án).
-const SOURCE_GROUP = { manual: 'quang_cao', ocr: 'quang_cao', landing: 'landing' };
-const SOURCE_GROUP_LABELS = { quang_cao: 'Quảng cáo', landing: 'Landing page' };
+// ---- NGUỒN KHÁCH (source) — quy tắc chốt 2026-10-06, xem docs/decisions.md ----
+// source (jsonb MẢNG) chỉ chứa KÊNH khách đến từ đâu; 1 khách có thể nhiều kênh (gộp
+// khi trùng SĐT+tên, xem handleFormSubmit). Mã: chữ thường, snake_case, dạng <nền tảng>_<loại>.
+// Thêm kênh mới (google_ads, tiktok_ads...) = thêm 1 dòng vào SOURCES — không cần migration.
+// Cách nhập (tay/ảnh/Excel/API) KHÔNG nằm ở đây mà ở cột intake_method.
+const SOURCES = {
+  facebook_ads: 'Facebook Ads',
+  website:      'Landing page',
+  referral:     'Khách quen / giới thiệu',
+  // google_ads: 'Google Ads',
+  // tiktok_ads: 'TikTok Ads',
+};
+const SOURCE_DEFAULT = 'facebook_ads';
+// Mã cũ trước 2026-10-06 (app cũ/thiết bị chưa cập nhật có thể còn ghi) → mã kênh mới.
+const SOURCE_LEGACY = { manual: 'facebook_ads', ocr: 'facebook_ads', landing: 'website' };
+const INTAKE_LABELS = { manual: 'Nhập tay', ocr: 'Từ ảnh (OCR)', import: 'Nhập Excel', api: 'Tự động (API)' };
+const LS_LAST_SOURCE = 'crm_last_source'; // kênh chọn gần nhất → mặc định cho khách mới
 
-// Chuẩn hoá source (string cũ | mảng mới | null) → mảng giá trị gốc ['manual'|'ocr'|'landing'].
+// Chuẩn hoá source (string cũ | mảng | null) → mảng mã kênh, không trùng.
 function sourceListOf(source) {
-  if (Array.isArray(source)) return source.filter(Boolean);
-  if (typeof source === 'string' && source) return [source];
-  return [];
-}
-// Các NHÓM nguồn (không trùng) của 1 khách.
-function sourceGroupsOf(source) {
-  const groups = [];
-  for (const s of sourceListOf(source)) {
-    const g = SOURCE_GROUP[s] || 'quang_cao';
-    if (!groups.includes(g)) groups.push(g);
+  const raw = Array.isArray(source) ? source : (typeof source === 'string' && source ? [source] : []);
+  const out = [];
+  for (const s of raw) {
+    if (!s) continue;
+    const code = SOURCE_LEGACY[s] || s;
+    if (!out.includes(code)) out.push(code);
   }
-  return groups;
+  return out;
 }
-// Chuỗi hiển thị: nhãn các nhóm nối bằng " + " (vd "Quảng cáo + Landing page").
-// Trống → mặc định "Quảng cáo" (giữ hành vi cũ khi source rỗng = nhập tay).
+// Nhãn 1 mã kênh. Mã lạ KHÔNG bị đoán thành kênh khác — hiện nguyên mã để dễ phát hiện.
+function sourceLabel(code) {
+  return SOURCES[code] || ('Khác (' + code + ')');
+}
+// Chuỗi hiển thị: nhãn các kênh nối bằng " + ". Trống → "Chưa rõ".
 function sourceDisplay(source) {
-  const groups = sourceGroupsOf(source);
-  if (groups.length === 0) return SOURCE_GROUP_LABELS.quang_cao;
-  return groups.map((g) => SOURCE_GROUP_LABELS[g] || g).join(' + ');
+  const list = sourceListOf(source);
+  if (list.length === 0) return 'Chưa rõ';
+  return list.map(sourceLabel).join(' + ');
 }
+// Tên chiến dịch: cột campaign; lead web chưa có thì lấy UTM landing page ghi (web_*).
+function campaignOf(c) {
+  return (c && (c.campaign || c.web_last_campaign || c.web_first_campaign)) || '';
+}
+
+// ---- LỚP KHÁCH: lớp 1 "Khách mới" (lead) ⇄ lớp 2 "Chăm sóc" (xem SQL/add_lead_layer.sql) ----
+// qualified_at trống = còn ở lớp 1 (không hiện trang chủ). Đạt = đã có ≥1 cuộc gọi
+// "Nói chuyện được" + sale xác nhận quan tâm → set qualified_at, chuyển bậc 'Đang chăm sóc'.
+const QUALIFIED_STAGE = 'Đang chăm sóc';
+const LEAD_ONLY_STAGES = ['Đăng kí mới', 'Đang tiếp cận']; // bậc thuộc lớp 1, ẩn ở trang chủ
+function isQualified(c) { return !!(c && c.qualified_at); }
+// 'new' (chưa gọi) | 'calling' (đang gọi) | 'dropped' (đã loại)
+function leadStatus(c) {
+  if (c.disqualified_at) return 'dropped';
+  return callAttemptsOf(c).length ? 'calling' : 'new';
+}
+// Kết quả 1 lần gọi (mã lưu DB → nhãn). Thứ tự = thứ tự nút trên giao diện.
+const CALL_RESULTS = {
+  no_answer:    'Không nghe máy',
+  unreachable:  'Thuê bao / tắt máy',
+  busy:         'Bận, hẹn gọi lại',
+  talked:       'Nói chuyện được',
+  wrong_number: 'Sai số',
+};
+function callAttemptsOf(c) {
+  return (Array.isArray(c && c.call_attempts) ? c.call_attempts : [])
+    .filter((a) => a && a.at)
+    .slice().sort((a, b) => a.at.localeCompare(b.at)); // cũ → mới
+}
+function hasTalked(c) { return callAttemptsOf(c).some((a) => a.result === 'talked'); }
+// Lý do loại lead (mã → nhãn). 4 lý do đầu = hay gặp nhất (hiện nổi bật). Thêm lý do mới
+// = thêm 1 dòng (mã cũ đã lưu không bao giờ đổi nghĩa). 'khac' bắt buộc kèm ghi chú.
+const LEAD_DROP_REASONS = {
+  gia_cao:             'Chê giá cao',
+  pha_campaign:        'Phá campaign',
+  khong_du_dieu_kien:  'Không đủ điều kiện',
+  khong_lien_lac_duoc: 'Không liên lạc được',
+  so_sai:              'Số sai',
+  no_xau:              'Nợ xấu',
+  do_gia:              'Dò giá',
+  to_mo:               'Tò mò',
+  khac:                'Khác',
+};
+const LEAD_DROP_TOP = ['gia_cao', 'pha_campaign', 'khong_du_dieu_kien', 'khong_lien_lac_duoc'];
+function dropReasonLabel(code) { return LEAD_DROP_REASONS[code] || code || ''; }
+// Gợi ý loại "Không liên lạc được": ≥3 lần gọi, chưa lần nào nói chuyện được.
+const LEAD_UNREACHABLE_SUGGEST = 3;
+let leadFilter = 'open'; // 'open' (cần gọi) | 'dropped' | 'all'
 
 // Nhãn hiển thị cho loại tài liệu (kind). Mở rộng khi có loại giấy tờ mới.
 const DOC_KIND_LABELS = {
@@ -605,6 +662,7 @@ $('#sync-btn')?.addEventListener('click', () => {
 async function refreshList() {
   allCustomers = await CRM.list();
   renderList();
+  renderLeads();
   updateSyncBadge();
   renderNotifications();
 }
@@ -812,7 +870,19 @@ function customerSearchBlob(c) {
   return blob;
 }
 
+// Ô tìm kiếm (SĐT / chữ) — dùng chung cho tab Khách hàng và tab Khách mới.
+function matchesSearch(c) {
+  const raw = $('#search-input').value.trim();
+  if (!raw) return true;
+  const qNorm = removeVietnameseTones(raw);
+  const qDig = raw.replace(/\D/g, '');
+  if (!/[a-z]/.test(qNorm) && qDig) return phoneMatch(phoneDigits(c.phone), qDig);
+  return customerSearchBlob(c).includes(qNorm);
+}
+
 function matchesFilters(c) {
+  // Trang chủ CHỈ hiện khách lớp 2 (đã xác nhận quan tâm). Lead ở tab "Khách mới".
+  if (!isQualified(c)) return false;
   const raw = $('#search-input').value.trim();
   if (raw) {
     const qNorm = removeVietnameseTones(raw);
@@ -1231,6 +1301,29 @@ function openForm(id) {
   f.care_stage.value = c.care_stage || (id ? '' : CARE_STAGE_DEFAULT);
   f.contact_status.value = c.contact_status || '';
 
+  // Nguồn khách: kênh chính (phần tử đầu) + chiến dịch. Khách mới → kênh chọn gần nhất.
+  let lastSrc = null; try { lastSrc = localStorage.getItem(LS_LAST_SOURCE); } catch {}
+  const srcList = sourceListOf(c.source);
+  const primarySrc = srcList[0] || (id ? '' : (SOURCES[lastSrc] ? lastSrc : SOURCE_DEFAULT));
+  // Mã kênh lạ (chưa có trong SOURCES) → thêm tạm 1 option để không mất khi lưu.
+  const srcSel = f.source_channel;
+  srcSel.querySelectorAll('option[data-tmp]').forEach((o) => o.remove());
+  if (primarySrc && !SOURCES[primarySrc]) {
+    srcSel.insertAdjacentHTML('beforeend', `<option value="${escapeHtml(primarySrc)}" data-tmp>${escapeHtml(sourceLabel(primarySrc))}</option>`);
+  }
+  if (!primarySrc) srcSel.insertAdjacentHTML('afterbegin', '<option value="" data-tmp>— Chưa rõ —</option>');
+  srcSel.value = primarySrc;
+  f.campaign.value = c.campaign || '';
+  const camps = [...new Set(allCustomers.map((x) => x.campaign).filter(Boolean))].sort();
+  $('#cf-campaign-list').innerHTML = camps.map((x) => `<option value="${escapeHtml(x)}"></option>`).join('');
+  // Lớp khách: lead (mới/chưa đạt) → ẩn Tiến độ + Trạng thái liên lạc (lead quản lý ở hộp
+  // "Khách mới"). Ô "đưa thẳng vào chăm sóc" chỉ khi TẠO MỚI.
+  const isLeadForm = !id || !isQualified(c);
+  $('#care-stage-wrap').hidden = isLeadForm;
+  $('#contact-status-wrap').hidden = isLeadForm;
+  $('#qualify-now-wrap').hidden = !!id;
+  f.qualify_now.checked = false;
+
   // Dự án: khách cũ dùng lịch sử của khách; khách mới lấy lựa chọn gần nhất
   // (localStorage) làm mặc định nếu chưa chủ động set.
   if (id) selectedProjects = Array.isArray(c.projects) ? [...c.projects] : [];
@@ -1592,7 +1685,18 @@ async function handleFormSubmit(e) {
     alert('Cần nhập ít nhất Số điện thoại và Họ tên.');
     return;
   }
+  payload.campaign = f.campaign.value.trim() || null;
+  const channel = f.source_channel.value || null;
+  const editing = editingId ? allCustomers.find((x) => x.id === editingId) : null;
+  // Lead (chưa đạt): KHÔNG đụng tiến độ/trạng thái liên lạc (ô đã ẩn) — giữ giá trị đang có.
+  if (editing && !isQualified(editing)) { delete payload.care_stage; delete payload.contact_status; }
+  if (editing && channel) {
+    // Đổi kênh chính = thay phần tử ĐẦU, giữ các kênh gộp thêm sau đó.
+    const list = sourceListOf(editing.source);
+    if (list[0] !== channel) payload.source = [channel, ...list.filter((x) => x !== channel)];
+  }
   const savedId = editingId;
+  try { if (!editingId && channel) localStorage.setItem(LS_LAST_SOURCE, channel); } catch {}
   // Nhớ lựa chọn dự án lần này làm mặc định cho khách mới sau (nếu không tự set).
   localStorage.setItem(LS_LAST_PROJECTS, JSON.stringify(selectedProjects));
   // Ghi chú cho lần đổi bậc / lần liên hệ mới.
@@ -1630,8 +1734,9 @@ async function handleFormSubmit(e) {
     if (pendingOcrNote) { await CRM.addNote(editingId, pendingOcrNote); pendingOcrNote = null; }
     if (formNote) await CRM.addNote(editingId, formNote);
   } else {
-    // Nguồn khách hệ thống tự set: từ ảnh (OCR) → 'ocr', nhập tay → 'manual'.
-    const newSource = pendingOcrImage ? 'ocr' : 'manual';
+    // Kênh do sale chọn (source); cách nhập hệ thống tự set: ảnh (OCR) → 'ocr', còn lại 'manual'.
+    const newSource = channel || SOURCE_DEFAULT;
+    payload.intake_method = pendingOcrImage ? 'ocr' : 'manual';
 
     // === CHẶN TRÙNG theo MASTER KEY (SĐT) khi tạo khách mới ===
     // So với khách của chính mình (local chỉ chứa khách của owner hiện tại).
@@ -1644,17 +1749,16 @@ async function handleFormSubmit(e) {
           (dup.full_name || '') + '".\n\nHãy kiểm tra / xác nhận lại số điện thoại.');
         return;
       }
-      const newGroup = SOURCE_GROUP[newSource];
-      const curGroups = sourceGroupsOf(dup.source);
-      if (curGroups.includes(newGroup)) {
-        // Trùng SĐT + trùng tên + CÙNG nhóm nguồn → trùng lặp hoàn toàn → không cho ghi.
-        alert('⚠️ Khách này đã tồn tại (trùng số điện thoại, tên và nguồn "' +
-          (SOURCE_GROUP_LABELS[newGroup] || newGroup) + '"). Không tạo bản trùng.');
+      const curSources = sourceListOf(dup.source);
+      if (curSources.includes(newSource)) {
+        // Trùng SĐT + trùng tên + CÙNG kênh → trùng lặp hoàn toàn → không cho ghi.
+        alert('⚠️ Khách này đã tồn tại (trùng số điện thoại, tên và kênh "' +
+          sourceLabel(newSource) + '"). Không tạo bản trùng.');
         return;
       }
-      // Trùng SĐT + trùng tên + KHÁC nhóm nguồn → KHÔNG tạo bản mới; chỉ BỔ SUNG nguồn
-      // vào khách cũ (nguồn thành nhiều giá trị, vd "Quảng cáo + Landing page").
-      const mergedSource = sourceListOf(dup.source).concat([newSource]);
+      // Trùng SĐT + trùng tên + KHÁC kênh → KHÔNG tạo bản mới; chỉ BỔ SUNG kênh
+      // vào khách cũ (nguồn thành nhiều giá trị, vd "Facebook Ads + Landing page").
+      const mergedSource = curSources.concat([newSource]);
       await CRM.update(dup.id, { source: mergedSource });
       if (pendingOcrNote) { await CRM.addNote(dup.id, pendingOcrNote); pendingOcrNote = null; }
       if (formNote) await CRM.addNote(dup.id, formNote);
@@ -1663,15 +1767,25 @@ async function handleFormSubmit(e) {
         catch (err) { console.warn('Lưu ảnh đăng ký lỗi:', err); }
         pendingOcrImage = null;
       }
-      alert('✅ Đã lưu. Khách "' + (dup.full_name || '') + '" đã tồn tại — đã BỔ SUNG nguồn "' +
-        (SOURCE_GROUP_LABELS[newGroup] || newGroup) + '" vào khách cũ (không tạo bản trùng).');
+      alert('✅ Đã lưu. Khách "' + (dup.full_name || '') + '" đã tồn tại — đã BỔ SUNG kênh "' +
+        sourceLabel(newSource) + '" vào khách cũ (không tạo bản trùng).');
       closeForm();
       await refreshList();
       return;
     }
 
-    // SĐT mới hoàn toàn → tạo khách bình thường. source lưu dạng MẢNG (jsonb).
+    // SĐT mới hoàn toàn → tạo khách. source lưu dạng MẢNG (jsonb).
     payload.source = [newSource];
+    if (f.qualify_now.checked) {
+      // Đã gọi & xác nhận quan tâm ngay lúc nhập → vào thẳng lớp 2, ghi 1 lần gọi "Nói chuyện được".
+      const now = new Date().toISOString();
+      payload.qualified_at = now;
+      payload.care_stage = QUALIFIED_STAGE;
+      payload.call_attempts = [{ at: now, result: 'talked', note: 'Xác nhận quan tâm lúc nhập khách' }];
+    } else {
+      payload.care_stage = CARE_STAGE_DEFAULT; // lớp 1 "Khách mới"
+      delete payload.contact_status;
+    }
     const created = await CRM.create(payload, opts);
     // Nếu OCR đọc được 1 ghi chú → thêm thành 1 note tự nhập cho khách vừa tạo.
     if (created && pendingOcrNote) { await CRM.addNote(created.id, pendingOcrNote); pendingOcrNote = null; }
@@ -2332,6 +2446,8 @@ function renderDetailAdvanced(c) {
 function openDetail(id) {
   const c = allCustomers.find((x) => x.id === id);
   if (!c) return;
+  // Lead (lớp 1) chưa có trang hồ sơ riêng → mở hộp "Khách mới" (ghi cuộc gọi / Đạt / Loại).
+  if (!isQualified(c)) { openLeadSheet(id); return; }
   detailId = id;
   editingHistoryAt = null; // mở khách mới → thoát chế độ sửa note cũ
   addingCareNote = false;  // thoát chế độ thêm ghi chú
@@ -2418,6 +2534,7 @@ function openDetail(id) {
       ['Thu nhập', c.income || null],
       ['Thường trú', c.residence || null],
       ['Nguồn khách', sourceDisplay(c.source)],
+      ['Chiến dịch', campaignOf(c) || null],
     ],
   ]);
 
@@ -3509,6 +3626,7 @@ $('#detail-next-action')?.addEventListener('click', () => { if (detailId) openCa
 setInterval(() => {
   if (!currentUser) return;
   if (!$('#app-screen').hidden && !$('#list-view').hidden) renderList();
+  if (!$('#app-screen').hidden && !$('#lead-view').hidden) renderLeads();
   if (!$('#detail-screen').hidden && detailId) {
     const c = allCustomers.find((x) => x.id === detailId);
     if (c) renderDetailCall(c);
@@ -3516,11 +3634,294 @@ setInterval(() => {
   renderNotifications(); // "đến giờ gọi" tự nổi lên theo thời gian + cập nhật badge
 }, 30000);
 
+// ------------------------------------------------- KHÁCH MỚI (LỚP 1) ------
+// Lead = khách chưa xác nhận quan tâm (qualified_at trống). Mỗi lần gọi ghi 1 dòng vào
+// call_attempts {at, result, note}; khoảng cách giữa các lần + giờ gọi TỰ suy từ `at`.
+// Đạt → lớp 2 (trang chủ, có hồ sơ). Loại → giữ kèm lý do để đánh giá campaign/landing.
+
+function leadMatchesFilter(c) {
+  if (isQualified(c)) return false;
+  const st = leadStatus(c);
+  if (leadFilter === 'open' && st === 'dropped') return false;
+  if (leadFilter === 'dropped' && st !== 'dropped') return false;
+  const src = $('#lead-source-filter').value;
+  if (src && !sourceListOf(c.source).includes(src)) return false;
+  return matchesSearch(c);
+}
+// Thứ tự ưu tiên gọi: đến giờ hẹn → chưa gọi lần nào (mới nhất trước, gọi sớm tỉ lệ
+// bắt máy cao) → đang gọi dở (lần gọi gần nhất cũ nhất trước). Đã loại: mới loại trước.
+function sortLeads(list) {
+  const lastAt = (c) => { const a = callAttemptsOf(c); return a.length ? a[a.length - 1].at : ''; };
+  const regAt = (c) => c.registered_at || c.created_at || '';
+  const rank = (c) => {
+    if (c.disqualified_at) return 3;
+    const r = callReminder(c);
+    if (r && r.state !== 'soon') return 0;
+    return callAttemptsOf(c).length ? 2 : 1;
+  };
+  return [...list].sort((a, b) => {
+    const d = rank(a) - rank(b);
+    if (d) return d;
+    const r = rank(a);
+    if (r === 3) return (b.disqualified_at || '').localeCompare(a.disqualified_at || '');
+    if (r === 2) return lastAt(a).localeCompare(lastAt(b));
+    return regAt(b).localeCompare(regAt(a));
+  });
+}
+
+function leadStatusTag(c) {
+  const st = leadStatus(c);
+  if (st === 'dropped') return `<span class="lead-tag lead-tag-dropped">✕ ${escapeHtml(dropReasonLabel(c.disqualify_reason))}</span>`;
+  if (st === 'new') return '<span class="lead-tag lead-tag-new">Chưa gọi</span>';
+  const n = callAttemptsOf(c).length;
+  return `<span class="lead-tag${hasTalked(c) ? ' lead-tag-talked' : ''}">Đã gọi ${n} lần</span>`;
+}
+
+function renderLeads() {
+  const leads = allCustomers.filter((c) => !isQualified(c));
+  const openCount = leads.filter((c) => !c.disqualified_at).length;
+  const badge = $('#lead-count-badge');
+  if (badge) { badge.textContent = openCount > 99 ? '99+' : String(openCount); badge.hidden = openCount === 0; }
+  const view = $('#lead-view');
+  if (!view || view.hidden) return; // tab đang ẩn → chỉ cập nhật badge
+
+  const list = sortLeads(leads.filter(leadMatchesFilter));
+  $('#lead-result-count').textContent = `${list.length} khách`;
+  $('#lead-empty').hidden = list.length !== 0;
+  $('#lead-list').innerHTML = list.map((c) => {
+    const attempts = callAttemptsOf(c);
+    const last = attempts[attempts.length - 1];
+    const rem = c.disqualified_at ? null : callReminder(c);
+    const meta = [
+      sourceDisplay(c.source),
+      campaignOf(c),
+      (Array.isArray(c.projects) && c.projects.length) ? c.projects.join(', ') : '',
+      c.apt_type ? canonicalAptType(c.apt_type) : '',
+    ].filter(Boolean).map(escapeHtml).join(' · ');
+    const lastLine = last
+      ? `Lần cuối: ${escapeHtml(CALL_RESULTS[last.result] || last.result)} · ${escapeHtml(timeAgo(last.at))}`
+      : `Đăng ký ${escapeHtml(timeAgo(c.registered_at || c.created_at))}`;
+    const zaloHref = zaloLink(c.phone);
+    const zaloAttr = zaloHref.startsWith('http') ? 'target="_blank" rel="noopener"' : '';
+    return `
+      <div class="lead-card${c.disqualified_at ? ' is-dropped' : ''}" data-id="${c.id}">
+        <div class="card-head">
+          <div class="card-name">${escapeHtml(c.full_name || '(chưa có tên)')}</div>
+          <div class="card-head-right">
+            ${rem ? `<span class="call-tag call-${rem.state}">${escapeHtml(rem.text)}</span>` : ''}
+            ${leadStatusTag(c)}
+          </div>
+        </div>
+        <div class="phone-row">
+          <span class="phone-number">${escapeHtml(c.phone || '')}</span>
+          <a class="card-phone" href="tel:${normalizePhone(c.phone)}" aria-label="Gọi ${escapeHtml(c.phone || '')}">${PHONE_SVG}</a>
+          <a class="card-zalo" href="${zaloHref}" ${zaloAttr} data-id="${c.id}" aria-label="Nhắn Zalo"><img class="ic-zalo" src="/icons/zalo.png" alt="Zalo" /></a>
+        </div>
+        ${meta ? `<div class="lead-card-meta">${meta}</div>` : ''}
+        <div class="lead-card-last">${lastLine}</div>
+      </div>`;
+  }).join('');
+}
+
+// ---- Hộp chi tiết lead ----
+let leadSheetId = null, leadResult = null, leadDropReason = null;
+
+function openLeadSheet(id) {
+  const c = allCustomers.find((x) => x.id === id); if (!c) return;
+  leadSheetId = id; leadResult = null; leadDropReason = null;
+  renderLeadSheet(c);
+  const dlg = $('#lead-modal');
+  if (!dlg.open) dlg.showModal();
+}
+
+function renderLeadSheet(c) {
+  const dropped = !!c.disqualified_at;
+  $('#lead-name').textContent = c.full_name || '(chưa có tên)';
+  $('#lead-phone').textContent = c.phone || '';
+  $('#lead-call-btn').href = c.phone ? `tel:${normalizePhone(c.phone)}` : '#';
+  $('#lead-call-btn').innerHTML = PHONE_SVG;
+  const zb = $('#lead-zalo-btn');
+  zb.href = zaloLink(c.phone); zb.dataset.id = c.id;
+  // Thông tin nhanh: kênh, chiến dịch, cách nhập, dự án, loại căn, thời gian đăng ký.
+  const reg = c.registered_at || c.created_at;
+  const rows = [
+    ['Kênh', sourceDisplay(c.source)],
+    ['Chiến dịch', campaignOf(c)],
+    ['Cách nhập', INTAKE_LABELS[c.intake_method] || ''],
+    ['Dự án', (Array.isArray(c.projects) && c.projects.length) ? c.projects.join(', ') : ''],
+    ['Căn quan tâm', [c.apt_type ? canonicalAptType(c.apt_type) : '', c.apt_code || ''].filter(Boolean).join(' · ')],
+    ['Đăng ký', reg ? `${formatLogTime(reg)} (${timeAgo(reg)})` : ''],
+  ].filter(([, v]) => v);
+  $('#lead-meta').innerHTML = rows.map(([k, v]) => `<div><span class="lead-k">${escapeHtml(k)}</span> ${escapeHtml(v)}</div>`).join('');
+
+  const dropEl = $('#lead-dropped');
+  dropEl.hidden = !dropped;
+  if (dropped) {
+    dropEl.innerHTML = `<b>Đã loại:</b> ${escapeHtml(dropReasonLabel(c.disqualify_reason))}` +
+      (c.disqualify_note ? ` — ${escapeHtml(c.disqualify_note)}` : '') +
+      ` <span class="lead-dim">(${escapeHtml(formatLogTime(c.disqualified_at))})</span>`;
+  }
+
+  // Nhật ký gọi: lần N · giờ gọi · kết quả · cách lần trước (lần 1: cách lúc đăng ký).
+  const attempts = callAttemptsOf(c);
+  $('#lead-attempts').innerHTML = attempts.length
+    ? attempts.map((a, i) => {
+        const prevAt = i === 0 ? reg : attempts[i - 1].at;
+        const gapMs = prevAt ? Date.parse(a.at) - Date.parse(prevAt) : NaN;
+        const gap = isNaN(gapMs) ? '' : (i === 0 ? 'sau đăng ký ' : 'cách lần trước ') + formatDuration(gapMs);
+        return `<div class="lead-attempt res-${escapeHtml(a.result)}">
+          <div class="lead-attempt-top"><b>Lần ${i + 1}</b> · ${escapeHtml(formatLogTime(a.at))} · <span class="lead-res">${escapeHtml(CALL_RESULTS[a.result] || a.result)}</span></div>
+          ${gap ? `<div class="lead-dim">${escapeHtml(gap)}</div>` : ''}
+          ${a.note ? `<div class="lead-attempt-note">${escapeHtml(a.note)}</div>` : ''}
+        </div>`;
+      }).join('')
+    : '<div class="lead-dim">Chưa gọi lần nào.</div>';
+
+  // Gợi ý loại khi gọi nhiều lần không được.
+  const sug = $('#lead-suggest');
+  const showSug = !dropped && attempts.length >= LEAD_UNREACHABLE_SUGGEST && !hasTalked(c);
+  sug.hidden = !showSug;
+  if (showSug) {
+    sug.innerHTML = `Đã gọi ${attempts.length} lần chưa liên lạc được. <button type="button" class="btn-small" id="lead-suggest-drop">Loại: Không liên lạc được</button>`;
+  }
+
+  // Ô ghi cuộc gọi (ẩn khi đã loại).
+  $('#lead-log-box').hidden = dropped;
+  $('#lead-result-opts').innerHTML = Object.entries(CALL_RESULTS).map(([code, label]) =>
+    `<button type="button" class="sched-opt${leadResult === code ? ' is-sel' : ''}" data-res="${code}">${escapeHtml(label)}</button>`).join('');
+  $('#lead-attempt-note').value = '';
+  $('#lead-drop-box').hidden = true;
+
+  // Thông tin đăng ký (vd landing page ghi vào notes) + ghi chú tự nhập + ghi chú cũ trong timeline.
+  const notes = [];
+  if (c.notes) notes.push(escapeHtml(c.notes));
+  for (const n of (Array.isArray(c.notes_manual) ? c.notes_manual : [])) if (n && n.text) notes.push(escapeHtml(n.text));
+  for (const h of (Array.isArray(c.care_stage_history) ? c.care_stage_history : [])) if (h && h.note) notes.push(escapeHtml(h.note));
+  $('#lead-notes').innerHTML = notes.length ? '<div class="sched-label">Ghi chú</div>' + notes.map((t) => `<div class="lead-note">• ${t}</div>`).join('') : '';
+
+  // Nút: Đạt chỉ bật khi đã có lần "Nói chuyện được".
+  const canQualify = hasTalked(c);
+  $('#lead-qualify-btn').hidden = dropped;
+  $('#lead-qualify-btn').disabled = !canQualify;
+  $('#lead-drop-btn').hidden = dropped;
+  $('#lead-reopen-btn').hidden = !dropped;
+  $('#lead-qualify-hint').textContent = (!dropped && !canQualify)
+    ? 'Nút Đạt mở khi đã có ít nhất 1 lần gọi “Nói chuyện được”.' : '';
+}
+
+function currentLead() { return allCustomers.find((x) => x.id === leadSheetId); }
+async function afterLeadChange() {
+  await refreshList();
+  const c = currentLead();
+  if (c && $('#lead-modal').open) renderLeadSheet(c);
+}
+
+async function saveLeadAttempt() {
+  const c = currentLead(); if (!c) return;
+  if (!leadResult) { showToast('Chọn kết quả cuộc gọi'); return; }
+  const note = $('#lead-attempt-note').value.trim() || null;
+  const result = leadResult;
+  const list = callAttemptsOf(c).concat([{ at: new Date().toISOString(), result, note }]);
+  const payload = { call_attempts: list };
+  // Đã gọi → lịch hẹn cũ (nếu có) coi như xong.
+  if (c.next_call_at) { payload.next_call_at = null; payload.next_call_end = null; payload.next_call_reason = null; }
+  await CRM.update(c.id, payload);
+  leadResult = null;
+  await afterLeadChange();
+  if (result === 'busy') openScheduler(c.id); // hẹn gọi lại → đặt lịch luôn
+  else if (result === 'talked') showToast('Đã gọi được — nếu khách quan tâm, bấm “Đạt”');
+}
+
+async function qualifyLead() {
+  const c = currentLead(); if (!c || !hasTalked(c)) return;
+  const n = callAttemptsOf(c).length;
+  await CRM.update(c.id, {
+    qualified_at: new Date().toISOString(),
+    care_stage: QUALIFIED_STAGE,
+    disqualified_at: null, disqualify_reason: null, disqualify_note: null,
+  }, { careStageNote: `Đạt — xác nhận quan tâm sau ${n} lần gọi` });
+  $('#lead-modal').close();
+  await refreshList();
+  showToast('Đã chuyển vào danh sách chăm sóc');
+  openDetail(c.id);
+}
+
+function showDropBox(preset) {
+  leadDropReason = preset || null;
+  const all = Object.keys(LEAD_DROP_REASONS);
+  const order = [...LEAD_DROP_TOP, ...all.filter((k) => !LEAD_DROP_TOP.includes(k))];
+  $('#lead-reason-opts').innerHTML = order.map((k) =>
+    `<button type="button" class="sched-opt${LEAD_DROP_TOP.includes(k) ? ' is-top' : ''}${leadDropReason === k ? ' is-sel' : ''}" data-reason="${k}">${escapeHtml(LEAD_DROP_REASONS[k])}</button>`).join('');
+  $('#lead-drop-note').value = '';
+  $('#lead-drop-error').textContent = '';
+  $('#lead-drop-box').hidden = false;
+  $('#lead-log-box').hidden = true;
+  $('#lead-drop-box').scrollIntoView({ block: 'nearest' });
+}
+
+async function saveLeadDrop() {
+  const c = currentLead(); if (!c) return;
+  const note = $('#lead-drop-note').value.trim() || null;
+  if (!leadDropReason) { $('#lead-drop-error').textContent = 'Chọn lý do loại.'; return; }
+  if (leadDropReason === 'khac' && !note) { $('#lead-drop-error').textContent = 'Lý do “Khác” cần mô tả thêm.'; return; }
+  await CRM.update(c.id, {
+    disqualified_at: new Date().toISOString(),
+    disqualify_reason: leadDropReason,
+    disqualify_note: note,
+    next_call_at: null, next_call_end: null, next_call_reason: null,
+  });
+  $('#lead-modal').close();
+  await refreshList();
+  showToast('Đã loại — vẫn lưu để đánh giá campaign');
+}
+
+async function reopenLead() {
+  const c = currentLead(); if (!c) return;
+  await CRM.update(c.id, { disqualified_at: null, disqualify_reason: null, disqualify_note: null });
+  await afterLeadChange();
+}
+
+$('#lead-list')?.addEventListener('click', (e) => {
+  if (e.target.closest('a')) return; // gọi / Zalo → để link chạy bình thường
+  const card = e.target.closest('.lead-card');
+  if (card) openLeadSheet(card.dataset.id);
+});
+$('#lead-filter')?.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-lf]'); if (!b) return;
+  leadFilter = b.dataset.lf;
+  $$('#lead-filter [data-lf]').forEach((x) => x.classList.toggle('is-sel', x === b));
+  renderLeads();
+});
+$('#lead-source-filter')?.addEventListener('change', renderLeads);
+$('#add-lead-btn')?.addEventListener('click', () => openForm(null));
+$('#lead-result-opts')?.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-res]'); if (!b) return;
+  leadResult = b.dataset.res;
+  $$('#lead-result-opts .sched-opt').forEach((x) => x.classList.toggle('is-sel', x === b));
+});
+$('#lead-reason-opts')?.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-reason]'); if (!b) return;
+  leadDropReason = b.dataset.reason;
+  $$('#lead-reason-opts .sched-opt').forEach((x) => x.classList.toggle('is-sel', x === b));
+  $('#lead-drop-error').textContent = '';
+});
+$('#lead-attempt-save')?.addEventListener('click', saveLeadAttempt);
+$('#lead-qualify-btn')?.addEventListener('click', qualifyLead);
+$('#lead-drop-btn')?.addEventListener('click', () => showDropBox(null));
+$('#lead-suggest')?.addEventListener('click', (e) => { if (e.target.closest('#lead-suggest-drop')) showDropBox('khong_lien_lac_duoc'); });
+$('#lead-drop-cancel')?.addEventListener('click', () => { $('#lead-drop-box').hidden = true; $('#lead-log-box').hidden = false; });
+$('#lead-drop-save')?.addEventListener('click', saveLeadDrop);
+$('#lead-reopen-btn')?.addEventListener('click', reopenLead);
+$('#lead-edit-btn')?.addEventListener('click', () => { const id = leadSheetId; $('#lead-modal').close(); openForm(id); });
+$('#lead-close')?.addEventListener('click', () => $('#lead-modal').close());
+
 // ---------------------------------------------------------- DASHBOARD -----
 
 // Chuyển tab giữa danh sách khách, bảng tổng quan và bảng tính vay.
-function setActiveView(name) { // 'list' | 'dashboard' | 'loan'
+function setActiveView(name) { // 'list' | 'leads' | 'dashboard' | 'loan'
   $('#list-view').hidden = name !== 'list';
+  $('#lead-view').hidden = name !== 'leads';
+  $('#tab-leads').classList.toggle('is-active', name === 'leads');
   $('#dashboard-view').hidden = name !== 'dashboard';
   $('#loan-view').hidden = name !== 'loan';
   $('#tab-list').classList.toggle('is-active', name === 'list');
@@ -3528,6 +3929,7 @@ function setActiveView(name) { // 'list' | 'dashboard' | 'loan'
   $('#tab-loan').classList.toggle('is-active', name === 'loan');
 }
 function showListView() { setActiveView('list'); }
+function showLeadView() { setActiveView('leads'); renderLeads(); }
 function showDashboardView() { setActiveView('dashboard'); renderDashboard(); }
 function showLoanView() { setActiveView('loan'); if (window.LoanCRM) LoanCRM.mountTab(); } // js/loan/loan-crm.js
 
@@ -3813,7 +4215,8 @@ window.addEventListener('resize', () => {
 
 function populateSelects() {
   // Bộ lọc "Tiến độ" nay là DROPDOWN tuỳ biến (như dropdown Trạng thái).
-  $('#stage-pop').innerHTML = [['', 'Tất cả'], ...CARE_STAGE_OPTIONS.map((s) => [s, s])]
+  // Trang chủ chỉ có khách lớp 2 → không liệt kê bậc thuộc lớp 1 (LEAD_ONLY_STAGES).
+  $('#stage-pop').innerHTML = [['', 'Tất cả'], ...CARE_STAGE_OPTIONS.filter((s) => !LEAD_ONLY_STAGES.includes(s)).map((s) => [s, s])]
     .map(([val, label]) =>
       `<button type="button" class="status-opt${val === stageFilter ? ' is-sel' : ''}" data-value="${escapeHtml(val)}" role="option">${escapeHtml(label)}</button>`
     ).join('');
@@ -3821,12 +4224,18 @@ function populateSelects() {
 
   renderSortOptions();
 
-  const formStageOptions = ['<option value="">— Chưa xác định —</option>', ...CARE_STAGE_OPTIONS.map((s) => `<option value="${s}">${s}</option>`)].join('');
+  // Form chỉ sửa tiến độ cho khách lớp 2 → bỏ bậc lớp 1 (lead dùng hộp "Khách mới").
+  const formStageOptions = ['<option value="">— Chưa xác định —</option>', ...CARE_STAGE_OPTIONS.filter((s) => !LEAD_ONLY_STAGES.includes(s)).map((s) => `<option value="${s}">${s}</option>`)].join('');
   $('#customer-form').care_stage.innerHTML = formStageOptions;
 
   // Trạng thái liên lạc (độc lập với tiến độ) — dropdown trong form.
   const formContactOptions = ['<option value="">— Chưa xác định —</option>', ...CONTACT_STATUSES.map((s) => `<option value="${s}">${s}</option>`)].join('');
   $('#customer-form').contact_status.innerHTML = formContactOptions;
+
+  // Kênh nguồn khách (SOURCES) + bộ lọc kênh ở tab Khách mới.
+  const srcOpts = Object.entries(SOURCES).map(([code, label]) => `<option value="${code}">${escapeHtml(label)}</option>`).join('');
+  $('#customer-form').source_channel.innerHTML = srcOpts;
+  $('#lead-source-filter').innerHTML = '<option value="">Mọi kênh</option>' + srcOpts;
 }
 
 // ---- SẮP XẾP: trạng thái + render panel ----
@@ -4282,7 +4691,8 @@ async function doImport() {
       }
       if (payload.interest_level == null) payload.interest_level = 50; // mặc định như form
       if (!payload.care_stage) payload.care_stage = CARE_STAGE_DEFAULT;
-      payload.source = 'manual';
+      if (!payload.source) payload.source = [SOURCE_DEFAULT];
+      payload.intake_method = 'import';
       const rec = await CRM.create(payload, {});
       const note = noteParts.join(' · ');
       if (note) await CRM.addNote(rec.id, note);
@@ -4346,6 +4756,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (t) { $('#import-header').checked = !!t.headerRow; renderImportMap(t.mapping); }
   });
   $('#tab-list').addEventListener('click', showListView);
+  $('#tab-leads').addEventListener('click', showLeadView);
   $('#tab-dashboard').addEventListener('click', showDashboardView);
   $('#tab-loan').addEventListener('click', showLoanView);
   $('#customer-form').building_code.addEventListener('input', refreshAptSuggestions);
@@ -4463,8 +4874,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   $('#search-input').addEventListener('input', () => {
     // Gõ tìm khi đang ở tab Tổng quan / Tính vay → tự chuyển sang tab Khách hàng để thấy kết quả.
-    if ($('#search-input').value.trim() && $('#list-view').hidden) showListView();
+    // Đang ở tab Khách mới thì tìm trong lead, không nhảy tab.
+    if ($('#search-input').value.trim() && $('#list-view').hidden && $('#lead-view').hidden) showListView();
     renderList();
+    renderLeads();
   });
   $('#user-menu-btn').addEventListener('click', (e) => {
     e.stopPropagation();

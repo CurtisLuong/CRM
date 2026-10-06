@@ -1,151 +1,65 @@
-# AGENTS.md — Bối cảnh dự án cho AI coding assistant
+# CLAUDE.md — Hướng dẫn AI làm việc với CRM
 
-> File này dành cho các công cụ AI hỗ trợ code (Codex, Cursor, v.v.) đọc để
-> hiểu nhanh dự án trước khi chỉnh sửa. Người dùng chính (chủ dự án) không có
-> background lập trình — luôn ưu tiên giải pháp đơn giản, ít bước thủ công,
-> giải thích rõ trước khi đổi kiến trúc.
+## 1. Mục tiêu và phạm vi
 
-## 1. Dự án là gì
+CRM nội bộ cho một sale bất động sản, chủ yếu làm dự án nhà ở xã hội tại Hải Phòng/Hưng Yên. Thay thế ghi chú rời rạc bằng app web dùng trên Android và MacBook, đồng bộ dữ liệu và nhập khách khi mất mạng. Có thể mở rộng dần cho vài đồng nghiệp.
 
-CRM quản lý khách hàng cho 1 sale bất động sản (dự án nhà ở xã hội tại Hải
-Phòng/Hưng Yên). Mục tiêu: thay thế việc ghi chú khách hàng rời rạc (giấy,
-Excel, note điện thoại) bằng 1 app web dùng chung được trên cả Android và
-Macbook, đồng bộ dữ liệu qua lại, dùng được cả khi mất mạng.
+Không yêu cầu app native, multi-tenant SaaS hoặc chức năng thanh toán.
 
-**Không phải yêu cầu:** không cần app native, không cần multi-tenant SaaS,
-không cần thanh toán — đây là công cụ nội bộ cho 1 người (mở rộng dần cho vài
-đồng nghiệp).
+Chủ dự án không có background lập trình: ưu tiên giải pháp đơn giản, ít bước thủ công; giải thích rõ trước khi đổi kiến trúc. Giao tiếp ngắn gọn, tập trung vào kết quả và lựa chọn thực tế.
 
-## 2. Kiến trúc & lý do chọn
+## 2. Nguyên tắc bắt buộc
 
-| Thành phần | Lựa chọn | Vì sao |
-|---|---|---|
-| Backend/DB | Supabase (Postgres + Auth) | Cần filter/search mạnh hơn Google Sheets khi data lớn, có RLS multi-user sẵn |
-| Frontend | HTML/CSS/JS thuần, không build step | Chủ dự án không có background code, cần deploy = kéo thả file, sửa file trực tiếp dễ hiểu |
-| Hosting | Cloudflare Pages, auto-deploy từ GitHub | Chủ dự án đã quen quy trình này từ project trước (Marquee Homes) |
-| Offline | IndexedDB (cache local) + hàng đợi đồng bộ trong `js/db.js` | Sale đi xem dự án/công trường hay mất mạng, vẫn cần nhập được khách |
-| PWA | `manifest.json` + `sw.js` | Cài lên màn hình Android như app thật |
+- Frontend HTML/CSS/JavaScript thuần, không build step. File phải chạy bằng script/link thông thường; không thêm bundler hoặc framework nếu chưa được duyệt.
+- Backend/DB: Supabase Postgres + Auth. Hosting: Cloudflare Pages, kết nối GitHub.
+- Dữ liệu khách: đọc IndexedDB local trước; ghi local ngay và thêm hàng đợi đồng bộ lên Supabase. Xung đột theo last-write-wins dựa trên `updated_at`.
+- Quyền dữ liệu dùng RLS và GRANT; không bỏ một lớp để thay thế cho lớp kia.
+- Thông tin khách được thu thập dần. Theo đặc tả gốc, `phone`, `full_name`, `owner_id` là bắt buộc; các field thông tin khách khác cho phép trống. Đối chiếu schema khi sửa.
+- Giữ phong cách báo cáo bất động sản trang trọng, bảng màu be/xanh rêu/cam đất. Theo quy tắc tại `docs/design.md` khi sửa UI.
+- Tái sử dụng cấu trúc, style và module hiện có khi phù hợp; không đổi kiến trúc để giải quyết một chỉnh sửa nhỏ.
 
-**Nguyên tắc dữ liệu:** mọi thao tác đọc luôn đọc từ IndexedDB local trước
-(nhanh, chạy offline được). Mọi thao tác ghi vào local ngay + đẩy vào hàng đợi
-`queue` trong IndexedDB, tự đồng bộ lên Supabase khi có mạng. Xung đột xử lý
-kiểu **last-write-wins** theo `updated_at` — chấp nhận được vì đây là CRM cho
-rất ít người dùng, xác suất 2 thiết bị sửa cùng 1 khách cùng lúc gần như bằng 0.
+## 3. Khởi động với context tối thiểu
 
-## 3. Cấu trúc file
+1. Đọc file này một lần trong phiên; đọc lại khi file thay đổi.
+2. Xác định phạm vi yêu cầu và kiểm tra trạng thái Git, kể cả thay đổi chưa commit. Giữ lại thay đổi ngoài phạm vi của người dùng.
+3. Đọc code cần sửa và các phụ thuộc trực tiếp. Mở tài liệu theo bảng dưới, chỉ đến mức đủ để làm task đúng.
+4. Mở rộng phạm vi đọc nếu có bằng chứng thiếu context. Không quét toàn repo hoặc toàn lịch sử chỉ để phòng hờ.
 
-```
-index.html          giao diện chính (auth screen + app screen + form modal)
-css/style.css        toàn bộ style (tông màu be/xanh rêu/cam đất, kiểu "báo cáo BĐS trang trọng")
-js/config.js          SUPABASE_URL + SUPABASE_ANON_KEY (điền tay, không phải secret nguy hiểm)
-js/lunar.js            convert dương lịch → âm lịch + tra Lục Thập Hoa Giáp để tính "Mệnh"
-js/db.js                lớp lưu local (IndexedDB) + hàng đợi đồng bộ (biến toàn cục `window.CRM`)
-js/app.js               logic UI: đăng nhập, CRUD khách, filter/sort/search, render dashboard
-js/catalog.js           GIỎ HÀNG Dự án → Toà → Căn (projects/buildings/units): nguồn dự án cho form khách + bảng tính vay, cache offline
-js/catalog-ui.js        màn "Giỏ hàng" (menu avatar): sửa trực tiếp + nhập Excel + file mẫu — xem docs/gio-hang.md
-js/loan/                module Tính khoản vay NOXH: engine → store → pdf → ui, + loan-crm.js (gắn vào CRM)
-css/loan.css            style module vay (mọi class tiền tố .lm-)
-SQL/                    schema + các migration lẻ (add_loan_module.sql = bảng của module vay)
-docs/loan-module.md     tài liệu module vay (quy tắc tính, cập nhật lãi suất, gỡ lỗi)
-tests/                  test chạy bằng Node: `node tests/loan-engine.test.js`
-dev/loan-demo.html      trang chạy thử module vay độc lập (không cần đăng nhập)
-schema.sql              schema Supabase gốc (đã vá đầy đủ — xem mục 5)
-fix_rls_recursion.sql   migration đã áp dụng — giữ lại để tham khảo, KHÔNG cần chạy lại
-fix_table_grants.sql    migration đã áp dụng — giữ lại để tham khảo, KHÔNG cần chạy lại
-manifest.json + sw.js   cấu hình PWA + cache app-shell (chiến lược network-first, xem mục 5)
-README.md               hướng dẫn setup ban đầu cho người không biết code
-CHANGELOG.md            nhật ký thay đổi/lỗi đã sửa — ĐỌC TRƯỚC khi sửa cùng khu vực code
-FEATURE_IDEAS.md        danh sách tính năng đề xuất, chưa làm
-```
+| Khi task liên quan đến | Đọc thêm |
+|---|---|
+| Kiến trúc, luồng dữ liệu, auth, schema, offline | `docs/architecture.md`; schema/migration và code tương ứng |
+| Giao diện, CSS, font, bố cục | `docs/design.md`; phần UI/font trong `docs/pitfalls.md` |
+| Supabase/CDN, auth, RLS/GRANT | Phần JavaScript/Supabase trong `docs/pitfalls.md` |
+| PWA, cache hoặc cập nhật app | Phần Service Worker trong `docs/pitfalls.md` |
+| Module vay | `docs/loan-module.md`; code trong `js/loan/` và `css/loan.css` |
+| Giỏ hàng hoặc nhập Excel | `docs/gio-hang.md`; `js/catalog.js`, `js/catalog-ui.js` |
+| Xung đột nguyên tắc hoặc tiền lệ | `docs/decisions.md` |
+| Setup, chạy app, triển khai | `README.md`; file cấu hình và workflow liên quan |
+| Tiếp nối công việc hoặc hỏi trạng thái | `docs/project-status.md`, sau đó xác minh phần liên quan |
 
-## 4. Data model (bảng `customers` trong Supabase)
+Không mặc định đọc toàn bộ `CHANGELOG.md`, `FEATURE_IDEAS.md`, README hoặc lịch sử Git. Khi sửa regression/cần hiểu lý do code, tìm lịch sử theo file/chủ đề và chỉ mở commit liên quan. Đọc `FEATURE_IDEAS.md` khi đối chiếu một tính năng mới; đó là ý tưởng, không phải yêu cầu đã được duyệt.
 
-Xem chi tiết đầy đủ trong `schema.sql`. Tóm tắt các field đặc biệt:
+## 4. Khi yêu cầu xung đột với nguyên tắc
 
-- `phone` — "master key" hiển thị cho người dùng, nhưng **không phải primary
-  key thật** (primary key là `id` uuid). Unique theo cặp `(phone, owner_id)`,
-  không unique toàn cục — vì multi-user sau này, 2 sale có thể tự lưu cùng 1
-  số nếu đó là 2 khách độc lập của họ.
-- `menh` — tính sẵn ở **client** (trong `js/lunar.js`) từ `dob`, rồi mới lưu
-  xuống DB dạng text để search/filter nhanh. Không tính lại ở server.
-- `owner_id` — user sở hữu khách này (`default auth.uid()`). Dùng cho RLS.
-- Mọi field trừ `phone`, `full_name`, `owner_id` đều **nullable** — đúng yêu
-  cầu gốc "thông tin thu thập dần, trống mặc định".
+- Kiểm tra để xác định có xung đột thực sự; không xin phê duyệt cho lựa chọn nhỏ phù hợp nguyên tắc.
+- Trước khi thực hiện phần xung đột, nêu nguyên tắc bị ảnh hưởng, phương án giữ nguyên, lợi ích/bất lợi và phạm vi của phương án thay đổi.
+- Cho người dùng chọn: giữ nguyên; ngoại lệ cục bộ; hoặc đổi nguyên tắc toàn dự án. Tiếp tục phần độc lập đã được cho phép trong lúc chờ.
+- Nếu người dùng đã chỉ định rõ quyết định và phạm vi, không hỏi lại.
+- Đồng ý với một đề xuất cục bộ chỉ áp dụng cho phạm vi đề xuất đó. Không tự suy ra thay đổi toàn dự án.
+- Sau khi được duyệt, cập nhật `docs/decisions.md`. Nếu đổi nguyên tắc chung, sửa cả file này và tài liệu chuyên đề liên quan. Nếu chỉ là ngoại lệ, giữ nguyên nguyên tắc chung và thêm chỉ dẫn ngoại lệ cần thiết vào mục tương ứng.
+- Không sửa nguyên tắc để hợp thức hóa việc đã tự làm. Chi tiết quy trình: `docs/decisions.md`.
 
-Bảng `profiles` lưu `role` (`admin` | `sale`) của mỗi user, tự tạo qua trigger
-khi có user mới đăng ký (mặc định `sale`). Nâng admin bằng tay qua SQL Editor
-(xem cuối `schema.sql`).
+## 5. Thực hiện và kiểm chứng
 
-## 5. Các bẫy đã gặp — ĐỌC KỸ trước khi sửa
+- Thay đổi schema phải có migration SQL riêng. `schema.sql` là baseline cho cài đặt mới, không phải bằng chứng production đã áp dụng migration.
+- Không chỉnh baseline một cách âm thầm: đồng bộ khi cần và ghi lại thay đổi đáng kể trong changelog. Không chạy lại migration cũ chỉ vì file còn trong repo.
+- Chạy kiểm tra phù hợp phạm vi. Với engine vay, dùng test hiện có `node tests/loan-engine.test.js`; UI cần kiểm tra trình duyệt, font tiếng Việt và màn hình liên quan khi có môi trường.
+- Chỉ báo một kiểm tra đã pass khi thực sự chạy. Phân biệt kiểm tra local, trình duyệt, migration thực tế và deploy.
+- Báo ngắn: đã đổi gì, đã kiểm tra gì, điều gì chưa xác minh. Không coi ghi chú trạng thái cũ là xác nhận hiện tại.
+- Ghi `CHANGELOG.md` cho thay đổi đáng kể về tính năng, hành vi, dữ liệu hoặc triển khai, theo định dạng ngày — mô tả — file ảnh hưởng. Không chép lại diff hoặc ghi mọi chỉnh sửa nhỏ.
 
-Đây là các lỗi thật đã xảy ra lúc build, đã sửa xong nhưng **rất dễ lặp lại**
-nếu sửa code mà không biết:
+## 6. Nguồn thông tin
 
-1. **Không được đặt tên biến JS global trùng `supabase`.** Thư viện
-   `@supabase/supabase-js` (load qua CDN, không phải module) tự tạo biến
-   global `supabase`. Trong `app.js`, biến client cục bộ phải đặt tên khác
-   (hiện đang là `sb`), nếu không sẽ bị `SyntaxError: Identifier 'supabase'
-   has already been declared` và **toàn bộ app.js không chạy được câu nào**
-   (kể cả gắn event listener) — lỗi này rất khó đoán vì không có gì hiện ra,
-   nút bấm "im lặng" hoàn toàn.
+Code/schema mô tả implementation hiện có; hướng dẫn và quyết định đã duyệt mô tả ý định. Git lưu lịch sử thay đổi; tài liệu quyết định lưu lý do và phạm vi ngoại lệ. Nếu các nguồn mâu thuẫn, chỉ rõ mâu thuẫn, không tự coi code hiện tại là sự chấp thuận đổi nguyên tắc.
 
-2. **RLS policy không được tự tham chiếu bảng của chính nó.** Nếu viết policy
-   kiểu `using (id = auth.uid() OR exists (select 1 from profiles where
-   role='admin'))` ngay trên bảng `profiles`, Postgres báo `infinite
-   recursion detected in policy`. Cách đúng: tách phần kiểm tra role ra hàm
-   `security definer` riêng (xem `public.is_admin()` trong `schema.sql`).
-
-3. **RLS không thay thế GRANT ở tầng bảng.** Bật `enable row level security`
-   xong mà quên `grant select/insert/update/delete ... to authenticated` thì
-   vẫn bị `permission denied for table`. Cả 2 lớp (GRANT + RLS policy) đều
-   cần có.
-
-4. **Service worker cache CSS/JS cũ đè lên bản deploy mới.** Ban đầu
-   `sw.js` dùng chiến lược "trả cache trước, revalidate sau" (cache-first) —
-   khiến sau khi deploy code mới lên Cloudflare, trình duyệt vẫn âm thầm dùng
-   bản JS/CSS cũ trong Service Worker cache, F5 không ăn thua, phải
-   Unregister service worker thủ công mới hết. Đã đổi sang **network-first**
-   trong `sw.js` (luôn thử tải mạng trước, chỉ rơi về cache khi mất mạng).
-   Mỗi lần sửa APP_SHELL trong `sw.js`, **phải tăng số version của
-   `CACHE_NAME`** (vd `v2` → `v3`) để buộc trình duyệt bỏ cache cũ.
-
-5. **CSS không được set `display` cứng cho phần tử điều khiển bằng thuộc
-   tính `hidden`.** Đã thêm rule `[hidden] { display: none !important; }`
-   ở đầu `style.css` để đảm bảo mọi phần tử dùng `el.hidden = true/false`
-   trong JS luôn ẩn/hiện đúng, bất kể rule `display` nào khác ở dưới.
-
-6. **Cẩn thận font cho tiếng Việt — tránh "Iowan Old Style".** Font tiêu đề
-   `h1, h2` từng để `"Iowan Old Style"` (có sẵn trên macOS) khiến các nguyên
-   âm "râu" (ư/ơ + dấu: ường, ưởng, ữ, ự...) hiển thị vỡ dấu — chỉ lộ ở tên
-   khách trong `<h1>/<h2>`, còn thân bài dùng font sans hệ thống nên không
-   thấy. Khi chọn/đổi font BẤT KỲ, phải thử với tên có ư/ơ + dấu. Hiện dùng
-   `"Georgia", "Times New Roman", serif` (Georgia + serif hệ thống đều render
-   tiếng Việt chuẩn).
-
-## 6. Trạng thái hiện tại
-
-- Đã deploy thành công tại `https://crm-cop.pages.dev`, kết nối GitHub →
-  Cloudflare Pages tự động deploy khi push lên nhánh `main`.
-- Đăng nhập/đăng ký, tạo khách, filter/sort, offline sync đều đã chạy được
-  và được xác nhận thủ công qua nhiều vòng test.
-- Đang có 1 tài khoản (role mặc định `sale`), chưa có khách hàng thật nào
-  được nhập.
-- Icon PWA (`icons/app-icon-192.png`, `icons/app-icon-512.png`,
-  `icons/apple-touch-icon.png`) render từ `icons/Net_Icon.png` (logo mạng lưới
-  xanh trên nền mint). Đã cắt viền trắng thừa bằng `sips` (center-crop).
-- Chưa test kỹ deep-link SĐT → Zalo trên môi trường thật (mới chỉ code theo
-  tài liệu, chưa xác nhận trên máy chủ dự án).
-
-## 7. Quy ước khi sửa code tiếp
-
-- Giữ nguyên triết lý "không build step" — mọi file JS/CSS/HTML phải chạy
-  thẳng được khi mở qua `<script src>` / `<link>` thường, không cần bundler.
-- Mọi thay đổi schema Supabase → viết thành 1 file migration SQL riêng (như
-  `fix_rls_recursion.sql`), **không sửa trực tiếp `schema.sql` mà không ghi
-  chú lại trong `CHANGELOG.md`**, vì `schema.sql` đại diện cho trạng thái
-  "chạy từ đầu trên project Supabase mới", còn project hiện tại đã áp dụng
-  các migration lẻ.
-- Ghi lại mọi thay đổi đáng kể vào `CHANGELOG.md` theo đúng định dạng đang
-  dùng (ngày — mô tả — file bị ảnh hưởng).
-- Trước khi thêm tính năng mới, xem qua `FEATURE_IDEAS.md` — có thể tính
-  năng đó đã được note sẵn kèm gợi ý cách làm.
+Bản đồ tài liệu và hướng dẫn tổ chức repo: `docs/README.md`. Những link tại đây là chỉ dẫn tra cứu, không phải yêu cầu đọc tất cả.

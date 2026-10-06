@@ -91,9 +91,17 @@ create table if not exists public.customers (
   care_stage_history jsonb not null default '[]'::jsonb,
   -- ghi chú tự nhập dạng bullet: mảng {text, at} (xem add_notes_manual.sql)
   notes_manual jsonb not null default '[]'::jsonb,
-  -- nguồn khách, hệ thống tự set: MẢNG giá trị 'manual'|'ocr'|'landing' (nhiều nguồn/khách).
-  -- Ban đầu là text 1 giá trị (add_source.sql); đổi sang jsonb mảng ở source_multi_value.sql.
+  -- nguồn khách = KÊNH khách đến: MẢNG mã 'facebook_ads'|'website'|'referral'|... (nhiều nguồn/khách).
+  -- Quy tắc đặt mã: docs/decisions.md. Lịch sử: add_source.sql → source_multi_value.sql → add_lead_layer.sql.
   source jsonb not null default '[]'::jsonb,
+  intake_method text check (intake_method is null or intake_method in ('manual','ocr','import','api')), -- cách nhập
+  campaign text,                      -- tên chiến dịch (lead web: dùng web_last_campaign nếu trống)
+  -- LỚP KHÁCH (add_lead_layer.sql): qualified_at trống = lớp 1 "Khách mới"; có = lớp 2 "Chăm sóc".
+  qualified_at timestamptz,
+  disqualified_at timestamptz,        -- lead bị loại ở lớp 1
+  disqualify_reason text,             -- mã lý do (xem LEAD_DROP_REASONS trong js/app.js)
+  disqualify_note text,
+  call_attempts jsonb not null default '[]'::jsonb, -- mảng {at, result, note} các lần gọi ở lớp 1
   updated_by uuid,
   -- đường dẫn ảnh đại diện trong Storage bucket customer-docs (xem add_avatar.sql)
   avatar_path text
