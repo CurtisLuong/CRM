@@ -4,7 +4,7 @@
  * escapeHtml, showToast). KHÔNG đặt tên biến `supabase` (xem CLAUDE.md mục 5.1).
  *
  * 2 điểm gắn:
- *   A. Tab "Tính vay" (#loan-view) — bảng tính độc lập, không gắn khách.
+ *   A. Màn "Tính vay" (#loan-view, mở từ menu tài khoản › Công cụ) — bảng tính độc lập, không gắn khách.
  *   B. Trang chi tiết khách (#detail-loan-section) — điền sẵn mã căn / diện tích,
  *      lưu phương án gắn với khách, liệt kê + mở lại phương án đã lưu.
  *

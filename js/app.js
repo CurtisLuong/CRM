@@ -496,6 +496,7 @@ function showAppScreen() {
 function focusSearchOnDesktop() {
   const isTouch = navigator.maxTouchPoints > 0 || 'ontouchstart' in window;
   if (isTouch) return;
+  if ($('.topbar').classList.contains('no-search')) return; // tab hiện tại không có ô tìm
   // requestAnimationFrame: chờ app-screen hiện xong hẳn rồi mới focus (tránh bị mất focus).
   requestAnimationFrame(() => { const el = $('#search-input'); if (el) el.focus(); });
 }
@@ -663,6 +664,7 @@ async function refreshList() {
   allCustomers = await CRM.list();
   renderList();
   renderLeads();
+  if (!$('#dashboard-view').hidden) renderDashboard(); // Tổng quan là màn mặc định khi mở app
   updateSyncBadge();
   renderNotifications();
 }
@@ -3918,7 +3920,12 @@ $('#lead-close')?.addEventListener('click', () => $('#lead-modal').close());
 // ---------------------------------------------------------- DASHBOARD -----
 
 // Chuyển tab giữa danh sách khách, bảng tổng quan và bảng tính vay.
+// Thứ bậc điều hướng: tab chính (dashboard / list "Tiềm năng" / leads "Khách mới") ở header;
+// công cụ (loan...) mở từ menu tài khoản, không có tab — màn công cụ có nút ← về Tổng quan.
+// Ô tìm kiếm chỉ hiện ở 2 tab danh sách.
+const SEARCH_VIEWS = ['list', 'leads'];
 function setActiveView(name) { // 'list' | 'leads' | 'dashboard' | 'loan'
+  $('.topbar').classList.toggle('no-search', !SEARCH_VIEWS.includes(name));
   $('#list-view').hidden = name !== 'list';
   $('#lead-view').hidden = name !== 'leads';
   $('#tab-leads').classList.toggle('is-active', name === 'leads');
@@ -3926,7 +3933,6 @@ function setActiveView(name) { // 'list' | 'leads' | 'dashboard' | 'loan'
   $('#loan-view').hidden = name !== 'loan';
   $('#tab-list').classList.toggle('is-active', name === 'list');
   $('#tab-dashboard').classList.toggle('is-active', name === 'dashboard');
-  $('#tab-loan').classList.toggle('is-active', name === 'loan');
 }
 function showListView() { setActiveView('list'); }
 function showLeadView() { setActiveView('leads'); renderLeads(); }
@@ -4758,7 +4764,8 @@ document.addEventListener('DOMContentLoaded', () => {
   $('#tab-list').addEventListener('click', showListView);
   $('#tab-leads').addEventListener('click', showLeadView);
   $('#tab-dashboard').addEventListener('click', showDashboardView);
-  $('#tab-loan').addEventListener('click', showLoanView);
+  $('#tool-loan-btn').addEventListener('click', () => { $('#topbar-menu').classList.remove('open'); showLoanView(); window.scrollTo(0, 0); });
+  $('#loan-back-btn').addEventListener('click', showDashboardView);
   $('#customer-form').building_code.addEventListener('input', refreshAptSuggestions);
   $('#customer-form').apt_code.addEventListener('change', fillFromCatalogUnit);
   $('#detail-back-btn').addEventListener('click', closeDetailToList);

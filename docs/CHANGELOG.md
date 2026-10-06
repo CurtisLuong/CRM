@@ -6,6 +6,16 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-06 — Gọn header: 3 tab chính, Tính vay vào menu
+
+- Tab: **Tổng quan** (mặc định khi mở app) · **Tiềm năng** (đổi tên từ "Khách hàng") · **Khách mới**. Bỏ tab Tính vay.
+- Menu tài khoản chia nhóm *Công cụ* (Tính vay, Giỏ hàng) / *Cài đặt* (Lời chào Zalo). Màn Tính vay có nút ← về Tổng quan.
+- Ô tìm kiếm chỉ hiện ở Tiềm năng và Khách mới → header Tổng quan/Tính vay chỉ còn 2 hàng (sửa lỗi header chiếm/mất
+  một đoạn trên điện thoại). Quy tắc phân cấp: `docs/design.md`.
+- File: `index.html`, `js/app.js`, `css/style.css`, `sw.js` (cache v10), `js/loan/loan-crm.js` (chú thích), `docs/design.md`.
+
+---
+
 ## 2026-10-06 — Lớp "Khách mới" (lead) tách khỏi trang chủ + chuẩn hoá nguồn khách
 
 - **Database** (`SQL/add_lead_layer.sql`, ⚠️ chạy TRƯỚC khi deploy): thêm `qualified_at`, `disqualified_at`,

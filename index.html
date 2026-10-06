@@ -51,7 +51,7 @@
 
 <!-- ============ MÀN HÌNH CHÍNH ============ -->
 <section id="app-screen" hidden>
-  <header class="topbar">
+  <header class="topbar no-search">
     <div class="topbar-row topbar-row-top">
       <div class="topbar-brand">
         <img class="brand-logo" src="/icons/logo.svg" alt="" />
@@ -74,20 +74,25 @@
         </div>
         <div class="topbar-menu" id="topbar-menu">
           <button id="user-menu-btn" class="avatar-btn" aria-label="Tài khoản">?</button>
+          <!-- MENU PHỤ (tầng 2): công cụ + cài đặt. Tính năng mới thêm vào đây, KHÔNG thêm tab. -->
           <div class="menu-pop">
             <div class="menu-email" id="user-email"></div>
+            <div class="menu-group-label">Công cụ</div>
+            <button id="tool-loan-btn" class="menu-item">Tính vay</button>
             <button id="catalog-btn" class="menu-item">Giỏ hàng (dự án · toà · căn)</button>
+            <div class="menu-group-label">Cài đặt</div>
             <button id="zalo-greeting-btn" class="menu-item">Lời chào Zalo</button>
+            <div class="menu-sep"></div>
             <button id="logout-btn" class="menu-item">Đăng xuất</button>
           </div>
         </div>
       </div>
     </div>
+    <!-- TAB CHÍNH (tầng 1) — chỉ 3 mục. Công cụ khác (Tính vay...) nằm trong menu tài khoản. -->
     <nav class="tab-nav">
-      <button id="tab-list" class="tab-btn is-active">Khách hàng</button>
+      <button id="tab-dashboard" class="tab-btn is-active">Tổng quan</button>
+      <button id="tab-list" class="tab-btn">Tiềm năng</button>
       <button id="tab-leads" class="tab-btn">Khách mới <span id="lead-count-badge" class="tab-badge" hidden>0</span></button>
-      <button id="tab-dashboard" class="tab-btn">Tổng quan</button>
-      <button id="tab-loan" class="tab-btn">Tính vay</button>
     </nav>
     <div class="topbar-search-wrap">
       <span class="search-ic" aria-hidden="true">🔍</span>
@@ -95,7 +100,7 @@
     </div>
   </header>
 
-  <div id="list-view">
+  <div id="list-view" hidden>
   <div class="toolbar">
     <!-- Lọc trạng thái: dropdown TUỲ BIẾN (không dùng <select> gốc để cả lúc bung ra
          cũng khớp UI, giống popup Lọc/Sắp xếp). Logic ở app.js (progressFilter). -->
@@ -220,13 +225,17 @@
     <button id="add-lead-btn" class="fab" title="Thêm khách mới" aria-label="Thêm khách mới">+</button>
   </div>
 
-  <div id="dashboard-view" hidden>
+  <div id="dashboard-view">
     <div id="dashboard-content" class="dash-grid"></div>
   </div>
 
   <!-- TÍNH VAY — bảng tính khoản vay NOXH độc lập (không gắn khách). Module ở js/loan/,
        gắn vào CRM qua js/loan/loan-crm.js. Mount lần đầu khi bấm tab. -->
   <div id="loan-view" hidden>
+    <div class="tool-head">
+      <button id="loan-back-btn" class="tool-back" type="button" aria-label="Về Tổng quan">←</button>
+      <h2>Tính vay</h2>
+    </div>
     <div class="loan-consultant">
       <span>Tư vấn viên in trên PDF:</span>
       <input id="loan-consultant-name" type="text" placeholder="Tên" />

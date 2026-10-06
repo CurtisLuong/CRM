@@ -21,6 +21,14 @@ File nguồn không quy định chính xác mã màu, spacing, breakpoint, font 
 - Đổi phong cách chủ đạo, bảng màu hoặc cách tổ chức UI có tác động lớn cần được đối chiếu nguyên tắc và phạm vi yêu cầu.
 - Giữ namespace `.lm-` cho style module vay để hạn chế ảnh hưởng sang phần khác.
 
+## Phân cấp điều hướng (chốt 2026-10-06)
+
+- **Tầng 1 — tab ở header, tối đa 3:** Tổng quan (màn mặc định khi mở app) · Tiềm năng (khách lớp 2) · Khách mới (lead lớp 1). Không thêm tab thứ 4.
+- **Tầng 2 — menu tài khoản (avatar):** nhóm *Công cụ* (Tính vay, Giỏ hàng…), nhóm *Cài đặt* (Lời chào Zalo…), rồi Đăng xuất. Tính năng mới mặc định vào đây.
+- Màn công cụ mở từ menu không có tab sáng; đầu màn có thanh `.tool-head` (nút ← về Tổng quan + tên công cụ).
+- Ô tìm kiếm chỉ hiện ở tab danh sách (Tiềm năng, Khách mới) — `SEARCH_VIEWS` trong `js/app.js`; các màn khác header gọn (class `.topbar.no-search`).
+- Muốn đưa một công cụ lên tầng 1 → coi là đổi cách tổ chức UI, hỏi chủ dự án trước.
+
 ## Font và tiếng Việt
 
 File nguồn ghi font heading đang dùng `"Georgia", "Times New Roman", serif` sau khi gặp lỗi với `"Iowan Old Style"` trên macOS.
