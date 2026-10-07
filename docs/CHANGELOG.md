@@ -6,6 +6,23 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-07 — Hộp Khách mới: bố cục mới
+
+- Đầu hộp: tên khách (chữ serif lớn) + nút **bút chì** (Sửa thông tin) + ✕. Nút "Sửa thông tin" ở đáy bỏ.
+- Nút **📞 Ghi cuộc gọi** to, rõ dưới danh sách các lần gọi.
+- Đáy hộp: **✕ Loại** (viền đỏ, trái) + **✓ Đạt → chuyển vào chăm sóc** (nền xanh đậm, chiếm phần còn lại, 1 dòng trên
+  điện thoại). Đã loại → chỉ còn **↺ Mở lại**.
+- File: `index.html`, `css/style.css`, `sw.js` (cache v29).
+
+---
+
+## 2026-10-07 — Hộp Khách mới: thời gian đăng ký chỉ hiện 1 dạng
+
+- "Đăng ký 7h57, 8/9/2026 (08/09/2026)" → "Đăng ký 7h57, 8/9/2026" (giữ giờ + ngày cụ thể; thẻ ngoài danh sách vẫn hiện
+  "Đăng ký … trước"). File: `js/app.js`, `sw.js` (cache v28).
+
+---
+
 ## 2026-10-07 — Tab Khách mới: sắp xếp mặc định mới
 
 - Mặc định: thời gian đăng ký mới nhất → số lần gọi ít nhất → tên A→Z (thay cho thứ tự "ưu tiên gọi" cũ, đã bỏ

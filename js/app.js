@@ -4149,7 +4149,7 @@ function renderLeadSheet(c) {
     ['Chiến dịch', campaignOf(c)],
     ['Dự án', (Array.isArray(c.projects) && c.projects.length) ? c.projects.join(', ') : ''],
     ['Căn quan tâm', [c.apt_type ? canonicalAptType(c.apt_type) : '', c.apt_code || ''].filter(Boolean).join(' · ')],
-    ['Đăng ký', reg ? `${formatLogTime(reg)} (${timeAgo(reg)})` : ''],
+    ['Đăng ký', reg ? formatLogTime(reg) : ''], // giờ + ngày cụ thể (thẻ ngoài danh sách đã có "… trước")
   ].filter(([, v]) => v);
   $('#lead-meta').innerHTML = rows.map(([k, v]) => `<div><span class="lead-k">${escapeHtml(k)}</span> ${escapeHtml(v)}</div>`).join('');
 
