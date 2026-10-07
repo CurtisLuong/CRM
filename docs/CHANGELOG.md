@@ -6,6 +6,14 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-07 — Hộp Zalo: nút "Mở Zalo" nổi bật + gợi ý mẫu theo lớp khách / bậc
+
+- Hộp bấm icon Zalo: nút lớn **Mở Zalo** ở trên cùng (hành động chính); mẫu tin xếp dưới, mẫu gợi ý có lý do ("Đang ở bậc …", "Đã gọi 3 lần chưa liên lạc được").
+- Gợi ý mẫu: khách mới theo lịch sử gọi (hỏng ≥ 3 lần → "Gọi chưa được", đã nói chuyện → "Gửi thông tin", còn lại → "Chào kết bạn"); khách Tiềm năng theo bậc, chỉ sinh nhật hôm nay/mai mới thay. Cuộc gọi tự nạp từ máy chưa ghi chú 0 giây tính là gọi hỏng (cả nhịp gọi lại).
+- Hai nút (mở thẳng / copy mẫu) dùng chung hàm mở Zalo, link tính lại từ SĐT khách lúc bấm.
+- File: `js/followup.js`, `js/app.js`, `index.html`, `css/style.css`, `sw.js` (v45), `docs/huong-dan-follow-up.md`.
+- Đã kiểm tra trình duyệt local (dữ liệu giả, 375px): bố cục hộp, gợi ý mẫu 9 tình huống (Node), 2 nút mở cùng link. Chưa thử trên Android thật.
+
 ## 2026-10-07 — Nhịp follow-up tự động + nhiều mẫu tin Zalo
 
 - Ghi cuộc gọi → gợi ý lịch gọi lại theo kết quả (1-2-4-7 ngày khi không liên lạc được, đổi khung giờ luân phiên / khi cúp máy; khách mới hỏng 5 lần → gợi ý Loại; nói chuyện được → theo nhịp bậc). Khung giờ theo nghề nghiệp, bỏ Chủ nhật. Sale chọn: đặt lịch này / chọn giờ khác / không hẹn.

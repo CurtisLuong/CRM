@@ -49,7 +49,14 @@ const FOLLOWUP_CONFIG = {
   },
   skipSunday: true, // true = lịch rơi vào Chủ nhật thì dời sang Thứ Hai
 
-  // 5) MẪU ZALO GỢI Ý theo bậc (mã mẫu ở ZALO_TEMPLATES_DEFAULT).
+  // 5) MẪU ZALO GỢI Ý (mã mẫu ở ZALO_TEMPLATES_DEFAULT). Quy tắc:
+  //    • KHÁCH MỚI (tab Khách mới) — theo lịch sử gọi:
+  //        đã nói chuyện được → 'thong_tin'; gọi hỏng liên tiếp ≥ leadMissedTemplateAfter → 'goi_nho';
+  //        còn lại (chưa gọi / mới hỏng ít lần) → 'chao'.
+  //    • KHÁCH TIỀM NĂNG — theo BẬC đang ở (bảng stageTemplate). Chỉ ngoại lệ: sinh nhật
+  //        trong birthdayTemplateDays ngày tới → 'sinh_nhat'.
+  leadMissedTemplateAfter: 3,  // khách mới gọi hỏng liên tiếp ≥ N lần → gợi ý mẫu "Gọi chưa được"
+  birthdayTemplateDays: 1,     // 0 = chỉ đúng ngày sinh nhật; 1 = hôm nay hoặc ngày mai
   stageTemplate: {
     'Đăng kí mới':   'chao',
     'Đang tiếp cận': 'chao',
@@ -58,9 +65,8 @@ const FOLLOWUP_CONFIG = {
     'Hỗ trợ hồ sơ':  'nhac_ho_so',
     'Booking':       'nhac_ho_so',
     'Kí HĐMB':       'chuc_mung',
+    'Loại':          'thong_tin',
   },
-  birthdayTemplateDays: 3,  // sinh nhật trong N ngày tới → gợi ý mẫu chúc sinh nhật
-  missedTemplateAfter: 2,   // gọi hỏng liên tiếp ≥ N lần → gợi ý mẫu "Gọi chưa được"
 };
 
 // Mẫu tin MẶC ĐỊNH (lần đầu dùng / bấm "Khôi phục mặc định"). Sửa nội dung trong app là đủ.
@@ -120,12 +126,17 @@ const ZALO_TEMPLATES_DEFAULT = [
     return { kind: 'schedule', start: w.start, end: w.end, reason, label: label(w.start, w.end) };
   }
   // Số cuộc gọi hỏng LIÊN TIẾP tính từ cuộc mới nhất (dừng khi gặp cuộc có liên lạc).
+  // Cuộc "chưa ghi chú" (tự nạp từ nhật ký máy Android): 0 giây = hỏng; > 0 giây = có bắt máy.
   function trailingMisses(attempts) {
     let n = 0;
     for (let i = attempts.length - 1; i >= 0; i--) {
-      const r = attempts[i] && attempts[i].result;
-      if (!r) continue;            // cuộc chưa ghi chú → bỏ qua
-      if (!MISS.includes(r)) break;
+      const a = attempts[i]; if (!a) continue;
+      if (!a.result) {
+        if (a.duration === 0) { n++; continue; }
+        if (a.duration > 0) break;
+        continue;                  // chưa ghi chú, không rõ thời lượng → bỏ qua
+      }
+      if (!MISS.includes(a.result)) break;
       n++;
     }
     return n;
@@ -172,21 +183,29 @@ const ZALO_TEMPLATES_DEFAULT = [
     return sug;
   }
 
-  /** Mã mẫu Zalo hợp tình huống. */
-  function suggestTemplate(c) {
-    if (!c) return 'chao';
+  /** Mẫu Zalo hợp tình huống → { id, why } (why = lý do gợi ý, hiện cho sale xem). */
+  function suggestTemplateInfo(c) {
+    if (!c) return { id: 'chao', why: '' };
+    const calls = Array.isArray(c.call_attempts) ? c.call_attempts.filter((a) => a && a.at).sort((a, b) => a.at.localeCompare(b.at)) : [];
+    if (!isQ(c)) { // KHÁCH MỚI — theo lịch sử gọi
+      if (calls.some((a) => a.result === 'talked')) return { id: 'thong_tin', why: 'Khách mới đã nói chuyện được' };
+      const n = trailingMisses(calls);
+      if (n >= C.leadMissedTemplateAfter) return { id: 'goi_nho', why: `Đã gọi ${n} lần chưa liên lạc được` };
+      return { id: 'chao', why: calls.length ? `Khách mới, gọi ${calls.length} lần chưa nói chuyện được` : 'Khách mới chưa liên hệ' };
+    }
+    // KHÁCH TIỀM NĂNG — sinh nhật sát ngày, còn lại theo bậc
     const p = c.dob && window.LunarUtil ? window.LunarUtil.parseDob(c.dob) : null;
-    if (p && p.month && p.day) {
+    if (p && p.month && p.day && c.care_stage !== 'Loại') {
       const t0 = new Date(); t0.setHours(0, 0, 0, 0);
       let b = new Date(t0.getFullYear(), p.month - 1, p.day);
       if (b < t0) b = new Date(t0.getFullYear() + 1, p.month - 1, p.day);
-      if ((b - t0) / 86400000 <= C.birthdayTemplateDays) return 'sinh_nhat';
+      const d = Math.round((b - t0) / 86400000);
+      if (d <= C.birthdayTemplateDays) return { id: 'sinh_nhat', why: d === 0 ? 'Hôm nay sinh nhật khách' : `Sinh nhật khách sau ${d} ngày` };
     }
-    const calls = Array.isArray(c.call_attempts) ? c.call_attempts.filter((a) => a && a.at).sort((a, b) => a.at.localeCompare(b.at)) : [];
-    if (calls.length && trailingMisses(calls) >= C.missedTemplateAfter) return 'goi_nho';
-    if (!isQ(c)) return calls.some((a) => a.result === 'talked') ? 'thong_tin' : 'chao';
-    return C.stageTemplate[c.care_stage] || 'thong_tin';
+    const stage = c.care_stage || 'Đang chăm sóc';
+    return { id: C.stageTemplate[stage] || 'thong_tin', why: `Đang ở bậc "${stage === 'Loại' ? 'Không chốt' : stage}"` };
   }
+  function suggestTemplate(c) { return suggestTemplateInfo(c).id; }
 
-  window.FOLLOWUP = { config: C, templatesDefault: ZALO_TEMPLATES_DEFAULT, afterCall, forStage, suggestTemplate, windowAfter, label };
+  window.FOLLOWUP = { config: C, templatesDefault: ZALO_TEMPLATES_DEFAULT, afterCall, forStage, suggestTemplate, suggestTemplateInfo, windowAfter, label };
 })();

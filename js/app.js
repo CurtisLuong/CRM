@@ -1464,10 +1464,11 @@ document.addEventListener('click', (e) => {
   }
 });
 
-// Bấm icon Zalo (card / trang chi tiết / Tổng quan) → hộp CHỌN MẪU TIN (mẫu hợp tình huống lên
-// đầu, gắn "Gợi ý"). Chọn 1 mẫu → COPY nội dung đã điền tên rồi mở Zalo để DÁN. Không có mẫu nào
-// (đều trống) → để link mở Zalo bình thường.
-let zpickCustomer = null, zpickHref = null;
+// Bấm icon Zalo (card / trang chi tiết / Tổng quan) → hộp: nút "Mở Zalo" lớn ở trên (dùng nhiều
+// nhất) + danh sách mẫu tin (mẫu hợp tình huống lên đầu, gắn "Gợi ý" + lý do). Chọn 1 mẫu → COPY
+// nội dung đã điền tên rồi mở Zalo để DÁN. Hai đường mở Zalo dùng CHUNG openZaloFor() — link tính
+// lại từ SĐT khách lúc bấm. Không có mẫu nào (đều trống) → để link mở Zalo bình thường.
+let zpickCustomer = null;
 document.addEventListener('click', (e) => {
   const zaloEl = e.target.closest('#detail-zalo-btn, .card-zalo');
   if (!zaloEl) return;
@@ -1476,19 +1477,24 @@ document.addEventListener('click', (e) => {
   const tpls = getZaloTemplates().filter((t) => (t.text || '').trim());
   if (!c || !tpls.length) return;
   e.preventDefault();
-  zpickCustomer = c; zpickHref = zaloEl.getAttribute('href');
-  const sugId = window.FOLLOWUP ? FOLLOWUP.suggestTemplate(c) : 'chao';
-  const ordered = [...tpls.filter((t) => t.id === sugId), ...tpls.filter((t) => t.id !== sugId)];
-  $('#zpick-title').textContent = 'Nhắn Zalo: ' + (c.full_name || '');
-  $('#zpick-list').innerHTML = ordered.map((t) => `
-    <button type="button" class="zpick-item${t.id === sugId ? ' is-sug' : ''}" data-tpl="${escapeHtml(t.id)}">
-      <span class="zpick-name">${escapeHtml(t.name || 'Mẫu')}${t.id === sugId ? '<span class="zpick-badge">Gợi ý</span>' : ''}</span>
+  zpickCustomer = c;
+  const sug = window.FOLLOWUP ? FOLLOWUP.suggestTemplateInfo(c) : { id: 'chao', why: '' };
+  const ordered = [...tpls.filter((t) => t.id === sug.id), ...tpls.filter((t) => t.id !== sug.id)];
+  $('#zpick-title').textContent = c.full_name || 'Nhắn Zalo';
+  $('#zpick-sub').textContent = [c.phone, isQualified(c) ? careLabel(c.care_stage) : 'Khách mới'].filter(Boolean).join(' · ');
+  $('#zpick-list').innerHTML = ordered.map((t) => {
+    const isSug = t.id === sug.id;
+    return `<button type="button" class="zpick-item${isSug ? ' is-sug' : ''}" data-tpl="${escapeHtml(t.id)}">
+      <span class="zpick-name">${escapeHtml(t.name || 'Mẫu')}${isSug ? '<span class="zpick-badge">Gợi ý</span>' : ''}</span>
+      ${isSug && sug.why ? `<span class="zpick-why">${escapeHtml(sug.why)}</span>` : ''}
       <span class="zpick-text">${escapeHtml(fillGreeting(t.text, c))}</span>
-    </button>`).join('');
+    </button>`;
+  }).join('');
   $('#zalo-pick-modal').showModal();
 });
-function openZaloHref(href) {
-  if (!href || href === '#') return;
+function openZaloFor(c) {
+  const href = c && c.phone ? zaloLink(c.phone) : '';
+  if (!href) return;
   if (href.startsWith('http')) window.open(href, '_blank', 'noopener');
   else window.location.href = href; // scheme zalo:// mở app tại chỗ
 }
@@ -1498,9 +1504,9 @@ $('#zpick-list')?.addEventListener('click', (e) => {
   copyText(fillGreeting(t.text, zpickCustomer)); // copy TRONG cử chỉ click (không await)
   showToast(`Đã copy "${t.name}" — dán vào Zalo`);
   $('#zalo-pick-modal').close();
-  openZaloHref(zpickHref);
+  openZaloFor(zpickCustomer);
 });
-$('#zpick-plain')?.addEventListener('click', () => { $('#zalo-pick-modal').close(); openZaloHref(zpickHref); });
+$('#zpick-plain')?.addEventListener('click', () => { $('#zalo-pick-modal').close(); openZaloFor(zpickCustomer); });
 $('#zpick-close')?.addEventListener('click', () => $('#zalo-pick-modal').close());
 
 // ---- Đổi kiểu xem danh sách: thẻ (card) ⇄ dòng gọn (list) ----

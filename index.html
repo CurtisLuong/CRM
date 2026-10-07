@@ -1039,14 +1039,18 @@
   </div>
 </dialog>
 
-<!-- CHỌN MẪU TIN khi bấm icon Zalo của khách (mẫu hợp tình huống lên đầu). -->
+<!-- Bấm icon Zalo của khách: nút MỞ ZALO (dùng nhiều nhất) ở trên cùng; bên dưới là các mẫu tin
+     (mẫu hợp tình huống lên đầu, có lý do gợi ý) — chọn mẫu = copy nội dung rồi mở Zalo. -->
 <dialog id="zalo-pick-modal" class="greeting-modal">
   <div class="greeting-box">
     <button type="button" id="zpick-close" class="callact-x" aria-label="Đóng">✕</button>
     <h2 id="zpick-title" class="greeting-title">Nhắn Zalo</h2>
-    <p class="greeting-hint">Chọn mẫu → tự copy nội dung và mở Zalo, bạn chỉ cần dán.</p>
+    <p id="zpick-sub" class="zpick-sub"></p>
+    <button type="button" id="zpick-plain" class="btn-primary zpick-open">
+      <img class="ic-zalo" src="/icons/zalo.png" alt="" /> Mở Zalo
+    </button>
+    <div class="zpick-sep"><span>hoặc copy tin nhắn mẫu rồi mở Zalo</span></div>
     <div id="zpick-list" class="zpick-list"></div>
-    <div class="greeting-btns"><button type="button" id="zpick-plain" class="btn-ghost btn-small">Chỉ mở Zalo, không copy</button></div>
   </div>
 </dialog>
 
