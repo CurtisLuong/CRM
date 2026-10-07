@@ -1516,9 +1516,11 @@ dialog#img-picker .ocr-status { margin-top: 8px; }
 /* ===== KHÁCH MỚI (lớp 1 — lead): tab, danh sách, hộp ghi cuộc gọi ===== */
 .tab-badge {
   display: inline-block; min-width: 18px; padding: 0 5px; margin-left: 4px;
-  border-radius: 100px; background: var(--seal); color: #fff;
+  /* Be cát + chữ mực: nhãn THÔNG TIN, ít thúc giục — đỏ son chỉ dành cho chuông thông báo (việc gấp). */
+  border-radius: 100px; background: #E3D7BC; color: var(--ink); font-weight: 700;
   font-size: 11px; line-height: 18px; text-align: center; vertical-align: 1px;
 }
+.tab-btn.is-active .tab-badge { background: var(--ink); color: var(--paper); } /* tab đang chọn nền be → đảo màu cho rõ */
 .tab-btn { white-space: nowrap; }
 /* 4 tab trên điện thoại hẹp: thu padding/khoảng cách để vừa 1 hàng */
 @media (max-width: 420px) {
