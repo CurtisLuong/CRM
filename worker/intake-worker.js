@@ -96,8 +96,10 @@ CÁC FIELD (đúng thuộc tính CRM):
 - income: thu nhập (giữ nguyên chữ khách ghi).
 - residence: nơi ở/thường trú.
 - apt_type: loại căn theo số phòng ngủ - WC. Ánh xạ về ĐÚNG 1 giá trị chuẩn nếu khớp:
-  ['1N-1WC','1N+, 1WC','2N-2WC','2N+, 2WC','3N-2WC'] (vd khách ghi "3N, 2WC" → "3N-2WC").
-  Không khớp giá trị chuẩn nào → giữ nguyên chữ khách ghi.
+  ['Studio','1N-1WC','1N+, 1WC','2N-2WC','2N+, 2WC','2N-2WC-G','3N-2WC'].
+  Cách khách hay ghi: "2 ngủ"/"2N"/"2n"/"2PN"/"2 phòng ngủ" → "2N-2WC"; "2 ngủ+"/"2PN+"/"2N cộng" →
+  "2N+, 2WC"; "2PN góc"/"căn góc 2 ngủ" → "2N-2WC-G"; "3 ngủ"/"3PN" → "3N-2WC"; "1 ngủ" → "1N-1WC";
+  "3N, 2WC" → "3N-2WC". Không khớp giá trị chuẩn nào → giữ nguyên chữ khách ghi (app sẽ tự chuẩn hoá thêm).
 - apt_area: DIỆN TÍCH căn hộ (m²), SỐ THỰC (vd 68.6). Thường ghi TRONG NGOẶC ngay SAU loại
   căn, vd "2N+, 2WC (68.6 m2)" → apt_area = 68.6. Chỉ lấy phần SỐ (bỏ "m2"/"m²"). Không có → null.
 - apt_code: mã căn. building_code: mã toà.
@@ -128,7 +130,11 @@ export default {
     if (request.method === 'OPTIONS') return withCors(new Response(null, { status: 204 }), origin);
     const url = new URL(request.url);
     if (request.method === 'POST' && url.pathname === '/ocr') {
-      return withCors(await handleOcr(request, env), origin);
+      const res = await handleOcr(request, env);
+      // Trạm Cloudflare NHẬN yêu cầu (vd SIN, HKG). Nơi code thực sự chạy (sau ghim vị trí) xem header
+      // `cf-placement` do Cloudflare tự thêm (vd remote-IAD) — để chẩn đoán lỗi chặn vùng của Gemini.
+      res.headers.set('X-Worker-Colo', (request.cf && request.cf.colo) || '');
+      return withCors(res, origin);
     }
     return withCors(json({ error: 'Not found' }, 404), origin);
   },
@@ -219,6 +225,9 @@ async function handleOcr(request, env) {
       return json({ error: 'Gemini đang bận/quá tải — thử lại sau ít phút.', code: 'busy', status: lastStatus, detail: lastDetail }, 502);
     }
     if (lastStatus >= 400) {
+      if (/location is not supported/i.test(lastDetail || '')) {
+        return json({ error: 'Gemini chặn theo vùng mạng (máy chủ trung gian đang ở vùng không hỗ trợ) — thử lại, hoặc đổi sang 4G/5G.', code: 'geo_blocked', status: lastStatus, detail: lastDetail }, 502);
+      }
       return json({ error: 'Gemini từ chối yêu cầu (kiểm tra ảnh / tên model / API key).', code: 'rejected', status: lastStatus, detail: lastDetail }, 502);
     }
     return json({ error: 'Không gọi được Gemini (lỗi mạng).', code: 'network', detail: lastNetErr }, 502);

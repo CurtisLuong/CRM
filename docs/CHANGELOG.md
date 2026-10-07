@@ -6,6 +6,30 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-07 — Chuẩn hoá loại căn viết tự do (OCR: "2 ngủ", "2PN+", "2PN góc"...)
+
+- `canonicalAptType` (js/app.js) đọc thêm cách viết tự do → giá trị chuẩn: "2 ngủ"/"2N"/"2n"/"2PN"/"2 phòng ngủ"/"2BR" →
+  2N-2WC; "2 ngủ+"/"2 ngủ +"/"2PN+"/"2N cộng" → 2N+, 2WC; "2PN Góc"/"căn góc 2 ngủ" → 2N-2WC-G; "3 ngủ"/"3PN" → 3N-2WC;
+  "1 ngủ(+)" → 1N(+)…; "studio" → Studio. Ghi số WC khác mặc định ("3N-3WC") hoặc giá trị lạ → giữ nguyên. Áp dụng mọi
+  nơi đi qua hàm này: OCR, nhập Excel, hiển thị, xuất file. Landing page (2PN/2PN Góc/2PN+/3PN) vốn đã map đúng.
+- `SQL/normalize_apt_type_aliases.sql`: hàm `public.canonical_apt_type()` cùng logic + xem trước + chuẩn hoá dữ liệu cũ
+  (đã thử PGlite: 26 trường hợp khớp JS, chạy lại an toàn).
+- OCR prompt (Worker) liệt kê đủ 7 giá trị chuẩn + các cách viết hay gặp; đã `wrangler deploy`.
+- File: `js/app.js`, `SQL/normalize_apt_type_aliases.sql`, `worker/intake-worker.js`, `sw.js` (cache v26).
+
+---
+
+## 2026-10-07 — Sửa lỗi OCR "User location is not supported" trên một số wifi (FPT)
+
+- Nguyên nhân: Gemini API chặn theo vị trí máy gọi = Worker; Worker chạy ở trạm Cloudflare gần người dùng, một số mạng
+  (wifi FPT) đi qua trạm Hồng Kông — vùng Gemini không hỗ trợ. 4G/5G đi trạm khác nên không lỗi.
+- Sửa: `worker/wrangler.toml` thêm `[placement] region = "gcp:us-east4"` (ghim Worker chạy ở Mỹ). Worker trả thêm header
+  `X-Worker-Colo` và mã lỗi `geo_blocked` với thông báo dễ hiểu nếu vẫn bị chặn.
+- Đã `wrangler deploy` 2026-10-07: phản hồi có `cf-placement: remote-IAD` (Worker chạy ở Ashburn, Mỹ) dù vào qua trạm SIN.
+- File: `worker/wrangler.toml`, `worker/intake-worker.js`, `worker/README.md` (app không đổi).
+
+---
+
 ## 2026-10-07 — Sửa lỗi bấm Lưu khách không phản ứng + nút thêm khách ở Tổng quan
 
 - Lỗi: Giá căn / Ngân sách có `step=1000000` (Diện tích `step=0.1`) → giá không tròn triệu (vd 1.650.500.000) bị coi là

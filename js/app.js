@@ -265,12 +265,33 @@ const APT_TYPES = ['Studio', '1N-1WC', '1N+, 1WC', '2N-2WC', '2N+, 2WC', '2N-2WC
 // Chuẩn hoá "loại căn" về đúng 1 dạng chuẩn trong APT_TYPES nếu khớp — BẤT KỂ khác dấu
 // cách/phẩy/gạch, hoa/thường. Vd "2N+,2WC" và "2N+, 2WC" → cùng "2N+, 2WC" (không còn
 // đếm thành 2 loại). Không khớp (giá trị "Khác" tự nhập) → giữ nguyên (chỉ trim).
+// Thêm (2026-10-07): đọc cả cách viết TỰ DO (hay gặp ở OCR / landing): "2 ngủ", "2N", "2n", "2PN",
+// "2 phòng ngủ", "2BR" → 2N-2WC; "2 ngủ+", "2 ngủ +", "2PN+", "2N cộng" → 2N+, 2WC; "2PN Góc" →
+// 2N-2WC-G; "3 ngủ" → 3N-2WC; "studio" → Studio. Ghi số WC KHÁC mặc định (vd "3N-3WC") → không
+// đoán, giữ nguyên. Cùng logic với hàm SQL public.canonical_apt_type (SQL/normalize_apt_type_aliases.sql).
+const APT_ALIAS_BASE = { 1: '1N-1WC', 2: '2N-2WC', 3: '3N-2WC' };   // số WC mặc định theo số ngủ
+const APT_ALIAS_PLUS = { 1: '1N+, 1WC', 2: '2N+, 2WC' };
+const APT_ALIAS_CORNER = { 2: '2N-2WC-G' };
+function aptTypeFromAlias(s) {
+  const t = removeVietnameseTones(s); // chữ thường, bỏ dấu: "2 Ngủ+" → "2 ngu+"
+  if (/studio/.test(t)) return 'Studio';
+  const m = t.match(/(\d)\s*(?:p\.?\s*n|phong\s*ngu|ngu|n|br|bedrooms?|beds?)(?![a-z])\s*(\+|cong(?![a-z])|plus)?/);
+  if (!m) return null;
+  const n = Number(m[1]);
+  const plus = !!m[2];
+  const corner = /goc/.test(t) || /(^|[\s\-(])g\)?$/.test(t.trim());
+  const canon = corner ? (plus ? null : APT_ALIAS_CORNER[n]) : (plus ? APT_ALIAS_PLUS[n] : APT_ALIAS_BASE[n]);
+  if (!canon) return null;
+  const w = t.match(/(\d)\s*(?:wc|vs|ve\s*sinh|toilet)/);       // có ghi số WC → phải khớp
+  if (w && !canon.includes(w[1] + 'WC')) return null;
+  return canon;
+}
 function canonicalAptType(raw) {
   if (!raw) return raw;
   const s = String(raw).trim();
   const norm = (x) => x.toLowerCase().replace(/[^a-z0-9+]/g, '');
   const key = norm(s);
-  return APT_TYPES.find((t) => norm(t) === key) || s;
+  return APT_TYPES.find((t) => norm(t) === key) || aptTypeFromAlias(s) || s;
 }
 
 // Nghề nghiệp (khớp enum ở schema) — dùng để lọc giá trị OCR trả về cho hợp lệ.

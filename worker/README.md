@@ -50,3 +50,9 @@ Khi `WORKER_URL` rỗng, nút "📷 Nhập từ ảnh" tự ẩn (tính năng t�
 - SUPABASE_URL: `https://nrqccwamwctihivpxjww.supabase.co`
 - SUPABASE_ANON_KEY: lấy trong `js/config.js`
 - ALLOWED_ORIGIN: origin thật của app (vd `https://crm-cop.pages.dev`)
+
+## Lỗi "User location is not supported for the API use"
+Gemini API chặn theo vị trí của **máy gọi tới nó** — tức Worker, không phải điện thoại. Worker mặc định chạy ở trạm
+Cloudflare gần người dùng; một số mạng (vd wifi FPT) đi qua trạm Hồng Kông (Gemini không hỗ trợ) → lỗi, còn 4G/5G đi
+trạm khác thì không. Đã ghim Worker chạy ở Mỹ bằng `[placement] region = "gcp:us-east4"` trong `wrangler.toml`
+(2026-10-07). Kiểm tra: header `cf-placement` của phản hồi `/ocr` phải là `remote-IAD` (code chạy ở Mỹ); `X-Worker-Colo` chỉ là trạm NHẬN yêu cầu (vd SIN/HKG). Đã deploy + xác nhận `remote-IAD` ngày 2026-10-07.

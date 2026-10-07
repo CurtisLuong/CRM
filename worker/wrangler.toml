@@ -6,3 +6,10 @@
 name = "intake-worker"
 main = "intake-worker.js"
 compatibility_date = "2025-01-01"
+
+# GHIM VỊ TRÍ CHẠY Worker (Placement Hints). Mặc định Worker chạy ở trạm Cloudflare GẦN NGƯỜI DÙNG
+# nhất — một số mạng (vd FPT) đi qua trạm Hồng Kông, nơi Gemini API KHÔNG hỗ trợ → lỗi
+# "User location is not supported for the API use". Ghim về Mỹ (gần máy chủ Google) để mọi mạng
+# đều gọi Gemini từ cùng 1 vùng được hỗ trợ. Đổi vùng: xem developers.cloudflare.com/workers/configuration/placement/
+[placement]
+region = "gcp:us-east4"
