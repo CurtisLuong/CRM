@@ -2564,6 +2564,28 @@ function onImagePicked(blob) {
 // Nút "Dán ảnh" trong modal: đọc ảnh MỚI NHẤT qua Clipboard API (fallback 1 chạm).
 async function imgPickerPasteBtn() {
   const status = $('#imgp-status');
+  // App Android: WebView không có quyền đọc clipboard → đọc qua plugin native ClipboardImage.
+  const cap = window.Capacitor;
+  if (cap && typeof cap.isNativePlatform === 'function' && cap.isNativePlatform() && typeof cap.nativePromise === 'function') {
+    try {
+      const r = await cap.nativePromise('ClipboardImage', 'read', {});
+      if (r && r.data) {
+        const bin = atob(r.data), bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        onImagePicked(new Blob([bytes], { type: r.mime || 'image/png' }));
+      } else {
+        status.textContent = 'ℹ️ Clipboard chưa có ảnh — copy 1 ảnh (hoặc chụp màn hình rồi bấm Sao chép) rồi bấm lại, hoặc dùng "Chọn từ máy".';
+      }
+      return;
+    } catch (e) {
+      console.warn('Đọc clipboard (native) lỗi:', e);
+      // APK cũ chưa có plugin → rơi xuống cách của trình duyệt bên dưới.
+      if (!/not implemented|not available|UNIMPLEMENTED/i.test(String(e && (e.message || e.code || e)))) {
+        status.textContent = '⚠️ Không đọc được ảnh trong clipboard — thử "Chọn từ máy".';
+        return;
+      }
+    }
+  }
   if (!navigator.clipboard || !navigator.clipboard.read) {
     status.textContent = 'ℹ️ Trình duyệt không đọc được clipboard — dùng Ctrl/Cmd+V.';
     return;

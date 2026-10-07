@@ -32,8 +32,8 @@ Mất khoá = không cài đè được app nữa (phải gỡ, cài lại, cấ
 1. Tăng `versionCode` (+1) và `versionName` trong `android/app/build.gradle`.
 2. `./build-apk.sh "ghi chú ngắn về bản mới"` → `dist/SoKhach-<versionName>.apk`, đồng thời tự sửa
    `/android-app-version.json` (repo web).
-3. Supabase › Storage › bucket `app-releases` › Upload file APK đó (tên file giữ nguyên).
-   Bucket tạo 1 lần bằng `SQL/add_app_releases_bucket.sql`.
+3. `./upload-apk.sh` → tải APK lên Supabase › Storage › `app-releases` (cần `supabase login` 1 lần trên máy;
+   hoặc tải tay qua trang Supabase, giữ nguyên tên file). Bucket tạo 1 lần bằng `SQL/add_app_releases_bucket.sql`.
 4. Commit + push `android-app-version.json` → app trên điện thoại hiện banner **"Có bản app mới"** →
    bấm Cập nhật → Chrome tải APK → bấm vào file để cài đè (không cần gỡ).
    Thứ tự quan trọng: tải APK lên TRƯỚC rồi mới push file phiên bản (tránh banner trỏ tới file chưa có).

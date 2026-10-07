@@ -6,6 +6,17 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-07 — App Android 1.2: nút "Dán ảnh" đọc được clipboard
+
+- WebView trong app không xin được quyền `navigator.clipboard.read()` → nút "Dán ảnh" (nhập từ ảnh / ảnh đại diện) luôn
+  báo chặn quyền. Thêm plugin native `ClipboardImage` (`ClipboardImagePlugin.java`) đọc ảnh trong clipboard Android;
+  `imgPickerPasteBtn` (js/app.js) dùng plugin khi chạy trong app, trình duyệt giữ cách cũ.
+- APK 1.2 (versionCode 3). `android-app/upload-apk.sh`: tải APK lên bucket `app-releases` bằng Supabase CLI.
+- File: `ClipboardImagePlugin.java`, `MainActivity.java`, `android-app/android/app/build.gradle`, `android-app/upload-apk.sh`,
+  `android-app/README.md`, `android-app-version.json`, `js/app.js`, `sw.js` (cache v24).
+
+---
+
 ## 2026-10-07 — Nút "Cập nhật app" trong app Android
 
 - Banner **"Có bản app mới"** (chỉ trong app Android): so phiên bản APK đang cài (plugin native `AppInfo`) với

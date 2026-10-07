@@ -11,6 +11,7 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(CallLogPlugin.class); // đọc nhật ký cuộc gọi (phải đăng ký TRƯỚC super.onCreate)
         registerPlugin(AppInfoPlugin.class); // phiên bản APK → banner "Có bản app mới"
+        registerPlugin(ClipboardImagePlugin.class); // nút "Dán ảnh" (WebView không đọc được clipboard)
         super.onCreate(savedInstanceState);
 
         // NÚT / VUỐT BACK: hỏi trang web trước (window.CRMBack() trong js/app.js) — đóng hộp thoại,
