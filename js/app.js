@@ -2096,6 +2096,7 @@ async function handleFormSubmit(e) {
       delete payload.contact_status;
     }
     const created = await CRM.create(payload, opts);
+    if (created) showToast(created.qualified_at ? 'Đã thêm vào Tiềm năng' : 'Đã thêm vào Khách mới');
     // Nếu OCR đọc được 1 ghi chú → thêm thành 1 note tự nhập cho khách vừa tạo.
     if (created && pendingOcrNote) { await CRM.addNote(created.id, pendingOcrNote); pendingOcrNote = null; }
 
@@ -4328,6 +4329,7 @@ $('#lead-sort-reset')?.addEventListener('click', () => { leadSort = []; leadSort
 // Bấm ra ngoài → đóng mọi pop của tab Khách mới.
 document.addEventListener('click', (e) => { if (!e.target.closest('#lead-view .tool-pop')) closeLeadPops(); });
 $('#add-lead-btn')?.addEventListener('click', () => openForm(null));
+$('#add-dash-btn')?.addEventListener('click', () => openForm(null));
 $('#lead-reason-opts')?.addEventListener('click', (e) => {
   const b = e.target.closest('[data-reason]'); if (!b) return;
   leadDropReason = b.dataset.reason;
@@ -5288,7 +5290,17 @@ document.addEventListener('DOMContentLoaded', () => {
     io.observe(coverEl);
   }
   $('#detail-schedule-btn').addEventListener('click', () => { if (detailId) openScheduler(detailId); });
-  $('#customer-form').addEventListener('submit', handleFormSubmit);
+  $('#customer-form').addEventListener('submit', async (e) => {
+    // Lỗi bất kỳ khi lưu → báo rõ (trước đây lỗi im lặng: bấm Lưu không thấy gì).
+    try { await handleFormSubmit(e); }
+    catch (err) { console.error('Lưu khách lỗi:', err); alert('⚠️ Không lưu được khách: ' + (err && err.message ? err.message : err)); }
+  });
+  // Ô sai định dạng nằm trong nhóm "Mở rộng" đang gập → trình duyệt không hiện được thông báo
+  // (bấm Lưu im lặng). Tự MỞ nhóm chứa ô đó + cuộn tới để thấy thông báo.
+  $('#customer-form').addEventListener('invalid', (e) => {
+    let el = e.target.parentElement;
+    while (el && el.id !== 'customer-form') { if (el.tagName === 'DETAILS') el.open = true; el = el.parentElement; }
+  }, true);
   $('#cancel-form-btn').addEventListener('click', closeForm);
   $('#delete-customer-btn').addEventListener('click', () => { if (editingId) confirmDelete(editingId); });
   wireDobInput(); // ô ngày sinh dd/MM/YYYY (tự nhảy đoạn + preview Mệnh/Cung)

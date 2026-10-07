@@ -291,6 +291,8 @@
     <!-- TRANG TÌM KIẾM TẠM: gõ vào ô tìm ở tab Tổng quan → thay biểu đồ bằng kết quả gộp
          (Tiềm năng + Khách mới). Xoá ô tìm → về biểu đồ. Logic: renderDashSearch() trong app.js. -->
     <div id="dash-search" class="dash-search" hidden></div>
+    <!-- Nút thêm khách nổi (FAB) ở Tổng quan — khách mới vào tab Khách mới (hoặc thẳng Tiềm năng nếu tick). -->
+    <button id="add-dash-btn" class="fab" title="Thêm khách" aria-label="Thêm khách">+</button>
   </div>
 
   <!-- TÍNH VAY — bảng tính khoản vay NOXH độc lập (không gắn khách). Module ở js/loan/,
@@ -603,7 +605,7 @@
             <input name="apt_type_other" type="text" placeholder="Nhập loại căn khác" hidden />
           </label>
           <label>Diện tích (m²)
-            <input name="apt_area" type="number" min="0" step="0.1" placeholder="vd: 68.5" />
+            <input name="apt_area" type="number" min="0" step="any" placeholder="vd: 68.5" />
           </label>
           <!-- Gợi ý từ GIỎ HÀNG (js/catalog.js), lọc theo dự án đã chọn. Chọn mã căn có
                trong giỏ → tự điền toà, diện tích, loại căn, tầng, hướng. -->
@@ -635,10 +637,10 @@
                 <input name="apt_floor" type="number" min="1" step="1" placeholder="vd: 12" />
               </label>
               <label>Giá căn (VNĐ)
-                <input name="apt_price" type="number" min="0" step="1000000" />
+                <input name="apt_price" type="number" min="0" step="any" />
               </label>
               <label>Ngân sách (VNĐ)
-                <input name="finance" type="number" min="0" step="1000000" placeholder="Tiền khách có sẵn" />
+                <input name="finance" type="number" min="0" step="any" placeholder="Tiền khách có sẵn" />
               </label>
               <label>Mục đích
                 <select name="purpose">

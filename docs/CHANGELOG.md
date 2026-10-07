@@ -6,6 +6,16 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-07 — Sửa lỗi bấm Lưu khách không phản ứng + nút thêm khách ở Tổng quan
+
+- Lỗi: Giá căn / Ngân sách có `step=1000000` (Diện tích `step=0.1`) → giá không tròn triệu (vd 1.650.500.000) bị coi là
+  sai; ô nằm trong nhóm "Mở rộng" đang gập nên trình duyệt không hiện được thông báo → bấm Lưu im lặng. Sửa: `step="any"`;
+  ô sai trong nhóm gập → tự mở nhóm để thấy thông báo; lỗi bất kỳ khi lưu → hiện hộp báo lỗi thay vì im lặng.
+- Tổng quan có lại nút **+** thêm khách; thêm xong báo "Đã thêm vào Khách mới / Tiềm năng".
+- File: `index.html`, `js/app.js`, `sw.js` (cache v25). Không cần APK mới.
+
+---
+
 ## 2026-10-07 — App Android 1.2: nút "Dán ảnh" đọc được clipboard
 
 - WebView trong app không xin được quyền `navigator.clipboard.read()` → nút "Dán ảnh" (nhập từ ảnh / ảnh đại diện) luôn
