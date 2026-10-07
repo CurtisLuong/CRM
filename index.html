@@ -607,19 +607,19 @@
           <label>Diện tích (m²)
             <input name="apt_area" type="number" min="0" step="any" placeholder="vd: 68.5" />
           </label>
-          <!-- Gợi ý từ GIỎ HÀNG (js/catalog.js), lọc theo dự án đã chọn. Chọn mã căn có
-               trong giỏ → tự điền toà, diện tích, loại căn, tầng, hướng. -->
-          <label>Mã toà
-            <input name="building_code" type="text" list="cf-building-list" autocomplete="off" />
-            <datalist id="cf-building-list"></datalist>
-          </label>
-          <label>Mã căn
-            <input name="apt_code" type="text" list="cf-unit-list" autocomplete="off" />
-            <datalist id="cf-unit-list"></datalist>
-          </label>
           <details class="form-more span-2">
             <summary><span class="more-open">Mở rộng</span><span class="more-close">Thu gọn</span><span class="more-count"></span></summary>
             <div class="form-grid">
+              <!-- Gợi ý từ GIỎ HÀNG (js/catalog.js), lọc theo dự án đã chọn. Chọn mã căn có
+                   trong giỏ → tự điền toà, diện tích, loại căn, tầng, hướng. -->
+              <label>Mã toà
+                <input name="building_code" type="text" list="cf-building-list" autocomplete="off" />
+                <datalist id="cf-building-list"></datalist>
+              </label>
+              <label>Mã căn
+                <input name="apt_code" type="text" list="cf-unit-list" autocomplete="off" />
+                <datalist id="cf-unit-list"></datalist>
+              </label>
               <label>Hướng căn
                 <select name="apt_direction">
                   <option value="">— Chưa rõ —</option>

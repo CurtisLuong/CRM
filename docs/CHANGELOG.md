@@ -6,6 +6,13 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-07 — Form khách: Mã toà / Mã căn vào nhóm "Mở rộng"
+
+- Thông tin căn hộ hiện sẵn chỉ còn Dự án, Loại căn, Diện tích; Mã toà + Mã căn (vẫn gợi ý từ giỏ hàng) đứng đầu nhóm
+  "Mở rộng". File: `index.html`, `sw.js` (cache v31).
+
+---
+
 ## 2026-10-07 — Hộp Khách mới: lời nhắc nút Đạt thành bong bóng
 
 - Bỏ dòng chữ cố định "Nút Đạt mở khi…". Nút Đạt chưa đủ điều kiện = "khoá mềm" (nhạt màu, không dùng `disabled` vì nút
