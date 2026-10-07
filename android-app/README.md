@@ -39,6 +39,7 @@ Mất khoá = không cài đè được app nữa (phải gỡ, cài lại, cấ
    Thứ tự quan trọng: tải APK lên TRƯỚC rồi mới push file phiên bản (tránh banner trỏ tới file chưa có).
 
 ## Ghi chú
+- Link `zalo.me`: `ExternalLinkPlugin` chặn trước Capacitor, mở thẳng màn chat app Zalo (Intent BROWSABLE, chỉ đích danh màn khai báo zalo.me). Capacitor mặc định gửi Intent "trơn" → Zalo lúc mở đúng chat, lúc mở trình duyệt nội bộ báo "Trang này không tìm thấy".
 - Nút/vuốt Back: `MainActivity` gọi `window.CRMBack()` (js/app.js) — lùi trong app; hết đường lùi → đưa app xuống nền.
 - Không đưa lên Google Play được (Play hạn chế quyền READ_CALL_LOG).
 - Ghi NGẦM khi app đóng: chưa làm. Cổng sẵn sàng: `window.CRMCalls.ingest(calls)` trong `js/calls.js`.

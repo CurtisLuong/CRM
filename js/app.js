@@ -1527,7 +1527,16 @@ $('#zalo-pick-modal')?.addEventListener('click', (e) => {
   $('#zalo-pick-modal').close();
   openZaloFor(zpickCustomer);
 });
-$('#zpick-plain')?.addEventListener('click', () => { $('#zalo-pick-modal').close(); openZaloFor(zpickCustomer); });
+// "Mở Zalo": copy kèm SĐT khách. Lý do: app Zalo trên Android (nhất là lúc Zalo đang tắt hẳn)
+// đôi khi KHÔNG nhận ra link zalo.me/<SĐT> mà mở nó trong trình duyệt nội bộ → "Trang này không
+// tìm thấy" — lỗi phía Zalo, CRM không chặn được. Có sẵn SĐT trong clipboard → dán vào ô tìm Zalo.
+$('#zpick-plain')?.addEventListener('click', () => {
+  const c = zpickCustomer;
+  const phone = c && c.phone ? normalizePhone(c.phone).replace(/^\+?84/, '0') : '';
+  if (phone) { copyText(phone); showToast(`Đã copy SĐT ${phone} — nếu Zalo báo lỗi, dán vào ô tìm kiếm Zalo`); }
+  $('#zalo-pick-modal').close();
+  openZaloFor(c);
+});
 $('#zpick-close')?.addEventListener('click', () => $('#zalo-pick-modal').close());
 
 // ---- Đổi kiểu xem danh sách: thẻ (card) ⇄ dòng gọn (list) ----

@@ -95,3 +95,12 @@ File nguồn ghi `"Iowan Old Style"` trên macOS từng làm vỡ dấu ở các
 Chỉ thêm lỗi có bằng chứng và có khả năng lặp lại. Mỗi mục cần: khi nào đọc, triệu chứng, nguyên nhân/quy tắc và cách kiểm tra. Giữ ngắn; không sao chép toàn bộ changelog hay hội thoại debugging.
 
 Nếu sửa lỗi dẫn đến thay đổi nguyên tắc, ghi quyết định tại `docs/decisions.md`; phần này chỉ ghi cách tránh lặp lỗi.
+
+## Vỏ Android (Capacitor): link ra ngoài mở "trơn"
+
+**Khi đọc:** sửa cách mở app khác (Zalo, Maps…) từ vỏ `android-app/`.
+
+Capacitor mở link khác tên miền app bằng `Intent.ACTION_VIEW` không kèm `CATEGORY_BROWSABLE`, không chỉ định app (`Bridge.launchIntent`). App có nhiều màn cùng nhận link (vd Zalo: màn chat + trình duyệt nội bộ) → lúc vào đúng, lúc vào sai. Web app chạy bằng Chrome không bị vì Chrome gửi Intent đúng chuẩn. Gặp lỗi 2026-10-07 với `zalo.me/<SĐT>` ("Trang này không tìm thấy" trong trình duyệt của Zalo, ngẫu nhiên).
+
+**Quy tắc:** link cần mở app cụ thể → chặn ở `shouldOverrideLoad` của plugin native (xem `ExternalLinkPlugin.java`), gửi Intent BROWSABLE và chỉ đích danh màn xử lý; khai báo `<queries>` gói đó trong manifest (Android 11+). Sửa native → build + phát APK mới.
+

@@ -35,6 +35,11 @@
         </provider>
     </application>
 
+    <!-- Android 11+: phải khai báo mới "thấy" được app Zalo để mở đúng màn chat (ExternalLinkPlugin). -->
+    <queries>
+        <package android:name="com.zing.zalo" />
+    </queries>
+
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />

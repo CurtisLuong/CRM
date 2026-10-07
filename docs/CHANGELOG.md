@@ -6,6 +6,19 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-07 — APK 1.3: sửa lỗi bấm Zalo lúc được lúc không
+
+- Nguyên nhân: chỉ app APK bị (web app Chrome không bị). Capacitor mở `zalo.me/<SĐT>` bằng Intent "trơn" → Android lúc giao cho màn chat Zalo, lúc giao cho trình duyệt nội bộ của Zalo → "Trang này không tìm thấy".
+- Sửa: plugin native `ExternalLinkPlugin` chặn link *.zalo.me, gửi Intent BROWSABLE trong gói `com.zing.zalo`, chỉ đích danh màn khai báo tên miền zalo.me; manifest thêm `<queries>` Zalo. Chưa cài Zalo → mở như cũ. Web không đổi.
+- APK `versionCode 4` / `1.3`, đã build `android-app/dist/SoKhach-1.3.apk`; `android-app-version.json` đã cập nhật (chưa push). Chưa tải lên Supabase, chưa thử trên máy thật.
+- File: `android-app/android/app/src/main/java/vn/sokhach/crm/ExternalLinkPlugin.java` (mới), `MainActivity.java`, `AndroidManifest.xml`, `android/app/build.gradle`, `android-app-version.json`, `android-app/README.md`, `docs/pitfalls.md`.
+
+## 2026-10-07 — Zalo: "Mở Zalo" copy kèm SĐT (chữa cháy lỗi phía app Zalo)
+
+- Lỗi còn lại: cùng khách, cùng nút, lúc Zalo mở đúng chat, lúc mở `zalo.me/<SĐT>` trong trình duyệt nội bộ của app Zalo → "Trang này không tìm thấy". App Zalo đã được mở, nhưng chính Zalo xử lý link không ổn định; không có link Android chính thức khác để thay. Chữa cháy: nút "Mở Zalo" copy sẵn SĐT (dạng 0xxx) + toast hướng dẫn dán vào ô tìm Zalo.
+- File: `js/app.js`, `index.html`, `css/style.css`, `sw.js` (v47).
+- Chưa xác định chắc nguyên nhân (giả thuyết: Zalo khởi động nguội chưa nạp xong phiên); cần thử trên máy thật.
+
 ## 2026-10-07 — Zalo: mở thẳng app trên Android, chỉ 1–2 tin gợi ý
 
 - Android (trình duyệt / PWA): nút Zalo mở thẳng app qua `intent://…;package=com.zing.zalo` (fallback trang zalo.me) thay vì `window.open(zalo.me)` — trước đây Custom Tab lúc chuyển sang app lúc kẹt ở trang zalo.me "Trang này không tìm thấy". Vỏ Capacitor, iOS giữ link https; Mac giữ `zalo://`.
