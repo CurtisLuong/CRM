@@ -69,3 +69,13 @@ Migration theo thứ tự: `add_loan_module.sql` → `add_catalog_buildings.sql`
 
 Giỏ hàng được lưu cache trên máy, nên khi mất mạng form khách và bảng tính vẫn dùng được.
 Các thao tác sửa giỏ hàng thì cần mạng.
+
+## Tìm căn và khách phù hợp
+
+Trong Giỏ hàng, mở “Tìm căn / khách phù hợp” để tìm mã căn, dự án, toà, loại căn, ghi chú; lọc trạng thái, hướng, tầng, diện tích và giá. Xoá tìm để trở lại màn quản lý. Kết quả 50 căn/lần, có Xem thêm.
+
+- Giá tìm kiếm là tổng gồm VAT + KPBT, tính bằng LoanEngine và giá / diện tích hiệu lực của catalog. Không dùng giá thuần trong hồ sơ khách để giả định ngân sách mua.
+- Từ hồ sơ Tiềm năng: “Tìm căn phù hợp” chỉ đối chiếu dự án và loại căn đã ghi với căn còn hàng. Có thể nhập giá tối đa riêng. Hướng, tầng, diện tích trong hồ sơ chỉ dùng để xếp ưu tiên và giải thích, không suy nhu cầu từ ghi chú tự do.
+- Từ căn còn hàng: “Tìm khách phù hợp” đối chiếu khách đang hoạt động, cho biết số khách thiếu dự án / loại căn; có Xem thêm và mở hồ sơ trực tiếp.
+- Thiếu dữ liệu giá / diện tích không được coi là đạt một khoảng lọc tương ứng. Alias 2PN / 2 phòng ngủ chỉ chỉ số phòng, không tự đoán số WC.
+- Cache giỏ hàng mới tách theo tài khoản, kéo đủ mọi trang của cả năm bảng trước khi thay cache. Cache giỏ hàng cũ không xác định user không tự chuyển; cần online một lần để nạp lại.

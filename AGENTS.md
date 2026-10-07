@@ -1,5 +1,9 @@
 # CLAUDE.md — Hướng dẫn AI làm việc với CRM
 
+## Đồng bộ hướng dẫn giữa Codex và Claude
+
+Người dùng vibe code trên cả hai nền tảng Codex và Claude. Vì vậy, `AGENTS.md` và `CLAUDE.md` ở thư mục gốc phải luôn có nội dung giống nhau. Mọi thay đổi trong một file (thêm, sửa hoặc xóa nội dung) phải được cập nhật tương ứng vào file còn lại trong cùng lần chỉnh sửa. Trước khi hoàn tất, kiểm tra hai file để bảo đảm đã đồng bộ đầy đủ.
+
 ## 1. Mục tiêu và phạm vi
 
 CRM nội bộ cho một sale bất động sản, chủ yếu làm dự án nhà ở xã hội tại Hải Phòng/Hưng Yên. Thay thế ghi chú rời rạc bằng app web dùng trên Android và MacBook, đồng bộ dữ liệu và nhập khách khi mất mạng. Có thể mở rộng dần cho vài đồng nghiệp.

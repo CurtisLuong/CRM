@@ -309,6 +309,7 @@ const BOLT_SVG = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="t
 
 let sb = null;
 let currentUser = null;
+let accountSyncTimer = null;
 let allCustomers = [];
 let progressFilter = 'active'; // lọc trạng thái: 'active' | 'done' | 'all' (dropdown tuỳ biến)
 // Lọc theo THỜI GIAN ĐĂNG KÝ (registered_at, fallback created_at). preset:
@@ -505,12 +506,16 @@ async function boot() {
     // Mất phiên: nếu đang MẤT MẠNG và còn nhớ user → GIỮ nguyên app (đừng đá ra login).
     // Chỉ khi ĐANG ONLINE (đăng xuất thật / token hết hạn) mới về màn hình đăng nhập.
     if (!navigator.onLine && rememberedUser()) return;
-    currentUser = null; showAuthScreen();
+    currentUser = null; clearAccountView(); showAuthScreen();
   });
 }
 
 async function onLoggedIn(user) {
   currentUser = user;
+  await CRM.init(sb, user.id);
+  if (currentUser?.id !== user.id) return;
+  Catalog.scope(user.id);
+  if (window.SearchUI) SearchUI.setUser(user.id);
   // Nhớ user để lần sau mất mạng vẫn vào xem dữ liệu offline được.
   try { localStorage.setItem(LS_LAST_USER, JSON.stringify({ id: user.id, email: user.email || '' })); } catch {}
   // Avatar = chữ cái đầu của email; menu hiện email đầy đủ
@@ -519,17 +524,24 @@ async function onLoggedIn(user) {
   $('#user-email').textContent = email;
   showAppScreen();
   focusSearchOnDesktop(); // con trỏ nằm sẵn ở ô tìm kiếm khi vừa vào app
-  CRM.init(sb, user.id);
+  await refreshList(); // local-first: show this account's offline cache before the network
+  if (currentUser?.id !== user.id) return;
   await CRM.flushQueue();
+  if (currentUser?.id !== user.id) return;
   await CRM.pull();
+  if (currentUser?.id !== user.id) return;
   await loadProjectOptions();
+  if (currentUser?.id !== user.id) return;
   await refreshList();
+  if (currentUser?.id !== user.id) return;
   hideSplash(); // dữ liệu đã sẵn sàng → ẩn màn hình tải
   if (window.CRMCalls) CRMCalls.sync(); // vỏ Android: đọc nhật ký cuộc gọi máy (web: không làm gì)
   checkAppUpdate(true);                 // vỏ Android: có APK mới → banner (web: không làm gì)
   maybeMigrateAvatars(user.id); // chuyển avatar cũ sang bucket public (chạy nền, 1 lần)
   syncZaloGreeting();           // đồng bộ lời chào Zalo từ Supabase (đa thiết bị, chạy nền)
-  setInterval(async () => {
+  clearInterval(accountSyncTimer);
+  accountSyncTimer = setInterval(async () => {
+    if (currentUser?.id !== user.id) return;
     await CRM.flushQueue();
     // Nếu lần kéo trước lỗi mạng → thử KÉO LẠI (mạng chập chờn có thể không bắn event
     // 'online'). Kéo được thì vẽ lại danh sách cho khớp bản mới nhất.
@@ -705,6 +717,7 @@ async function handleLogout() {
   // rồi về màn hình đăng nhập ngay (kể cả khi đang mất mạng).
   try { localStorage.removeItem(LS_LAST_USER); } catch {}
   currentUser = null;
+  clearAccountView();
   try { await sb.auth.signOut(); } catch {}
   showAuthScreen();
 }
@@ -812,7 +825,12 @@ $('#sync-btn')?.addEventListener('click', () => {
 // -------------------------------------------------------------- LIST ------
 
 async function refreshList() {
-  allCustomers = await CRM.list();
+  const userId = currentUser?.id;
+  const customers = await CRM.list();
+  if (userId !== currentUser?.id) return;
+  allCustomers = customers;
+  scheduleSearchWarmup();
+  if (window.SearchUI) SearchUI.dataChanged();
   renderList();
   renderLeads();
   if (!$('#dashboard-view').hidden) renderDashboard(); // Tổng quan là màn mặc định khi mở app
@@ -1007,8 +1025,10 @@ function searchFields(c) {
     ['Thu nhập', c.income], ['Thường trú', c.residence],
     ['Dự án', Array.isArray(c.projects) ? c.projects.join(', ') : ''],
     ['Loại căn', c.apt_type], ['Mã căn', c.apt_code], ['Mã toà', c.building_code],
+    ['Diện tích', c.apt_area != null ? String(c.apt_area).replace('.', ',') + ' m²' : ''],
+    ['Hướng', c.apt_direction], ['Tầng', c.apt_floor],
     ['Giá căn', c.apt_price ? formatPrice(c.apt_price) : ''], ['Giá căn', c.apt_price != null ? String(c.apt_price) : ''],
-    ['Ngân sách', c.finance != null ? String(c.finance) : ''], ['Mục đích', c.purpose],
+    ['Vốn sẵn có', c.finance != null ? String(c.finance) : ''], ['Mục đích', c.purpose],
     ['Tiến độ', careLabel(c.care_stage)], ['Tiến độ', c.care_stage], ['Liên lạc', c.contact_status],
     ['Quan tâm', isQualified(c) && c.interest_level != null ? c.interest_level + '%' : ''], // lead: chưa đánh giá
     ['Kênh', sourceDisplay(c.source)], ['Chiến dịch', campaignOf(c)],
@@ -1018,114 +1038,113 @@ function searchFields(c) {
   for (const n of (Array.isArray(c.notes_manual) ? c.notes_manual : [])) f.push(['Ghi chú', n && n.text]);
   for (const h of (Array.isArray(c.care_stage_history) ? c.care_stage_history : [])) f.push(['Lịch sử chăm sóc', h && h.note]);
   for (const a of (Array.isArray(c.call_attempts) ? c.call_attempts : [])) f.push(['Cuộc gọi', a && a.note]);
+  for (const t of (Array.isArray(c.next_tasks) ? c.next_tasks : [])) f.push(['Việc tiếp theo', t && t.text]);
   return f.filter(([, v]) => v != null && String(v).trim() !== '').map(([label, v]) => [label, String(v)]);
 }
-function customerSearchBlob(c) {
-  const key = c.updated_at || '';
+function customerSearchDoc(c) {
   const cached = _searchBlobCache.get(c);
-  if (cached && cached.key === key) return cached.blob;
-  const blob = removeVietnameseTones(searchFields(c).map(([, v]) => v).join(' '));
-  _searchBlobCache.set(c, { key, blob });
-  return blob;
+  if (cached && cached.key === (c.updated_at || '')) return cached.doc;
+  const doc = CRMSearch.prepare(searchFields(c));
+  _searchBlobCache.set(c, { key: c.updated_at || '', doc });
+  return doc;
+}
+// Prepare normalized fields in short idle slices instead of one blocking first query.
+let _searchWarmGeneration = 0;
+function scheduleSearchWarmup() {
+  const generation = ++_searchWarmGeneration, records = allCustomers;
+  let index = 0;
+  const schedule = window.requestIdleCallback
+    ? (fn) => requestIdleCallback(fn, {timeout:500}) : (fn) => setTimeout(fn, 16);
+  function slice() {
+    if (generation !== _searchWarmGeneration || records !== allCustomers) return;
+    const started = performance.now();
+    do { customerSearchDoc(records[index++]); }
+    while (index < records.length && performance.now() - started < 4);
+    if (index < records.length) schedule(slice);
+  }
+  if (records.length) schedule(slice);
+}
+function customerSearchBlob(c) { return customerSearchDoc(c).fields.map((f) => f.norm).join('\0'); }
+function customerSearchResult(c, ctx = searchCtx()) {
+  if (!ctx) return { match: true, score: 0, fuzzy: false, highlights: [] };
+  if (!ctx.results) ctx.results = new WeakMap();
+  if (!ctx.results.has(c)) ctx.results.set(c, CRMSearch.match(customerSearchDoc(c), ctx));
+  return ctx.results.get(c);
+}
+function searchOrder(a, b, ctx = searchCtx()) {
+  if (!ctx) return 0;
+  const x = customerSearchResult(a, ctx), y = customerSearchResult(b, ctx);
+  return Number(x.fuzzy) - Number(y.fuzzy) || y.score - x.score;
 }
 
 // ---- Tô đậm từ khoá (không phân biệt dấu/hoa thường), kiểu đoạn trích Google ----
 // Chuẩn hoá TỪNG KÝ TỰ để giữ ánh xạ vị trí chuỗi chuẩn hoá → chuỗi gốc.
-function normWithMap(text) {
-  let norm = ''; const map = [];
-  for (let i = 0; i < text.length; i++) {
-    const n = removeVietnameseTones(text[i]);
-    for (let k = 0; k < n.length; k++) { norm += n[k]; map.push(i); }
-  }
-  return { norm, map };
-}
-// Trả HTML đã escape, mọi chỗ khớp q (đã chuẩn hoá) bọc <mark>. maxLen>0 → cắt đoạn quanh
-// chỗ khớp đầu tiên (… đầu/cuối) để dòng trích ngắn gọn.
-function highlightHtml(text, q, maxLen = 0) {
-  text = String(text || '');
-  if (!q) return escapeHtml(text);
-  const { norm, map } = normWithMap(text);
-  const ranges = [];
-  for (let i = norm.indexOf(q); i !== -1; i = norm.indexOf(q, i + q.length)) {
-    ranges.push([map[i], map[i + q.length - 1] + 1]);
-  }
-  let start = 0, end = text.length;
-  if (maxLen > 0 && text.length > maxLen && ranges.length) {
-    start = Math.max(0, ranges[0][0] - Math.floor(maxLen / 3));
-    end = Math.min(text.length, start + maxLen);
-    start = Math.max(0, end - maxLen);
-  }
-  let out = start > 0 ? '…' : '', pos = start;
-  for (const [a, b] of ranges) {
-    if (b <= start || a >= end) continue;
-    const s2 = Math.max(a, start), e2 = Math.min(b, end);
-    out += escapeHtml(text.slice(pos, s2)) + '<mark>' + escapeHtml(text.slice(s2, e2)) + '</mark>';
-    pos = e2;
-  }
-  out += escapeHtml(text.slice(pos, end)) + (end < text.length ? '…' : '');
-  return out;
-}
-// Đoạn trích các trường KHỚP từ khoá (trừ Tên/SĐT — đã tô ngay trên dòng). Mỗi nhãn 1 lần.
-function searchSnippets(c, q, limit = 2) {
-  if (!q) return [];
+function highlightHtml(text, q, maxLen = 0) { return CRMSearch.highlight(text, q, maxLen); }
+function searchSnippets(c, ctx, limit = 2) {
+  if (!ctx) return [];
+  if (typeof ctx === 'string') ctx = CRMSearch.compile(ctx);
+  const terms = customerSearchResult(c, ctx).highlights;
   const seen = new Set(), out = [];
-  for (const [label, v] of searchFields(c)) {
-    if (label === 'Tên' || label === 'SĐT' || seen.has(label)) continue;
-    if (!removeVietnameseTones(v).includes(q)) continue;
-    seen.add(label);
-    out.push(`<span class="snip-label">${escapeHtml(label)}:</span> ${highlightHtml(v, q, 90)}`);
+  for (const f of customerSearchDoc(c).fields) {
+    if (f.label === 'Tên' || f.label === 'SĐT' || seen.has(f.label)) continue;
+    if (!terms.some((q) => f.norm.includes(q))) continue;
+    seen.add(f.label);
+    out.push(`<span class="snip-label">${escapeHtml(f.label)}:</span> ${highlightHtml(f.value, terms, 90)}`);
     if (out.length >= limit) break;
   }
   return out;
 }
-// Ngữ cảnh tìm hiện tại (dùng chung mọi danh sách): null khi ô tìm trống. Toàn số → tìm SĐT.
+let _queryContext = null;
 function searchCtx() {
-  const raw = $('#search-input').value.trim();
-  if (!raw) return null;
-  const qNorm = removeVietnameseTones(raw);
-  const isPhone = !/[a-z]/.test(qNorm) && /\d/.test(raw);
-  return { qNorm, isPhone, qPhone: isPhone ? raw.replace(/\D/g, '') : '' };
+  const raw = $('#search-input').value.trim(), scope = $('#search-field')?.value || 'all';
+  const key = scope + '\0' + raw;
+  if (_queryContext?.key === key) return _queryContext.ctx;
+  const ctx = CRMSearch.compile(raw, scope);
+  if (!ctx.active) { _queryContext = { key, ctx: null }; return null; }
+  Object.assign(ctx, { qNorm: ctx.text, isPhone: ctx.phoneOnly, qPhone: ctx.digits, results: new WeakMap() });
+  _queryContext = { key, ctx }; return ctx;
 }
 function hlName(c, ctx) {
-  const n = c.full_name || '(chưa có tên)';
-  return ctx && !ctx.isPhone ? highlightHtml(n, ctx.qNorm) : escapeHtml(n);
+  const name = c.full_name || '(chưa có tên)', result = customerSearchResult(c, ctx);
+  return (ctx && !ctx.isPhone ? highlightHtml(name, result.highlights) : escapeHtml(name)) +
+    (result.fuzzy ? '<span class="search-fuzzy">Gần đúng</span>' : '');
 }
 function hlPhone(c, ctx) {
-  const p = c.phone || '';
+  const p = ctx?.isPhone ? CRMSearch.phone(c.phone) : c.phone || '';
   return ctx && ctx.isPhone ? highlightHtml(p, ctx.qPhone) : escapeHtml(p);
 }
-// Khối đoạn trích (HTML) cho 1 khách; '' khi không tìm / không có trường khác khớp.
 function snipsHtml(c, ctx, cls, limit = 2) {
   if (!ctx || ctx.isPhone) return '';
-  return searchSnippets(c, ctx.qNorm, limit).map((h) => `<span class="${cls}">${h}</span>`).join('');
+  return searchSnippets(c, ctx, limit).map((h) => `<span class="${cls}">${h}</span>`).join('');
+}
+function matchesSearch(c, ctx = searchCtx()) { return customerSearchResult(c, ctx).match && (!window.SearchUI || SearchUI.matches(c)); }
+const SEARCH_PAGE_SIZE = 50;
+let searchPages = { list: 1, leads: 1, qualified: 1, new: 1 };
+function resetSearchPages() { searchPages = { list: 1, leads: 1, qualified: 1, new: 1 }; }
+function renderSearchView() {
+  if (!$('#dashboard-view').hidden) renderDashboard();
+  else if (!$('#lead-view').hidden) renderLeads();
+  else if (!$('#list-view').hidden) renderList();
+}
+function clearAccountView() {
+  clearInterval(accountSyncTimer); accountSyncTimer = null;
+  CRM.suspend(); Catalog.scope(null); if (window.CatalogSearchUI) CatalogSearchUI.reset(); if (window.SearchUI) SearchUI.setUser(null);
+  allCustomers = []; _searchWarmGeneration++; _queryContext = null; resetSearchPages();
+  progressFilter = 'active'; stageFilter = ''; dateFilter = {preset:'all',from:null,to:null};
+  leadFilter = 'open'; leadSrcFilter = ''; leadDatePreset = 'all';
+  $('#filter-min-interest').value = 0; $('#filter-interest-val').textContent = '0';
+  $('#search-input').value = '';
+  for (const id of ['customer-list', 'lead-list', 'dash-search', 'dashboard-content', 'detail-notes', 'detail-history', 'cat-body']) {
+    const el = document.getElementById(id); if (el) el.replaceChildren();
+  }
+  document.querySelectorAll('dialog[open]').forEach((d) => d.close());
 }
 
-// Ô tìm kiếm (SĐT / chữ) — dùng chung cho tab Khách hàng và tab Khách mới.
-function matchesSearch(c) {
-  const raw = $('#search-input').value.trim();
-  if (!raw) return true;
-  const qNorm = removeVietnameseTones(raw);
-  const qDig = raw.replace(/\D/g, '');
-  if (!/[a-z]/.test(qNorm) && qDig) return phoneMatch(phoneDigits(c.phone), qDig);
-  return customerSearchBlob(c).includes(qNorm);
-}
-
+let _listFilterContext = null;
 function matchesFilters(c) {
   // Trang chủ CHỈ hiện khách lớp 2 (đã xác nhận quan tâm). Lead ở tab "Khách mới".
   if (!isQualified(c)) return false;
-  const raw = $('#search-input').value.trim();
-  if (raw) {
-    const qNorm = removeVietnameseTones(raw);
-    const qDig = raw.replace(/\D/g, '');
-    // Query TOÀN SỐ (không có chữ cái) → tìm theo SĐT với quy tắc vị trí ở trên
-    // (giữ riêng để gõ "2" không lôi ra hàng loạt khách trùng số ở giữa/giá/%...).
-    // Query CÓ CHỮ (kể cả "2n") → universal search trên mọi trường của khách.
-    if (!/[a-z]/.test(qNorm) && qDig) {
-      if (!phoneMatch(phoneDigits(c.phone), qDig)) return false;
-    } else {
-      if (!customerSearchBlob(c).includes(qNorm)) return false;
-    }
-  }
+  if (!matchesSearch(c, _listFilterContext?.ctx)) return false;
   const stage = stageFilter;
   if (stage) {
     // Chọn 1 bậc cụ thể → lọc đúng bậc đó, bỏ qua lọc trạng thái xong/chưa xong.
@@ -1137,10 +1156,10 @@ function matchesFilters(c) {
     if (progress === 'active' && done) return false;
     if (progress === 'done' && !done) return false;
   }
-  const minInterest = Number($('#filter-min-interest').value || 0);
+  const minInterest = _listFilterContext?.minInterest ?? Number($('#filter-min-interest').value || 0);
   if ((c.interest_level || 0) < minInterest) return false;
   // Lọc theo thời gian đăng ký (registered_at, fallback created_at).
-  const range = dateFilterRange();
+  const range = _listFilterContext ? _listFilterContext.range : dateFilterRange();
   if (range) {
     const t = Date.parse(c.registered_at || c.created_at || '');
     if (isNaN(t) || t < range.start || t >= range.end) return false;
@@ -1160,7 +1179,9 @@ function sortCustomers(list) {
   const arr = [...list];
   // Không chọn tiêu chí nào → dùng mặc định để danh sách luôn có thứ tự hợp lý.
   const keys = (currentSort && currentSort.length) ? currentSort : DEFAULT_SORT;
+  const ctx = searchCtx();
   arr.sort((a, b) => {
+    const relevance = searchOrder(a, b, ctx); if (relevance) return relevance;
     for (const { key, dir } of keys) {
       const d = sortCompareOne(key, a, b);
       if (d !== 0) return (dir === 'asc' ? 1 : -1) * d;
@@ -1173,10 +1194,11 @@ function sortCustomers(list) {
 // Danh sách khách ĐANG HIỂN THỊ = lọc + sắp xếp hiện tại, kèm ĐẨY nhắc-gọi lên đầu.
 // Dùng chung cho renderList và Export (xuất đúng thứ tự đang thấy).
 function visibleCustomers() {
-  let list = sortCustomers(allCustomers.filter(matchesFilters));
+  _listFilterContext = { ctx: searchCtx(), minInterest: Number($('#filter-min-interest').value || 0), range: dateFilterRange() };
+  let list; try { list = sortCustomers(allCustomers.filter(matchesFilters)); } finally { _listFilterContext = null; }
   const reminders = new Map();
   for (const c of list) { const r = callReminder(c); if (r) reminders.set(c.id, r); }
-  if (reminders.size) {
+  if (reminders.size && !searchCtx()) {
     const withR = [], without = [];
     for (const c of list) (reminders.has(c.id) ? withR : without).push(c);
     withR.sort((a, b) => reminders.get(a.id).sort - reminders.get(b.id).sort);
@@ -1186,7 +1208,8 @@ function visibleCustomers() {
 }
 
 function renderList() {
-  const list = visibleCustomers();
+  if ($('#list-view').hidden) return;
+  const fullList = visibleCustomers(), list = fullList.slice(0, searchPages.list * SEARCH_PAGE_SIZE);
   // Map nhắc-gọi để hiển thị nhãn trên card/dòng (danh sách đã được đẩy nhắc-gọi lên đầu).
   const reminders = new Map();
   for (const c of list) { const r = callReminder(c); if (r) reminders.set(c.id, r); }
@@ -1195,7 +1218,9 @@ function renderList() {
   container.innerHTML = '';
   container.classList.toggle('list-mode', viewMode === 'list');
   $('#empty-state').hidden = list.length !== 0;
-  $('#result-count').textContent = `${list.length} khách hàng`;
+  $('#result-count').textContent = `${fullList.length} khách hàng · Tiềm năng${searchCtx() ? ' · theo độ liên quan' : ''}`;
+  $('#list-search-more').hidden = list.length >= fullList.length;
+  $('#list-search-more').textContent = `Xem thêm (${fullList.length - list.length} khách)`;
   updateFilterDot(); // giữ chấm đỏ + nút "Xoá lọc ✕" luôn khớp trạng thái lọc
 
   // Kiểu DÒNG GỌN (list view): LUÔN 1 hàng — [Tên đầy đủ] ... [SĐT …xxxxx + loại căn +
@@ -1205,7 +1230,7 @@ function renderList() {
   if (viewMode === 'list') {
     for (const c of list) {
       const row = document.createElement('div');
-      row.className = 'cust-row';
+      row.className = 'cust-row'; row.tabIndex = 0; row.setAttribute('role', 'button');
       row.dataset.id = c.id;
       const digits = (c.phone || '').replace(/\D/g, '');
       // data-digits = toàn bộ số; fitListRow chọn hiển thị bao nhiêu số cuối cho vừa.
@@ -1234,7 +1259,7 @@ function renderList() {
 
   for (const c of list) {
     const card = document.createElement('div');
-    card.className = 'customer-card';
+    card.className = 'customer-card'; card.tabIndex = 0;
     card.dataset.id = c.id; // để bấm vào thân card mở xem/sửa đầy đủ
     if (c.care_stage === CARE_STAGE_DROPPED) card.classList.add('is-dropped'); // khách bị Loại → mờ đi
     // Viền trái card = màu bậc mức quan tâm (Nguội/Ấm/Nóng/Rất nóng).
@@ -4072,18 +4097,17 @@ setInterval(() => {
 // call_attempts {at, result, note}; khoảng cách giữa các lần + giờ gọi TỰ suy từ `at`.
 // Đạt → lớp 2 (trang chủ, có hồ sơ). Loại → giữ kèm lý do để đánh giá campaign/landing.
 
-function leadMatchesFilter(c) {
+function leadMatchesFilter(c, ctx = searchCtx(), range = presetRange(leadDatePreset)) {
   if (isQualified(c)) return false;
   const st = leadStatus(c);
   if (leadFilter === 'open' && st === 'dropped') return false;
   if (leadFilter === 'dropped' && st !== 'dropped') return false;
   if (leadSrcFilter && !sourceListOf(c.source).includes(leadSrcFilter)) return false;
-  const range = presetRange(leadDatePreset);
   if (range) {
     const t = Date.parse(c.registered_at || c.created_at || '');
     if (isNaN(t) || t < range.start || t >= range.end) return false;
   }
-  return matchesSearch(c);
+  return matchesSearch(c, ctx);
 }
 
 // Khoảng thời gian cho preset Hôm nay / Tuần này / Tháng này (null = tất cả).
@@ -4104,7 +4128,9 @@ function leadSortCompare(key, a, b) {
 // lên đầu như tab Tiềm năng.
 function orderLeads(list) {
   const keys = leadSort.length ? leadSort : LEAD_DEFAULT_SORT;
+  const ctx = searchCtx();
   const arr = [...list].sort((a, b) => {
+    const relevance = searchOrder(a,b,ctx); if (relevance) return relevance;
     for (const { key, dir } of keys) {
       const d = leadSortCompare(key, a, b);
       if (d !== 0) return (dir === 'asc' ? 1 : -1) * d;
@@ -4112,7 +4138,7 @@ function orderLeads(list) {
     return 0;
   });
   const due = (c) => { const r = !c.disqualified_at && callReminder(c); return r && r.state !== 'soon'; };
-  return [...arr.filter(due), ...arr.filter((c) => !due(c))];
+  return ctx ? arr : [...arr.filter(due), ...arr.filter((c) => !due(c))];
 }
 
 function leadStatusTag(c) {
@@ -4139,10 +4165,13 @@ function renderLeads() {
   const view = $('#lead-view');
   if (!view || view.hidden) return; // tab đang ẩn → chỉ cập nhật badge
 
-  const list = orderLeads(leads.filter(leadMatchesFilter));
+  const ctx = searchCtx(), range = presetRange(leadDatePreset);
+  const fullList = orderLeads(leads.filter((c) => leadMatchesFilter(c, ctx, range)));
+  const list = fullList.slice(0, searchPages.leads * SEARCH_PAGE_SIZE);
   syncLeadFilterUI();
-  const ctx = searchCtx(); // đang tìm → tô đậm từ khoá + đoạn trích
-  $('#lead-result-count').textContent = `${list.length} khách`;
+  $('#lead-result-count').textContent = `${fullList.length} khách · Khách mới${searchCtx() ? ' · theo độ liên quan' : ''}`;
+  $('#lead-search-more').hidden = list.length >= fullList.length;
+  $('#lead-search-more').textContent = `Xem thêm (${fullList.length - list.length} khách)`;
   $('#lead-empty').hidden = list.length !== 0;
   $('#lead-list').innerHTML = list.map((c) => {
     const attempts = callAttemptsOf(c);
@@ -4160,7 +4189,7 @@ function renderLeads() {
     const zaloHref = zaloLink(c.phone);
     const zaloAttr = zaloHref.startsWith('http') ? 'target="_blank" rel="noopener"' : '';
     return `
-      <div class="lead-card${c.disqualified_at ? ' is-dropped' : ''}" data-id="${c.id}">
+      <div tabindex="0" class="lead-card${c.disqualified_at ? ' is-dropped' : ''}" data-id="${c.id}">
         <div class="card-head">
           <div class="card-name">${hlName(c, ctx)}</div>
           <div class="card-head-right">
@@ -4457,25 +4486,28 @@ function dashSearchRow(c) {
     </button>`;
 }
 function renderDashSearch() {
-  const hits = allCustomers.filter(matchesSearch);
+  const ctx = searchCtx();
+  const hits = allCustomers.filter((c) => matchesSearch(c, ctx));
   // Đang chăm/cần gọi lên trước, đã xong/đã loại xuống cuối; trong nhóm: tên A→Z.
-  const order = (a, b) => (Number(!!a.disqualified_at || isCareDone(a.care_stage)) - Number(!!b.disqualified_at || isCareDone(b.care_stage)))
+  const order = (a, b) => searchOrder(a, b, ctx) || (Number(!!a.disqualified_at || isCareDone(a.care_stage)) - Number(!!b.disqualified_at || isCareDone(b.care_stage)))
     || (a.full_name || '').localeCompare(b.full_name || '', 'vi');
   const groups = [
-    ['Tiềm năng', hits.filter(isQualified).sort(order)],
-    ['Khách mới', hits.filter((c) => !isQualified(c)).sort(order)],
+    ['Tiềm năng', hits.filter(isQualified).sort(order), 'qualified'],
+    ['Khách mới', hits.filter((c) => !isQualified(c)).sort(order), 'new'],
   ];
   const total = hits.length;
   $('#dash-search').innerHTML = `<div class="search-total">${total ? `Tìm thấy ${total} khách` : 'Không tìm thấy khách nào.'}</div>` +
-    groups.filter(([, list]) => list.length).map(([title, list]) => `
+    groups.filter(([, list]) => list.length).map(([title, list, group]) => `
       <section class="search-group">
         <div class="search-group-title">${title} <span>${list.length}</span></div>
-        ${list.slice(0, DASH_SEARCH_LIMIT).map(dashSearchRow).join('')}
-        ${list.length > DASH_SEARCH_LIMIT ? `<div class="search-more">… còn ${list.length - DASH_SEARCH_LIMIT} khách — gõ thêm để thu hẹp</div>` : ''}
+        ${list.slice(0, DASH_SEARCH_LIMIT * searchPages[group]).map(dashSearchRow).join('')}
+        ${list.length > DASH_SEARCH_LIMIT * searchPages[group] ? `<button type="button" class="btn-ghost search-more" data-search-more="${group}">Xem thêm (${list.length - DASH_SEARCH_LIMIT * searchPages[group]} khách)</button>` : ''}
       </section>`).join('');
 }
 // Bấm kết quả → sang tab tương ứng (giữ nguyên từ khoá để tab đó cũng lọc đúng khách) + mở khách.
 $('#dash-search')?.addEventListener('click', (e) => {
+  const more = e.target.closest('[data-search-more]'); if (more) { searchPages[more.dataset.searchMore]++; renderDashSearch(); return; }
+  if (window.SearchUI) SearchUI.remember();
   const row = e.target.closest('[data-search-open]'); if (!row) return;
   const c = allCustomers.find((x) => x.id === row.dataset.searchOpen); if (!c) return;
   if (isQualified(c)) {
@@ -4568,6 +4600,8 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && suggestB
 const SEARCH_VIEWS = ['dashboard', 'list', 'leads']; // Tổng quan: tìm → trang kết quả tạm
 function setActiveView(name) { // 'list' | 'leads' | 'dashboard' | 'loan'
   $('.topbar').classList.toggle('no-search', !SEARCH_VIEWS.includes(name));
+  if ($('#search-options')) $('#search-options').hidden = !SEARCH_VIEWS.includes(name);
+  if (window.SearchUI) SearchUI.updateScope(name);
   $('#list-view').hidden = name !== 'list';
   $('#lead-view').hidden = name !== 'leads';
   closeLeadPops();
@@ -4577,7 +4611,7 @@ function setActiveView(name) { // 'list' | 'leads' | 'dashboard' | 'loan'
   $('#tab-list').classList.toggle('is-active', name === 'list');
   $('#tab-dashboard').classList.toggle('is-active', name === 'dashboard');
 }
-function showListView() { setActiveView('list'); }
+function showListView() { setActiveView('list'); renderList(); }
 function showLeadView() { setActiveView('leads'); renderLeads(); }
 function showDashboardView() { setActiveView('dashboard'); renderDashboard(); }
 function showLoanView() { setActiveView('loan'); if (window.LoanCRM) LoanCRM.mountTab(); } // js/loan/loan-crm.js
@@ -4653,7 +4687,7 @@ function renderDashboard() {
   const all = allCustomers;
   const box = $('#dashboard-content');
   // Đang gõ tìm ở Tổng quan → hiện trang kết quả tạm thay cho biểu đồ.
-  const q = $('#search-input').value.trim();
+  const q = $('#search-input').value.trim() || (window.SearchUI && SearchUI.active());
   $('#dash-search').hidden = !q;
   box.hidden = !!q;
   if (q) { renderDashSearch(); return; }
@@ -5546,13 +5580,16 @@ document.addEventListener('DOMContentLoaded', () => {
     updateInterestUI(e.target.value);
   });
 
-  $('#search-input').addEventListener('input', () => {
-    // Gõ tìm khi đang ở tab Tổng quan / Tính vay → tự chuyển sang tab Khách hàng để thấy kết quả.
-    // Tìm ngay trong tab đang mở; ở Tổng quan → trang kết quả tạm (renderDashSearch).
-    renderList();
-    renderLeads();
-    if (!$('#dashboard-view').hidden) renderDashboard();
+  let searchTimer;
+  const applySearch = () => { resetSearchPages(); renderSearchView(); };
+  $('#search-input').addEventListener('input', (e) => {
+    clearTimeout(searchTimer); if (e.isComposing) return;
+    if (!$('#search-input').value.trim()) applySearch();
+    else searchTimer = setTimeout(applySearch, 120);
   });
+  $('#search-input').addEventListener('compositionend', () => { clearTimeout(searchTimer); searchTimer = setTimeout(applySearch, 120); });
+  $('#list-search-more').addEventListener('click', () => { searchPages.list++; renderList(); });
+  $('#lead-search-more').addEventListener('click', () => { searchPages.leads++; renderLeads(); });
   $('#user-menu-btn').addEventListener('click', (e) => {
     e.stopPropagation();
     $('#search-menu').classList.remove('open');

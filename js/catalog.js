@@ -15,12 +15,25 @@
 //   buildingHandover...) để form khách, bảng tính vay, màn Giỏ hàng luôn khớp nhau.
 
 const Catalog = (() => {
-  const LS_CACHE = 'crm_catalog_v1';
+  const LS_CACHE = 'crm_catalog_v2';
+  let cacheKey = null, scopeEpoch = 0;
+  const empty = () => ({ projects: [], buildings: [], units: [], projectTypes: [], buildingTypes: [] });
   const STATUS = { available: 'Còn', holding: 'Giữ chỗ', sold: 'Đã bán' };
   let data = { projects: [], buildings: [], units: [], projectTypes: [], buildingTypes: [] };
   const listeners = [];
 
-  try { const c = JSON.parse(localStorage.getItem(LS_CACHE)); if (c && c.projects) data = Object.assign(data, c); } catch { /* bỏ qua */ }
+  function scope(userId) {
+    scopeEpoch++; cacheKey = userId ? LS_CACHE + ':' + userId : null; data = empty();
+    try { const c = cacheKey && JSON.parse(localStorage.getItem(cacheKey)); if (c && c.projects) data = Object.assign(empty(), c); } catch {}
+    reindex();
+  }
+  let projectIndex = new Map(), buildingIndex = new Map(), unitsIndex = new Map();
+  function reindex() {
+    projectIndex = new Map(data.projects.map((p) => [p.id, p]));
+    buildingIndex = new Map(data.buildings.map((b) => [b.id, b]));
+    unitsIndex = new Map(); for (const u of data.units) { if (!unitsIndex.has(u.building_id)) unitsIndex.set(u.building_id, []); unitsIndex.get(u.building_id).push(u); }
+  }
+
 
   const norm = (s) => String(s == null ? '' : s).trim().toLowerCase();
   const byOrder = (a, b) => (a.sort_order || 0) - (b.sort_order || 0) ||
@@ -33,23 +46,27 @@ const Catalog = (() => {
   function online() { return typeof sb !== 'undefined' && sb && (typeof CRM === 'undefined' || CRM.isOnline()); }
   function needOnline() { if (!online()) throw new Error('Cần có mạng để sửa giỏ hàng.'); }
   function emit() {
-    try { localStorage.setItem(LS_CACHE, JSON.stringify(data)); } catch { /* bỏ qua */ }
+    reindex();
+    try { if (cacheKey) localStorage.setItem(cacheKey, JSON.stringify(data)); } catch { /* bỏ qua */ }
     listeners.forEach((fn) => { try { fn(); } catch (e) { console.warn('[catalog] listener', e); } });
   }
   function check(r) { if (r.error) throw r.error; return r.data; }
 
   async function load() {
     if (!online()) return false;
+    const epoch = scopeEpoch, client = sb;
+    const read = (table, columns) => CRMFetch.all(client, table, columns, () => epoch === scopeEpoch);
     try {
       const [p, b, u, pt, bt] = await Promise.all([
-        sb.from('projects').select('id,name,typical_price_per_m2,vat_rate,kpbt_rate,handover_date,title_after_months,payment_schedule,sort_order,created_at'),
-        sb.from('buildings').select('id,project_id,code,approved_price_per_m2,handover_date,note,sort_order,created_at'),
-        sb.from('units').select('id,project_id,building_id,code,area_m2,floor,direction,apt_type,price_per_m2_override,net_price_override,status,note'),
-        sb.from('project_apt_types').select('id,project_id,apt_type,typical_area_m2,sort_order'),
-        sb.from('building_apt_types').select('id,building_id,project_id,apt_type,area_m2'),
+        read('projects', 'id,name,typical_price_per_m2,vat_rate,kpbt_rate,handover_date,title_after_months,payment_schedule,sort_order,created_at'),
+        read('buildings', 'id,project_id,code,approved_price_per_m2,handover_date,note,sort_order,created_at'),
+        read('units', 'id,project_id,building_id,code,area_m2,floor,direction,apt_type,price_per_m2_override,net_price_override,status,note'),
+        read('project_apt_types', 'id,project_id,apt_type,typical_area_m2,sort_order'),
+        read('building_apt_types', 'id,building_id,project_id,apt_type,area_m2'),
       ]);
-      data = { projects: check(p).sort(byOrder), buildings: check(b).sort(byOrder), units: check(u).sort(byCode),
-               projectTypes: check(pt).sort(byTypeOrder), buildingTypes: check(bt) };
+      if (epoch !== scopeEpoch) return false;
+      data = { projects: p.sort(byOrder), buildings: b.sort(byOrder), units: u.sort(byCode),
+               projectTypes: pt.sort(byTypeOrder), buildingTypes: bt };
       emit();
       return true;
     } catch (e) { console.warn('[catalog] load lỗi, dùng cache:', e.message || e); return false; }
@@ -57,13 +74,13 @@ const Catalog = (() => {
 
   // ---------- Đọc ----------
   const projects = () => data.projects;
-  const project = (id) => data.projects.find((p) => p.id === id) || null;
+  const project = (id) => projectIndex.get(id) || null;
   const projectByName = (name) => (norm(name) && data.projects.find((p) => norm(p.name) === norm(name))) || null;
   const buildingsOf = (projectId) => data.buildings.filter((b) => b.project_id === projectId).sort(byCode);
-  const building = (id) => data.buildings.find((b) => b.id === id) || null;
+  const building = (id) => buildingIndex.get(id) || null;
   const buildingByCode = (projectId, code) =>
     (norm(code) && data.buildings.find((b) => b.project_id === projectId && norm(b.code) === norm(code))) || null;
-  const unitsOf = (buildingId) => data.units.filter((u) => u.building_id === buildingId);
+  const unitsOf = (buildingId) => unitsIndex.get(buildingId) || [];
   const unitByCode = (buildingId, code) =>
     (norm(code) && data.units.find((u) => u.building_id === buildingId && norm(u.code) === norm(code))) || null;
   const unitsOfProject = (projectId) => data.units.filter((u) => u.project_id === projectId);
@@ -293,7 +310,7 @@ const Catalog = (() => {
     const noPrice = bRows.filter((b) => !('approved_price_per_m2' in b));
     if (withPrice.length) check(await sb.from('buildings').upsert(withPrice, { onConflict: 'project_id,code' }));
     if (noPrice.length) check(await sb.from('buildings').upsert(noPrice, { onConflict: 'project_id,code', ignoreDuplicates: true }));
-    data.buildings = check(await sb.from('buildings').select('id,project_id,code,approved_price_per_m2,handover_date,note,sort_order,created_at')).sort(byOrder);
+    data.buildings = (await CRMFetch.all(sb, 'buildings', 'id,project_id,code,approved_price_per_m2,handover_date,note,sort_order,created_at')).sort(byOrder); reindex();
     stat.buildings = data.buildings.length - before;
     // 3) Căn: upsert theo (toà, mã căn)
     const FIELDS = ['area_m2', 'floor', 'direction', 'apt_type', 'price_per_m2_override', 'status'];
@@ -317,7 +334,7 @@ const Catalog = (() => {
   }
 
   return {
-    STATUS, load, onChange: (fn) => listeners.push(fn),
+    STATUS, load, scope, units: () => data.units, onChange: (fn) => listeners.push(fn),
     projects, project, projectByName, buildingsOf, building, buildingByCode,
     unitsOf, unitByCode, unitsOfProject, unitPrice, statusLabel,
     projectTypes, buildingTypeRows, buildingTypes, typicalArea, unitArea, unitAreaSource,

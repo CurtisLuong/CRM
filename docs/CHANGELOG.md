@@ -6,6 +6,15 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-07 — Nâng cấp tìm kiếm khách / giỏ hàng và an toàn cache offline
+
+- Tìm không dấu, nhiều từ AND / cụm chính xác, +84/0, mã căn / năm sinh; xếp độ liên quan, typo tên một lỗi có nhãn, thêm diện tích / việc tiếp theo. Bộ lọc cấu trúc, danh sách đã lưu, lịch sử riêng theo tài khoản / thiết bị và phím tắt.
+- Tìm / lọc giỏ hàng và ghép khách ↔ căn với lý do, kiểm tra dữ liệu thiếu; giá dùng LoanEngine + kế thừa catalog, vốn sẵn có tách khỏi giới hạn giá mua.
+- Chỉ render tab đang mở, debounce 120 ms + IME, Xem thêm, cache trường tạo nền theo đợt nhỏ; export vẫn xuất đủ kết quả.
+- Kéo dữ liệu theo trang id, kiểm tra số lượng và thay cache khách atomically khi không có thay đổi local mới; tách IndexedDB / queue và cache catalog theo user, bảo vệ khi đổi phiên. Giữ DB cũ để phục hồi; tăng app-shell cache v41.
+- File: `js/search.js`, `js/search-ui.js`, `js/property-search.js`, `js/catalog-search-ui.js`, `js/paged-fetch.js`, `js/app.js`, `js/db.js`, `js/catalog.js`, `index.html`, `css/style.css`, `sw.js`; tests và tài liệu architecture / design / gio-hang / audits.
+- Đã kiểm tra Node + Chrome cô lập với dữ liệu giả; chưa deploy hoặc xác minh Android / Supabase production. Báo cáo: `audits/search-implementation-2026-10-07.md`.
+
 ## 2026-10-07 — Header gọn hơn + menu đa năng trong ô tìm
 
 - Header đầy đủ từ ~150px xuống 126px (thu gọn khi cuộn: 42px): logo 28px, chữ "Sổ Khách" 18px, nút sync/chuông

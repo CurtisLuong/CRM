@@ -1,0 +1,43 @@
+const assert = require('node:assert/strict');
+const S = require('../js/search.js');global.CRMSearch=S;
+const P = require('../js/property-search.js');
+const E = require('../js/loan/loan-engine.js');
+const F = require('../js/paged-fetch.js');
+const doc=S.prepare([['Tên','Nguyễn Thị Hương'],['SĐT','0901234567'],['Dự án','Marquee Homes'],['Loại căn','2N-2WC'],['Mã căn','1208'],['Ngày sinh','12/05/1990'],['Diện tích','53,6 m²'],['Giá căn','1,2 tỷ'],['Việc tiếp theo','Chuẩn bị hồ sơ vay'],['Cuộc gọi','Muốn ban công hướng Nam']]);
+let checked=0;
+function check(q,expected,scope='all'){assert.equal(S.match(doc,S.compile(q,scope)).match,expected,q);checked++;}
+for(const q of ['huong','nguyen huong','huong marquee','marquee  homes','+84 901 234 567','84901234567','+84 901','0084901234567','0901234567','123','1208','1990','53,6','53.6','1,2 tỷ','2 phòng ngủ','2PN','chuẩn bị hồ sơ vay','"marquee homes"','huogn'])check(q,true);
+for(const q of ['23','"nguyen huong"','1208 sai','huognn','"huogn"'])check(q,false);
+check('1208',true,'unit');check('1208',false,'phone');check('marquee',false,'name');check('huogn',true,'name');
+assert.equal(S.match(doc,S.compile('huogn')).fuzzy,true);
+const noteOnly=S.prepare([['Tên','Trần An'],['Cuộc gọi','hướng Nam']]);
+assert(S.match(doc,S.compile('huong')).score>S.match(noteOnly,S.compile('huong')).score);
+assert.equal(S.highlight('Hương'.normalize('NFD'),['hu']),'<mark>Hư</mark>ơng');
+assert.equal(S.highlight('<img src=x onerror=x>',['img']), '&lt;<mark>img</mark> src=x onerror=x&gt;');
+assert.equal(S.highlight('Marquee  Homes',['marquee homes']),'<mark>Marquee  Homes</mark>');
+assert.equal(S.highlight('1,2 tỷ',['1.2']),'<mark>1,2</mark> tỷ');
+assert.equal(S.range(null,10,null),false);assert.equal(S.range(null,null,null),true);assert.equal(S.range(50,50,60),true);
+assert(P.typeCompatible('2N+','2N+, 2WC'));assert(P.typeCompatible('2N+,2WC','2N+, 2WC'));assert(!P.typeCompatible('2N+, 2WC','2N-2WC'));
+assert(P.typeCompatible('2PN','2N-3WC'));assert(!P.typeCompatible('2N-2WC','2N-3WC'));
+const project={id:'p',name:'Marquee Homes',vat_rate:5,kpbt_rate:2};
+const catalog={project:()=>project,unitArea:u=>u.area_m2??null,unitPrice:()=>20000000};
+const c={projects:['Marquee Homes'],apt_type:'2N',apt_area:53,finance:100000000,apt_direction:'Nam'};
+const u={project_id:'p',apt_type:'2N-2WC',area_m2:50,direction:'Nam',status:'available'};
+assert.equal(P.price(u,catalog,E),1070000000);assert(P.match(c,u,catalog,E));
+assert.equal(P.match(c,u,catalog,E,1000000000),null);
+assert.equal(P.match({...c,projects:[]},u,catalog,E),null);
+assert.equal(P.match(c,{...u,status:'sold'},catalog,E),null);
+const incomplete=P.match(c,{...u,area_m2:null,direction:null},catalog,E);
+assert(incomplete.missing.includes('giá'));assert(incomplete.missing.includes('hướng'));
+assert.equal(P.match(c,{...u,area_m2:null},catalog,E,2e9),null);
+assert.equal(P.price({...u,net_price_override:900000000},catalog,E),963000000);
+function client(rows,cap=173,failPage=-1,changeCount=false){let calls=0;return{from:()=>{let after='';const q={select:()=>q,order:()=>q,limit:()=>q,gt:(_,v)=>{after=v;return q;},then:(ok,bad)=>{calls++;const remaining=rows.filter(r=>!after||r.id>after);return Promise.resolve({data:remaining.slice(0,cap),count:remaining.length+(changeCount&&calls===2?1:0),error:calls===failPage?new Error('page failed'):null}).then(ok,bad);}};return q;}};}
+(async()=>{
+ const rows=Array.from({length:1201},(_,i)=>({id:String(i).padStart(5,'0')}));
+ assert.deepEqual(await F.all(client(rows),'customers'),rows);
+ assert.deepEqual(await F.all(client([]),'customers'),[]);
+ await assert.rejects(F.all(client(rows,173,2),'customers'),/page failed/);
+ await assert.rejects(F.all(client(rows,173,-1,true),'customers'),/thay đổi/);
+ await assert.rejects(F.all(client(rows),'customers','*',()=>false),/Phiên/);
+ console.log(`Search: ${checked} query cases, relevance/highlight/range, property matching and paginated reads passed.`);
+})().catch(e=>{console.error(e);process.exitCode=1;});

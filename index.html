@@ -98,7 +98,7 @@
     </nav>
     <div class="topbar-search-wrap">
       <span class="search-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg></span>
-      <input id="search-input" class="topbar-search" type="search" placeholder="Tìm tên hoặc số điện thoại..." />
+      <input id="search-input" class="topbar-search" type="search" placeholder="Tìm tên, SĐT, dự án, ghi chú…" aria-label="Tìm khách hàng" aria-describedby="search-scope-label" />
       <!-- MENU ĐA NĂNG trong ô tìm: lối tắt thao tác hay dùng. Mỗi mục chỉ "bấm hộ" nút gốc
            (data-proxy = id nút gốc) → không lặp logic. Logic: js/app.js (search-menu). -->
       <div class="search-menu" id="search-menu">
@@ -132,6 +132,42 @@
       </div>
     </div>
   </header>
+
+  <details id="search-options" class="search-options">
+    <summary><span id="search-scope-label">Tìm trong tất cả khách</span><span id="search-filter-summary">Lọc tìm kiếm</span></summary>
+    <div class="search-options-body">
+      <div class="search-control-row">
+        <label>Tìm trong<select id="search-field"><option value="all">Mọi thông tin</option><option value="name">Tên khách</option><option value="phone">Số điện thoại</option><option value="unit">Mã căn / mã toà</option><option value="year">Ngày / năm sinh</option><option value="property">Thông tin căn hộ</option><option value="notes">Ghi chú / việc tiếp theo</option></select></label>
+        <label>Danh sách đã lưu<select id="search-saved"><option value="">Chọn danh sách…</option></select></label>
+        <button id="search-save" type="button" class="btn-small">Lưu bộ lọc</button>
+        <button id="search-delete" type="button" class="btn-ghost btn-small" hidden>Xoá danh sách</button>
+        <button id="search-all" type="button" class="btn-ghost btn-small">Tìm trên tất cả khách</button>
+      </div>
+      <p class="pop-hint">Danh sách đã lưu và lịch sử tìm kiếm dùng riêng cho tài khoản trên thiết bị này.</p>
+      <div id="search-recent" class="search-recent" hidden></div>
+      <form id="search-refine-form" class="search-refine-form">
+        <fieldset><legend>Dự án</legend><div id="search-project-options" class="search-checks"></div></fieldset>
+        <fieldset><legend>Nguồn khách</legend><div id="search-source-options" class="search-checks"></div></fieldset>
+        <div class="search-control-row">
+          <label>Loại căn<input name="types" placeholder="VD: 2N, 3N hoặc 2N-2WC"></label>
+          <label>Mã toà<input name="buildings" placeholder="VD: CT1, CT2"></label>
+          <label>Chiến dịch<input name="campaign" placeholder="Tên chiến dịch"></label>
+          <label>Liên lạc<select name="calls"><option value="">Tất cả</option><option value="none">Chưa gọi</option><option value="called">Đã gọi</option><option value="talked">Đã nói chuyện</option><option value="due">Đến hạn / quá hạn gọi</option></select></label>
+          <label>Chưa gọi ít nhất (ngày)<input name="oldDays" type="number" min="1" step="1" placeholder="VD: 7"></label>
+          <label>Thiếu thông tin<select name="missing"><option value="">Không lọc</option><option value="projects">Chưa rõ dự án</option><option value="apt_type">Chưa rõ loại căn</option><option value="finance">Chưa rõ vốn</option><option value="next_tasks">Chưa có việc tiếp theo</option></select></label>
+        </div>
+        <div class="search-range-grid">
+          <fieldset><legend>Giá căn (triệu đồng)</legend><input name="priceMin" type="number" min="0" step="any" placeholder="Từ" aria-label="Giá căn từ"><input name="priceMax" type="number" min="0" step="any" placeholder="Đến" aria-label="Giá căn đến"></fieldset>
+          <fieldset><legend>Vốn sẵn có (triệu đồng)</legend><input name="capitalMin" type="number" min="0" step="any" placeholder="Từ" aria-label="Vốn từ"><input name="capitalMax" type="number" min="0" step="any" placeholder="Đến" aria-label="Vốn đến"></fieldset>
+          <fieldset><legend>Diện tích (m²)</legend><input name="areaMin" type="number" min="0" step="any" placeholder="Từ" aria-label="Diện tích từ"><input name="areaMax" type="number" min="0" step="any" placeholder="Đến" aria-label="Diện tích đến"></fieldset>
+          <fieldset><legend>Số lần gọi</legend><input name="callsMin" type="number" min="0" step="1" placeholder="Từ" aria-label="Số lần gọi từ"><input name="callsMax" type="number" min="0" step="1" placeholder="Đến" aria-label="Số lần gọi đến"></fieldset>
+        </div>
+        <p class="pop-hint">Các lựa chọn trong cùng nhóm là “hoặc”; các nhóm kết hợp bằng “và”. Giá căn và vốn sẵn có là hai thông tin riêng.</p>
+        <p id="search-refine-error" role="status" class="io-status"></p>
+        <button id="search-refine-reset" type="button" class="btn-ghost btn-small">Xoá bộ lọc tìm kiếm</button>
+      </form>
+    </div>
+  </details>
 
   <!-- BANNER "Có bản app mới" — chỉ hiện trong app Android khi APK đang cài cũ hơn
        /android-app-version.json (checkAppUpdate trong js/app.js). -->
@@ -236,11 +272,12 @@
   </div>
 
   <div class="list-meta">
-    <span id="result-count"></span>
+    <span id="result-count" role="status" aria-live="polite"></span>
     <button id="clear-filter-inline" class="clear-filter-inline" type="button" hidden>Xoá lọc ✕</button>
   </div>
 
   <div id="customer-list" class="customer-list"></div>
+  <button id="list-search-more" class="btn-ghost search-more" type="button" hidden>Xem thêm</button>
   <div id="empty-state" class="empty-state" hidden>
     Chưa có khách nào khớp bộ lọc. Bấm nút <strong>+</strong> để thêm khách.
   </div>
@@ -310,10 +347,11 @@
       </div>
     </div>
     <div class="list-meta">
-      <span id="lead-result-count"></span>
+      <span id="lead-result-count" role="status" aria-live="polite"></span>
       <button id="lead-clear-filter" class="clear-filter-inline" type="button" hidden>Xoá lọc ✕</button>
     </div>
     <div id="lead-list" class="customer-list"></div>
+    <button id="lead-search-more" class="btn-ghost search-more" type="button" hidden>Xem thêm</button>
     <div id="lead-empty" class="empty-state" hidden>Không có khách mới nào ở mục này.</div>
     <button id="add-lead-btn" class="fab" title="Thêm khách mới" aria-label="Thêm khách mới">+</button>
   </div>
@@ -322,7 +360,7 @@
     <div id="dashboard-content" class="dash-grid"></div>
     <!-- TRANG TÌM KIẾM TẠM: gõ vào ô tìm ở tab Tổng quan → thay biểu đồ bằng kết quả gộp
          (Tiềm năng + Khách mới). Xoá ô tìm → về biểu đồ. Logic: renderDashSearch() trong app.js. -->
-    <div id="dash-search" class="dash-search" hidden></div>
+    <div id="dash-search" class="dash-search" aria-live="polite" hidden></div>
     <!-- Nút thêm khách nổi (FAB) ở Tổng quan — khách mới vào tab Khách mới (hoặc thẳng Tiềm năng nếu tick). -->
     <button id="add-dash-btn" class="fab" title="Thêm khách" aria-label="Thêm khách">+</button>
   </div>
@@ -1026,14 +1064,19 @@
 
 <script src="/js/config.js"></script>
 <script src="/js/lunar.js"></script>
+<script src="/js/paged-fetch.js"></script>
+<script src="/js/search.js"></script>
 <script src="/js/db.js"></script>
 <script src="/js/notifications.js"></script>
 <script src="/js/catalog.js"></script>
 <script src="/js/app.js"></script>
 <script src="/js/calls.js"></script>
+<script src="/js/search-ui.js"></script>
 <script src="/js/catalog-ui.js"></script>
 <!-- Module tính khoản vay — thứ tự BẮT BUỘC: engine → store → pdf → ui → crm -->
 <script src="/js/loan/loan-engine.js"></script>
+<script src="/js/property-search.js"></script>
+<script src="/js/catalog-search-ui.js"></script>
 <script src="/js/loan/loan-store.js"></script>
 <script src="/js/loan/loan-pdf.js"></script>
 <script src="/js/loan/loan-ui.js"></script>

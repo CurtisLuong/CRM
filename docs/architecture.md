@@ -30,7 +30,11 @@ Giữ cơ chế local-first hiện có. File nguồn chấp nhận last-write-wi
 
 Luồng cụ thể, retry và việc kéo dữ liệu từ server phải được đối chiếu với `js/db.js`; tài liệu nguồn không mô tả đầy đủ các chi tiết đó.
 
-Catalog có cache offline trong `js/catalog.js`. Không mặc định áp dụng mọi chi tiết của hàng đợi khách cho catalog nếu chưa kiểm tra implementation.
+Cache khách và queue được tách theo tài khoản: IndexedDB `crm_khach_hang__<userId>`. Lần đầu dùng bản mới, nhập cache cũ một lần: chỉ record có `owner_id` khớp; queue có owner rõ ràng, hoặc thuộc tài khoản ghi nhớ và không trái với owner của record. Cache gốc được giữ để phục hồi; không tự gán thao tác mơ hồ cho tài khoản khác. Admin kéo lại dữ liệu được RLS cho phép, không giới hạn server vào owner của chính admin.
+
+`js/paged-fetch.js` kéo theo khóa `id` có thứ tự và đếm chính xác, tiếp tục qua giới hạn dòng API. Chỉ thay cache khách bằng transaction sau khi toàn bộ trang thành công, queue rỗng và local không đổi trong lúc kéo. Đây không phải snapshot transaction trên server: các chỉnh sửa server đồng thời có thể cần lần đồng bộ tiếp theo.
+
+Catalog có cache offline theo tài khoản trong `js/catalog.js` (`crm_catalog_v2:<userId>`); cache cũ không có phạm vi tài khoản được giữ nhưng không tự dùng lại. Không mặc định áp dụng mọi chi tiết của hàng đợi khách cho catalog nếu chưa kiểm tra implementation.
 
 ## Bản đồ code theo file nguồn
 
@@ -41,6 +45,9 @@ Catalog có cache offline trong `js/catalog.js`. Không mặc định áp dụng
 | `js/config.js` | `SUPABASE_URL`, `SUPABASE_ANON_KEY` |
 | `js/lunar.js` | Dương lịch → âm lịch; tra Lục Thập Hoa Giáp để tính mệnh |
 | `js/db.js` | IndexedDB, queue đồng bộ; API global `window.CRM` |
+| `js/paged-fetch.js` | Kéo đủ dữ liệu qua các trang, kiểm tra phiên và số lượng |
+| `js/search.js`, `js/search-ui.js` | Matching, highlight, bộ lọc cấu trúc và danh sách lưu riêng trên máy |
+| `js/property-search.js`, `js/catalog-search-ui.js` | Tìm giỏ hàng và ghép khách ↔ căn có giải thích |
 | `js/app.js` | Đăng nhập, CRUD, filter/sort/search, dashboard |
 | `js/catalog.js` | Dự án → Tòa → Căn; dữ liệu cho form khách/bảng tính vay; cache offline |
 | `js/catalog-ui.js` | Giỏ hàng qua menu avatar, sửa trực tiếp, nhập Excel, file mẫu |
@@ -108,3 +115,13 @@ Không coi thư mục SQL là lịch sử đã áp dụng. Trước khi chạy m
 - Migration, quyền DB và production: cần xác minh tại môi trường liên quan; local pass không chứng minh production đã cập nhật.
 
 Tài liệu chuyên sâu về vay/giỏ hàng giữ tại `docs/loan-module.md` và `docs/gio-hang.md` hiện có.
+
+## Tìm kiếm local
+
+Mọi tab dùng chung matcher: chuẩn hoá dấu/Unicode/SĐT, AND giữa các từ, cụm chính xác trong dấu ngoặc kép, xếp độ liên quan và tìm tên gần đúng giới hạn một lỗi. Không ghép gần đúng số điện thoại. Truy vấn số không còn mặc định chỉ tìm SĐT; có lựa chọn phạm vi mã căn / ngày sinh / SĐT.
+
+Query được compile một lần, tài liệu tìm kiếm cache theo object record và tạo nền theo đợt khoảng 4 ms. Input debounce 120 ms và chờ IME hoàn thành. Chỉ dựng view đang mở; danh sách 50 dòng/lần, Tổng quan 30/nhóm/lần, có Xem thêm. Count và xuất dữ liệu dựa toàn bộ kết quả lọc. Cache theo object giúp sửa note không đổi updated_at vẫn cập nhật sau refresh.
+
+Bộ lọc lưu sẵn là điều kiện tự đánh giá lại, không phải bản chụp khách; lưu localStorage theo user và thiết bị, chưa đồng bộ đa thiết bị. Đánh giá lần liên hệ dựa call_attempts.at. finance là vốn sẵn có, không phải giá mua tối đa.
+
+Kiểm tra: `node tests/search.test.js`; test Chrome cô lập `tests/search-browser.test.cjs` cần Playwright và Chrome (NODE_PATH / CHROME_PATH theo môi trường). Chi tiết nghiệm thu: `docs/audits/search-implementation-2026-10-07.md`.

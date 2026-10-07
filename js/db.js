@@ -12,7 +12,10 @@
  */
 
 const DB_NAME = 'crm_khach_hang';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
+const STORE_META = 'meta';
+let _dbName = null, _scopeEpoch = 0, _localRevision = 0, _ready = Promise.resolve();
+let _flushFlight = null;
 const STORE_CUSTOMERS = 'customers';
 const STORE_QUEUE = 'queue';
 const DOC_BUCKET = 'customer-docs'; // Supabase Storage bucket cho tài liệu khách (PRIVATE)
@@ -24,26 +27,59 @@ let _currentUserId = null;
 let _lastSyncError = null; // lỗi ĐẨY LÊN gần nhất (để hiển thị nếu hàng đợi kẹt)
 let _lastPullError = null; // lỗi KÉO XUỐNG gần nhất (mạng lỗi → dữ liệu đang hiển thị có thể CŨ)
 
-function openDB() {
-  if (_db) return Promise.resolve(_db);
+function openNamedDB(name) {
   return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    const req = name === DB_NAME ? indexedDB.open(name) : indexedDB.open(name, DB_VERSION);
     req.onupgradeneeded = () => {
       const db = req.result;
-      if (!db.objectStoreNames.contains(STORE_CUSTOMERS)) {
-        db.createObjectStore(STORE_CUSTOMERS, { keyPath: 'id' });
-      }
-      if (!db.objectStoreNames.contains(STORE_QUEUE)) {
-        db.createObjectStore(STORE_QUEUE, { keyPath: 'opId', autoIncrement: true });
-      }
+      if (!db.objectStoreNames.contains(STORE_CUSTOMERS)) db.createObjectStore(STORE_CUSTOMERS, { keyPath: 'id' });
+      if (!db.objectStoreNames.contains(STORE_QUEUE)) db.createObjectStore(STORE_QUEUE, { keyPath: 'opId', autoIncrement: true });
+      if (!db.objectStoreNames.contains(STORE_META)) db.createObjectStore(STORE_META, { keyPath: 'key' });
     };
-    req.onsuccess = () => { _db = req.result; resolve(_db); };
+    req.onsuccess = () => { req.result.onversionchange = () => req.result.close(); resolve(req.result); };
     req.onerror = () => reject(req.error);
   });
 }
 
+function openDB() {
+  if (!_currentUserId || !_dbName) return Promise.reject(new Error('Chưa có phiên dữ liệu.'));
+  const epoch = _scopeEpoch, name = _dbName;
+  return _ready.then(async () => {
+    if (epoch !== _scopeEpoch) throw new Error('Phiên dữ liệu đã thay đổi.');
+    if (!_db) _db = await openNamedDB(name);
+    return _db;
+  });
+}
+
+// Import the old cache once per account. The original DB remains recoverable;
+// unidentifiable operations are never assigned to a different account.
+async function migrateLegacy(target, userId, previousUser) {
+  const read = (db, store, key) => new Promise((resolve, reject) => {
+    const req = key ? db.transaction(store).objectStore(store).get(key) : db.transaction(store).objectStore(store).getAll();
+    req.onsuccess = () => resolve(req.result); req.onerror = () => reject(req.error);
+  });
+  if (await read(target, STORE_META, 'legacy-imported')) return;
+  const legacy = await openNamedDB(DB_NAME);
+  try {
+    const records = await read(legacy, STORE_CUSTOMERS), ops = await read(legacy, STORE_QUEUE);
+    const mine = records.filter((r) => r.owner_id === userId);
+    const owners = new Map(records.map((r) => [r.id, r.owner_id]));
+    const pending = ops.filter((op) => op.payload && op.payload.owner_id ? op.payload.owner_id === userId
+      : previousUser === userId && (!owners.has(op.recordId) || owners.get(op.recordId) === userId));
+    await new Promise((resolve, reject) => {
+      const transaction = target.transaction([STORE_CUSTOMERS, STORE_QUEUE, STORE_META], 'readwrite');
+      mine.forEach((r) => transaction.objectStore(STORE_CUSTOMERS).put(r));
+      pending.forEach((op) => { const copy = { ...op }; delete copy.opId; transaction.objectStore(STORE_QUEUE).add(copy); });
+      transaction.objectStore(STORE_META).put({ key: 'legacy-imported', at: new Date().toISOString() });
+      transaction.oncomplete = resolve; transaction.onabort = () => reject(transaction.error);
+      transaction.onerror = () => reject(transaction.error);
+    });
+  } finally { legacy.close(); }
+}
+
 function tx(storeName, mode) {
-  return openDB().then((db) => db.transaction(storeName, mode).objectStore(storeName));
+  const epoch = _scopeEpoch;
+  return openDB().then((db) => { if (epoch !== _scopeEpoch) throw new Error('Phiên dữ liệu đã thay đổi.'); return db.transaction(storeName, mode).objectStore(storeName); });
 }
 
 function localGetAll() {
@@ -57,7 +93,7 @@ function localGetAll() {
 function localPut(record) {
   return tx(STORE_CUSTOMERS, 'readwrite').then((store) => new Promise((resolve, reject) => {
     const req = store.put(record);
-    req.onsuccess = () => resolve(record);
+    req.onsuccess = () => { _localRevision++; resolve(record); };
     req.onerror = () => reject(req.error);
   }));
 }
@@ -65,20 +101,28 @@ function localPut(record) {
 function localDelete(id) {
   return tx(STORE_CUSTOMERS, 'readwrite').then((store) => new Promise((resolve, reject) => {
     const req = store.delete(id);
-    req.onsuccess = () => resolve();
+    req.onsuccess = () => { _localRevision++; resolve(); };
     req.onerror = () => reject(req.error);
   }));
 }
 
-function localReplaceAll(records) {
-  return tx(STORE_CUSTOMERS, 'readwrite').then((store) => new Promise((resolve, reject) => {
-    const clearReq = store.clear();
-    clearReq.onsuccess = () => {
-      records.forEach((r) => store.put(r));
-      resolve();
+async function localReplaceAll(records, expectedEpoch = _scopeEpoch, expectedRevision = _localRevision) {
+  const db = await openDB();
+  if (expectedEpoch !== _scopeEpoch || expectedRevision !== _localRevision) throw new Error('Dữ liệu local đã thay đổi trong lúc tải.');
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction([STORE_CUSTOMERS, STORE_QUEUE], 'readwrite');
+    const store = transaction.objectStore(STORE_CUSTOMERS); let failure = null;
+    const pending = transaction.objectStore(STORE_QUEUE).count();
+    pending.onsuccess = () => {
+      if (expectedEpoch !== _scopeEpoch || expectedRevision !== _localRevision || pending.result) {
+        failure = new Error('Dữ liệu local đã thay đổi trong lúc tải.'); transaction.abort(); return;
+      }
+      store.clear(); records.forEach((r) => store.put(r));
     };
-    clearReq.onerror = () => reject(clearReq.error);
-  }));
+    transaction.oncomplete = () => { if (expectedEpoch === _scopeEpoch) _localRevision++; resolve(); };
+    transaction.onabort = () => reject(failure || transaction.error);
+    transaction.onerror = () => reject(transaction.error);
+  });
 }
 
 function queueAdd(op) {
@@ -116,10 +160,29 @@ function uuid() {
 
 const CRM = {
   /** Gọi 1 lần khi app khởi động, sau khi đã có session đăng nhập */
-  init(supabaseClient, userId) {
-    _supabase = supabaseClient;
-    _currentUserId = userId;
-    window.addEventListener('online', () => CRM.flushQueue().then(() => CRM.pull()));
+  async init(supabaseClient, userId) {
+    if (!userId) throw new Error('Thiếu tài khoản dữ liệu.');
+    if (_currentUserId === userId && _db) { _supabase = supabaseClient; return; }
+    this.suspend();
+    _supabase = supabaseClient; _currentUserId = userId;
+    _dbName = DB_NAME + '__' + encodeURIComponent(userId);
+    let previousUser = null;
+    try { previousUser = JSON.parse(localStorage.getItem('crm_last_user') || 'null')?.id; } catch {}
+    const epoch = _scopeEpoch, name = _dbName;
+    _ready = (async () => {
+      const db = await openNamedDB(name);
+      try { await migrateLegacy(db, userId, previousUser); } catch (error) { db.close(); throw error; }
+      if (epoch !== _scopeEpoch) { db.close(); throw new Error('Phiên dữ liệu đã thay đổi.'); }
+      _db = db;
+    })();
+    await _ready;
+  },
+
+  suspend() {
+    _scopeEpoch++; if (_db) _db.close();
+    _db = null; _dbName = null; _currentUserId = null; _supabase = null;
+    _lastSyncError = null; _lastPullError = null; _flushFlight = null;
+    _localRevision = 0; _ready = Promise.resolve();
   },
 
   isOnline() {
@@ -127,6 +190,7 @@ const CRM = {
   },
 
   async list() {
+    if (!_currentUserId) return [];
     return (await localGetAll()).sort((a, b) => (b.updated_at || '').localeCompare(a.updated_at || ''));
   },
 
@@ -140,13 +204,16 @@ const CRM = {
     if (!this.isOnline() || !_supabase) return { ok: false, skipped: true };
     const pending = await queueGetAll();
     if (pending.length > 0) return { ok: false, skipped: true }; // tránh ghi đè thay đổi chưa đồng bộ
+    const epoch = _scopeEpoch, revision = _localRevision;
     try {
-      const { data, error } = await _supabase.from('customers').select('*');
-      if (error) throw error;
-      await localReplaceAll(data);
+      const data = await CRMFetch.all(_supabase, 'customers', '*', () => epoch === _scopeEpoch);
+      if (epoch !== _scopeEpoch) return { ok: false, skipped: true };
+      if (revision !== _localRevision || (await queueGetAll()).length) return { ok: false, skipped: true };
+      await localReplaceAll(data, epoch, revision);
       _lastPullError = null; // kéo thành công → xoá cờ lỗi cũ
       return { ok: true };
     } catch (e) {
+      if (epoch !== _scopeEpoch) return { ok: false, skipped: true };
       // Không kéo được bản mới (mạng lỗi dù navigator.onLine=true, hoặc lỗi server).
       _lastPullError = { message: e.message || String(e), code: e.code || null, at: new Date().toISOString() };
       console.warn('Pull lỗi (dữ liệu đang hiển thị có thể CŨ):', _lastPullError);
@@ -536,47 +603,64 @@ const CRM = {
 
   /** Đẩy các thao tác đang chờ lên Supabase. Bỏ qua im lặng nếu offline. */
   async flushQueue() {
+    if (!_currentUserId) return { synced: 0, pending: 0 };
     if (!this.isOnline() || !_supabase) return { synced: 0, pending: (await queueGetAll()).length };
-    const ops = await queueGetAll();
-    let synced = 0;
-    for (const op of ops) {
-      try {
-        if (op.type === 'insert') {
-          // upsert (theo khoá chính id) thay vì insert: nếu record đã có trên
-          // server thì cập nhật đè, tránh lỗi "trùng khoá" làm kẹt hàng đợi mãi.
-          const { error } = await _supabase.from('customers').upsert(op.payload);
-          if (error) throw error;
-        } else if (op.type === 'update') {
-          const { error } = await _supabase.from('customers').update(op.payload).eq('id', op.recordId);
-          if (error) throw error;
-        } else if (op.type === 'delete') {
-          const { error } = await _supabase.from('customers').delete().eq('id', op.recordId);
-          if (error) throw error;
-        }
-        await queueDelete(op.opId);
-        synced++;
-        _lastSyncError = null;
-      } catch (e) {
-        // Insert bị TRÙNG (23505: trùng id hoặc trùng (phone, owner)) → khách đã
-        // có trên server, thao tác insert này là thừa → BỎ để không kẹt hàng đợi.
-        // (pull() sau đó sẽ đồng bộ lại bản chuẩn từ server.) Chỉ auto-bỏ với insert.
-        if (op.type === 'insert' && (e.code === '23505' || /duplicate key|unique constraint/i.test(e.message || ''))) {
-          console.warn('Bỏ insert trùng (khách đã có trên server):', op.recordId, e.message);
-          await queueDelete(op.opId);
+    if (_flushFlight) return _flushFlight;
+    const epoch = _scopeEpoch, client = _supabase;
+    const flight = (async () => {
+      const db = await openDB();
+      const deleteOp = (id) => new Promise((resolve, reject) => {
+        const transaction = db.transaction(STORE_QUEUE, 'readwrite'); transaction.objectStore(STORE_QUEUE).delete(id);
+        transaction.oncomplete = resolve; transaction.onabort = () => reject(transaction.error);
+      });
+      const ops = await queueGetAll();
+      let synced = 0;
+      for (const op of ops) {
+        if (epoch !== _scopeEpoch) break;
+        try {
+          if (op.type === 'insert') {
+            // upsert (theo khoá chính id) thay vì insert: nếu record đã có trên
+            // server thì cập nhật đè, tránh lỗi "trùng khoá" làm kẹt hàng đợi mãi.
+            const { error } = await client.from('customers').upsert(op.payload);
+            if (error) throw error;
+          } else if (op.type === 'update') {
+            const { error } = await client.from('customers').update(op.payload).eq('id', op.recordId);
+            if (error) throw error;
+          } else if (op.type === 'delete') {
+            const { error } = await client.from('customers').delete().eq('id', op.recordId);
+            if (error) throw error;
+          }
+          if (epoch !== _scopeEpoch) break;
+          await deleteOp(op.opId);
+          synced++;
           _lastSyncError = null;
-          continue; // xử lý op kế tiếp, không chặn hàng đợi
+        } catch (e) {
+          if (epoch !== _scopeEpoch) break;
+          // Insert bị TRÙNG (23505: trùng id hoặc trùng (phone, owner)) → khách đã
+          // có trên server, thao tác insert này là thừa → BỎ để không kẹt hàng đợi.
+          // (pull() sau đó sẽ đồng bộ lại bản chuẩn từ server.) Chỉ auto-bỏ với insert.
+          if (op.type === 'insert' && (e.code === '23505' || /duplicate key|unique constraint/i.test(e.message || ''))) {
+            console.warn('Bỏ insert trùng (khách đã có trên server):', op.recordId, e.message);
+            if (epoch !== _scopeEpoch) break;
+            await deleteOp(op.opId);
+            _lastSyncError = null;
+            continue; // xử lý op kế tiếp, không chặn hàng đợi
+          }
+          // Lỗi khác (mạng, hoặc update vi phạm ràng buộc...) → ghi lại + dừng để
+          // giữ thứ tự; app hiện rõ để user xử lý.
+          _lastSyncError = { opId: op.opId, type: op.type, recordId: op.recordId, message: e.message || String(e), code: e.code || null };
+          console.warn('Sync lỗi op', op.opId, op.type, _lastSyncError);
+          break;
         }
-        // Lỗi khác (mạng, hoặc update vi phạm ràng buộc...) → ghi lại + dừng để
-        // giữ thứ tự; app hiện rõ để user xử lý.
-        _lastSyncError = { opId: op.opId, type: op.type, recordId: op.recordId, message: e.message || String(e), code: e.code || null };
-        console.warn('Sync lỗi op', op.opId, op.type, _lastSyncError);
-        break;
       }
-    }
-    return { synced, pending: (await queueGetAll()).length, error: _lastSyncError };
+      return { synced, pending: epoch === _scopeEpoch ? (await queueGetAll()).length : 0, error: _lastSyncError };
+    })();
+    _flushFlight = flight;
+    try { return await flight; } finally { if (_flushFlight === flight) _flushFlight = null; }
   },
 
   async pendingCount() {
+    if (!_currentUserId) return 0;
     return (await queueGetAll()).length;
   },
 
@@ -594,3 +678,5 @@ const CRM = {
 };
 
 window.CRM = CRM;
+
+window.addEventListener('online', () => { if (_currentUserId) CRM.flushQueue().then(() => CRM.pull()).catch((e) => console.warn('Đồng bộ khi có mạng:', e.message)); });

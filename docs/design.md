@@ -30,6 +30,12 @@ File nguồn không quy định chính xác mã màu, spacing, breakpoint, font 
 - Ô tìm kiếm hiện ở cả 3 tab chính (`SEARCH_VIEWS` trong `js/app.js`); màn công cụ không có (class `.topbar.no-search`). Tìm ở Tổng quan → trang kết quả tạm gộp Tiềm năng + Khách mới; bấm 1 khách → sang đúng tab của khách và mở khách.
 - Muốn đưa một công cụ lên tầng 1 → coi là đổi cách tổ chức UI, hỏi chủ dự án trước.
 
+## Tìm kiếm và bộ lọc (2026-10-07)
+
+Bộ lọc tìm kiếm chung đặt trong details ngay dưới header, mặc định gập; không thêm đối tượng vào header hoặc tab thứ tư. Summary nói rõ phạm vi tab và việc đang lọc. Lối “Tìm trên tất cả khách” về Tổng quan, giữ các điều kiện lọc chung. Bộ lọc riêng của Tiềm năng / Khách mới vẫn áp dụng trong tab đó.
+
+Giỏ hàng có panel tìm riêng trong dialog hiện có; matching mở từ hồ sơ hoặc căn. Count có aria-live, kết quả hỗ trợ focus / phím mũi tên / Enter; Cmd/Ctrl+K đưa về ô tìm. Bộ lọc dùng hai cột ở màn hẹp, không kéo tràn ngang.
+
 ## Font và tiếng Việt
 
 File nguồn ghi font heading đang dùng `"Georgia", "Times New Roman", serif` sau khi gặp lỗi với `"Iowan Old Style"` trên macOS.
