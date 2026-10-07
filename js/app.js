@@ -4114,13 +4114,78 @@ $('#lead-reopen-btn')?.addEventListener('click', reopenLead);
 $('#lead-edit-btn')?.addEventListener('click', () => { const id = leadSheetId; $('#lead-modal').close(); openForm(id); });
 $('#lead-close')?.addEventListener('click', () => $('#lead-modal').close());
 
+// ------------------------------------------ TÌM NHANH Ở TỔNG QUAN ------
+// Kết quả gộp 2 lớp: Tiềm năng (đã xác nhận) và Khách mới (lead) — kể cả khách đã xong/đã
+// loại (có nhãn). Bấm 1 khách → chuyển sang ĐÚNG tab của khách đó và mở khách luôn.
+const DASH_SEARCH_LIMIT = 30; // mỗi nhóm
+function dashSearchRow(c) {
+  const lead = !isQualified(c);
+  let tag;
+  if (lead) tag = leadStatusTag(c);
+  else if (c.care_stage === CARE_STAGE_DROPPED) tag = `<span class="lead-tag lead-tag-dropped">✕ ${escapeHtml(careLabel(c.care_stage))}</span>`;
+  else if (c.care_stage === 'Kí HĐMB') tag = '<span class="tag tag-won">✓ Đã chốt</span>';
+  else tag = `<span class="lead-tag">${escapeHtml(careLabel(c.care_stage))}</span>`;
+  const meta = [sourceDisplay(c.source), (Array.isArray(c.projects) && c.projects.length) ? c.projects.join(', ') : '']
+    .filter(Boolean).map(escapeHtml).join(' · ');
+  const dim = c.disqualified_at || isCareDone(c.care_stage);
+  return `<button type="button" class="search-row${dim ? ' is-dim' : ''}" data-search-open="${c.id}">
+      <span class="search-row-main">
+        <span class="search-row-name">${escapeHtml(c.full_name || '(chưa có tên)')}</span>
+        <span class="search-row-meta">${escapeHtml(c.phone || '')}${meta ? ' · ' + meta : ''}</span>
+      </span>
+      ${tag}
+    </button>`;
+}
+function renderDashSearch() {
+  const hits = allCustomers.filter(matchesSearch);
+  // Đang chăm/cần gọi lên trước, đã xong/đã loại xuống cuối; trong nhóm: tên A→Z.
+  const order = (a, b) => (Number(!!a.disqualified_at || isCareDone(a.care_stage)) - Number(!!b.disqualified_at || isCareDone(b.care_stage)))
+    || (a.full_name || '').localeCompare(b.full_name || '', 'vi');
+  const groups = [
+    ['Tiềm năng', hits.filter(isQualified).sort(order)],
+    ['Khách mới', hits.filter((c) => !isQualified(c)).sort(order)],
+  ];
+  const total = hits.length;
+  $('#dash-search').innerHTML = `<div class="search-total">${total ? `Tìm thấy ${total} khách` : 'Không tìm thấy khách nào.'}</div>` +
+    groups.filter(([, list]) => list.length).map(([title, list]) => `
+      <section class="search-group">
+        <div class="search-group-title">${title} <span>${list.length}</span></div>
+        ${list.slice(0, DASH_SEARCH_LIMIT).map(dashSearchRow).join('')}
+        ${list.length > DASH_SEARCH_LIMIT ? `<div class="search-more">… còn ${list.length - DASH_SEARCH_LIMIT} khách — gõ thêm để thu hẹp</div>` : ''}
+      </section>`).join('');
+}
+// Bấm kết quả → sang tab tương ứng (giữ nguyên từ khoá để tab đó cũng lọc đúng khách) + mở khách.
+$('#dash-search')?.addEventListener('click', (e) => {
+  const row = e.target.closest('[data-search-open]'); if (!row) return;
+  const c = allCustomers.find((x) => x.id === row.dataset.searchOpen); if (!c) return;
+  if (isQualified(c)) {
+    // Khách đã xong (chốt/không chốt) bị ẩn ở bộ lọc mặc định → chuyển bộ lọc sang "Tất cả".
+    if (isCareDone(c.care_stage) && progressFilter === 'active') {
+      progressFilter = 'all';
+      $('#progress-label').textContent = 'Tất cả';
+      $$('#progress-pop .status-opt').forEach((o) => o.classList.toggle('is-sel', o.dataset.value === 'all'));
+    }
+    showListView(); renderList();
+    openDetail(c.id);
+  } else {
+    // Lead đã loại bị ẩn ở "Cần gọi" → chuyển dropdown sang "Tất cả".
+    if (c.disqualified_at && leadFilter === 'open') {
+      leadFilter = 'all';
+      $('#lead-status-label').textContent = 'Tất cả';
+      $$('#lead-status-pop .status-opt').forEach((o) => o.classList.toggle('is-sel', o.dataset.value === 'all'));
+    }
+    showLeadView();
+    openLeadSheet(c.id);
+  }
+});
+
 // ---------------------------------------------------------- DASHBOARD -----
 
 // Chuyển tab giữa danh sách khách, bảng tổng quan và bảng tính vay.
 // Thứ bậc điều hướng: tab chính (dashboard / list "Tiềm năng" / leads "Khách mới") ở header;
 // công cụ (loan...) mở từ menu tài khoản, không có tab — màn công cụ có nút ← về Tổng quan.
-// Ô tìm kiếm chỉ hiện ở 2 tab danh sách.
-const SEARCH_VIEWS = ['list', 'leads'];
+// Ô tìm kiếm hiện ở 3 tab chính (không hiện ở màn công cụ).
+const SEARCH_VIEWS = ['dashboard', 'list', 'leads']; // Tổng quan: tìm → trang kết quả tạm
 function setActiveView(name) { // 'list' | 'leads' | 'dashboard' | 'loan'
   $('.topbar').classList.toggle('no-search', !SEARCH_VIEWS.includes(name));
   $('#list-view').hidden = name !== 'list';
@@ -4207,6 +4272,11 @@ function dashCard(title, bodyHtml, hint) {
 function renderDashboard() {
   const all = allCustomers;
   const box = $('#dashboard-content');
+  // Đang gõ tìm ở Tổng quan → hiện trang kết quả tạm thay cho biểu đồ.
+  const q = $('#search-input').value.trim();
+  $('#dash-search').hidden = !q;
+  box.hidden = !!q;
+  if (q) { renderDashSearch(); return; }
   if (!all.length) {
     box.innerHTML = `<div class="dash-card"><div class="dash-empty">Chưa có khách hàng nào. Thêm khách để xem thống kê.</div></div>`;
     return;
@@ -5078,10 +5148,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   $('#search-input').addEventListener('input', () => {
     // Gõ tìm khi đang ở tab Tổng quan / Tính vay → tự chuyển sang tab Khách hàng để thấy kết quả.
-    // Đang ở tab Khách mới thì tìm trong lead, không nhảy tab.
-    if ($('#search-input').value.trim() && $('#list-view').hidden && $('#lead-view').hidden) showListView();
+    // Tìm ngay trong tab đang mở; ở Tổng quan → trang kết quả tạm (renderDashSearch).
     renderList();
     renderLeads();
+    if (!$('#dashboard-view').hidden) renderDashboard();
   });
   $('#user-menu-btn').addEventListener('click', (e) => {
     e.stopPropagation();

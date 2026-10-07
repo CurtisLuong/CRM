@@ -51,7 +51,7 @@
 
 <!-- ============ MÀN HÌNH CHÍNH ============ -->
 <section id="app-screen" hidden>
-  <header class="topbar no-search">
+  <header class="topbar">
     <div class="topbar-row topbar-row-top">
       <div class="topbar-brand">
         <img class="brand-logo" src="/icons/logo.svg" alt="" />
@@ -280,6 +280,9 @@
 
   <div id="dashboard-view">
     <div id="dashboard-content" class="dash-grid"></div>
+    <!-- TRANG TÌM KIẾM TẠM: gõ vào ô tìm ở tab Tổng quan → thay biểu đồ bằng kết quả gộp
+         (Tiềm năng + Khách mới). Xoá ô tìm → về biểu đồ. Logic: renderDashSearch() trong app.js. -->
+    <div id="dash-search" class="dash-search" hidden></div>
   </div>
 
   <!-- TÍNH VAY — bảng tính khoản vay NOXH độc lập (không gắn khách). Module ở js/loan/,

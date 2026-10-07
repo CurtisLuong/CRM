@@ -1620,3 +1620,21 @@ details.form-more > .form-grid, details.form-more > .docs-list { margin-top: 10p
 .form-note-meta { display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: #8a8a7d; }
 .form-note-add { display: flex; gap: 8px; margin-top: 8px; }
 .form-note-add input { flex: 1; min-width: 0; }
+
+/* ===== TÌM NHANH Ở TỔNG QUAN: trang kết quả tạm (gộp Tiềm năng + Khách mới) ===== */
+.dash-search { max-width: 860px; margin: 0 auto; padding: 14px 20px 60px; }
+.search-total { font-size: 13px; color: #6b6b60; margin-bottom: 10px; }
+.search-group { margin-bottom: 18px; }
+.search-group-title { font-size: 12px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--ink); margin-bottom: 8px; }
+.search-group-title span { display: inline-block; min-width: 20px; padding: 0 6px; margin-left: 4px; border-radius: 100px; background: #e9e6dd; color: #5c5c52; font-size: 11px; text-align: center; letter-spacing: 0; }
+.search-row {
+  display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; cursor: pointer;
+  font: inherit; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 10px 14px; margin-bottom: 8px;
+}
+.search-row:hover { border-color: var(--teal-light); box-shadow: 0 2px 8px rgba(31, 58, 61, 0.08); }
+.search-row.is-dim { opacity: 0.65; }
+.search-row-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.search-row-name { font-weight: 600; font-size: 15px; }
+.search-row-meta { font-size: 12px; color: #8a8a7d; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.search-more { font-size: 12px; color: #8a8a7d; padding: 2px 4px; }

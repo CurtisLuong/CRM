@@ -6,6 +6,16 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-07 — Tìm nhanh ngay ở tab Tổng quan
+
+- Ô tìm kiếm hiện cả ở Tổng quan. Gõ → thay biểu đồ bằng trang kết quả tạm, chia 2 nhóm **Tiềm năng** / **Khách mới**
+  (kèm nhãn bậc/trạng thái; khách đã xong/đã loại mờ và xếp cuối). Xoá ô tìm → về biểu đồ.
+- Bấm 1 kết quả → chuyển sang đúng tab (Tiềm năng → mở hồ sơ; Khách mới → mở hộp gọi), tự đổi bộ lọc sang "Tất cả"
+  nếu khách đang bị bộ lọc mặc định ẩn.
+- File: `index.html`, `js/app.js`, `css/style.css`, `sw.js` (cache v15), `docs/design.md`.
+
+---
+
 ## 2026-10-06 — Form sửa khách gọn hơn: nhóm "Mở rộng", ghi chú sửa được, tiêu đề/nút dính
 
 - Trường ít dùng gập dưới "Mở rộng ⇄ Thu gọn" (kèm số trường đã điền): cá nhân (hôn nhân, thường trú, công việc,
