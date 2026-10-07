@@ -4190,11 +4190,14 @@ function renderLeadSheet(c) {
   // Nút: Đạt chỉ bật khi đã có lần "Nói chuyện được".
   const canQualify = hasTalked(c);
   $('#lead-qualify-btn').hidden = dropped;
-  $('#lead-qualify-btn').disabled = !canQualify;
+  // Chưa đủ điều kiện → "khoá mềm" (KHÔNG dùng disabled: nút disabled không nhận hover/bấm). Lời nhắc
+  // hiện khi rê chuột (máy tính) hoặc bấm vào (máy tính + điện thoại) — xem CSS .lead-act-qualify.is-locked.
+  const qb = $('#lead-qualify-btn');
+  qb.classList.toggle('is-locked', !canQualify);
+  qb.classList.remove('tip-open');
+  qb.setAttribute('aria-disabled', String(!canQualify));
   $('#lead-drop-btn').hidden = dropped;
   $('#lead-reopen-btn').hidden = !dropped;
-  $('#lead-qualify-hint').textContent = (!dropped && !canQualify)
-    ? 'Nút Đạt mở khi đã có ít nhất 1 lần gọi “Nói chuyện được”.' : '';
 }
 
 function currentLead() { return allCustomers.find((x) => x.id === leadSheetId); }
@@ -4352,7 +4355,17 @@ $('#lead-attempts')?.addEventListener('click', (e) => {
   const b = e.target.closest('[data-call-at]'); if (!b || !leadSheetId || !window.CallLog) return;
   CallLog.open({ customerId: leadSheetId, editAt: b.dataset.callAt });
 });
-$('#lead-qualify-btn')?.addEventListener('click', qualifyLead);
+$('#lead-qualify-btn')?.addEventListener('click', (e) => {
+  const b = e.currentTarget;
+  if (b.classList.contains('is-locked')) {
+    // Bấm khi chưa đủ điều kiện → bật bong bóng nhắc vài giây.
+    b.classList.add('tip-open');
+    clearTimeout(b._tipTimer);
+    b._tipTimer = setTimeout(() => b.classList.remove('tip-open'), 3000);
+    return;
+  }
+  qualifyLead();
+});
 $('#lead-drop-btn')?.addEventListener('click', () => showDropBox(null));
 $('#lead-suggest')?.addEventListener('click', (e) => { if (e.target.closest('#lead-suggest-drop')) showDropBox('khong_lien_lac_duoc'); });
 $('#lead-drop-cancel')?.addEventListener('click', () => { $('#lead-drop-box').hidden = true; $('#lead-log-box').hidden = false; });

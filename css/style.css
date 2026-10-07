@@ -1574,12 +1574,23 @@ dialog#lead-modal::backdrop { background: rgba(20, 30, 30, 0.5); }
 .lead-act-drop:hover { background: #fbefed; }
 .lead-act-qualify { flex: 1; background: var(--ink); color: #fff; border: 1px solid var(--ink); }
 .lead-act-qualify:hover { background: var(--teal-light); }
-.lead-act-qualify:disabled { opacity: 0.4; cursor: not-allowed; }
+.lead-act-qualify { position: relative; min-width: 0; white-space: normal; } /* màn rất hẹp: cho xuống dòng thay vì tràn khỏi hộp */
+/* Khoá mềm: làm nhạt bằng MÀU (không dùng opacity/filter — sẽ làm nhạt luôn bong bóng nhắc). */
+.lead-act-qualify.is-locked, .lead-act-qualify.is-locked:hover { background: #a3b1ab; border-color: #a3b1ab; color: #f4f6f5; cursor: not-allowed; }
+/* Bong bóng nhắc điều kiện Đạt (phía trên nút): rê chuột (máy tính) hoặc bấm (.tip-open). */
+.lead-act-qualify.is-locked::after {
+  content: 'Nút Đạt mở khi đã có ít nhất 1 lần gọi “Nói chuyện được”.';
+  position: absolute; bottom: calc(100% + 8px); right: 0; width: max-content; max-width: 240px;
+  white-space: normal; text-align: left; font-size: 12px; font-weight: 500; line-height: 1.4;
+  background: var(--ink); color: #fff; padding: 7px 10px; border-radius: 8px;
+  opacity: 0; visibility: hidden; transition: opacity 0.12s ease; pointer-events: none; z-index: 5;
+}
+@media (hover: hover) { .lead-act-qualify.is-locked:hover::after { opacity: 1; visibility: visible; } }
+.lead-act-qualify.is-locked.tip-open::after { opacity: 1; visibility: visible; }
 .lead-act-reopen { flex: 1; background: #fff; color: var(--ink); border: 1px solid var(--line); }
 /* Nút "Ghi cuộc gọi" dưới danh sách các lần gọi */
 .lead-log-btn { display: inline-flex; align-items: center; gap: 8px; font: inherit; font-size: 15px; color: var(--ink); background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 10px 16px; cursor: pointer; }
 .lead-log-btn:hover { border-color: var(--teal-light); }
-.lead-hint { font-size: 12px; color: #8a8a7d; margin-top: 6px; }
 
 /* Ô tick trong form (vd "đưa thẳng vào chăm sóc") */
 /* .form-grid label.form-check: đủ đặc hiệu để đè ".form-grid label { flex-direction:column }" */

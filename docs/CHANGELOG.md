@@ -6,6 +6,15 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-07 — Hộp Khách mới: lời nhắc nút Đạt thành bong bóng
+
+- Bỏ dòng chữ cố định "Nút Đạt mở khi…". Nút Đạt chưa đủ điều kiện = "khoá mềm" (nhạt màu, không dùng `disabled` vì nút
+  disabled không nhận hover/bấm): rê chuột (máy tính) hoặc bấm (máy tính + điện thoại) → bong bóng nhắc phía trên nút 3s.
+  Màn rất hẹp: chữ nút Đạt được xuống dòng thay vì tràn khỏi hộp.
+- File: `index.html`, `js/app.js`, `css/style.css`, `sw.js` (cache v30).
+
+---
+
 ## 2026-10-07 — Hộp Khách mới: bố cục mới
 
 - Đầu hộp: tên khách (chữ serif lớn) + nút **bút chì** (Sửa thông tin) + ✕. Nút "Sửa thông tin" ở đáy bỏ.
