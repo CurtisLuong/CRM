@@ -1808,8 +1808,18 @@ let lastUnitPrice = null; // đơn giá điển hình (đ/m²) của lựa chọ
 function typicalAreaForForm() {
   const f = $('#customer-form');
   const type = canonicalAptType(f.apt_type_select.value === '__other' ? f.apt_type_other.value : f.apt_type_select.value);
-  if (!type || typeof Catalog === 'undefined') return null; // Catalog khai báo const ở js/catalog.js (không nằm trên window)
+  if (typeof Catalog === 'undefined') return null; // Catalog khai báo const ở js/catalog.js (không nằm trên window)
   const bCode = f.building_code.value.trim().toLowerCase();
+  // 1) Mã căn khớp 1 căn trong giỏ hàng → diện tích RIÊNG của căn (căn > toà > dự án).
+  const uCode = f.apt_code.value.trim().toLowerCase();
+  if (uCode) {
+    const cands = formCatalogBuildings().flatMap((b) => Catalog.unitsOf(b.id)).filter((u) => u.code.toLowerCase() === uCode);
+    const u = cands.find((x) => (x.building || '').toLowerCase() === bCode) || (cands.length === 1 ? cands[0] : null);
+    const ua = u && Catalog.unitArea(u);
+    if (ua) return { area: ua, unitPrice: Catalog.unitPrice(u) };
+  }
+  // 2) Không có căn cụ thể → điển hình theo loại căn (toà > dự án).
+  if (!type) return null;
   for (const p of formCatalogProjects()) {
     const b = bCode ? Catalog.buildingsOf(p.id).find((x) => x.code.toLowerCase() === bCode) : null;
     const a = Catalog.typicalArea(p.id, b && b.id, type);
@@ -4481,6 +4491,66 @@ $('#dash-search')?.addEventListener('click', (e) => {
   }
 });
 
+// ------------------------------------------------- GỢI Ý NHẬP (thay datalist) ------
+// <datalist> trên Android WebView do hệ thống vẽ riêng → trong hộp thoại có cuộn bị lệch chỗ, nhấp nháy, lúc
+// mờ lúc rõ. Thay bằng danh sách TỰ VẼ ngay dưới ô nhập (cuộn theo form). Tự áp cho MỌI <input list="…">
+// (kể cả ô sinh động trong Giỏ hàng): lần đầu focus → chuyển list sang data-suggest, đọc <option> của datalist
+// (value + chữ phụ) làm nguồn. Chọn 1 mục → đặt giá trị + bắn 'input' & 'change' (để tự điền phía sau chạy).
+const SUGGEST_MAX = 60;
+let suggestBox = null, suggestInput = null, suggestMute = false;
+function suggestOptions(input) {
+  const dl = document.getElementById(input.dataset.suggest || '');
+  if (!dl) return [];
+  const q = removeVietnameseTones(input.value.trim());
+  const all = [...dl.querySelectorAll('option')].map((o) => ({ value: o.value, sub: (o.textContent || o.label || '').trim() }));
+  const hit = q ? all.filter((o) => removeVietnameseTones(o.value + ' ' + o.sub).includes(q)) : all;
+  return hit.filter((o) => o.value !== input.value || q === '').slice(0, SUGGEST_MAX);
+}
+function closeSuggest() {
+  if (suggestBox) suggestBox.remove();
+  suggestBox = null; suggestInput = null;
+}
+function openSuggest(input) {
+  const opts = suggestOptions(input);
+  if (!opts.length) { closeSuggest(); return; }
+  if (!suggestBox || suggestInput !== input) {
+    closeSuggest();
+    suggestBox = document.createElement('div');
+    suggestBox.className = 'suggest-box';
+    suggestBox.setAttribute('role', 'listbox');
+    const host = input.parentElement;
+    host.classList.add('suggest-host');
+    host.appendChild(suggestBox);
+    suggestInput = input;
+    // mousedown: chặn ô nhập mất focus (danh sách không bị đóng giữa chừng); click: chọn mục.
+    suggestBox.addEventListener('mousedown', (e) => e.preventDefault());
+    suggestBox.addEventListener('click', (e) => {
+      const it = e.target.closest('[data-v]'); if (!it || !suggestInput) return;
+      const inp = suggestInput;
+      inp.value = it.dataset.v;
+      closeSuggest();
+      suggestMute = true; // sự kiện tự bắn dưới đây không được mở lại danh sách
+      inp.dispatchEvent(new Event('input', { bubbles: true }));
+      inp.dispatchEvent(new Event('change', { bubbles: true }));
+      suggestMute = false;
+    });
+  }
+  suggestBox.style.top = (input.offsetTop + input.offsetHeight + 4) + 'px';
+  suggestBox.style.left = input.offsetLeft + 'px';
+  suggestBox.style.width = input.offsetWidth + 'px';
+  suggestBox.innerHTML = opts.map((o) =>
+    `<div class="suggest-item" role="option" data-v="${escapeHtml(o.value)}"><span class="suggest-v">${escapeHtml(o.value)}</span>${o.sub ? `<span class="suggest-sub">${escapeHtml(o.sub)}</span>` : ''}</div>`).join('');
+}
+document.addEventListener('focusin', (e) => {
+  const inp = e.target;
+  if (!(inp instanceof HTMLInputElement)) return;
+  if (inp.hasAttribute('list')) { inp.dataset.suggest = inp.getAttribute('list'); inp.removeAttribute('list'); }
+  if (inp.dataset.suggest) openSuggest(inp);
+});
+document.addEventListener('input', (e) => { if (!suggestMute && e.target.dataset && e.target.dataset.suggest && e.target === document.activeElement) openSuggest(e.target); });
+document.addEventListener('focusout', (e) => { if (e.target === suggestInput) setTimeout(() => { if (document.activeElement !== suggestInput) closeSuggest(); }, 120); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && suggestBox) { e.stopPropagation(); closeSuggest(); } }, true);
+
 // ---------------------------------------------------------- DASHBOARD -----
 
 // Chuyển tab giữa danh sách khách, bảng tổng quan và bảng tính vay.
@@ -5337,7 +5407,7 @@ document.addEventListener('DOMContentLoaded', () => {
   $('#tool-loan-btn').addEventListener('click', () => { $('#topbar-menu').classList.remove('open'); showLoanView(); window.scrollTo(0, 0); });
   $('#loan-back-btn').addEventListener('click', showDashboardView);
   $('#customer-form').building_code.addEventListener('input', refreshAptSuggestions);
-  $('#customer-form').apt_code.addEventListener('change', fillFromCatalogUnit);
+  $('#customer-form').apt_code.addEventListener('change', () => { fillFromCatalogUnit(); fillTypicalArea(); }); // xoá/đổi mã căn → diện tích tự điền quay về điển hình
   $('#detail-back-btn').addEventListener('click', closeDetailToList);
   $('#detail-edit-btn').addEventListener('click', () => { if (detailId) openForm(detailId); });
   // Nút trên thanh mini dính đỉnh (kiểu FB) — cùng hành vi với nút nổi trên cover.

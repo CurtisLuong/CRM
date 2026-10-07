@@ -6,6 +6,18 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-07 — Gợi ý Mã toà / Mã căn tự vẽ (thay datalist) + diện tích theo căn đã chọn
+
+- `<datalist>` trên Android WebView (hệ thống vẽ đè) trong hộp thoại có cuộn bị lệch chỗ, nhấp nháy, lúc mờ lúc rõ. Thay bằng
+  danh sách gợi ý tự vẽ ngay dưới ô nhập (cuộn theo form), lọc theo chữ gõ không dấu, kèm chữ phụ (loại căn · m² · tình
+  trạng). Tự áp cho MỌI `<input list>`: Mã toà, Mã căn, Chiến dịch, loại căn trong Giỏ hàng. Chọn mục → bắn input/change
+  để tự điền chạy như cũ.
+- Sửa lỗi của bản "diện tích phụ thuộc": chọn 1 căn cụ thể thì diện tích riêng của căn bị ghi đè bằng diện tích điển
+  hình của loại căn. Nay ưu tiên đúng giỏ hàng: căn > toà > dự án; xoá mã căn → về diện tích điển hình.
+- File: `js/app.js`, `css/style.css`, `sw.js` (cache v36).
+
+---
+
 ## 2026-10-07 — Sửa vạch sáng dưới thanh trạng thái (app Android)
 
 - Viền dưới thanh "Kéo để tải lại" lộ 1px ngay dưới dải xanh: chiều cao thanh trạng thái thật là số lẻ (vd 42,67px) nên
