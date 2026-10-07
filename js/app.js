@@ -610,6 +610,15 @@ HTMLDialogElement.prototype.showModal = function () {
   this.dataset.openedAt = String(performance.now()); // để biết hộp nào mở sau cùng
   return _showModal.apply(this, arguments);
 };
+// ---- THANH TRẠNG THÁI (vỏ Android): icon giờ/pin màu TRẮNG trên nền thanh tiêu đề xanh đậm ----
+// Plugin lõi SystemBars của Capacitor 8 (style 'DARK' = nền tối → icon sáng). Chỉ đổi thanh TRÊN; thanh điều
+// hướng dưới giữ theo giao diện (nền be → icon tối). Trình duyệt thường: không làm gì.
+(function setStatusBarLight() {
+  const cap = window.Capacitor;
+  if (!cap || typeof cap.isNativePlatform !== 'function' || !cap.isNativePlatform() || typeof cap.nativePromise !== 'function') return;
+  cap.nativePromise('SystemBars', 'setStyle', { style: 'DARK', bar: 'StatusBar' }).catch(() => {});
+})();
+
 // ---- NÚT CẬP NHẬT APP (chỉ trong vỏ Android) ----
 // So phiên bản APK đang cài (plugin native AppInfo) với /android-app-version.json (sửa file này mỗi
 // lần phát APK mới — android-app/build-apk.sh tự cập nhật). Cũ hơn → banner; bấm Cập nhật → mở link

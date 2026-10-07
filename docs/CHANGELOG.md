@@ -6,6 +6,17 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-07 — App điện thoại: thanh tiêu đề phủ lên thanh trạng thái (tràn viền)
+
+- `viewport-fit=cover` → trang vẽ cả vùng thanh trạng thái (Capacitor 8 SystemBars chuyển sang chế độ "passthrough",
+  tiêm `--safe-area-inset-*`). CSS dùng `--sat`/`--sab` (= max(env(), biến Capacitor)) để chừa chỗ: thanh tiêu đề,
+  ô tìm, thanh mini hồ sơ, nút cover, nút +, toast, "Kéo để tải lại", cuối trang.
+- Dải xanh đậm luôn nằm sau thanh trạng thái (mọi màn); icon giờ/pin chuyển trắng qua `SystemBars.setStyle({style:'DARK',
+  bar:'StatusBar'})`. Trình duyệt thường: khoảng an toàn = 0, không đổi gì. iOS PWA cũng hưởng phần chừa chỗ.
+- Không cần APK mới. File: `index.html`, `css/style.css`, `js/app.js`, `sw.js` (cache v34).
+
+---
+
 ## 2026-10-07 — Form khách: Diện tích là giá trị phụ thuộc (dự án + toà + loại căn), sửa tay được
 
 - Trước: diện tích chỉ tự điền khi ô trống và chỉ khi đổi loại căn → đổi loại căn sau đó vẫn giữ số cũ (sai loại); chọn
