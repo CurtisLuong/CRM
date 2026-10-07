@@ -6,6 +6,13 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-07 — Badge tab Khách mới chỉ đếm việc cần làm ngay
+
+- Trước: đếm mọi lead chưa loại (luôn vài chục → bị "nhờn"). Nay: lead đăng ký hôm qua + hôm nay, chưa loại, chưa gọi lần
+  nào. Gọi xong → số giảm; hết → badge ẩn. File: `js/app.js`, `sw.js` (cache v37).
+
+---
+
 ## 2026-10-07 — Gợi ý Mã toà / Mã căn tự vẽ (thay datalist) + diện tích theo căn đã chọn
 
 - `<datalist>` trên Android WebView (hệ thống vẽ đè) trong hộp thoại có cuộn bị lệch chỗ, nhấp nháy, lúc mờ lúc rõ. Thay bằng

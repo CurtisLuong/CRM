@@ -4125,9 +4125,17 @@ function leadStatusTag(c) {
 
 function renderLeads() {
   const leads = allCustomers.filter((c) => !isQualified(c));
-  const openCount = leads.filter((c) => !c.disqualified_at).length;
+  // Badge tab = VIỆC CẦN LÀM NGAY: lead đăng ký HÔM QUA + HÔM NAY, chưa loại, CHƯA GỌI lần nào (gọi sớm dễ bắt máy).
+  // Gọi xong → số giảm; hết → badge ẩn. (Đếm hết lead làm số luôn to → bị "nhờn", mất tác dụng nhắc.)
+  const since = new Date(); since.setHours(0, 0, 0, 0); since.setDate(since.getDate() - 1); // 0h hôm qua
+  const urgent = leads.filter((c) => !c.disqualified_at && !callAttemptsOf(c).length
+    && Date.parse(c.registered_at || c.created_at || '') >= since.getTime()).length;
   const badge = $('#lead-count-badge');
-  if (badge) { badge.textContent = openCount > 99 ? '99+' : String(openCount); badge.hidden = openCount === 0; }
+  if (badge) {
+    badge.textContent = urgent > 99 ? '99+' : String(urgent);
+    badge.hidden = urgent === 0;
+    badge.title = `${urgent} khách đăng ký hôm qua/hôm nay chưa gọi`;
+  }
   const view = $('#lead-view');
   if (!view || view.hidden) return; // tab đang ẩn → chỉ cập nhật badge
 
