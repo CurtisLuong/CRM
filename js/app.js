@@ -665,7 +665,7 @@ window.CRMBack = function () {
     dialogs[dialogs.length - 1].close();
     return true;
   }
-  const menu = document.querySelector('#topbar-menu.open, #notif-wrap.open');
+  const menu = document.querySelector('#topbar-menu.open, #notif-wrap.open, #search-menu.open');
   if (menu) { menu.classList.remove('open'); return true; }
   if (document.querySelector('#app-screen .pop-panel:not([hidden])')) { closeToolPops(); closeLeadPops(); return true; }
   if (!$('#detail-screen').hidden) { closeDetailToList(); return true; }
@@ -5555,16 +5555,39 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   $('#user-menu-btn').addEventListener('click', (e) => {
     e.stopPropagation();
+    $('#search-menu').classList.remove('open');
     $('#topbar-menu').classList.toggle('open');
   });
   document.addEventListener('click', (e) => {
     if (!e.target.closest('#topbar-menu')) $('#topbar-menu').classList.remove('open');
   });
 
+  // --- Menu đa năng trong ô tìm: mỗi mục "bấm hộ" nút gốc (data-proxy) → dùng lại logic sẵn có ---
+  const searchMenu = $('#search-menu');
+  const setSearchMenu = (open) => {
+    searchMenu.classList.toggle('open', open);
+    $('#search-menu-btn').setAttribute('aria-expanded', String(open));
+  };
+  $('#search-menu-btn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    $('#topbar-menu').classList.remove('open'); $('#notif-wrap').classList.remove('open'); // 1 popup tại 1 thời điểm
+    setSearchMenu(!searchMenu.classList.contains('open'));
+  });
+  searchMenu.querySelector('.menu-pop').addEventListener('click', (e) => {
+    const item = e.target.closest('[data-proxy]');
+    if (!item) return;
+    e.stopPropagation(); // không để listener "bấm ra ngoài" của nút gốc đóng ngay modal/panel vừa mở
+    setSearchMenu(false);
+    document.getElementById(item.dataset.proxy)?.click();
+  });
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('#search-menu')) setSearchMenu(false);
+  });
+
   // --- Chuông thông báo: mở/đóng panel, bấm 1 dòng → về trang khách đó ---
   $('#notif-btn')?.addEventListener('click', (e) => {
     e.stopPropagation();
-    $('#topbar-menu').classList.remove('open'); // 2 popup không mở cùng lúc
+    $('#topbar-menu').classList.remove('open'); $('#search-menu').classList.remove('open'); // 1 popup tại 1 thời điểm
     $('#notif-wrap').classList.toggle('open');
   });
   document.addEventListener('click', (e) => {

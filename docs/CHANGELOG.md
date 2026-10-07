@@ -6,6 +6,15 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-07 — Header gọn hơn + menu đa năng trong ô tìm
+
+- Header đầy đủ từ ~150px xuống 126px (thu gọn khi cuộn: 42px): logo 28px, chữ "Sổ Khách" 18px, nút sync/chuông
+  bỏ viền (tròn 32px), avatar 30px; tab thành segmented pill chia đều 3 ô; ô tìm bo tròn, icon kính lúp SVG thay emoji.
+- Icon chuông vẽ lại nét mảnh, hiện đại hơn; chấm đếm thông báo nhỏ lại.
+- Thêm nút "menu đa năng" (icon thanh trượt) ở phải ô tìm: Thêm khách · Nhập dữ liệu · Xuất dữ liệu · Tính vay ·
+  Giỏ hàng. Mỗi mục bấm hộ nút gốc (`data-proxy`) nên không lặp logic; menu avatar giữ nguyên.
+- File: `index.html`, `css/style.css`, `js/app.js`, `docs/design.md`
+
 ## 2026-10-07 — Sửa lỗi app Android bỏ sót cuộc gọi từ khách thứ 2 trở đi
 
 - Nguyên nhân: sau mỗi lần đọc nhật ký, mốc "đã đọc tới" = THỜI ĐIỂM HIỆN TẠI. Android chỉ ghi cuộc gọi vào nhật ký sau
