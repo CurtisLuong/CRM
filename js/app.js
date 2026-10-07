@@ -5695,7 +5695,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const ind = document.getElementById('ptr-indicator');
   if (!ind) return;
   const txt = ind.querySelector('.ptr-text');
-  const HIDDEN = -48;      // vị trí ẩn (khớp translateY(-48px) trong CSS)
+  const HIDDEN = -48;      // mốc khi đang kéo (CSS lúc nghỉ còn đẩy cao hơn để khuất hẳn sau thanh trạng thái)
   const THRESHOLD = 64;    // "độ kéo" (đã giảm tốc) tối thiểu để kích hoạt
   const MAX_VISIBLE = 72;  // px tối đa thanh trượt xuống (cảm giác căng)
   let pulling = false, startY = 0, dist = 0, triggered = false;

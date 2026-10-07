@@ -48,7 +48,9 @@ body {
   background: var(--paper); color: var(--ink);
   font-size: 13px; font-weight: 600;
   border-bottom: 1px solid var(--line);
-  transform: translateY(-48px);   /* ẩn phía trên viewport */
+  /* Ẩn hẳn phía trên màn hình (trừ thêm --sat + 4px): thanh trạng thái có chiều cao lẻ (vd 42,67px) → nếu giấu
+     sát mép dải xanh sẽ lộ 1 vạch viền. Lúc kéo, JS đặt transform riêng (HIDDEN = -48) nên vẫn trượt xuống như cũ. */
+  transform: translateY(calc(-48px - var(--sat) - 4px));
   transition: transform .22s ease;
   z-index: 2000; pointer-events: none;
 }

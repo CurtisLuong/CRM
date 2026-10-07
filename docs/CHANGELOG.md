@@ -6,6 +6,14 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-07 — Sửa vạch sáng dưới thanh trạng thái (app Android)
+
+- Viền dưới thanh "Kéo để tải lại" lộ 1px ngay dưới dải xanh: chiều cao thanh trạng thái thật là số lẻ (vd 42,67px) nên
+  dải xanh và thanh giấu lệch nhau. Lúc nghỉ giờ đẩy thanh lên hẳn khỏi màn hình (`-48px - --sat - 4px`).
+- File: `css/style.css`, `js/app.js` (chú thích), `sw.js` (cache v35).
+
+---
+
 ## 2026-10-07 — App điện thoại: thanh tiêu đề phủ lên thanh trạng thái (tràn viền)
 
 - `viewport-fit=cover` → trang vẽ cả vùng thanh trạng thái (Capacitor 8 SystemBars chuyển sang chế độ "passthrough",
