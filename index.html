@@ -101,6 +101,14 @@
     </div>
   </header>
 
+  <!-- BANNER "Có bản app mới" — chỉ hiện trong app Android khi APK đang cài cũ hơn
+       /android-app-version.json (checkAppUpdate trong js/app.js). -->
+  <div id="app-update-bar" class="app-update-bar" hidden>
+    <span id="app-update-text">Có bản app mới</span>
+    <button type="button" id="app-update-btn" class="btn-primary btn-small">Cập nhật</button>
+    <button type="button" id="app-update-close" class="app-update-x" aria-label="Để sau">✕</button>
+  </div>
+
   <div id="list-view" hidden>
   <div class="toolbar">
     <!-- Lọc trạng thái: dropdown TUỲ BIẾN (không dùng <select> gốc để cả lúc bung ra

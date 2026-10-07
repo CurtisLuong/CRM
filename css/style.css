@@ -1657,3 +1657,11 @@ dialog#call-log-modal::backdrop { background: rgba(20, 30, 30, 0.5); }
 .lead-attempt-top .call-annotate { margin-left: 6px; padding: 2px 8px; font-size: 12px; }
 .lead-log-row { justify-content: flex-start; margin-top: 10px; }
 .detail-log-call { margin-top: 10px; }
+
+/* ===== BANNER "Có bản app mới" (chỉ app Android) ===== */
+.app-update-bar {
+  display: flex; align-items: center; gap: 10px; margin: 10px 16px 0; padding: 10px 12px;
+  background: #fbeccd; color: #6b4c10; border: 1px solid #ecd39a; border-radius: var(--radius); font-size: 13px;
+}
+.app-update-bar #app-update-text { flex: 1; min-width: 0; }
+.app-update-x { border: none; background: transparent; color: #6b4c10; font-size: 16px; cursor: pointer; padding: 2px 6px; }

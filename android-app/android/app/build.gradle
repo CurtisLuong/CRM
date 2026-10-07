@@ -1,5 +1,11 @@
 apply plugin: 'com.android.application'
 
+// Khoá ký bản RELEASE (D-002): android-app/keystore.properties + sokhach-release.jks — KHÔNG có trong Git.
+// Thiếu file → vẫn build được bản debug, nhưng ./build-apk.sh (release) sẽ báo lỗi.
+def keystorePropsFile = rootProject.file('../keystore.properties')
+def keystoreProps = new Properties()
+if (keystorePropsFile.exists()) { keystorePropsFile.withInputStream { keystoreProps.load(it) } }
+
 android {
     namespace = "vn.sokhach.crm"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -7,8 +13,9 @@ android {
         applicationId "vn.sokhach.crm"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        // TĂNG versionCode mỗi lần phát APK mới (Android chỉ cài đè khi số lớn hơn hoặc bằng).
+        versionCode 2
+        versionName "1.1"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,8 +23,19 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        release {
+            if (keystorePropsFile.exists()) {
+                storeFile rootProject.file('../' + keystoreProps['storeFile'])
+                storePassword keystoreProps['storePassword']
+                keyAlias keystoreProps['keyAlias']
+                keyPassword keystoreProps['keyPassword']
+            }
+        }
+    }
     buildTypes {
         release {
+            signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

@@ -6,6 +6,29 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-07 — Nút "Cập nhật app" trong app Android
+
+- Banner **"Có bản app mới"** (chỉ trong app Android): so phiên bản APK đang cài (plugin native `AppInfo`) với
+  `/android-app-version.json`; bấm Cập nhật → mở link APK trên Supabase Storage (bucket công khai `app-releases`) → Chrome
+  tải → cài đè. ✕ = ẩn trong phiên; kiểm tra lúc đăng nhập và khi mở lại app (tối đa 30 phút/lần).
+- `SQL/add_app_releases_bucket.sql`: tạo bucket (chỉ APK, ≤ 50 MB, không cho ghi qua API — tải lên bằng trang Supabase).
+- `android-app/build-apk.sh`: đặt tên `SoKhach-<versionName>.apk` + tự cập nhật `android-app-version.json`.
+- File: `SQL/add_app_releases_bucket.sql`, `android-app-version.json`, `android-app/android/app/src/main/java/vn/sokhach/crm/AppInfoPlugin.java`,
+  `MainActivity.java`, `android-app/build-apk.sh`, `android-app/README.md`, `index.html`, `js/app.js`, `css/style.css`, `sw.js` (cache v23).
+
+---
+
+## 2026-10-07 — App Android: nút/vuốt Back lùi trong app + khoá ký chính thức (v1.1)
+
+- Back trên Android không còn thoát app: `MainActivity` hỏi `window.CRMBack()` (js/app.js) — đóng hộp thoại mở sau cùng →
+  menu/panel → hồ sơ về danh sách → xoá ô tìm → về Tổng quan; hết đường lùi → đưa app xuống nền (không tắt).
+- APK ký bằng khoá release riêng (`sokhach-release.jks` + `keystore.properties`, ngoài Git); `build-apk.sh` build bản
+  release; versionCode 2 / versionName 1.1. Đổi từ khoá debug → phải gỡ app cũ 1 lần.
+- File: `android-app/android/app/src/main/java/vn/sokhach/crm/MainActivity.java`, `android-app/android/app/build.gradle`,
+  `android-app/build-apk.sh`, `android-app/README.md`, `js/app.js`, `sw.js` (cache v22).
+
+---
+
 ## 2026-10-07 — Vỏ Android (Capacitor) tự đọc nhật ký cuộc gọi (D-002, giai đoạn 2)
 
 - `android-app/` (mới): Capacitor 8, appId `vn.sokhach.crm`, mở thẳng `https://crm-cop.pages.dev` (sửa web → push là app

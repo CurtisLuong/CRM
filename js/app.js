@@ -499,6 +499,7 @@ async function onLoggedIn(user) {
   await refreshList();
   hideSplash(); // dữ liệu đã sẵn sàng → ẩn màn hình tải
   if (window.CRMCalls) CRMCalls.sync(); // vỏ Android: đọc nhật ký cuộc gọi máy (web: không làm gì)
+  checkAppUpdate(true);                 // vỏ Android: có APK mới → banner (web: không làm gì)
   maybeMigrateAvatars(user.id); // chuyển avatar cũ sang bucket public (chạy nền, 1 lần)
   syncZaloGreeting();           // đồng bộ lời chào Zalo từ Supabase (đa thiết bị, chạy nền)
   setInterval(async () => {
@@ -572,6 +573,73 @@ function closeDetailToList() {
 window.addEventListener('popstate', () => {
   if (!$('#detail-screen').hidden) { detailId = null; showAppScreen(); }
 });
+
+// ---- NÚT / VUỐT BACK trong vỏ Android (android-app/, MainActivity gọi window.CRMBack()) ----
+// Trả true = đã lùi 1 bước trong app; false = không còn gì để lùi → vỏ đưa app xuống nền.
+// Thứ tự: hộp thoại mở SAU CÙNG → menu/panel → hồ sơ khách → xoá ô tìm → về Tổng quan.
+// Trình duyệt thường không gọi hàm này (back vẫn theo history như cũ).
+const _showModal = HTMLDialogElement.prototype.showModal;
+HTMLDialogElement.prototype.showModal = function () {
+  this.dataset.openedAt = String(performance.now()); // để biết hộp nào mở sau cùng
+  return _showModal.apply(this, arguments);
+};
+// ---- NÚT CẬP NHẬT APP (chỉ trong vỏ Android) ----
+// So phiên bản APK đang cài (plugin native AppInfo) với /android-app-version.json (sửa file này mỗi
+// lần phát APK mới — android-app/build-apk.sh tự cập nhật). Cũ hơn → banner; bấm Cập nhật → mở link
+// APK trên Supabase Storage (bucket app-releases) → Chrome tải về → Android hỏi "Cài đặt?".
+const APP_VERSION_URL = '/android-app-version.json';
+const APP_UPDATE_CHECK_MS = 30 * 60 * 1000; // kiểm tra lại tối đa 30 phút/lần khi mở lại app
+let appUpdateCheckedAt = 0, appUpdateInfo = null;
+async function checkAppUpdate(force) {
+  const cap = window.Capacitor;
+  if (!cap || typeof cap.isNativePlatform !== 'function' || !cap.isNativePlatform() || typeof cap.nativePromise !== 'function') return;
+  if (!force && Date.now() - appUpdateCheckedAt < APP_UPDATE_CHECK_MS) return;
+  appUpdateCheckedAt = Date.now();
+  try {
+    const cur = await cap.nativePromise('AppInfo', 'get', {});
+    const res = await fetch(APP_VERSION_URL + '?t=' + Date.now(), { cache: 'no-store' });
+    if (!res.ok) return;
+    const latest = await res.json();
+    if (!(Number(latest.versionCode) > Number(cur.versionCode)) || !latest.url) { $('#app-update-bar').hidden = true; return; }
+    let dismissed = null; try { dismissed = sessionStorage.getItem('crm_app_update_dismissed'); } catch {}
+    if (dismissed === String(latest.versionCode)) return; // bấm ✕ → không nhắc lại trong phiên này
+    appUpdateInfo = latest;
+    $('#app-update-text').textContent = `Có bản app mới ${latest.versionName || ''}` + (latest.notes ? ` — ${latest.notes}` : '');
+    $('#app-update-bar').hidden = false;
+  } catch (e) {
+    // APK cũ chưa có plugin AppInfo / mất mạng → bỏ qua lặng lẽ.
+  }
+}
+$('#app-update-btn')?.addEventListener('click', () => {
+  if (!appUpdateInfo) return;
+  // Link khác tên miền app → vỏ Capacitor tự mở bằng trình duyệt ngoài (Chrome) để tải APK.
+  window.location.href = appUpdateInfo.url;
+  showToast('Đang tải bản mới — tải xong bấm vào file để cài đè (không cần gỡ app)');
+});
+$('#app-update-close')?.addEventListener('click', () => {
+  $('#app-update-bar').hidden = true;
+  try { if (appUpdateInfo) sessionStorage.setItem('crm_app_update_dismissed', String(appUpdateInfo.versionCode)); } catch {}
+});
+window.addEventListener('crm:resume', () => checkAppUpdate(false));
+
+window.CRMBack = function () {
+  const dialogs = [...document.querySelectorAll('dialog[open]')];
+  if (dialogs.length) {
+    dialogs.sort((a, b) => Number(a.dataset.openedAt || 0) - Number(b.dataset.openedAt || 0));
+    dialogs[dialogs.length - 1].close();
+    return true;
+  }
+  const menu = document.querySelector('#topbar-menu.open, #notif-wrap.open');
+  if (menu) { menu.classList.remove('open'); return true; }
+  if (document.querySelector('#app-screen .pop-panel:not([hidden])')) { closeToolPops(); closeLeadPops(); return true; }
+  if (!$('#detail-screen').hidden) { closeDetailToList(); return true; }
+  if (!$('#app-screen').hidden) {
+    const q = $('#search-input');
+    if (q && q.value) { q.value = ''; q.dispatchEvent(new Event('input')); return true; }
+    if ($('#dashboard-view').hidden) { showDashboardView(); window.scrollTo(0, 0); return true; }
+  }
+  return false;
+};
 
 async function handleLogin(e) {
   e.preventDefault();
