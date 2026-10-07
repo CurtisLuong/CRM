@@ -203,6 +203,7 @@ input:focus, select:focus, textarea:focus {
 /* Tab ngay trong header: segmented control dạng viên thuốc (pill) chia đều 3 ô trên nền mực in */
 .tab-nav {
   display: flex; gap: 2px; height: 34px; padding: 3px;
+  max-width: 420px; /* laptop: không kéo dài hết màn (canh trái); điện thoại hẹp hơn nên vẫn full */
   border-radius: 999px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12);
 }
 .tab-btn {
