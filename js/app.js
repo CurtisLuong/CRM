@@ -941,6 +941,27 @@ function searchSnippets(c, q, limit = 2) {
   }
   return out;
 }
+// Ngữ cảnh tìm hiện tại (dùng chung mọi danh sách): null khi ô tìm trống. Toàn số → tìm SĐT.
+function searchCtx() {
+  const raw = $('#search-input').value.trim();
+  if (!raw) return null;
+  const qNorm = removeVietnameseTones(raw);
+  const isPhone = !/[a-z]/.test(qNorm) && /\d/.test(raw);
+  return { qNorm, isPhone, qPhone: isPhone ? raw.replace(/\D/g, '') : '' };
+}
+function hlName(c, ctx) {
+  const n = c.full_name || '(chưa có tên)';
+  return ctx && !ctx.isPhone ? highlightHtml(n, ctx.qNorm) : escapeHtml(n);
+}
+function hlPhone(c, ctx) {
+  const p = c.phone || '';
+  return ctx && ctx.isPhone ? highlightHtml(p, ctx.qPhone) : escapeHtml(p);
+}
+// Khối đoạn trích (HTML) cho 1 khách; '' khi không tìm / không có trường khác khớp.
+function snipsHtml(c, ctx, cls, limit = 2) {
+  if (!ctx || ctx.isPhone) return '';
+  return searchSnippets(c, ctx.qNorm, limit).map((h) => `<span class="${cls}">${h}</span>`).join('');
+}
 
 // Ô tìm kiếm (SĐT / chữ) — dùng chung cho tab Khách hàng và tab Khách mới.
 function matchesSearch(c) {
@@ -1033,6 +1054,7 @@ function renderList() {
   const reminders = new Map();
   for (const c of list) { const r = callReminder(c); if (r) reminders.set(c.id, r); }
   const container = $('#customer-list');
+  const ctx = searchCtx(); // đang tìm → tô đậm từ khoá + đoạn trích trường khớp
   container.innerHTML = '';
   container.classList.toggle('list-mode', viewMode === 'list');
   $('#empty-state').hidden = list.length !== 0;
@@ -1062,9 +1084,11 @@ function renderList() {
       // Chỉ là nhãn (không phải nút; bấm dòng vẫn mở chi tiết).
       const rem = reminders.get(c.id);
       const callHtml = rem ? `<span class="row-call call-${rem.state}">${escapeHtml(rem.text)}</span>` : '';
+      const snip = snipsHtml(c, ctx, 'row-snip', 1);
+      if (ctx && ctx.isPhone) row.dataset.hlPhone = ctx.qPhone; // fitListRow tô lại sau khi cắt số
       row.innerHTML = `
-        <div class="row-name">${escapeHtml(c.full_name || '(chưa có tên)')}</div>
-        <div class="row-right">${callHtml}${phoneHtml}${aptHtml}${interestHtml}</div>`;
+        <div class="row-name">${hlName(c, ctx)}</div>
+        <div class="row-right">${callHtml}${phoneHtml}${aptHtml}${interestHtml}</div>${snip}`;
       container.appendChild(row);
     }
     refitListRows(); // chọn số digits ĐT (và cắt tên nếu cùng cực) cho vừa 1 hàng
@@ -1113,7 +1137,7 @@ function renderList() {
         ${cardAvatarMarkup(c)}
         <div class="card-top-main">
           <div class="card-head">
-            <div class="card-name">${escapeHtml(c.full_name || '(chưa có tên)')}</div>
+            <div class="card-name">${hlName(c, ctx)}</div>
             <div class="card-head-right">
               ${reminders.has(c.id) ? `<button class="call-tag call-${reminders.get(c.id).state}" data-calltag="${c.id}">${escapeHtml(reminders.get(c.id).text)}</button>` : ''}
               <div class="card-menu">
@@ -1125,7 +1149,7 @@ function renderList() {
             </div>
           </div>
           <div class="phone-row">
-            <span class="phone-number">${escapeHtml(c.phone || '')}</span>
+            <span class="phone-number">${hlPhone(c, ctx)}</span>
             <a class="card-phone" href="tel:${normalizePhone(c.phone)}" aria-label="Gọi ${escapeHtml(c.phone || '')}">${PHONE_SVG}</a>
             <a class="card-zalo" href="${zaloHref}" ${zaloAttr} data-id="${c.id}" aria-label="Nhắn Zalo">
               <img class="ic-zalo" src="/icons/zalo.png" alt="Zalo" />
@@ -1143,6 +1167,7 @@ function renderList() {
         ${menhShort ? `<span class="tag tag-menh">${escapeHtml(menhShort)}</span>` : ''}
         ${cung ? `<span class="tag tag-cung">${escapeHtml(cung)}</span>` : ''}
       </div>
+      ${(() => { const sn = snipsHtml(c, ctx, 'card-snip'); return sn ? `<div class="card-snips">${sn}</div>` : ''; })()}
       <div class="card-notes">${cardNotesInner}</div>
       <div class="card-footer">
         <span class="card-updated">${updated ? 'Cập nhật ' + escapeHtml(updated) : ''}</span>
@@ -1167,6 +1192,9 @@ function escapeHtml(s) {
 function fitListRow(row) {
   const nameEl = row.querySelector('.row-name');
   const phoneNum = row.querySelector('.row-phone-num');
+  // Đoạn trích tìm kiếm (dòng 2): tạm bỏ xuống-dòng khi ĐO để hàng 1 vẫn phát hiện tràn đúng.
+  const snip = row.querySelector('.row-snip');
+  if (snip) { row.classList.remove('has-snip'); snip.hidden = true; }
   if (nameEl) nameEl.classList.remove('truncate'); // reset: tên để nguyên để đo lại
   const overflow = () => row.scrollWidth > row.clientWidth + 1;
   if (phoneNum) {
@@ -1181,6 +1209,17 @@ function fitListRow(row) {
     if (!shown) phoneNum.style.display = 'none'; // 1 số vẫn tràn → ẩn hẳn số ĐT
   }
   if (nameEl && overflow()) nameEl.classList.add('truncate'); // cùng lắm mới cắt tên
+  // Tìm theo SĐT → tô phần số khớp trong đoạn số đang hiện (đã cắt "…" nếu thiếu chỗ).
+  if (phoneNum && row.dataset.hlPhone) {
+    const full = phoneNum.dataset.digits || '', q = row.dataset.hlPhone;
+    const shown = phoneNum.textContent.replace('…', ''), off = full.length - shown.length;
+    const i = full.indexOf(q);
+    const a = Math.max(i, off) - off, b = i + q.length - off; // phần khớp còn nằm trong đoạn đang hiện
+    if (i >= 0 && b > a) {
+      phoneNum.innerHTML = (off > 0 ? '…' : '') + escapeHtml(shown.slice(0, a)) + '<mark>' + escapeHtml(shown.slice(a, b)) + '</mark>' + escapeHtml(shown.slice(b));
+    }
+  }
+  if (snip) { snip.hidden = false; row.classList.add('has-snip'); }
 }
 function refitListRows() {
   if (viewMode !== 'list') return;
@@ -3875,6 +3914,7 @@ function renderLeads() {
 
   const list = orderLeads(leads.filter(leadMatchesFilter));
   syncLeadFilterUI();
+  const ctx = searchCtx(); // đang tìm → tô đậm từ khoá + đoạn trích
   $('#lead-result-count').textContent = `${list.length} khách`;
   $('#lead-empty').hidden = list.length !== 0;
   $('#lead-list').innerHTML = list.map((c) => {
@@ -3895,18 +3935,19 @@ function renderLeads() {
     return `
       <div class="lead-card${c.disqualified_at ? ' is-dropped' : ''}" data-id="${c.id}">
         <div class="card-head">
-          <div class="card-name">${escapeHtml(c.full_name || '(chưa có tên)')}</div>
+          <div class="card-name">${hlName(c, ctx)}</div>
           <div class="card-head-right">
             ${rem ? `<span class="call-tag call-${rem.state}">${escapeHtml(rem.text)}</span>` : ''}
             ${leadStatusTag(c)}
           </div>
         </div>
         <div class="phone-row">
-          <span class="phone-number">${escapeHtml(c.phone || '')}</span>
+          <span class="phone-number">${hlPhone(c, ctx)}</span>
           <a class="card-phone" href="tel:${normalizePhone(c.phone)}" aria-label="Gọi ${escapeHtml(c.phone || '')}">${PHONE_SVG}</a>
           <a class="card-zalo" href="${zaloHref}" ${zaloAttr} data-id="${c.id}" aria-label="Nhắn Zalo"><img class="ic-zalo" src="/icons/zalo.png" alt="Zalo" /></a>
         </div>
         ${meta ? `<div class="lead-card-meta">${meta}</div>` : ''}
+        ${snipsHtml(c, ctx, 'card-snip')}
         <div class="lead-card-last">${lastLine}</div>
       </div>`;
   }).join('');
@@ -4184,19 +4225,12 @@ function dashSearchRow(c) {
   const meta = [sourceDisplay(c.source), (Array.isArray(c.projects) && c.projects.length) ? c.projects.join(', ') : '']
     .filter(Boolean).map(escapeHtml).join(' · ');
   const dim = c.disqualified_at || isCareDone(c.care_stage);
-  // Từ khoá: chữ → tô trong tên + đoạn trích; toàn số → tô trong SĐT.
-  const raw = $('#search-input').value.trim();
-  const qNorm = removeVietnameseTones(raw);
-  const isPhoneQ = !/[a-z]/.test(qNorm) && /\d/.test(raw);
-  const qPhone = isPhoneQ ? raw.replace(/\D/g, '') : '';
-  const nameHtml = isPhoneQ ? escapeHtml(c.full_name || '(chưa có tên)') : highlightHtml(c.full_name || '(chưa có tên)', qNorm);
-  const phoneHtml = isPhoneQ ? highlightHtml(c.phone || '', qPhone) : highlightHtml(c.phone || '', qNorm);
-  const snips = isPhoneQ ? [] : searchSnippets(c, qNorm);
+  const ctx = searchCtx(); // từ khoá: chữ → tô tên + đoạn trích; toàn số → tô SĐT
   return `<button type="button" class="search-row${dim ? ' is-dim' : ''}" data-search-open="${c.id}">
       <span class="search-row-main">
-        <span class="search-row-name">${nameHtml}</span>
-        <span class="search-row-meta">${phoneHtml}${meta ? ' · ' + meta : ''}</span>
-        ${snips.map((h) => `<span class="search-row-snip">${h}</span>`).join('')}
+        <span class="search-row-name">${hlName(c, ctx)}</span>
+        <span class="search-row-meta">${hlPhone(c, ctx)}${meta ? ' · ' + meta : ''}</span>
+        ${snipsHtml(c, ctx, 'search-row-snip')}
       </span>
       ${tag}
     </button>`;

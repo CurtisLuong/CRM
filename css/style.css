@@ -1639,6 +1639,11 @@ details.form-more > .form-grid, details.form-more > .docs-list { margin-top: 10p
 .search-row-meta { font-size: 12px; color: #8a8a7d; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .search-more { font-size: 12px; color: #8a8a7d; padding: 2px 4px; }
 /* Đoạn trích khớp từ khoá (kiểu Google) */
-.search-row mark { background: #f6e3a8; color: inherit; border-radius: 2px; padding: 0 1px; font-weight: 600; }
+.search-row mark, .customer-card mark, .cust-row mark, .lead-card mark { background: #f6e3a8; color: inherit; border-radius: 2px; padding: 0 1px; font-weight: 600; }
 .search-row-snip { font-size: 13px; color: #4a4a42; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .snip-label { color: #8a8a7d; }
+/* Đoạn trích khớp từ khoá trên thẻ (Tiềm năng / Khách mới) và dòng gọn */
+.card-snips { display: flex; flex-direction: column; gap: 2px; margin: 6px 0 2px; }
+.card-snip { font-size: 12.5px; color: #4a4a42; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.cust-row.has-snip { flex-wrap: wrap; }
+.row-snip { flex: 0 0 100%; order: 99; font-size: 12px; color: #4a4a42; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

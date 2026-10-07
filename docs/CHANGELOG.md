@@ -15,7 +15,9 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 - Kết quả tìm kiểu Google: từ khoá được tô đậm trong tên/SĐT, kèm tối đa 2 đoạn trích của trường khớp (vd "Ghi chú: …căn
   **góc** tầng trung…", "Chiến dịch: FB-**Góc**-T10"), không phân biệt dấu. Danh sách trường tìm gom về `searchFields()`;
   tìm thêm được theo chiến dịch, thông tin đăng ký, ghi chú cuộc gọi, lý do loại.
-- File: `index.html`, `js/app.js`, `css/style.css`, `sw.js` (cache v16), `docs/design.md`.
+- Tô đậm + đoạn trích áp dụng cho MỌI chỗ tìm: trang kết quả Tổng quan, thẻ & dòng gọn tab Tiềm năng (dòng gọn: trích
+  1 dòng dưới tên; SĐT bị cắt "…" vẫn tô phần khớp), thẻ tab Khách mới. Helper chung: `searchCtx`, `hlName`, `hlPhone`, `snipsHtml`.
+- File: `index.html`, `js/app.js`, `css/style.css`, `sw.js` (cache v17), `docs/design.md`.
 
 ---
 
