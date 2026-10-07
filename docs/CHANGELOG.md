@@ -6,6 +6,18 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-07 — Sửa lỗi app Android bỏ sót cuộc gọi từ khách thứ 2 trở đi
+
+- Nguyên nhân: sau mỗi lần đọc nhật ký, mốc "đã đọc tới" = THỜI ĐIỂM HIỆN TẠI. Android chỉ ghi cuộc gọi vào nhật ký sau
+  khi cúp máy và ghi theo GIỜ BẮT ĐẦU → quay lại app ngay khi cúp, máy chưa kịp ghi → mốc vượt qua giờ bắt đầu cuộc đó →
+  cuộc bị bỏ qua vĩnh viễn. Ngoài ra 2 lần đọc chồng nhau thì lần sau bị bỏ.
+- Sửa (`js/calls.js`): mốc = giờ bắt đầu của cuộc muộn nhất đã đọc; quay lại app → đọc ngay + đọc lại sau 4s và 12s;
+  yêu cầu đọc khi đang đọc dở được xếp hàng chạy tiếp. Một lần sau cập nhật: lùi mốc 24h để vớt cuộc đã sót. Không trùng
+  (chặn theo device_id). Không cần APK mới.
+- File: `js/calls.js`, `sw.js` (cache v40).
+
+---
+
 ## 2026-10-07 — Badge tab Khách mới chỉ đếm việc cần làm ngay
 
 - Trước: đếm mọi lead chưa loại (luôn vài chục → bị "nhờn"). Nay: lead đăng ký hôm qua + hôm nay, chưa loại, chưa gọi lần

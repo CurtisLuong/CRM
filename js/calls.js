@@ -230,18 +230,30 @@
     if (added) await refreshList();
     return added;
   }
-  let syncing = false, permWarned = false;
+  let syncing = false, syncAgain = false, permWarned = false;
   async function syncDevice() {
-    const src = deviceSource(); if (!src || syncing || !currentUser) return 0;
+    const src = deviceSource(); if (!src || !currentUser) return 0;
+    // Đang đọc dở → KHÔNG bỏ yêu cầu mới (trước đây bỏ → có thể sót cuộc gọi): đánh dấu, đọc lại ngay khi xong.
+    if (syncing) { syncAgain = true; return 0; }
     syncing = true;
     try {
       let since = 0;
-      try { since = Number(localStorage.getItem(LS_SYNC_AT)) || 0; } catch {}
+      try {
+        // Một lần sau bản sửa lỗi mốc (2026-10-07): lùi mốc 24h để vớt lại cuộc gọi đã bị bỏ sót trước đó.
+        if (!localStorage.getItem('crm_call_sync_fix1')) {
+          localStorage.setItem('crm_call_sync_fix1', '1');
+          localStorage.removeItem(LS_SYNC_AT);
+        }
+        since = Number(localStorage.getItem(LS_SYNC_AT)) || 0;
+      } catch {}
       if (!since) since = Date.now() - FIRST_SYNC_LOOKBACK_MS;
-      const now = Date.now();
       const calls = await src.fetchSince(since);
       const added = await ingest(calls);
-      try { localStorage.setItem(LS_SYNC_AT, String(now)); } catch {}
+      // Mốc mới = giờ BẮT ĐẦU của cuộc muộn nhất đã đọc (KHÔNG dùng "bây giờ"): Android chỉ ghi cuộc gọi vào nhật
+      // ký SAU KHI CÚP MÁY, theo giờ bắt đầu → nếu lấy "bây giờ", cuộc vừa cúp mà máy ghi trễ vài giây sẽ nằm trước
+      // mốc và bị bỏ qua vĩnh viễn (lỗi 2026-10-07: khách thứ 2 không tự ghi). Trùng lặp đã chặn theo device_id.
+      const latest = (calls || []).reduce((m, c) => Math.max(m, Number(c && c.startedAt) || 0), since);
+      try { localStorage.setItem(LS_SYNC_AT, String(latest)); } catch {}
       if (added) autoOpenLatestPending();
       return added;
     } catch (e) {
@@ -252,7 +264,18 @@
         showToast('Chưa cấp quyền Nhật ký cuộc gọi — vào Cài đặt › Ứng dụng › Sổ Khách › Quyền để bật');
       }
       return 0;
-    } finally { syncing = false; }
+    } finally {
+      syncing = false;
+      if (syncAgain) { syncAgain = false; setTimeout(syncDevice, 0); }
+    }
+  }
+  // Quay lại app → đọc ngay + đọc lại sau 4s và 12s: cuộc VỪA cúp máy có thể chưa kịp được Android ghi vào nhật ký.
+  let resyncTimers = [];
+  function syncDeviceSoon() {
+    if (!deviceSource()) return;
+    resyncTimers.forEach(clearTimeout);
+    syncDevice();
+    resyncTimers = [4000, 12000].map((ms) => setTimeout(syncDevice, ms));
   }
   // Tự mở hộp cho cuộc chưa ghi chú MỚI NHẤT (nếu không có hộp thoại nào đang mở).
   function autoOpenLatestPending() {
@@ -265,11 +288,11 @@
   // Rời app / quay lại app (điện thoại: visibilitychange; máy tính gọi qua FaceTime: blur/focus).
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) onLeave();
-    else { onBack(); syncDevice(); }
+    else { onBack(); syncDeviceSoon(); }
   });
   window.addEventListener('blur', onLeave);
   window.addEventListener('focus', onBack);
-  window.addEventListener('crm:resume', () => syncDevice()); // vỏ Android báo app vừa mở lại (MainActivity.onResume)
+  window.addEventListener('crm:resume', syncDeviceSoon); // vỏ Android báo app vừa mở lại (MainActivity.onResume)
 
   window.CallLog = { open, openPending };
   // API cho vỏ native / dịch vụ nền sau này.
