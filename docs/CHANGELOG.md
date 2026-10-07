@@ -6,6 +6,15 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-07 — Tab Khách mới: sắp xếp mặc định mới
+
+- Mặc định: thời gian đăng ký mới nhất → số lần gọi ít nhất → tên A→Z (thay cho thứ tự "ưu tiên gọi" cũ, đã bỏ
+  `sortLeads`). Panel Sắp xếp xếp hàng theo đúng thứ tự ưu tiên này, mở ra thấy sẵn 3 tiêu chí; "Đặt lại mặc định" về
+  lại 3 tiêu chí; bỏ chọn hết cũng dùng mặc định. Khách đến giờ hẹn gọi vẫn lên đầu.
+- File: `js/app.js`, `index.html`, `sw.js` (cache v27).
+
+---
+
 ## 2026-10-07 — Chuẩn hoá loại căn viết tự do (OCR: "2 ngủ", "2PN+", "2PN góc"...)
 
 - `canonicalAptType` (js/app.js) đọc thêm cách viết tự do → giá trị chuẩn: "2 ngủ"/"2N"/"2n"/"2PN"/"2 phòng ngủ"/"2BR" →

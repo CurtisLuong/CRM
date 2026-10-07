@@ -437,13 +437,19 @@ const LEAD_UNREACHABLE_SUGGEST = 3;
 let leadFilter = 'open';     // dropdown trạng thái: 'open' (cần gọi) | 'dropped' | 'all'
 let leadSrcFilter = '';      // bộ lọc kênh: '' = tất cả, hoặc mã trong SOURCES
 let leadDatePreset = 'all';  // bộ lọc thời gian đăng ký: 'all' | 'today' | 'week' | 'month'
-// Sắp xếp tab Khách mới: mảng {key, dir}; RỖNG = ưu tiên gọi (sortLeads mặc định).
+// Sắp xếp tab Khách mới: mảng {key, dir}. Thứ tự hàng trong panel = thứ tự ƯU TIÊN khi ghép.
 const LEAD_SORT_ATTRS = [
-  { key: 'name',     name: 'Tên' },
   { key: 'reg',      name: 'Thời gian đăng ký' },
   { key: 'attempts', name: 'Số lần gọi' },
+  { key: 'name',     name: 'Tên' },
 ];
-let leadSort = [];
+// Mặc định (chốt 2026-10-07): đăng ký mới nhất → ít lần gọi nhất → tên A→Z.
+const LEAD_DEFAULT_SORT = [
+  { key: 'reg', dir: 'desc' },
+  { key: 'attempts', dir: 'asc' },
+  { key: 'name', dir: 'asc' },
+];
+let leadSort = LEAD_DEFAULT_SORT.map((x) => ({ ...x }));
 let leadSortDraft = {};
 
 // Nhãn hiển thị cho loại tài liệu (kind). Mở rộng khi có loại giấy tờ mới.
@@ -4029,8 +4035,7 @@ function leadMatchesFilter(c) {
   }
   return matchesSearch(c);
 }
-// Thứ tự ưu tiên gọi: đến giờ hẹn → chưa gọi lần nào (mới nhất trước, gọi sớm tỉ lệ
-// bắt máy cao) → đang gọi dở (lần gọi gần nhất cũ nhất trước). Đã loại: mới loại trước.
+
 // Khoảng thời gian cho preset Hôm nay / Tuần này / Tháng này (null = tất cả).
 function presetRange(p) {
   const now = new Date();
@@ -4045,12 +4050,12 @@ function leadSortCompare(key, a, b) {
   if (key === 'attempts') return callAttemptsOf(a).length - callAttemptsOf(b).length;
   return 0;
 }
-// Có tiêu chí sắp xếp → sắp theo đó (lịch hẹn đến giờ vẫn ĐẨY LÊN ĐẦU như tab Tiềm năng);
-// không có → thứ tự ưu tiên gọi.
+// Sắp theo tiêu chí đang chọn (bỏ chọn hết → dùng mặc định). Lịch hẹn gọi ĐẾN GIỜ vẫn đẩy
+// lên đầu như tab Tiềm năng.
 function orderLeads(list) {
-  if (!leadSort.length) return sortLeads(list);
+  const keys = leadSort.length ? leadSort : LEAD_DEFAULT_SORT;
   const arr = [...list].sort((a, b) => {
-    for (const { key, dir } of leadSort) {
+    for (const { key, dir } of keys) {
       const d = leadSortCompare(key, a, b);
       if (d !== 0) return (dir === 'asc' ? 1 : -1) * d;
     }
@@ -4058,25 +4063,6 @@ function orderLeads(list) {
   });
   const due = (c) => { const r = !c.disqualified_at && callReminder(c); return r && r.state !== 'soon'; };
   return [...arr.filter(due), ...arr.filter((c) => !due(c))];
-}
-
-function sortLeads(list) {
-  const lastAt = (c) => { const a = callAttemptsOf(c); return a.length ? a[a.length - 1].at : ''; };
-  const regAt = (c) => c.registered_at || c.created_at || '';
-  const rank = (c) => {
-    if (c.disqualified_at) return 3;
-    const r = callReminder(c);
-    if (r && r.state !== 'soon') return 0;
-    return callAttemptsOf(c).length ? 2 : 1;
-  };
-  return [...list].sort((a, b) => {
-    const d = rank(a) - rank(b);
-    if (d) return d;
-    const r = rank(a);
-    if (r === 3) return (b.disqualified_at || '').localeCompare(a.disqualified_at || '');
-    if (r === 2) return lastAt(a).localeCompare(lastAt(b));
-    return regAt(b).localeCompare(regAt(a));
-  });
 }
 
 function leadStatusTag(c) {
@@ -4346,7 +4332,11 @@ $('#lead-sort-apply')?.addEventListener('click', () => {
   leadSort = LEAD_SORT_ATTRS.filter((a) => leadSortDraft[a.key]).map((a) => ({ key: a.key, dir: leadSortDraft[a.key] }));
   closeLeadPops(); renderLeads();
 });
-$('#lead-sort-reset')?.addEventListener('click', () => { leadSort = []; leadSortDraft = {}; renderLeadSortOptions(); renderLeads(); });
+$('#lead-sort-reset')?.addEventListener('click', () => {
+  leadSort = LEAD_DEFAULT_SORT.map((x) => ({ ...x }));
+  leadSortDraft = Object.fromEntries(leadSort.map((x) => [x.key, x.dir]));
+  renderLeadSortOptions(); renderLeads();
+});
 // Bấm ra ngoài → đóng mọi pop của tab Khách mới.
 document.addEventListener('click', (e) => { if (!e.target.closest('#lead-view .tool-pop')) closeLeadPops(); });
 $('#add-lead-btn')?.addEventListener('click', () => openForm(null));
