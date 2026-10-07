@@ -4677,45 +4677,360 @@ function sparkline(values, labels) {
     <path d="${path}" fill="none" stroke="var(--terracotta)" stroke-width="2"/>${dots}${xlabels}</svg>`;
 }
 
-function dashCard(title, bodyHtml, hint) {
-  return `<div class="dash-card">
+function dashCard(title, bodyHtml, hint, extraClass) {
+  return `<div class="dash-card${extraClass ? ' ' + extraClass : ''}">
     <h3>${escapeHtml(title)}</h3>
     ${hint ? `<p class="dash-hint">${escapeHtml(hint)}</p>` : ''}
     ${bodyHtml}
   </div>`;
 }
 
+// ================= TỔNG QUAN = "BÀN LÀM VIỆC" CỦA SALE (thiết kế lại 2026-10-07) =================
+// Thứ tự trên màn: (1) 4 chỉ số nhanh → (2) VIỆC HÔM NAY (danh sách gọi theo ưu tiên) →
+// (3) lịch hẹn 7 ngày · pipeline đang chăm · hiệu suất tuần → (4) Phân tích (thu gọn, các
+// biểu đồ báo cáo cũ). Tham chiếu: Follow Up Boss (Smart Lists, speed to lead), Salesforce
+// (pipeline theo bậc), LionDesk (nhắc sinh nhật / chăm lại khách cũ). Chỉ dùng dữ liệu đã có.
+const DASH_GROUP_LIMIT = 5;            // mỗi nhóm việc hiện tối đa N dòng, còn lại "Xem thêm"
+const DASH_IDLE_WARM_DAYS = 14;        // Tiềm năng (không nóng) bao lâu chưa liên hệ thì nhắc
+const DASH_LEAD_RETRY_H = 24;          // lead chưa nói chuyện được: gọi lại sau N giờ
+const DASH_BIRTHDAY_DAYS = 7;          // nhắc sinh nhật trong N ngày tới
+const LS_DASH_ANALYTICS = 'crm_dash_analytics_open';
+const dashExpanded = new Set();        // các nhóm việc đang mở "Xem thêm"
+function dashHotMin() { return (window.NOTIF && NOTIF.config.hotInterestMin) || 60; }
+function dashIdleHotDays() { return (window.NOTIF && NOTIF.config.idleDays) || 7; }
+
+// Mốc liên hệ cuối (ms): định nghĩa chung ở NOTIF.lastInteractionAt + thêm các lần gọi.
+function lastTouchMs(c) {
+  const base = window.NOTIF ? NOTIF.lastInteractionAt(c) : Date.parse(c.updated_at);
+  const calls = callAttemptsOf(c);
+  const lastCall = calls.length ? Date.parse(calls[calls.length - 1].at) : NaN;
+  const t = Math.max(isNaN(base) || base == null ? 0 : base, isNaN(lastCall) ? 0 : lastCall);
+  return t || null;
+}
+function hhmm(ms) {
+  const d = new Date(ms);
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+function startOfDayMs(ms) { const d = new Date(ms); d.setHours(0, 0, 0, 0); return d.getTime(); }
+// "Hôm nay 14:00" / "Hôm qua 09:30" / "Mai 10:00" / "T6 10/10 10:00"
+function dashWhen(ms) {
+  const diff = Math.round((startOfDayMs(ms) - startOfDayMs(Date.now())) / 86400000);
+  const day = diff === 0 ? 'Hôm nay' : diff === -1 ? 'Hôm qua' : diff === 1 ? 'Mai'
+    : `${VI_WD_SHORT[new Date(ms).getDay()]} ${ddmm(new Date(ms))}`;
+  return `${day} ${hhmm(ms)}`;
+}
+// Số ngày tới sinh nhật kế tiếp (0 = hôm nay), null nếu thiếu ngày/tháng.
+function daysToBirthday(c) {
+  const p = c.dob && window.LunarUtil ? LunarUtil.parseDob(c.dob) : null;
+  if (!p || !p.month || !p.day) return null;
+  const t0 = startOfDayMs(Date.now()), y = new Date().getFullYear();
+  let next = new Date(y, p.month - 1, p.day).getTime();
+  if (next < t0) next = new Date(y + 1, p.month - 1, p.day).getTime();
+  return Math.round((next - t0) / 86400000);
+}
+function median(arr) {
+  if (!arr.length) return null;
+  const s = [...arr].sort((a, b) => a - b), m = Math.floor(s.length / 2);
+  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+}
+// Thời gian từ lúc khách đăng ký → cuộc gọi đầu tiên (ms), null nếu chưa gọi / dữ liệu lệch.
+function speedToLeadMs(c) {
+  const calls = callAttemptsOf(c); if (!calls.length) return null;
+  const reg = Date.parse(c.registered_at || c.created_at), first = Date.parse(calls[0].at);
+  return (isNaN(reg) || isNaN(first) || first < reg) ? null : first - reg;
+}
+
+// 1 dòng việc: bấm tên → mở khách; nút gọi (tel: + data-call-id → hộp ghi cuộc gọi khi quay lại).
+function dashActRow(c, sub, tone) {
+  const tel = normalizePhone(c.phone || '');
+  const tag = isQualified(c) ? careLabel(c.care_stage) : 'Khách mới';
+  return `<div class="act-row${tone ? ' is-' + tone : ''}">
+      <button type="button" class="act-main" data-open="${c.id}">
+        <span class="act-name">${escapeHtml(c.full_name || '(chưa tên)')}<span class="act-tag">${escapeHtml(tag)}</span></span>
+        <span class="act-sub">${escapeHtml(sub)}</span>
+      </button>
+      ${tel ? `<a class="act-call" href="tel:${tel}" data-call-id="${c.id}" aria-label="Gọi ${escapeHtml(c.full_name || '')}">${PHONE_SVG}</a>` : ''}
+    </div>`;
+}
+
+// Gom các nhóm việc hôm nay. Mỗi khách chỉ nằm ở nhóm "liên hệ" đầu tiên nó khớp
+// (trừ 'Cuộc gọi chưa ghi chú' và 'Sinh nhật' — là việc khác loại, được trùng).
+function dashActionGroups(all) {
+  const now = Date.now();
+  const tomorrow0 = startOfDayMs(now) + 86400000;
+  const hotMin = dashHotMin();
+  const callStart = (c) => (c.next_call_at ? Date.parse(c.next_call_at) : NaN);
+  const hasFutureCall = (c) => callStart(c) > now;
+  const openLeads = all.filter((c) => !isQualified(c) && !c.disqualified_at);
+  const activeQ = all.filter((c) => isQualified(c) && !isCareDone(c.care_stage));
+  const leadsWithCall = (fn) => openLeads.filter((c) => !hasFutureCall(c)).filter(fn);
+  const lastCallOf = (c) => { const a = callAttemptsOf(c); return a[a.length - 1]; };
+
+  const groups = [
+    {
+      key: 'due', title: 'Đến giờ / quá giờ hẹn gọi', tone: 'urgent', contact: true,
+      items: all.filter((c) => !c.disqualified_at && callStart(c) <= now)
+        .sort((a, b) => callStart(a) - callStart(b))
+        .map((c) => ({ c, sub: `Hẹn ${dashWhen(callStart(c))}${c.next_call_reason ? ' · ' + c.next_call_reason : ''}` })),
+    },
+    {
+      key: 'today', title: 'Hẹn gọi còn lại hôm nay', contact: true,
+      items: all.filter((c) => !c.disqualified_at && callStart(c) > now && callStart(c) < tomorrow0)
+        .sort((a, b) => callStart(a) - callStart(b))
+        .map((c) => ({ c, sub: `${hhmm(callStart(c))}${c.next_call_reason ? ' · ' + c.next_call_reason : ''}` })),
+    },
+    {
+      key: 'new', title: 'Khách mới chưa gọi', tone: 'hot', contact: true,
+      hint: 'Gọi càng sớm sau khi khách đăng ký, khả năng nghe máy càng cao.',
+      items: leadsWithCall((c) => !callAttemptsOf(c).length)
+        .sort((a, b) => (b.registered_at || b.created_at || '').localeCompare(a.registered_at || a.created_at || ''))
+        .map((c) => {
+          const reg = Date.parse(c.registered_at || c.created_at);
+          const proj = Array.isArray(c.projects) && c.projects.length ? ' · ' + c.projects.join(', ') : '';
+          return { c, sub: `Chờ ${isNaN(reg) ? '?' : formatDuration(now - reg)} · ${sourceDisplay(c.source)}${proj}` };
+        }),
+    },
+    {
+      key: 'retry', title: 'Gọi lại khách chưa liên lạc được', contact: true,
+      items: leadsWithCall((c) => {
+        const calls = callAttemptsOf(c);
+        return calls.length && !calls.some((a) => a.result === 'talked')
+          && now - Date.parse(calls[calls.length - 1].at) >= DASH_LEAD_RETRY_H * 3600000;
+      }).sort((a, b) => callAttemptsOf(a).length - callAttemptsOf(b).length
+        || lastCallOf(a).at.localeCompare(lastCallOf(b).at))
+        .map((c) => {
+          const last = lastCallOf(c);
+          return { c, sub: `Đã gọi ${callAttemptsOf(c).length} lần · lần cuối ${formatDuration(now - Date.parse(last.at))} trước · ${callResultLabel(last)}` };
+        }),
+    },
+    {
+      key: 'decide', title: 'Đã nói chuyện — chờ phân loại', contact: true,
+      hint: 'Chuyển sang Tiềm năng hoặc loại để danh sách Khách mới gọn.',
+      items: leadsWithCall((c) => {
+        const talked = callAttemptsOf(c).filter((a) => a.result === 'talked');
+        return talked.length && now - Date.parse(talked[talked.length - 1].at) >= DASH_LEAD_RETRY_H * 3600000;
+      }).map((c) => ({ c, sub: `Nói chuyện lần cuối ${formatDuration(now - Date.parse(lastCallOf(c).at))} trước` })),
+    },
+    {
+      key: 'pending', title: 'Cuộc gọi chưa ghi chú',
+      items: all.filter((c) => pendingCallsOf(c).length).map((c) => {
+        const p = pendingCallsOf(c);
+        return { c, sub: `${p.length} cuộc · gần nhất ${dashWhen(Date.parse(p[p.length - 1].at))}` };
+      }),
+    },
+    {
+      key: 'hot', title: 'Khách nóng đang nguội', tone: 'hot', contact: true,
+      items: activeQ.filter((c) => !hasFutureCall(c) && (c.interest_level || 0) >= hotMin)
+        .map((c) => ({ c, idle: Math.floor((now - (lastTouchMs(c) || now)) / 86400000) }))
+        .filter((x) => x.idle >= dashIdleHotDays())
+        .sort((a, b) => (b.c.interest_level || 0) - (a.c.interest_level || 0) || b.idle - a.idle)
+        .map(({ c, idle }) => ({ c, sub: `Quan tâm ${c.interest_level || 0}% · ${idle} ngày chưa liên hệ` })),
+    },
+    {
+      key: 'warm', title: 'Tiềm năng lâu chưa chăm', contact: true,
+      items: activeQ.filter((c) => !hasFutureCall(c) && (c.interest_level || 0) < hotMin)
+        .map((c) => ({ c, idle: Math.floor((now - (lastTouchMs(c) || now)) / 86400000) }))
+        .filter((x) => x.idle >= DASH_IDLE_WARM_DAYS)
+        .sort((a, b) => b.idle - a.idle)
+        .map(({ c, idle }) => ({ c, sub: `${idle} ngày chưa liên hệ · quan tâm ${c.interest_level || 0}%` })),
+    },
+    {
+      key: 'bday', title: 'Sinh nhật sắp tới', tone: 'info',
+      hint: 'Một lời chúc qua Zalo giữ quan hệ — kể cả với khách đã chốt (giới thiệu khách mới).',
+      items: all.filter((c) => isQualified(c) && c.care_stage !== CARE_STAGE_DROPPED)
+        .map((c) => ({ c, d: daysToBirthday(c) }))
+        .filter((x) => x.d != null && x.d <= DASH_BIRTHDAY_DAYS)
+        .sort((a, b) => a.d - b.d)
+        .map(({ c, d }) => ({ c, sub: d === 0 ? 'Sinh nhật hôm nay 🎂' : `Sinh nhật ${formatDob(c.dob).slice(0, 5)} · còn ${d} ngày` })),
+    },
+  ];
+  const seen = new Set();
+  for (const g of groups) {
+    if (!g.contact) continue;
+    g.items = g.items.filter(({ c }) => (seen.has(c.id) ? false : (seen.add(c.id), true)));
+  }
+  return groups;
+}
+
 function renderDashboard() {
   const all = allCustomers;
   const box = $('#dashboard-content');
-  // Đang gõ tìm ở Tổng quan → hiện trang kết quả tạm thay cho biểu đồ.
+  // Đang gõ tìm ở Tổng quan → hiện trang kết quả tạm thay cho bàn làm việc.
   const q = $('#search-input').value.trim();
   $('#dash-search').hidden = !q;
   box.hidden = !!q;
   if (q) { renderDashSearch(); return; }
   if (!all.length) {
-    box.innerHTML = `<div class="dash-card"><div class="dash-empty">Chưa có khách hàng nào. Thêm khách để xem thống kê.</div></div>`;
+    box.innerHTML = `<div class="dash-card"><div class="dash-empty">Chưa có khách hàng nào. Bấm + để thêm khách đầu tiên.</div></div>`;
     return;
   }
-  const active = all.filter((c) => !isCareDone(c.care_stage)); // đang chăm (chưa xong)
+  const now = Date.now();
+  const groups = dashActionGroups(all);
+  const byKey = Object.fromEntries(groups.map((g) => [g.key, g]));
+
+  // ---- Mốc tuần / tháng ----
+  const wk0 = mondayOf(new Date()).getTime();
+  const prevWk0 = wk0 - 7 * 86400000;
+  const month0 = new Date(new Date().getFullYear(), new Date().getMonth(), 1).getTime();
+  const inRange = (iso, a, b) => { const t = Date.parse(iso); return !isNaN(t) && t >= a && t < b; };
+
+  // Đếm hoạt động trong khoảng [a, b): khách mới, cuộc gọi, nói chuyện được, lên Tiềm năng, Booking/Kí.
+  const activity = (a, b) => {
+    const r = { leads: 0, calls: 0, talked: 0, qualified: 0, deals: 0 };
+    for (const c of all) {
+      if (inRange(c.registered_at || c.created_at, a, b)) r.leads++;
+      if (c.qualified_at && inRange(c.qualified_at, a, b)) r.qualified++;
+      for (const x of callAttemptsOf(c)) {
+        if (!inRange(x.at, a, b)) continue;
+        r.calls++; if (x.result === 'talked') r.talked++;
+      }
+      const hist = Array.isArray(c.care_stage_history) ? c.care_stage_history : [];
+      if (hist.some((h) => h && (h.stage === 'Booking' || h.stage === 'Kí HĐMB') && inRange(h.at, a, b))) r.deals++;
+    }
+    return r;
+  };
+  const thisWk = activity(wk0, now + 1), lastWk = activity(prevWk0, wk0);
+
+  // Chốt trong tháng: khách có mốc 'Kí HĐMB' từ đầu tháng.
+  const closedMonth = all.filter((c) => (Array.isArray(c.care_stage_history) ? c.care_stage_history : [])
+    .some((h) => h && h.stage === 'Kí HĐMB' && inRange(h.at, month0, now + 1))).length;
+  const bookingNow = all.filter((c) => c.care_stage === 'Booking').length;
+
+  // Speed to lead: trung vị thời gian từ đăng ký → cuộc gọi đầu, khách đăng ký 30 ngày qua.
+  const stl = all.filter((c) => inRange(c.registered_at || c.created_at, now - 30 * 86400000, now + 1))
+    .map(speedToLeadMs).filter((v) => v != null);
+  const stlMed = median(stl);
+
+  const contactTodo = groups.filter((g) => g.contact).reduce((s, g) => s + g.items.length, 0);
+  const todo = contactTodo + byKey.pending.items.length;
+
+  // ---- 1) Lời chào + 4 chỉ số nhanh ----
+  const d = new Date();
+  const hour = d.getHours();
+  const greet = hour < 11 ? 'Chào buổi sáng' : hour < 14 ? 'Chào buổi trưa' : hour < 18 ? 'Chào buổi chiều' : 'Chào buổi tối';
+  const VI_WD_FULL = ['Chủ nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+  const lunar = window.LunarUtil ? LunarUtil.convertSolar2Lunar(d.getDate(), d.getMonth() + 1, d.getFullYear()) : null;
+  const lunarTxt = lunar ? ` · ${lunar.day}/${lunar.month} âm lịch` : '';
+  const delta = (a, b) => (a === b ? '' : `<span class="kpi-delta ${a > b ? 'up' : 'down'}">${a > b ? '▲' : '▼'} ${Math.abs(a - b)}</span>`);
+  const kpi = (label, value, sub, go, tone) => `
+    <button type="button" class="kpi${tone ? ' is-' + tone : ''}" ${go ? `data-go="${go}"` : ''}>
+      <span class="kpi-label">${label}</span>
+      <span class="kpi-value">${value}</span>
+      <span class="kpi-sub">${sub}</span>
+    </button>`;
+  const headHtml = `
+    <div class="dash-head">
+      <div>
+        <div class="dash-greet">${greet}</div>
+        <div class="dash-date">${VI_WD_FULL[d.getDay()]}, ${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}${lunarTxt}</div>
+      </div>
+      <div class="dash-head-msg">${todo ? `Hôm nay có <b>${todo}</b> việc cần xử lý` : 'Không còn việc tồn đọng 👍'}</div>
+    </div>
+    <div class="kpi-strip">
+      ${kpi('Việc cần làm', todo, byKey.due.items.length ? `<b class="txt-bad">${byKey.due.items.length} quá giờ hẹn</b>` : 'không có hẹn quá giờ', 'todo', byKey.due.items.length ? 'urgent' : '')}
+      ${kpi('Khách mới chờ gọi', byKey.new.items.length, stlMed != null ? `gọi lần đầu sau ~${escapeHtml(formatDuration(stlMed))}` : 'chưa có số liệu phản hồi', 'leads', byKey.new.items.length ? 'hot' : '')}
+      ${kpi('Cuộc gọi tuần này', thisWk.calls, `${thisWk.talked} nói chuyện được · tuần trước ${lastWk.calls}`, 'week')}
+      ${kpi('Chốt tháng này', closedMonth, `${bookingNow} khách đang Booking`, 'pipeline', closedMonth ? 'good' : '')}
+    </div>`;
+
+  // ---- 2) VIỆC HÔM NAY ----
+  const shown = groups.filter((g) => g.items.length);
+  const todoHtml = shown.length ? shown.map((g) => {
+    const open = dashExpanded.has(g.key);
+    const rows = (open ? g.items : g.items.slice(0, DASH_GROUP_LIMIT));
+    const rest = g.items.length - rows.length;
+    return `<section class="act-group${g.tone ? ' is-' + g.tone : ''}">
+        <div class="act-group-title"><span>${escapeHtml(g.title)}</span><span class="act-count">${g.items.length}</span></div>
+        ${g.hint ? `<div class="act-hint">${escapeHtml(g.hint)}</div>` : ''}
+        <div class="act-list">${rows.map((x) => dashActRow(x.c, x.sub, g.tone)).join('')}</div>
+        ${rest > 0 ? `<button type="button" class="btn-ghost act-more" data-more="${g.key}">Xem thêm ${rest} khách</button>`
+          : (open && g.items.length > DASH_GROUP_LIMIT ? `<button type="button" class="btn-ghost act-more" data-more="${g.key}">Thu gọn</button>` : '')}
+      </section>`;
+  }).join('') : '<div class="dash-empty">Đã xử lý hết việc hôm nay. Có thể gọi chăm lại khách cũ hoặc nhập thêm khách mới.</div>';
+  const todoCard = `<div class="dash-card dash-todo" id="dash-todo">
+      <h3>Việc hôm nay</h3>
+      <p class="dash-hint">Xếp theo mức ưu tiên: hẹn gọi → khách mới → gọi lại → chăm lại. Bấm tên để mở hồ sơ, bấm 📞 để gọi.</p>
+      ${todoHtml}
+    </div>`;
+
+  // ---- 3a) Lịch hẹn 7 ngày tới (sau hôm nay) ----
+  const tomorrow0 = startOfDayMs(now) + 86400000;
+  const upcoming = all.filter((c) => !c.disqualified_at && c.next_call_at)
+    .map((c) => ({ c, t: Date.parse(c.next_call_at) }))
+    .filter((x) => x.t >= tomorrow0 && x.t < tomorrow0 + 7 * 86400000)
+    .sort((a, b) => a.t - b.t);
+  const upHtml = upcoming.length ? `<div class="up-list">` + upcoming.map(({ c, t }) => `
+      <button type="button" class="up-row" data-open="${c.id}">
+        <span class="up-when">${escapeHtml(dashWhen(t))}</span>
+        <span class="up-name">${escapeHtml(c.full_name || '(chưa tên)')}</span>
+        ${c.next_call_reason ? `<span class="up-reason">${escapeHtml(c.next_call_reason)}</span>` : ''}
+      </button>`).join('') + `</div>`
+    : '<div class="dash-empty">Chưa có lịch hẹn nào trong 7 ngày tới.</div>';
+  const upCard = dashCard(`Lịch hẹn 7 ngày tới (${upcoming.length})`, upHtml);
+
+  // ---- 3b) Pipeline đang chăm (lớp Tiềm năng, theo bậc hiện tại) ----
+  const hotMin = dashHotMin();
+  const pipeStages = CARE_STAGES.filter((s) => !LEAD_ONLY_STAGES.includes(s) && !isCareDone(s));
+  const activeQ = all.filter((c) => isQualified(c) && !isCareDone(c.care_stage));
+  const stageOf = (c) => (pipeStages.includes(c.care_stage) ? c.care_stage : QUALIFIED_STAGE);
+  const pipeTotal = activeQ.length || 1;
+  const pipeRows = pipeStages.map((s) => {
+    const list = activeQ.filter((c) => stageOf(c) === s);
+    const value = list.reduce((sum, c) => sum + (Number(c.apt_price) || 0), 0);
+    return { s, n: list.length, hot: list.filter((c) => (c.interest_level || 0) >= hotMin).length, value };
+  });
+  const pipeHtml = `
+    <div class="pipe-bar">${pipeRows.filter((r) => r.n).map((r) => `<span style="flex:${r.n};background:${careColor(r.s)}" title="${escapeHtml(r.s)}: ${r.n}"></span>`).join('')}</div>
+    <div class="pipe-rows">${pipeRows.map((r) => `
+      <button type="button" class="pipe-row" data-stage="${escapeHtml(r.s)}">
+        <span class="pipe-dot" style="background:${careColor(r.s)}"></span>
+        <span class="pipe-stage">${escapeHtml(r.s)}</span>
+        <span class="pipe-hot">${r.hot ? `${r.hot} nóng` : ''}</span>
+        <span class="pipe-val">${r.value ? escapeHtml(formatPrice(r.value)) : ''}</span>
+        <span class="pipe-n">${r.n}</span>
+      </button>`).join('')}</div>
+    <div class="pipe-foot">${activeQ.length} khách đang chăm · ${pctOf(activeQ.filter((c) => (c.interest_level || 0) >= hotMin).length, pipeTotal)}% nóng
+      · đã chốt ${all.filter((c) => c.care_stage === 'Kí HĐMB').length} · không chốt ${all.filter((c) => isQualified(c) && c.care_stage === CARE_STAGE_DROPPED).length}</div>`;
+  const pipeCard = dashCard('Pipeline đang chăm', pipeHtml, 'Bấm 1 bậc để xem danh sách khách ở bậc đó. Giá trị = tổng giá căn đang nhắm.', 'dash-pipe');
+
+  // ---- 3c) Hiệu suất tuần (so với tuần trước) ----
+  const perfRow = (label, a, b) => `<div class="perf-row"><span>${label}</span><b>${a}</b><span class="perf-prev">${b}</span>${delta(a, b) || '<span class="kpi-delta"></span>'}</div>`;
+  const perfHtml = `<div class="perf">
+      <div class="perf-row perf-head"><span></span><span>Tuần này</span><span>Tuần trước</span><span></span></div>
+      ${perfRow('Khách mới vào', thisWk.leads, lastWk.leads)}
+      ${perfRow('Cuộc gọi', thisWk.calls, lastWk.calls)}
+      ${perfRow('Nói chuyện được', thisWk.talked, lastWk.talked)}
+      ${perfRow('Lên Tiềm năng', thisWk.qualified, lastWk.qualified)}
+      ${perfRow('Booking / Kí', thisWk.deals, lastWk.deals)}
+    </div>
+    <div class="perf-foot">Tốc độ gọi khách mới (30 ngày): <b>${stlMed != null ? escapeHtml(formatDuration(stlMed)) : '—'}</b>
+      ${stl.length ? `<span class="perf-prev">· ${pctOf(stl.filter((v) => v <= 3600000).length, stl.length)}% gọi trong 1 giờ</span>` : ''}</div>`;
+  const perfCard = dashCard('Hiệu suất tuần', perfHtml, 'Tính từ thứ Hai. Tốc độ gọi = trung vị thời gian từ lúc khách đăng ký tới cuộc gọi đầu tiên.', 'dash-perf');
+
+  // ---- 4) PHÂN TÍCH (thu gọn) — các biểu đồ báo cáo ----
+  const analytics = renderDashAnalytics(all);
+  let anaOpen = false;
+  try { anaOpen = localStorage.getItem(LS_DASH_ANALYTICS) === '1'; } catch (_) { /* bỏ qua */ }
+
+  box.innerHTML = `${headHtml}
+    <div class="dash-main">
+      <div class="dash-main-left">${todoCard}</div>
+      <div class="dash-main-right" id="dash-week">${upCard}${pipeCard}${perfCard}</div>
+    </div>
+    <details class="dash-analytics"${anaOpen ? ' open' : ''}>
+      <summary>Phân tích & báo cáo <span>phễu chuyển đổi · nguồn khách · căn hộ quan tâm</span></summary>
+      <div class="dash-ana-grid">${analytics.join('')}</div>
+    </details>`;
+  const det = box.querySelector('.dash-analytics');
+  det.addEventListener('toggle', () => { try { localStorage.setItem(LS_DASH_ANALYTICS, det.open ? '1' : '0'); } catch (_) { /* bỏ qua */ } });
+}
+
+// Các biểu đồ báo cáo (trước đây là toàn bộ Tổng quan) — nay nằm trong mục "Phân tích" thu gọn.
+function renderDashAnalytics(all) {
   const weeks = lastNWeeks(8);
   const wkeys = new Map(weeks.map((w, i) => [w.getTime(), i]));
   const weekIdx = (iso) => { const k = mondayOf(iso).getTime(); return wkeys.has(k) ? wkeys.get(k) : -1; };
-
   const cards = [];
-
-  // 1) PHỄU BÁN HÀNG + THỜI GIAN TRUNG BÌNH THEO TIẾN ĐỘ (gộp 2 chart) -----
-  // Với MỖI khách: rút lịch sử thành các "lượt ở bậc" (gom mốc cùng bậc liên tiếp),
-  // rồi chuẩn hoá lượt ĐẦU = 'Đăng kí mới' tại mốc ĐĂNG KÝ (khớp timeline) → mọi khách
-  // đều có lượt 'Đăng kí mới'. Từ đó, 1 vòng qua tất cả các lượt tính:
-  //   • sCount[bậc] = SỐ KHÁCH đã/đang ở bậc (mỗi khách đếm 1 lần/bậc, kể cả bậc đang ở
-  //     và bậc thời điểm) → dùng cho độ dài thanh + số khách hiển thị. Vì mọi khách đều
-  //     qua 'Đăng kí mới' nên sCount['Đăng kí mới'] = tổng số khách (thanh dài nhất).
-  //   • sSum/sCnt = tổng thời lượng + số lượt để tính THỜI GIAN TB ở bậc:
-  //       - khách ĐÃ đổi bậc: từ lúc VÀO bậc → lúc VÀO bậc kế tiếp (= lúc rời).
-  //       - khách ĐANG ở bậc (lượt cuối): từ lúc VÀO bậc → BÂY GIỜ (lúc load chart).
-  //     'Kí HĐMB' và 'Loại' là bậc THỜI ĐIỂM (không thời lượng) → thời gian null nhưng
-  //     VẪN đếm vào sCount.
   const nowMs = Date.now();
   const TERMINAL_STAGES = new Set(['Kí HĐMB', CARE_STAGE_DROPPED]);
   const sCount = {}, sSum = {}, sCnt = {};
@@ -4838,68 +5153,51 @@ function renderDashboard() {
   cards.push(dashCard('Căn hộ quan tâm', distHtml,
     'Loại căn/toà "hot" nhất trên TẤT CẢ khách — feedback ngược cho đội dự án nên đẩy bán căn nào.'));
 
-  // 6) KHÁCH BỊ BỎ QUÊN (kẹt bậc > 7 ngày) --------------------------------
-  const stuck = active.filter((c) => daysSince(c.care_stage_updated_at) > 7)
-    .sort((a, b) => daysSince(b.care_stage_updated_at) - daysSince(a.care_stage_updated_at));
-  const stuckHtml = stuck.length
-    ? `<div class="dash-list">` + stuck.map((c) => `
-        <button class="dash-row" data-open="${c.id}">
-          <span class="dash-row-name">${escapeHtml(c.full_name || '(chưa tên)')}</span>
-          <span class="tag tag-stage">${escapeHtml(careLabel(c.care_stage))}</span>
-          <span class="dash-row-badge warn">${daysSince(c.care_stage_updated_at)} ngày</span>
-        </button>`).join('') + `</div>`
-    : '<div class="dash-empty">Không có khách nào bị kẹt quá 7 ngày 👍</div>';
-  cards.push(dashCard(`Khách bị bỏ quên (${stuck.length})`, stuckHtml,
-    'Đang chăm nhưng chưa đổi tiến độ quá 7 ngày — cần theo sát lại.'));
-
-  // (Chart "Thời gian trung bình ở mỗi bậc" đã GỘP vào "Phễu bán hàng" ở mục 1.)
-
-  // 8) KHÁCH NÓNG CẦN GỌI NGAY (quan tâm >70% & >7 ngày chưa cập nhật) ----
-  const hot = active.filter((c) => isQualified(c) && (c.interest_level || 0) > 70 && daysSince(c.care_stage_updated_at) > 7)
-    .sort((a, b) => (b.interest_level || 0) - (a.interest_level || 0));
-  const hotHtml = hot.length
-    ? `<div class="dash-list">` + hot.map((c) => `
-        <div class="dash-row hot">
-          <button class="dash-row-main" data-open="${c.id}">
-            <span class="dash-row-name">${escapeHtml(c.full_name || '(chưa tên)')}</span>
-            <span class="dash-row-sub">${escapeHtml(c.phone || '')} · quan tâm ${c.interest_level || 0}% · ${daysSince(c.care_stage_updated_at)} ngày chưa động</span>
-          </button>
-          <a class="dash-row-call" href="tel:${normalizePhone(c.phone)}" aria-label="Gọi">${PHONE_SVG}</a>
-        </div>`).join('') + `</div>`
-    : '<div class="dash-empty">Không có khách nóng nào đang bị bỏ lỡ 👍</div>';
-  cards.push(dashCard(`🔥 Khách nóng cần gọi ngay (${hot.length})`, hotHtml,
-    'Quan tâm cao (>70%) nhưng >7 ngày chưa động tới — ưu tiên gọi.'));
-
-  // Masonry: chia card vào cột thấp nhất để các cột cân chiều cao.
-  box.innerHTML = '';
-  const ncol = Math.min(3, Math.max(1, Math.floor((box.clientWidth || 800) / 360)));
-  const wrap = document.createElement('div');
-  wrap.className = 'dash-cols';
-  const cols = Array.from({ length: ncol }, () => {
-    const c = document.createElement('div'); c.className = 'dash-col'; wrap.appendChild(c); return c;
+  // NGUỒN KHÁCH: số khách theo kênh + % lên Tiềm năng → biết kênh nào đáng chi tiền.
+  const srcMap = {};
+  all.forEach((c) => {
+    const list = sourceListOf(c.source);
+    (list.length ? list : ['?']).forEach((s) => {
+      const m = srcMap[s] || (srcMap[s] = { n: 0, q: 0 });
+      m.n++; if (isQualified(c)) m.q++;
+    });
   });
-  box.appendChild(wrap);
-  for (const cardHtml of cards) {
-    let shortest = cols[0];
-    for (const c of cols) if (c.offsetHeight < shortest.offsetHeight) shortest = c;
-    const tmp = document.createElement('div');
-    tmp.innerHTML = cardHtml;
-    shortest.appendChild(tmp.firstElementChild);
-  }
+  const srcItems = Object.entries(srcMap).sort((a, b) => b[1].n - a[1].n)
+    .map(([s, m]) => ({ label: s === '?' ? 'Chưa rõ' : sourceLabel(s), value: m.n, sub: `· ${pctOf(m.q, m.n)}% lên TN` }));
+  cards.push(dashCard('Nguồn khách', hbars(srcItems, { color: '#8a7bb0' }),
+    'Số khách theo kênh và tỉ lệ chuyển sang Tiềm năng (TN) — kênh nào ra khách thật.'));
+
+  return cards;
 }
 
-// Bấm 1 dòng khách trong dashboard → mở trang chi tiết
+// Bàn làm việc: mở khách / xem thêm nhóm / lọc theo bậc / nhảy theo chỉ số nhanh.
 $('#dashboard-content')?.addEventListener('click', (e) => {
-  const el = e.target.closest('[data-open]');
-  if (el) openDetail(el.dataset.open);
-});
-
-// Đổi kích thước cửa sổ → chia lại cột masonry (chỉ khi đang xem dashboard)
-let _dashResizeT = null;
-window.addEventListener('resize', () => {
-  if ($('#dashboard-view').hidden) return;
-  clearTimeout(_dashResizeT);
-  _dashResizeT = setTimeout(renderDashboard, 200);
+  const more = e.target.closest('[data-more]');
+  if (more) {
+    const k = more.dataset.more;
+    if (dashExpanded.has(k)) dashExpanded.delete(k); else dashExpanded.add(k);
+    renderDashboard(); return;
+  }
+  const open = e.target.closest('[data-open]');
+  // Mở tại chỗ (không đổi tab) để làm xong việc là quay lại đúng danh sách việc.
+  if (open) {
+    const c = allCustomers.find((x) => x.id === open.dataset.open);
+    if (c) { if (isQualified(c)) openDetail(c.id); else openLeadSheet(c.id); }
+    return;
+  }
+  const st = e.target.closest('[data-stage]');
+  if (st) {
+    progressFilter = 'active'; $('#progress-label').textContent = 'Đang chăm';
+    $$('#progress-pop .status-opt').forEach((o) => o.classList.toggle('is-sel', o.dataset.value === 'active'));
+    stageFilter = st.dataset.stage; syncStageLabel();
+    showListView(); return;
+  }
+  const go = e.target.closest('[data-go]');
+  if (!go) return;
+  if (go.dataset.go === 'leads') { showLeadView(); return; }
+  const target = { todo: '#dash-todo', week: '.dash-perf', pipeline: '.dash-pipe' }[go.dataset.go];
+  const el = target && $(target);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
 });
 
 // -------------------------------------------------------------- WIRE UP ---

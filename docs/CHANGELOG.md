@@ -6,6 +6,14 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-07 — Tổng quan thành "bàn làm việc" của sale
+
+- Thay bảng báo cáo bằng màn hành động: 4 chỉ số nhanh (việc cần làm, khách mới chờ gọi + tốc độ gọi lần đầu, cuộc gọi tuần, chốt tháng); "Việc hôm nay" gom hẹn gọi đến/quá giờ, khách mới chưa gọi, gọi lại, chờ phân loại, cuộc gọi chưa ghi chú, khách nóng đang nguội, tiềm năng lâu chưa chăm, sinh nhật 7 ngày tới — có nút gọi từng dòng.
+- Thêm lịch hẹn 7 ngày, pipeline đang chăm theo bậc (bấm để lọc danh sách), hiệu suất tuần so với tuần trước. Biểu đồ cũ + biểu đồ Nguồn khách chuyển vào mục "Phân tích & báo cáo" thu gọn. Không đổi schema.
+- Thêm tài liệu đề xuất lộ trình `docs/sale-focus-roadmap.md`.
+- File: `js/app.js`, `css/style.css`, `sw.js` (v43), `docs/design.md`, `docs/README.md`, `docs/sale-focus-roadmap.md`.
+- Đã kiểm tra trên trình duyệt local với dữ liệu giả trong bộ nhớ (1280px và 375px, không tràn ngang; mở hồ sơ, lọc theo bậc, sang tab Khách mới). Chưa thử với dữ liệu thật / tài khoản thật, chưa deploy.
+
 ## 2026-10-07 — Bỏ bộ lọc tìm kiếm trùng, bổ sung loại căn vào bộ lọc trang
 
 - Bỏ panel lọc tìm kiếm riêng dưới header cùng các điều kiện / danh sách lưu trong panel; giữ ô tìm kiếm, thuật toán và phím tắt.

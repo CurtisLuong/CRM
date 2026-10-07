@@ -30,6 +30,10 @@ File nguồn không quy định chính xác mã màu, spacing, breakpoint, font 
 - Ô tìm kiếm hiện ở cả 3 tab chính (`SEARCH_VIEWS` trong `js/app.js`); màn công cụ không có (class `.topbar.no-search`). Tìm ở Tổng quan → trang kết quả tạm gộp Tiềm năng + Khách mới; bấm 1 khách → sang đúng tab của khách và mở khách.
 - Muốn đưa một công cụ lên tầng 1 → coi là đổi cách tổ chức UI, hỏi chủ dự án trước.
 
+## Tổng quan = bàn làm việc của sale (2026-10-07)
+
+Tổng quan ưu tiên HÀNH ĐỘNG trước báo cáo: lời chào + 4 chỉ số nhanh → "Việc hôm nay" (nhóm việc theo ưu tiên, mỗi dòng có nút gọi) → lịch hẹn 7 ngày / pipeline đang chăm / hiệu suất tuần → mục "Phân tích & báo cáo" thu gọn chứa các biểu đồ. Thêm loại nhắc việc mới = thêm 1 nhóm trong `dashActionGroups()` (`js/app.js`); biểu đồ báo cáo mới đặt trong `renderDashAnalytics()`, không đưa lên trên Việc hôm nay. Bấm khách ở Tổng quan mở hồ sơ tại chỗ (không đổi tab). Lộ trình tiếp theo: `docs/sale-focus-roadmap.md`.
+
 ## Tìm kiếm và bộ lọc (2026-10-07)
 
 Dùng bộ lọc sẵn có của từng trang Tiềm năng / Khách mới; không thêm panel lọc tìm kiếm thứ hai dưới header. Loại căn dùng các nút chọn cùng kiểu với bộ lọc thời gian: Tất cả, Studio, 1N, 2N, 3N…; nhóm theo số phòng ngủ, gồm các biến thể cộng / góc / số WC. Số phòng khác xuất hiện khi dữ liệu có; có Khác và Chưa rõ. Kết hợp với các điều kiện lọc hiện tại, chấm báo lọc và Xoá lọc dùng chung.
