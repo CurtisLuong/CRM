@@ -720,6 +720,30 @@
       <button type="submit" class="btn-primary">Lưu</button>
     </div>
   </form>
+  <!-- LỚP PHỦ "ĐANG ĐỌC ẢNH" (OCR) — hiện trong lúc chờ Gemini; ẩn khi xong/lỗi (handleOcrImage). -->
+  <div id="ocr-overlay" class="ocr-overlay" hidden role="status" aria-live="polite">
+    <div class="ocr-card">
+      <div class="ocr-visual" aria-hidden="true">
+        <svg viewBox="0 0 120 120" class="ocr-svg">
+          <path d="M14 34V18a4 4 0 0 1 4-4h16M86 14h16a4 4 0 0 1 4 4v16M106 86v16a4 4 0 0 1-4 4H86M34 106H18a4 4 0 0 1-4-4V86" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+          <rect x="30" y="24" width="60" height="72" rx="6" fill="#fbf9f4" stroke="#e2dccf"/>
+          <circle cx="45" cy="44" r="8" fill="none" stroke="currentColor" stroke-width="2.5"/>
+          <circle cx="45" cy="42" r="2.6" fill="currentColor"/>
+          <path d="M40 49.5a5.5 5.5 0 0 1 10 0" fill="currentColor"/>
+          <rect x="58" y="38" width="24" height="3.5" rx="1.75" fill="currentColor"/>
+          <rect x="58" y="46" width="16" height="3" rx="1.5" fill="#b9c4bf"/>
+          <rect x="38" y="62" width="44" height="3" rx="1.5" fill="#c9d1cd"/>
+          <rect x="38" y="70" width="44" height="3" rx="1.5" fill="#c9d1cd"/>
+          <rect x="38" y="78" width="30" height="3" rx="1.5" fill="#c9d1cd"/>
+        </svg>
+        <span class="ocr-scan"></span>
+      </div>
+      <div class="ocr-title">Đang đọc ảnh...</div>
+      <div class="ocr-sub">Nhận diện thông tin từ ảnh<br />và tự động điền vào form</div>
+      <div class="ocr-pill">Vui lòng chờ trong giây lát...</div>
+      <div class="ocr-dots"><span></span><span></span><span></span></div>
+    </div>
+  </div>
 </dialog>
 
 <!-- ============ TRÌNH XEM ẢNH / PDF (nhẹ, xem trong app) ============ -->

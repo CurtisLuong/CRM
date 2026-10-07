@@ -6,6 +6,15 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-07 — Hiệu ứng "Đang đọc ảnh" (OCR) mới
+
+- Trong lúc chờ đọc ảnh: lớp phủ kính mờ trên form + thẻ bo tròn có khung quét, tia sáng xanh chạy lên xuống tài liệu,
+  tiêu đề "Đang đọc ảnh...", "Vui lòng chờ trong giây lát..." và 3 chấm nhấp nháy liên tục. Tự ẩn khi xong hoặc lỗi.
+  Giảm chuyển động nếu máy bật "giảm hiệu ứng".
+- File: `index.html`, `js/app.js`, `css/style.css`, `sw.js` (cache v32).
+
+---
+
 ## 2026-10-07 — Form khách: Mã toà / Mã căn vào nhóm "Mở rộng"
 
 - Thông tin căn hộ hiện sẵn chỉ còn Dự án, Loại căn, Diện tích; Mã toà + Mã căn (vẫn gợi ý từ giỏ hàng) đứng đầu nhóm

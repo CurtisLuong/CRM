@@ -2537,6 +2537,7 @@ async function handleOcrImage(file) {
   const workerUrl = (window.APP_CONFIG.WORKER_URL || '').replace(/\/+$/, '');
   if (!workerUrl) { status.textContent = '⚠️ Chưa cấu hình WORKER_URL.'; return; }
   status.textContent = '⏳ Đang đọc ảnh...';
+  $('#ocr-overlay').hidden = false; // lớp phủ hiệu ứng quét (ẩn lại ở finally)
   try {
     // maxDim 1024 (thay vì 1600): nhẹ payload + Gemini xử lý nhanh hơn → đỡ timeout (524).
     const { base64, blob, mime } = await fileToScaled(file, 1024);
@@ -2560,6 +2561,8 @@ async function handleOcrImage(file) {
     console.warn('OCR lỗi:', e);
     status.textContent = '⚠️ Đọc ảnh thất bại: ' + (e.message || 'lỗi không rõ');
     if (retryBtn && lastOcrFile) retryBtn.hidden = false; // cho thử lại ngay cùng ảnh đó
+  } finally {
+    $('#ocr-overlay').hidden = true;
   }
 }
 
