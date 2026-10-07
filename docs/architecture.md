@@ -46,7 +46,7 @@ Catalog có cache offline theo tài khoản trong `js/catalog.js` (`crm_catalog_
 | `js/lunar.js` | Dương lịch → âm lịch; tra Lục Thập Hoa Giáp để tính mệnh |
 | `js/db.js` | IndexedDB, queue đồng bộ; API global `window.CRM` |
 | `js/paged-fetch.js` | Kéo đủ dữ liệu qua các trang, kiểm tra phiên và số lượng |
-| `js/search.js`, `js/search-ui.js` | Matching, highlight, bộ lọc cấu trúc và danh sách lưu riêng trên máy |
+| `js/search.js`, `js/search-ui.js` | Matching, highlight, phân nhóm loại căn và phím tắt tìm kiếm |
 | `js/property-search.js`, `js/catalog-search-ui.js` | Tìm giỏ hàng và ghép khách ↔ căn có giải thích |
 | `js/app.js` | Đăng nhập, CRUD, filter/sort/search, dashboard |
 | `js/catalog.js` | Dự án → Tòa → Căn; dữ liệu cho form khách/bảng tính vay; cache offline |
@@ -118,10 +118,10 @@ Tài liệu chuyên sâu về vay/giỏ hàng giữ tại `docs/loan-module.md` 
 
 ## Tìm kiếm local
 
-Mọi tab dùng chung matcher: chuẩn hoá dấu/Unicode/SĐT, AND giữa các từ, cụm chính xác trong dấu ngoặc kép, xếp độ liên quan và tìm tên gần đúng giới hạn một lỗi. Không ghép gần đúng số điện thoại. Truy vấn số không còn mặc định chỉ tìm SĐT; có lựa chọn phạm vi mã căn / ngày sinh / SĐT.
+Mọi tab dùng chung matcher: chuẩn hoá dấu/Unicode/SĐT, AND giữa các từ, cụm chính xác trong dấu ngoặc kép, xếp độ liên quan và tìm tên gần đúng giới hạn một lỗi. Không ghép gần đúng số điện thoại. Truy vấn số không còn mặc định chỉ tìm SĐT; tìm mã căn / ngày sinh / SĐT qua ô tìm chung.
 
 Query được compile một lần, tài liệu tìm kiếm cache theo object record và tạo nền theo đợt khoảng 4 ms. Input debounce 120 ms và chờ IME hoàn thành. Chỉ dựng view đang mở; danh sách 50 dòng/lần, Tổng quan 30/nhóm/lần, có Xem thêm. Count và xuất dữ liệu dựa toàn bộ kết quả lọc. Cache theo object giúp sửa note không đổi updated_at vẫn cập nhật sau refresh.
 
-Bộ lọc lưu sẵn là điều kiện tự đánh giá lại, không phải bản chụp khách; lưu localStorage theo user và thiết bị, chưa đồng bộ đa thiết bị. Đánh giá lần liên hệ dựa call_attempts.at. finance là vốn sẵn có, không phải giá mua tối đa.
+Theo điều chỉnh UI ngày 2026-10-07, bỏ panel lọc tìm kiếm chung (và các điều kiện / danh sách lưu riêng trong panel đó); dùng bộ lọc hiện có của từng trang. Thêm lọc nhóm loại căn Studio / 1N / 2N / 3N… vào Tiềm năng và Khách mới, kết hợp AND với điều kiện hiện có; 2N gồm 2N+, căn góc và các số WC. Count / export dùng cùng bộ lọc. Giữ tìm kiếm có trọng số, phím tắt và tối ưu render. finance vẫn là vốn sẵn có, không phải giá mua tối đa trong matching giỏ hàng.
 
 Kiểm tra: `node tests/search.test.js`; test Chrome cô lập `tests/search-browser.test.cjs` cần Playwright và Chrome (NODE_PATH / CHROME_PATH theo môi trường). Chi tiết nghiệm thu: `docs/audits/search-implementation-2026-10-07.md`.

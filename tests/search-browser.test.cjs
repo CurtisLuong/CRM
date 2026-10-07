@@ -36,7 +36,7 @@ try{
   return{fullCount:(await CRM.list()).length,legacyMigration:true,pageFailure:true,localEditDuringPull:true,accountSwitch:true};
   function assertBrowser(value,msg){if(!value)throw new Error(msg);}
  });
- await page.evaluate(async()=>{currentUser={id:'A'};sb=window.__client;showAppScreen();SearchUI.setUser('A');Catalog.scope('A');await refreshList();showDashboardView();});
+ await page.evaluate(async()=>{currentUser={id:'A'};sb=window.__client;showAppScreen();Catalog.scope('A');await refreshList();showDashboardView();});
  await page.locator('#search-input').fill('nguyen huong');await page.waitForTimeout(300);
  assert.equal(await page.locator('#dash-search [data-search-open]').count(),1);
  assert.equal(await page.locator('#customer-list').count(),1);assert.equal(await page.locator('#customer-list').evaluate(e=>e.children.length),0);
@@ -51,16 +51,26 @@ try{
  await page.locator('#view-toggle').click();assert.equal(await page.locator('#customer-list .cust-row').count(),100);await page.locator('#view-toggle').click();
  // Export still uses the complete filtered list, independent of rendered pages.
  assert.equal(await page.evaluate(()=>visibleCustomers().length),601);
- await page.locator('#search-input').fill('');await page.waitForTimeout(30);await page.locator('#search-options summary').click();
- await page.locator('#search-refine-form [name=areaMin]').fill('54');await page.waitForTimeout(300);assert.equal(await page.locator('#customer-list').evaluate(e=>e.children.length),0);
- await page.locator('#search-refine-reset').click();
- await page.locator('#search-saved').selectOption('preset:hot');assert.equal(await page.locator('#customer-list').evaluate(e=>e.children.length),50);
- page.once('dialog',d=>d.accept('Khách nóng Marquee'));await page.locator('#search-save').click();
- const savedId=await page.locator('#search-saved').inputValue();assert(savedId.startsWith('saved:'));
- await page.evaluate(()=>{SearchUI.setUser('B');});assert.equal(await page.locator('#search-saved option').filter({hasText:'Khách nóng Marquee'}).count(),0);
- await page.evaluate(()=>SearchUI.setUser('A'));await page.locator('#search-saved').selectOption(savedId);assert.equal(await page.locator('#filter-min-interest').inputValue(),'70');
- await page.locator('#search-delete').click();assert.equal(await page.locator('#search-saved option').filter({hasText:'Khách nóng Marquee'}).count(),0);
- await page.locator('#search-refine-reset').click();
+ await page.locator('#search-input').fill('');await page.waitForTimeout(30);
+ assert.equal(await page.locator('#search-options,#search-refine-form,#search-saved').count(),0);
+ await page.evaluate(()=>{const types=['2N+, 2WC','1N-1WC','3N-2WC','2BR',null,'Studio','4N-3WC','Loft'];allCustomers=allCustomers.map(c=>Number(c.id)<16&&Number(c.id)%2===0?{...c,apt_type:types[Number(c.id)/2]}:c);renderList();});
+ await page.locator('#filter-btn').click();
+ await page.locator('#filter-apt-presets [data-apt-group="2N"]').click();
+ assert.equal(await page.evaluate(()=>visibleCustomers().length),595);
+ assert(await page.evaluate(()=>visibleCustomers().some(c=>c.apt_type==='2N+, 2WC')));
+ assert.equal(await page.locator('#filter-active-dot').isVisible(),true);
+ await page.locator('#filter-apt-presets [data-apt-group="1N"]').click();assert.equal(await page.evaluate(()=>visibleCustomers().length),1);
+ await page.locator('#search-input').fill('khongtimthay');await page.waitForTimeout(300);assert.equal(await page.locator('#customer-list').evaluate(e=>e.children.length),0);
+ await page.locator('#search-input').fill('');await page.waitForTimeout(30);
+ for(const [group,id] of [['3N','000004'],['missing','000008'],['Studio','000010'],['4N','000012'],['other','000014']]){await page.locator(`#filter-apt-presets [data-apt-group="${group}"]`).click();assert.deepEqual(await page.evaluate(()=>visibleCustomers().map(c=>c.id)),[id]);}
+ await page.locator('#filter-reset-btn').click();assert.equal(await page.evaluate(()=>visibleCustomers().length),601);assert.equal(await page.locator('#filter-active-dot').isVisible(),false);
+ await page.locator('#filter-apply-btn').click();await page.locator('#tab-leads').click();
+ await page.evaluate(()=>{allCustomers=allCustomers.map(c=>c.id==='000001'?{...c,apt_type:'1N+, 1WC',source:['facebook_ads']}:c.id==='000003'?{...c,apt_type:'3N-2WC',source:['referral']}:c);renderLeads();});
+ await page.locator('#lead-filter-btn').click();await page.locator('#lead-apt-presets [data-apt-group="1N"]').click();assert.equal(await page.locator('#lead-list .lead-card').count(),1);
+ await page.locator('#lead-src-presets [data-src="website"]').click();assert.equal(await page.locator('#lead-list .lead-card').count(),0);
+ await page.locator('#lead-filter-reset').click();assert.equal(await page.locator('#lead-list .lead-card').count(),50);assert.equal(await page.locator('#lead-filter-dot').isVisible(),false);
+ await page.locator('#lead-apt-presets [data-apt-group="3N"]').click();assert.equal(await page.locator('#lead-list .lead-card').count(),1);
+ await page.locator('#lead-filter-apply').click();await page.locator('#lead-clear-filter').click();await page.locator('#tab-list').click();
  await page.locator('#search-input').fill('huong marquee');await page.waitForTimeout(300);await page.locator('#search-input').press('ArrowDown');assert(await page.evaluate(()=>document.activeElement.classList.contains('customer-card')));
  await page.evaluate(async()=>{CRM.isOnline=()=>false;const old=allCustomers.find(c=>c.id==='000000');if(!customerSearchResult(old,CRMSearch.compile('ghichucu')).match)throw Error('history searchable');await CRM.updateCareHistoryNote('000000','history1','Ghichumoi');await refreshList();const edited=allCustomers.find(c=>c.id==='000000');if(edited.updated_at!==old.updated_at||customerSearchResult(edited,CRMSearch.compile('ghichucu')).match||!customerSearchResult(edited,CRMSearch.compile('ghichumoi')).match)throw Error('note cache invalidation');});
  // Simulate composition without committing an intermediate query.
@@ -68,7 +78,7 @@ try{
  await page.waitForTimeout(200);assert(await page.locator('#customer-list').evaluate(e=>e.children.length)>0);
  await page.evaluate(()=>$('#search-input').dispatchEvent(new CompositionEvent('compositionend',{bubbles:true})));await page.waitForTimeout(300);assert.equal(await page.locator('#customer-list').evaluate(e=>e.children.length),0);
  await page.locator('#search-input').fill('huong');await page.waitForTimeout(300);await page.locator('#search-input').press('Enter');
- assert(await page.evaluate(()=>JSON.parse(localStorage.getItem('crm_search_v1:A:recent')).some(v=>v.query==='huong')));
+ assert(await page.evaluate(()=>document.activeElement.classList.contains('customer-card')));
  // Inventory: cached offline data, inherited area/price and reverse matching.
  await page.evaluate(()=>{
   CRM.isOnline=()=>false;
@@ -102,7 +112,7 @@ try{
   const t=performance.now();renderSearchView();return{sliceCount:slices.length,maxSliceMs:Math.max(...slices),preparedFreshQueryMs:performance.now()-t};
  });Object.assign(timing,idle);
  await page.evaluate(()=>window.scrollTo(0,0));await page.waitForTimeout(350);await page.screenshot({path:'/private/tmp/crm-search-desktop.png'});
- for(const width of [375,320]){await page.setViewportSize({width,height:812});await page.locator('#search-options').evaluate(e=>e.open=true);const size=await page.evaluate(()=>({scroll:document.documentElement.scrollWidth,width:innerWidth}));assert(size.scroll<=size.width,`overflow ${width}: ${size.scroll}`);await page.screenshot({path:`/private/tmp/crm-search-mobile-${width}.png`,fullPage:false});}
+ for(const width of [375,320]){await page.setViewportSize({width,height:812});await page.evaluate(()=>{showListView();$('#filter-panel').hidden=false;window.scrollTo(0,0);});await page.waitForTimeout(350);const size=await page.evaluate(()=>({scroll:document.documentElement.scrollWidth,width:innerWidth}));assert(size.scroll<=size.width,`overflow ${width}: ${size.scroll}`);await page.screenshot({path:`/private/tmp/crm-search-mobile-${width}.png`,fullPage:false});}
  assert.deepEqual(errors,[]);
  console.log(JSON.stringify({storage,catalog:catalogChecks,timing,browser:'Chrome',viewports:[1280,375,320],errors},null,2));
  fs.writeFileSync('/private/tmp/crm-search-implementation-results.json',JSON.stringify({storage,catalog:catalogChecks,timing,errors},null,2));

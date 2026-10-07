@@ -3,6 +3,14 @@
   'use strict';
   const normalize = (v) => String(v == null ? '' : v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/\s+/g, ' ').trim();
   const aliases = (v) => normalize(v).replace(/(\d)[.,](?=\d)/g, '$1.').replace(/(\d+)\s*(?:phong ngu|pn|br)\b/g, '$1n').replace(/(\d+n\+?)\s*[,/-]\s*(\d+wc)\b/g, '$1-$2');
+  // Group variants (2N+, corner units, any WC count) by bedroom count.
+  function apartmentGroup(value) {
+    const text = aliases(value);
+    if (!text) return '';
+    if (text === 'studio') return 'Studio';
+    const rooms = text.match(/^(\d+)n(?=$|[^a-z])/);
+    return rooms ? Number(rooms[1]) + 'N' : 'other';
+  }
   function phone(v) {
     let d = String(v || '').replace(/\D/g, '');
     if (d.startsWith('0084')) d = '0' + d.slice(4);
@@ -100,6 +108,6 @@
     if (value == null || value === '' || !Number.isFinite(Number(value))) return false;
     return (min == null || Number(value) >= min) && (max == null || Number(value) <= max);
   }
-  root.CRMSearch = { normalize, aliases, phone, phoneMatch, compile, prepare, match, highlight, oneEdit, range };
+  root.CRMSearch = { normalize, aliases, apartmentGroup, phone, phoneMatch, compile, prepare, match, highlight, oneEdit, range };
   if (typeof module !== 'undefined') module.exports = root.CRMSearch;
 })(typeof window !== 'undefined' ? window : globalThis);

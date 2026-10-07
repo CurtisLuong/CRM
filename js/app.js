@@ -315,6 +315,7 @@ let progressFilter = 'active'; // lọc trạng thái: 'active' | 'done' | 'all'
 // Lọc theo THỜI GIAN ĐĂNG KÝ (registered_at, fallback created_at). preset:
 // 'all'|'today'|'week'|'month'|'custom'; custom dùng from/to ('YYYY-MM-DD').
 let dateFilter = { preset: 'all', from: null, to: null };
+let aptTypeFilter = ''; // Bedroom group filter in the existing Tiềm năng panel.
 let stageFilter = '';      // lọc theo bậc Tiến độ (dropdown): '' = Tất cả, hoặc tên bậc
 let calExpanded = true;     // lịch Tuỳ chọn đang mở? (tự thu gọn sau khi chọn xong khoảng)
 let editingId = null;
@@ -437,6 +438,7 @@ function dropReasonLabel(code) { return LEAD_DROP_REASONS[code] || code || ''; }
 const LEAD_UNREACHABLE_SUGGEST = 3;
 let leadFilter = 'open';     // dropdown trạng thái: 'open' (cần gọi) | 'dropped' | 'all'
 let leadSrcFilter = '';      // bộ lọc kênh: '' = tất cả, hoặc mã trong SOURCES
+let leadAptTypeFilter = '';
 let leadDatePreset = 'all';  // bộ lọc thời gian đăng ký: 'all' | 'today' | 'week' | 'month'
 // Sắp xếp tab Khách mới: mảng {key, dir}. Thứ tự hàng trong panel = thứ tự ƯU TIÊN khi ghép.
 const LEAD_SORT_ATTRS = [
@@ -515,7 +517,6 @@ async function onLoggedIn(user) {
   await CRM.init(sb, user.id);
   if (currentUser?.id !== user.id) return;
   Catalog.scope(user.id);
-  if (window.SearchUI) SearchUI.setUser(user.id);
   // Nhớ user để lần sau mất mạng vẫn vào xem dữ liệu offline được.
   try { localStorage.setItem(LS_LAST_USER, JSON.stringify({ id: user.id, email: user.email || '' })); } catch {}
   // Avatar = chữ cái đầu của email; menu hiện email đầy đủ
@@ -830,7 +831,6 @@ async function refreshList() {
   if (userId !== currentUser?.id) return;
   allCustomers = customers;
   scheduleSearchWarmup();
-  if (window.SearchUI) SearchUI.dataChanged();
   renderList();
   renderLeads();
   if (!$('#dashboard-view').hidden) renderDashboard(); // Tổng quan là màn mặc định khi mở app
@@ -1096,7 +1096,7 @@ function searchSnippets(c, ctx, limit = 2) {
 }
 let _queryContext = null;
 function searchCtx() {
-  const raw = $('#search-input').value.trim(), scope = $('#search-field')?.value || 'all';
+  const raw = $('#search-input').value.trim(), scope = 'all';
   const key = scope + '\0' + raw;
   if (_queryContext?.key === key) return _queryContext.ctx;
   const ctx = CRMSearch.compile(raw, scope);
@@ -1117,7 +1117,7 @@ function snipsHtml(c, ctx, cls, limit = 2) {
   if (!ctx || ctx.isPhone) return '';
   return searchSnippets(c, ctx, limit).map((h) => `<span class="${cls}">${h}</span>`).join('');
 }
-function matchesSearch(c, ctx = searchCtx()) { return customerSearchResult(c, ctx).match && (!window.SearchUI || SearchUI.matches(c)); }
+function matchesSearch(c, ctx = searchCtx()) { return customerSearchResult(c, ctx).match; }
 const SEARCH_PAGE_SIZE = 50;
 let searchPages = { list: 1, leads: 1, qualified: 1, new: 1 };
 function resetSearchPages() { searchPages = { list: 1, leads: 1, qualified: 1, new: 1 }; }
@@ -1128,10 +1128,10 @@ function renderSearchView() {
 }
 function clearAccountView() {
   clearInterval(accountSyncTimer); accountSyncTimer = null;
-  CRM.suspend(); Catalog.scope(null); if (window.CatalogSearchUI) CatalogSearchUI.reset(); if (window.SearchUI) SearchUI.setUser(null);
+  CRM.suspend(); Catalog.scope(null); if (window.CatalogSearchUI) CatalogSearchUI.reset();
   allCustomers = []; _searchWarmGeneration++; _queryContext = null; resetSearchPages();
-  progressFilter = 'active'; stageFilter = ''; dateFilter = {preset:'all',from:null,to:null};
-  leadFilter = 'open'; leadSrcFilter = ''; leadDatePreset = 'all';
+  progressFilter = 'active'; stageFilter = ''; aptTypeFilter = ''; dateFilter = {preset:'all',from:null,to:null};
+  leadFilter = 'open'; leadSrcFilter = ''; leadDatePreset = 'all'; leadAptTypeFilter = '';
   $('#filter-min-interest').value = 0; $('#filter-interest-val').textContent = '0';
   $('#search-input').value = '';
   for (const id of ['customer-list', 'lead-list', 'dash-search', 'dashboard-content', 'detail-notes', 'detail-history', 'cat-body']) {
@@ -1145,6 +1145,7 @@ function matchesFilters(c) {
   // Trang chủ CHỈ hiện khách lớp 2 (đã xác nhận quan tâm). Lead ở tab "Khách mới".
   if (!isQualified(c)) return false;
   if (!matchesSearch(c, _listFilterContext?.ctx)) return false;
+  if (aptTypeFilter && (CRMSearch.apartmentGroup(c.apt_type) || 'missing') !== aptTypeFilter) return false;
   const stage = stageFilter;
   if (stage) {
     // Chọn 1 bậc cụ thể → lọc đúng bậc đó, bỏ qua lọc trạng thái xong/chưa xong.
@@ -4099,6 +4100,7 @@ setInterval(() => {
 
 function leadMatchesFilter(c, ctx = searchCtx(), range = presetRange(leadDatePreset)) {
   if (isQualified(c)) return false;
+  if (leadAptTypeFilter && (CRMSearch.apartmentGroup(c.apt_type) || 'missing') !== leadAptTypeFilter) return false;
   const st = leadStatus(c);
   if (leadFilter === 'open' && st === 'dropped') return false;
   if (leadFilter === 'dropped' && st !== 'dropped') return false;
@@ -4365,14 +4367,15 @@ function toggleLeadPop(pop, btn) {
   $(pop).hidden = !willOpen; $(btn).classList.toggle('is-open', willOpen); $(btn).setAttribute('aria-expanded', String(willOpen));
 }
 function syncLeadFilterUI() {
+  renderAptTypeFilter('lead-apt-presets', leadAptTypeFilter);
   $('#lead-src-presets').innerHTML = [['', 'Tất cả'], ...Object.entries(SOURCES)].map(([code, label]) =>
     `<button type="button" class="date-preset${code === leadSrcFilter ? ' is-sel' : ''}" data-src="${code}">${escapeHtml(label)}</button>`).join('');
   $$('#lead-date-presets .date-preset').forEach((b) => b.classList.toggle('is-sel', b.dataset.preset === leadDatePreset));
-  const active = !!leadSrcFilter || leadDatePreset !== 'all';
+  const active = !!leadSrcFilter || leadDatePreset !== 'all' || !!leadAptTypeFilter;
   $('#lead-filter-dot').hidden = !active;
   $('#lead-clear-filter').hidden = !active;
 }
-function resetLeadFilters() { leadSrcFilter = ''; leadDatePreset = 'all'; renderLeads(); }
+function resetLeadFilters() { leadSrcFilter = ''; leadDatePreset = 'all'; leadAptTypeFilter = ''; resetSearchPages(); renderLeads(); }
 function renderLeadSortOptions() {
   $('#lead-sort-options').innerHTML = LEAD_SORT_ATTRS.map((a) => {
     const dir = leadSortDraft[a.key];
@@ -4398,6 +4401,8 @@ $('#lead-status-pop')?.addEventListener('click', (e) => {
 $('#lead-filter-btn')?.addEventListener('click', (e) => { e.stopPropagation(); toggleLeadPop('#lead-filter-panel', '#lead-filter-btn'); });
 $('#lead-filter-panel')?.addEventListener('click', (e) => {
   e.stopPropagation(); // panel render lại nút → giữ panel mở
+  const apt = e.target.closest('[data-apt-group]');
+  if (apt) { leadAptTypeFilter = apt.dataset.aptGroup; resetSearchPages(); renderLeads(); return; }
   const src = e.target.closest('[data-src]');
   if (src) { leadSrcFilter = src.dataset.src; renderLeads(); return; }
   const d = e.target.closest('[data-preset]');
@@ -4507,7 +4512,6 @@ function renderDashSearch() {
 // Bấm kết quả → sang tab tương ứng (giữ nguyên từ khoá để tab đó cũng lọc đúng khách) + mở khách.
 $('#dash-search')?.addEventListener('click', (e) => {
   const more = e.target.closest('[data-search-more]'); if (more) { searchPages[more.dataset.searchMore]++; renderDashSearch(); return; }
-  if (window.SearchUI) SearchUI.remember();
   const row = e.target.closest('[data-search-open]'); if (!row) return;
   const c = allCustomers.find((x) => x.id === row.dataset.searchOpen); if (!c) return;
   if (isQualified(c)) {
@@ -4600,8 +4604,6 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && suggestB
 const SEARCH_VIEWS = ['dashboard', 'list', 'leads']; // Tổng quan: tìm → trang kết quả tạm
 function setActiveView(name) { // 'list' | 'leads' | 'dashboard' | 'loan'
   $('.topbar').classList.toggle('no-search', !SEARCH_VIEWS.includes(name));
-  if ($('#search-options')) $('#search-options').hidden = !SEARCH_VIEWS.includes(name);
-  if (window.SearchUI) SearchUI.updateScope(name);
   $('#list-view').hidden = name !== 'list';
   $('#lead-view').hidden = name !== 'leads';
   closeLeadPops();
@@ -4687,7 +4689,7 @@ function renderDashboard() {
   const all = allCustomers;
   const box = $('#dashboard-content');
   // Đang gõ tìm ở Tổng quan → hiện trang kết quả tạm thay cho biểu đồ.
-  const q = $('#search-input').value.trim() || (window.SearchUI && SearchUI.active());
+  const q = $('#search-input').value.trim();
   $('#dash-search').hidden = !q;
   box.hidden = !!q;
   if (q) { renderDashSearch(); return; }
@@ -5110,14 +5112,34 @@ function syncDatePresetUI() {
   else custom.hidden = true;
 }
 
+// Reuse the existing preset buttons; custom bedroom counts appear when present.
+let _aptGroupRecords = null, _aptGroups = [];
+function renderAptTypeFilter(id, selected) {
+  if (_aptGroupRecords !== allCustomers) {
+    const groups = new Set(['1N', '2N', '3N']);
+    for (const type of [...APT_TYPES, ...allCustomers.map((c) => c.apt_type)]) {
+      const group = CRMSearch.apartmentGroup(type);
+      if (/^\d+N$/.test(group)) groups.add(group);
+    }
+    _aptGroups = [...groups]; _aptGroupRecords = allCustomers;
+  }
+  const groups = new Set(_aptGroups);
+  if (/^\d+N$/.test(selected)) groups.add(selected);
+  const choices = [['', 'Tất cả'], ['Studio', 'Studio'],
+    ...[...groups].sort((a,b) => parseInt(a)-parseInt(b)).map((v) => [v,v]),
+    ['other','Khác'], ['missing','Chưa rõ']];
+  $('#'+id).innerHTML = choices.map(([value,label]) =>
+    `<button type="button" class="date-preset${selected === value ? ' is-sel' : ''}" data-apt-group="${value}" aria-pressed="${selected === value}">${label}</button>`).join('');
+}
 // Chấm báo "đang có lọc nâng cao" trên icon phễu (tiến độ ≠ tất cả HOẶC quan tâm >0 HOẶC có lọc thời gian).
 function isAdvancedFilterActive() {
   const interest = Number($('#filter-min-interest').value || 0);
-  return !!(stageFilter || interest > 0 || dateFilterRange());
+  return !!(stageFilter || aptTypeFilter || interest > 0 || dateFilterRange());
 }
 // Đồng bộ 2 chỉ báo "đang có lọc nâng cao": chấm đỏ trên icon phễu + nút "Xoá lọc ✕"
 // cạnh dòng "[x] khách hàng". Cả 2 chỉ hiện khi có lọc khác mặc định (giữ UI gọn).
 function updateFilterDot() {
+  renderAptTypeFilter('filter-apt-presets', aptTypeFilter);
   const active = isAdvancedFilterActive();
   $('#filter-active-dot').hidden = !active;
   const clearBtn = $('#clear-filter-inline');
@@ -5125,6 +5147,7 @@ function updateFilterDot() {
 }
 // Đưa bộ lọc nâng cao về mặc định (tiến độ = Tất cả, quan tâm ≥ 0%).
 function resetAdvancedFilters() {
+  aptTypeFilter = ''; resetSearchPages();
   stageFilter = '';
   syncStageLabel(); closeStagePop();
   $('#filter-min-interest').value = 0;
@@ -5708,6 +5731,11 @@ document.addEventListener('DOMContentLoaded', () => {
   document.addEventListener('click', (e) => { if (!e.target.closest('#stage-filter')) closeStagePop(); });
   // Bộ lọc đã áp real-time; nút "Áp dụng" đáy panel chỉ đóng panel (chốt phiên xem/gộp lọc).
   $('#filter-apply-btn').addEventListener('click', () => { closeToolPops(); });
+  $('#filter-apt-presets').addEventListener('click', (e) => {
+    const choice = e.target.closest('[data-apt-group]'); if (!choice) return;
+    e.stopPropagation(); aptTypeFilter = choice.dataset.aptGroup;
+    resetSearchPages(); updateFilterDot(); renderList();
+  });
   $('#filter-reset-btn').addEventListener('click', resetAdvancedFilters);
   // Nút "Xoá lọc ✕" cạnh dòng đếm khách (chỉ hiện khi đang có lọc nâng cao).
   $('#clear-filter-inline').addEventListener('click', resetAdvancedFilters);

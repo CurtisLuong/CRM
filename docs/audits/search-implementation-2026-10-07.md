@@ -1,5 +1,10 @@
 # Triển khai search — 2026-10-07
 
+> Cập nhật theo yêu cầu sau nghiệm thu: bỏ panel “Lọc tìm kiếm” vì trùng bộ lọc trang. Đã thêm lọc Studio / 1N / 2N / 3N… trực tiếp trong bộ lọc Tiềm năng và Khách mới, gộp biến thể cộng / góc / số WC, kết hợp điều kiện hiện có, count / export và Xoá lọc. Không còn bộ lọc cấu trúc / danh sách lưu / lịch sử / chọn phạm vi trong panel chung. Giữ tìm kiếm, phím tắt và giỏ hàng. Các mục mô tả và số đo dưới đây ghi nhận lần triển khai ban đầu trước điều chỉnh; hướng dẫn hiện tại ở `docs/design.md` và `docs/architecture.md`.
+
+
+Nghiệm thu điều chỉnh: `node tests/search.test.js` và Chrome cô lập pass; phân nhóm Studio / 1N / 2N / 3N / 4N / Khác / Chưa rõ, 2N+ và alias 2BR, phối hợp tìm kiếm / nguồn khách, count / export và Xoá lọc. Không còn DOM panel lọc chung; phím tắt / IME / giỏ hàng tiếp tục pass. Panel cũ mở tại 375 và 320 px không tràn ngang; tooltip đổi kiểu xem được neo phải để tránh tràn trên màn 320 px. Chưa deploy.
+
 Đã triển khai các hạng mục ưu tiên 1–3 trong [audit ban đầu](search-2026-10-07.md). Code local, chưa commit / deploy; không đổi schema hoặc dịch vụ tìm kiếm.
 
 ## Người dùng có thể làm gì

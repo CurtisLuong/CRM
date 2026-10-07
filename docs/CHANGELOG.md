@@ -6,6 +6,13 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-07 — Bỏ bộ lọc tìm kiếm trùng, bổ sung loại căn vào bộ lọc trang
+
+- Bỏ panel lọc tìm kiếm riêng dưới header cùng các điều kiện / danh sách lưu trong panel; giữ ô tìm kiếm, thuật toán và phím tắt.
+- Thêm loại căn vào panel lọc sẵn có ở Tiềm năng / Khách mới: Studio, 1N, 2N, 3N… theo số phòng ngủ; gộp biến thể cộng / góc / số WC. Có Khác / Chưa rõ, kết hợp các điều kiện hiện tại, count / export và Xoá lọc.
+- File: `index.html`, `js/app.js`, `js/search.js`, `js/search-ui.js`, `css/style.css`, `sw.js` (v42); tests, architecture / design / báo cáo triển khai.
+- Đã kiểm tra Node và Chrome cô lập: phân nhóm loại căn, phối hợp tìm kiếm / nguồn, count / export, Xoá lọc; panel mở ở 375 / 320 px không tràn ngang. Chưa deploy.
+
 ## 2026-10-07 — Nâng cấp tìm kiếm khách / giỏ hàng và an toàn cache offline
 
 - Tìm không dấu, nhiều từ AND / cụm chính xác, +84/0, mã căn / năm sinh; xếp độ liên quan, typo tên một lỗi có nhãn, thêm diện tích / việc tiếp theo. Bộ lọc cấu trúc, danh sách đã lưu, lịch sử riêng theo tài khoản / thiết bị và phím tắt.

@@ -19,6 +19,7 @@ assert.equal(S.highlight('1,2 tỷ',['1.2']),'<mark>1,2</mark> tỷ');
 assert.equal(S.range(null,10,null),false);assert.equal(S.range(null,null,null),true);assert.equal(S.range(50,50,60),true);
 assert(P.typeCompatible('2N+','2N+, 2WC'));assert(P.typeCompatible('2N+,2WC','2N+, 2WC'));assert(!P.typeCompatible('2N+, 2WC','2N-2WC'));
 assert(P.typeCompatible('2PN','2N-3WC'));assert(!P.typeCompatible('2N-2WC','2N-3WC'));
+for (const [input,group] of [['2N-2WC','2N'],['2N+, 2WC','2N'],['2N-2WC-G','2N'],['2PN','2N'],['1 phòng ngủ','1N'],['3BR','3N'],['4N-3WC','4N'],['Studio','Studio'],[null,''],['Loft','other']]) assert.equal(S.apartmentGroup(input),group);
 const project={id:'p',name:'Marquee Homes',vat_rate:5,kpbt_rate:2};
 const catalog={project:()=>project,unitArea:u=>u.area_m2??null,unitPrice:()=>20000000};
 const c={projects:['Marquee Homes'],apt_type:'2N',apt_area:53,finance:100000000,apt_direction:'Nam'};

@@ -32,9 +32,9 @@ File nguồn không quy định chính xác mã màu, spacing, breakpoint, font 
 
 ## Tìm kiếm và bộ lọc (2026-10-07)
 
-Bộ lọc tìm kiếm chung đặt trong details ngay dưới header, mặc định gập; không thêm đối tượng vào header hoặc tab thứ tư. Summary nói rõ phạm vi tab và việc đang lọc. Lối “Tìm trên tất cả khách” về Tổng quan, giữ các điều kiện lọc chung. Bộ lọc riêng của Tiềm năng / Khách mới vẫn áp dụng trong tab đó.
+Dùng bộ lọc sẵn có của từng trang Tiềm năng / Khách mới; không thêm panel lọc tìm kiếm thứ hai dưới header. Loại căn dùng các nút chọn cùng kiểu với bộ lọc thời gian: Tất cả, Studio, 1N, 2N, 3N…; nhóm theo số phòng ngủ, gồm các biến thể cộng / góc / số WC. Số phòng khác xuất hiện khi dữ liệu có; có Khác và Chưa rõ. Kết hợp với các điều kiện lọc hiện tại, chấm báo lọc và Xoá lọc dùng chung.
 
-Giỏ hàng có panel tìm riêng trong dialog hiện có; matching mở từ hồ sơ hoặc căn. Count có aria-live, kết quả hỗ trợ focus / phím mũi tên / Enter; Cmd/Ctrl+K đưa về ô tìm. Bộ lọc dùng hai cột ở màn hẹp, không kéo tràn ngang.
+Giỏ hàng có panel tìm riêng trong dialog hiện có; matching mở từ hồ sơ hoặc căn. Count có aria-live, kết quả hỗ trợ focus / phím mũi tên / Enter; Cmd/Ctrl+K đưa về ô tìm. Các nút lọc xuống dòng trong panel hiện có ở màn hẹp, không kéo tràn ngang.
 
 ## Font và tiếng Việt
 
