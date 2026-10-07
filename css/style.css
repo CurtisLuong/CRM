@@ -1647,3 +1647,13 @@ details.form-more > .form-grid, details.form-more > .docs-list { margin-top: 10p
 .card-snip { font-size: 12.5px; color: #4a4a42; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .cust-row.has-snip { flex-wrap: wrap; }
 .row-snip { flex: 0 0 100%; order: 99; font-size: 12px; color: #4a4a42; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ===== NHẬT KÝ CUỘC GỌI (js/calls.js) ===== */
+dialog#call-log-modal { border: none; border-radius: var(--radius); padding: 0; width: min(440px, 92vw); max-height: 90vh; }
+dialog#call-log-modal::backdrop { background: rgba(20, 30, 30, 0.5); }
+#calllog-note { width: 100%; }
+.lead-attempt.res-pending { border-left-color: #e8a33d; }
+.lead-attempt.res-pending .lead-res { color: #9c6f1a; font-weight: 600; }
+.lead-attempt-top .call-annotate { margin-left: 6px; padding: 2px 8px; font-size: 12px; }
+.lead-log-row { justify-content: flex-start; margin-top: 10px; }
+.detail-log-call { margin-top: 10px; }

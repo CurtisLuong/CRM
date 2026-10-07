@@ -108,6 +108,7 @@ registerRule({
   key: 'hot_idle',
   evaluate(c, now) {
     if (NOTIF_CONFIG.doneStages.indexOf(c.care_stage) !== -1) return null;
+    if (!c.qualified_at) return null; // lead (Khách mới) chưa đánh giá mức quan tâm
     const interest = c.interest_level || 0;
     if (interest < NOTIF_CONFIG.hotInterestMin) return null;
     const last = lastInteractionAt(c);
@@ -119,6 +120,25 @@ registerRule({
       title: 'Khách nóng cần liên hệ lại',
       body: 'Quan tâm ' + interest + '% · ' + days + ' ngày chưa liên hệ',
       sortAt: last, // mốc tương tác càng cũ (số nhỏ) → càng gấp → lên trước
+    };
+  },
+});
+
+// RULE 3 — CUỘC GỌI CHƯA GHI CHÚ. Cuộc gọi tự nạp từ nhật ký máy (vỏ Android) hoặc bấm
+// "Để sau" → call_attempts có result trống. Bấm thông báo → mở hộp ghi cuộc gọi (js/calls.js).
+registerRule({
+  key: 'call_pending',
+  evaluate(c) {
+    const pending = (Array.isArray(c.call_attempts) ? c.call_attempts : []).filter((a) => a && a.at && !a.result);
+    if (!pending.length) return null;
+    const last = pending.reduce((m, a) => (a.at > m.at ? a : m));
+    const t = new Date(last.at);
+    const hhmm = String(t.getHours()).padStart(2, '0') + ':' + String(t.getMinutes()).padStart(2, '0');
+    return {
+      level: 'warn',
+      title: 'Cuộc gọi chưa ghi chú',
+      body: (pending.length > 1 ? pending.length + ' cuộc · ' : '') + 'gần nhất lúc ' + hhmm,
+      sortAt: Date.parse(last.at),
     };
   },
 });

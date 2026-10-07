@@ -387,6 +387,13 @@
       </div>
     </div>
 
+    <!-- NHẬT KÝ CUỘC GỌI (khách Tiềm năng) — cùng dữ liệu call_attempts với tab Khách mới. -->
+    <section class="detail-section" id="detail-calls-section">
+      <h3>Cuộc gọi</h3>
+      <div id="detail-calls" class="lead-attempts"></div>
+      <button type="button" id="detail-log-call-btn" class="btn-small detail-log-call">📞 Ghi cuộc gọi</button>
+    </section>
+
     <section class="detail-section">
       <h3>Ghi chú</h3>
       <!-- Khung ghi chú: danh sách + nút "Thêm ghi chú" nằm CHUNG trong 1 khung. -->
@@ -655,12 +662,12 @@
             <span id="care-stage-note-label">Ghi chú cho lần đổi tiến độ này</span>
             <input name="care_stage_note" type="text" placeholder="vd: Khách không nghe máy, hẹn gọi lại chiều mai..." />
           </label>
-          <label class="span-2">Mức độ quan tâm:
+          <label class="span-2" id="interest-wrap">Mức độ quan tâm:
             <span class="interest-readout">
-              <span id="interest-output">50%</span>
-              <span id="interest-tier-badge" class="interest-tier-badge">Ấm</span>
+              <span id="interest-output">20%</span>
+              <span id="interest-tier-badge" class="interest-tier-badge">Nguội</span>
             </span>
-            <input name="interest_level" type="range" min="0" max="100" value="50" class="interest-range" />
+            <input name="interest_level" type="range" min="0" max="100" value="20" class="interest-range" />
           </label>
           <!-- GHI CHÚ: mọi ghi chú hiện có của khách — sửa/xoá/thêm trên BẢN NHÁP, chỉ ghi khi bấm Lưu
                (Huỷ = bỏ hết). Logic: renderFormNotes / collectFormNotes trong app.js. -->
@@ -817,13 +824,9 @@
     <div id="lead-attempts" class="lead-attempts"></div>
     <div id="lead-suggest" class="lead-suggest" hidden></div>
 
-    <div id="lead-log-box">
-      <div class="sched-label">Ghi cuộc gọi vừa rồi</div>
-      <div class="sched-opts" id="lead-result-opts"></div>
-      <input id="lead-attempt-note" class="cs-note-input" type="text" placeholder="Ghi chú (không bắt buộc): khách nói gì, hẹn lúc nào..." />
-      <div class="lead-row-btns">
-        <button type="button" id="lead-attempt-save" class="btn-primary btn-small">Lưu lần gọi</button>
-      </div>
+    <!-- Ghi cuộc gọi: mở hộp dùng chung #call-log-modal (js/calls.js). -->
+    <div id="lead-log-box" class="lead-row-btns lead-log-row">
+      <button type="button" id="lead-log-call-btn" class="btn-small">📞 Ghi cuộc gọi</button>
     </div>
 
     <div id="lead-drop-box" hidden>
@@ -846,6 +849,25 @@
       <button type="button" id="lead-edit-btn" class="btn-ghost">Sửa thông tin</button>
     </div>
     <div id="lead-qualify-hint" class="lead-hint"></div>
+  </div>
+</dialog>
+
+<!-- ============ GHI CUỘC GỌI (dùng chung Khách mới + Tiềm năng, web + Android) ============
+     Logic ở js/calls.js. Gợi ý kết quả theo THỜI LƯỢNG (0s / dưới 30s / từ 30s) và lớp khách. -->
+<dialog id="call-log-modal">
+  <div class="callact">
+    <button type="button" id="calllog-close" class="callact-x" aria-label="Đóng">✕</button>
+    <h2 id="calllog-title">Cuộc gọi</h2>
+    <p id="calllog-sub" class="callact-sub"></p>
+    <div id="calllog-results"></div>
+    <div class="sched-label" id="calllog-note-label">Ghi chú</div>
+    <textarea id="calllog-note" class="callnote-input" rows="3"></textarea>
+    <div id="calllog-error" class="sched-error"></div>
+    <div class="callact-btns">
+      <button type="button" id="calllog-save" class="btn-primary">Lưu</button>
+      <button type="button" id="calllog-later" class="btn-secondary">Để sau</button>
+      <button type="button" id="calllog-delete" class="btn-secondary btn-danger" hidden>Xoá cuộc gọi</button>
+    </div>
   </div>
 </dialog>
 
@@ -934,6 +956,7 @@
 <script src="/js/notifications.js"></script>
 <script src="/js/catalog.js"></script>
 <script src="/js/app.js"></script>
+<script src="/js/calls.js"></script>
 <script src="/js/catalog-ui.js"></script>
 <!-- Module tính khoản vay — thứ tự BẮT BUỘC: engine → store → pdf → ui → crm -->
 <script src="/js/loan/loan-engine.js"></script>

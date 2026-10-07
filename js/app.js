@@ -29,6 +29,10 @@ const CARE_STAGE_OPTIONS = [...CARE_STAGES, CARE_STAGE_DROPPED];
 // Hai trạng thái coi là "chăm sóc đã xong" — mặc định ẩn khỏi dashboard.
 const CARE_DONE_STAGES = ['Kí HĐMB', CARE_STAGE_DROPPED];
 
+// Mức quan tâm MẶC ĐỊNH của khách mới (form, nhập Excel; landing page dùng default cột DB
+// — xem SQL/interest_default_20.sql). Chỉnh 1 chỗ này + default cột nếu muốn đổi.
+const INTEREST_DEFAULT_NEW = 20;
+
 // Đổi bậc chăm sóc → TỰ set mức quan tâm (chỉ các bậc dưới; bậc khác giữ nguyên).
 // Kéo slider bằng tay sẽ ghi đè giá trị tự động này. 'Loại' → 0%.
 const STAGE_INTEREST = {
@@ -350,14 +354,42 @@ function leadStatus(c) {
   if (c.disqualified_at) return 'dropped';
   return callAttemptsOf(c).length ? 'calling' : 'new';
 }
-// Kết quả 1 lần gọi (mã lưu DB → nhãn). Thứ tự = thứ tự nút trên giao diện.
+// Kết quả 1 lần gọi (mã lưu DB → nhãn). Mã đã dùng KHÔNG đổi nghĩa; thêm mã = thêm dòng.
+// Gợi ý theo thời lượng + lớp khách: CALL_RESULT_SETS trong js/calls.js.
+// Mỗi lần gọi (call_attempts) = {at, result, note, duration?, origin?, device_id?, direction?}:
+//   result null = CHƯA GHI CHÚ (vd cuộc gọi tự nạp từ nhật ký máy Android), duration = giây
+//   (null = không biết, nhập tay), origin 'manual' | 'device'.
 const CALL_RESULTS = {
   no_answer:    'Không nghe máy',
   unreachable:  'Thuê bao / tắt máy',
+  line_busy:    'Máy bận',
+  hung_up:      'Cúp máy',
+  wrong_number: 'Sai số',
   busy:         'Bận, hẹn gọi lại',
   talked:       'Nói chuyện được',
-  wrong_number: 'Sai số',
 };
+function callResultLabel(a) { return a.result ? (CALL_RESULTS[a.result] || a.result) : 'Chưa ghi chú'; }
+// Thời lượng gọn kiểu "2p1s" / "45s" / "0s". null → ''.
+function formatCallDuration(sec) {
+  if (sec == null || isNaN(sec)) return '';
+  sec = Math.max(0, Math.round(sec));
+  return sec < 60 ? `${sec}s` : `${Math.floor(sec / 60)}p${sec % 60}s`;
+}
+function pendingCallsOf(c) { return callAttemptsOf(c).filter((a) => !a.result); }
+// 1 dòng nhật ký gọi (dùng chung hộp Khách mới + hồ sơ Tiềm năng). prevAt: mốc trước để tính khoảng cách.
+function callAttemptHtml(a, i, prevAt, prevLabel) {
+  const gapMs = prevAt ? Date.parse(a.at) - Date.parse(prevAt) : NaN;
+  const gap = isNaN(gapMs) ? '' : prevLabel + formatDuration(gapMs);
+  const dur = formatCallDuration(a.duration);
+  const dir = a.direction === 'in' ? ' · khách gọi đến' : '';
+  const pending = !a.result;
+  return `<div class="lead-attempt res-${escapeHtml(a.result || 'pending')}">
+      <div class="lead-attempt-top"><b>Lần ${i + 1}</b> · ${escapeHtml(formatLogTime(a.at))}${dur ? ' · ' + escapeHtml(dur) : ''}${dir} · <span class="lead-res">${escapeHtml(callResultLabel(a))}</span>
+        ${pending ? `<button type="button" class="btn-small call-annotate" data-call-at="${escapeHtml(a.at)}">Ghi chú</button>` : ''}</div>
+      ${gap ? `<div class="lead-dim">${escapeHtml(gap)}</div>` : ''}
+      ${a.note ? `<div class="lead-attempt-note">${escapeHtml(a.note)}</div>` : ''}
+    </div>`;
+}
 function callAttemptsOf(c) {
   return (Array.isArray(c && c.call_attempts) ? c.call_attempts : [])
     .filter((a) => a && a.at)
@@ -466,6 +498,7 @@ async function onLoggedIn(user) {
   await loadProjectOptions();
   await refreshList();
   hideSplash(); // dữ liệu đã sẵn sàng → ẩn màn hình tải
+  if (window.CRMCalls) CRMCalls.sync(); // vỏ Android: đọc nhật ký cuộc gọi máy (web: không làm gì)
   maybeMigrateAvatars(user.id); // chuyển avatar cũ sang bucket public (chạy nền, 1 lần)
   syncZaloGreeting();           // đồng bộ lời chào Zalo từ Supabase (đa thiết bị, chạy nền)
   setInterval(async () => {
@@ -715,7 +748,7 @@ function renderNotifications() {
       list.innerHTML = '<div class="notif-empty">Không có thông báo 👍</div>';
     } else {
       list.innerHTML = items.map((it) => `
-        <button class="notif-item level-${it.level}" data-notif-open="${escapeHtml(it.customerId)}">
+        <button class="notif-item level-${it.level}" data-notif-open="${escapeHtml(it.customerId)}" data-notif-rule="${escapeHtml(it.ruleKey)}">
           <div class="notif-item-top">
             <span class="notif-item-title">${escapeHtml(it.title)}</span>
             <span class="notif-item-name">${escapeHtml(it.customerName)}</span>
@@ -873,7 +906,7 @@ function searchFields(c) {
     ['Giá căn', c.apt_price ? formatPrice(c.apt_price) : ''], ['Giá căn', c.apt_price != null ? String(c.apt_price) : ''],
     ['Ngân sách', c.finance != null ? String(c.finance) : ''], ['Mục đích', c.purpose],
     ['Tiến độ', careLabel(c.care_stage)], ['Tiến độ', c.care_stage], ['Liên lạc', c.contact_status],
-    ['Quan tâm', c.interest_level != null ? c.interest_level + '%' : ''],
+    ['Quan tâm', isQualified(c) && c.interest_level != null ? c.interest_level + '%' : ''], // lead: chưa đánh giá
     ['Kênh', sourceDisplay(c.source)], ['Chiến dịch', campaignOf(c)],
     ['Thông tin đăng ký', c.notes],
     ['Lý do loại', c.disqualified_at ? [dropReasonLabel(c.disqualify_reason), c.disqualify_note].filter(Boolean).join(' — ') : ''],
@@ -1150,7 +1183,7 @@ function renderList() {
           </div>
           <div class="phone-row">
             <span class="phone-number">${hlPhone(c, ctx)}</span>
-            <a class="card-phone" href="tel:${normalizePhone(c.phone)}" aria-label="Gọi ${escapeHtml(c.phone || '')}">${PHONE_SVG}</a>
+            <a class="card-phone" href="tel:${normalizePhone(c.phone)}" data-call-id="${c.id}" aria-label="Gọi ${escapeHtml(c.phone || '')}">${PHONE_SVG}</a>
             <a class="card-zalo" href="${zaloHref}" ${zaloAttr} data-id="${c.id}" aria-label="Nhắn Zalo">
               <img class="ic-zalo" src="/icons/zalo.png" alt="Zalo" />
             </a>
@@ -1408,7 +1441,7 @@ function openForm(id) {
     if (el) el.value = adv[fld.key] != null ? adv[fld.key] : '';
   }
   const advDetails = $('#form-advanced'); if (advDetails) advDetails.open = false;
-  f.interest_level.value = c.interest_level ?? 50;
+  f.interest_level.value = c.interest_level ?? INTEREST_DEFAULT_NEW;
   updateInterestUI(f.interest_level.value);
   // Khách MỚI mặc định bậc 'Đăng kí mới'; khách cũ giữ bậc đang có.
   f.care_stage.value = c.care_stage || (id ? '' : CARE_STAGE_DEFAULT);
@@ -1434,8 +1467,12 @@ function openForm(id) {
   const isLeadForm = !id || !isQualified(c);
   $('#care-stage-wrap').hidden = isLeadForm;
   $('#contact-status-wrap').hidden = isLeadForm;
+  // Mức quan tâm chỉ đánh giá ở lớp Tiềm năng → lead ẩn thanh trượt (lưu mốc 20%). Tạo mới
+  // + tick "đưa thẳng vào chăm sóc" thì hiện lại (xem syncInterestVisibility).
+  formIsLead = isLeadForm;
   $('#qualify-now-wrap').hidden = !!id;
   f.qualify_now.checked = false;
+  syncInterestVisibility();
 
   // Dự án: khách cũ dùng lịch sử của khách; khách mới lấy lựa chọn gần nhất
   // (localStorage) làm mặc định nếu chưa chủ động set.
@@ -1479,6 +1516,19 @@ function openForm(id) {
   $('#form-modal').showModal();
   $('#customer-form').scrollTop = 0;
 }
+
+let formIsLead = false;
+function syncInterestVisibility() {
+  const f = $('#customer-form');
+  const show = !formIsLead || f.qualify_now.checked;
+  $('#interest-wrap').hidden = !show;
+  // Vừa tick "đưa thẳng vào chăm sóc" → gợi ý luôn mốc 60% (bậc 'Đang chăm sóc').
+  if (formIsLead && f.qualify_now.checked && Number(f.interest_level.value) < STAGE_INTEREST[QUALIFIED_STAGE]) {
+    f.interest_level.value = STAGE_INTEREST[QUALIFIED_STAGE]; updateInterestUI(f.interest_level.value);
+  }
+  if (formIsLead && !f.qualify_now.checked) { f.interest_level.value = INTEREST_DEFAULT_NEW; updateInterestUI(f.interest_level.value); }
+}
+$('#customer-form')?.qualify_now?.addEventListener('change', syncInterestVisibility);
 
 // Đếm trường có giá trị trong 1 nhóm "Mở rộng" → hiện "· 3 đã điền" cạnh nút (biết có dữ liệu ẩn).
 function updateMoreCount(det) {
@@ -1878,6 +1928,7 @@ async function handleFormSubmit(e) {
     const list = sourceListOf(editing.source);
     if (list[0] !== channel) payload.source = [channel, ...list.filter((x) => x !== channel)];
   }
+  if (editing && !isQualified(editing)) delete payload.interest_level; // lead: không đụng mức quan tâm (đã ẩn)
   const savedId = editingId;
   try { if (!editingId && channel) localStorage.setItem(LS_LAST_SOURCE, channel); } catch {}
   // Nhớ lựa chọn dự án lần này làm mặc định cho khách mới sau (nếu không tự set).
@@ -1969,6 +2020,8 @@ async function handleFormSubmit(e) {
       const now = new Date().toISOString();
       payload.qualified_at = now;
       payload.care_stage = QUALIFIED_STAGE;
+      // Vào thẳng chăm sóc → mức quan tâm lên mốc của bậc 'Đang chăm sóc' (60%), trừ khi đã kéo cao hơn.
+      payload.interest_level = Math.max(payload.interest_level || 0, STAGE_INTEREST[QUALIFIED_STAGE]);
       payload.call_attempts = [{ at: now, result: 'talked', note: 'Xác nhận quan tâm lúc nhập khách' }];
     } else {
       payload.care_stage = CARE_STAGE_DEFAULT; // lớp 1 "Khách mới"
@@ -2651,6 +2704,7 @@ function openDetail(id) {
   $('#detail-stickybar').classList.remove('is-visible'); // mở khách mới → bắt đầu ở đỉnh, ẩn thanh mini
   $('#detail-phone').textContent = c.phone || DASH;
   $('#detail-call-btn').href = c.phone ? `tel:${normalizePhone(c.phone)}` : '#';
+  $('#detail-call-btn').dataset.callId = c.id; // js/calls.js: bấm gọi → quay lại app tự mở hộp ghi
   const zaloHref = zaloLink(c.phone);
   const zaloBtn = $('#detail-zalo-btn');
   zaloBtn.href = zaloHref;
@@ -2682,6 +2736,7 @@ function openDetail(id) {
 
   // Lịch gọi + badge đếm ngược (bấm badge để "đã gọi"/"hẹn lại").
   renderDetailCall(c);
+  renderDetailCalls(c);
 
   // Ghi chú (note tự động + note tự nhập, dạng bullet)
   editingNoteAt = null;
@@ -3588,6 +3643,22 @@ function callReminder(c) {
 // Khu "Hành động tiếp theo" (lịch gọi) ở trang chi tiết. Có lịch → thẻ phân cấp
 // [Hẹn gọi · badge] / [ngày · giờ] / [lý do], bấm cả thẻ để mở hộp thoại Đã gọi /
 // Hẹn lại / Huỷ lịch. Chưa có lịch → nút "＋ Đặt lịch gọi".
+// Mục "Cuộc gọi" trong hồ sơ: 5 cuộc gần nhất (mới → cũ), kèm nút ghi chú cho cuộc chưa ghi.
+function renderDetailCalls(c) {
+  const all = callAttemptsOf(c);
+  const shown = all.slice(-5);
+  const base = all.length - shown.length;
+  $('#detail-calls').innerHTML = shown.length
+    ? shown.map((a, k) => callAttemptHtml(a, base + k, base + k > 0 ? all[base + k - 1].at : null, 'cách lần trước ')).reverse().join('')
+      + (base > 0 ? `<div class="lead-dim">… và ${base} cuộc cũ hơn</div>` : '')
+    : '<div class="lead-dim">Chưa có cuộc gọi nào được ghi.</div>';
+}
+$('#detail-log-call-btn')?.addEventListener('click', () => { if (detailId && window.CallLog) CallLog.open({ customerId: detailId }); });
+$('#detail-calls')?.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-call-at]'); if (!b || !detailId || !window.CallLog) return;
+  CallLog.open({ customerId: detailId, editAt: b.dataset.callAt });
+});
+
 function renderDetailCall(c) {
   const card = $('#detail-next-action');
   const tasksWrap = $('#detail-tasks-wrap');
@@ -3928,7 +3999,7 @@ function renderLeads() {
       c.apt_type ? canonicalAptType(c.apt_type) : '',
     ].filter(Boolean).map(escapeHtml).join(' · ');
     const lastLine = last
-      ? `Lần cuối: ${escapeHtml(CALL_RESULTS[last.result] || last.result)} · ${escapeHtml(timeAgo(last.at))}`
+      ? `Lần cuối: ${escapeHtml(callResultLabel(last))}${last.duration != null ? ' · ' + escapeHtml(formatCallDuration(last.duration)) : ''} · ${escapeHtml(timeAgo(last.at))}`
       : `Đăng ký ${escapeHtml(timeAgo(c.registered_at || c.created_at))}`;
     const zaloHref = zaloLink(c.phone);
     const zaloAttr = zaloHref.startsWith('http') ? 'target="_blank" rel="noopener"' : '';
@@ -3943,7 +4014,7 @@ function renderLeads() {
         </div>
         <div class="phone-row">
           <span class="phone-number">${hlPhone(c, ctx)}</span>
-          <a class="card-phone" href="tel:${normalizePhone(c.phone)}" aria-label="Gọi ${escapeHtml(c.phone || '')}">${PHONE_SVG}</a>
+          <a class="card-phone" href="tel:${normalizePhone(c.phone)}" data-call-id="${c.id}" aria-label="Gọi ${escapeHtml(c.phone || '')}">${PHONE_SVG}</a>
           <a class="card-zalo" href="${zaloHref}" ${zaloAttr} data-id="${c.id}" aria-label="Nhắn Zalo"><img class="ic-zalo" src="/icons/zalo.png" alt="Zalo" /></a>
         </div>
         ${meta ? `<div class="lead-card-meta">${meta}</div>` : ''}
@@ -3954,11 +4025,11 @@ function renderLeads() {
 }
 
 // ---- Hộp chi tiết lead ----
-let leadSheetId = null, leadResult = null, leadDropReason = null;
+let leadSheetId = null, leadDropReason = null;
 
 function openLeadSheet(id) {
   const c = allCustomers.find((x) => x.id === id); if (!c) return;
-  leadSheetId = id; leadResult = null; leadDropReason = null;
+  leadSheetId = id; leadDropReason = null;
   renderLeadSheet(c);
   const dlg = $('#lead-modal');
   if (!dlg.open) dlg.showModal();
@@ -3969,6 +4040,7 @@ function renderLeadSheet(c) {
   $('#lead-name').textContent = c.full_name || '(chưa có tên)';
   $('#lead-phone').textContent = c.phone || '';
   $('#lead-call-btn').href = c.phone ? `tel:${normalizePhone(c.phone)}` : '#';
+  $('#lead-call-btn').dataset.callId = c.id;
   $('#lead-call-btn').innerHTML = PHONE_SVG;
   const zb = $('#lead-zalo-btn');
   zb.href = zaloLink(c.phone); zb.dataset.id = c.id;
@@ -3994,31 +4066,20 @@ function renderLeadSheet(c) {
   // Nhật ký gọi: lần N · giờ gọi · kết quả · cách lần trước (lần 1: cách lúc đăng ký).
   const attempts = callAttemptsOf(c);
   $('#lead-attempts').innerHTML = attempts.length
-    ? attempts.map((a, i) => {
-        const prevAt = i === 0 ? reg : attempts[i - 1].at;
-        const gapMs = prevAt ? Date.parse(a.at) - Date.parse(prevAt) : NaN;
-        const gap = isNaN(gapMs) ? '' : (i === 0 ? 'sau đăng ký ' : 'cách lần trước ') + formatDuration(gapMs);
-        return `<div class="lead-attempt res-${escapeHtml(a.result)}">
-          <div class="lead-attempt-top"><b>Lần ${i + 1}</b> · ${escapeHtml(formatLogTime(a.at))} · <span class="lead-res">${escapeHtml(CALL_RESULTS[a.result] || a.result)}</span></div>
-          ${gap ? `<div class="lead-dim">${escapeHtml(gap)}</div>` : ''}
-          ${a.note ? `<div class="lead-attempt-note">${escapeHtml(a.note)}</div>` : ''}
-        </div>`;
-      }).join('')
+    ? attempts.map((a, i) => callAttemptHtml(a, i, i === 0 ? reg : attempts[i - 1].at, i === 0 ? 'sau đăng ký ' : 'cách lần trước ')).join('')
     : '<div class="lead-dim">Chưa gọi lần nào.</div>';
 
   // Gợi ý loại khi gọi nhiều lần không được.
   const sug = $('#lead-suggest');
-  const showSug = !dropped && attempts.length >= LEAD_UNREACHABLE_SUGGEST && !hasTalked(c);
+  const done = attempts.filter((a) => a.result); // chỉ tính cuộc đã ghi kết quả
+  const showSug = !dropped && done.length >= LEAD_UNREACHABLE_SUGGEST && !hasTalked(c);
   sug.hidden = !showSug;
   if (showSug) {
-    sug.innerHTML = `Đã gọi ${attempts.length} lần chưa liên lạc được. <button type="button" class="btn-small" id="lead-suggest-drop">Loại: Không liên lạc được</button>`;
+    sug.innerHTML = `Đã gọi ${done.length} lần chưa liên lạc được. <button type="button" class="btn-small" id="lead-suggest-drop">Loại: Không liên lạc được</button>`;
   }
 
-  // Ô ghi cuộc gọi (ẩn khi đã loại).
+  // Nút ghi cuộc gọi (ẩn khi đã loại) → hộp dùng chung js/calls.js.
   $('#lead-log-box').hidden = dropped;
-  $('#lead-result-opts').innerHTML = Object.entries(CALL_RESULTS).map(([code, label]) =>
-    `<button type="button" class="sched-opt${leadResult === code ? ' is-sel' : ''}" data-res="${code}">${escapeHtml(label)}</button>`).join('');
-  $('#lead-attempt-note').value = '';
   $('#lead-drop-box').hidden = true;
 
   // Thông tin đăng ký (vd landing page ghi vào notes) + ghi chú tự nhập + ghi chú cũ trong timeline.
@@ -4045,21 +4106,6 @@ async function afterLeadChange() {
   if (c && $('#lead-modal').open) renderLeadSheet(c);
 }
 
-async function saveLeadAttempt() {
-  const c = currentLead(); if (!c) return;
-  if (!leadResult) { showToast('Chọn kết quả cuộc gọi'); return; }
-  const note = $('#lead-attempt-note').value.trim() || null;
-  const result = leadResult;
-  const list = callAttemptsOf(c).concat([{ at: new Date().toISOString(), result, note }]);
-  const payload = { call_attempts: list };
-  // Đã gọi → lịch hẹn cũ (nếu có) coi như xong.
-  if (c.next_call_at) { payload.next_call_at = null; payload.next_call_end = null; payload.next_call_reason = null; }
-  await CRM.update(c.id, payload);
-  leadResult = null;
-  await afterLeadChange();
-  if (result === 'busy') openScheduler(c.id); // hẹn gọi lại → đặt lịch luôn
-  else if (result === 'talked') showToast('Đã gọi được — nếu khách quan tâm, bấm “Đạt”');
-}
 
 async function qualifyLead() {
   const c = currentLead(); if (!c || !hasTalked(c)) return;
@@ -4067,6 +4113,8 @@ async function qualifyLead() {
   await CRM.update(c.id, {
     qualified_at: new Date().toISOString(),
     care_stage: QUALIFIED_STAGE,
+    // Đạt → mức quan tâm lên mốc bậc 'Đang chăm sóc' (60%), giữ nếu đang cao hơn.
+    interest_level: Math.max(c.interest_level || 0, STAGE_INTEREST[QUALIFIED_STAGE]),
     disqualified_at: null, disqualify_reason: null, disqualify_note: null,
   }, { careStageNote: `Đạt — xác nhận quan tâm sau ${n} lần gọi` });
   $('#lead-modal').close();
@@ -4190,18 +4238,17 @@ $('#lead-sort-reset')?.addEventListener('click', () => { leadSort = []; leadSort
 // Bấm ra ngoài → đóng mọi pop của tab Khách mới.
 document.addEventListener('click', (e) => { if (!e.target.closest('#lead-view .tool-pop')) closeLeadPops(); });
 $('#add-lead-btn')?.addEventListener('click', () => openForm(null));
-$('#lead-result-opts')?.addEventListener('click', (e) => {
-  const b = e.target.closest('[data-res]'); if (!b) return;
-  leadResult = b.dataset.res;
-  $$('#lead-result-opts .sched-opt').forEach((x) => x.classList.toggle('is-sel', x === b));
-});
 $('#lead-reason-opts')?.addEventListener('click', (e) => {
   const b = e.target.closest('[data-reason]'); if (!b) return;
   leadDropReason = b.dataset.reason;
   $$('#lead-reason-opts .sched-opt').forEach((x) => x.classList.toggle('is-sel', x === b));
   $('#lead-drop-error').textContent = '';
 });
-$('#lead-attempt-save')?.addEventListener('click', saveLeadAttempt);
+$('#lead-log-call-btn')?.addEventListener('click', () => { if (leadSheetId && window.CallLog) CallLog.open({ customerId: leadSheetId }); });
+$('#lead-attempts')?.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-call-at]'); if (!b || !leadSheetId || !window.CallLog) return;
+  CallLog.open({ customerId: leadSheetId, editAt: b.dataset.callAt });
+});
 $('#lead-qualify-btn')?.addEventListener('click', qualifyLead);
 $('#lead-drop-btn')?.addEventListener('click', () => showDropBox(null));
 $('#lead-suggest')?.addEventListener('click', (e) => { if (e.target.closest('#lead-suggest-drop')) showDropBox('khong_lien_lac_duoc'); });
@@ -4487,11 +4534,12 @@ function renderDashboard() {
     '8 tuần gần nhất (theo ngày đăng ký).'));
 
   // 4) ĐIỂM QUAN TÂM TRUNG BÌNH + xu hướng --------------------------------
-  const withInterest = all.filter((c) => c.interest_level != null);
+  // Mức quan tâm chỉ có nghĩa ở lớp Tiềm năng (lead chưa đánh giá — mốc 20% chỉ là khởi đầu).
+  const withInterest = all.filter((c) => isQualified(c) && c.interest_level != null);
   const avgAll = withInterest.length ? Math.round(withInterest.reduce((s, c) => s + c.interest_level, 0) / withInterest.length) : 0;
   const wSum = weeks.map(() => 0), wCnt = weeks.map(() => 0);
   // Cũng gom theo NGÀY ĐĂNG KÝ để khớp với chart "Khách mới theo tuần" ở trên.
-  all.forEach((c) => { const i = weekIdx(c.registered_at || c.created_at); if (i >= 0 && c.interest_level != null) { wSum[i] += c.interest_level; wCnt[i]++; } });
+  withInterest.forEach((c) => { const i = weekIdx(c.registered_at || c.created_at); if (i >= 0) { wSum[i] += c.interest_level; wCnt[i]++; } });
   const avgByWeek = weeks.map((w, i) => (wCnt[i] ? Math.round(wSum[i] / wCnt[i]) : null));
   const trendHtml = `<div class="big-stat">${avgAll}%<span class="big-stat-cap">quan tâm TB toàn pipeline</span></div>`
     + `<div class="dash-sub-title">Xu hướng khách mới theo tuần</div>` + sparkline(avgByWeek, weeks.map(ddmm));
@@ -4537,7 +4585,7 @@ function renderDashboard() {
   // (Chart "Thời gian trung bình ở mỗi bậc" đã GỘP vào "Phễu bán hàng" ở mục 1.)
 
   // 8) KHÁCH NÓNG CẦN GỌI NGAY (quan tâm >70% & >7 ngày chưa cập nhật) ----
-  const hot = active.filter((c) => (c.interest_level || 0) > 70 && daysSince(c.care_stage_updated_at) > 7)
+  const hot = active.filter((c) => isQualified(c) && (c.interest_level || 0) > 70 && daysSince(c.care_stage_updated_at) > 7)
     .sort((a, b) => (b.interest_level || 0) - (a.interest_level || 0));
   const hotHtml = hot.length
     ? `<div class="dash-list">` + hot.map((c) => `
@@ -5061,7 +5109,7 @@ async function doImport() {
         payload.menh = window.LunarUtil.calcMenhFromSolarDOB(payload.dob) || null;
         payload.cung = window.LunarUtil.calcCungFromDOB(payload.dob) || null;
       }
-      if (payload.interest_level == null) payload.interest_level = 50; // mặc định như form
+      if (payload.interest_level == null) payload.interest_level = INTEREST_DEFAULT_NEW; // mặc định như form
       if (!payload.care_stage) payload.care_stage = CARE_STAGE_DEFAULT;
       if (!payload.source) payload.source = [SOURCE_DEFAULT];
       payload.intake_method = 'import';
@@ -5273,6 +5321,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const item = e.target.closest('[data-notif-open]');
     if (!item) return;
     $('#notif-wrap').classList.remove('open');
+    // "Cuộc gọi chưa ghi chú" → mở thẳng hộp ghi cuộc gọi (cuộc mới nhất chưa ghi).
+    if (item.dataset.notifRule === 'call_pending' && window.CallLog) { CallLog.openPending(item.dataset.notifOpen); return; }
     openDetail(item.dataset.notifOpen);
   });
   // --- Lọc trạng thái (dropdown tuỳ biến): mở/đóng + chọn 1 mục → áp ngay ---

@@ -56,7 +56,7 @@ create table if not exists public.customers (
   building_code text,
   apt_price numeric,
   notes text,                         -- freeform, dài ngắn tuỳ khách
-  interest_level int check (interest_level between 0 and 100),
+  interest_level int default 20 check (interest_level between 0 and 100), -- mặc định 20% (interest_default_20.sql)
   -- Tiến độ phễu bán hàng (xem change_care_stages_and_contact_status.sql — bộ bậc
   -- này thay thế bộ cũ vốn lẫn cả kênh liên lạc; kênh liên lạc nay ở contact_status).
   care_stage text check (care_stage in (

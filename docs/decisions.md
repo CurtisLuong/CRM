@@ -65,8 +65,22 @@ Ví dụ và mẫu trong bộ tài liệu không phải sự chấp thuận cho 
      - `intake_method` = **cách nhập**: `manual`, `ocr`, `import`, `api`.
      - `campaign` = **tên chiến dịch** (lead website dùng `web_last_campaign` từ UTM nếu trống).
   5. **Đặt mã kênh:** chữ thường, snake_case, dạng `<nền tảng>_<loại>`; mã đã dùng không bao giờ đổi nghĩa hay đổi tên. Thêm kênh = thêm 1 dòng vào `SOURCES` trong `js/app.js` (không cần migration). App không đoán mã lạ thành kênh khác mà hiện "Khác (mã)".
+  6. **Mức quan tâm (Nóng/Ấm/Nguội) chỉ thuộc lớp 2** (bổ sung 2026-10-07): lead lưu mốc 20% nhưng không hiển thị, không tính thống kê/thông báo; khi Đạt hoặc vào thẳng chăm sóc → 60% (mốc bậc "Đang chăm sóc"), giữ nếu đã cao hơn.
 - Phạm vi: bảng `customers`, `js/app.js`, form khách, tab "Khách mới"; API landing page (repo Marquee_Homes) giữ nguyên vì đã ghi `source: ["website"]`.
 - Lý do và đánh đổi: tập trung trang chủ vào khách có giá trị; dữ liệu lớp 1 phục vụ phân tích ngược campaign. Đánh đổi: bảng `customers` có thêm vài cột chỉ dùng ở lớp 1.
 - Chấp thuận: người dùng duyệt phương án 2 lớp, chọn chuyển hết khách bậc 1–2 xuống lớp 1, đưa danh sách lý do và 3 kênh chính, yêu cầu thiết kế nguồn rõ ràng để mở rộng (chat 2026-10-06).
 - Tài liệu đã cập nhật: `docs/architecture.md`, `docs/CHANGELOG.md`, `SQL/add_lead_layer.sql`, `SQL/schema.sql`
 - Trạng thái: Đang áp dụng
+
+### D-002 — Vỏ Android (Capacitor) để tự ghi nhật ký cuộc gọi
+
+- Ngày: 2026-10-07
+- Loại: Ngoại lệ cục bộ
+- Nguyên tắc liên quan: `CLAUDE.md` §1 ("Không yêu cầu app native") và §2 ("Frontend … không build step")
+- Quyết định: Android dùng app vỏ Capacitor mở trang web hiện tại + module native đọc nhật ký cuộc gọi máy; desktop và iOS vẫn là web app (nhập tay / ước lượng khi quay lại app). Ghi cuộc gọi LÚC MỞ/QUAY LẠI app; ghi ngầm khi app đóng để sau nhưng thiết kế sẵn cổng (`window.CRMCalls.ingest`, phần tử `call_attempts` có `result` trống = "chưa ghi chú").
+- Phạm vi: chỉ thư mục `android-app/` (vỏ + plugin, hướng dẫn ở `android-app/README.md`) được có bước build (Android Studio/Gradle) và phát hành bằng APK cài trực tiếp (không qua Google Play — Play hạn chế quyền READ_CALL_LOG). Toàn bộ web giữ nguyên tắc cũ: HTML/JS thuần, không build, chỉ phát hiện vỏ qua `window.CRMCallSource` và vẫn chạy đầy đủ khi không có vỏ.
+- Lý do và đánh đổi: iOS không cho app nào đọc lịch sử cuộc gọi; web không có API này. Chủ dự án dùng Android nên ưu tiên tự động hoá trên Android. Đánh đổi: phải cài Android Studio, giữ khoá ký APK, build lại APK khi đổi phần native.
+- Quy tắc gợi ý kết quả cuộc gọi (cùng ngày): 0s / dưới 30s / từ 30s, khác nhau giữa Khách mới và Tiềm năng (`CALL_RESULT_SETS` trong `js/calls.js`). Cuộc ≥30s chỉ gợi ý ghi chú, KHÔNG tự Đạt — chuyển Tiềm năng vẫn bấm tay. Cuộc gọi khách Tiềm năng ghi thêm 1 mốc vào dòng thời gian chăm sóc.
+- Chấp thuận: người dùng chọn "Ngoại lệ cục bộ" và đề xuất desktop/iOS web, Android Capacitor (chat 2026-10-07).
+- Tài liệu đã cập nhật: `CLAUDE.md`, `AGENTS.md`, `docs/architecture.md`, `docs/FEATURE_IDEAS.md`, `docs/CHANGELOG.md`
+- Trạng thái: Đang áp dụng (giai đoạn 1 web + vỏ Android đã build 2026-10-07; chưa thử trên máy thật)

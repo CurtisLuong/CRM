@@ -76,6 +76,14 @@ Quyết định D-001 tại `docs/decisions.md`. Tóm tắt:
 - Lead từ landing page được API repo Marquee_Homes ghi thẳng vào bảng (service role, `source ["website"]`, cột `web_*` cho UTM) và tự vào lớp 1.
 - `owner_id` của lead landing = `WEB_OWNER_ID` trong API (mặc định `a70e8d12…`). Kiểm tra 2026-10-06: đây chính là tài khoản sale duy nhất của chủ dự án (role `sale`), không có tài khoản "Website" riêng — chú thích "tài khoản Website" trong `lead.js` là tên gọi cũ. Khi thêm đồng nghiệp, lead landing vẫn chỉ vào tài khoản này (người khác không thấy do RLS) — cần quyết định cách giao lead trước khi mở rộng.
 
+## Nhật ký cuộc gọi
+
+Quyết định D-002. Dữ liệu ở `customers.call_attempts` (không bảng riêng): `{at, result, note, duration, origin, device_id, direction}`; `result` trống = chưa ghi chú. Logic + hộp ghi chung ở `js/calls.js`:
+
+- Web (mọi nền tảng): nút "Ghi cuộc gọi"; bấm SĐT trong CRM rồi quay lại app → tự mở hộp kèm thời gian rời app (ước lượng).
+- Android (vỏ Capacitor, `android-app/`): vỏ mở `https://crm-cop.pages.dev` + plugin native `CallLog` (`CallLogPlugin.java`). `js/calls.js` tự nhận `window.Capacitor` → `CRMCallSource`; mở app / `crm:resume` (MainActivity.onResume) → `CRMCalls.sync()` đọc nhật ký máy, chỉ giữ cuộc tới SĐT khách, chống trùng theo `device_id`. Web không phụ thuộc vỏ.
+- Khách Tiềm năng: lưu cuộc gọi đồng thời ghi 1 mốc vào `care_stage_history`.
+
 ## Bảng profiles và phân quyền
 
 - `role`: `admin` hoặc `sale`.

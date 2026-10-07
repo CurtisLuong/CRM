@@ -1,0 +1,8 @@
+# Vỏ Android (Capacitor) — không đưa lên Git: thư viện npm, file build, KHOÁ KÝ APP.
+node_modules/
+*.apk
+*.aab
+*.jks
+*.keystore
+keystore.properties
+dist/

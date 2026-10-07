@@ -66,6 +66,8 @@ Chưa cái nào được làm. Sắp xếp thô theo mức độ nên làm sớm
        trúc lớn. Curtis đã quyết định BỎ QUA tính năng này, giữ web thuần. Nếu
        sau này cần: cân nhắc phương án "nhập tay nhanh thời lượng cuộc gọi" thay
        vì đọc tự động. -->
+<!-- 2026-10-07: ĐỔI Ý — đã duyệt D-002 (ngoại lệ cục bộ): vỏ Capacitor CHỈ cho Android đọc nhật ký
+     cuộc gọi; web làm xong giai đoạn 1 (js/calls.js). Ghi ngầm khi app đóng = việc sau. -->
 - **App native để đọc nhật ký cuộc gọi (nếu đổi ý).** Bọc PWA hiện tại bằng
   Capacitor/TWA + viết plugin native đọc call log của đúng SĐT khách, tự điền
   timestamp + duration vào ghi chú. Là thay đổi kiến trúc lớn — chỉ làm khi

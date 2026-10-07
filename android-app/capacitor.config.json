@@ -1,0 +1,12 @@
+{
+  "appId": "vn.sokhach.crm",
+  "appName": "Sổ Khách",
+  "webDir": "www",
+  "server": {
+    "url": "https://crm-cop.pages.dev",
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": false
+  }
+}

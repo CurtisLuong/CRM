@@ -6,6 +6,51 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-07 — Vỏ Android (Capacitor) tự đọc nhật ký cuộc gọi (D-002, giai đoạn 2)
+
+- `android-app/` (mới): Capacitor 8, appId `vn.sokhach.crm`, mở thẳng `https://crm-cop.pages.dev` (sửa web → push là app
+  tự nhận, không cần cài lại). Plugin native `CallLog` (`CallLogPlugin.java`) đọc nhật ký cuộc gọi sau 1 mốc thời gian,
+  xin quyền READ_CALL_LOG lúc chạy; `MainActivity` báo `crm:resume` khi mở lại app. Icon = icon Sổ Khách.
+- `android-app/build-apk.sh`: build APK (debug) bằng Java 21 (Gradle 8 chưa chạy trên Java 25 của Android Studio) →
+  `android-app/dist/SoKhach.apk`. `.gitignore` loại node_modules, file build, APK, khoá ký.
+- `js/calls.js`: tự gắn nguồn nhật ký từ `window.Capacitor` (chỉ khi chạy trong vỏ), đồng bộ khi `crm:resume`, nhắc khi
+  chưa cấp quyền. Trình duyệt thường không bị ảnh hưởng.
+- Đã thử trên máy ảo Android 17: xin quyền, đọc nhật ký (số, giờ, thời lượng, chiều gọi), sự kiện mở lại app. CHƯA thử
+  cuộc gọi có kết nối (>0s) và CHƯA thử trên máy thật.
+- File: `android-app/**`, `js/calls.js`, `sw.js` (cache v21), `CLAUDE.md`, `AGENTS.md`, `docs/decisions.md`, `docs/architecture.md`.
+
+---
+
+## 2026-10-07 — Nhật ký cuộc gọi dùng chung (giai đoạn 1: web) + cổng cho vỏ Android
+
+- `js/calls.js` (mới): hộp **Ghi cuộc gọi** dùng chung cho Khách mới và Tiềm năng. Gợi ý theo thời lượng:
+  Khách mới — 0s: Không nghe máy / Thuê bao / Máy bận / Cúp máy / Số sai; <30s: Cúp máy / Bận, hẹn gọi lại; ≥30s: ghi
+  chú tự do (Nói chuyện được, KHÔNG tự Đạt). Tiềm năng — 0s: Không nghe máy / Cúp máy / Máy bận / Thuê bao; <30s: Bận,
+  hẹn gọi lại; ≥30s: ghi chú tự do. Không biết thời lượng (web) → hiện cả 3 nhóm.
+- Bấm SĐT trong CRM → gọi → quay lại app: hộp tự bật kèm giờ gọi + thời gian rời app (ước lượng). "Bận, hẹn gọi lại" mở
+  luôn lịch hẹn. Khách Tiềm năng: mỗi cuộc gọi ghi thêm 1 mốc vào dòng thời gian chăm sóc; hồ sơ có mục **Cuộc gọi**.
+- Cổng thiết bị cho vỏ Android (D-002): `window.CRMCallSource` + `CRMCalls.sync/ingest` — chỉ nhận cuộc tới SĐT khách,
+  chống trùng theo `device_id`, cuộc mới thành "chưa ghi chú" (chuông thông báo mới **Cuộc gọi chưa ghi chú**).
+- Kết quả gọi mới: `line_busy` (Máy bận), `hung_up` (Cúp máy). `call_attempts` thêm `duration`, `origin`, `device_id`,
+  `direction` (jsonb — không cần migration). Hộp Khách mới bỏ ô ghi cũ, thay bằng nút mở hộp dùng chung.
+- File: `js/calls.js`, `js/app.js`, `js/notifications.js`, `index.html`, `css/style.css`, `sw.js` (cache v20, thêm
+  calls.js vào APP_SHELL), `CLAUDE.md`, `AGENTS.md`, `docs/decisions.md`, `docs/architecture.md`, `docs/FEATURE_IDEAS.md`.
+
+---
+
+## 2026-10-07 — Mức quan tâm: khách mới 20% (ẩn), vào chăm sóc 60%
+
+- Form thêm khách và nhập Excel mặc định 20% (trước 50%) — hằng số `INTEREST_DEFAULT_NEW`.
+- Khách vào lớp chăm sóc (ô "đưa thẳng vào chăm sóc" hoặc bấm Đạt) tự lên 60% (mốc bậc "Đang chăm sóc"), giữ nguyên nếu đang cao hơn.
+- `SQL/interest_default_20.sql`: đặt default cột `interest_level` = 20 để lead landing page (API không gửi giá trị) cũng
+  nhận 20%; phần 2 tuỳ chọn đưa lead đang có (trống hoặc 50%) về 20%.
+- **Mức quan tâm chỉ dùng cho lớp Tiềm năng** (lead chưa đánh giá — 20% chỉ là mốc khởi đầu): form của lead ẩn thanh
+  trượt (hiện lại khi tick "đưa thẳng vào chăm sóc", tự gợi ý 60%); sửa lead không đổi mức quan tâm; Tổng quan (điểm TB,
+  xu hướng, khách nóng) và chuông "Khách nóng cần liên hệ lại" bỏ qua lead; tìm theo "%" không khớp lead.
+- File: `js/app.js`, `js/notifications.js`, `index.html`, `SQL/interest_default_20.sql`, `SQL/schema.sql`, `sw.js` (cache v19).
+
+---
+
 ## 2026-10-07 — Tìm nhanh ngay ở tab Tổng quan
 
 - Ô tìm kiếm hiện cả ở Tổng quan. Gõ → thay biểu đồ bằng trang kết quả tạm, chia 2 nhóm **Tiềm năng** / **Khách mới**

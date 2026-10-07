@@ -1,0 +1,14 @@
+{
+  "name": "sokhach-android",
+  "private": true,
+  "description": "Vỏ Android (Capacitor) cho CRM Sổ Khách — chỉ để đọc nhật ký cuộc gọi. Xem docs/decisions.md D-002.",
+  "scripts": {
+    "sync": "cap sync android",
+    "build:apk": "cd android && ./gradlew assembleDebug"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.5.2",
+    "@capacitor/cli": "^8.5.2",
+    "@capacitor/core": "^8.5.2"
+  }
+}

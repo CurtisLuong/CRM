@@ -11,6 +11,7 @@ Chủ dự án không có background lập trình: ưu tiên giải pháp đơn 
 ## 2. Nguyên tắc bắt buộc
 
 - Frontend HTML/CSS/JavaScript thuần, không build step. File phải chạy bằng script/link thông thường; không thêm bundler hoặc framework nếu chưa được duyệt.
+  - Ngoại lệ cục bộ D-002 (`docs/decisions.md`): vỏ Android bằng Capacitor (thư mục `android-app/`, chỉ để đọc nhật ký cuộc gọi) được phép có bước build. Code web vẫn thuần và không phụ thuộc vỏ; iOS/desktop vẫn là web app.
 - Backend/DB: Supabase Postgres + Auth. Hosting: Cloudflare Pages, kết nối GitHub.
 - Dữ liệu khách: đọc IndexedDB local trước; ghi local ngay và thêm hàng đợi đồng bộ lên Supabase. Xung đột theo last-write-wins dựa trên `updated_at`.
 - Quyền dữ liệu dùng RLS và GRANT; không bỏ một lớp để thay thế cho lớp kia.
