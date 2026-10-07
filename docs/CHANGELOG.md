@@ -12,7 +12,10 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
   (kèm nhãn bậc/trạng thái; khách đã xong/đã loại mờ và xếp cuối). Xoá ô tìm → về biểu đồ.
 - Bấm 1 kết quả → chuyển sang đúng tab (Tiềm năng → mở hồ sơ; Khách mới → mở hộp gọi), tự đổi bộ lọc sang "Tất cả"
   nếu khách đang bị bộ lọc mặc định ẩn.
-- File: `index.html`, `js/app.js`, `css/style.css`, `sw.js` (cache v15), `docs/design.md`.
+- Kết quả tìm kiểu Google: từ khoá được tô đậm trong tên/SĐT, kèm tối đa 2 đoạn trích của trường khớp (vd "Ghi chú: …căn
+  **góc** tầng trung…", "Chiến dịch: FB-**Góc**-T10"), không phân biệt dấu. Danh sách trường tìm gom về `searchFields()`;
+  tìm thêm được theo chiến dịch, thông tin đăng ký, ghi chú cuộc gọi, lý do loại.
+- File: `index.html`, `js/app.js`, `css/style.css`, `sw.js` (cache v16), `docs/design.md`.
 
 ---
 

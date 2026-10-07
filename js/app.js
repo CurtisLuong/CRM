@@ -860,30 +860,86 @@ function phoneMatch(phoneDig, qDig) {
 // tránh lỡ đẩy field "_" xuống DB) để không phải bỏ dấu lại toàn bộ mỗi lần gõ phím;
 // mọi chỉnh sửa khách đều bump `updated_at` nên cache tự mới lại đúng lúc.
 const _searchBlobCache = new WeakMap();
+// Các trường được TÌM (kèm nhãn) — dùng chung cho lọc (customerSearchBlob) và đoạn trích
+// tô đậm từ khoá ở trang kết quả (searchSnippets). Thêm trường tìm mới = thêm vào đây.
+function searchFields(c) {
+  const f = [
+    ['Tên', c.full_name], ['SĐT', c.phone],
+    ['Giới tính', c.gender], ['Ngày sinh', c.dob ? formatDob(c.dob) : ''], ['Ngày sinh', c.dob],
+    ['Mệnh', c.menh], ['Cung', c.cung], ['Hôn nhân', c.marital_status], ['Công việc', c.occupation],
+    ['Thu nhập', c.income], ['Thường trú', c.residence],
+    ['Dự án', Array.isArray(c.projects) ? c.projects.join(', ') : ''],
+    ['Loại căn', c.apt_type], ['Mã căn', c.apt_code], ['Mã toà', c.building_code],
+    ['Giá căn', c.apt_price ? formatPrice(c.apt_price) : ''], ['Giá căn', c.apt_price != null ? String(c.apt_price) : ''],
+    ['Ngân sách', c.finance != null ? String(c.finance) : ''], ['Mục đích', c.purpose],
+    ['Tiến độ', careLabel(c.care_stage)], ['Tiến độ', c.care_stage], ['Liên lạc', c.contact_status],
+    ['Quan tâm', c.interest_level != null ? c.interest_level + '%' : ''],
+    ['Kênh', sourceDisplay(c.source)], ['Chiến dịch', campaignOf(c)],
+    ['Thông tin đăng ký', c.notes],
+    ['Lý do loại', c.disqualified_at ? [dropReasonLabel(c.disqualify_reason), c.disqualify_note].filter(Boolean).join(' — ') : ''],
+  ];
+  for (const n of (Array.isArray(c.notes_manual) ? c.notes_manual : [])) f.push(['Ghi chú', n && n.text]);
+  for (const h of (Array.isArray(c.care_stage_history) ? c.care_stage_history : [])) f.push(['Lịch sử chăm sóc', h && h.note]);
+  for (const a of (Array.isArray(c.call_attempts) ? c.call_attempts : [])) f.push(['Cuộc gọi', a && a.note]);
+  return f.filter(([, v]) => v != null && String(v).trim() !== '').map(([label, v]) => [label, String(v)]);
+}
 function customerSearchBlob(c) {
   const key = c.updated_at || '';
   const cached = _searchBlobCache.get(c);
   if (cached && cached.key === key) return cached.blob;
-  const parts = [
-    c.phone, c.full_name, c.gender, c.dob, c.dob ? formatDob(c.dob) : '',
-    c.menh, c.cung, c.marital_status, c.occupation, c.income, c.residence,
-    c.apt_type, c.apt_code, c.building_code, c.care_stage, c.contact_status,
-    sourceDisplay(c.source),
-    c.apt_price != null ? String(c.apt_price) : '',
-    c.apt_price ? formatPrice(c.apt_price) : '',
-    c.purpose, c.finance != null ? String(c.finance) : '',
-    c.interest_level != null ? c.interest_level + '%' : '',
-    Array.isArray(c.projects) ? c.projects.join(' ') : '',
-  ];
-  if (Array.isArray(c.care_stage_history)) {
-    for (const h of c.care_stage_history) { parts.push(h && h.stage, h && h.note); }
-  }
-  if (Array.isArray(c.notes_manual)) {
-    for (const n of c.notes_manual) parts.push(n && n.text);
-  }
-  const blob = removeVietnameseTones(parts.filter(Boolean).join(' '));
+  const blob = removeVietnameseTones(searchFields(c).map(([, v]) => v).join(' '));
   _searchBlobCache.set(c, { key, blob });
   return blob;
+}
+
+// ---- Tô đậm từ khoá (không phân biệt dấu/hoa thường), kiểu đoạn trích Google ----
+// Chuẩn hoá TỪNG KÝ TỰ để giữ ánh xạ vị trí chuỗi chuẩn hoá → chuỗi gốc.
+function normWithMap(text) {
+  let norm = ''; const map = [];
+  for (let i = 0; i < text.length; i++) {
+    const n = removeVietnameseTones(text[i]);
+    for (let k = 0; k < n.length; k++) { norm += n[k]; map.push(i); }
+  }
+  return { norm, map };
+}
+// Trả HTML đã escape, mọi chỗ khớp q (đã chuẩn hoá) bọc <mark>. maxLen>0 → cắt đoạn quanh
+// chỗ khớp đầu tiên (… đầu/cuối) để dòng trích ngắn gọn.
+function highlightHtml(text, q, maxLen = 0) {
+  text = String(text || '');
+  if (!q) return escapeHtml(text);
+  const { norm, map } = normWithMap(text);
+  const ranges = [];
+  for (let i = norm.indexOf(q); i !== -1; i = norm.indexOf(q, i + q.length)) {
+    ranges.push([map[i], map[i + q.length - 1] + 1]);
+  }
+  let start = 0, end = text.length;
+  if (maxLen > 0 && text.length > maxLen && ranges.length) {
+    start = Math.max(0, ranges[0][0] - Math.floor(maxLen / 3));
+    end = Math.min(text.length, start + maxLen);
+    start = Math.max(0, end - maxLen);
+  }
+  let out = start > 0 ? '…' : '', pos = start;
+  for (const [a, b] of ranges) {
+    if (b <= start || a >= end) continue;
+    const s2 = Math.max(a, start), e2 = Math.min(b, end);
+    out += escapeHtml(text.slice(pos, s2)) + '<mark>' + escapeHtml(text.slice(s2, e2)) + '</mark>';
+    pos = e2;
+  }
+  out += escapeHtml(text.slice(pos, end)) + (end < text.length ? '…' : '');
+  return out;
+}
+// Đoạn trích các trường KHỚP từ khoá (trừ Tên/SĐT — đã tô ngay trên dòng). Mỗi nhãn 1 lần.
+function searchSnippets(c, q, limit = 2) {
+  if (!q) return [];
+  const seen = new Set(), out = [];
+  for (const [label, v] of searchFields(c)) {
+    if (label === 'Tên' || label === 'SĐT' || seen.has(label)) continue;
+    if (!removeVietnameseTones(v).includes(q)) continue;
+    seen.add(label);
+    out.push(`<span class="snip-label">${escapeHtml(label)}:</span> ${highlightHtml(v, q, 90)}`);
+    if (out.length >= limit) break;
+  }
+  return out;
 }
 
 // Ô tìm kiếm (SĐT / chữ) — dùng chung cho tab Khách hàng và tab Khách mới.
@@ -4128,10 +4184,19 @@ function dashSearchRow(c) {
   const meta = [sourceDisplay(c.source), (Array.isArray(c.projects) && c.projects.length) ? c.projects.join(', ') : '']
     .filter(Boolean).map(escapeHtml).join(' · ');
   const dim = c.disqualified_at || isCareDone(c.care_stage);
+  // Từ khoá: chữ → tô trong tên + đoạn trích; toàn số → tô trong SĐT.
+  const raw = $('#search-input').value.trim();
+  const qNorm = removeVietnameseTones(raw);
+  const isPhoneQ = !/[a-z]/.test(qNorm) && /\d/.test(raw);
+  const qPhone = isPhoneQ ? raw.replace(/\D/g, '') : '';
+  const nameHtml = isPhoneQ ? escapeHtml(c.full_name || '(chưa có tên)') : highlightHtml(c.full_name || '(chưa có tên)', qNorm);
+  const phoneHtml = isPhoneQ ? highlightHtml(c.phone || '', qPhone) : highlightHtml(c.phone || '', qNorm);
+  const snips = isPhoneQ ? [] : searchSnippets(c, qNorm);
   return `<button type="button" class="search-row${dim ? ' is-dim' : ''}" data-search-open="${c.id}">
       <span class="search-row-main">
-        <span class="search-row-name">${escapeHtml(c.full_name || '(chưa có tên)')}</span>
-        <span class="search-row-meta">${escapeHtml(c.phone || '')}${meta ? ' · ' + meta : ''}</span>
+        <span class="search-row-name">${nameHtml}</span>
+        <span class="search-row-meta">${phoneHtml}${meta ? ' · ' + meta : ''}</span>
+        ${snips.map((h) => `<span class="search-row-snip">${h}</span>`).join('')}
       </span>
       ${tag}
     </button>`;
