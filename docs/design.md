@@ -34,6 +34,8 @@ File nguồn không quy định chính xác mã màu, spacing, breakpoint, font 
 
 Tổng quan ưu tiên HÀNH ĐỘNG trước báo cáo: lời chào + 4 chỉ số nhanh → "Việc hôm nay" (nhóm việc theo ưu tiên, mỗi dòng có nút gọi) → lịch hẹn 7 ngày / pipeline đang chăm / hiệu suất tuần → mục "Phân tích & báo cáo" thu gọn chứa các biểu đồ. Thêm loại nhắc việc mới = thêm 1 nhóm trong `dashActionGroups()` (`js/app.js`); biểu đồ báo cáo mới đặt trong `renderDashAnalytics()`, không đưa lên trên Việc hôm nay. Bấm khách ở Tổng quan mở hồ sơ tại chỗ (không đổi tab). Lộ trình tiếp theo: `docs/sale-focus-roadmap.md`.
 
+Nhịp follow-up (2026-10-07): gợi ý lịch luôn là GỢI Ý để sale bấm xác nhận (không tự đặt ngầm). Thông số nhịp/khung giờ/mẫu Zalo mặc định chỉ đặt trong `FOLLOWUP_CONFIG` / `ZALO_TEMPLATES_DEFAULT` của `js/followup.js`; hướng dẫn cho chủ dự án ở `docs/huong-dan-follow-up.md`.
+
 ## Tìm kiếm và bộ lọc (2026-10-07)
 
 Dùng bộ lọc sẵn có của từng trang Tiềm năng / Khách mới; không thêm panel lọc tìm kiếm thứ hai dưới header. Loại căn dùng các nút chọn cùng kiểu với bộ lọc thời gian: Tất cả, Studio, 1N, 2N, 3N…; nhóm theo số phòng ngủ, gồm các biến thể cộng / góc / số WC. Số phòng khác xuất hiện khi dữ liệu có; có Khác và Chưa rõ. Kết hợp với các điều kiện lọc hiện tại, chấm báo lọc và Xoá lọc dùng chung.

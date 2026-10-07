@@ -77,6 +77,7 @@
     $('#calllog-error').textContent = '';
     $('#calllog-later').textContent = st.editAt ? 'Để sau' : 'Huỷ';
     $('#calllog-delete').hidden = !(st.editAt && !st.result); // xoá cuộc "chưa ghi chú" (vd gọi nhầm)
+    renderNext();
     const dlg = $('#call-log-modal');
     if (!dlg.open) dlg.showModal();
   }
@@ -85,6 +86,43 @@
     $('#calllog-note-label').textContent = long ? 'Ghi chú cuộc gọi' : 'Ghi chú';
     $('#calllog-note').placeholder = long ? NOTE_HINT_LONG : NOTE_HINT;
   }
+
+  // ---- GỢI Ý LẦN GỌI TIẾP THEO (nhịp follow-up, cấu hình ở js/followup.js) ----
+  // Chọn kết quả → hiện gợi ý ngay dưới. 4 cách xử lý (st.nextMode):
+  //   accept = lưu kèm lịch gợi ý · change = lưu xong mở hộp chọn giờ · none = không hẹn
+  //   drop   = lưu xong mở hộp Loại khách (khách mới gọi mãi không được / sai số).
+  function previewAttempts(c) {
+    const cur = { at: st.at, result: st.result };
+    const list = callAttemptsOf(c);
+    return st.editAt ? list.map((a) => (a.at === st.editAt ? { ...a, ...cur } : a)) : list.concat([cur]);
+  }
+  function renderNext() {
+    const box = $('#calllog-next'); if (!box || !st) return;
+    const c = findCustomer(st.customerId);
+    const sug = (c && st.result && window.FOLLOWUP) ? FOLLOWUP.afterCall(c, previewAttempts(c)) : null;
+    st.sug = sug;
+    if (!sug) { st.nextMode = 'none'; box.hidden = true; box.innerHTML = ''; return; }
+    if (!st.nextTouched) st.nextMode = sug.kind === 'schedule' ? 'accept' : sug.kind === 'ask' ? 'change' : 'drop';
+    const sched = sug.kind === 'schedule' ? sug : sug.fallback;
+    let head, opts;
+    if (sug.kind === 'ask') {
+      head = '📅 Khách hẹn giờ — lưu xong sẽ mở hộp chọn giờ gọi lại.';
+      opts = [['change', 'Chọn giờ'], ['none', 'Không hẹn']];
+    } else if (sug.kind === 'drop') {
+      head = '⚠️ ' + escapeHtml(sug.text) + (sched ? `<div class="fu-alt">Hoặc vẫn gọi lại: ${escapeHtml(sched.label)}</div>` : '');
+      opts = [['drop', 'Loại khách'], ...(sched ? [['accept', 'Vẫn hẹn gọi lại']] : []), ['none', 'Để sau']];
+    } else {
+      head = `📅 Gợi ý gọi lại: <b>${escapeHtml(sug.label)}</b><div class="fu-alt">${escapeHtml(sug.reason)}</div>`;
+      opts = [['accept', 'Đặt lịch này'], ['change', 'Chọn giờ khác'], ['none', 'Không hẹn']];
+    }
+    box.innerHTML = `<div class="fu-head">${head}</div><div class="sched-opts">${opts.map(([m, t]) =>
+      `<button type="button" class="sched-opt${st.nextMode === m ? ' is-sel' : ''}" data-next="${m}">${t}</button>`).join('')}</div>`;
+    box.hidden = false;
+  }
+  $('#calllog-next')?.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-next]'); if (!b || !st) return;
+    st.nextMode = b.dataset.next; st.nextTouched = true; renderNext();
+  });
 
   /** Mở cuộc "chưa ghi chú" mới nhất của 1 khách (từ chuông thông báo); không có → hộp nhập tay. */
   function openPending(customerId) {
@@ -109,13 +147,18 @@
     let list = callAttemptsOf(c);
     list = st.editAt ? list.map((a) => (a.at === st.editAt ? { ...a, ...attempt } : a)) : list.concat([attempt]);
     const payload = { call_attempts: list };
-    if (c.next_call_at) { payload.next_call_at = null; payload.next_call_end = null; payload.next_call_reason = null; } // đã gọi → lịch hẹn cũ coi như xong
+    const sug = st.sug, mode = st.nextMode;
+    const sched = sug && (sug.kind === 'schedule' ? sug : sug.fallback);
+    if (mode === 'accept' && sched) { // hẹn theo gợi ý (thay lịch cũ nếu có)
+      payload.next_call_at = sched.start.toISOString(); payload.next_call_end = sched.end.toISOString(); payload.next_call_reason = sched.reason;
+    } else if (c.next_call_at) { payload.next_call_at = null; payload.next_call_end = null; payload.next_call_reason = null; } // đã gọi → lịch hẹn cũ coi như xong
     const opts = {};
     if (isQualified(c)) {
       // Khách Tiềm năng: ghi thêm 1 mốc vào dòng thời gian chăm sóc (giữ nguyên bậc).
       const dur = formatCallDuration(st.duration);
       payload.care_stage = c.care_stage;
-      opts.careStageNote = `📞 gọi ${callStamp(new Date(st.at))}${dur ? ' (' + dur + ')' : ''} — ${CALL_RESULTS[st.result] || st.result}${note ? '. ' + note : ''}`;
+      opts.careStageNote = `📞 gọi ${callStamp(new Date(st.at))}${dur ? ' (' + dur + ')' : ''} — ${CALL_RESULTS[st.result] || st.result}${note ? '. ' + note : ''}`
+        + (mode === 'accept' && sched ? ` · hẹn gọi lại ${sched.label}` : '');
       opts.forceLog = true;
     }
     const id = c.id, result = st.result;
@@ -123,8 +166,10 @@
     $('#call-log-modal').close();
     st = null;
     await afterChange(id);
-    if (result === 'busy') openScheduler(id); // hẹn gọi lại → đặt lịch luôn
+    if (mode === 'change' || (!window.FOLLOWUP && result === 'busy')) openScheduler(id, { reason: sug && sug.reason });
+    else if (mode === 'drop' && sug) { openLeadSheet(id); showDropBox(sug.code); }
     else if (result === 'talked' && !isQualified(findCustomer(id) || {})) showToast('Nếu khách thực sự quan tâm, bấm “Đạt” để chuyển sang Tiềm năng');
+    else if (mode === 'accept' && sched) showToast('Đã hẹn gọi lại ' + sched.label);
   }
 
   async function removePending() {
@@ -138,10 +183,11 @@
 
   $('#calllog-results')?.addEventListener('click', (e) => {
     const b = e.target.closest('[data-res]'); if (!b || !st) return;
-    st.result = b.dataset.res;
+    st.result = b.dataset.res; st.nextTouched = false; // đổi kết quả → tính lại gợi ý
     $$('#calllog-results .sched-opt').forEach((x) => x.classList.toggle('is-sel', x === b));
     $('#calllog-error').textContent = '';
     syncNoteHint();
+    renderNext();
   });
   $('#calllog-save')?.addEventListener('click', save);
   $('#calllog-later')?.addEventListener('click', () => { $('#call-log-modal').close(); st = null; });

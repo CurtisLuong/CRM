@@ -24,7 +24,7 @@ Không cần migration, chỉ dùng dữ liệu đang có:
 
 ## 3. Đề xuất các bước tiếp theo (theo thứ tự giá trị / công sức)
 
-### Bước 2 — Nhịp follow-up tự động (không cần migration)
+### Bước 2 — Nhịp follow-up tự động (ĐÃ LÀM 2026-10-07 — xem `docs/huong-dan-follow-up.md`)
 - **Gợi ý lịch gọi lại sau mỗi cuộc gọi** theo kết quả: không nghe máy → +1 ngày, rồi 2 → 4 → 7 ngày; "bận, hẹn lại" → hỏi giờ; sau "Xem dự án" → +2 ngày. Sale chỉ cần bấm xác nhận. (Tương tự Action Plans của FUB.)
 - **Mỗi khách đang chăm phải có "việc tiếp theo"** (Next Step của Salesforce): thêm nhóm "Khách chưa có việc tiếp theo" vào Việc hôm nay.
 - **Nhiều mẫu tin Zalo theo tình huống** (chào lần đầu, gửi bảng giá, nhắc hồ sơ, chúc sinh nhật, chúc mừng nhận nhà) — mở rộng "Lời chào Zalo" hiện có. Có thể cần thêm cột ở bảng settings → kiểm tra trước.

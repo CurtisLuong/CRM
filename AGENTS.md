@@ -37,6 +37,7 @@ Chủ dự án không có background lập trình: ưu tiên giải pháp đơn 
 | Supabase/CDN, auth, RLS/GRANT | Phần JavaScript/Supabase trong `docs/pitfalls.md` |
 | PWA, cache hoặc cập nhật app | Phần Service Worker trong `docs/pitfalls.md` |
 | Module vay | `docs/loan-module.md`; code trong `js/loan/` và `css/loan.css` |
+| Nhịp follow-up, gợi ý lịch gọi, mẫu tin Zalo | `docs/huong-dan-follow-up.md`; `js/followup.js` (cấu hình), `js/calls.js` |
 | Giỏ hàng hoặc nhập Excel | `docs/gio-hang.md`; `js/catalog.js`, `js/catalog-ui.js` |
 | Xung đột nguyên tắc hoặc tiền lệ | `docs/decisions.md` |
 | Setup, chạy app, triển khai | `README.md`; file cấu hình và workflow liên quan |

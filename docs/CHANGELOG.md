@@ -6,6 +6,15 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-07 — Nhịp follow-up tự động + nhiều mẫu tin Zalo
+
+- Ghi cuộc gọi → gợi ý lịch gọi lại theo kết quả (1-2-4-7 ngày khi không liên lạc được, đổi khung giờ luân phiên / khi cúp máy; khách mới hỏng 5 lần → gợi ý Loại; nói chuyện được → theo nhịp bậc). Khung giờ theo nghề nghiệp, bỏ Chủ nhật. Sale chọn: đặt lịch này / chọn giờ khác / không hẹn.
+- Đổi bậc tiến lên, bấm Đạt, hoặc tạo khách vào thẳng Tiềm năng → hộp "Hẹn lần liên hệ tiếp theo?". Tổng quan thêm nhóm "Chưa có việc tiếp theo"; dòng sinh nhật có nút Zalo.
+- "Lời chào Zalo" thành "Mẫu tin Zalo": 7 mẫu mặc định (chào, gọi chưa được, gửi thông tin, sau xem dự án, nhắc hồ sơ, sinh nhật, chúc mừng HĐMB), thêm/xoá mẫu riêng, ô `{du_an}`; bấm icon Zalo → chọn mẫu (mẫu hợp tình huống lên đầu). Ngưỡng gợi ý loại lead 3 → 5 lần (theo cấu hình).
+- Migration mới `SQL/add_zalo_templates.sql` (cột `user_settings.zalo_templates`) — chưa chạy thì mẫu chỉ lưu trên từng máy.
+- File: `js/followup.js` (mới, cấu hình), `js/calls.js`, `js/app.js`, `js/db.js`, `index.html`, `css/style.css`, `sw.js` (v44), `SQL/add_zalo_templates.sql`, `docs/huong-dan-follow-up.md`, `docs/design.md`, `docs/README.md`, `docs/sale-focus-roadmap.md`, `CLAUDE.md`/`AGENTS.md`.
+- Đã kiểm tra: Node (bảng gợi ý cho 12 tình huống); trình duyệt local với dữ liệu giả và hàm ghi giả (hộp ghi cuộc gọi, gợi ý đổi bậc, chọn/sửa mẫu Zalo, 1280px + 375px). Chưa thử với tài khoản thật, chưa chạy SQL, chưa deploy.
+
 ## 2026-10-07 — Tổng quan thành "bàn làm việc" của sale
 
 - Thay bảng báo cáo bằng màn hành động: 4 chỉ số nhanh (việc cần làm, khách mới chờ gọi + tốc độ gọi lần đầu, cuộc gọi tuần, chốt tháng); "Việc hôm nay" gom hẹn gọi đến/quá giờ, khách mới chưa gọi, gọi lại, chờ phân loại, cuộc gọi chưa ghi chú, khách nóng đang nguội, tiềm năng lâu chưa chăm, sinh nhật 7 ngày tới — có nút gọi từng dòng.

@@ -435,7 +435,7 @@ const LEAD_DROP_REASONS = {
 const LEAD_DROP_TOP = ['gia_cao', 'pha_campaign', 'khong_du_dieu_kien', 'khong_lien_lac_duoc'];
 function dropReasonLabel(code) { return LEAD_DROP_REASONS[code] || code || ''; }
 // Gợi ý loại "Không liên lạc được": ≥3 lần gọi, chưa lần nào nói chuyện được.
-const LEAD_UNREACHABLE_SUGGEST = 3;
+const LEAD_UNREACHABLE_SUGGEST = (window.FOLLOWUP && FOLLOWUP.config.leadMaxAttempts) || 5; // js/followup.js
 let leadFilter = 'open';     // dropdown trạng thái: 'open' (cần gọi) | 'dropped' | 'all'
 let leadSrcFilter = '';      // bộ lọc kênh: '' = tất cả, hoặc mã trong SOURCES
 let leadAptTypeFilter = '';
@@ -540,6 +540,7 @@ async function onLoggedIn(user) {
   checkAppUpdate(true);                 // vỏ Android: có APK mới → banner (web: không làm gì)
   maybeMigrateAvatars(user.id); // chuyển avatar cũ sang bucket public (chạy nền, 1 lần)
   syncZaloGreeting();           // đồng bộ lời chào Zalo từ Supabase (đa thiết bị, chạy nền)
+  syncZaloTemplates();          // đồng bộ các mẫu tin Zalo khác
   clearInterval(accountSyncTimer);
   accountSyncTimer = setInterval(async () => {
     if (currentUser?.id !== user.id) return;
@@ -945,6 +946,39 @@ async function syncZaloGreeting() {
     }
   } catch (e) { console.warn('syncZaloGreeting lỗi:', e); }
 }
+// ---- MẪU TIN ZALO (nhiều mẫu theo tình huống) — mặc định + gợi ý ở js/followup.js ----
+// Lưu local (offline-first) + cột user_settings.zalo_templates (SQL/add_zalo_templates.sql) để
+// đồng bộ Mac ↔ Android. Mẫu 'chao' LUÔN dùng chung "Lời chào Zalo" cũ (cột zalo_greeting) để
+// app bản cũ vẫn khớp. Mẫu [{id, name, text}]; id bắt đầu 'u_' = mẫu sale tự thêm.
+const LS_ZALO_TEMPLATES = 'crm_zalo_templates';
+function defaultZaloTemplates() {
+  return (window.FOLLOWUP ? FOLLOWUP.templatesDefault : [{ id: 'chao', name: 'Chào kết bạn', text: ZALO_GREETING_DEFAULT }]).map((t) => ({ ...t }));
+}
+function getZaloTemplates() {
+  let list = null;
+  try { list = JSON.parse(localStorage.getItem(LS_ZALO_TEMPLATES) || 'null'); } catch { list = null; }
+  if (!Array.isArray(list) || !list.length) list = defaultZaloTemplates();
+  return list.map((t) => (t.id === 'chao' ? { ...t, text: getZaloGreeting() } : t));
+}
+function setZaloTemplates(list) {
+  const store = list.map(({ id, name, text }) => ({ id, name, text }));
+  const chao = store.find((t) => t.id === 'chao');
+  if (chao) setZaloGreeting(chao.text);
+  try { localStorage.setItem(LS_ZALO_TEMPLATES, JSON.stringify(store)); } catch { /* ignore */ }
+  CRM.saveZaloTemplatesRemote(store); // cột chưa có (chưa chạy SQL) → chỉ lưu trên máy này
+}
+// Đồng bộ mẫu từ server (sau đăng nhập): server có → lấy về; server trống mà máy có → đẩy lên.
+async function syncZaloTemplates() {
+  try {
+    const remote = await CRM.getZaloTemplatesRemote();
+    if (remote === undefined) return;
+    if (Array.isArray(remote) && remote.length) {
+      try { localStorage.setItem(LS_ZALO_TEMPLATES, JSON.stringify(remote)); } catch { /* ignore */ }
+    } else if (localStorage.getItem(LS_ZALO_TEMPLATES)) {
+      CRM.saveZaloTemplatesRemote(JSON.parse(localStorage.getItem(LS_ZALO_TEMPLATES)));
+    }
+  } catch (e) { console.warn('syncZaloTemplates lỗi:', e); }
+}
 function fillGreeting(tpl, c) {
   const full = ((c && c.full_name) || '').trim();
   const given = full ? full.split(/\s+/).pop() : '';
@@ -955,6 +989,7 @@ function fillGreeting(tpl, c) {
   return String(tpl || '')
     .replace(/\{ten\}/gi, given || full)
     .replace(/\{hoten\}/gi, full)
+    .replace(/\{du_an\}/gi, (c && Array.isArray(c.projects) && c.projects.length) ? c.projects.join(', ') : 'bên em')
     .replace(/\{anhchi\}/gi, sal)
     .replace(/Anh\/Chị/g, salCap)   // "Anh/Chị" (đầu câu) → "Anh"/"Chị"
     .replace(/anh\/chị/gi, sal);    // "anh/chị" → "anh"/"chị"
@@ -1429,24 +1464,44 @@ document.addEventListener('click', (e) => {
   }
 });
 
-// Bấm icon Zalo (card hoặc trang chi tiết) → COPY lời chào (đã điền tên khách) vào clipboard
-// rồi mở Zalo, để DÁN vào ô kết bạn. Không có lời chào → để link mở Zalo bình thường.
+// Bấm icon Zalo (card / trang chi tiết / Tổng quan) → hộp CHỌN MẪU TIN (mẫu hợp tình huống lên
+// đầu, gắn "Gợi ý"). Chọn 1 mẫu → COPY nội dung đã điền tên rồi mở Zalo để DÁN. Không có mẫu nào
+// (đều trống) → để link mở Zalo bình thường.
+let zpickCustomer = null, zpickHref = null;
 document.addEventListener('click', (e) => {
   const zaloEl = e.target.closest('#detail-zalo-btn, .card-zalo');
   if (!zaloEl) return;
-  const greeting = getZaloGreeting();
-  if (!greeting || !greeting.trim()) return; // không đặt lời chào → mở Zalo như cũ
   const id = zaloEl.dataset.id || detailId;
   const c = id ? allCustomers.find((x) => x.id === id) : null;
+  const tpls = getZaloTemplates().filter((t) => (t.text || '').trim());
+  if (!c || !tpls.length) return;
   e.preventDefault();
-  copyText(fillGreeting(greeting, c)); // khởi tạo copy TRONG cử chỉ click (không await)
-  showToast('Đã copy lời chào — dán vào ô kết bạn Zalo');
-  const href = zaloEl.getAttribute('href');
-  if (href && href !== '#') {
-    if (href.startsWith('http')) window.open(href, '_blank', 'noopener');
-    else window.location.href = href; // scheme zalo:// mở app tại chỗ
-  }
+  zpickCustomer = c; zpickHref = zaloEl.getAttribute('href');
+  const sugId = window.FOLLOWUP ? FOLLOWUP.suggestTemplate(c) : 'chao';
+  const ordered = [...tpls.filter((t) => t.id === sugId), ...tpls.filter((t) => t.id !== sugId)];
+  $('#zpick-title').textContent = 'Nhắn Zalo: ' + (c.full_name || '');
+  $('#zpick-list').innerHTML = ordered.map((t) => `
+    <button type="button" class="zpick-item${t.id === sugId ? ' is-sug' : ''}" data-tpl="${escapeHtml(t.id)}">
+      <span class="zpick-name">${escapeHtml(t.name || 'Mẫu')}${t.id === sugId ? '<span class="zpick-badge">Gợi ý</span>' : ''}</span>
+      <span class="zpick-text">${escapeHtml(fillGreeting(t.text, c))}</span>
+    </button>`).join('');
+  $('#zalo-pick-modal').showModal();
 });
+function openZaloHref(href) {
+  if (!href || href === '#') return;
+  if (href.startsWith('http')) window.open(href, '_blank', 'noopener');
+  else window.location.href = href; // scheme zalo:// mở app tại chỗ
+}
+$('#zpick-list')?.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-tpl]'); if (!b || !zpickCustomer) return;
+  const t = getZaloTemplates().find((x) => x.id === b.dataset.tpl); if (!t) return;
+  copyText(fillGreeting(t.text, zpickCustomer)); // copy TRONG cử chỉ click (không await)
+  showToast(`Đã copy "${t.name}" — dán vào Zalo`);
+  $('#zalo-pick-modal').close();
+  openZaloHref(zpickHref);
+});
+$('#zpick-plain')?.addEventListener('click', () => { $('#zalo-pick-modal').close(); openZaloHref(zpickHref); });
+$('#zpick-close')?.addEventListener('click', () => $('#zalo-pick-modal').close());
 
 // ---- Đổi kiểu xem danh sách: thẻ (card) ⇄ dòng gọn (list) ----
 // Nút hiện ICON của kiểu SẼ chuyển sang (bấm để đổi), lựa chọn lưu vào localStorage.
@@ -2138,6 +2193,10 @@ async function handleFormSubmit(e) {
     if ((editing && editing.notes || null) !== formReg) payload.notes = formReg;
     await CRM.update(editingId, payload, opts);
     if (pendingOcrNote) { await CRM.addNote(editingId, pendingOcrNote); pendingOcrNote = null; }
+    // Đổi bậc TIẾN LÊN cho khách Tiềm năng → sau khi đóng form gợi ý lịch theo nhịp bậc mới.
+    if (newStage && newStage !== orig && careSortRank(newStage) > careSortRank(orig || CARE_STAGE_DEFAULT) && isQualified(editing)) {
+      pendingFollowup = { id: editingId, stage: newStage };
+    }
   } else {
     // Kênh do sale chọn (source); cách nhập hệ thống tự set: ảnh (OCR) → 'ocr', còn lại 'manual'.
     const newSource = channel || SOURCE_DEFAULT;
@@ -2196,6 +2255,7 @@ async function handleFormSubmit(e) {
     }
     const created = await CRM.create(payload, opts);
     if (created) showToast(created.qualified_at ? 'Đã thêm vào Tiềm năng' : 'Đã thêm vào Khách mới');
+    if (created && created.qualified_at) pendingFollowup = { id: created.id, stage: QUALIFIED_STAGE };
     // Nếu OCR đọc được 1 ghi chú → thêm thành 1 note tự nhập cho khách vừa tạo.
     if (created && pendingOcrNote) { await CRM.addNote(created.id, pendingOcrNote); pendingOcrNote = null; }
 
@@ -2210,6 +2270,7 @@ async function handleFormSubmit(e) {
   await refreshList();
   // Nếu đang mở trang chi tiết khách vừa sửa → vẽ lại cho khớp dữ liệu mới
   if (savedId && !$('#detail-screen').hidden) openDetail(savedId);
+  if (pendingFollowup) { const f = pendingFollowup; pendingFollowup = null; offerFollowup(f.id, f.stage); }
 }
 
 async function confirmDelete(id) {
@@ -3960,7 +4021,7 @@ $('#detail-tasks')?.addEventListener('click', (e) => {
 
 // ---- Dialog đặt lịch gọi (dùng chung) ----
 let schedulingId = null, schedTime = null, schedDate = null;
-function openScheduler(id) {
+function openScheduler(id, preset) { // preset {reason} = lý do gợi ý (nhịp follow-up)
   schedulingId = id; schedTime = null; schedDate = null;
   $$('#sched-time .sched-opt').forEach((b) => b.classList.remove('is-sel'));
   $$('#sched-date .sched-opt').forEach((b) => b.classList.remove('is-sel'));
@@ -3969,7 +4030,7 @@ function openScheduler(id) {
   const tm = new Date(); tm.setDate(tm.getDate() + 1); dc.min = isoDateLocal(tm); // custom phải sau hôm nay
   // Lý do gắn với lịch hiện có → nạp lại khi "Đổi lịch"; khách chưa có lịch → trống.
   const c = allCustomers.find((x) => x.id === id);
-  $('#sched-reason').value = (c && c.next_call_reason) || '';
+  $('#sched-reason').value = (preset && preset.reason) || (c && c.next_call_reason) || '';
   $('#sched-error').textContent = '';
   $('#schedule-modal').showModal();
 }
@@ -4023,6 +4084,40 @@ $('#sched-date')?.addEventListener('click', (e) => {
 });
 $('#sched-save')?.addEventListener('click', saveSchedule);
 $('#sched-cancel')?.addEventListener('click', () => $('#schedule-modal').close());
+
+// ---- GỢI Ý LỊCH KHI ĐỔI BẬC / VỪA ĐẠT (nhịp theo bậc ở js/followup.js) ----
+// Chỉ hỏi khi khách CHƯA có lịch hẹn ở tương lai. 3 nút: đặt lịch gợi ý / chọn giờ khác / bỏ qua.
+let fuState = null;
+let pendingFollowup = null; // {id, stage} — form lưu xong mới hỏi (sau khi đóng form)
+function offerFollowup(id, stage) {
+  const c = allCustomers.find((x) => x.id === id);
+  if (!c || !window.FOLLOWUP || !isQualified(c)) return;
+  if (c.next_call_at && Date.parse(c.next_call_at) > Date.now()) return; // đã có lịch
+  const sug = FOLLOWUP.forStage(c, stage || c.care_stage); if (!sug) return;
+  fuState = { id, sug };
+  $('#fu-sub').textContent = `${c.full_name || ''} · ${careLabel(stage || c.care_stage)}`;
+  $('#fu-when').textContent = '📅 ' + sug.label;
+  $('#fu-reason').value = sug.reason;
+  $('#followup-modal').showModal();
+}
+$('#fu-accept')?.addEventListener('click', async () => {
+  if (!fuState) return;
+  const { id, sug } = fuState; fuState = null;
+  await CRM.update(id, { next_call_at: sug.start.toISOString(), next_call_end: sug.end.toISOString(), next_call_reason: $('#fu-reason').value.trim() || sug.reason });
+  $('#followup-modal').close();
+  await refreshList();
+  if (detailId === id && !$('#detail-screen').hidden) openDetail(id);
+  showToast('Đã hẹn gọi ' + sug.label);
+});
+$('#fu-change')?.addEventListener('click', () => {
+  if (!fuState) return;
+  const id = fuState.id; fuState = null;
+  const reason = $('#fu-reason').value.trim();
+  $('#followup-modal').close();
+  openScheduler(id, { reason });
+});
+$('#fu-skip')?.addEventListener('click', () => { fuState = null; $('#followup-modal').close(); });
+$('#fu-close')?.addEventListener('click', () => { fuState = null; $('#followup-modal').close(); });
 
 // ---- Dialog xác nhận gọi (bấm vào tag nhắc gọi) ----
 let callActionId = null;
@@ -4311,6 +4406,7 @@ async function qualifyLead() {
   await refreshList();
   showToast('Đã chuyển vào danh sách chăm sóc');
   openDetail(c.id);
+  offerFollowup(c.id, QUALIFIED_STAGE); // gợi ý cuộc gọi đầu tiên ở lớp chăm sóc
 }
 
 function showDropBox(preset) {
@@ -4741,7 +4837,7 @@ function speedToLeadMs(c) {
 }
 
 // 1 dòng việc: bấm tên → mở khách; nút gọi (tel: + data-call-id → hộp ghi cuộc gọi khi quay lại).
-function dashActRow(c, sub, tone) {
+function dashActRow(c, sub, tone, withZalo) {
   const tel = normalizePhone(c.phone || '');
   const tag = isQualified(c) ? careLabel(c.care_stage) : 'Khách mới';
   return `<div class="act-row${tone ? ' is-' + tone : ''}">
@@ -4749,6 +4845,7 @@ function dashActRow(c, sub, tone) {
         <span class="act-name">${escapeHtml(c.full_name || '(chưa tên)')}<span class="act-tag">${escapeHtml(tag)}</span></span>
         <span class="act-sub">${escapeHtml(sub)}</span>
       </button>
+      ${withZalo && tel ? `<a class="act-zalo card-zalo" href="${zaloLink(c.phone)}" data-id="${c.id}" aria-label="Nhắn Zalo"><img class="ic-zalo" src="/icons/zalo.png" alt="Zalo" /></a>` : ''}
       ${tel ? `<a class="act-call" href="tel:${tel}" data-call-id="${c.id}" aria-label="Gọi ${escapeHtml(c.full_name || '')}">${PHONE_SVG}</a>` : ''}
     </div>`;
 }
@@ -4835,7 +4932,17 @@ function dashActionGroups(all) {
         .map(({ c, idle }) => ({ c, sub: `${idle} ngày chưa liên hệ · quan tâm ${c.interest_level || 0}%` })),
     },
     {
-      key: 'bday', title: 'Sinh nhật sắp tới', tone: 'info',
+      // Mỗi khách đang chăm phải có bước tiếp theo (Next Step) — nhóm này gom phần còn lại
+      // (khách đã nằm ở nhóm trên thì không lặp lại).
+      key: 'nonext', title: 'Chưa có việc tiếp theo', contact: true,
+      hint: 'Đặt lịch gọi hoặc thêm "Việc tiếp theo" để khách không bị bỏ quên.',
+      items: activeQ.filter((c) => !hasFutureCall(c) && !(Array.isArray(c.next_tasks) && c.next_tasks.length))
+        .map((c) => ({ c, idle: Math.floor((now - (lastTouchMs(c) || now)) / 86400000) }))
+        .sort((a, b) => (b.c.interest_level || 0) - (a.c.interest_level || 0) || b.idle - a.idle)
+        .map(({ c, idle }) => ({ c, sub: `Quan tâm ${c.interest_level || 0}% · liên hệ cuối ${idle} ngày trước` })),
+    },
+    {
+      key: 'bday', title: 'Sinh nhật sắp tới', tone: 'info', zalo: true,
       hint: 'Một lời chúc qua Zalo giữ quan hệ — kể cả với khách đã chốt (giới thiệu khách mới).',
       items: all.filter((c) => isQualified(c) && c.care_stage !== CARE_STAGE_DROPPED)
         .map((c) => ({ c, d: daysToBirthday(c) }))
@@ -4942,14 +5049,14 @@ function renderDashboard() {
     return `<section class="act-group${g.tone ? ' is-' + g.tone : ''}">
         <div class="act-group-title"><span>${escapeHtml(g.title)}</span><span class="act-count">${g.items.length}</span></div>
         ${g.hint ? `<div class="act-hint">${escapeHtml(g.hint)}</div>` : ''}
-        <div class="act-list">${rows.map((x) => dashActRow(x.c, x.sub, g.tone)).join('')}</div>
+        <div class="act-list">${rows.map((x) => dashActRow(x.c, x.sub, g.tone, g.zalo)).join('')}</div>
         ${rest > 0 ? `<button type="button" class="btn-ghost act-more" data-more="${g.key}">Xem thêm ${rest} khách</button>`
           : (open && g.items.length > DASH_GROUP_LIMIT ? `<button type="button" class="btn-ghost act-more" data-more="${g.key}">Thu gọn</button>` : '')}
       </section>`;
   }).join('') : '<div class="dash-empty">Đã xử lý hết việc hôm nay. Có thể gọi chăm lại khách cũ hoặc nhập thêm khách mới.</div>';
   const todoCard = `<div class="dash-card dash-todo" id="dash-todo">
       <h3>Việc hôm nay</h3>
-      <p class="dash-hint">Xếp theo mức ưu tiên: hẹn gọi → khách mới → gọi lại → chăm lại. Bấm tên để mở hồ sơ, bấm 📞 để gọi.</p>
+      <p class="dash-hint">Xếp theo mức ưu tiên: hẹn gọi → khách mới → gọi lại → chăm lại. Bấm tên để mở hồ sơ, bấm 📞 để gọi — gọi xong app tự gợi ý lịch gọi lại.</p>
       ${todoHtml}
     </div>`;
 
@@ -5723,17 +5830,45 @@ document.addEventListener('DOMContentLoaded', () => {
   $('#signup-btn').addEventListener('click', handleSignup);
   $('#logout-btn').addEventListener('click', handleLogout);
 
-  // Lời chào Zalo: mở modal chỉnh (từ menu avatar) → nạp giá trị hiện tại → Lưu.
+  // Mẫu tin Zalo: mở modal (từ menu avatar) → sửa tên/nội dung từng mẫu, thêm/xoá mẫu riêng → Lưu.
+  const defaultIds = () => defaultZaloTemplates().map((t) => t.id);
+  const renderTplEditor = (list) => {
+    const ids = defaultIds();
+    $('#tpl-list').innerHTML = list.map((t) => `
+      <div class="tpl-item" data-id="${escapeHtml(t.id)}">
+        <div class="tpl-row">
+          <input class="tpl-name" value="${escapeHtml(t.name || '')}" placeholder="Tên mẫu" maxlength="60" />
+          ${ids.includes(t.id) ? '' : '<button type="button" class="tpl-del" aria-label="Xoá mẫu">Xoá</button>'}
+        </div>
+        <textarea class="tpl-text greeting-text" rows="4" placeholder="Nội dung tin nhắn… (để trống = ẩn mẫu này)">${escapeHtml(t.text || '')}</textarea>
+      </div>`).join('');
+  };
+  const readTplEditor = () => $$('#tpl-list .tpl-item').map((el) => ({
+    id: el.dataset.id, name: el.querySelector('.tpl-name').value.trim() || 'Mẫu', text: el.querySelector('.tpl-text').value,
+  }));
   $('#zalo-greeting-btn').addEventListener('click', () => {
     $('#topbar-menu').classList.remove('open'); // đóng menu avatar
-    $('#greeting-text').value = getZaloGreeting();
+    renderTplEditor(getZaloTemplates());
     $('#greeting-modal').showModal();
+  });
+  $('#tpl-add').addEventListener('click', () => {
+    const list = readTplEditor(); list.push({ id: 'u_' + Date.now(), name: '', text: '' });
+    renderTplEditor(list);
+    const items = $$('#tpl-list .tpl-item'); items[items.length - 1].querySelector('.tpl-name').focus();
+  });
+  $('#tpl-list').addEventListener('click', (e) => {
+    const d = e.target.closest('.tpl-del'); if (!d) return;
+    d.closest('.tpl-item').remove();
+  });
+  $('#tpl-reset').addEventListener('click', () => {
+    if (!confirm('Đưa các mẫu về nội dung mặc định? (Mẫu bạn tự thêm sẽ bị xoá khi bấm Lưu)')) return;
+    renderTplEditor(defaultZaloTemplates());
   });
   $('#greeting-cancel').addEventListener('click', () => $('#greeting-modal').close());
   $('#greeting-save').addEventListener('click', () => {
-    setZaloGreeting($('#greeting-text').value);
+    setZaloTemplates(readTplEditor());
     $('#greeting-modal').close();
-    showToast('Đã lưu lời chào Zalo');
+    showToast('Đã lưu mẫu tin Zalo');
   });
 
   $('#add-customer-btn').addEventListener('click', () => openForm(null));

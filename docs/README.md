@@ -17,6 +17,7 @@ Giữ root dễ nhìn và giúp AI chỉ đọc thông tin cần cho task. `CLAU
 | `project-status.md` | Snapshot và điểm cần xác minh | Handoff hoặc task phụ thuộc trạng thái |
 | `loan-module.md` | Quy tắc tính vay, cập nhật lãi suất, gỡ lỗi | Sửa module vay; tài liệu hiện có, không được tái tạo trong bộ này |
 | `gio-hang.md` | Giỏ hàng, chỉnh sửa và nhập Excel | Sửa catalog; tài liệu hiện có, không được tái tạo trong bộ này |
+| `huong-dan-follow-up.md` | Hướng dẫn dùng nhịp follow-up + mẫu tin Zalo, và cách chỉnh thông số trong `js/followup.js` | Sửa nhịp gọi / khung giờ / mẫu Zalo; trả lời chủ dự án cách chỉnh |
 | `sale-focus-roadmap.md` | Tham chiếu CRM (FUB, Salesforce, LionDesk, Meey), lộ trình đề xuất và thông tin nên thu thập thêm | Khi chọn tính năng tiếp theo; là đề xuất, chưa phải yêu cầu đã duyệt |
 
 ## Cấu trúc đề xuất

@@ -83,7 +83,7 @@
             <button id="tool-loan-btn" class="menu-item">Tính vay</button>
             <button id="catalog-btn" class="menu-item">Giỏ hàng (dự án · toà · căn)</button>
             <div class="menu-group-label">Cài đặt</div>
-            <button id="zalo-greeting-btn" class="menu-item">Lời chào Zalo</button>
+            <button id="zalo-greeting-btn" class="menu-item">Mẫu tin Zalo</button>
             <div class="menu-sep"></div>
             <button id="logout-btn" class="menu-item">Đăng xuất</button>
           </div>
@@ -944,6 +944,8 @@
     <h2 id="calllog-title">Cuộc gọi</h2>
     <p id="calllog-sub" class="callact-sub"></p>
     <div id="calllog-results"></div>
+    <!-- Gợi ý lần gọi tiếp theo theo nhịp follow-up (js/followup.js) — calls.js vẽ khi chọn kết quả. -->
+    <div id="calllog-next" class="calllog-next" hidden></div>
     <div class="sched-label" id="calllog-note-label">Ghi chú</div>
     <textarea id="calllog-note" class="callnote-input" rows="3"></textarea>
     <div id="calllog-error" class="sched-error"></div>
@@ -1021,15 +1023,46 @@
   </div>
 </dialog>
 
-<!-- Chỉnh LỜI CHÀO ZALO (mở từ menu avatar). Tin nhắn sẽ tự copy khi bấm icon Zalo. -->
+<!-- MẪU TIN ZALO (mở từ menu avatar). Bấm icon Zalo của khách → chọn mẫu → tự copy + mở Zalo.
+     Mẫu mặc định + quy tắc gợi ý: js/followup.js. Lưu/đồng bộ: getZaloTemplates/setZaloTemplates (app.js). -->
 <dialog id="greeting-modal" class="greeting-modal">
   <div class="greeting-box">
-    <h2 class="greeting-title">Lời chào Zalo</h2>
-    <p class="greeting-hint">Khi bạn bấm icon Zalo của khách, tin nhắn này tự copy vào clipboard để bạn <b>dán</b> vào ô lời chào khi kết bạn. Dùng <code>{ten}</code> để tự điền tên gọi khách (vd "Huyền"), <code>{hoten}</code> cho họ tên đầy đủ. Chữ <code>anh/chị</code> tự đổi theo giới tính (Nam→anh, Nữ→chị). Để trống = không copy.</p>
-    <textarea id="greeting-text" class="greeting-text" rows="5" placeholder="vd: Em chào anh/chị {ten} ạ! Em là..."></textarea>
+    <h2 class="greeting-title">Mẫu tin Zalo</h2>
+    <p class="greeting-hint">Bấm icon Zalo của khách → chọn 1 mẫu → app <b>copy</b> nội dung đã điền tên và mở Zalo để bạn <b>dán</b>. Ô tự điền: <code>{ten}</code> tên gọi, <code>{hoten}</code> họ tên, <code>{du_an}</code> dự án khách quan tâm. Chữ <code>anh/chị</code> tự đổi theo giới tính. Mẫu để trống sẽ bị ẩn. Mẫu "Chào kết bạn" là lời chào cũ.</p>
+    <div id="tpl-list" class="tpl-list"></div>
+    <button type="button" id="tpl-add" class="btn-ghost btn-small tpl-add">+ Thêm mẫu</button>
     <div class="greeting-btns">
+      <button type="button" id="tpl-reset" class="btn-ghost btn-small tpl-reset">Khôi phục mặc định</button>
       <button type="button" id="greeting-cancel" class="btn-ghost btn-small">Huỷ</button>
       <button type="button" id="greeting-save" class="btn-primary btn-small">Lưu</button>
+    </div>
+  </div>
+</dialog>
+
+<!-- CHỌN MẪU TIN khi bấm icon Zalo của khách (mẫu hợp tình huống lên đầu). -->
+<dialog id="zalo-pick-modal" class="greeting-modal">
+  <div class="greeting-box">
+    <button type="button" id="zpick-close" class="callact-x" aria-label="Đóng">✕</button>
+    <h2 id="zpick-title" class="greeting-title">Nhắn Zalo</h2>
+    <p class="greeting-hint">Chọn mẫu → tự copy nội dung và mở Zalo, bạn chỉ cần dán.</p>
+    <div id="zpick-list" class="zpick-list"></div>
+    <div class="greeting-btns"><button type="button" id="zpick-plain" class="btn-ghost btn-small">Chỉ mở Zalo, không copy</button></div>
+  </div>
+</dialog>
+
+<!-- GỢI Ý LỊCH sau khi đổi bậc / bấm Đạt (nhịp theo bậc: js/followup.js). -->
+<dialog id="followup-modal">
+  <div class="callact">
+    <button type="button" id="fu-close" class="callact-x" aria-label="Đóng">✕</button>
+    <h2>Hẹn lần liên hệ tiếp theo?</h2>
+    <p id="fu-sub" class="callact-sub"></p>
+    <div id="fu-when" class="fu-when"></div>
+    <div class="sched-label">Nội dung gọi</div>
+    <textarea id="fu-reason" class="sched-reason" rows="2"></textarea>
+    <div class="callact-btns">
+      <button type="button" id="fu-accept" class="btn-primary">Đặt lịch này</button>
+      <button type="button" id="fu-change" class="btn-secondary">Chọn giờ khác</button>
+      <button type="button" id="fu-skip" class="btn-secondary">Bỏ qua</button>
     </div>
   </div>
 </dialog>
@@ -1040,6 +1073,7 @@
 <script src="/js/search.js"></script>
 <script src="/js/db.js"></script>
 <script src="/js/notifications.js"></script>
+<script src="/js/followup.js"></script>
 <script src="/js/catalog.js"></script>
 <script src="/js/app.js"></script>
 <script src="/js/calls.js"></script>

@@ -539,6 +539,23 @@ const CRM = {
     return true;
   },
 
+  // Mẫu tin Zalo (mảng [{id,name,text}]) — cột user_settings.zalo_templates (SQL/add_zalo_templates.sql).
+  // Chưa chạy SQL → lỗi cột → trả undefined/false, app vẫn dùng mẫu lưu trên máy.
+  async getZaloTemplatesRemote() {
+    if (!this.isOnline() || !_supabase || !_currentUserId) return undefined;
+    const { data, error } = await _supabase
+      .from('user_settings').select('zalo_templates').eq('id', _currentUserId).maybeSingle();
+    if (error) { console.warn('getZaloTemplates remote lỗi (đã chạy SQL/add_zalo_templates.sql chưa?):', error.message || error); return undefined; }
+    return data ? data.zalo_templates : null;
+  },
+  async saveZaloTemplatesRemote(list) {
+    if (!this.isOnline() || !_supabase || !_currentUserId) return false;
+    const { error } = await _supabase.from('user_settings')
+      .upsert({ id: _currentUserId, zalo_templates: list, updated_at: new Date().toISOString() });
+    if (error) { console.warn('saveZaloTemplates remote lỗi (đã chạy SQL/add_zalo_templates.sql chưa?):', error.message || error); return false; }
+    return true;
+  },
+
   /**
    * Migrate 1 lần: chuyển file avatar cũ từ bucket private (customer-docs) sang bucket
    * public (customer-avatars), GIỮ NGUYÊN path (nên avatar_path không đổi). Idempotent:
