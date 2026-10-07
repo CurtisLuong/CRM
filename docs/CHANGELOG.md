@@ -6,6 +6,13 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-07 — Zalo: mở thẳng app trên Android, chỉ 1–2 tin gợi ý
+
+- Android (trình duyệt / PWA): nút Zalo mở thẳng app qua `intent://…;package=com.zing.zalo` (fallback trang zalo.me) thay vì `window.open(zalo.me)` — trước đây Custom Tab lúc chuyển sang app lúc kẹt ở trang zalo.me "Trang này không tìm thấy". Vỏ Capacitor, iOS giữ link https; Mac giữ `zalo://`.
+- Hộp Zalo chỉ hiện 1 tin gợi ý (tối đa 2: khách Tiềm năng sát sinh nhật / gọi hỏng ≥ 3 lần); các mẫu khác ẩn sau "Chọn mẫu khác".
+- File: `js/app.js`, `js/followup.js`, `index.html`, `css/style.css`, `sw.js` (v46), `docs/huong-dan-follow-up.md`.
+- Đã kiểm tra trình duyệt local (giả lập Android 375px, dữ liệu giả): bố cục, số tin gợi ý, URL intent được tạo. Chưa thử mở app Zalo trên máy thật.
+
 ## 2026-10-07 — Hộp Zalo: nút "Mở Zalo" nổi bật + gợi ý mẫu theo lớp khách / bậc
 
 - Hộp bấm icon Zalo: nút lớn **Mở Zalo** ở trên cùng (hành động chính); mẫu tin xếp dưới, mẫu gợi ý có lý do ("Đang ở bậc …", "Đã gọi 3 lần chưa liên lạc được").

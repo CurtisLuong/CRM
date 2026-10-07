@@ -1478,27 +1478,48 @@ document.addEventListener('click', (e) => {
   if (!c || !tpls.length) return;
   e.preventDefault();
   zpickCustomer = c;
-  const sug = window.FOLLOWUP ? FOLLOWUP.suggestTemplateInfo(c) : { id: 'chao', why: '' };
-  const ordered = [...tpls.filter((t) => t.id === sug.id), ...tpls.filter((t) => t.id !== sug.id)];
-  $('#zpick-title').textContent = c.full_name || 'Nhắn Zalo';
-  $('#zpick-sub').textContent = [c.phone, isQualified(c) ? careLabel(c.care_stage) : 'Khách mới'].filter(Boolean).join(' · ');
-  $('#zpick-list').innerHTML = ordered.map((t) => {
-    const isSug = t.id === sug.id;
-    return `<button type="button" class="zpick-item${isSug ? ' is-sug' : ''}" data-tpl="${escapeHtml(t.id)}">
-      <span class="zpick-name">${escapeHtml(t.name || 'Mẫu')}${isSug ? '<span class="zpick-badge">Gợi ý</span>' : ''}</span>
-      ${isSug && sug.why ? `<span class="zpick-why">${escapeHtml(sug.why)}</span>` : ''}
+  // Chỉ 1 mẫu gợi ý (tối đa 2 khi có thêm tình huống rõ ràng — js/followup.js). Các mẫu khác ẩn
+  // sau "Chọn mẫu khác" để hộp gọn, nút Mở Zalo luôn là thứ nổi bật nhất.
+  const sugs = (window.FOLLOWUP ? FOLLOWUP.suggestTemplates(c) : [{ id: 'chao', why: '' }])
+    .filter((x) => tpls.some((t) => t.id === x.id));
+  const sugIds = sugs.map((x) => x.id);
+  const others = tpls.filter((t) => !sugIds.includes(t.id));
+  const item = (t, why) => `<button type="button" class="zpick-item${why != null ? ' is-sug' : ''}" data-tpl="${escapeHtml(t.id)}">
+      <span class="zpick-name">${escapeHtml(t.name || 'Mẫu')}</span>
+      ${why ? `<span class="zpick-why">${escapeHtml(why)}</span>` : ''}
       <span class="zpick-text">${escapeHtml(fillGreeting(t.text, c))}</span>
     </button>`;
-  }).join('');
+  $('#zpick-title').textContent = c.full_name || 'Nhắn Zalo';
+  $('#zpick-sub').textContent = [c.phone, isQualified(c) ? careLabel(c.care_stage) : 'Khách mới'].filter(Boolean).join(' · ');
+  $('#zpick-sep').hidden = !sugs.length;
+  $('#zpick-list').innerHTML = sugs.map((x) => item(tpls.find((t) => t.id === x.id), x.why || '')).join('');
+  $('#zpick-more').hidden = !others.length;
+  $('#zpick-more').textContent = `Chọn mẫu khác (${others.length})`;
+  $('#zpick-others').hidden = true;
+  $('#zpick-others').innerHTML = others.map((t) => item(t, null)).join('');
   $('#zalo-pick-modal').showModal();
 });
+// Mở chat Zalo của khách. Android chạy trên TRÌNH DUYỆT / app cài từ Chrome (PWA): window.open
+// zalo.me mở 1 tab trình duyệt (Custom Tab) rồi mới chuyển sang app Zalo — lúc được lúc không, có
+// khi kẹt ở trang zalo.me báo "Trang này không tìm thấy". → Dùng intent:// chỉ đích danh app Zalo
+// (package com.zing.zalo) để Chrome mở THẲNG app; máy chưa cài Zalo → tự rơi về trang zalo.me.
+// Vỏ Android (Capacitor) không hiểu intent:// → giữ link https (vỏ tự giao cho app Zalo).
+function isCapacitorShell() {
+  return !!(window.Capacitor && (typeof window.Capacitor.isNativePlatform === 'function' ? window.Capacitor.isNativePlatform() : window.Capacitor.isNative));
+}
 function openZaloFor(c) {
   const href = c && c.phone ? zaloLink(c.phone) : '';
   if (!href) return;
-  if (href.startsWith('http')) window.open(href, '_blank', 'noopener');
-  else window.location.href = href; // scheme zalo:// mở app tại chỗ
+  if (!href.startsWith('http')) { window.location.href = href; return; } // Mac: zalo:// mở app tại chỗ
+  if (/Android/i.test(navigator.userAgent || '') && !isCapacitorShell()) {
+    const path = href.replace(/^https:\/\//, '');
+    window.location.href = `intent://${path}#Intent;scheme=https;package=com.zing.zalo;S.browser_fallback_url=${encodeURIComponent(href)};end`;
+    return;
+  }
+  window.open(href, '_blank', 'noopener');
 }
-$('#zpick-list')?.addEventListener('click', (e) => {
+$('#zpick-more')?.addEventListener('click', () => { $('#zpick-others').hidden = false; $('#zpick-more').hidden = true; });
+$('#zalo-pick-modal')?.addEventListener('click', (e) => {
   const b = e.target.closest('[data-tpl]'); if (!b || !zpickCustomer) return;
   const t = getZaloTemplates().find((x) => x.id === b.dataset.tpl); if (!t) return;
   copyText(fillGreeting(t.text, zpickCustomer)); // copy TRONG cử chỉ click (không await)

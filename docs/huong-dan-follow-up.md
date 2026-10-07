@@ -52,10 +52,12 @@ Nhịp theo bậc:
 Gom khách Tiềm năng đang chăm mà **không có lịch hẹn** và **không có mục "Việc tiếp theo"**. Mục tiêu: nhóm này luôn trống. Bấm tên khách → đặt lịch hoặc thêm việc.
 
 ### 4. Mẫu tin Zalo
-- Bấm **icon Zalo** của khách (ở danh sách, trang chi tiết, dòng sinh nhật ở Tổng quan) → hộp có nút lớn **Mở Zalo** ở trên cùng (chỉ mở chat, không copy — dùng hằng ngày). Bên dưới là các mẫu tin; mẫu **hợp tình huống nhất nằm đầu, gắn nhãn "Gợi ý" kèm lý do**. Bấm 1 mẫu → app copy nội dung (đã điền tên, anh/chị, dự án) và mở Zalo → bạn **dán**.
-- Cách app chọn mẫu gợi ý:
-  - **Khách mới** (tab Khách mới) — theo lịch sử gọi: chưa gọi / mới gọi hỏng 1–2 lần → **Chào kết bạn**; gọi hỏng liên tiếp từ 3 lần → **Gọi chưa được**; đã nói chuyện được → **Gửi thông tin / bảng giá**. Cuộc gọi tự nạp từ máy Android chưa ghi chú mà 0 giây cũng tính là gọi hỏng.
-  - **Khách Tiềm năng** — theo **bậc đang ở**: Đang chăm sóc → Gửi thông tin · Xem dự án → Hỏi thăm sau khi xem · Hỗ trợ hồ sơ, Booking → Nhắc giấy tờ · Kí HĐMB → Chúc mừng. Ngoại lệ duy nhất: hôm nay hoặc ngày mai là sinh nhật khách → **Chúc mừng sinh nhật**.
+- Bấm **icon Zalo** của khách → hộp có nút lớn **Mở Zalo** ở trên cùng (chỉ mở chat, không copy — dùng hằng ngày). Bên dưới chỉ có **1 tin nhắn gợi ý** (tối đa 2 khi có thêm 1 tình huống rõ ràng), kèm lý do gợi ý. Bấm tin gợi ý → app copy nội dung (đã điền tên, anh/chị, dự án) và mở Zalo → bạn **dán**. Cần mẫu khác → bấm dòng nhỏ **Chọn mẫu khác**.
+- Cách app chọn tin gợi ý:
+  - **Khách mới** (tab Khách mới), luôn 1 tin — theo lịch sử gọi: chưa gọi / mới gọi hỏng 1–2 lần → **Chào kết bạn**; gọi hỏng liên tiếp từ 3 lần → **Gọi chưa được**; đã nói chuyện được → **Gửi thông tin / bảng giá**. Cuộc gọi tự nạp từ máy Android chưa ghi chú mà 0 giây cũng tính là gọi hỏng.
+  - **Khách Tiềm năng** — theo **bậc đang ở**: Đang chăm sóc → Gửi thông tin · Xem dự án → Hỏi thăm sau khi xem · Hỗ trợ hồ sơ, Booking → Nhắc giấy tờ · Kí HĐMB → Chúc mừng.
+  - Thêm tin thứ 2 (chỉ với khách Tiềm năng): hôm nay/mai là sinh nhật → **Chúc mừng sinh nhật** (xếp lên trước); hoặc gọi hỏng liên tiếp từ 3 lần → **Gọi chưa được**.
+- Trên điện thoại Android (trình duyệt / app cài từ Chrome), nút Zalo mở **thẳng app Zalo**, không đi qua trang web zalo.me nữa. Máy chưa cài Zalo thì mới mở trang web.
 - **Sửa nội dung mẫu**: menu avatar → **Mẫu tin Zalo**. Sửa tên/nội dung từng mẫu, **+ Thêm mẫu** riêng, **Xoá** mẫu tự thêm, **Khôi phục mặc định** nếu lỡ sửa hỏng. Mẫu để trống sẽ bị ẩn.
 - Ô tự điền trong mẫu:
   - `{ten}` → tên gọi (vd "Lan")
@@ -119,8 +121,9 @@ leadTalkedReason: 'Chốt phân loại: Đạt hay Loại',
 
 ### Mẫu Zalo gợi ý theo tình huống
 ```js
-leadMissedTemplateAfter: 3,  // khách MỚI gọi hỏng liên tiếp ≥ 3 lần → gợi ý "Gọi chưa được"
-birthdayTemplateDays: 1,     // khách TIỀM NĂNG: 0 = chỉ đúng ngày sinh nhật, 1 = hôm nay hoặc mai
+leadMissedTemplateAfter: 3,       // khách MỚI gọi hỏng liên tiếp ≥ 3 lần → gợi ý "Gọi chưa được"
+qualifiedMissedTemplateAfter: 3,  // khách TIỀM NĂNG gọi hỏng ≥ 3 lần → thêm "Gọi chưa được" làm tin thứ 2 (0 = tắt)
+birthdayTemplateDays: 1,          // khách TIỀM NĂNG: 0 = chỉ đúng ngày sinh nhật, 1 = hôm nay hoặc mai
 stageTemplate: { 'Xem dự án': 'sau_xem', ... },  // khách TIỀM NĂNG: bậc → mã mẫu
 ```
 Mã mẫu: `chao`, `goi_nho`, `thong_tin`, `sau_xem`, `nhac_ho_so`, `sinh_nhat`, `chuc_mung`. Mẫu tự thêm trong app có mã dạng `u_…` (không gắn vào gợi ý tự động được, chỉ chọn tay).
