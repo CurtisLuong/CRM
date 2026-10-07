@@ -6,6 +6,20 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-07 — Form khách: Diện tích là giá trị phụ thuộc (dự án + toà + loại căn), sửa tay được
+
+- Trước: diện tích chỉ tự điền khi ô trống và chỉ khi đổi loại căn → đổi loại căn sau đó vẫn giữ số cũ (sai loại); chọn
+  loại trước rồi mới chọn dự án / đổi toà / OCR chọn loại căn thì không tự điền.
+- Nay: ô Diện tích nhớ đang là "tự điền" (nhãn nhỏ **tự điền** cạnh nhãn) hay "sửa tay". Tự điền → luôn chạy theo dự án,
+  mã toà, loại căn (nguồn giỏ hàng: căn > toà > dự án); lựa chọn mới không có diện tích → xoá số tự điền cũ. Sửa tay →
+  giữ nguyên. Mở khách cũ: diện tích khớp điển hình = tự điền, khác = sửa tay. OCR: ảnh ghi diện tích = sửa tay, không
+  ghi → tự điền theo loại căn đọc được. Giá căn tự tính (= diện tích × đơn giá điển hình toà > dự án) đi theo cùng nguyên
+  tắc, kể cả khi sửa tay diện tích; tự sửa giá → giữ giá.
+- Sửa lỗi kiểm tra `window.Catalog` (Catalog khai báo `const`, không nằm trên window).
+- File: `js/app.js`, `index.html`, `css/style.css`, `sw.js` (cache v33).
+
+---
+
 ## 2026-10-07 — Hiệu ứng "Đang đọc ảnh" (OCR) mới
 
 - Trong lúc chờ đọc ảnh: lớp phủ kính mờ trên form + thẻ bo tròn có khung quét, tia sáng xanh chạy lên xuống tài liệu,

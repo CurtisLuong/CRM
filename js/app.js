@@ -1573,6 +1573,11 @@ function openForm(id) {
   // (localStorage) làm mặc định nếu chưa chủ động set.
   if (id) selectedProjects = Array.isArray(c.projects) ? [...c.projects] : [];
   else { try { selectedProjects = JSON.parse(localStorage.getItem(LS_LAST_PROJECTS) || '[]'); } catch { selectedProjects = []; } }
+  // Diện tích đang có = số tự điền? (khớp đúng diện tích điển hình theo dự án/toà/loại căn) → còn
+  // chạy theo khi đổi lựa chọn; khác (sửa tay theo căn thực tế) → giữ nguyên.
+  areaAuto = false; priceAuto = false;
+  { const t = typicalAreaForForm(); if (t && f.apt_area.value && Number(f.apt_area.value) === t.area) areaAuto = true; }
+  syncAreaAutoTag();
   projManageMode = false;
   $('#proj-add-row').hidden = true;
   $('#proj-add-btn').hidden = false;
@@ -1696,6 +1701,7 @@ function formCatalogProjects() {
 function formCatalogBuildings() { return formCatalogProjects().flatMap((p) => Catalog.buildingsOf(p.id)); }
 function refreshAptSuggestions() {
   refreshAptTypeOptions();
+  fillTypicalArea(); // đổi dự án / mã toà → diện tích tự điền chạy theo
   const f = $('#customer-form');
   const bs = formCatalogBuildings();
   const multiProj = formCatalogProjects().length > 1;
@@ -1725,12 +1731,12 @@ function fillFromCatalogUnit() {
   f.apt_code.value = u.code;
   f.building_code.value = u.building;
   const area = Catalog.unitArea(u); // riêng của căn > điển hình của loại căn (toà > dự án)
-  if (area) f.apt_area.value = area;
+  if (area) { f.apt_area.value = area; areaAuto = true; }
   if (u.floor) f.apt_floor.value = u.floor;
   if (u.direction && [...f.apt_direction.options].some((o) => o.value === u.direction)) f.apt_direction.value = u.direction;
   if (u.apt_type) setFormAptType(u.apt_type);
   const price = Catalog.unitPrice(u);
-  if (!f.apt_price.value && price && area) f.apt_price.value = Math.round(price * area);
+  if ((!f.apt_price.value || priceAuto) && price && area) { f.apt_price.value = Math.round(price * area); priceAuto = true; }
   const p = Catalog.project(u.project_id);
   if (p && !selectedProjects.includes(p.name)) { selectedProjects.push(p.name); renderProjSelect(); }
   refreshAptSuggestions();
@@ -1783,22 +1789,43 @@ function refreshAptTypeOptions() {
 
 // Chọn loại căn khi ô diện tích còn trống → điền diện tích điển hình (toà đã nhập > dự án đã chọn)
 // + giá căn (nếu trống) = diện tích × giá điển hình (toà > dự án)
-function fillTypicalArea() {
+// ---- DIỆN TÍCH = GIÁ TRỊ PHỤ THUỘC (dự án + toà + loại căn), sửa tay được ----
+// Nguồn (giỏ hàng, js/catalog.js): diện tích riêng của căn > của toà > điển hình của dự án theo loại căn.
+// areaAuto = ô Diện tích đang là số TỰ ĐIỀN → luôn chạy theo dự án/toà/loại căn. Sửa tay → false → giữ nguyên.
+// Giá căn (= diện tích × đơn giá điển hình) đi theo cùng nguyên tắc với priceAuto.
+let areaAuto = false, priceAuto = false;
+let lastUnitPrice = null; // đơn giá điển hình (đ/m²) của lựa chọn hiện tại — để giá tự tính theo diện tích sửa tay
+// Diện tích + đơn giá điển hình theo lựa chọn hiện tại của form; null = không xác định được.
+function typicalAreaForForm() {
   const f = $('#customer-form');
-  if (f.apt_area.value) return; // đã có diện tích (nhập tay / theo căn) → không đè
   const type = canonicalAptType(f.apt_type_select.value === '__other' ? f.apt_type_other.value : f.apt_type_select.value);
-  if (!type) return;
+  if (!type || typeof Catalog === 'undefined') return null; // Catalog khai báo const ở js/catalog.js (không nằm trên window)
   const bCode = f.building_code.value.trim().toLowerCase();
   for (const p of formCatalogProjects()) {
-    const b = Catalog.buildingsOf(p.id).find((x) => x.code.toLowerCase() === bCode);
+    const b = bCode ? Catalog.buildingsOf(p.id).find((x) => x.code.toLowerCase() === bCode) : null;
     const a = Catalog.typicalArea(p.id, b && b.id, type);
     if (a && (b || selectedProjects.length === 1)) { // nhiều dự án mà chưa có toà → không đoán
-      f.apt_area.value = a;
-      const price = b ? Catalog.buildingPrice(b) : Catalog.projectPrice(p); // giá điển hình: toà > dự án
-      if (!f.apt_price.value && price) f.apt_price.value = Math.round(a * price);
-      return;
+      return { area: a, unitPrice: b ? Catalog.buildingPrice(b) : Catalog.projectPrice(p) }; // giá: toà > dự án
     }
   }
+  return null;
+}
+function syncAreaAutoTag() { const t = $('#area-auto-tag'); if (t) t.hidden = !areaAuto; }
+// Tính lại diện tích (và giá) tự điền sau mỗi lần đổi dự án / toà / loại căn.
+function fillTypicalArea() {
+  const f = $('#customer-form');
+  if (f.apt_area.value && !areaAuto) return; // diện tích sửa tay / theo căn cụ thể → không đè
+  const t = typicalAreaForForm();
+  lastUnitPrice = t && t.unitPrice ? t.unitPrice : null;
+  if (t) {
+    f.apt_area.value = t.area; areaAuto = true;
+    if ((!f.apt_price.value || priceAuto) && t.unitPrice) { f.apt_price.value = Math.round(t.area * t.unitPrice); priceAuto = true; }
+  } else if (areaAuto) {
+    // Lựa chọn mới không có diện tích điển hình → bỏ số tự điền cũ (tránh giữ số của loại căn khác).
+    f.apt_area.value = ''; areaAuto = false;
+    if (priceAuto) { f.apt_price.value = ''; priceAuto = false; }
+  }
+  syncAreaAutoTag();
 }
 
 // Hiện ô "loại căn khác" khi chọn "Khác..."
@@ -2446,7 +2473,7 @@ function applyOcrToForm(d) {
   // khớp → chọn giá trị chuẩn, không khớp → "Khác" + giữ nguyên chữ OCR.
   // (canonicalAptType giữ '+' để phân biệt "2N+" với "2N"; setFormAptType theo danh sách đang hiện)
   if (d.apt_type) setFormAptType(String(d.apt_type).trim());
-  if (d.apt_area != null && Number(d.apt_area) > 0) f.apt_area.value = Number(d.apt_area);
+  if (d.apt_area != null && Number(d.apt_area) > 0) { f.apt_area.value = Number(d.apt_area); areaAuto = false; } // ảnh ghi rõ → coi như nhập tay
   if (d.apt_code) f.apt_code.value = String(d.apt_code).trim();
   if (d.building_code) f.building_code.value = String(d.building_code).trim();
   if (d.apt_price != null && !isNaN(Number(d.apt_price))) f.apt_price.value = Number(d.apt_price);
@@ -2491,6 +2518,7 @@ function applyOcrToForm(d) {
   }
   // Ghi chú OCR: giữ tạm, sẽ thêm thành 1 note sau khi tạo khách (xem handleFormSubmit).
   pendingOcrNote = (d.note && String(d.note).trim()) || null;
+  fillTypicalArea(); // OCR đã chọn loại căn/dự án → tự điền diện tích (nếu ảnh không ghi)
 }
 
 // Chuẩn hoá SĐT từ OCR: bỏ ký tự thừa; "+84..." → "0..."; nếu không bắt đầu bằng
@@ -5334,6 +5362,15 @@ document.addEventListener('DOMContentLoaded', () => {
   $('#customer-form').care_stage.addEventListener('change', onCareStageChange);
   $('#customer-form').apt_type_select.addEventListener('change', toggleAptOther);
   $('#customer-form').apt_type_select.addEventListener('change', fillTypicalArea);
+  $('#customer-form').apt_type_other.addEventListener('change', fillTypicalArea);
+  // Sửa tay diện tích / giá → thôi tự điền cho ô đó (giữ số bạn nhập).
+  $('#customer-form').apt_area.addEventListener('input', () => {
+    areaAuto = false; syncAreaAutoTag();
+    // Giá đang tự tính → tính lại theo diện tích vừa sửa (diện tích × đơn giá điển hình).
+    const f = $('#customer-form'), a = Number(f.apt_area.value);
+    if (priceAuto && lastUnitPrice && a > 0) f.apt_price.value = Math.round(a * lastUnitPrice);
+  });
+  $('#customer-form').apt_price.addEventListener('input', () => { priceAuto = false; });
 
   // --- OCR: "Nhập từ ảnh" mở modal Chọn ảnh (chỉ hiện nút nếu đã cấu hình WORKER_URL) ---
   if ((window.APP_CONFIG.WORKER_URL || '').trim()) $('#ocr-row').hidden = false;
