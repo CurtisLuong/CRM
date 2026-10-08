@@ -1934,7 +1934,7 @@ dialog#call-log-modal::backdrop, dialog#followup-modal::backdrop, dialog#assign-
 .lead-attempt.res-pending { border-left-color: #e8a33d; }
 .lead-attempt.res-pending .lead-res { color: #9c6f1a; font-weight: 600; }
 .lead-attempt-top .call-annotate { margin-left: 6px; padding: 2px 8px; font-size: 12px; }
-.lead-log-row { margin-top: 12px; }
+.lead-log-row { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px; }
 .detail-log-call { margin-top: 10px; }
 
 /* ===== BANNER "Có bản app mới" (chỉ app Android) ===== */
@@ -2033,7 +2033,6 @@ body { padding-bottom: var(--sab); }          /* nội dung cuối trang không 
 .detail-team-row:empty, .detail-team-row:not(:has(> :not([hidden]))) { display: none; }
 .detail-followers { font-size: 12px; color: #6b6b60; margin-right: auto; }
 .assign-btn { font-size: 12.5px; }
-.lead-assign { display: block; margin: 10px auto 0; }
 .assign-modes { flex-direction: column; align-items: stretch; }
 .assign-modes .sched-opt { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; }
 .assign-modes .sched-opt span { font-size: 11.5px; font-weight: 400; opacity: .8; }
@@ -2057,7 +2056,8 @@ body { padding-bottom: var(--sab); }          /* nội dung cuối trang không 
 body:has(#detail-screen.is-readonly:not([hidden])) #avatar-edit-btn,
 body:has(#detail-screen.is-readonly:not([hidden])) #avatar-remove-btn,
 #lead-modal.is-readonly #lead-edit-btn, #lead-modal.is-readonly #lead-log-box,
-#lead-modal.is-readonly #lead-actions, #lead-modal.is-readonly #lead-suggest,
+#lead-modal.is-readonly #lead-drop-btn, #lead-modal.is-readonly #lead-qualify-btn, #lead-modal.is-readonly #lead-reopen-btn,
+#lead-modal.is-readonly #lead-suggest, #lead-modal.is-readonly #lead-appt,
 #lead-modal.is-readonly .call-annotate { display: none !important; }
 
 /* ===== Nhóm khách trong tab Khách hàng (D-004): Đang chăm · Khách mới · Khách nhóm =====
@@ -2282,3 +2282,21 @@ body:has(#detail-screen.is-readonly:not([hidden])) #avatar-remove-btn,
 .gbar-x { font-size: 10px; color: #9a9a90; white-space: nowrap; }
 .dash-foot { font-size: 12px; color: #8a8a7e; margin-top: 8px; }
 .gbars.is-dense .gbar-col:nth-child(even) .gbar-x { visibility: hidden; } /* 13 cột: nhãn cách 1 */
+
+/* ===== Hộp Khách mới: dòng hẹn gọi + nút Giao khách chỉ icon (2026-10-08) ===== */
+.lead-appt {
+  display: flex; align-items: center; gap: 10px; width: 100%; margin: 12px 0 4px; padding: 9px 12px;
+  font: inherit; text-align: left; cursor: pointer; color: var(--ink);
+  background: #FAF8F3; border: 1px solid #EEE9DD; border-left: 3px solid #E4DFD3; border-radius: 10px;
+}
+.lead-appt:hover { border-color: #D8CFBE; }
+.lead-appt.is-soon { border-left-color: #EBC85C; }
+.lead-appt.is-due { border-left-color: #E29A8E; background: #fbf1ec; }
+.lead-appt.is-missed { border-left-color: #C9C4B6; }
+.lead-appt-ic { flex: none; display: inline-flex; color: var(--teal-light); }
+.lead-appt-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.lead-appt-when { font-size: 14px; }
+.lead-appt-reason { font-size: 12.5px; color: #6b6b60; }
+.lead-appt .call-tag { flex: none; cursor: pointer; }
+.lead-act-assign { flex: none; display: inline-flex; align-items: center; justify-content: center; padding: 10px 14px; background: #fff; color: var(--ink); border: 1px solid var(--line); }
+.lead-act-assign:hover { border-color: var(--teal-light); }

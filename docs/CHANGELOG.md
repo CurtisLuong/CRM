@@ -6,6 +6,14 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-08 — Hộp Khách mới: đếm ngược hẹn gọi, nút Hẹn gọi, Giao khách chỉ icon
+
+- Có lịch hẹn gọi → dòng "Hẹn gọi · giờ · lý do" + đếm ngược (còn X / đến hạn / quá hạn, dùng chung `countdownTag` với checklist hồ sơ); bấm → Gọi xong / Hẹn lại / Huỷ gọi.
+- Hàng dưới Các lần gọi: [Ghi cuộc gọi] [Hẹn gọi] (icon ống nghe + đồng hồ, mở hộp Hẹn gọi dùng chung).
+- Hàng đáy: [✕ Loại] [Giao khách — chỉ icon như hồ sơ] [✓ Đạt → Tiềm năng] (trước: "Đạt → chuyển vào chăm sóc"; nút Giao khách chữ ở cuối hộp bỏ). Chế độ chỉ xem: ẩn Loại/Đạt/Mở lại nhưng trưởng nhóm vẫn thấy Giao khách.
+- File: `index.html`, `js/app.js`, `css/style.css`, `sw.js` (v66).
+- Đã kiểm tra trình duyệt local (375px): đếm ngược, mở hộp Hẹn gọi, bấm dòng hẹn mở hộp gọi. Chưa deploy.
+
 ## 2026-10-08 — Tổng quan: Hiệu quả bán hàng + Căn khách quan tâm có tab; mẫu Zalo xưng hô & giới thiệu
 
 - Thẻ "Khách mới theo tuần" → **Hiệu quả bán hàng**: chọn 7 / 30 / 90 ngày; 3 số (Khách mới · Đã liên hệ kèm % khách mới đã được gọi · Chuyển giai đoạn) + biểu đồ cột nhóm 3 màu (7 ngày: theo ngày; 30: 6 cột × 5 ngày; 90: 13 cột × tuần). Đã liên hệ = số khách có ≥1 cuộc gọi trong khoảng; Chuyển giai đoạn = số lần đổi bậc trong lịch sử chăm sóc.

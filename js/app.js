@@ -4362,6 +4362,7 @@ async function saveSchedule() {
   await refreshList();
   $('#schedule-modal').close();
   if (detailId && !$('#detail-screen').hidden) openDetail(detailId);
+  if ($('#lead-modal').open && leadSheetId === schedulingId) { const lc = currentLead(); if (lc) renderLeadSheet(lc); }
 }
 $('#sched-time')?.addEventListener('click', (e) => {
   const b = e.target.closest('.sched-opt'); if (!b) return;
@@ -4454,11 +4455,13 @@ async function logCallAction(prefix, clearSchedule) {
 $('#callact-done')?.addEventListener('click', async () => {
   await logCallAction('đã gọi', true);
   $('#call-action-modal').close();
+  refreshLeadSheetIfOpen();
   if (detailId && !$('#detail-screen').hidden) openDetail(detailId);
 });
 $('#callact-cancel')?.addEventListener('click', async () => {
   await logCallAction('huỷ gọi', true);
   $('#call-action-modal').close();
+  refreshLeadSheetIfOpen();
   if (detailId && !$('#detail-screen').hidden) openDetail(detailId);
 });
 $('#callact-resched')?.addEventListener('click', async () => {
@@ -4646,6 +4649,19 @@ function renderLeadSheet(c) {
       ` <span class="lead-dim">(${escapeHtml(formatLogTime(c.disqualified_at))})</span>`;
   }
 
+  // Lịch HẸN GỌI đang có → dòng giờ hẹn + đếm ngược (countdownTag dùng chung với checklist hồ sơ).
+  const appt = $('#lead-appt');
+  appt.hidden = dropped || !c.next_call_at;
+  if (!appt.hidden) {
+    const st = Date.parse(c.next_call_at), en = c.next_call_end ? Date.parse(c.next_call_end) : st;
+    const cd = countdownTag(st, en, false);
+    appt.className = 'lead-appt' + (cd ? ' is-' + cd.state : '');
+    appt.innerHTML = `<span class="lead-appt-ic">${CALL_SCHED_SVG}</span>
+      <span class="lead-appt-body"><span class="lead-appt-when">Hẹn gọi · ${escapeHtml(callScheduleLabel(c))}</span>
+      ${c.next_call_reason ? `<span class="lead-appt-reason">${escapeHtml(c.next_call_reason)}</span>` : ''}</span>
+      ${countdownHtml(cd)}`;
+  }
+
   // Nhật ký gọi: lần N · giờ gọi · kết quả · cách lần trước (lần 1: cách lúc đăng ký).
   const attempts = callAttemptsOf(c);
   $('#lead-attempts').innerHTML = attempts.length
@@ -4692,6 +4708,9 @@ function renderLeadSheet(c) {
 }
 
 function currentLead() { return allCustomers.find((x) => x.id === leadSheetId); }
+function refreshLeadSheetIfOpen() { const c = $('#lead-modal').open && currentLead(); if (c) renderLeadSheet(c); }
+// Icon "Hẹn gọi" (ống nghe + đồng hồ).
+const CALL_SCHED_SVG = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.2 3.5h2.9l1.4 3.8-1.9 1.3a11 11 0 0 0 5.2 5.2l1.3-1.9 3.8 1.4v2.9a1.6 1.6 0 0 1-1.7 1.6A15.6 15.6 0 0 1 3.6 5.2a1.6 1.6 0 0 1 1.6-1.7z"/><circle cx="17.6" cy="6.4" r="3.9"/><path d="M17.6 4.6v1.9l1.3.9"/></svg>';
 async function afterLeadChange() {
   await refreshList();
   const c = currentLead();
@@ -4862,6 +4881,9 @@ $('#lead-qualify-btn')?.addEventListener('click', (e) => {
   qualifyLead();
 });
 $('#lead-drop-btn')?.addEventListener('click', () => showDropBox(null));
+// Hẹn gọi từ hộp Khách mới (hộp Hẹn gọi dùng chung) · bấm dòng lịch hẹn → Gọi xong / Hẹn lại / Huỷ gọi.
+$('#lead-sched-btn')?.addEventListener('click', () => { if (leadSheetId) openScheduler(leadSheetId); });
+$('#lead-appt')?.addEventListener('click', () => { if (leadSheetId) openCallAction(leadSheetId); });
 let leadFirstSug = null; // gợi ý lần 1 đang hiện trong hộp Khách mới
 $('#lead-suggest')?.addEventListener('click', async (e) => {
   if (e.target.closest('#lead-suggest-drop')) { showDropBox('khong_lien_lac_duoc'); return; }

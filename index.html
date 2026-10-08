@@ -1034,6 +1034,10 @@
     <div id="lead-readonly" class="ro-banner" hidden></div>
     <div id="lead-dropped" class="lead-dropped" hidden></div>
 
+    <!-- Đang có lịch HẸN GỌI → 1 dòng: giờ hẹn · lý do · đếm ngược (còn X / đến hạn / quá hạn — cùng
+         cơ chế checklist hồ sơ). Bấm → hộp Gọi xong / Hẹn lại / Huỷ gọi. -->
+    <button type="button" id="lead-appt" class="lead-appt" hidden></button>
+
     <div class="sched-label">Các lần gọi</div>
     <div id="lead-attempts" class="lead-attempts"></div>
     <div id="lead-suggest" class="lead-suggest" hidden></div>
@@ -1043,6 +1047,10 @@
       <button type="button" id="lead-log-call-btn" class="lead-log-btn">
         <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
         Ghi cuộc gọi
+      </button>
+      <button type="button" id="lead-sched-btn" class="lead-log-btn">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.2 3.5h2.9l1.4 3.8-1.9 1.3a11 11 0 0 0 5.2 5.2l1.3-1.9 3.8 1.4v2.9a1.6 1.6 0 0 1-1.7 1.6A15.6 15.6 0 0 1 3.6 5.2a1.6 1.6 0 0 1 1.6-1.7z"/><circle cx="17.6" cy="6.4" r="3.9"/><path d="M17.6 4.6v1.9l1.3.9"/></svg>
+        Hẹn gọi
       </button>
     </div>
 
@@ -1059,13 +1067,16 @@
 
     <div id="lead-notes" class="lead-notes"></div>
 
-    <!-- Đáy hộp: Loại (phụ, trái) · Đạt (chính, phải). Đã loại → chỉ còn Mở lại. -->
+    <!-- Đáy hộp: Loại (phụ, trái) · Giao khách (chỉ icon, như hồ sơ) · Đạt → Tiềm năng (chính, phải).
+         Đã loại → Mở lại thay cho Loại + Đạt. -->
     <div class="lead-actions" id="lead-actions">
       <button type="button" id="lead-drop-btn" class="lead-act lead-act-drop">✕ Loại</button>
-      <button type="button" id="lead-qualify-btn" class="lead-act lead-act-qualify">✓ Đạt → chuyển vào chăm sóc</button>
+      <button type="button" id="lead-assign-btn" class="lead-act lead-act-assign" aria-label="Giao khách" title="Giao khách" hidden>
+        <svg viewBox="0 0 30 24" width="23" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="8" r="2.8"/><path d="M2 19.5v-1a4 4 0 0 1 8 0v1"/><circle cx="24" cy="10.5" r="2.5"/><path d="M20.3 19.5v-.75a3.7 3.7 0 0 1 7.4 0v.75"/><path d="M11.8 7.5h6.4M16.4 5.7l1.8 1.8-1.8 1.8"/><path d="M18.2 13.5h-6.4M13.6 11.7l-1.8 1.8 1.8 1.8"/></svg>
+      </button>
+      <button type="button" id="lead-qualify-btn" class="lead-act lead-act-qualify">✓ Đạt → Tiềm năng</button>
       <button type="button" id="lead-reopen-btn" class="lead-act lead-act-reopen" hidden>↺ Mở lại</button>
     </div>
-    <button type="button" id="lead-assign-btn" class="btn-ghost btn-small assign-btn lead-assign" hidden>👥 Giao khách cho đồng nghiệp</button>
   </div>
 </dialog>
 
