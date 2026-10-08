@@ -74,11 +74,14 @@ Gom khách Tiềm năng đang chăm mà **không có lịch hẹn** và **không
   - Thêm tin thứ 2 (chỉ với khách Đang chăm): hôm nay/mai là sinh nhật → **Chúc mừng sinh nhật** (xếp lên trước); hoặc gọi hỏng liên tiếp từ 3 lần → **Gọi chưa được**.
 - Trên điện thoại Android (trình duyệt / app cài từ Chrome), nút Zalo mở **thẳng app Zalo**, không đi qua trang web zalo.me nữa. Máy chưa cài Zalo thì mới mở trang web.
 - **Sửa nội dung mẫu**: menu avatar → **Mẫu tin Zalo**. Sửa tên/nội dung từng mẫu, **+ Thêm mẫu** riêng, **Xoá** mẫu tự thêm, **Khôi phục mặc định** nếu lỡ sửa hỏng. Mẫu để trống sẽ bị ẩn.
+- Mọi mẫu mặc định đều tự giới thiệu: **"Em là {sale}, phòng kinh doanh dự án {du_an}"**.
 - Ô tự điền trong mẫu:
-  - `{ten}` → tên gọi (vd "Lan")
+  - `{ten}` → tên gọi khách (vd "Lan")
   - `{hoten}` → họ tên đầy đủ
-  - `{du_an}` → dự án khách quan tâm (chưa có → "bên em")
-  - `anh/chị` → tự thành "anh" hoặc "chị" theo giới tính khách
+  - `{sale}` → tên gọi của bạn = chữ cuối tên hiển thị ở menu avatar → Đồng nghiệp; chưa đặt → "Duy" (`ZALO_SENDER_NAME` trong `js/followup.js`)
+  - `{du_an}` → ô "Dự án" của khách; khách chưa có dự án → cụm "dự án {du_an}" thành "nhà ở xã hội" (vd "phòng kinh doanh nhà ở xã hội")
+  - Xưng hô `anh/chị` → giới tính **Nam → "anh"**, **Nữ → "chị"**, chưa rõ / khác → giữ **"anh/chị"** (cả "Anh/chị" đầu câu).
+- Mẫu bạn chưa từng sửa tự lên nội dung mới; mẫu đã tự sửa giữ nguyên (muốn dùng bản mới → **Khôi phục mặc định**).
 - Mẫu **Nhắc giấy tờ hồ sơ** có dấu `…` — sau khi dán vào Zalo, điền giấy tờ còn thiếu và hạn nộp.
 
 ---

@@ -444,8 +444,17 @@
             <line x1="22" y1="11" x2="16" y2="11"/>
           </svg>
         </button>
-        <!-- Nhóm (js/team.js): nút Giao khách nằm cuối hàng SĐT. -->
-        <button id="detail-assign-btn" class="btn-ghost btn-small assign-btn" type="button" hidden>👥 Giao khách</button>
+        <!-- Nhóm (js/team.js): nút Giao khách — chỉ icon (2 người + 2 mũi tên trao đổi), cùng kiểu nút Gọi/Zalo. -->
+        <button id="detail-assign-btn" class="icon-btn assign-btn" type="button" aria-label="Giao khách" title="Giao khách" hidden>
+          <svg class="ic-assign" viewBox="0 0 30 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="6" cy="8" r="2.8"/>
+            <path d="M2 19.5v-1a4 4 0 0 1 8 0v1"/>
+            <circle cx="24" cy="10.5" r="2.5"/>
+            <path d="M20.3 19.5v-.75a3.7 3.7 0 0 1 7.4 0v.75"/>
+            <path d="M11.8 7.5h6.4M16.4 5.7l1.8 1.8-1.8 1.8"/>
+            <path d="M18.2 13.5h-6.4M13.6 11.7l-1.8 1.8 1.8 1.8"/>
+          </svg>
+        </button>
       </div>
       <!-- Báo "chỉ xem" khi khách do đồng nghiệp phụ trách; người cùng theo dõi. -->
       <div id="detail-readonly" class="ro-banner" hidden></div>
@@ -1152,7 +1161,7 @@
 <dialog id="greeting-modal" class="greeting-modal">
   <div class="greeting-box">
     <h2 class="greeting-title">Mẫu tin Zalo</h2>
-    <p class="greeting-hint">Bấm icon Zalo của khách → chọn 1 mẫu → app <b>copy</b> nội dung đã điền tên và mở Zalo để bạn <b>dán</b>. Ô tự điền: <code>{ten}</code> tên gọi, <code>{hoten}</code> họ tên, <code>{du_an}</code> dự án khách quan tâm. Chữ <code>anh/chị</code> tự đổi theo giới tính. Mẫu để trống sẽ bị ẩn. Mẫu "Chào kết bạn" là lời chào cũ.</p>
+    <p class="greeting-hint">Bấm icon Zalo của khách → chọn 1 mẫu → app <b>copy</b> nội dung đã điền tên và mở Zalo để bạn <b>dán</b>. Ô tự điền: <code>{ten}</code> tên gọi khách, <code>{hoten}</code> họ tên, <code>{sale}</code> tên bạn (tên hiển thị trong Đồng nghiệp, chưa đặt → "Duy"), <code>{du_an}</code> dự án của khách (chưa có → "nhà ở xã hội"). Chữ <code>anh/chị</code> tự đổi: Nam → anh, Nữ → chị, chưa rõ → anh/chị. Mẫu để trống sẽ bị ẩn. Mẫu "Chào kết bạn" là lời chào cũ.</p>
     <div id="tpl-list" class="tpl-list"></div>
     <button type="button" id="tpl-add" class="btn-ghost btn-small tpl-add">+ Thêm mẫu</button>
     <div class="greeting-btns">

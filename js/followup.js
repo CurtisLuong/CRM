@@ -99,23 +99,38 @@ const FOLLOWUP_CONFIG = {
 };
 
 // Mẫu tin MẶC ĐỊNH (lần đầu dùng / bấm "Khôi phục mặc định"). Sửa nội dung trong app là đủ.
-// Ô tự điền: {ten} tên gọi · {hoten} họ tên · {du_an} dự án khách quan tâm · anh/chị tự đổi theo giới tính.
+// Ô tự điền: {ten} tên gọi · {hoten} họ tên · {sale} tên người gửi (tên hiển thị của bạn trong nhóm,
+// chưa có → senderName bên dưới) · {du_an} dự án khách quan tâm ("dự án {du_an}" khi khách chưa có
+// dự án → "nhà ở xã hội") · anh/chị tự đổi: Nam → anh, Nữ → chị, chưa rõ → giữ "anh/chị".
+// Mọi mẫu đều giới thiệu: "Em là {sale}, phòng kinh doanh dự án {du_an}".
+const ZALO_SENDER_NAME = 'Duy';
 const ZALO_TEMPLATES_DEFAULT = [
   { id: 'chao', name: 'Chào kết bạn',
-    text: 'Em chào anh/chị {ten} ạ! Em là tư vấn viên dự án nhà ở xã hội. Em xin phép kết bạn để gửi thông tin căn hộ phù hợp tới mình ạ. Em cảm ơn!' },
+    text: 'Em chào anh/chị {ten} ạ! Em là {sale}, phòng kinh doanh dự án {du_an}. Em xin phép kết bạn để gửi thông tin căn hộ phù hợp tới anh/chị ạ. Em cảm ơn anh/chị!' },
   { id: 'goi_nho', name: 'Gọi chưa được',
-    text: 'Em chào anh/chị {ten} ạ! Em là tư vấn viên nhà ở xã hội dự án {du_an} mà mình đã đăng ký nhận thông tin. Em gọi mấy lần chưa gặp được anh/chị. Anh/chị tiện giờ nào để em gọi lại tư vấn ạ? Hoặc anh/chị cứ nhắn em qua đây cũng được ạ.' },
+    text: 'Em chào anh/chị {ten} ạ! Em là {sale}, phòng kinh doanh dự án {du_an} mà anh/chị đã đăng ký nhận thông tin. Em gọi mấy lần chưa gặp được anh/chị. Anh/chị tiện giờ nào để em gọi lại tư vấn ạ? Hoặc anh/chị cứ nhắn em qua đây cũng được ạ.' },
   { id: 'thong_tin', name: 'Gửi thông tin / bảng giá',
-    text: 'Dạ em gửi anh/chị {ten} thông tin dự án {du_an} ạ: mặt bằng, bảng giá và các loại căn đang còn. Anh/chị xem qua, căn nào hợp nhu cầu và tài chính của mình thì nhắn em, em tính chi tiết phương án vay và số tiền cần chuẩn bị cho anh/chị nhé ạ.' },
+    text: 'Dạ em chào anh/chị {ten} ạ! Em là {sale}, phòng kinh doanh dự án {du_an}. Em gửi anh/chị thông tin dự án: mặt bằng, bảng giá và các loại căn đang còn. Anh/chị xem qua, căn nào hợp nhu cầu và tài chính thì nhắn em, em tính chi tiết phương án vay và số tiền cần chuẩn bị cho anh/chị nhé ạ.' },
   { id: 'sau_xem', name: 'Hỏi thăm sau khi xem dự án',
-    text: 'Em chào anh/chị {ten} ạ! Hôm trước anh/chị đi xem dự án {du_an}, không biết anh/chị thấy vị trí và căn hộ thế nào ạ? Nếu còn băn khoăn về giá, vay vốn hay hồ sơ, anh/chị cứ nhắn em, em hỗ trợ ngay ạ.' },
+    text: 'Em chào anh/chị {ten} ạ! Em là {sale}, phòng kinh doanh dự án {du_an}. Hôm trước anh/chị đi xem dự án, không biết anh/chị thấy vị trí và căn hộ thế nào ạ? Nếu còn băn khoăn về giá, vay vốn hay hồ sơ, anh/chị cứ nhắn em, em hỗ trợ ngay ạ.' },
   { id: 'nhac_ho_so', name: 'Nhắc giấy tờ hồ sơ',
-    text: 'Dạ em chào anh/chị {ten} ạ! Em nhắc mình hồ sơ mua nhà ở xã hội dự án {du_an} còn thiếu: … Anh/chị chuẩn bị giúp em trước ngày … để kịp nộp đợt này nhé ạ. Chỗ nào chưa rõ anh/chị cứ nhắn, em hướng dẫn ạ.' },
+    text: 'Dạ em chào anh/chị {ten} ạ! Em là {sale}, phòng kinh doanh dự án {du_an}. Em nhắc anh/chị hồ sơ mua nhà ở xã hội còn thiếu: … Anh/chị chuẩn bị giúp em trước ngày … để kịp nộp đợt này nhé ạ. Chỗ nào chưa rõ anh/chị cứ nhắn, em hướng dẫn ạ.' },
   { id: 'sinh_nhat', name: 'Chúc mừng sinh nhật',
-    text: 'Em chúc anh/chị {ten} sinh nhật thật vui, nhiều sức khoẻ và mọi việc như ý ạ! Chúc anh/chị và gia đình sớm an cư trong ngôi nhà mới 🏡🎂' },
+    text: 'Em chào anh/chị {ten} ạ! Em là {sale}, phòng kinh doanh dự án {du_an}. Em chúc anh/chị sinh nhật thật vui, nhiều sức khoẻ và mọi việc như ý ạ! Chúc anh/chị và gia đình sớm an cư trong ngôi nhà mới 🏡🎂' },
   { id: 'chuc_mung', name: 'Chúc mừng ký HĐMB / nhận nhà',
-    text: 'Em chúc mừng anh/chị {ten} đã chính thức sở hữu căn hộ tại {du_an} ạ! 🎉 Cảm ơn anh/chị đã tin tưởng em suốt thời gian qua. Sau này có việc gì về nhà cửa, giấy tờ anh/chị cứ nhắn em nhé. Người thân, bạn bè có nhu cầu nhà ở xã hội, anh/chị giới thiệu giúp em, em xin hỗ trợ tận tình ạ!' },
+    text: 'Em chào anh/chị {ten} ạ! Em là {sale}, phòng kinh doanh dự án {du_an}. Em chúc mừng anh/chị đã chính thức sở hữu căn hộ ạ! 🎉 Cảm ơn anh/chị đã tin tưởng em suốt thời gian qua. Sau này có việc gì về nhà cửa, giấy tờ anh/chị cứ nhắn em nhé. Người thân, bạn bè có nhu cầu nhà ở xã hội, anh/chị giới thiệu giúp em, em xin hỗ trợ tận tình ạ!' },
 ];
+// Nội dung mặc định CŨ (trước 2026-10-08) — mẫu nào sale chưa sửa (còn y nguyên bản cũ) sẽ tự
+// được nâng lên bản mới ở trên. Mẫu đã tự sửa thì giữ nguyên.
+const ZALO_TEMPLATES_PREVIOUS = {
+  chao: 'Em chào anh/chị {ten} ạ! Em là tư vấn viên dự án nhà ở xã hội. Em xin phép kết bạn để gửi thông tin căn hộ phù hợp tới mình ạ. Em cảm ơn!',
+  goi_nho: 'Em chào anh/chị {ten} ạ! Em là tư vấn viên nhà ở xã hội dự án {du_an} mà mình đã đăng ký nhận thông tin. Em gọi mấy lần chưa gặp được anh/chị. Anh/chị tiện giờ nào để em gọi lại tư vấn ạ? Hoặc anh/chị cứ nhắn em qua đây cũng được ạ.',
+  thong_tin: 'Dạ em gửi anh/chị {ten} thông tin dự án {du_an} ạ: mặt bằng, bảng giá và các loại căn đang còn. Anh/chị xem qua, căn nào hợp nhu cầu và tài chính của mình thì nhắn em, em tính chi tiết phương án vay và số tiền cần chuẩn bị cho anh/chị nhé ạ.',
+  sau_xem: 'Em chào anh/chị {ten} ạ! Hôm trước anh/chị đi xem dự án {du_an}, không biết anh/chị thấy vị trí và căn hộ thế nào ạ? Nếu còn băn khoăn về giá, vay vốn hay hồ sơ, anh/chị cứ nhắn em, em hỗ trợ ngay ạ.',
+  nhac_ho_so: 'Dạ em chào anh/chị {ten} ạ! Em nhắc mình hồ sơ mua nhà ở xã hội dự án {du_an} còn thiếu: … Anh/chị chuẩn bị giúp em trước ngày … để kịp nộp đợt này nhé ạ. Chỗ nào chưa rõ anh/chị cứ nhắn, em hướng dẫn ạ.',
+  sinh_nhat: 'Em chúc anh/chị {ten} sinh nhật thật vui, nhiều sức khoẻ và mọi việc như ý ạ! Chúc anh/chị và gia đình sớm an cư trong ngôi nhà mới 🏡🎂',
+  chuc_mung: 'Em chúc mừng anh/chị {ten} đã chính thức sở hữu căn hộ tại {du_an} ạ! 🎉 Cảm ơn anh/chị đã tin tưởng em suốt thời gian qua. Sau này có việc gì về nhà cửa, giấy tờ anh/chị cứ nhắn em nhé. Người thân, bạn bè có nhu cầu nhà ở xã hội, anh/chị giới thiệu giúp em, em xin hỗ trợ tận tình ạ!',
+};
 // ═══════════════════════ HẾT PHẦN CẤU HÌNH ═══════════════════════
 
 (function () {
@@ -394,6 +409,6 @@ const ZALO_TEMPLATES_DEFAULT = [
   function suggestTemplate(c) { return suggestTemplates(c)[0].id; }
 
   // statsSource: app.js gán = () => danh sách khách của mình (để tính khung phản hồi tốt nhất).
-  const FOLLOWUP_API = { config: C, templatesDefault: ZALO_TEMPLATES_DEFAULT, afterCall, forStage, firstCall, suggestTemplate, suggestTemplates, windowAfter, label, slotOfTime, callSlots, statsSource: null };
+  const FOLLOWUP_API = { config: C, templatesDefault: ZALO_TEMPLATES_DEFAULT, templatesPrevious: ZALO_TEMPLATES_PREVIOUS, senderName: ZALO_SENDER_NAME, afterCall, forStage, firstCall, suggestTemplate, suggestTemplates, windowAfter, label, slotOfTime, callSlots, statsSource: null };
   window.FOLLOWUP = FOLLOWUP_API;
 })();

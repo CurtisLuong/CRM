@@ -2095,6 +2095,11 @@ body:has(#detail-screen.is-readonly:not([hidden])) #avatar-remove-btn,
 .cust-bar .tool-icon-btn svg { width: 15px; height: 15px; }
 .cust-bar .tool-dot { width: 8px; height: 8px; top: -2px; right: -2px; }
 .tool-meta { order: 1; display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 12.5px; color: #7a7a70; white-space: nowrap; }
+/* Số khách: icon người + số (chữ đầy đủ ở tooltip). */
+#result-count, #lead-result-count { display: inline-flex; align-items: center; gap: 5px; }
+.count-ic { width: 15px; height: 15px; flex: none; }
+.count-num { font-variant-numeric: tabular-nums; }
+.count-scope { overflow: hidden; text-overflow: ellipsis; }
 .cust-bar .io-menu-wrap { order: 2; }
 @media (max-width: 899px) {
   .cust-bar .cust-subtabs { border-bottom: 1px solid var(--line); }
@@ -2141,7 +2146,7 @@ body:has(#detail-screen.is-readonly:not([hidden])) #avatar-remove-btn,
 .detail-hero .detail-name { margin: 0 0 4px; font-size: 24px; line-height: 1.2; min-width: 0; }
 .detail-hero .detail-phone-row { margin-bottom: 12px; gap: 8px; }
 .detail-hero .detail-phone-row .icon-btn { padding: 7px 12px; border-radius: 10px; border-color: var(--card-border); }
-.detail-hero .assign-btn { margin-left: auto; border-radius: 10px; padding: 7px 12px; font-weight: 600; }
+.detail-hero .ic-assign { height: 18px; width: 22.5px; display: block; } /* cùng chiều cao icon Danh bạ → nút đều nhau */ /* icon Giao khách (2 người ⇄) */
 .detail-hero .ro-banner { margin: 0 0 10px; }
 .detail-hero .detail-team-row { margin: 0 0 8px; }
 .detail-tabs {
@@ -2248,4 +2253,32 @@ body:has(#detail-screen.is-readonly:not([hidden])) #avatar-remove-btn,
 #detail-body .task-kind { font-weight: 400; color: var(--seal); }
 #detail-body .task-due { font-weight: 400; }
 #detail-body .tasks-done-toggle { font-weight: 400; }
-.detail-hero .assign-btn { font-weight: 400; }
+
+
+/* ===== Tổng quan · thẻ phân tích: nút chọn khoảng / tab nhỏ + biểu đồ cột nhóm (2026-10-08) ===== */
+.dash-seg { display: inline-flex; gap: 2px; padding: 3px; margin: 8px 0 10px; border-radius: 999px; background: var(--paper); border: 1px solid var(--line); }
+.dash-seg-btn { border: none; background: transparent; cursor: pointer; font: inherit; font-size: 12.5px; color: #6b6b60; padding: 4px 12px; border-radius: 999px; }
+.dash-seg-btn:hover { color: var(--ink); }
+.dash-seg-btn.is-active { background: #fff; color: var(--ink); font-weight: 500; box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+.perf-kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px; }
+.perf-kpi { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: #fff; min-width: 0; }
+.perf-kpi-head { display: flex; align-items: flex-start; gap: 6px; min-height: 2.5em; } /* nhãn 1–2 dòng → số luôn thẳng hàng */
+.perf-dot { flex: none; width: 8px; height: 8px; border-radius: 50%; margin-top: 4px; }
+.perf-kpi-label { font-size: 12px; color: #6b6b60; line-height: 1.25; }
+.perf-kpi-val { font-size: 20px; font-weight: 600; color: var(--ink); line-height: 1.2; }
+.perf-kpi-sub { font-size: 11px; color: #8a8a7e; line-height: 1.3; }
+@media (max-width: 480px) { /* điện thoại: 3 hàng ngang — nhãn trái, số phải */
+  .perf-kpis { grid-template-columns: 1fr; gap: 6px; }
+  .perf-kpi { display: grid; grid-template-columns: 1fr auto; align-items: center; column-gap: 10px; padding: 7px 12px; }
+  .perf-kpi-head { min-height: 0; align-items: center; }
+  .perf-dot { margin-top: 0; }
+  .perf-kpi-val { grid-column: 2; grid-row: 1 / span 2; font-size: 18px; }
+  .perf-kpi-sub { grid-column: 1; padding-left: 14px; }
+}
+.gbars { display: flex; align-items: flex-end; gap: 4px; height: 112px; }
+.gbar-col { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.gbar-group { display: flex; align-items: flex-end; justify-content: center; gap: 2px; height: 86px; width: 100%; }
+.gbar { width: 28%; max-width: 9px; border-radius: 3px 3px 0 0; }
+.gbar-x { font-size: 10px; color: #9a9a90; white-space: nowrap; }
+.dash-foot { font-size: 12px; color: #8a8a7e; margin-top: 8px; }
+.gbars.is-dense .gbar-col:nth-child(even) .gbar-x { visibility: hidden; } /* 13 cột: nhãn cách 1 */

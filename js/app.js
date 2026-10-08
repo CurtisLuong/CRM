@@ -926,11 +926,17 @@ function zaloLink(phone) {
 // localStorage (theo TỪNG MÁY), sửa trong menu avatar. Placeholder: {ten} = tên gọi
 // (từ cuối họ tên, vd "Huyền"), {hoten} = họ tên đầy đủ.
 const LS_ZALO_GREETING = 'crm_zalo_greeting';
-const ZALO_GREETING_DEFAULT =
-  'Em chào anh/chị {ten} ạ! Em là tư vấn viên dự án nhà ở xã hội. Em xin phép kết bạn ' +
-  'để gửi thông tin căn hộ phù hợp tới mình ạ. Em cảm ơn!';
+const ZALO_GREETING_DEFAULT = (window.FOLLOWUP && FOLLOWUP.templatesDefault.find((t) => t.id === 'chao').text)
+  || 'Em chào anh/chị {ten} ạ! Em là {sale}, phòng kinh doanh dự án {du_an}. Em xin phép kết bạn để gửi thông tin căn hộ phù hợp tới anh/chị ạ. Em cảm ơn anh/chị!';
+// Mẫu còn Y NGUYÊN nội dung mặc định cũ (sale chưa sửa) → tự dùng nội dung mặc định mới.
+function upgradeTplText(id, text) {
+  const prev = window.FOLLOWUP && FOLLOWUP.templatesPrevious && FOLLOWUP.templatesPrevious[id];
+  if (!prev || text !== prev) return text;
+  const cur = FOLLOWUP.templatesDefault.find((t) => t.id === id);
+  return cur ? cur.text : text;
+}
 function getZaloGreeting() {
-  try { const v = localStorage.getItem(LS_ZALO_GREETING); return v == null ? ZALO_GREETING_DEFAULT : v; }
+  try { const v = localStorage.getItem(LS_ZALO_GREETING); return v == null ? ZALO_GREETING_DEFAULT : upgradeTplText('chao', v); }
   catch { return ZALO_GREETING_DEFAULT; }
 }
 function setZaloGreeting(text) {
@@ -961,7 +967,7 @@ function getZaloTemplates() {
   let list = null;
   try { list = JSON.parse(localStorage.getItem(LS_ZALO_TEMPLATES) || 'null'); } catch { list = null; }
   if (!Array.isArray(list) || !list.length) list = defaultZaloTemplates();
-  return list.map((t) => (t.id === 'chao' ? { ...t, text: getZaloGreeting() } : t));
+  return list.map((t) => (t.id === 'chao' ? { ...t, text: getZaloGreeting() } : { ...t, text: upgradeTplText(t.id, t.text) }));
 }
 function setZaloTemplates(list) {
   const store = list.map(({ id, name, text }) => ({ id, name, text }));
@@ -989,13 +995,22 @@ function fillGreeting(tpl, c) {
   const g = ((c && c.gender) || '').toLowerCase();
   const sal = g === 'nam' ? 'anh' : (g === 'nữ' ? 'chị' : 'anh/chị');
   const salCap = sal.charAt(0).toUpperCase() + sal.slice(1);
-  return String(tpl || '')
+  // Dự án theo thuộc tính "Dự án" của khách; chưa có → "dự án {du_an}" thành "nhà ở xã hội".
+  const proj = (c && Array.isArray(c.projects) && c.projects.length) ? c.projects.join(', ') : '';
+  // Người gửi: tên hiển thị của mình trong nhóm (menu avatar → Đồng nghiệp); chưa có → FOLLOWUP.senderName.
+  const me = typeof team !== 'undefined' ? team.find((m) => m.is_me) : null;
+  const myName = ((me && me.full_name) || '').trim();
+  const sale = (myName && myName.split(/\s+/).pop()) || (window.FOLLOWUP && FOLLOWUP.senderName) || 'em'; // tên gọi, vd "Duy"
+  let out = String(tpl || '')
     .replace(/\{ten\}/gi, given || full)
     .replace(/\{hoten\}/gi, full)
-    .replace(/\{du_an\}/gi, (c && Array.isArray(c.projects) && c.projects.length) ? c.projects.join(', ') : 'bên em')
+    .replace(/\{sale\}/gi, sale);
+  out = proj ? out.replace(/\{du_an\}/gi, proj)
+    : out.replace(/dự án \{du_an\}/gi, 'nhà ở xã hội').replace(/\{du_an\}/gi, 'bên em');
+  return out
     .replace(/\{anhchi\}/gi, sal)
-    .replace(/Anh\/Chị/g, salCap)   // "Anh/Chị" (đầu câu) → "Anh"/"Chị"
-    .replace(/anh\/chị/gi, sal);    // "anh/chị" → "anh"/"chị"
+    .replace(/Anh\/[Cc]hị/g, salCap) // "Anh/chị" (đầu câu) → "Anh"/"Chị"
+    .replace(/anh\/chị/g, sal);      // "anh/chị" → "anh"/"chị"
 }
 
 // Copy text vào clipboard (có fallback execCommand cho ngữ cảnh không có Clipboard API).
@@ -1248,6 +1263,14 @@ function visibleCustomers() {
   return list;
 }
 
+// Số khách trên thanh công cụ: [icon người — cùng icon tab Khách hàng] + số (gọn, tiết kiệm chỗ).
+// Chữ đầy đủ ("25 khách hàng · …") nằm ở aria-label + tooltip.
+const PEOPLE_SVG = '<svg class="count-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8.5" r="3.2"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><circle cx="16.5" cy="9.5" r="2.6"/><path d="M16 14.2a4.6 4.6 0 0 1 4.8 4.8"/></svg>';
+function setResultCount(el, n, scope) {
+  const full = `${n} khách hàng${scope}${searchCtx() ? ' · theo độ liên quan' : ''}`;
+  el.innerHTML = `${PEOPLE_SVG}<span class="count-num">${n}</span>${scope ? `<span class="count-scope">${escapeHtml(scope)}</span>` : ''}`;
+  el.setAttribute('aria-label', full); el.title = full;
+}
 let _emptyStateText = null; // chữ gốc của #empty-state (nhóm Tiềm năng)
 function renderList() {
   if (_emptyStateText === null) _emptyStateText = $('#empty-state').textContent;
@@ -1263,7 +1286,7 @@ function renderList() {
   $('#empty-state').hidden = list.length !== 0;
   // Tên nhóm đã có ở tab ngay cạnh → dòng đếm chỉ ghi số (+ người đang lọc ở Khách nhóm).
   const scope = custGroup === 'team' && ownerScopeLabel() ? ' · ' + ownerScopeLabel() : '';
-  $('#result-count').textContent = `${fullList.length} khách hàng${scope}${searchCtx() ? ' · theo độ liên quan' : ''}`;
+  setResultCount($('#result-count'), fullList.length, scope);
   $('#empty-state').textContent = custGroup === 'team'
     ? (hasTeam() ? 'Chưa có khách nào giao cho đồng nghiệp. Mở hồ sơ khách → 👥 Giao khách.' : 'Chưa có nhóm — trưởng nhóm thêm đồng nghiệp ở menu avatar → Đồng nghiệp.')
     : _emptyStateText;
@@ -4542,7 +4565,7 @@ function renderLeads() {
   const fullList = visibleLeads(leads);
   const list = fullList.slice(0, searchPages.leads * SEARCH_PAGE_SIZE);
   syncLeadFilterUI();
-  $('#lead-result-count').textContent = `${fullList.length} khách hàng${searchCtx() ? ' · theo độ liên quan' : ''}`;
+  setResultCount($('#lead-result-count'), fullList.length, '');
   $('#lead-search-more').hidden = list.length >= fullList.length;
   $('#lead-search-more').textContent = `Xem thêm (${fullList.length - list.length} khách)`;
   $('#lead-empty').hidden = list.length !== 0;
@@ -5105,6 +5128,56 @@ function dashCard(title, bodyHtml, hint, extraClass) {
 // biểu đồ báo cáo cũ). Tham chiếu: Follow Up Boss (Smart Lists, speed to lead), Salesforce
 // (pipeline theo bậc), LionDesk (nhắc sinh nhật / chăm lại khách cũ). Chỉ dùng dữ liệu đã có.
 const DASH_GROUP_LIMIT = 5;            // mỗi nhóm việc hiện tối đa N dòng, còn lại "Xem thêm"
+// Lựa chọn của các thẻ phân tích (nhớ trên máy): khoảng ngày Hiệu quả bán hàng · tab Căn khách quan tâm.
+const LS_DASH_RANGE = 'crm_dash_range', LS_DASH_APT_TAB = 'crm_dash_apt_tab';
+let dashRange = (() => { try { const v = Number(localStorage.getItem(LS_DASH_RANGE)); return [7, 30, 90].includes(v) ? v : 30; } catch { return 30; } })();
+let dashAptTab = (() => { try { const v = localStorage.getItem(LS_DASH_APT_TAB); return ['type', 'building', 'budget'].includes(v) ? v : 'type'; } catch { return 'type'; } })();
+const PERF_SERIES = [['Khách mới', 'var(--teal-light)'], ['Đã liên hệ', '#D29B2C'], ['Chuyển giai đoạn', 'var(--seal)']];
+// Thẻ "Hiệu quả bán hàng": 7 ngày → 7 cột theo ngày · 30 ngày → 6 cột × 5 ngày · 90 ngày → 13 cột × 7 ngày.
+function salesPerfHtml(all) {
+  const [n, size] = dashRange === 7 ? [7, 1] : dashRange === 30 ? [6, 5] : [13, 7];
+  const DAY = 86400000;
+  const start = startOfDayMs(Date.now()) - (n * size - 1) * DAY;
+  const end = startOfDayMs(Date.now()) + DAY;
+  const idx = (iso) => { const t = Date.parse(iso || ''); return isNaN(t) || t < start || t >= end ? -1 : Math.floor((t - start) / (size * DAY)); };
+  const ser = PERF_SERIES.map(() => Array(n).fill(0));
+  let newTotal = 0, newCalled = 0, contacted = 0, moves = 0;
+  for (const c of all) {
+    const ni = idx(c.registered_at || c.created_at);
+    const calls = callAttemptsOf(c);
+    if (ni >= 0) {
+      ser[0][ni]++; newTotal++;
+      if (calls.some((a) => Date.parse(a.at) >= Date.parse(c.registered_at || c.created_at))) newCalled++;
+    }
+    const buckets = new Set(calls.map((a) => idx(a.at)).filter((i) => i >= 0));
+    buckets.forEach((i) => ser[1][i]++);
+    if (buckets.size) contacted++;
+    const hist = (Array.isArray(c.care_stage_history) ? [...c.care_stage_history] : []).filter((h) => h && h.at)
+      .sort((a, b) => a.at.localeCompare(b.at));
+    for (let k = 1; k < hist.length; k++) {
+      if (hist[k].stage === hist[k - 1].stage) continue;
+      const i = idx(hist[k].at); if (i >= 0) { ser[2][i]++; moves++; }
+    }
+  }
+  const labels = Array.from({ length: n }, (_, i) => ddmm(new Date(start + i * size * DAY)));
+  const mx = Math.max(1, ...ser.flat());
+  const kpi = (label, v, sub, color) => `<div class="perf-kpi">
+      <span class="perf-kpi-head"><span class="perf-dot" style="background:${color}"></span><span class="perf-kpi-label">${label}</span></span>
+      <span class="perf-kpi-val">${v}</span>${sub ? `<span class="perf-kpi-sub">${sub}</span>` : ''}</div>`;
+  return `<div class="dash-seg" role="tablist">${[7, 30, 90].map((d) =>
+      `<button type="button" class="dash-seg-btn${dashRange === d ? ' is-active' : ''}" data-dash-range="${d}" role="tab">${d} ngày</button>`).join('')}</div>
+    <div class="perf-kpis">
+      ${kpi('Khách mới', newTotal, '', PERF_SERIES[0][1])}
+      ${kpi('Đã liên hệ', contacted, newTotal ? `${pctOf(newCalled, newTotal)}% khách mới đã gọi` : '', PERF_SERIES[1][1])}
+      ${kpi('Chuyển giai đoạn', moves, '', PERF_SERIES[2][1])}
+    </div>
+    <div class="gbars${n > 8 ? ' is-dense' : ''}">${labels.map((l, i) => `
+      <div class="gbar-col" title="${escapeHtml(l)}: ${PERF_SERIES.map(([name], s) => `${name} ${ser[s][i]}`).join(' · ')}">
+        <div class="gbar-group">${PERF_SERIES.map(([, color], s) =>
+          `<div class="gbar" style="height:${ser[s][i] ? Math.round((ser[s][i] / mx) * 80) + 3 : 0}px;background:${color}"></div>`).join('')}</div>
+        <div class="gbar-x">${escapeHtml(l)}</div>
+      </div>`).join('')}</div>`;
+}
 const DASH_IDLE_WARM_DAYS = 14;        // Tiềm năng (không nóng) bao lâu chưa liên hệ thì nhắc
 const DASH_LEAD_RETRY_H = 24;          // lead chưa nói chuyện được: gọi lại sau N giờ
 const DASH_BIRTHDAY_DAYS = 7;          // nhắc sinh nhật trong N ngày tới
@@ -5561,13 +5634,12 @@ function renderDashAnalytics(all) {
   cards.push(dashCard('PHỄU KHÁCH HÀNG', funnelHtml,
     'Thanh dài = nhiều khách (dạng phễu). Mỗi thanh: tên bậc · thời gian TB ở bậc · số khách đã/đang ở bậc. Dòng % = tỉ lệ đi tiếp sang bậc sau (nút thắt = rớt nhiều nhất).'));
 
-  // 2) KHÁCH MỚI THEO TUẦN -----------------------------------------------
-  // Tính theo NGÀY ĐĂNG KÝ (registered_at) — đúng nghĩa "khách mới" hơn ngày tạo
-  // bản ghi; fallback created_at nếu khách cũ chưa có registered_at.
-  const newByWeek = weeks.map(() => 0);
-  all.forEach((c) => { const i = weekIdx(c.registered_at || c.created_at); if (i >= 0) newByWeek[i]++; });
-  cards.push(dashCard('Khách mới theo tuần', vbars(newByWeek, weeks.map(ddmm)),
-    '8 tuần gần nhất (theo ngày đăng ký).'));
+  // 2) HIỆU QUẢ BÁN HÀNG (thay "Khách mới theo tuần") ------------------------
+  // 3 chuỗi theo thời gian: Khách mới (ngày đăng ký) · Đã liên hệ (số khách có ≥1 cuộc gọi trong
+  // khoảng, đếm 1 lần/khách/khoảng) · Chuyển giai đoạn (số lần đổi bậc trong lịch sử chăm sóc).
+  // Chọn 7 / 30 / 90 ngày (dashRange). Đánh giá hiệu quả làm việc, không chỉ đếm lead.
+  cards.push(dashCard('Hiệu quả bán hàng', salesPerfHtml(all),
+    'Khách mới vào · khách đã được gọi · số lần khách lên/xuống bậc. % = khách mới trong khoảng đã được gọi ít nhất 1 lần.'));
 
   // 4) ĐIỂM QUAN TÂM TRUNG BÌNH + xu hướng --------------------------------
   // Mức quan tâm chỉ có nghĩa ở lớp Tiềm năng (lead chưa đánh giá — mốc 20% chỉ là khởi đầu).
@@ -5597,12 +5669,31 @@ function renderDashAnalytics(all) {
     if (limit) entries = entries.slice(0, limit);
     return entries.map(([label, value]) => ({ label, value }));
   };
-  const aptItems = tally(all, 'apt_type', 0, canonicalAptType);
-  const bldItems = tally(all, 'building_code', 6);
-  const distHtml = `<div class="dash-sub-title">Loại căn</div>${hbars(aptItems, { empty: 'Chưa có dữ liệu loại căn' })}`
-    + `<div class="dash-sub-title">Mã toà</div>${hbars(bldItems, { empty: 'Chưa có dữ liệu mã toà', color: '#8a7bb0' })}`;
-  cards.push(dashCard('Căn hộ quan tâm', distHtml,
-    'Loại căn/toà "hot" nhất trên TẤT CẢ khách — feedback ngược cho đội dự án nên đẩy bán căn nào.'));
+  // Chuyển tab Loại căn / Toà / Ngân sách (dashAptTab), giữ dạng thanh ngang.
+  const APT_TABS = [['type', 'Loại căn'], ['building', 'Toà'], ['budget', 'Ngân sách']];
+  let aptBody;
+  if (dashAptTab === 'building') {
+    aptBody = hbars(tally(all, 'building_code', 8), { empty: 'Chưa có dữ liệu mã toà', color: '#8a7bb0' });
+  } else if (dashAptTab === 'budget') {
+    // Ngân sách (VNĐ, ô "Ngân sách" trong hồ sơ) gom theo khoảng.
+    const BINS = [[0, 5e8, 'Dưới 500 triệu'], [5e8, 1e9, '500 triệu – 1 tỷ'], [1e9, 1.5e9, '1 – 1,5 tỷ'],
+      [1.5e9, 2e9, '1,5 – 2 tỷ'], [2e9, 3e9, '2 – 3 tỷ'], [3e9, Infinity, 'Trên 3 tỷ']];
+    const cnt = BINS.map(() => 0); let none = 0;
+    all.forEach((c) => {
+      const v = Number(c.finance);
+      if (!isFinite(v) || v <= 0) { none++; return; }
+      const i = BINS.findIndex(([lo, hi]) => v >= lo && v < hi); if (i >= 0) cnt[i]++;
+    });
+    const items = BINS.map(([, , label], i) => ({ label, value: cnt[i] })).filter((x) => x.value);
+    aptBody = hbars(items, { empty: 'Chưa có khách nào nhập ngân sách', color: '#3D6B4F' })
+      + (none && items.length ? `<div class="dash-foot">${none} khách chưa có ngân sách</div>` : '');
+  } else {
+    aptBody = hbars(tally(all, 'apt_type', 0, canonicalAptType), { empty: 'Chưa có dữ liệu loại căn' });
+  }
+  const aptTabsHtml = `<div class="dash-seg" role="tablist">${APT_TABS.map(([k, t]) =>
+    `<button type="button" class="dash-seg-btn${dashAptTab === k ? ' is-active' : ''}" data-apt-tab="${k}" role="tab">${t}</button>`).join('')}</div>`;
+  cards.push(dashCard('Căn khách quan tâm', aptTabsHtml + aptBody,
+    'Nhu cầu trên TẤT CẢ khách — loại căn / toà / tầm tiền nào đông khách nhất, để tư vấn đúng sản phẩm.'));
 
   // NGUỒN KHÁCH: số khách theo kênh + % lên Tiềm năng → biết kênh nào đáng chi tiền.
   const srcMap = {};
@@ -5623,6 +5714,10 @@ function renderDashAnalytics(all) {
 
 // Bàn làm việc: mở khách / xem thêm nhóm / lọc theo bậc / nhảy theo chỉ số nhanh.
 $('#dashboard-content')?.addEventListener('click', (e) => {
+  const rg = e.target.closest('[data-dash-range]');
+  if (rg) { dashRange = Number(rg.dataset.dashRange); try { localStorage.setItem(LS_DASH_RANGE, String(dashRange)); } catch {} renderDashboard(); return; }
+  const at = e.target.closest('[data-apt-tab]');
+  if (at) { dashAptTab = at.dataset.aptTab; try { localStorage.setItem(LS_DASH_APT_TAB, dashAptTab); } catch {} renderDashboard(); return; }
   const more = e.target.closest('[data-more]');
   if (more) {
     const k = more.dataset.more;

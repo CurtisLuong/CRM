@@ -6,6 +6,26 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-08 — Tổng quan: Hiệu quả bán hàng + Căn khách quan tâm có tab; mẫu Zalo xưng hô & giới thiệu
+
+- Thẻ "Khách mới theo tuần" → **Hiệu quả bán hàng**: chọn 7 / 30 / 90 ngày; 3 số (Khách mới · Đã liên hệ kèm % khách mới đã được gọi · Chuyển giai đoạn) + biểu đồ cột nhóm 3 màu (7 ngày: theo ngày; 30: 6 cột × 5 ngày; 90: 13 cột × tuần). Đã liên hệ = số khách có ≥1 cuộc gọi trong khoảng; Chuyển giai đoạn = số lần đổi bậc trong lịch sử chăm sóc.
+- Thẻ "Căn hộ quan tâm" → **Căn khách quan tâm**, tab Loại căn / Toà / Ngân sách (ô Ngân sách gom khoảng: <500tr, 500tr–1 tỷ, 1–1,5, 1,5–2, 2–3, >3 tỷ + số khách chưa có), giữ thanh ngang. Lựa chọn khoảng ngày / tab nhớ trên máy.
+- Mẫu tin Zalo: mọi mẫu mặc định giới thiệu "Em là {sale}, phòng kinh doanh dự án {du_an}"; `{sale}` = tên gọi trong Đồng nghiệp, chưa có → "Duy"; khách chưa có dự án → "nhà ở xã hội". Xưng hô Nam → anh, Nữ → chị, chưa rõ → anh/chị (sửa thêm "Anh/chị" đầu câu; bỏ "mình"). Mẫu chưa sửa tự lên bản mới (`ZALO_TEMPLATES_PREVIOUS`).
+- File: `js/app.js`, `js/followup.js`, `index.html`, `css/style.css`, `sw.js` (v65), `docs/design.md`, `docs/huong-dan-follow-up.md`.
+- Đã kiểm tra trình duyệt local (dữ liệu giả, ~350px): đổi 7/30/90 ngày, 3 tab căn, điền mẫu với Nam / Nữ / chưa rõ, có / không dự án. Chưa thử với dữ liệu thật, chưa deploy.
+
+## 2026-10-08 — Số khách trên thanh công cụ: icon + số
+
+- "25 khách hàng" → [icon người (cùng icon tab Khách hàng)] 25. Khách nhóm đang lọc theo người vẫn kèm tên người. Chữ đầy đủ ("25 khách hàng · theo độ liên quan") ở tooltip + aria-label. Áp dụng cho Tiềm năng/Khách nhóm và Khách mới (`setResultCount`).
+- File: `js/app.js`, `css/style.css`, `sw.js` (v64), `docs/design.md`.
+- Đã kiểm tra trình duyệt local (dữ liệu giả). Chưa deploy.
+
+## 2026-10-08 — Nút Giao khách trong hồ sơ: chỉ icon
+
+- "👥 Giao khách" → nút chỉ icon (2 người + 2 mũi tên trao đổi, nét 1.8 cùng kiểu icon Danh bạ), cùng hàng và cùng cỡ nút Gọi / Zalo / Danh bạ; tooltip + aria-label "Giao khách". Hộp Khách mới giữ nút chữ.
+- File: `index.html`, `css/style.css`, `sw.js` (v63).
+- Đã kiểm tra trình duyệt local (375px): nút cao 34px như nút Danh bạ. Chưa deploy.
+
 ## 2026-10-08 — Hồ sơ khách: bớt chữ đậm, cỡ chữ ngang màn khác
 
 - Đo thực tế: nội dung hồ sơ vẫn 14px như danh sách; cảm giác "chữ to" do quá nhiều chữ đậm (SĐT, tab, giá trị chỉ số, giá trị bảng, nút đều 600–700) và nút/tab/tiêu đề to hơn nửa cỡ.
