@@ -158,6 +158,9 @@ input:focus, select:focus, textarea:focus {
    Chiều cao cố định để tính được vị trí ô tìm (absolute): top = 8 + 30 + 6 + 34 + 6 = 84px. */
 .topbar-row-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; height: 30px; }
 .topbar-brand { display: flex; align-items: center; gap: 8px; font-family: "Georgia", "Times New Roman", serif; font-size: 18px; font-weight: 700; color: #fff; white-space: nowrap; letter-spacing: 0.01em; }
+#brand-home { cursor: pointer; border-radius: 8px; -webkit-tap-highlight-color: transparent; }
+#brand-home:hover { opacity: 0.88; }
+#brand-home:focus-visible { outline: 2px solid rgba(255,255,255,0.6); outline-offset: 3px; }
 .brand-logo { height: 28px; width: auto; flex: none; border-radius: 7px; }
 /* Chừa chỗ (padding-bottom) cho ô tìm — nó nằm ABSOLUTE để trượt mượt được (xem dưới). */
 .topbar { padding: calc(8px + var(--sat)) 16px 48px; transition: padding 0.3s cubic-bezier(0.4,0,0.2,1), gap 0.3s cubic-bezier(0.4,0,0.2,1), box-shadow 0.3s ease; }

@@ -6112,6 +6112,15 @@ document.addEventListener('DOMContentLoaded', () => {
     closeToolPops(); resetSearchPages(); showCustomerGroup(b.dataset.group);
   });
   $('#tab-dashboard').addEventListener('click', showDashboardView);
+  // Logo "Sổ Khách" = nút về trang chủ: xoá từ khoá đang tìm (để thấy bàn làm việc), mở Tổng quan, lên đầu trang.
+  const goHome = () => {
+    const si = $('#search-input');
+    if (si.value) { si.value = ''; si.dispatchEvent(new Event('input', { bubbles: true })); }
+    showDashboardView();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+  $('#brand-home').addEventListener('click', goHome);
+  $('#brand-home').addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goHome(); } });
   $('#tool-loan-btn').addEventListener('click', () => { $('#topbar-menu').classList.remove('open'); showLoanView(); window.scrollTo(0, 0); });
   $('#loan-back-btn').addEventListener('click', showDashboardView);
   $('#customer-form').building_code.addEventListener('input', refreshAptSuggestions);

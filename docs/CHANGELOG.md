@@ -6,6 +6,12 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-08 — Logo "Sổ Khách" bấm về trang chủ
+
+- Bấm logo/tên "Sổ Khách" ở header (hoặc Enter khi focus) → xoá từ khoá đang tìm, mở Tổng quan, cuộn lên đầu trang.
+- File: `index.html`, `js/app.js`, `css/style.css`, `sw.js` (v57).
+- Đã kiểm tra trình duyệt local (dữ liệu giả): từ Khách hàng đang tìm + đã cuộn → về Tổng quan, ô tìm trống, đầu trang. Chưa deploy.
+
 ## 2026-10-08 — Menu 3 chấm cho nhóm Khách mới
 
 - Thanh công cụ Khách mới có nút 3 chấm (Thêm thao tác): Nhập dữ liệu · Xuất dữ liệu. Xuất từ đây lấy đúng danh sách Khách mới đang lọc/sắp xếp (`visibleLeads`); xuất từ Tiềm năng/Khách nhóm như cũ.
