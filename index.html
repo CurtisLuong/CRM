@@ -101,7 +101,7 @@
          Công cụ khác (Tính vay...) nằm trong menu tài khoản. -->
     <nav class="tab-nav">
       <button id="tab-dashboard" class="tab-btn is-active"><svg class="tab-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5V20h-5.5v-6h-5v6H4z"/></svg>Tổng quan</button>
-      <button id="tab-customers" class="tab-btn"><svg class="tab-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8.5" r="3.2"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><circle cx="16.5" cy="9.5" r="2.6"/><path d="M16 14.2a4.6 4.6 0 0 1 4.8 4.8"/></svg>Khách hàng <span id="cust-tab-badge" class="tab-badge" hidden>0</span></button>
+      <button id="tab-customers" class="tab-btn"><svg class="tab-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8.5" r="3.2"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><circle cx="16.5" cy="9.5" r="2.6"/><path d="M16 14.2a4.6 4.6 0 0 1 4.8 4.8"/></svg>Khách hàng</button>
     </nav>
     <div class="topbar-search-wrap">
       <span class="search-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg></span>
@@ -312,6 +312,22 @@
           <button id="lead-sort-reset" class="btn-ghost btn-small">Đặt lại mặc định</button>
           <button id="lead-sort-apply" class="btn-primary btn-small">Áp dụng</button>
         </div>
+      </div>
+    </div>
+    <!-- Nút 3 chấm (thêm thao tác) của Khách mới: Nhập / Xuất dữ liệu (xuất theo lọc của Khách mới). -->
+    <div class="tool-pop io-menu-wrap">
+      <button id="lead-io-menu-btn" class="tool-icon-btn has-tip tip-right" type="button" data-tip="Thêm thao tác" aria-label="Thêm thao tác" aria-haspopup="true" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="5" r="1.7" fill="currentColor"/><circle cx="12" cy="12" r="1.7" fill="currentColor"/><circle cx="12" cy="19" r="1.7" fill="currentColor"/></svg>
+      </button>
+      <div id="lead-io-menu-pop" class="pop-panel io-menu-pop" hidden>
+        <button id="lead-import-btn" class="io-menu-item" type="button">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3"/><path d="M8 7l4-4 4 4"/><path d="M5 21h14"/></svg>
+          Nhập dữ liệu
+        </button>
+        <button id="lead-export-btn" class="io-menu-item" type="button">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M8 11l4 4 4-4"/><path d="M5 21h14"/></svg>
+          Xuất dữ liệu
+        </button>
       </div>
     </div>
     <!-- Số khách + Xoá lọc nhanh (desktop: sau vạch ngăn, mép phải). -->

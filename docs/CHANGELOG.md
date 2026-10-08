@@ -6,6 +6,20 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-08 — Menu 3 chấm cho nhóm Khách mới
+
+- Thanh công cụ Khách mới có nút 3 chấm (Thêm thao tác): Nhập dữ liệu · Xuất dữ liệu. Xuất từ đây lấy đúng danh sách Khách mới đang lọc/sắp xếp (`visibleLeads`); xuất từ Tiềm năng/Khách nhóm như cũ.
+- Sửa lỗi bản trước: bấm bên trong panel Sắp xếp của Khách mới làm panel tự đóng (điều kiện đóng còn trỏ vào `#lead-view` sau khi thanh công cụ dời sang `#cust-bar`).
+- File: `index.html`, `js/app.js`, `sw.js` (v56), `docs/design.md`.
+- Đã kiểm tra trình duyệt local (dữ liệu giả): mở/đóng menu, panel Sắp xếp không tự đóng, số khách sẽ xuất đúng theo nhóm. Chưa deploy.
+
+## 2026-10-08 — Icon tab trên điện thoại, bỏ số trên tab Khách hàng
+
+- Icon Tổng quan / Khách hàng hiện cả trên điện thoại (đồng nhất desktop).
+- Bỏ badge số trên tab header Khách hàng (tránh thúc giục, cạnh tranh với chuông thông báo). Badge khách mới chưa gọi chỉ còn ở nhóm Khách mới, đổi sang dạng nhẹ (nền be nhạt, chữ xám).
+- File: `index.html`, `js/app.js`, `css/style.css`, `sw.js` (v55), `docs/design.md`.
+- Đã kiểm tra trình duyệt local (dữ liệu giả, 375px + desktop). Chưa deploy.
+
 ## 2026-10-08 — Thanh nhóm khách + công cụ gộp 1 hàng (desktop)
 
 - Nhóm khách (Tiềm năng · Khách mới · Khách nhóm) và thanh công cụ (Lọc · Sắp xếp · 3 chấm) nằm chung một thanh `#cust-bar`; số khách + "Xoá lọc" chuyển vào thanh này (bỏ dòng đếm riêng), chỉ ghi "N khách hàng" vì tên nhóm đã ở tab cạnh đó. Desktop ≥900px: 1 hàng; điện thoại: 2 hàng. Nút nhỏ lại (38→32px, icon 15px). Panel Lọc trên desktop mở sang trái.

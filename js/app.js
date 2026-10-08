@@ -4381,6 +4381,11 @@ function leadStatusTag(c) {
   return `<span class="lead-tag${hasTalked(c) ? ' lead-tag-talked' : ''}">Đã gọi ${n} lần</span>`;
 }
 
+// Khách mới MÌNH phụ trách, đúng lọc + sắp xếp đang chọn (dùng cho danh sách và Xuất dữ liệu).
+function visibleLeads(leads = allCustomers.filter((c) => !isQualified(c) && isMine(c))) {
+  const ctx = searchCtx(), range = presetRange(leadDatePreset);
+  return orderLeads(leads.filter((c) => leadMatchesFilter(c, ctx, range)));
+}
 function renderLeads() {
   const leads = allCustomers.filter((c) => !isQualified(c) && isMine(c)); // khách mới MÌNH phụ trách
   // Badge tab = VIỆC CẦN LÀM NGAY: lead đăng ký HÔM QUA + HÔM NAY, chưa loại, CHƯA GỌI lần nào (gọi sớm dễ bắt máy).
@@ -4394,14 +4399,12 @@ function renderLeads() {
     badge.hidden = urgent === 0;
     badge.title = `${urgent} khách đăng ký hôm qua/hôm nay chưa gọi`;
   }
-  const tabBadge = $('#cust-tab-badge'); // cùng số trên tab Khách hàng (nhìn thấy từ Tổng quan)
-  if (tabBadge) { tabBadge.textContent = badge ? badge.textContent : String(urgent); tabBadge.hidden = urgent === 0; tabBadge.title = badge ? badge.title : ''; }
   if (!$('#cust-bar').hidden) syncCustSubtabs();
   const view = $('#lead-view');
   if (!view || view.hidden) return; // tab đang ẩn → chỉ cập nhật badge
 
-  const ctx = searchCtx(), range = presetRange(leadDatePreset);
-  const fullList = orderLeads(leads.filter((c) => leadMatchesFilter(c, ctx, range)));
+  const ctx = searchCtx(); // dùng tô đậm từ khoá trên thẻ
+  const fullList = visibleLeads(leads);
   const list = fullList.slice(0, searchPages.leads * SEARCH_PAGE_SIZE);
   syncLeadFilterUI();
   $('#lead-result-count').textContent = `${fullList.length} khách hàng${searchCtx() ? ' · theo độ liên quan' : ''}`;
@@ -4590,7 +4593,7 @@ $('#lead-list')?.addEventListener('click', (e) => {
   if (card) openLeadSheet(card.dataset.id);
 });
 // ---- Thanh công cụ tab Khách mới (cùng kiểu tab Tiềm năng) ----
-const LEAD_POPS = [['#lead-filter-panel', '#lead-filter-btn'], ['#lead-sort-panel', '#lead-sort-btn']];
+const LEAD_POPS = [['#lead-filter-panel', '#lead-filter-btn'], ['#lead-sort-panel', '#lead-sort-btn'], ['#lead-io-menu-pop', '#lead-io-menu-btn']];
 function closeLeadPops(except) {
   for (const [pop, btn] of LEAD_POPS) {
     if (pop === except) continue;
@@ -4642,6 +4645,9 @@ $('#lead-filter-panel')?.addEventListener('click', (e) => {
   if (d) { leadDatePreset = d.dataset.preset; renderLeads(); }
 });
 $('#lead-filter-apply')?.addEventListener('click', () => closeLeadPops());
+$('#lead-io-menu-btn')?.addEventListener('click', (e) => { e.stopPropagation(); toggleLeadPop('#lead-io-menu-pop', '#lead-io-menu-btn'); });
+$('#lead-import-btn')?.addEventListener('click', () => { closeLeadPops(); openImportModal(); });
+$('#lead-export-btn')?.addEventListener('click', () => { closeLeadPops(); openExportModal('leads'); });
 $('#lead-filter-reset')?.addEventListener('click', resetLeadFilters);
 $('#lead-clear-filter')?.addEventListener('click', resetLeadFilters);
 $('#lead-sort-btn')?.addEventListener('click', (e) => {
@@ -4666,7 +4672,7 @@ $('#lead-sort-reset')?.addEventListener('click', () => {
   renderLeadSortOptions(); renderLeads();
 });
 // Bấm ra ngoài → đóng mọi pop của tab Khách mới.
-document.addEventListener('click', (e) => { if (!e.target.closest('#lead-view .tool-pop')) closeLeadPops(); });
+document.addEventListener('click', (e) => { if (!e.target.closest('#lead-toolbar .tool-pop')) closeLeadPops(); });
 $('#add-lead-btn')?.addEventListener('click', () => openForm(null));
 $('#add-dash-btn')?.addEventListener('click', () => openForm(null));
 $('#lead-reason-opts')?.addEventListener('click', (e) => {
@@ -5820,18 +5826,22 @@ function exportCell(c, key) {
 }
 
 // ---- XUẤT ----
-function openExportModal() {
+// Xuất theo nhóm đang xem: Khách mới → visibleLeads(); còn lại → visibleCustomers().
+let exportSource = 'list';
+function exportList() { return exportSource === 'leads' ? visibleLeads() : visibleCustomers(); }
+function openExportModal(source = 'list') {
+  exportSource = source;
   $('#export-fields').innerHTML = IO_FIELDS.map((f) =>
     `<label><input type="checkbox" value="${f.key}"${f.def ? ' checked' : ''} /> ${escapeHtml(f.label)}</label>`
   ).join('');
-  $('#export-count').textContent = `Sẽ xuất ${visibleCustomers().length} khách (theo lọc + sắp xếp hiện tại).`;
+  $('#export-count').textContent = `Sẽ xuất ${exportList().length} khách (theo lọc + sắp xếp hiện tại).`;
   $('#export-status').textContent = '';
   $('#export-modal').showModal();
 }
 async function doExport() {
   const keys = [...$('#export-fields').querySelectorAll('input:checked')].map((i) => i.value);
   if (!keys.length) { $('#export-status').textContent = '⚠️ Chọn ít nhất 1 cột.'; return; }
-  const list = visibleCustomers();
+  const list = exportList();
   if (!list.length) { $('#export-status').textContent = '⚠️ Không có khách nào để xuất.'; return; }
   $('#export-status').textContent = '⏳ Đang tạo file…';
   try {
