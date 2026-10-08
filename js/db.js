@@ -341,11 +341,7 @@ const CRM = {
     const idx = list.findIndex((n) => n.at === at);
     if (idx === -1) return;
     if (!t) list.splice(idx, 1);
-    else {
-      const entry = { ...list[idx], text: t };
-      if (due) entry.due = due; else delete entry.due;
-      list[idx] = entry;
-    }
+    else list[idx] = { ...list[idx], text: t };
     const record = { ...existing, notes_manual: list };
     await localPut(record);
     await queueAdd({ type: 'update', recordId: id, payload: { notes_manual: list }, ts: new Date().toISOString() });
@@ -366,8 +362,9 @@ const CRM = {
     return record;
   },
 
-  // ---- VIỆC TIẾP THEO (next_tasks): mảng {text, at, due?}, GIỮ thứ tự tạo (cũ → mới) ----
-  // due = hạn ngày giờ (ISO), tuỳ chọn — không có thì bỏ trống khoá.
+  // ---- VIỆC TIẾP THEO (next_tasks): mảng {text, at, due?, due_allday?}, GIỮ thứ tự tạo (cũ → mới) ----
+  // due = hạn ngày giờ (ISO), tuỳ chọn. due_allday = true → hạn "cả ngày" (due = 23:59 hôm đó).
+  // Tham số `due` của addTask/updateTask: { due, due_allday } hoặc null (không hạn).
   // Chỉ đồng bộ riêng cột next_tasks (partial update) → không đụng field khác.
 
   /** Thêm 1 việc mới (xuống cuối danh sách). */
@@ -379,7 +376,7 @@ const CRM = {
     const now = new Date().toISOString();
     const list = Array.isArray(existing.next_tasks) ? existing.next_tasks.slice() : [];
     const entry = { text: t, at: now };
-    if (due) entry.due = due;
+    if (due && due.due) { entry.due = due.due; if (due.due_allday) entry.due_allday = true; }
     list.push(entry); // việc mới xuống cuối
     const record = { ...existing, next_tasks: list, updated_at: now };
     await localPut(record);
@@ -400,7 +397,8 @@ const CRM = {
     if (!t) list.splice(idx, 1);
     else {
       const entry = { ...list[idx], text: t };
-      if (due) entry.due = due; else delete entry.due;
+      delete entry.due; delete entry.due_allday;
+      if (due && due.due) { entry.due = due.due; if (due.due_allday) entry.due_allday = true; }
       list[idx] = entry;
     }
     const record = { ...existing, next_tasks: list };

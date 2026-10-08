@@ -884,6 +884,44 @@
   </div>
 </dialog>
 
+<!-- ============ THÊM / SỬA VIỆC TIẾP THEO (cùng kiểu Đặt lịch gọi) ============ -->
+<dialog id="task-modal">
+  <div class="sched">
+    <h2 id="task-modal-title">Thêm việc</h2>
+    <p id="task-modal-sub" class="task-modal-sub"></p>
+    <div class="sched-label">Việc cần làm</div>
+    <textarea id="task-text" class="sched-reason" rows="2" placeholder="vd: gửi bảng giá toà B, nhắc nộp hồ sơ vay..."></textarea>
+    <div class="sched-label">Hạn <span class="sched-optional">(không bắt buộc)</span></div>
+    <div class="sched-opts" id="task-date">
+      <button type="button" class="sched-opt" data-v="none">Không hạn</button>
+      <button type="button" class="sched-opt" data-v="today">Hôm nay</button>
+      <button type="button" class="sched-opt" data-v="tomorrow">Ngày mai</button>
+      <button type="button" class="sched-opt" data-v="week">1 tuần nữa</button>
+      <button type="button" class="sched-opt" data-v="custom">Tự chọn</button>
+    </div>
+    <input type="date" id="task-date-custom" class="sched-custom" hidden />
+    <div id="task-time-wrap" hidden>
+      <div class="sched-label">Giờ</div>
+      <div class="sched-opts" id="task-time">
+        <button type="button" class="sched-opt" data-v="allday">Cả ngày</button>
+        <button type="button" class="sched-opt" data-v="9">9:00</button>
+        <button type="button" class="sched-opt" data-v="14">14:00</button>
+        <button type="button" class="sched-opt" data-v="20">20:00</button>
+        <button type="button" class="sched-opt" data-v="custom">Tự chọn giờ</button>
+      </div>
+      <input type="time" id="task-time-custom" class="sched-custom" hidden />
+    </div>
+    <div id="task-due-preview" class="task-due-preview" hidden></div>
+    <div id="task-error" class="sched-error"></div>
+    <div class="form-actions">
+      <button type="button" id="task-delete" class="btn-ghost btn-danger" hidden>Xoá việc</button>
+      <span class="form-actions-spacer"></span>
+      <button type="button" id="task-cancel" class="btn-ghost">Huỷ</button>
+      <button type="button" id="task-save" class="btn-primary">Lưu việc</button>
+    </div>
+  </div>
+</dialog>
+
 <!-- ============ XÁC NHẬN GỌI (bấm vào tag nhắc gọi) ============ -->
 <!-- 1 hộp thoại phẳng: thời gian hẹn + ô ghi chú + 3 nút. Mỗi nút đều kèm ghi chú
      (nếu có) → ghi 1 mốc vào care timeline: "[hành động] hh:mm, dd.mm.yyyy. [ghi chú]". -->

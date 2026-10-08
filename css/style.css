@@ -1446,22 +1446,33 @@ input[name="apt_type_other"] { margin-top: 8px; }
 
 /* "Việc tiếp theo" (khi chưa có lịch gọi) */
 .tasks-wrap .na-eyebrow { display: block; margin-bottom: 9px; }
-.tasks-list { display: flex; flex-direction: column; gap: 7px; margin-bottom: 10px; }
+.tasks-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
 .tasks-empty { font-size: 13px; color: #9a9a8e; }
-.task-item { display: flex; align-items: flex-start; gap: 8px; font-size: 14px; color: var(--ink); }
-.task-bullet { color: var(--seal); line-height: 1.45; }
-.task-body { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+/* Mỗi việc = 1 ô nền giấy, viền trái nhấn theo hạn (hôm nay: vàng đất · quá hạn: đỏ son). */
+.task-item {
+  display: flex; align-items: flex-start; gap: 8px; font-size: 14px; color: var(--ink);
+  background: #FAF8F3; border: 1px solid #EEE9DD; border-left: 3px solid #D8D4C8;
+  border-radius: 10px; padding: 9px 8px 9px 12px;
+}
+.task-item.is-today { border-left-color: #D9A441; }
+.task-item.is-overdue { border-left-color: var(--seal); background: #fbf1ec; }
+.task-body { flex: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 5px; min-width: 0; }
 .task-text { white-space: pre-wrap; line-height: 1.45; }
-.task-due { font-size: 12px; color: #6b6b60; }
-.task-due.is-today { color: #A8741A; font-weight: 600; }
-.task-due.is-overdue { color: var(--seal); font-weight: 600; }
-.task-due-field { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 13px; color: #6b6b60; }
-.task-due-input { flex: 1; min-width: 0; font: inherit; font-size: 14px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink); }
+.task-due {
+  display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600;
+  color: #55564e; background: #EFECE3; border-radius: 999px; padding: 2px 9px 2px 7px;
+}
+.task-due svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.task-due.is-today { color: #8A5A10; background: #F6E7C4; }
+.task-due.is-overdue { color: #fff; background: var(--seal); }
 .task-act { flex: 0 0 auto; border: none; background: transparent; cursor: pointer; color: #8a8a7e; font-size: 14px; padding: 0 4px; line-height: 1.4; }
 .task-act:hover { color: var(--ink); }
-.task-editing { flex-direction: column; align-items: stretch; }
-.task-edit-input { width: 100%; resize: vertical; min-height: 52px; font: inherit; font-size: 14px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; }
-.task-edit-btns { display: flex; gap: 8px; margin-top: 6px; }
+/* Hộp thoại thêm/sửa việc (dùng khung .sched của Đặt lịch gọi) */
+.task-modal-sub { color: #6b6b60; font-size: 14px; margin: 2px 0 4px; }
+.task-due-preview {
+  margin-top: 14px; padding: 9px 12px; border-radius: 8px; font-size: 14px; font-weight: 600;
+  background: #F3F0E7; color: var(--ink); border-left: 3px solid var(--seal);
+}
 .tasks-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 
 /* Dialog đặt lịch gọi + xác nhận gọi */
@@ -1509,7 +1520,7 @@ dialog#img-picker .ocr-status { margin-top: 8px; }
 }
 .sched-opt:hover { border-color: var(--teal-light); }
 .sched-opt.is-sel { background: var(--seal); color: #fff; border-color: var(--seal); }
-#sched-time-custom, #sched-date-custom {
+#sched-time-custom, #sched-date-custom, .sched-custom {
   display: block; margin-top: 10px; font: inherit; font-size: 14px;
   padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px;
 }

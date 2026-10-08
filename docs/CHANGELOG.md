@@ -6,6 +6,15 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-08 — Hộp thoại Thêm/Sửa việc có preset hạn + nhóm "Việc đến hạn hôm nay"
+
+- Thêm/sửa việc qua hộp thoại cùng kiểu "Đặt lịch gọi": hạn Không hạn · Hôm nay · Ngày mai · 1 tuần nữa · Tự chọn; giờ Cả ngày · 9:00 · 14:00 · 20:00 · Tự chọn giờ; dòng xem trước hạn; chặn hạn đã qua. Nút Xoá việc nằm trong hộp thoại. Việc hiển thị dạng ô có nhãn hạn (hôm nay: vàng đất · quá hạn: đỏ son). Thêm khoá `due_allday` trong `next_tasks` (không cần migration).
+- Tổng quan → Việc hôm nay: nhóm mới "Việc đến hạn hôm nay" (hạn tới hết hôm nay, kể cả quá hạn; quá hạn tô đỏ), tính vào số việc cần làm; khách ở nhóm này không lặp ở các nhóm chăm lại.
+- Hồ sơ: khách đã có lịch gọi mà còn việc → vẫn hiện "Việc tiếp theo" dưới thẻ hẹn gọi (trước đây bị ẩn).
+- Sửa lỗi bản trước: `CRM.updateNote` tham chiếu biến `due` không tồn tại → sửa ghi chú bị lỗi.
+- File: `index.html`, `js/app.js`, `js/db.js`, `css/style.css`, `sw.js` (v51).
+- Đã kiểm tra trình duyệt local (dữ liệu giả, desktop + 375px): preset, xem trước, nạp lại hạn khi sửa, chặn giờ đã qua, nhóm Việc hôm nay. Chưa thử lưu thật lên Supabase, chưa deploy.
+
 ## 2026-10-08 — Việc tiếp theo có hạn ngày giờ (tuỳ chọn)
 
 - Khi thêm/sửa việc cho khách Đang chăm có ô "Hạn (tuỳ chọn)" (ngày + giờ, nút ✕ bỏ hạn). Dưới việc hiện "Hạn: Ngày mai · 14:00"; trong hôm nay tô vàng đất, quá hạn hiện "Quá hạn · …" màu đỏ son.

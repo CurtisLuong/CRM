@@ -2999,7 +2999,6 @@ function openDetail(id) {
   applyTeamDetail(c); // chỉ xem / nút Giao khách (js/team.js)
   editingHistoryAt = null; // mở khách mới → thoát chế độ sửa note cũ
   addingCareNote = false;  // thoát chế độ thêm ghi chú
-  editingTaskAt = null;    // và thoát chế độ sửa/thêm việc
 
   // Tên + tuổi (chữ nhỏ, không đậm) — tuổi CHỈ hiện khi có năm sinh (YYYY).
   const nameAge = ageFromDob(c.dob);
@@ -3985,125 +3984,177 @@ function renderDetailCall(c) {
     else { badge.hidden = true; }
     card.className = 'next-action' + (rem ? ' na-' + rem.state : ''); // viền trái theo độ gấp
     card.hidden = false;
-    tasksWrap.hidden = true;
   } else {
-    // CHƯA có lịch → "Việc tiếp theo": danh sách việc tự do.
     card.hidden = true;
-    tasksWrap.hidden = false;
-    renderDetailTasks(c);
   }
+  // "Việc tiếp theo": luôn hiện khi chưa có lịch; có lịch thì vẫn hiện nếu còn việc
+  // (việc có hạn không được bị che). Nút "Đặt lịch gọi" chỉ khi chưa có lịch.
+  const hasTasks = Array.isArray(c.next_tasks) && c.next_tasks.length > 0;
+  tasksWrap.hidden = !!c.next_call_at && !hasTasks;
+  $('#detail-schedule-btn').hidden = !!c.next_call_at;
+  if (!tasksWrap.hidden) renderDetailTasks(c);
 }
 
-// ---- "Việc tiếp theo": danh sách việc tự do (chỉ hiện khi khách chưa có lịch gọi) ----
-let editingTaskAt = null; // null = không sửa; 1 'at' = sửa việc đó; 'new' = đang thêm việc mới
-function taskEditorHtml(at, isNew) {
-  return `<div class="task-item task-editing">
-      <textarea class="task-edit-input" rows="2" placeholder="Nội dung việc cần làm..."></textarea>
-      <label class="task-due-field">
-        <span>Hạn (tuỳ chọn)</span>
-        <input type="datetime-local" class="task-due-input" />
-        <button type="button" class="task-act" data-task-due-clear title="Bỏ hạn">✕</button>
-      </label>
-      <div class="task-edit-btns">
-        <button class="btn-small btn-primary" data-task-save="${at}">✓ Lưu</button>
-        <button class="btn-small btn-danger" data-task-del="${at}">${isNew ? 'Huỷ' : '🗑 Xoá việc'}</button>
-      </div>
-    </div>`;
+// ---- "Việc tiếp theo": danh sách việc tự do, mỗi việc có thể có hạn ngày giờ ----
+// Thêm/sửa qua hộp thoại #task-modal (giống "Đặt lịch gọi"): ngày Không hạn / Hôm nay /
+// Ngày mai / 1 tuần nữa / Tự chọn + giờ Cả ngày / 9:00 / 14:00 / 20:00 / Tự chọn.
+const TASK_TIMES = { '9': [9, 0], '14': [14, 0], '20': [20, 0] };
+// Mốc hạn (ms) của 1 việc, NaN nếu không hạn.
+function taskDueMs(t) { return t && t.due ? Date.parse(t.due) : NaN; }
+// Nhãn ngày: Hôm nay / Ngày mai / Hôm qua / "T5 15/10".
+function taskDayLabel(d) {
+  const diff = Math.round((startOfDayMs(d.getTime()) - startOfDayMs(Date.now())) / 86400000);
+  if (diff === 0) return 'Hôm nay';
+  if (diff === 1) return 'Ngày mai';
+  if (diff === -1) return 'Hôm qua';
+  return `${VI_WD_SHORT[d.getDay()]} ${ddmm(d)}`;
 }
-// Nhãn hạn việc: "Hôm nay · 14:00" + trạng thái: quá hạn (overdue) · trong hôm nay (today).
-function taskDueInfo(due) {
-  const d = new Date(due);
-  if (isNaN(d)) return null;
-  const now = new Date();
-  const state = d < now ? 'overdue' : (isoDateLocal(d) === isoDateLocal(now) ? 'today' : '');
-  return { label: relDayLabel(d) + ' · ' + fmtClock(d.getTime()), state };
+// Nhãn hạn + trạng thái: 'overdue' (quá hạn) · 'today' (trong hôm nay) · '' (còn xa).
+// Hạn "cả ngày" chỉ quá hạn khi hết ngày đó.
+function taskDueInfo(t) {
+  const ms = taskDueMs(t);
+  if (isNaN(ms)) return null;
+  const d = new Date(ms), now = Date.now();
+  const state = ms < now ? 'overdue' : (startOfDayMs(ms) === startOfDayMs(now) ? 'today' : '');
+  return { ms, state, label: taskDayLabel(d) + (t.due_allday ? '' : ' · ' + fmtClock(ms)) };
+}
+function taskDueChip(t) {
+  const info = taskDueInfo(t);
+  if (!info) return '';
+  const txt = (info.state === 'overdue' ? 'Quá hạn · ' : '') + info.label;
+  return `<span class="task-due${info.state ? ' is-' + info.state : ''}">${CLOCK_SVG}${escapeHtml(txt)}</span>`;
 }
 function renderDetailTasks(c) {
   const box = $('#detail-tasks');
   const tasks = Array.isArray(c.next_tasks) ? c.next_tasks : [];
-  let html = '';
-  for (const t of tasks) {
-    const at = escapeHtml(t.at || '');
-    if (t.at === editingTaskAt) {
-      html += taskEditorHtml(at, false);
-    } else {
-      html += `<div class="task-item">
-          <span class="task-bullet">•</span>
-          <span class="task-body">
-            <span class="task-text">${escapeHtml(t.text || '')}</span>
-            ${dueHtml(t.due)}
-          </span>
-          <button class="task-act" data-task-edit="${at}" title="Sửa việc">✎</button>
-        </div>`;
-    }
-  }
-  if (editingTaskAt === 'new') html += taskEditorHtml('new', true);
-  function dueHtml(due) {
-    const info = due && taskDueInfo(due);
-    if (!info) return '';
-    const pre = info.state === 'overdue' ? 'Quá hạn · ' : 'Hạn: ';
-    return `<span class="task-due${info.state ? ' is-' + info.state : ''}">${pre}${escapeHtml(info.label)}</span>`;
-  }
-  if (!html) html = '<div class="tasks-empty">Chưa có việc nào.</div>';
-  box.innerHTML = html;
-  // Đang sửa/thêm → nạp nội dung cũ (nếu sửa) + focus, con trỏ cuối chuỗi.
-  if (editingTaskAt) {
-    const ta = box.querySelector('.task-edit-input');
-    if (ta) {
-      const entry = tasks.find((t) => t.at === editingTaskAt);
-      ta.value = entry ? (entry.text || '') : '';
-      const di = box.querySelector('.task-due-input');
-      if (di && entry && entry.due && !isNaN(new Date(entry.due))) di.value = toLocalDatetimeInput(new Date(entry.due));
-      ta.focus();
-      ta.setSelectionRange(ta.value.length, ta.value.length);
-    }
-  }
-}
-function rerenderTasks() {
-  const c = allCustomers.find((x) => x.id === detailId);
-  if (c) renderDetailTasks(c);
+  box.innerHTML = tasks.length ? tasks.map((t) => {
+    const info = taskDueInfo(t);
+    return `<div class="task-item${info && info.state ? ' is-' + info.state : ''}">
+        <span class="task-body">
+          <span class="task-text">${escapeHtml(t.text || '')}</span>
+          ${taskDueChip(t)}
+        </span>
+        <button type="button" class="task-act" data-task-edit="${escapeHtml(t.at || '')}" title="Sửa việc">✎</button>
+      </div>`;
+  }).join('') : '<div class="tasks-empty">Chưa có việc nào.</div>';
 }
 async function afterTaskChange() {
   await refreshList(); // cập nhật allCustomers
   const c = allCustomers.find((x) => x.id === detailId);
   if (c) renderDetailCall(c); // vẽ lại khu next action
 }
-async function saveTask(at, text, dueLocal) {
-  const t = (text || '').trim();
-  const due = dueLocal ? new Date(dueLocal).toISOString() : null; // datetime-local (giờ máy) → ISO
-  if (at === 'new') {
-    if (t && detailId) await CRM.addTask(detailId, t, due); // trống → không thêm
-  } else if (detailId) {
-    await CRM.updateTask(detailId, at, t || null, due); // trống = xoá
+
+// ---- Hộp thoại thêm/sửa việc ----
+let taskEditAt = null, taskDate = 'none', taskTime = 'allday'; // taskEditAt null = thêm mới
+function selectTaskOpt(group, val) {
+  $$(`#${group} .sched-opt`).forEach((x) => x.classList.toggle('is-sel', x.dataset.v === val));
+}
+function syncTaskDueUi() {
+  selectTaskOpt('task-date', taskDate);
+  selectTaskOpt('task-time', taskTime);
+  $('#task-date-custom').hidden = taskDate !== 'custom';
+  $('#task-time-wrap').hidden = taskDate === 'none';
+  $('#task-time-custom').hidden = taskTime !== 'custom';
+  const r = readTaskDue(true);
+  const pv = $('#task-due-preview');
+  pv.hidden = !(r && r.due);
+  if (r && r.due) pv.innerHTML = 'Hạn: ' + escapeHtml(taskDueInfo(r).label);
+}
+// Đọc hạn đang chọn → { due, due_allday } | null (không hạn) | { error }. quiet = không báo lỗi.
+function readTaskDue(quiet) {
+  if (taskDate === 'none') return null;
+  const base = new Date(); base.setHours(0, 0, 0, 0);
+  if (taskDate === 'tomorrow') base.setDate(base.getDate() + 1);
+  else if (taskDate === 'week') base.setDate(base.getDate() + 7);
+  else if (taskDate === 'custom') {
+    const v = $('#task-date-custom').value;
+    if (!v) return quiet ? null : { error: 'Chọn ngày cụ thể.' };
+    const [y, m, d] = v.split('-').map(Number); base.setFullYear(y, m - 1, d);
   }
-  editingTaskAt = null;
+  if (taskTime === 'allday') { base.setHours(23, 59, 0, 0); return { due: base.toISOString(), due_allday: true }; }
+  let hm = TASK_TIMES[taskTime];
+  if (taskTime === 'custom') {
+    const v = $('#task-time-custom').value;
+    if (!v) return quiet ? null : { error: 'Nhập giờ cụ thể.' };
+    hm = v.split(':').map(Number);
+  }
+  base.setHours(hm[0], hm[1], 0, 0);
+  return { due: base.toISOString(), due_allday: false };
+}
+function openTaskModal(at) {
+  const c = allCustomers.find((x) => x.id === detailId);
+  if (!c) return;
+  const entry = at ? (c.next_tasks || []).find((t) => t.at === at) : null;
+  taskEditAt = entry ? entry.at : null;
+  $('#task-modal-title').textContent = entry ? 'Sửa việc' : 'Thêm việc';
+  $('#task-modal-sub').textContent = c.full_name || '';
+  $('#task-text').value = entry ? (entry.text || '') : '';
+  $('#task-delete').hidden = !entry;
+  $('#task-error').textContent = '';
+  $('#task-date-custom').value = ''; $('#task-time-custom').value = '';
+  $('#task-date-custom').min = isoDateLocal(new Date());
+  taskDate = 'none'; taskTime = 'allday';
+  // Sửa việc đã có hạn → chọn lại đúng nút (khớp preset, không thì "Tự chọn").
+  const ms = taskDueMs(entry);
+  if (!isNaN(ms)) {
+    const d = new Date(ms);
+    const diff = Math.round((startOfDayMs(ms) - startOfDayMs(Date.now())) / 86400000);
+    taskDate = diff === 0 ? 'today' : diff === 1 ? 'tomorrow' : diff === 7 ? 'week' : 'custom';
+    if (taskDate === 'custom') $('#task-date-custom').value = isoDateLocal(d);
+    if (entry.due_allday) taskTime = 'allday';
+    else {
+      const k = Object.keys(TASK_TIMES).find((x) => TASK_TIMES[x][0] === d.getHours() && TASK_TIMES[x][1] === d.getMinutes());
+      taskTime = k || 'custom';
+      if (!k) $('#task-time-custom').value = fmtClock(ms);
+    }
+  }
+  syncTaskDueUi();
+  $('#task-modal').showModal();
+  const ta = $('#task-text'); ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length);
+}
+async function saveTaskModal() {
+  const err = $('#task-error'); err.textContent = '';
+  const text = $('#task-text').value.trim();
+  if (!text) { err.textContent = 'Nhập việc cần làm.'; return; }
+  const due = readTaskDue(false);
+  if (due && due.error) { err.textContent = due.error; return; }
+  // Hạn mới (hoặc đổi hạn) không được ở quá khứ; giữ nguyên hạn cũ đã qua thì vẫn cho lưu.
+  const old = taskEditAt ? (allCustomers.find((x) => x.id === detailId)?.next_tasks || []).find((t) => t.at === taskEditAt) : null;
+  if (due && Date.parse(due.due) < Date.now() && !(old && old.due === due.due)) {
+    err.textContent = 'Thời điểm này đã qua. Chọn giờ sau hiện tại.'; return;
+  }
+  if (!detailId) return;
+  if (taskEditAt) await CRM.updateTask(detailId, taskEditAt, text, due);
+  else await CRM.addTask(detailId, text, due);
+  $('#task-modal').close();
   await afterTaskChange();
 }
-async function deleteTaskEntry(at) {
-  if (at === 'new') { editingTaskAt = null; rerenderTasks(); return; } // "Huỷ" thêm mới
-  if (!confirm('Xoá việc này?')) return;
-  if (detailId) await CRM.deleteTask(detailId, at);
-  editingTaskAt = null;
+async function deleteTaskModal() {
+  if (!taskEditAt || !detailId || !confirm('Xoá việc này?')) return;
+  await CRM.deleteTask(detailId, taskEditAt);
+  $('#task-modal').close();
   await afterTaskChange();
 }
-$('#detail-task-add-btn')?.addEventListener('click', () => { editingTaskAt = 'new'; rerenderTasks(); });
+$('#detail-task-add-btn')?.addEventListener('click', () => openTaskModal(null));
 $('#detail-tasks')?.addEventListener('click', (e) => {
   const ed = e.target.closest('[data-task-edit]');
-  if (ed) { editingTaskAt = ed.dataset.taskEdit; rerenderTasks(); return; }
-  const sv = e.target.closest('[data-task-save]');
-  if (sv) {
-    const ta = $('#detail-tasks .task-edit-input'), di = $('#detail-tasks .task-due-input');
-    saveTask(sv.dataset.taskSave, ta ? ta.value : '', di ? di.value : '');
-    return;
-  }
-  if (e.target.closest('[data-task-due-clear]')) {
-    e.preventDefault(); // nằm trong <label> → không mở lại picker
-    const di = $('#detail-tasks .task-due-input'); if (di) di.value = '';
-    return;
-  }
-  const dl = e.target.closest('[data-task-del]');
-  if (dl) { deleteTaskEntry(dl.dataset.taskDel); return; }
+  if (ed) openTaskModal(ed.dataset.taskEdit);
 });
+$('#task-date')?.addEventListener('click', (e) => {
+  const b = e.target.closest('.sched-opt'); if (!b) return;
+  taskDate = b.dataset.v; syncTaskDueUi();
+  if (taskDate === 'custom') $('#task-date-custom').focus();
+});
+$('#task-time')?.addEventListener('click', (e) => {
+  const b = e.target.closest('.sched-opt'); if (!b) return;
+  taskTime = b.dataset.v; syncTaskDueUi();
+  if (taskTime === 'custom') $('#task-time-custom').focus();
+});
+$('#task-date-custom')?.addEventListener('input', syncTaskDueUi);
+$('#task-time-custom')?.addEventListener('input', syncTaskDueUi);
+$('#task-save')?.addEventListener('click', saveTaskModal);
+$('#task-cancel')?.addEventListener('click', () => $('#task-modal').close());
+$('#task-delete')?.addEventListener('click', deleteTaskModal);
 
 // ---- Dialog đặt lịch gọi (dùng chung) ----
 let schedulingId = null, schedTime = null, schedDate = null;
@@ -4994,6 +5045,26 @@ function dashActionGroups(all) {
         .map((c) => ({ c, sub: `Hẹn ${dashWhen(callStart(c))}${c.next_call_reason ? ' · ' + c.next_call_reason : ''}` })),
     },
     {
+      // Việc tiếp theo có hạn từ nay đến hết hôm nay (kể cả quá hạn). Không theo luật
+      // "mỗi khách 1 nhóm" của nhóm liên hệ: việc là loại khác; khách ở đây không lặp lại
+      // ở các nhóm chăm lại phía dưới.
+      key: 'tasks', title: 'Việc đến hạn hôm nay',
+      items: all.filter((c) => !c.disqualified_at)
+        .map((c) => ({ c, due: (Array.isArray(c.next_tasks) ? c.next_tasks : [])
+          .map((t) => ({ t, info: taskDueInfo(t) }))
+          .filter((x) => x.info && x.info.ms < tomorrow0)
+          .sort((a, b) => a.info.ms - b.info.ms) }))
+        .filter((x) => x.due.length)
+        .sort((a, b) => a.due[0].info.ms - b.due[0].info.ms)
+        .map(({ c, due }) => {
+          const { t, info } = due[0];
+          const when = info.state === 'overdue' ? 'Quá hạn ' + info.label
+            : (t.due_allday ? 'Trong hôm nay' : fmtClock(info.ms));
+          return { c, tone: info.state === 'overdue' ? 'urgent' : '',
+            sub: `${when} · ${t.text || ''}${due.length > 1 ? ` (+${due.length - 1} việc)` : ''}` };
+        }),
+    },
+    {
       key: 'today', title: 'Hẹn gọi còn lại hôm nay', contact: true,
       items: all.filter((c) => !c.disqualified_at && callStart(c) > now && callStart(c) < tomorrow0)
         .sort((a, b) => callStart(a) - callStart(b))
@@ -5079,6 +5150,12 @@ function dashActionGroups(all) {
     if (!g.contact) continue;
     g.items = g.items.filter(({ c }) => (seen.has(c.id) ? false : (seen.add(c.id), true)));
   }
+  const tasksG = groups.find((g) => g.key === 'tasks');
+  if (tasksG.items.some((x) => x.tone === 'urgent')) tasksG.tone = 'urgent';
+  const taskIds = new Set(tasksG.items.map(({ c }) => c.id));
+  for (const g of groups) {
+    if (['hot', 'warm', 'nonext'].includes(g.key)) g.items = g.items.filter(({ c }) => !taskIds.has(c.id));
+  }
   return groups;
 }
 
@@ -5132,7 +5209,7 @@ function renderDashboard() {
   const stlMed = median(stl);
 
   const contactTodo = groups.filter((g) => g.contact).reduce((s, g) => s + g.items.length, 0);
-  const todo = contactTodo + byKey.pending.items.length;
+  const todo = contactTodo + byKey.pending.items.length + byKey.tasks.items.length;
 
   // ---- 1) Lời chào + 4 chỉ số nhanh ----
   const d = new Date();
@@ -5172,14 +5249,14 @@ function renderDashboard() {
     return `<section class="act-group${g.tone ? ' is-' + g.tone : ''}">
         <div class="act-group-title"><span>${escapeHtml(g.title)}</span><span class="act-count">${g.items.length}</span></div>
         ${g.hint ? `<div class="act-hint">${escapeHtml(g.hint)}</div>` : ''}
-        <div class="act-list">${rows.map((x) => dashActRow(x.c, x.sub, g.tone, g.zalo)).join('')}</div>
+        <div class="act-list">${rows.map((x) => dashActRow(x.c, x.sub, x.tone ?? g.tone, g.zalo)).join('')}</div>
         ${rest > 0 ? `<button type="button" class="btn-ghost act-more" data-more="${g.key}">Xem thêm ${rest} khách</button>`
           : (open && g.items.length > DASH_GROUP_LIMIT ? `<button type="button" class="btn-ghost act-more" data-more="${g.key}">Thu gọn</button>` : '')}
       </section>`;
   }).join('') : '<div class="dash-empty">Đã xử lý hết việc hôm nay. Có thể gọi chăm lại khách cũ hoặc nhập thêm khách mới.</div>';
   const todoCard = `<div class="dash-card dash-todo" id="dash-todo">
       <h3>Việc hôm nay</h3>
-      <p class="dash-hint">Xếp theo mức ưu tiên: hẹn gọi → khách mới → gọi lại → chăm lại. Bấm tên để mở hồ sơ, bấm 📞 để gọi — gọi xong app tự gợi ý lịch gọi lại.</p>
+      <p class="dash-hint">Xếp theo mức ưu tiên: hẹn gọi → việc đến hạn → khách mới → gọi lại → chăm lại. Bấm tên để mở hồ sơ, bấm 📞 để gọi — gọi xong app tự gợi ý lịch gọi lại.</p>
       ${todoHtml}
     </div>`;
 
