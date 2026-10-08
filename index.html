@@ -877,12 +877,8 @@
   <div class="sched">
     <h2>Hẹn gọi</h2>
     <div class="sched-label">Chọn giờ</div>
-    <div class="sched-opts" id="sched-time">
-      <button type="button" class="sched-opt" data-time="9-10h">9–10h</button>
-      <button type="button" class="sched-opt" data-time="14-15h">14–15h</button>
-      <button type="button" class="sched-opt" data-time="20-21h">20–21h</button>
-      <button type="button" class="sched-opt" data-time="custom">Tùy chọn giờ</button>
-    </div>
+    <!-- Nút khung giờ do app.js vẽ từ FOLLOWUP_CONFIG.callSlots (nguồn duy nhất — D-005) + "Tùy chọn giờ". -->
+    <div class="sched-opts" id="sched-time"></div>
     <input type="time" id="sched-time-custom" hidden />
     <div class="sched-label">Chọn ngày</div>
     <div class="sched-opts" id="sched-date">
@@ -919,13 +915,8 @@
     <input type="date" id="task-date-custom" class="sched-custom" hidden />
     <div id="task-time-wrap" hidden>
       <div class="sched-label">Giờ</div>
-      <div class="sched-opts" id="task-time">
-        <button type="button" class="sched-opt" data-v="allday">Cả ngày</button>
-        <button type="button" class="sched-opt" data-v="9">9:00</button>
-        <button type="button" class="sched-opt" data-v="14">14:00</button>
-        <button type="button" class="sched-opt" data-v="20">20:00</button>
-        <button type="button" class="sched-opt" data-v="custom">Tự chọn giờ</button>
-      </div>
+      <!-- Cả ngày + giờ bắt đầu các khung gọi (FOLLOWUP_CONFIG.callSlots — D-005) + Tự chọn giờ; app.js vẽ. -->
+      <div class="sched-opts" id="task-time"></div>
       <input type="time" id="task-time-custom" class="sched-custom" hidden />
     </div>
     <div id="task-due-preview" class="task-due-preview" hidden></div>

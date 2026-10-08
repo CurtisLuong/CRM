@@ -1487,9 +1487,12 @@ document.addEventListener('click', (e) => {
   if (!zaloEl) return;
   const id = zaloEl.dataset.id || detailId;
   const c = id ? allCustomers.find((x) => x.id === id) : null;
+  if (openZaloPicker(c)) e.preventDefault();
+});
+// Hộp chọn mẫu tin Zalo cho 1 khách. Trả false nếu không mở được (thiếu khách / chưa có mẫu).
+function openZaloPicker(c) {
   const tpls = getZaloTemplates().filter((t) => (t.text || '').trim());
-  if (!c || !tpls.length) return;
-  e.preventDefault();
+  if (!c || !tpls.length) return false;
   zpickCustomer = c;
   // Chỉ 1 mẫu gợi ý (tối đa 2 khi có thêm tình huống rõ ràng — js/followup.js). Các mẫu khác ẩn
   // sau "Chọn mẫu khác" để hộp gọn, nút Mở Zalo luôn là thứ nổi bật nhất.
@@ -1511,7 +1514,8 @@ document.addEventListener('click', (e) => {
   $('#zpick-others').hidden = true;
   $('#zpick-others').innerHTML = others.map((t) => item(t, null)).join('');
   $('#zalo-pick-modal').showModal();
-});
+  return true;
+}
 // Mở chat Zalo của khách. Android chạy trên TRÌNH DUYỆT / app cài từ Chrome (PWA): window.open
 // zalo.me mở 1 tab trình duyệt (Custom Tab) rồi mới chuyển sang app Zalo — lúc được lúc không, có
 // khi kẹt ở trang zalo.me báo "Trang này không tìm thấy". → Dùng intent:// chỉ đích danh app Zalo
@@ -3887,8 +3891,21 @@ $('#form-docs')?.addEventListener('click', (e) => {
 
 // ------------------------------------------------- LỊCH GỌI / NHẮC GỌI ----
 
-// Khung giờ preset: [giờ bắt đầu, phút, giờ kết thúc, phút]
-const CALL_SLOTS = { '9-10h': [9, 0, 10, 0], '14-15h': [14, 0, 15, 0], '20-21h': [20, 0, 21, 0] };
+// KHUNG GIỜ GỌI: KHÔNG khai báo ở đây — đọc từ FOLLOWUP_CONFIG.callSlots (js/followup.js, nguồn
+// duy nhất cho toàn app — D-005). CALL_SLOTS = { A: [sh, sm, eh, em], … }; CALL_SLOT_LIST giữ tên/giờ để vẽ nút.
+const CALL_SLOT_LIST = window.FOLLOWUP ? FOLLOWUP.callSlots() : [];
+const CALL_SLOTS = Object.fromEntries(CALL_SLOT_LIST.map((x) => [x.key, x.range]));
+// Vẽ nút preset giờ cho hộp Hẹn gọi + hộp Thêm việc từ cùng 1 danh sách khung.
+(function renderSlotPresets() {
+  const tb = $('#sched-time');
+  if (tb) tb.innerHTML = CALL_SLOT_LIST.map((x) =>
+    `<button type="button" class="sched-opt" data-time="${x.key}">${escapeHtml(x.name)} ${x.text}</button>`).join('')
+    + '<button type="button" class="sched-opt" data-time="custom">Tùy chọn giờ</button>';
+  const kb = $('#task-time');
+  if (kb) kb.innerHTML = '<button type="button" class="sched-opt" data-v="allday">Cả ngày</button>'
+    + CALL_SLOT_LIST.map((x) => `<button type="button" class="sched-opt" data-v="${x.key}">${escapeHtml(x.name)} ${x.text.split('–')[0]}</button>`).join('')
+    + '<button type="button" class="sched-opt" data-v="custom">Tự chọn giờ</button>';
+})();
 
 function isoDateLocal(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -3966,9 +3983,9 @@ function renderDetailCall(c) {
 }
 
 // ---- "Việc tiếp theo": danh sách việc tự do, mỗi việc có thể có hạn ngày giờ ----
-// Thêm/sửa qua hộp thoại #task-modal (giống "Đặt lịch gọi"): ngày Không hạn / Hôm nay /
-// Ngày mai / 1 tuần nữa / Tự chọn + giờ Cả ngày / 9:00 / 14:00 / 20:00 / Tự chọn.
-const TASK_TIMES = { '9': [9, 0], '14': [14, 0], '20': [20, 0] };
+// Thêm/sửa qua hộp thoại #task-modal (giống "Hẹn gọi"): ngày Không hạn / Hôm nay / Ngày mai /
+// 1 tuần nữa / Tự chọn + giờ Cả ngày / giờ bắt đầu từng khung gọi (CALL_SLOTS — D-005) / Tự chọn.
+const TASK_TIMES = Object.fromEntries(Object.entries(CALL_SLOTS).map(([k, r]) => [k, [r[0], r[1]]]));
 // Mốc hạn (ms) của 1 việc, NaN nếu không hạn.
 function taskDueMs(t) { return t && t.due ? Date.parse(t.due) : NaN; }
 // Nhãn ngày: Hôm nay / Ngày mai / Hôm qua / "T5 15/10".
@@ -4571,9 +4588,15 @@ function renderLeadSheet(c) {
   const sug = $('#lead-suggest');
   const done = attempts.filter((a) => a.result); // chỉ tính cuộc đã ghi kết quả
   const showSug = !dropped && done.length >= LEAD_UNREACHABLE_SUGGEST && !hasTalked(c);
-  sug.hidden = !showSug;
+  // Chưa gọi lần nào + chưa có lịch → gợi ý LẦN 1 theo nhịp khách mới (khung gần nhất sau đăng ký).
+  const first = !dropped && !attempts.length && !c.next_call_at && window.FOLLOWUP ? FOLLOWUP.firstCall(c) : null;
+  leadFirstSug = first;
+  sug.hidden = !showSug && !first;
   if (showSug) {
     sug.innerHTML = `Đã gọi ${done.length} lần chưa liên lạc được. <button type="button" class="btn-small" id="lead-suggest-drop">Loại: Không liên lạc được</button>`;
+  } else if (first) {
+    sug.innerHTML = `<span>📅 Gợi ý gọi lần 1: <b>${escapeHtml(first.label)}</b> <span class="lead-dim">(${escapeHtml(first.reason.replace(/^Gọi lần 1 · /, ''))})</span></span>
+      <button type="button" class="btn-small" id="lead-suggest-first">Hẹn gọi theo gợi ý</button>`;
   }
 
   // Nút ghi cuộc gọi (ẩn khi đã loại) → hộp dùng chung js/calls.js.
@@ -4771,7 +4794,18 @@ $('#lead-qualify-btn')?.addEventListener('click', (e) => {
   qualifyLead();
 });
 $('#lead-drop-btn')?.addEventListener('click', () => showDropBox(null));
-$('#lead-suggest')?.addEventListener('click', (e) => { if (e.target.closest('#lead-suggest-drop')) showDropBox('khong_lien_lac_duoc'); });
+let leadFirstSug = null; // gợi ý lần 1 đang hiện trong hộp Khách mới
+$('#lead-suggest')?.addEventListener('click', async (e) => {
+  if (e.target.closest('#lead-suggest-drop')) { showDropBox('khong_lien_lac_duoc'); return; }
+  const c = currentLead(), f = leadFirstSug;
+  if (e.target.closest('#lead-suggest-first') && c && f) {
+    await CRM.update(c.id, { next_call_at: f.start.toISOString(), next_call_end: f.end.toISOString(), next_call_reason: f.reason });
+    showToast('Đã hẹn gọi ' + f.label);
+    await afterLeadChange();
+  }
+});
+// Nhịp khách mới lần 5 chọn "khung phản hồi tốt nhất" từ chính nhật ký gọi của mình.
+if (window.FOLLOWUP) FOLLOWUP.statsSource = () => allCustomers.filter((c) => isMine(c));
 $('#lead-drop-cancel')?.addEventListener('click', () => { $('#lead-drop-box').hidden = true; $('#lead-log-box').hidden = false; });
 $('#lead-drop-save')?.addEventListener('click', saveLeadDrop);
 $('#lead-reopen-btn')?.addEventListener('click', reopenLead);

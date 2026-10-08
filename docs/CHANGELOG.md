@@ -6,6 +6,22 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-08 — Khung giờ gọi thống nhất toàn app (D-005)
+
+- 1 nguồn duy nhất `FOLLOWUP_CONFIG.callSlots` (js/followup.js): Sáng 09:00–10:00 · Trưa 11:30–12:15 · Chiều 14:30–15:30 · Tối 20:00–20:45. Nút giờ hộp **Hẹn gọi** (trước 9–10h/14–15h/20–21h) và hộp **Thêm việc** (trước 9:00/14:00/20:00) giờ do app.js vẽ từ nguồn này; nhịp khách mới dùng chung (đổi tên `leadSlots` → `callSlots`).
+- Khách Tiềm năng: khung theo nghề `slots` (giờ tự do) → `occupationSlots` ghi mã khung (Tự do A/C · Công ty, công chức, công an B/D · chưa rõ A/D).
+- Nguyên tắc ghi vào `CLAUDE.md`/`AGENTS.md`, `docs/decisions.md` (D-005), `docs/huong-dan-follow-up.md`.
+- File: `js/followup.js`, `js/app.js`, `index.html`, `sw.js` (v60), các tài liệu trên.
+- Đã kiểm tra: Node giả lập nhịp khách mới (vẫn khớp bảng) + khách Tiềm năng (gợi ý khung D 20:00–20:45); trình duyệt local: hộp Hẹn gọi / Thêm việc hiện đúng 4 khung, chọn khung → xem trước đúng giờ. Chưa deploy.
+
+## 2026-10-08 — Nhịp gọi Khách mới: 5 lần, xoay 4 khung giờ A/B/C/D
+
+- Khung: A 09:00–10:00 · B 11:30–12:15 · C 14:30–15:30 · D 20:00–20:45. Lần 1: khung gần nhất ≥15 phút sau đăng ký (gợi ý + nút "Hẹn gọi theo gợi ý" trong hộp Khách mới). Lần 2: trong 24h từ đk, khác khung lần 1, ưu tiên D→C→B (~12h). Lần 3: ≥24h sau lần 2, bỏ khung L1/L2. Lần 4: ≥48h, khung chưa gọi. Lần 5: ≥96h, khung có tỉ lệ nói chuyện được cao nhất trong nhật ký gọi của mình (≥5 cuộc/khung, thiếu dữ liệu → D→C→B→A), trừ khung giờ đăng ký. Bỏ qua Chủ nhật.
+- Lần 5 vẫn hỏng → mặc định "Loại + nhắn Zalo": Lưu cuộc gọi là tự chuyển Loại "Không liên lạc được" (ghi chú "Hết vòng gọi theo nhịp") và mở hộp Zalo (mẫu "Gọi chưa được"); vẫn chọn được "Để sau". Khách Tiềm năng giữ nhịp cũ theo nghề nghiệp.
+- Cấu hình ở `FOLLOWUP_CONFIG` (`leadSlots`, `leadPriority`, `leadGapHours`…). Tách `openZaloPicker(c)` trong app.js để mở hộp Zalo từ code.
+- File: `js/followup.js`, `js/calls.js`, `js/app.js`, `sw.js` (v59), `docs/huong-dan-follow-up.md`.
+- Đã kiểm tra: chạy Node với giờ giả lập đúng ví dụ bảng (đk 08:00 T2 → A T2 09:00 → D T2 20:00 → C T4 14:30 → B T7 11:30 → D T4 tuần sau 20:00 → hết vòng), thêm ca đk trong khung / tối thứ Bảy / khung C phản hồi tốt nhất; trình duyệt local: gợi ý lần 1 trong hộp Khách mới, hộp ghi cuộc gọi lần 5 hiện "Loại + nhắn Zalo". Chưa thử bấm Lưu với dữ liệu thật (Supabase), chưa deploy.
+
 ## 2026-10-08 — "Việc tiếp theo" thành checklist (gồm Hẹn gọi), mục Đã xong + hoàn tác
 
 - Hồ sơ khách: "Việc tiếp theo" là checklist xếp theo hạn — lịch **Hẹn gọi** (đổi tên từ "Đặt lịch gọi") là 1 dòng trong đó; tích Hẹn gọi → hộp thoại Gọi xong / Hẹn lại / Huỷ gọi như cũ (bỏ thẻ hẹn gọi riêng).

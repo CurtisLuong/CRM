@@ -19,13 +19,28 @@ Khi ghi cuộc gọi (bấm 📞 rồi quay lại app, hoặc bấm "Ghi cuộc 
 - **Chọn giờ khác**: lưu xong mở hộp đặt lịch để bạn tự chọn (lý do đã điền sẵn).
 - **Không hẹn**: chỉ ghi cuộc gọi, không đặt lịch.
 
-Gợi ý theo kết quả:
+#### Khách mới — nhịp 5 lần gọi, xoay 4 khung giờ
+
+4 khung (dùng chung toàn app — `callSlots`, D-005): **A sáng 09:00–10:00 · B trưa 11:30–12:15 · C chiều 14:30–15:30 · D tối 20:00–20:45**. Khung của 1 cuộc gọi = khung chứa (hoặc gần nhất với) giờ gọi thực tế.
+
+| Lần gọi | Khi nào | Khoảng cách | Chọn khung | Ví dụ (đăng ký 08:00 Thứ Hai) |
+|---|---|---|---|---|
+| Lần 1 | Lead vừa về (chưa gọi lần nào) | Sớm nhất 15 phút sau đăng ký | Khung hợp lệ gần nhất | 09:00–10:00 T2 (A) |
+| Lần 2 | Lần 1 không liên lạc được | Trong 24h từ lúc đăng ký, quanh mốc ~12h | Khác khung lần 1; ưu tiên D → C → B | 20:00–20:45 T2 (D) |
+| Lần 3 | Lần 2 hỏng | Cách lần 2 ít nhất 24h | Bỏ khung lần 1, 2; ngày đầu tiên còn khung hợp lệ, ưu tiên D → C → B → A | 14:30–15:30 T4 (C) |
+| Lần 4 | Lần 3 hỏng | Cách lần 3 ít nhất 48h | Khung duy nhất chưa gọi | 11:30–12:15 T7 (B) |
+| Lần 5 | Lần 4 hỏng | Cách lần 4 ít nhất 96h | Khung có tỉ lệ **nói chuyện được** cao nhất trong nhật ký gọi của bạn (cần ≥5 cuộc/khung; chưa đủ dữ liệu → D → C → B → A), trừ khung giờ đăng ký | 20:00–20:45 T4 tuần sau (D) |
+| Hết vòng | Lần 5 hỏng | — | Mặc định **"Loại + nhắn Zalo"**: bấm Lưu → khách tự chuyển Loại "Không liên lạc được" và mở hộp Zalo (mẫu "Gọi chưa được"). Chọn "Để sau" nếu muốn giữ. | Tự đổi trạng thái |
+
+- Gợi ý **lần 1** hiện trong hộp Khách mới (khách chưa gọi, chưa có lịch): "📅 Gợi ý gọi lần 1: … [Hẹn gọi theo gợi ý]".
+- Chủ nhật được bỏ qua (theo `skipSunday`). Lỡ tay loại → mở khách trong Khách mới (lọc Đã loại) → khôi phục như thường.
+
+#### Khách Tiềm năng và các kết quả khác
 
 | Kết quả cuộc gọi | App gợi ý |
 |---|---|
-| Không nghe máy / Thuê bao / Máy bận | Gọi lại sau 1 → 2 → 4 → 7 ngày (lần hỏng thứ 1, 2, 3, 4…). Khung giờ đổi luân phiên giữa khung chính và khung dự phòng để thử giờ khác. |
-| Cúp máy | Như trên nhưng **đổi sang khung giờ còn lại** (khách có thể đang bận giờ đó). |
-| Khách mới gọi hỏng **5 lần liên tiếp** | Gợi ý **Loại khách** (lý do "Không liên lạc được"). Bấm Lưu → mở sẵn hộp Loại. Vẫn có nút "Vẫn hẹn gọi lại" nếu bạn muốn cố thêm. |
+| Không nghe máy / Thuê bao / Máy bận (khách **Tiềm năng**) | Gọi lại sau 1 → 2 → 4 → 7 ngày (lần hỏng thứ 1, 2, 3, 4…). Khung (trong 4 khung chung) chọn theo nghề nghiệp, đổi luân phiên khung chính ↔ dự phòng. |
+| Cúp máy (khách Tiềm năng) | Như trên nhưng **đổi sang khung giờ còn lại**. |
 | Sai số | Gợi ý loại khách (lý do "Số sai"). |
 | Bận, hẹn gọi lại | Lưu xong mở hộp chọn giờ (khách tự hẹn giờ). |
 | Nói chuyện được — khách mới | Hẹn sau 1 ngày: "Chốt phân loại: Đạt hay Loại". |
@@ -42,7 +57,7 @@ Nhịp theo bậc:
 | Booking | 3 ngày | Nhắc tiến độ đóng tiền / ký HĐMB |
 | Kí HĐMB | 30 ngày | Chăm sóc sau bán, xin giới thiệu |
 
-**Khung giờ** lấy theo ô **Nghề nghiệp** trong hồ sơ khách — nên điền nghề cho khách để giờ gợi ý chuẩn hơn. Lịch rơi vào Chủ nhật tự dời sang Thứ Hai.
+**Khung giờ khách Tiềm năng** là 1 trong 4 khung chung, chọn theo ô **Nghề nghiệp** trong hồ sơ khách — nên điền nghề cho khách để giờ gợi ý chuẩn hơn. Lịch rơi vào Chủ nhật tự dời sang Thứ Hai.
 
 ### 2. Khi đổi bậc / bấm "Đạt" — hỏi luôn lịch tiếp theo
 - Sửa khách và **chuyển bậc lên** (vd Đang chăm sóc → Xem dự án), hoặc bấm **Đạt** ở nhóm Khách mới, hoặc thêm khách mới có tick "đưa thẳng vào danh sách chăm sóc" → hiện hộp **"Hẹn lần liên hệ tiếp theo?"** với ngày giờ và nội dung gợi ý (sửa được nội dung).
@@ -74,35 +89,50 @@ Tất cả thông số nằm ở **đầu file `js/followup.js`**, khối `FOLLO
 
 > Cách dễ nhất: nhờ AI (Claude/Codex) "sửa js/followup.js: …" theo ví dụ dưới. Nội dung mẫu tin thì **không cần sửa file** — sửa ngay trong app.
 
-### Khung giờ gọi theo nghề nghiệp — `slots`
+### ★ Khung giờ gọi dùng chung toàn app — `callSlots` (D-005)
 ```js
-slots: {
-  'Tự do':           { main: '09:00-11:00', alt: '15:00-17:00' },
-  'Công ty, DN':     { main: '12:00-13:00', alt: '18:30-20:00' },
-  'Công, viên chức': { main: '11:30-13:00', alt: '17:30-19:00' },
-  'Công an, Bộ đội': { main: '11:30-13:00', alt: '19:30-21:00' },
-  '':                { main: '09:00-11:00', alt: '19:00-20:30' }, // chưa rõ nghề
+callSlots: {
+  A: { range: '09:00-10:00', name: 'Sáng' },
+  B: { range: '11:30-12:15', name: 'Trưa' },
+  C: { range: '14:30-15:30', name: 'Chiều' },
+  D: { range: '20:00-20:45', name: 'Tối' },
 },
 ```
-- `main` = khung chính, `alt` = khung dự phòng. Viết đúng dạng `GG:PP-GG:PP` (24 giờ). Gõ sai dạng → app dùng 9:00–11:00.
-- Gợi ý chọn giờ hợp lý (kinh nghiệm chung, nên chỉnh theo thực tế của bạn):
-  - **Công nhân / nhân viên công ty**: giờ nghỉ trưa (11:45–13:00) hoặc sau ca (18:30–20:30). Tránh giờ vào ca 7:30–9:00, 13:00–17:00. Công nhân làm ca → khung tối hiệu quả hơn.
-  - **Công chức, viên chức**: trưa 11:30–13:00 hoặc 17:30–19:00. Tránh đầu giờ sáng (họp giao ban).
-  - **Công an, bộ đội**: trưa hoặc tối muộn 19:30–21:00. Thường khó nghe giờ hành chính.
-  - **Tự do / kinh doanh**: sáng 9:00–11:00 hoặc chiều 15:00–17:00. Tránh giờ trưa (nghỉ) và tối (bán hàng).
-  - Không gọi sau 21:00 hoặc trước 8:00.
-- Mẹo: xem tab Khách mới, khách nào nghe máy thì giờ gọi là giờ nào → dồn khung `main` về giờ đó.
-- Ví dụ: công nhân KCN hay nghe máy lúc 20h → đổi dòng `'Công ty, DN'` thành `{ main: '19:30-21:00', alt: '11:45-12:45' }`.
+> **Nguyên tắc (D-005): mọi gợi ý hẹn gọi và preset giờ trong app phải dùng chung 4 khung này.** Sửa 1 khung ở đây là tự đổi ở: nút giờ trong hộp **Hẹn gọi**, nút giờ trong hộp **Thêm việc**, gợi ý sau cuộc gọi (khách mới + Tiềm năng), gợi ý khi đổi bậc / bấm Đạt, gợi ý gọi lần 1. Không khai báo khung giờ riêng ở chỗ khác; tính năng mới cần giờ gọi → đọc từ `callSlots` (`FOLLOWUP.callSlots()`).
+- Đổi giờ: sửa `range` (dạng `GG:PP-GG:PP`, 24 giờ). Đổi chữ trên nút: sửa `name`. Thêm/bớt khung: thêm/xoá 1 dòng (mã A/B/C/D… là tên nội bộ; nhớ chỉnh `leadPriority` và `occupationSlots` cho khớp).
 
-### Nhịp gọi lại khi không liên lạc được
+### Nhịp gọi khách mới — `leadPriority`, `leadGapHours`…
+```js
+leadPriority: ['D', 'C', 'B', 'A'],  // thứ tự ưu tiên khi chọn khung
+leadFirstCallMinutes: 15,            // lần 1 sớm nhất 15 phút sau khi lead về
+leadSecondWithinHours: 24, leadSecondTargetHours: 12,  // lần 2: trong 24h, quanh mốc +12h
+leadGapHours: [24, 48, 96],          // lần 3, 4, 5 cách lần trước ít nhất…
+leadBestSlotMinCalls: 5,             // khung cần ≥5 cuộc mới tính "phản hồi tốt nhất" (lần 5)
+leadMaxAttempts: 5,                  // hỏng 5 lần liên tiếp → hết vòng (Loại + nhắn Zalo)
+```
+
+### Khách Tiềm năng: khung theo nghề nghiệp — `occupationSlots`
+```js
+occupationSlots: {
+  'Tự do':           { main: 'A', alt: 'C' },  // sáng / chiều
+  'Công ty, DN':     { main: 'B', alt: 'D' },  // trưa / tối
+  'Công, viên chức': { main: 'B', alt: 'D' },
+  'Công an, Bộ đội': { main: 'B', alt: 'D' },
+  '':                { main: 'A', alt: 'D' },  // chưa rõ nghề
+},
+```
+- `main` = khung chính, `alt` = khung dự phòng — ghi **mã khung** trong `callSlots`, không ghi giờ.
+- Kinh nghiệm chọn khung: công nhân / nhân viên công ty → trưa hoặc tối; công chức → trưa hoặc tối (tránh đầu giờ sáng); công an, bộ đội → trưa hoặc tối; tự do / kinh doanh → sáng hoặc chiều. Không gọi sau 21:00 hoặc trước 8:00.
+- Ví dụ: công nhân KCN hay nghe máy buổi tối → đổi `'Công ty, DN'` thành `{ main: 'D', alt: 'B' }`.
+
+### Nhịp gọi lại khách Tiềm năng khi không liên lạc được
 ```js
 missDelaysDays: [1, 2, 4, 7],   // lần hỏng 1 → 1 ngày, lần 2 → 2 ngày, lần 3 → 4, lần 4 → 7
-leadMaxAttempts: 5,             // khách mới hỏng 5 lần liên tiếp → gợi ý loại
-qualifiedMissRepeatDays: 7,     // khách Đang chăm: sau các mốc trên cứ 7 ngày gọi 1 lần
+qualifiedMissRepeatDays: 7,     // sau các mốc trên cứ 7 ngày gọi 1 lần
 ```
-- Muốn dồn dập hơn với lead nóng từ quảng cáo: `[0, 1, 2, 4]` (0 = gọi lại ngay trong hôm nay nếu khung giờ chưa qua, đã qua thì sang mai).
+- Muốn dồn dập hơn: `[0, 1, 2, 4]` (0 = gọi lại ngay trong hôm nay nếu khung giờ chưa qua, đã qua thì sang mai).
 - Muốn bớt làm phiền: `[2, 4, 7, 14]`.
-- `leadMaxAttempts` cũng là ngưỡng hiện gợi ý "Loại" trong hộp Khách mới.
+- (Khách mới dùng nhịp riêng ở mục trên; `leadMaxAttempts` cũng là ngưỡng hiện gợi ý "Loại" trong hộp Khách mới.)
 
 ### Khách mới đã nói chuyện được
 ```js

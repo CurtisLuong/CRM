@@ -113,3 +113,14 @@ Ví dụ và mẫu trong bộ tài liệu không phải sự chấp thuận cho 
 - Chấp thuận: người dùng yêu cầu trực tiếp kèm cấu trúc cụ thể (chat 2026-10-08).
 - Trạng thái: Đang áp dụng (chưa deploy lúc ghi)
 - Cập nhật 2026-10-08 (người dùng yêu cầu trực tiếp): nhóm "Đang chăm" đổi tên lại thành **Tiềm năng**. Tiềm năng / Khách nhóm không hiện số trên tab (số khách nằm ở dòng dưới thanh công cụ); Khách mới giữ badge (đăng ký hôm qua + hôm nay, chưa có cuộc gọi đầu). Lọc trạng thái (Đang chăm/Đã xong · Cần gọi/Đã loại) chuyển vào panel Bộ lọc, mặc định Đang chăm / Cần gọi. Đổi kiểu xem thẻ/danh sách nằm trong menu 3 chấm. Header thu gọn ở tab Khách hàng có icon Lọc bên trái nút đồng bộ (chấm đỏ khi đang lọc).
+
+### D-005 — Khung giờ gọi thống nhất toàn app (1 nguồn duy nhất)
+
+- Ngày: 2026-10-08
+- Loại: Nguyên tắc toàn dự án
+- Quyết định: mọi gợi ý hẹn gọi và preset giờ trong app dùng chung 4 khung `FOLLOWUP_CONFIG.callSlots` trong `js/followup.js` (A Sáng 09:00–10:00 · B Trưa 11:30–12:15 · C Chiều 14:30–15:30 · D Tối 20:00–20:45). Sửa 1 khung ở đó → mọi chỗ đổi theo. Không khai báo khung giờ gọi ở file/chỗ khác; tính năng mới cần giờ gọi phải đọc `FOLLOWUP.callSlots()` (hoặc `CALL_SLOTS` trong app.js — dựng từ đó).
+- Đang dùng ở: nút giờ hộp Hẹn gọi (`#sched-time`), nút giờ hộp Thêm việc (`#task-time`, giờ bắt đầu khung), nhịp gọi Khách mới (`leadNext`, `firstCall`), nhịp khách Tiềm năng theo nghề (`occupationSlots` → mã khung), gợi ý khi đổi bậc / bấm Đạt (`forStage`).
+- Lý do: trước đây mỗi chỗ có giờ riêng (9–10h/14–15h/20–21h ở hộp hẹn, khung theo nghề tự do, 4 khung của nhịp khách mới) → gợi ý không khớp nhau, sửa 1 chỗ quên chỗ khác.
+- Chấp thuận: người dùng yêu cầu trực tiếp (chat 2026-10-08): "gợi ý gọi phải unified trong toàn bộ app, sửa 1 cái là sửa tất cả".
+- Tài liệu đã cập nhật: `CLAUDE.md`, `AGENTS.md`, `docs/huong-dan-follow-up.md`, `docs/CHANGELOG.md`
+- Trạng thái: Đang áp dụng (chưa deploy lúc ghi)

@@ -109,6 +109,9 @@
     if (sug.kind === 'ask') {
       head = '📅 Khách hẹn giờ — lưu xong sẽ mở hộp chọn giờ gọi lại.';
       opts = [['change', 'Chọn giờ'], ['none', 'Không hẹn']];
+    } else if (sug.kind === 'drop' && sug.auto) { // hết vòng 5 lần gọi khách mới
+      head = '⚠️ ' + escapeHtml(sug.text);
+      opts = [['drop', 'Loại + nhắn Zalo'], ['none', 'Để sau']];
     } else if (sug.kind === 'drop') {
       head = '⚠️ ' + escapeHtml(sug.text) + (sched ? `<div class="fu-alt">Hoặc vẫn gọi lại: ${escapeHtml(sched.label)}</div>` : '');
       opts = [['drop', 'Loại khách'], ...(sched ? [['accept', 'Vẫn hẹn gọi lại']] : []), ['none', 'Để sau']];
@@ -153,6 +156,11 @@
     if (mode === 'accept' && sched) { // hẹn theo gợi ý (thay lịch cũ nếu có)
       payload.next_call_at = sched.start.toISOString(); payload.next_call_end = sched.end.toISOString(); payload.next_call_reason = sched.reason;
     } else if (c.next_call_at) { payload.next_call_at = null; payload.next_call_end = null; payload.next_call_reason = null; } // đã gọi → lịch hẹn cũ coi như xong
+    const autoDrop = mode === 'drop' && sug && sug.auto; // hết vòng: tự chuyển Loại, không mở hộp Loại
+    if (autoDrop) {
+      Object.assign(payload, { disqualified_at: new Date().toISOString(), disqualify_reason: sug.code,
+        disqualify_note: 'Hết vòng gọi theo nhịp — chuyển nhắn Zalo/SMS', next_call_at: null, next_call_end: null, next_call_reason: null });
+    }
     const opts = {};
     if (isQualified(c)) {
       // Khách Tiềm năng: ghi thêm 1 mốc vào dòng thời gian chăm sóc (giữ nguyên bậc).
@@ -168,6 +176,11 @@
     st = null;
     await afterChange(id);
     if (mode === 'change' || (!window.FOLLOWUP && result === 'busy')) openScheduler(id, { reason: sug && sug.reason });
+    else if (autoDrop) {
+      if ($('#lead-modal').open) $('#lead-modal').close();
+      showToast('Đã chuyển Loại: Không liên lạc được — nhắn Zalo cho khách');
+      openZaloPicker(findCustomer(id)); // mẫu gợi ý "Gọi chưa được"
+    }
     else if (mode === 'drop' && sug) { openLeadSheet(id); showDropBox(sug.code); }
     else if (result === 'talked' && !isQualified(findCustomer(id) || {})) showToast('Nếu khách thực sự quan tâm, bấm “Đạt” để chuyển sang Tiềm năng');
     else if (mode === 'accept' && sched) showToast('Đã hẹn gọi lại ' + sched.label);
