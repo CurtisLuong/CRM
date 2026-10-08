@@ -1261,8 +1261,9 @@ function renderList() {
   container.innerHTML = '';
   container.classList.toggle('list-mode', viewMode === 'list');
   $('#empty-state').hidden = list.length !== 0;
-  const groupLabel = custGroup === 'team' ? 'Khách nhóm' + (ownerScopeLabel() ? ' · ' + ownerScopeLabel() : '') : 'Tiềm năng';
-  $('#result-count').textContent = `${fullList.length} khách hàng · ${groupLabel}${searchCtx() ? ' · theo độ liên quan' : ''}`;
+  // Tên nhóm đã có ở tab ngay cạnh → dòng đếm chỉ ghi số (+ người đang lọc ở Khách nhóm).
+  const scope = custGroup === 'team' && ownerScopeLabel() ? ' · ' + ownerScopeLabel() : '';
+  $('#result-count').textContent = `${fullList.length} khách hàng${scope}${searchCtx() ? ' · theo độ liên quan' : ''}`;
   $('#empty-state').textContent = custGroup === 'team'
     ? (hasTeam() ? 'Chưa có khách nào giao cho đồng nghiệp. Mở hồ sơ khách → 👥 Giao khách.' : 'Chưa có nhóm — trưởng nhóm thêm đồng nghiệp ở menu avatar → Đồng nghiệp.')
     : _emptyStateText;
@@ -4395,7 +4396,7 @@ function renderLeads() {
   }
   const tabBadge = $('#cust-tab-badge'); // cùng số trên tab Khách hàng (nhìn thấy từ Tổng quan)
   if (tabBadge) { tabBadge.textContent = badge ? badge.textContent : String(urgent); tabBadge.hidden = urgent === 0; tabBadge.title = badge ? badge.title : ''; }
-  if (!$('#cust-subtabs').hidden) syncCustSubtabs();
+  if (!$('#cust-bar').hidden) syncCustSubtabs();
   const view = $('#lead-view');
   if (!view || view.hidden) return; // tab đang ẩn → chỉ cập nhật badge
 
@@ -4403,7 +4404,7 @@ function renderLeads() {
   const fullList = orderLeads(leads.filter((c) => leadMatchesFilter(c, ctx, range)));
   const list = fullList.slice(0, searchPages.leads * SEARCH_PAGE_SIZE);
   syncLeadFilterUI();
-  $('#lead-result-count').textContent = `${fullList.length} khách · Khách mới${searchCtx() ? ' · theo độ liên quan' : ''}`;
+  $('#lead-result-count').textContent = `${fullList.length} khách hàng${searchCtx() ? ' · theo độ liên quan' : ''}`;
   $('#lead-search-more').hidden = list.length >= fullList.length;
   $('#lead-search-more').textContent = `Xem thêm (${fullList.length - list.length} khách)`;
   $('#lead-empty').hidden = list.length !== 0;
@@ -4845,7 +4846,9 @@ function setActiveView(name) { // 'list' | 'leads' | 'dashboard' | 'loan'
   const isCust = name === 'list' || name === 'leads';
   $('#tab-customers').classList.toggle('is-active', isCust);
   $('#tab-dashboard').classList.toggle('is-active', name === 'dashboard');
-  $('#cust-subtabs').hidden = !isCust;
+  $('#cust-bar').hidden = !isCust;
+  $('#list-toolbar').hidden = name !== 'list';  // thanh công cụ riêng từng nhóm, cùng nằm trong #cust-bar
+  $('#lead-toolbar').hidden = name !== 'leads';
   if (isCust) {
     try { localStorage.setItem(LS_CUST_GROUP, custGroup); } catch { /* bỏ qua */ }
     syncCustSubtabs();

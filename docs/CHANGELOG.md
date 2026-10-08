@@ -6,6 +6,12 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-08 — Thanh nhóm khách + công cụ gộp 1 hàng (desktop)
+
+- Nhóm khách (Tiềm năng · Khách mới · Khách nhóm) và thanh công cụ (Lọc · Sắp xếp · 3 chấm) nằm chung một thanh `#cust-bar`; số khách + "Xoá lọc" chuyển vào thanh này (bỏ dòng đếm riêng), chỉ ghi "N khách hàng" vì tên nhóm đã ở tab cạnh đó. Desktop ≥900px: 1 hàng; điện thoại: 2 hàng. Nút nhỏ lại (38→32px, icon 15px). Panel Lọc trên desktop mở sang trái.
+- File: `index.html`, `js/app.js`, `js/team.js`, `css/style.css`, `sw.js` (v54), `docs/design.md`.
+- Đã kiểm tra trình duyệt local (dữ liệu giả, 1024px + 375px): 3 nhóm, đổi thanh công cụ theo nhóm, panel Lọc / menu 3 chấm không tràn, Xoá lọc. Chưa deploy.
+
 ## 2026-10-08 — Header desktop gộp 1 hàng
 
 - Màn ≥900px: logo "Sổ Khách" · vạch ngăn · tab Tổng quan / Khách hàng (thêm icon) · ô tìm giãn rộng · đồng bộ / chuông / avatar trên cùng 1 hàng. Header desktop không thu gọn khi cuộn; icon Lọc vẫn hiện khi cuộn ở tab Khách hàng. Điện thoại giữ bố cục cũ.

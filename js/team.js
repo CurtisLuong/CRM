@@ -81,7 +81,7 @@ async function syncTeam() {
 }
 function afterTeamChange() {
   $('#team-btn').hidden = !team.length && !amAdmin();
-  if (!$('#cust-subtabs').hidden) syncCustSubtabs();
+  if (!$('#cust-bar').hidden) syncCustSubtabs();
   renderList(); renderLeads();
   if (!$('#dashboard-view').hidden) renderDashboard();
 }

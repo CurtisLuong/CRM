@@ -150,14 +150,17 @@
 
   <!-- NHÓM KHÁCH (tầng 2 của tab Khách hàng): Tiềm năng (#list-view) · Khách mới (#lead-view) ·
        Khách nhóm (#list-view, chế độ custGroup='team' — khách đồng nghiệp phụ trách). Logic: app.js setActiveView. -->
-  <nav id="cust-subtabs" class="cust-subtabs" role="tablist" aria-label="Nhóm khách" hidden>
+  <!-- THANH NHÓM KHÁCH + CÔNG CỤ (tab Khách hàng): desktop 1 hàng — nhóm khách bên trái, Lọc · Sắp xếp ·
+       3 chấm · số khách bên phải; điện thoại 2 hàng. Mỗi nhóm có thanh công cụ riêng (#list-toolbar cho
+       Tiềm năng/Khách nhóm, #lead-toolbar cho Khách mới) — setActiveView bật đúng thanh. -->
+  <div id="cust-bar" class="cust-bar" hidden>
+  <nav id="cust-subtabs" class="cust-subtabs" role="tablist" aria-label="Nhóm khách">
     <button type="button" class="cust-subtab is-active" data-group="care" role="tab">Tiềm năng</button>
     <button type="button" class="cust-subtab" data-group="leads" role="tab">Khách mới <span id="lead-count-badge" class="tab-badge" hidden>0</span></button>
     <button type="button" class="cust-subtab" data-group="team" role="tab" id="sub-team" hidden>Khách nhóm</button>
   </nav>
-
-  <div id="list-view" hidden>
-  <div class="toolbar">
+  <div class="cust-tools">
+  <div class="toolbar" id="list-toolbar" data-view="list" hidden>
     <!-- Bộ lọc nâng cao (ẩn dưới icon phễu) -->
     <div class="tool-pop">
       <button id="filter-btn" class="tool-icon-btn has-tip" data-tip="Lọc" aria-label="Lọc">
@@ -251,13 +254,76 @@
         </button>
       </div>
     </div>
+    <!-- Số khách + Xoá lọc nhanh (desktop: sau vạch ngăn, mép phải). -->
+    <div class="tool-meta">
+      <span id="result-count" role="status" aria-live="polite"></span>
+      <button id="clear-filter-inline" class="clear-filter-inline" type="button" hidden>Xoá lọc ✕</button>
+    </div>
   </div>
+  <div class="toolbar" id="lead-toolbar" data-view="leads" hidden>
+    <div class="tool-pop">
+      <button id="lead-filter-btn" class="tool-icon-btn has-tip" data-tip="Lọc" aria-label="Lọc">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M3 5h18l-7 8v6l-4-2v-4z"/></svg>
+        <span id="lead-filter-dot" class="tool-dot" hidden></span>
+      </button>
+      <div id="lead-filter-panel" class="pop-panel" hidden>
+        <div class="pop-title">Bộ lọc</div>
+        <div class="pop-group">
+          <div class="pop-label">Trạng thái</div>
+          <div id="lead-status-presets" class="date-presets" role="group" aria-label="Lọc theo trạng thái">
+            <button type="button" class="date-preset is-sel" data-lead-status="open">Cần gọi</button>
+            <button type="button" class="date-preset" data-lead-status="dropped">Đã loại</button>
+            <button type="button" class="date-preset" data-lead-status="all">Tất cả</button>
+          </div>
+        </div>
+        <div class="pop-group">
+          <div class="pop-label">Loại căn</div>
+          <div id="lead-apt-presets" class="date-presets" role="group" aria-label="Lọc theo loại căn"></div>
+        </div>
+        <div class="pop-group">
+          <div class="pop-label">Kênh</div>
+          <div id="lead-src-presets" class="date-presets"></div>
+        </div>
+        <div class="pop-group">
+          <div class="pop-label">Thời gian đăng ký</div>
+          <div id="lead-date-presets" class="date-presets">
+            <button type="button" class="date-preset is-sel" data-preset="all">Tất cả</button>
+            <button type="button" class="date-preset" data-preset="today">Hôm nay</button>
+            <button type="button" class="date-preset" data-preset="week">Tuần này</button>
+            <button type="button" class="date-preset" data-preset="month">Tháng này</button>
+          </div>
+        </div>
+        <div class="pop-actions">
+          <button id="lead-filter-reset" class="btn-ghost btn-small">Xoá lọc</button>
+          <button id="lead-filter-apply" class="btn-primary btn-small">Áp dụng</button>
+        </div>
+      </div>
+    </div>
 
-  <div class="list-meta">
-    <span id="result-count" role="status" aria-live="polite"></span>
-    <button id="clear-filter-inline" class="clear-filter-inline" type="button" hidden>Xoá lọc ✕</button>
+    <div class="tool-pop">
+      <button id="lead-sort-btn" class="tool-icon-btn has-tip" data-tip="Sắp xếp" aria-label="Sắp xếp">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M7 4l4 4H8v8H6V8H3zM17 20l-4-4h3V8h2v8h3z"/></svg>
+      </button>
+      <div id="lead-sort-panel" class="pop-panel" hidden>
+        <div class="pop-title">Sắp xếp</div>
+        <div id="lead-sort-options" class="sort-options"></div>
+        <div class="pop-hint">Ưu tiên theo thứ tự hàng (trên trước). Mặc định: đăng ký mới nhất → ít lần gọi nhất → tên A→Z. Khách đến giờ hẹn gọi luôn lên đầu.</div>
+        <div class="pop-actions">
+          <button id="lead-sort-reset" class="btn-ghost btn-small">Đặt lại mặc định</button>
+          <button id="lead-sort-apply" class="btn-primary btn-small">Áp dụng</button>
+        </div>
+      </div>
+    </div>
+    <!-- Số khách + Xoá lọc nhanh (desktop: sau vạch ngăn, mép phải). -->
+    <div class="tool-meta">
+      <span id="lead-result-count" role="status" aria-live="polite"></span>
+      <button id="lead-clear-filter" class="clear-filter-inline" type="button" hidden>Xoá lọc ✕</button>
+    </div>
   </div>
+  </div><!-- /.cust-tools -->
+  </div><!-- /#cust-bar -->
 
+  <div id="list-view" hidden>
   <div id="customer-list" class="customer-list"></div>
   <button id="list-search-more" class="btn-ghost search-more" type="button" hidden>Xem thêm</button>
   <div id="empty-state" class="empty-state" hidden>
@@ -271,67 +337,6 @@
   <!-- LỚP 1 "KHÁCH MỚI": lead chưa xác nhận quan tâm (qualified_at trống). Logic: renderLeads()
        trong app.js. Đạt → sang tab Khách hàng; Loại → giữ lại kèm lý do để đánh giá campaign. -->
   <div id="lead-view" hidden>
-    <!-- Thanh công cụ CÙNG kiểu nhóm Tiềm năng: Bộ lọc (trạng thái, loại căn, kênh, thời gian
-         đăng ký) · Sắp xếp. State riêng (leadFilter/leadSrcFilter/leadDateFilter/leadSort) trong app.js. -->
-    <div class="toolbar">
-      <div class="tool-pop">
-        <button id="lead-filter-btn" class="tool-icon-btn has-tip" data-tip="Lọc" aria-label="Lọc">
-          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M3 5h18l-7 8v6l-4-2v-4z"/></svg>
-          <span id="lead-filter-dot" class="tool-dot" hidden></span>
-        </button>
-        <div id="lead-filter-panel" class="pop-panel" hidden>
-          <div class="pop-title">Bộ lọc</div>
-          <div class="pop-group">
-            <div class="pop-label">Trạng thái</div>
-            <div id="lead-status-presets" class="date-presets" role="group" aria-label="Lọc theo trạng thái">
-              <button type="button" class="date-preset is-sel" data-lead-status="open">Cần gọi</button>
-              <button type="button" class="date-preset" data-lead-status="dropped">Đã loại</button>
-              <button type="button" class="date-preset" data-lead-status="all">Tất cả</button>
-            </div>
-          </div>
-          <div class="pop-group">
-            <div class="pop-label">Loại căn</div>
-            <div id="lead-apt-presets" class="date-presets" role="group" aria-label="Lọc theo loại căn"></div>
-          </div>
-          <div class="pop-group">
-            <div class="pop-label">Kênh</div>
-            <div id="lead-src-presets" class="date-presets"></div>
-          </div>
-          <div class="pop-group">
-            <div class="pop-label">Thời gian đăng ký</div>
-            <div id="lead-date-presets" class="date-presets">
-              <button type="button" class="date-preset is-sel" data-preset="all">Tất cả</button>
-              <button type="button" class="date-preset" data-preset="today">Hôm nay</button>
-              <button type="button" class="date-preset" data-preset="week">Tuần này</button>
-              <button type="button" class="date-preset" data-preset="month">Tháng này</button>
-            </div>
-          </div>
-          <div class="pop-actions">
-            <button id="lead-filter-reset" class="btn-ghost btn-small">Xoá lọc</button>
-            <button id="lead-filter-apply" class="btn-primary btn-small">Áp dụng</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="tool-pop">
-        <button id="lead-sort-btn" class="tool-icon-btn has-tip" data-tip="Sắp xếp" aria-label="Sắp xếp">
-          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M7 4l4 4H8v8H6V8H3zM17 20l-4-4h3V8h2v8h3z"/></svg>
-        </button>
-        <div id="lead-sort-panel" class="pop-panel" hidden>
-          <div class="pop-title">Sắp xếp</div>
-          <div id="lead-sort-options" class="sort-options"></div>
-          <div class="pop-hint">Ưu tiên theo thứ tự hàng (trên trước). Mặc định: đăng ký mới nhất → ít lần gọi nhất → tên A→Z. Khách đến giờ hẹn gọi luôn lên đầu.</div>
-          <div class="pop-actions">
-            <button id="lead-sort-reset" class="btn-ghost btn-small">Đặt lại mặc định</button>
-            <button id="lead-sort-apply" class="btn-primary btn-small">Áp dụng</button>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="list-meta">
-      <span id="lead-result-count" role="status" aria-live="polite"></span>
-      <button id="lead-clear-filter" class="clear-filter-inline" type="button" hidden>Xoá lọc ✕</button>
-    </div>
     <div id="lead-list" class="customer-list"></div>
     <button id="lead-search-more" class="btn-ghost search-more" type="button" hidden>Xem thêm</button>
     <div id="lead-empty" class="empty-state" hidden>Không có khách mới nào ở mục này.</div>

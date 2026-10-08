@@ -595,7 +595,6 @@ input:focus, select:focus, textarea:focus {
 .fab:hover { background: var(--seal-dark); }
 .fab:active { transform: translateY(1px); }
 
-.list-meta { padding: 10px 20px 0; font-size: 13px; color: #6b6b60; display: flex; align-items: center; gap: 10px; }
 /* Nút xoá lọc nhanh cạnh dòng đếm khách — chỉ hiện khi đang có lọc nâng cao */
 .clear-filter-inline {
   font: inherit; font-size: 12px; cursor: pointer;
@@ -2052,5 +2051,30 @@ body:has(#detail-screen.is-readonly:not([hidden])) #avatar-remove-btn,
 @media (max-width: 560px) {
   .cust-subtabs { padding: 0 8px; gap: 0; }
   .cust-subtab { flex: 1 1 0; justify-content: center; padding: 11px 6px 9px; font-size: 13.5px; }
+}
+
+/* THANH NHÓM KHÁCH + CÔNG CỤ (#cust-bar): nhỏ, nhạt để không tranh chú ý với header.
+   Điện thoại: 2 hàng (nhóm khách / Lọc · Sắp xếp · số khách · 3 chấm).
+   Desktop ≥900px: 1 hàng — nhóm khách trái; Lọc · Sắp xếp · 3 chấm | số khách phải. */
+.cust-bar { background: var(--panel); border-bottom: 1px solid var(--line); }
+.cust-bar .toolbar { gap: 6px; padding: 7px 16px; border-bottom: none; background: transparent; }
+.cust-bar .tool-icon-btn { width: 32px; height: 32px; border-radius: 7px; }
+.cust-bar .tool-icon-btn svg { width: 15px; height: 15px; }
+.cust-bar .tool-dot { width: 8px; height: 8px; top: -2px; right: -2px; }
+.tool-meta { order: 1; display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 12.5px; color: #7a7a70; white-space: nowrap; }
+.cust-bar .io-menu-wrap { order: 2; }
+@media (max-width: 899px) {
+  .cust-bar .cust-subtabs { border-bottom: 1px solid var(--line); }
+}
+@media (min-width: 900px) {
+  .cust-bar { display: flex; align-items: center; gap: 16px; padding-right: 20px; }
+  .cust-bar .cust-subtabs { flex: 1 1 auto; border-bottom: none; align-self: stretch; }
+  .cust-bar .cust-subtab { font-size: 13.5px; padding: 12px 12px 10px; }
+  .cust-bar .toolbar { flex: none; padding: 0; position: static; }
+  .cust-bar .tool-pop { position: relative; }
+  .cust-bar .io-menu-wrap { margin-left: 0; order: 0; }
+  .tool-meta { order: 1; margin-left: 8px; padding-left: 16px; border-left: 1px solid var(--line); height: 22px; }
+  /* Công cụ nằm mép phải → panel Lọc mở sang trái (không tràn màn). */
+  #filter-panel, #lead-filter-panel { left: auto; right: 0; }
 }
 
