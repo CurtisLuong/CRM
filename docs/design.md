@@ -24,11 +24,11 @@ File nguồn không quy định chính xác mã màu, spacing, breakpoint, font 
 ## Phân cấp điều hướng (chốt 2026-10-06)
 
 - **Tầng 1 — tab ở header, 2 mục (D-004, chốt 2026-10-08):** Tổng quan (màn mặc định khi mở app) · Khách hàng. Không thêm tab thứ 3.
-- **Tầng 1b — nhóm khách trong tab Khách hàng** (dải tab gạch chân `#cust-subtabs` dưới header): Đang chăm (khách lớp 2 MÌNH phụ trách) · Khách mới (lead lớp 1 MÌNH phụ trách) · Khách nhóm (khách đồng nghiệp phụ trách mà mình thấy — chỉ hiện khi có nhóm hoặc có khách như vậy). Bấm tab Khách hàng mở lại nhóm xem gần nhất. Badge "khách mới chưa gọi" hiện ở cả nhóm Khách mới lẫn tab Khách hàng. Tên hiển thị dùng "Đang chăm", không dùng "Tiềm năng".
+- **Tầng 1b — nhóm khách trong tab Khách hàng** (dải tab gạch chân `#cust-subtabs` dưới header): Tiềm năng (khách lớp 2 MÌNH phụ trách) · Khách mới (lead lớp 1 MÌNH phụ trách) · Khách nhóm (khách đồng nghiệp phụ trách mà mình thấy — chỉ hiện khi có nhóm hoặc có khách như vậy). Bấm tab Khách hàng mở lại nhóm xem gần nhất. Badge "khách mới chưa gọi" hiện ở cả nhóm Khách mới lẫn tab Khách hàng. Tên nhóm hiển thị là "Tiềm năng" (đổi lại 2026-10-08, D-004); "Đang chăm" chỉ là một trạng thái lọc. Tiềm năng / Khách nhóm không hiện số trên tab — số khách ở dòng dưới thanh công cụ. Thanh công cụ: Bộ lọc (có nhóm Trạng thái, mặc định Đang chăm / Cần gọi) · Sắp xếp · menu 3 chấm (đổi kiểu xem, Nhập/Xuất). Header thu gọn ở tab Khách hàng có icon Lọc trái nút đồng bộ, chấm đỏ khi đang lọc khác mặc định.
 - **Tầng 2 — menu tài khoản (avatar):** nhóm *Công cụ* (Tính vay, Giỏ hàng…), nhóm *Cài đặt* (Lời chào Zalo…), rồi Đăng xuất. Tính năng mới mặc định vào đây.
 - Màn công cụ mở từ menu không có tab sáng; đầu màn có thanh `.tool-head` (nút ← về Tổng quan + tên công cụ).
 - **Menu đa năng trong ô tìm** (icon thanh trượt, chốt 2026-10-07): chỉ là LỐI TẮT tới thao tác/công cụ đã có (Thêm khách, Nhập/Xuất, Tính vay, Giỏ hàng) — mỗi mục bấm hộ nút gốc qua `data-proxy`. Không đặt tính năng chỉ có ở đây; nơi gốc vẫn là menu tài khoản/toolbar.
-- Ô tìm kiếm hiện ở Tổng quan và mọi nhóm khách (`SEARCH_VIEWS` trong `js/app.js`); màn công cụ không có (class `.topbar.no-search`). Tìm ở Tổng quan → trang kết quả tạm chia 3 nhóm Đang chăm / Khách mới / Khách nhóm; bấm 1 khách → sang đúng nhóm của khách và mở khách.
+- Ô tìm kiếm hiện ở Tổng quan và mọi nhóm khách (`SEARCH_VIEWS` trong `js/app.js`); màn công cụ không có (class `.topbar.no-search`). Tìm ở Tổng quan → trang kết quả tạm chia 3 nhóm Tiềm năng / Khách mới / Khách nhóm; bấm 1 khách → sang đúng nhóm của khách và mở khách.
 - Muốn đưa một công cụ lên tầng 1 → coi là đổi cách tổ chức UI, hỏi chủ dự án trước.
 
 ## Tổng quan = bàn làm việc của sale (2026-10-07)
@@ -43,7 +43,7 @@ Khách đồng nghiệp phụ trách nằm ở nhóm **Khách nhóm** (D-004). T
 
 ## Tìm kiếm và bộ lọc (2026-10-07)
 
-Dùng bộ lọc sẵn có của từng nhóm Đang chăm / Khách mới / Khách nhóm; không thêm panel lọc tìm kiếm thứ hai dưới header. Loại căn dùng các nút chọn cùng kiểu với bộ lọc thời gian: Tất cả, Studio, 1N, 2N, 3N…; nhóm theo số phòng ngủ, gồm các biến thể cộng / góc / số WC. Số phòng khác xuất hiện khi dữ liệu có; có Khác và Chưa rõ. Kết hợp với các điều kiện lọc hiện tại, chấm báo lọc và Xoá lọc dùng chung.
+Dùng bộ lọc sẵn có của từng nhóm Tiềm năng / Khách mới / Khách nhóm; không thêm panel lọc tìm kiếm thứ hai dưới header. Loại căn dùng các nút chọn cùng kiểu với bộ lọc thời gian: Tất cả, Studio, 1N, 2N, 3N…; nhóm theo số phòng ngủ, gồm các biến thể cộng / góc / số WC. Số phòng khác xuất hiện khi dữ liệu có; có Khác và Chưa rõ. Kết hợp với các điều kiện lọc hiện tại, chấm báo lọc và Xoá lọc dùng chung.
 
 Giỏ hàng có panel tìm riêng trong dialog hiện có; matching mở từ hồ sơ hoặc căn. Count có aria-live, kết quả hỗ trợ focus / phím mũi tên / Enter; Cmd/Ctrl+K đưa về ô tìm. Các nút lọc xuống dòng trong panel hiện có ở màn hẹp, không kéo tràn ngang.
 

@@ -169,7 +169,7 @@
     await afterChange(id);
     if (mode === 'change' || (!window.FOLLOWUP && result === 'busy')) openScheduler(id, { reason: sug && sug.reason });
     else if (mode === 'drop' && sug) { openLeadSheet(id); showDropBox(sug.code); }
-    else if (result === 'talked' && !isQualified(findCustomer(id) || {})) showToast('Nếu khách thực sự quan tâm, bấm “Đạt” để chuyển sang Đang chăm');
+    else if (result === 'talked' && !isQualified(findCustomer(id) || {})) showToast('Nếu khách thực sự quan tâm, bấm “Đạt” để chuyển sang Tiềm năng');
     else if (mode === 'accept' && sched) showToast('Đã hẹn gọi lại ' + sched.label);
   }
 

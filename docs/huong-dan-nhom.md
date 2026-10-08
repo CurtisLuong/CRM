@@ -28,7 +28,7 @@ Mở hồ sơ khách (hoặc hộp Khách mới) → **👥 Giao khách** → ch
 
 ## Khách đã giao nằm ở đâu
 Tab **Khách hàng** chia 3 nhóm (dải tab ngay dưới thanh tìm kiếm):
-- **Đang chăm**: khách bạn đang phụ trách (đã Đạt).
+- **Tiềm năng**: khách bạn đang phụ trách (đã Đạt).
 - **Khách mới**: khách mới bạn đang phụ trách (chưa Đạt).
 - **Khách nhóm**: khách đồng nghiệp phụ trách mà bạn thấy được — khách đã giao nhưng bạn vẫn theo dõi; trưởng nhóm thấy thêm mọi khách của nhóm (kể cả khách đã giao hẳn). Thẻ có nhãn `👤 Tên người phụ trách`; mở ra chỉ xem.
   - Trưởng nhóm: Bộ lọc (icon phễu) → **Người phụ trách**: Tất cả · Tôi đang theo dõi · từng đồng nghiệp.

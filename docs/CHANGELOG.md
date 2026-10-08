@@ -6,6 +6,15 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-08 — Tab Khách hàng: "Tiềm năng", lọc trạng thái vào Bộ lọc, icon Lọc ở header thu gọn
+
+- Nhóm "Đang chăm" đổi tên lại thành **Tiềm năng** (tab, dòng đếm, tìm ở Tổng quan, toast, thống kê). Tiềm năng / Khách nhóm bỏ số trên tab — số khách chỉ ở dòng dưới thanh công cụ. Khách mới giữ badge: đăng ký hôm qua + hôm nay, chưa loại, chưa có cuộc gọi đầu.
+- Bỏ dropdown trạng thái trên thanh công cụ; chuyển thành nhóm "Trạng thái" đầu panel Bộ lọc (Tiềm năng/Khách nhóm: Đang chăm · Đã xong · Tất cả; Khách mới: Cần gọi · Đã loại · Tất cả). Mặc định Đang chăm / Cần gọi; khác mặc định → chấm đỏ + "Xoá lọc" (Xoá lọc đưa trạng thái về mặc định).
+- Nút đổi kiểu xem thẻ/danh sách chuyển vào menu 3 chấm (đổi tên "Thêm thao tác").
+- Header thu gọn khi cuộn ở tab Khách hàng: thêm icon Lọc bên trái nút đồng bộ, chấm đỏ khi đang lọc; bấm → về đầu trang + mở panel Bộ lọc của nhóm đang xem.
+- File: `index.html`, `js/app.js`, `js/calls.js`, `css/style.css`, `sw.js` (v52), `docs/decisions.md` (D-004), `docs/design.md`, `docs/huong-dan-nhom.md`.
+- Đã kiểm tra trình duyệt local (dữ liệu giả, desktop + 375px): tên nhóm, không số trên tab, lọc trạng thái + chấm đỏ cả 2 nhóm, Xoá lọc, menu 3 chấm đổi kiểu xem, icon Lọc ở header thu gọn (chỉ tab Khách hàng). Chưa thử với dữ liệu thật, chưa deploy.
+
 ## 2026-10-08 — Hộp thoại Thêm/Sửa việc có preset hạn + nhóm "Việc đến hạn hôm nay"
 
 - Thêm/sửa việc qua hộp thoại cùng kiểu "Đặt lịch gọi": hạn Không hạn · Hôm nay · Ngày mai · 1 tuần nữa · Tự chọn; giờ Cả ngày · 9:00 · 14:00 · 20:00 · Tự chọn giờ; dòng xem trước hạn; chặn hạn đã qua. Nút Xoá việc nằm trong hộp thoại. Việc hiển thị dạng ô có nhãn hạn (hôm nay: vàng đất · quá hạn: đỏ son). Thêm khoá `due_allday` trong `next_tasks` (không cần migration).

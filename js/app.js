@@ -1248,7 +1248,7 @@ function visibleCustomers() {
   return list;
 }
 
-let _emptyStateText = null; // chữ gốc của #empty-state (nhóm Đang chăm)
+let _emptyStateText = null; // chữ gốc của #empty-state (nhóm Tiềm năng)
 function renderList() {
   if (_emptyStateText === null) _emptyStateText = $('#empty-state').textContent;
   if ($('#list-view').hidden) return;
@@ -1261,7 +1261,7 @@ function renderList() {
   container.innerHTML = '';
   container.classList.toggle('list-mode', viewMode === 'list');
   $('#empty-state').hidden = list.length !== 0;
-  const groupLabel = custGroup === 'team' ? 'Khách nhóm' + (ownerScopeLabel() ? ' · ' + ownerScopeLabel() : '') : 'Đang chăm';
+  const groupLabel = custGroup === 'team' ? 'Khách nhóm' + (ownerScopeLabel() ? ' · ' + ownerScopeLabel() : '') : 'Tiềm năng';
   $('#result-count').textContent = `${fullList.length} khách hàng · ${groupLabel}${searchCtx() ? ' · theo độ liên quan' : ''}`;
   $('#empty-state').textContent = custGroup === 'team'
     ? (hasTeam() ? 'Chưa có khách nào giao cho đồng nghiệp. Mở hồ sơ khách → 👥 Giao khách.' : 'Chưa có nhóm — trưởng nhóm thêm đồng nghiệp ở menu avatar → Đồng nghiệp.')
@@ -1552,18 +1552,15 @@ $('#zpick-plain')?.addEventListener('click', () => {
 $('#zpick-close')?.addEventListener('click', () => $('#zalo-pick-modal').close());
 
 // ---- Đổi kiểu xem danh sách: thẻ (card) ⇄ dòng gọn (list) ----
-// Nút hiện ICON của kiểu SẼ chuyển sang (bấm để đổi), lựa chọn lưu vào localStorage.
+// Mục menu hiện kiểu SẼ chuyển sang (bấm để đổi), lựa chọn lưu vào localStorage.
 const VIEW_ICON_LIST = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M4 6h16v2H4zM4 11h16v2H4zM4 16h16v2H4z"/></svg>';
 const VIEW_ICON_CARD = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M4 4h16v6H4zM4 14h16v6H4z"/></svg>';
+// Mục "Xem dạng …" nằm trong menu 3 chấm (thêm thao tác).
 function updateViewToggleBtn() {
   const btn = $('#view-toggle');
   if (!btn) return;
   const toList = viewMode === 'card';
-  const label = toList ? 'Xem dạng danh sách' : 'Xem dạng thẻ';
-  btn.innerHTML = toList ? VIEW_ICON_LIST : VIEW_ICON_CARD;
-  btn.setAttribute('data-tip', label);      // tooltip hover (tuỳ biến)
-  btn.setAttribute('aria-label', label);
-  btn.removeAttribute('title');             // tránh tooltip native trùng
+  btn.innerHTML = (toList ? VIEW_ICON_LIST : VIEW_ICON_CARD) + (toList ? 'Xem dạng danh sách' : 'Xem dạng thẻ');
 }
 function setViewMode(mode) {
   viewMode = (mode === 'list') ? 'list' : 'card';
@@ -1571,7 +1568,7 @@ function setViewMode(mode) {
   updateViewToggleBtn();
   renderList();
 }
-$('#view-toggle')?.addEventListener('click', () => setViewMode(viewMode === 'card' ? 'list' : 'card'));
+$('#view-toggle')?.addEventListener('click', () => { closeTransientPops(); setViewMode(viewMode === 'card' ? 'list' : 'card'); });
 updateViewToggleBtn(); // đặt icon đúng theo lựa chọn đã lưu ngay khi tải
 
 // --------------------------------------------------------- DỰ ÁN ----------
@@ -2305,7 +2302,7 @@ async function handleFormSubmit(e) {
       delete payload.contact_status;
     }
     const created = await CRM.create(payload, opts);
-    if (created) showToast(created.qualified_at ? 'Đã thêm vào Đang chăm' : 'Đã thêm vào Khách mới');
+    if (created) showToast(created.qualified_at ? 'Đã thêm vào Tiềm năng' : 'Đã thêm vào Khách mới');
     if (created && created.qualified_at) pendingFollowup = { id: created.id, stage: QUALIFIED_STAGE };
     // Nếu OCR đọc được 1 ghi chú → thêm thành 1 note tự nhập cho khách vừa tạo.
     if (created && pendingOcrNote) { await CRM.addNote(created.id, pendingOcrNote); pendingOcrNote = null; }
@@ -4592,7 +4589,7 @@ $('#lead-list')?.addEventListener('click', (e) => {
   if (card) openLeadSheet(card.dataset.id);
 });
 // ---- Thanh công cụ tab Khách mới (cùng kiểu tab Tiềm năng) ----
-const LEAD_POPS = [['#lead-status-pop', '#lead-status-btn'], ['#lead-filter-panel', '#lead-filter-btn'], ['#lead-sort-panel', '#lead-sort-btn']];
+const LEAD_POPS = [['#lead-filter-panel', '#lead-filter-btn'], ['#lead-sort-panel', '#lead-sort-btn']];
 function closeLeadPops(except) {
   for (const [pop, btn] of LEAD_POPS) {
     if (pop === except) continue;
@@ -4609,11 +4606,16 @@ function syncLeadFilterUI() {
   $('#lead-src-presets').innerHTML = [['', 'Tất cả'], ...Object.entries(SOURCES)].map(([code, label]) =>
     `<button type="button" class="date-preset${code === leadSrcFilter ? ' is-sel' : ''}" data-src="${code}">${escapeHtml(label)}</button>`).join('');
   $$('#lead-date-presets .date-preset').forEach((b) => b.classList.toggle('is-sel', b.dataset.preset === leadDatePreset));
-  const active = !!leadSrcFilter || leadDatePreset !== 'all' || !!leadAptTypeFilter;
+  $$('#lead-status-presets .date-preset').forEach((b) => b.classList.toggle('is-sel', b.dataset.leadStatus === leadFilter));
+  // Trạng thái mặc định "Cần gọi" không tính là đang lọc.
+  const active = leadFilter !== 'open' || !!leadSrcFilter || leadDatePreset !== 'all' || !!leadAptTypeFilter;
   $('#lead-filter-dot').hidden = !active;
   $('#lead-clear-filter').hidden = !active;
+  syncHdrFilter();
 }
-function resetLeadFilters() { leadSrcFilter = ''; leadDatePreset = 'all'; leadAptTypeFilter = ''; resetSearchPages(); renderLeads(); }
+// Trạng thái Khách mới (nằm trong panel Bộ lọc): 'open' Cần gọi (mặc định) | 'dropped' Đã loại | 'all'.
+function setLeadFilter(v) { leadFilter = v; resetSearchPages(); renderLeads(); syncLeadFilterUI(); }
+function resetLeadFilters() { leadFilter = 'open'; leadSrcFilter = ''; leadDatePreset = 'all'; leadAptTypeFilter = ''; resetSearchPages(); renderLeads(); syncLeadFilterUI(); }
 function renderLeadSortOptions() {
   $('#lead-sort-options').innerHTML = LEAD_SORT_ATTRS.map((a) => {
     const dir = leadSortDraft[a.key];
@@ -4626,21 +4628,13 @@ function renderLeadSortOptions() {
       </div>`;
   }).join('');
 }
-$('#lead-status-btn')?.addEventListener('click', (e) => { e.stopPropagation(); toggleLeadPop('#lead-status-pop', '#lead-status-btn'); });
-$('#lead-status-pop')?.addEventListener('click', (e) => {
-  const opt = e.target.closest('.status-opt'); if (!opt) return;
-  e.stopPropagation();
-  leadFilter = opt.dataset.value;
-  $('#lead-status-label').textContent = opt.textContent;
-  $$('#lead-status-pop .status-opt').forEach((o) => o.classList.toggle('is-sel', o === opt));
-  closeLeadPops();
-  renderLeads();
-});
 $('#lead-filter-btn')?.addEventListener('click', (e) => { e.stopPropagation(); toggleLeadPop('#lead-filter-panel', '#lead-filter-btn'); });
 $('#lead-filter-panel')?.addEventListener('click', (e) => {
   e.stopPropagation(); // panel render lại nút → giữ panel mở
   const apt = e.target.closest('[data-apt-group]');
   if (apt) { leadAptTypeFilter = apt.dataset.aptGroup; resetSearchPages(); renderLeads(); return; }
+  const ls = e.target.closest('[data-lead-status]');
+  if (ls) { setLeadFilter(ls.dataset.leadStatus); return; }
   const src = e.target.closest('[data-src]');
   if (src) { leadSrcFilter = src.dataset.src; renderLeads(); return; }
   const d = e.target.closest('[data-preset]');
@@ -4735,7 +4729,7 @@ function renderDashSearch() {
   const order = (a, b) => searchOrder(a, b, ctx) || (Number(!!a.disqualified_at || isCareDone(a.care_stage)) - Number(!!b.disqualified_at || isCareDone(b.care_stage)))
     || (a.full_name || '').localeCompare(b.full_name || '', 'vi');
   const groups = [
-    ['Đang chăm', hits.filter((c) => isMine(c) && isQualified(c)).sort(order), 'qualified'],
+    ['Tiềm năng', hits.filter((c) => isMine(c) && isQualified(c)).sort(order), 'qualified'],
     ['Khách mới', hits.filter((c) => isMine(c) && !isQualified(c)).sort(order), 'new'],
     ['Khách nhóm', hits.filter((c) => !isMine(c)).sort(order), 'team'],
   ];
@@ -4754,26 +4748,16 @@ $('#dash-search')?.addEventListener('click', (e) => {
   const row = e.target.closest('[data-search-open]'); if (!row) return;
   const c = allCustomers.find((x) => x.id === row.dataset.searchOpen); if (!c) return;
   if (!isMine(c)) { // khách đồng nghiệp phụ trách → nhóm Khách nhóm, xem mọi người + mọi tiến độ
-    ownerScope = 'all'; stageFilter = ''; progressFilter = 'all';
-    $('#progress-label').textContent = 'Tất cả';
-    $$('#progress-pop .status-opt').forEach((o) => o.classList.toggle('is-sel', o.dataset.value === 'all'));
+    ownerScope = 'all'; stageFilter = ''; setProgressFilter('all');
     showTeamView(); openDetail(c.id);
   } else if (isQualified(c)) {
     // Khách đã xong (chốt/không chốt) bị ẩn ở bộ lọc mặc định → chuyển bộ lọc sang "Tất cả".
-    if (isCareDone(c.care_stage) && progressFilter === 'active') {
-      progressFilter = 'all';
-      $('#progress-label').textContent = 'Tất cả';
-      $$('#progress-pop .status-opt').forEach((o) => o.classList.toggle('is-sel', o.dataset.value === 'all'));
-    }
+    if (isCareDone(c.care_stage) && progressFilter === 'active') setProgressFilter('all');
     showListView(); renderList();
     openDetail(c.id);
   } else {
     // Lead đã loại bị ẩn ở "Cần gọi" → chuyển dropdown sang "Tất cả".
-    if (c.disqualified_at && leadFilter === 'open') {
-      leadFilter = 'all';
-      $('#lead-status-label').textContent = 'Tất cả';
-      $$('#lead-status-pop .status-opt').forEach((o) => o.classList.toggle('is-sel', o.dataset.value === 'all'));
-    }
+    if (c.disqualified_at && leadFilter === 'open') leadFilter = 'all';
     showLeadView();
     openLeadSheet(c.id);
   }
@@ -4846,7 +4830,7 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && suggestB
 // công cụ (loan...) mở từ menu tài khoản, không có tab — màn công cụ có nút ← về Tổng quan.
 // Ô tìm kiếm hiện ở 3 tab chính (không hiện ở màn công cụ).
 const SEARCH_VIEWS = ['dashboard', 'list', 'leads']; // Tổng quan: tìm → trang kết quả tạm
-// Tab "Khách hàng" (D-004) có 3 NHÓM: 'care' Đang chăm (#list-view) · 'leads' Khách mới (#lead-view) ·
+// Tab "Khách hàng" (D-004) có 3 NHÓM: 'care' Tiềm năng (#list-view) · 'leads' Khách mới (#lead-view) ·
 // 'team' Khách nhóm (#list-view, khách đồng nghiệp phụ trách — js/team.js). custGroup = nhóm đang xem;
 // bấm tab Khách hàng → mở lại nhóm xem gần nhất.
 let custGroup = 'care';
@@ -4866,6 +4850,7 @@ function setActiveView(name) { // 'list' | 'leads' | 'dashboard' | 'loan'
     try { localStorage.setItem(LS_CUST_GROUP, custGroup); } catch { /* bỏ qua */ }
     syncCustSubtabs();
   }
+  syncHdrFilter();
 }
 function syncCustSubtabs() {
   $$('#cust-subtabs .cust-subtab').forEach((b) => {
@@ -4874,10 +4859,8 @@ function syncCustSubtabs() {
   });
   const others = allCustomers.filter((c) => !isMine(c));
   $('#sub-team').hidden = !(hasTeam() || others.length);
-  $('#sub-care-count').textContent = String(allCustomers.filter((c) => isMine(c) && isQualified(c) && !isCareDone(c.care_stage)).length);
-  $('#sub-team-count').textContent = others.length ? String(others.length) : '';
 }
-function showListView() { custGroup = 'care'; setActiveView('list'); renderList(); }      // Đang chăm
+function showListView() { custGroup = 'care'; setActiveView('list'); renderList(); }      // Tiềm năng
 function showTeamView() { custGroup = 'team'; setActiveView('list'); renderList(); }      // Khách nhóm
 function showLeadView() { custGroup = 'leads'; setActiveView('leads'); renderLeads(); }   // Khách mới
 function showCustomerGroup(g) {
@@ -5096,7 +5079,7 @@ function dashActionGroups(all) {
     },
     {
       key: 'decide', title: 'Đã nói chuyện — chờ phân loại', contact: true,
-      hint: 'Bấm Đạt (chuyển sang Đang chăm) hoặc Loại để danh sách Khách mới gọn.',
+      hint: 'Bấm Đạt (chuyển sang Tiềm năng) hoặc Loại để danh sách Khách mới gọn.',
       items: leadsWithCall((c) => {
         const talked = callAttemptsOf(c).filter((a) => a.result === 'talked');
         return talked.length && now - Date.parse(talked[talked.length - 1].at) >= DASH_LEAD_RETRY_H * 3600000;
@@ -5307,7 +5290,7 @@ function renderDashboard() {
       ${perfRow('Khách mới vào', thisWk.leads, lastWk.leads)}
       ${perfRow('Cuộc gọi', thisWk.calls, lastWk.calls)}
       ${perfRow('Nói chuyện được', thisWk.talked, lastWk.talked)}
-      ${perfRow('Chuyển Đang chăm', thisWk.qualified, lastWk.qualified)}
+      ${perfRow('Chuyển Tiềm năng', thisWk.qualified, lastWk.qualified)}
       ${perfRow('Booking / Kí', thisWk.deals, lastWk.deals)}
     </div>
     <div class="perf-foot">Tốc độ gọi khách mới (30 ngày): <b>${stlMed != null ? escapeHtml(formatDuration(stlMed)) : '—'}</b>
@@ -5472,7 +5455,7 @@ function renderDashAnalytics(all) {
   const srcItems = Object.entries(srcMap).sort((a, b) => b[1].n - a[1].n)
     .map(([s, m]) => ({ label: s === '?' ? 'Chưa rõ' : sourceLabel(s), value: m.n, sub: `· ${pctOf(m.q, m.n)}% Đạt` }));
   cards.push(dashCard('Nguồn khách', hbars(srcItems, { color: '#8a7bb0' }),
-    'Số khách theo kênh và tỉ lệ Đạt (chuyển sang Đang chăm) — kênh nào ra khách thật.'));
+    'Số khách theo kênh và tỉ lệ Đạt (chuyển sang Tiềm năng) — kênh nào ra khách thật.'));
 
   return cards;
 }
@@ -5494,8 +5477,7 @@ $('#dashboard-content')?.addEventListener('click', (e) => {
   }
   const st = e.target.closest('[data-stage]');
   if (st) {
-    progressFilter = 'active'; $('#progress-label').textContent = 'Đang chăm';
-    $$('#progress-pop .status-opt').forEach((o) => o.classList.toggle('is-sel', o.dataset.value === 'active'));
+    setProgressFilter('active');
     stageFilter = st.dataset.stage; syncStageLabel();
     showListView(); return;
   }
@@ -5582,8 +5564,6 @@ function closeTransientPops() {
   $('#sort-panel').hidden = true; $('#sort-btn').classList.remove('is-open');
   const io = $('#io-menu-pop');
   if (io) { io.hidden = true; $('#io-menu-btn').classList.remove('is-open'); $('#io-menu-btn').setAttribute('aria-expanded', 'false'); }
-  const pp = $('#progress-pop');
-  if (pp) { pp.hidden = true; $('#progress-btn').classList.remove('is-open'); $('#progress-btn').setAttribute('aria-expanded', 'false'); }
   closeStagePop();
 }
 function closeStagePop() {
@@ -5739,7 +5719,7 @@ function renderAptTypeFilter(id, selected) {
 // Chấm báo "đang có lọc nâng cao" trên icon phễu (tiến độ ≠ tất cả HOẶC quan tâm >0 HOẶC có lọc thời gian).
 function isAdvancedFilterActive() {
   const interest = Number($('#filter-min-interest').value || 0);
-  return !!(stageFilter || aptTypeFilter || interest > 0 || dateFilterRange() || (custGroup === 'team' && ownerScope !== 'all'));
+  return !!(progressFilter !== 'active' || stageFilter || aptTypeFilter || interest > 0 || dateFilterRange() || (custGroup === 'team' && ownerScope !== 'all'));
 }
 // Đồng bộ 2 chỉ báo "đang có lọc nâng cao": chấm đỏ trên icon phễu + nút "Xoá lọc ✕"
 // cạnh dòng "[x] khách hàng". Cả 2 chỉ hiện khi có lọc khác mặc định (giữ UI gọn).
@@ -5750,10 +5730,20 @@ function updateFilterDot() {
   $('#filter-active-dot').hidden = !active;
   const clearBtn = $('#clear-filter-inline');
   if (clearBtn) clearBtn.hidden = !active;
+  $$('#filter-progress-presets .date-preset').forEach((b) => b.classList.toggle('is-sel', b.dataset.progress === progressFilter));
+  syncHdrFilter();
+}
+// Trạng thái nhóm Tiềm năng / Khách nhóm (trong panel Bộ lọc): 'active' Đang chăm (mặc định) | 'done' | 'all'.
+function setProgressFilter(v) { progressFilter = v; updateFilterDot(); renderList(); }
+// Icon Lọc ở header thu gọn: chỉ hiện ở tab Khách hàng; chấm đỏ theo nhóm đang xem.
+function syncHdrFilter() {
+  const onList = !$('#list-view').hidden, onLeads = !$('#lead-view').hidden;
+  $('.topbar').classList.toggle('has-filter', onList || onLeads);
+  $('#hdr-filter-dot').hidden = onList ? $('#filter-active-dot').hidden : onLeads ? $('#lead-filter-dot').hidden : true;
 }
 // Đưa bộ lọc nâng cao về mặc định (tiến độ = Tất cả, quan tâm ≥ 0%).
 function resetAdvancedFilters() {
-  aptTypeFilter = ''; ownerScope = 'all'; resetSearchPages();
+  progressFilter = 'active'; aptTypeFilter = ''; ownerScope = 'all'; resetSearchPages();
   stageFilter = '';
   syncStageLabel(); closeStagePop();
   $('#filter-min-interest').value = 0;
@@ -6301,24 +6291,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (item.dataset.notifRule === 'call_pending' && window.CallLog) { CallLog.openPending(item.dataset.notifOpen); return; }
     openDetail(item.dataset.notifOpen);
   });
-  // --- Lọc trạng thái (dropdown tuỳ biến): mở/đóng + chọn 1 mục → áp ngay ---
-  $('#progress-btn').addEventListener('click', (e) => {
-    e.stopPropagation();
-    const willOpen = $('#progress-pop').hidden;
-    closeToolPops();
-    $('#progress-pop').hidden = !willOpen;
-    $('#progress-btn').classList.toggle('is-open', willOpen);
-    $('#progress-btn').setAttribute('aria-expanded', String(willOpen));
-  });
-  $('#progress-pop').addEventListener('click', (e) => {
-    const opt = e.target.closest('.status-opt');
-    if (!opt) return;
-    e.stopPropagation();
-    progressFilter = opt.dataset.value;
-    $('#progress-label').textContent = opt.textContent;
-    $$('#progress-pop .status-opt').forEach((o) => o.classList.toggle('is-sel', o === opt));
-    closeToolPops();
-    renderList();
+  // --- Trạng thái (Đang chăm / Đã xong / Tất cả) trong panel Bộ lọc → áp ngay ---
+  $('#filter-progress-presets').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-progress]'); if (!b) return;
+    e.stopPropagation(); resetSearchPages(); setProgressFilter(b.dataset.progress);
   });
 
   // --- Panel Bộ lọc (icon phễu): mở/đóng + lọc theo tiến độ + mức quan tâm ---
@@ -6420,6 +6396,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // Bấm ra ngoài đóng Sắp xếp + dropdown Trạng thái; RIÊNG panel Bộ lọc giữ nguyên (để gộp
     // nhiều filter + xem danh sách real-time), chỉ đóng khi bấm "Áp dụng" đáy panel hoặc icon phễu.
     if (!e.target.closest('.tool-pop')) closeTransientPops();
+  });
+
+  // Icon Lọc ở header thu gọn → về đầu trang (header bung lại) rồi mở panel Bộ lọc của nhóm đang xem.
+  $('#hdr-filter-btn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    const btn = !$('#lead-view').hidden ? $('#lead-filter-btn') : $('#filter-btn');
+    const panel = !$('#lead-view').hidden ? $('#lead-filter-panel') : $('#filter-panel');
+    window.scrollTo(0, 0);
+    if (panel.hidden) btn.click();
   });
 
   // Header thu gọn khi cuộn xuống (đầy đủ khi ở đầu trang). Có ngưỡng trễ (48/16) tránh
