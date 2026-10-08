@@ -1832,8 +1832,8 @@ details.form-more > .form-grid, details.form-more > .docs-list { margin-top: 10p
 .row-snip { flex: 0 0 100%; order: 99; font-size: 12px; color: #4a4a42; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* ===== NHẬT KÝ CUỘC GỌI (js/calls.js) ===== */
-dialog#call-log-modal { border: none; border-radius: var(--radius); padding: 0; width: min(440px, 92vw); max-height: 90vh; }
-dialog#call-log-modal::backdrop { background: rgba(20, 30, 30, 0.5); }
+dialog#call-log-modal, dialog#followup-modal, dialog#assign-modal { border: none; border-radius: var(--radius); padding: 0; width: min(440px, 92vw); max-height: 90vh; }
+dialog#call-log-modal::backdrop, dialog#followup-modal::backdrop, dialog#assign-modal::backdrop { background: rgba(20, 30, 30, 0.5); }
 #calllog-note { width: 100%; }
 .lead-attempt.res-pending { border-left-color: #e8a33d; }
 .lead-attempt.res-pending .lead-res { color: #9c6f1a; font-weight: 600; }
@@ -1929,3 +1929,36 @@ body { padding-bottom: var(--sab); }          /* nội dung cuối trang không 
 .inventory-card p { margin:7px 0; }
 #inventory-client-results small { display:block; margin-top:5px; color:#73796f; }
 #detail-match-units { margin-left:8px; }
+
+/* ===== Nhóm & giao khách (js/team.js, D-003) ===== */
+.tag-owner { font-size: 11px; font-weight: var(--badge-fw-normal); color: #4a5a8a; background: #eef0f7; border: 1px solid #d9ddec; border-radius: 100px; padding: 1px 8px; white-space: nowrap; }
+.ro-banner { margin: 10px 0 0; padding: 8px 12px; border-radius: 10px; background: #eef0f7; border: 1px solid #d9ddec; color: #3d4a73; font-size: 12.5px; line-height: 1.4; }
+.detail-team-row { display: flex; align-items: center; justify-content: flex-end; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+.detail-team-row:empty, .detail-team-row:not(:has(> :not([hidden]))) { display: none; }
+.detail-followers { font-size: 12px; color: #6b6b60; margin-right: auto; }
+.assign-btn { font-size: 12.5px; }
+.lead-assign { display: block; margin: 10px auto 0; }
+.assign-modes { flex-direction: column; align-items: stretch; }
+.assign-modes .sched-opt { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; }
+.assign-modes .sched-opt span { font-size: 11.5px; font-weight: 400; opacity: .8; }
+.team-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+.team-row { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); }
+.team-row-main { flex: 1; min-width: 0; }
+.team-name { font-size: 13.5px; font-weight: 600; color: var(--ink); }
+.team-email { font-size: 11.5px; color: #8a8a80; overflow: hidden; text-overflow: ellipsis; }
+.team-badge { font-size: 10.5px; font-weight: 600; color: #6b6b60; background: var(--panel); border: 1px solid var(--line); border-radius: 100px; padding: 0 6px; }
+.team-badge.is-lead { color: #fff; background: var(--good); border-color: var(--good); }
+.team-add-row { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+/* CHỈ XEM: ẩn các nút sửa khi khách do đồng nghiệp phụ trách (db.js vẫn chặn nếu sót) */
+#detail-screen.is-readonly #detail-edit-btn, #detail-screen.is-readonly #detail-edit-btn-sticky,
+#detail-screen.is-readonly .cover-cam, #detail-screen.is-readonly #detail-task-add-btn,
+#detail-screen.is-readonly #detail-schedule-btn, #detail-screen.is-readonly #detail-log-call-btn,
+#detail-screen.is-readonly #detail-note-add, #detail-screen.is-readonly .task-act,
+#detail-screen.is-readonly .doc-del, #detail-screen.is-readonly .call-annotate,
+#detail-screen.is-readonly .docs-add, #detail-screen.is-readonly #detail-loan-btn,
+body:has(#detail-screen.is-readonly:not([hidden])) #avatar-edit-btn,
+body:has(#detail-screen.is-readonly:not([hidden])) #avatar-remove-btn,
+#lead-modal.is-readonly #lead-edit-btn, #lead-modal.is-readonly #lead-log-box,
+#lead-modal.is-readonly #lead-actions, #lead-modal.is-readonly #lead-suggest,
+#lead-modal.is-readonly .call-annotate { display: none !important; }
+

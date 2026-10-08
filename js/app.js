@@ -541,6 +541,7 @@ async function onLoggedIn(user) {
   maybeMigrateAvatars(user.id); // chuyển avatar cũ sang bucket public (chạy nền, 1 lần)
   syncZaloGreeting();           // đồng bộ lời chào Zalo từ Supabase (đa thiết bị, chạy nền)
   syncZaloTemplates();          // đồng bộ các mẫu tin Zalo khác
+  syncTeam();                   // danh sách nhóm (giao khách — js/team.js)
   clearInterval(accountSyncTimer);
   accountSyncTimer = setInterval(async () => {
     if (currentUser?.id !== user.id) return;
@@ -837,6 +838,8 @@ async function refreshList() {
   if (!$('#dashboard-view').hidden) renderDashboard(); // Tổng quan là màn mặc định khi mở app
   updateSyncBadge();
   renderNotifications();
+  const assignErr = CRM.takeAssignError(); // giao khách bị server từ chối (trùng SĐT bên người nhận…)
+  if (assignErr) alert('⚠️ ' + assignErr);
 }
 
 // ─── CHUÔNG THÔNG BÁO ───────────────────────────────────────────────────────
@@ -847,7 +850,7 @@ async function refreshList() {
 let _notifCache = [];
 function renderNotifications() {
   if (!window.NOTIF) return;
-  const items = NOTIF.compute(allCustomers);
+  const items = NOTIF.compute(ownedCustomers()); // chỉ nhắc người phụ trách
   _notifCache = items;
   const n = items.length;
 
@@ -1164,7 +1167,7 @@ function renderSearchView() {
 function clearAccountView() {
   clearInterval(accountSyncTimer); accountSyncTimer = null;
   CRM.suspend(); Catalog.scope(null); if (window.CatalogSearchUI) CatalogSearchUI.reset();
-  allCustomers = []; _searchWarmGeneration++; _queryContext = null; resetSearchPages();
+  allCustomers = []; resetTeamState(); _searchWarmGeneration++; _queryContext = null; resetSearchPages();
   progressFilter = 'active'; stageFilter = ''; aptTypeFilter = ''; dateFilter = {preset:'all',from:null,to:null};
   leadFilter = 'open'; leadSrcFilter = ''; leadDatePreset = 'all'; leadAptTypeFilter = '';
   $('#filter-min-interest').value = 0; $('#filter-interest-val').textContent = '0';
@@ -1179,6 +1182,7 @@ let _listFilterContext = null;
 function matchesFilters(c) {
   // Trang chủ CHỈ hiện khách lớp 2 (đã xác nhận quan tâm). Lead ở tab "Khách mới".
   if (!isQualified(c)) return false;
+  if (!matchesOwnerScope(c)) return false; // Người phụ trách (js/team.js) — mặc định: của tôi + đang theo dõi
   if (!matchesSearch(c, _listFilterContext?.ctx)) return false;
   if (aptTypeFilter && (CRMSearch.apartmentGroup(c.apt_type) || 'missing') !== aptTypeFilter) return false;
   const stage = stageFilter;
@@ -1233,7 +1237,7 @@ function visibleCustomers() {
   _listFilterContext = { ctx: searchCtx(), minInterest: Number($('#filter-min-interest').value || 0), range: dateFilterRange() };
   let list; try { list = sortCustomers(allCustomers.filter(matchesFilters)); } finally { _listFilterContext = null; }
   const reminders = new Map();
-  for (const c of list) { const r = callReminder(c); if (r) reminders.set(c.id, r); }
+  for (const c of list) { const r = isMine(c) && callReminder(c); if (r) reminders.set(c.id, r); } // chỉ nhắc khách mình phụ trách
   if (reminders.size && !searchCtx()) {
     const withR = [], without = [];
     for (const c of list) (reminders.has(c.id) ? withR : without).push(c);
@@ -1248,13 +1252,13 @@ function renderList() {
   const fullList = visibleCustomers(), list = fullList.slice(0, searchPages.list * SEARCH_PAGE_SIZE);
   // Map nhắc-gọi để hiển thị nhãn trên card/dòng (danh sách đã được đẩy nhắc-gọi lên đầu).
   const reminders = new Map();
-  for (const c of list) { const r = callReminder(c); if (r) reminders.set(c.id, r); }
+  for (const c of list) { const r = isMine(c) && callReminder(c); if (r) reminders.set(c.id, r); } // chỉ nhắc khách mình phụ trách
   const container = $('#customer-list');
   const ctx = searchCtx(); // đang tìm → tô đậm từ khoá + đoạn trích trường khớp
   container.innerHTML = '';
   container.classList.toggle('list-mode', viewMode === 'list');
   $('#empty-state').hidden = list.length !== 0;
-  $('#result-count').textContent = `${fullList.length} khách hàng · Tiềm năng${searchCtx() ? ' · theo độ liên quan' : ''}`;
+  $('#result-count').textContent = `${fullList.length} khách hàng · Tiềm năng${ownerScopeLabel() ? ' · ' + ownerScopeLabel() : ''}${searchCtx() ? ' · theo độ liên quan' : ''}`;
   $('#list-search-more').hidden = list.length >= fullList.length;
   $('#list-search-more').textContent = `Xem thêm (${fullList.length - list.length} khách)`;
   updateFilterDot(); // giữ chấm đỏ + nút "Xoá lọc ✕" luôn khớp trạng thái lọc
@@ -1286,7 +1290,7 @@ function renderList() {
       if (ctx && ctx.isPhone) row.dataset.hlPhone = ctx.qPhone; // fitListRow tô lại sau khi cắt số
       row.innerHTML = `
         <div class="row-name">${hlName(c, ctx)}</div>
-        <div class="row-right">${callHtml}${phoneHtml}${aptHtml}${interestHtml}</div>${snip}`;
+        <div class="row-right">${ownerTagHtml(c)}${callHtml}${phoneHtml}${aptHtml}${interestHtml}</div>${snip}`;
       container.appendChild(row);
     }
     refitListRows(); // chọn số digits ĐT (và cắt tên nếu cùng cực) cho vừa 1 hàng
@@ -1337,8 +1341,9 @@ function renderList() {
           <div class="card-head">
             <div class="card-name">${hlName(c, ctx)}</div>
             <div class="card-head-right">
+              ${ownerTagHtml(c)}
               ${reminders.has(c.id) ? `<button class="call-tag call-${reminders.get(c.id).state}" data-calltag="${c.id}">${escapeHtml(reminders.get(c.id).text)}</button>` : ''}
-              <div class="card-menu">
+              <div class="card-menu"${isMine(c) ? '' : ' hidden'}>
                 <button class="card-menu-btn" data-action="menu" aria-label="Tuỳ chọn khác">⋯</button>
                 <div class="card-menu-pop">
                   <button class="menu-item" data-action="schedule" data-id="${c.id}">Hẹn lịch gọi</button>
@@ -1369,7 +1374,7 @@ function renderList() {
       <div class="card-notes">${cardNotesInner}</div>
       <div class="card-footer">
         <span class="card-updated">${updated ? 'Cập nhật ' + escapeHtml(updated) : ''}</span>
-        <button class="btn-small" data-action="edit" data-id="${c.id}">Sửa</button>
+        ${isMine(c) ? `<button class="btn-small" data-action="edit" data-id="${c.id}">Sửa</button>` : ''}
       </div>
     `;
     container.appendChild(card);
@@ -2199,7 +2204,7 @@ async function handleFormSubmit(e) {
   if (editingId) {
     // Chặn SỬA SĐT trùng khách KHÁC: update vi phạm unique (phone,owner) sẽ làm KẸT
     // hàng đợi đồng bộ (khác insert — không tự bỏ được), nên chặn ngay tại đây.
-    const clash = allCustomers.find((c) => c.id !== editingId && normalizePhoneVN(c.phone) === payload.phone);
+    const clash = allCustomers.find((c) => c.id !== editingId && c.owner_id === editing.owner_id && normalizePhoneVN(c.phone) === payload.phone);
     if (clash) {
       alert('⚠️ Số điện thoại "' + payload.phone + '" đã thuộc về khách khác: "' +
         (clash.full_name || '') + '".\n\nHãy dùng số khác hoặc kiểm tra lại.');
@@ -2240,7 +2245,10 @@ async function handleFormSubmit(e) {
 
     // === CHẶN TRÙNG theo MASTER KEY (SĐT) khi tạo khách mới ===
     // So với khách của chính mình (local chỉ chứa khách của owner hiện tại).
-    const dup = allCustomers.find((c) => normalizePhoneVN(c.phone) === payload.phone);
+    const dup = ownedCustomers().find((c) => normalizePhoneVN(c.phone) === payload.phone);
+    // SĐT đã nằm trong danh sách của ĐỒNG NGHIỆP (thấy được khi theo dõi / trưởng nhóm) → hỏi trước.
+    const other = !dup && allCustomers.find((c) => !isMine(c) && normalizePhoneVN(c.phone) === payload.phone);
+    if (other && !confirm(`Số "${payload.phone}" đã có trong danh sách của ${memberName(other.owner_id)} (khách "${other.full_name || ''}").\n\nVẫn tạo khách riêng của bạn?`)) return;
     if (dup) {
       const sameName = normalizeNameKey(dup.full_name) === normalizeNameKey(payload.full_name);
       if (!sameName) {
@@ -2981,6 +2989,7 @@ function openDetail(id) {
   // Lead (lớp 1) chưa có trang hồ sơ riêng → mở hộp "Khách mới" (ghi cuộc gọi / Đạt / Loại).
   if (!isQualified(c)) { openLeadSheet(id); return; }
   detailId = id;
+  applyTeamDetail(c); // chỉ xem / nút Giao khách (js/team.js)
   editingHistoryAt = null; // mở khách mới → thoát chế độ sửa note cũ
   addingCareNote = false;  // thoát chế độ thêm ghi chú
   editingTaskAt = null;    // và thoát chế độ sửa/thêm việc
@@ -4283,11 +4292,11 @@ function leadStatusTag(c) {
 }
 
 function renderLeads() {
-  const leads = allCustomers.filter((c) => !isQualified(c));
+  const leads = allCustomers.filter((c) => !isQualified(c) && matchesOwnerScope(c));
   // Badge tab = VIỆC CẦN LÀM NGAY: lead đăng ký HÔM QUA + HÔM NAY, chưa loại, CHƯA GỌI lần nào (gọi sớm dễ bắt máy).
   // Gọi xong → số giảm; hết → badge ẩn. (Đếm hết lead làm số luôn to → bị "nhờn", mất tác dụng nhắc.)
   const since = new Date(); since.setHours(0, 0, 0, 0); since.setDate(since.getDate() - 1); // 0h hôm qua
-  const urgent = leads.filter((c) => !c.disqualified_at && !callAttemptsOf(c).length
+  const urgent = leads.filter((c) => isMine(c) && !c.disqualified_at && !callAttemptsOf(c).length
     && Date.parse(c.registered_at || c.created_at || '') >= since.getTime()).length;
   const badge = $('#lead-count-badge');
   if (badge) {
@@ -4302,14 +4311,14 @@ function renderLeads() {
   const fullList = orderLeads(leads.filter((c) => leadMatchesFilter(c, ctx, range)));
   const list = fullList.slice(0, searchPages.leads * SEARCH_PAGE_SIZE);
   syncLeadFilterUI();
-  $('#lead-result-count').textContent = `${fullList.length} khách · Khách mới${searchCtx() ? ' · theo độ liên quan' : ''}`;
+  $('#lead-result-count').textContent = `${fullList.length} khách · Khách mới${ownerScopeLabel() ? ' · ' + ownerScopeLabel() : ''}${searchCtx() ? ' · theo độ liên quan' : ''}`;
   $('#lead-search-more').hidden = list.length >= fullList.length;
   $('#lead-search-more').textContent = `Xem thêm (${fullList.length - list.length} khách)`;
   $('#lead-empty').hidden = list.length !== 0;
   $('#lead-list').innerHTML = list.map((c) => {
     const attempts = callAttemptsOf(c);
     const last = attempts[attempts.length - 1];
-    const rem = c.disqualified_at ? null : callReminder(c);
+    const rem = (c.disqualified_at || !isMine(c)) ? null : callReminder(c);
     const meta = [
       sourceDisplay(c.source),
       campaignOf(c),
@@ -4326,6 +4335,7 @@ function renderLeads() {
         <div class="card-head">
           <div class="card-name">${hlName(c, ctx)}</div>
           <div class="card-head-right">
+            ${ownerTagHtml(c)}
             ${rem ? `<span class="call-tag call-${rem.state}">${escapeHtml(rem.text)}</span>` : ''}
             ${leadStatusTag(c)}
           </div>
@@ -4355,6 +4365,7 @@ function openLeadSheet(id) {
 
 function renderLeadSheet(c) {
   const dropped = !!c.disqualified_at;
+  applyTeamLead(c); // chỉ xem / nút Giao khách (js/team.js)
   $('#lead-name').textContent = c.full_name || '(chưa có tên)';
   $('#lead-phone').textContent = c.phone || '';
   $('#lead-call-btn').href = c.phone ? `tel:${normalizePhone(c.phone)}` : '#';
@@ -4500,14 +4511,15 @@ function toggleLeadPop(pop, btn) {
 }
 function syncLeadFilterUI() {
   renderAptTypeFilter('lead-apt-presets', leadAptTypeFilter);
+  renderOwnerScope('lead-owner-group', 'lead-owner-presets');
   $('#lead-src-presets').innerHTML = [['', 'Tất cả'], ...Object.entries(SOURCES)].map(([code, label]) =>
     `<button type="button" class="date-preset${code === leadSrcFilter ? ' is-sel' : ''}" data-src="${code}">${escapeHtml(label)}</button>`).join('');
   $$('#lead-date-presets .date-preset').forEach((b) => b.classList.toggle('is-sel', b.dataset.preset === leadDatePreset));
-  const active = !!leadSrcFilter || leadDatePreset !== 'all' || !!leadAptTypeFilter;
+  const active = !!leadSrcFilter || leadDatePreset !== 'all' || !!leadAptTypeFilter || ownerScope !== 'mine';
   $('#lead-filter-dot').hidden = !active;
   $('#lead-clear-filter').hidden = !active;
 }
-function resetLeadFilters() { leadSrcFilter = ''; leadDatePreset = 'all'; leadAptTypeFilter = ''; resetSearchPages(); renderLeads(); }
+function resetLeadFilters() { leadSrcFilter = ''; leadDatePreset = 'all'; leadAptTypeFilter = ''; ownerScope = 'mine'; resetSearchPages(); renderLeads(); }
 function renderLeadSortOptions() {
   $('#lead-sort-options').innerHTML = LEAD_SORT_ATTRS.map((a) => {
     const dir = leadSortDraft[a.key];
@@ -4996,7 +5008,7 @@ function dashActionGroups(all) {
 }
 
 function renderDashboard() {
-  const all = allCustomers;
+  const all = ownedCustomers(); // việc / thống kê chỉ tính khách MÌNH phụ trách (js/team.js)
   const box = $('#dashboard-content');
   // Đang gõ tìm ở Tổng quan → hiện trang kết quả tạm thay cho bàn làm việc.
   const q = $('#search-input').value.trim();
@@ -5575,12 +5587,13 @@ function renderAptTypeFilter(id, selected) {
 // Chấm báo "đang có lọc nâng cao" trên icon phễu (tiến độ ≠ tất cả HOẶC quan tâm >0 HOẶC có lọc thời gian).
 function isAdvancedFilterActive() {
   const interest = Number($('#filter-min-interest').value || 0);
-  return !!(stageFilter || aptTypeFilter || interest > 0 || dateFilterRange());
+  return !!(stageFilter || aptTypeFilter || interest > 0 || dateFilterRange() || ownerScope !== 'mine');
 }
 // Đồng bộ 2 chỉ báo "đang có lọc nâng cao": chấm đỏ trên icon phễu + nút "Xoá lọc ✕"
 // cạnh dòng "[x] khách hàng". Cả 2 chỉ hiện khi có lọc khác mặc định (giữ UI gọn).
 function updateFilterDot() {
   renderAptTypeFilter('filter-apt-presets', aptTypeFilter);
+  renderOwnerScope('filter-owner-group', 'filter-owner-presets');
   const active = isAdvancedFilterActive();
   $('#filter-active-dot').hidden = !active;
   const clearBtn = $('#clear-filter-inline');
@@ -5588,7 +5601,7 @@ function updateFilterDot() {
 }
 // Đưa bộ lọc nâng cao về mặc định (tiến độ = Tất cả, quan tâm ≥ 0%).
 function resetAdvancedFilters() {
-  aptTypeFilter = ''; resetSearchPages();
+  aptTypeFilter = ''; ownerScope = 'mine'; resetSearchPages();
   stageFilter = '';
   syncStageLabel(); closeStagePop();
   $('#filter-min-interest').value = 0;

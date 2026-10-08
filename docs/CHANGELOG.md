@@ -6,6 +6,22 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-08 — Nhóm sale + giao khách cho đồng nghiệp (D-003)
+
+- 3 kịch bản: khách của tôi / giao nhưng tôi vẫn theo dõi (chỉ xem) / giao hẳn. Nút "👥 Giao khách" trong hồ sơ và hộp Khách mới; menu avatar → "Đồng nghiệp" (trưởng nhóm thêm/xoá bằng email, ai cũng đặt tên hiển thị).
+- Bộ lọc thêm "Người phụ trách": Của tôi (mặc định, gồm khách đang theo dõi) · Đã giao, đang theo dõi · Cả nhóm · từng đồng nghiệp (2 mục cuối chỉ trưởng nhóm). Thẻ khách đồng nghiệp phụ trách có nhãn 👤 tên; hồ sơ chỉ xem, ẩn nút sửa; `db.js` chặn mọi thao tác ghi.
+- Việc hôm nay, chuông nhắc, thống kê Tổng quan, nhật ký gọi máy: chỉ khách mình phụ trách. Trùng SĐT chỉ so trong danh sách của mình; trùng với khách đồng nghiệp → hỏi trước.
+- Migration `SQL/add_team_assign.sql`: `customers.followers`, bảng `team_members`, RLS mới customers / documents / file tài liệu, trigger chặn giao trái phép, RPC nhóm. Phải chạy TRƯỚC deploy + đặt trưởng nhóm (mục 7 cuối file).
+- Sửa kèm: hộp gợi ý lịch (`#followup-modal`) thiếu kiểu hộp thoại → viền đen.
+- File: `SQL/add_team_assign.sql`, `js/team.js` (mới), `js/db.js`, `js/app.js`, `js/calls.js`, `index.html`, `css/style.css`, `sw.js` (v48), docs (D-003, architecture, design, huong-dan-nhom, README, roadmap), `CLAUDE.md`/`AGENTS.md`.
+- Đã kiểm tra: trình duyệt local với dữ liệu giả + hàm ghi giả (lọc 3 kịch bản, nhãn, chỉ xem, giao giữ theo dõi / giao hẳn, hộp Đồng nghiệp, 375px). CHƯA chạy SQL (không có Postgres local), chưa thử RLS thật / tài khoản đồng nghiệp thật.
+
+## 2026-10-08 — Ghi nhận: lỗi nút Zalo trên APK chưa giải quyết (tạm hoãn)
+
+- APK 1.3 (`ExternalLinkPlugin`) đã cài thử trên máy thật: **hỏng 100%** (màn "Trang này không tìm thấy", hoặc Zalo mở trang chủ rồi hỏi mở Google Play / App Market). Mục 2026-10-07 "APK 1.3: sửa lỗi bấm Zalo" là SAI — chưa sửa được.
+- Tạm hoãn đến khi có cáp USB-C / gỡ lỗi không dây để đọc dữ liệu Zalo qua adb. Ghi đủ hiện tượng, cách đã thử, phương án: `docs/zalo-android-issue.md`.
+- File: `docs/zalo-android-issue.md` (mới), `docs/pitfalls.md`, `docs/README.md`, `android-app/README.md`.
+
 ## 2026-10-07 — APK 1.3: sửa lỗi bấm Zalo lúc được lúc không
 
 - Nguyên nhân: chỉ app APK bị (web app Chrome không bị). Capacitor mở `zalo.me/<SĐT>` bằng Intent "trơn" → Android lúc giao cho màn chat Zalo, lúc giao cho trình duyệt nội bộ của Zalo → "Trang này không tìm thấy".

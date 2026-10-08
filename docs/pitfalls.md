@@ -102,5 +102,7 @@ Nếu sửa lỗi dẫn đến thay đổi nguyên tắc, ghi quyết định t�
 
 Capacitor mở link khác tên miền app bằng `Intent.ACTION_VIEW` không kèm `CATEGORY_BROWSABLE`, không chỉ định app (`Bridge.launchIntent`). App có nhiều màn cùng nhận link (vd Zalo: màn chat + trình duyệt nội bộ) → lúc vào đúng, lúc vào sai. Web app chạy bằng Chrome không bị vì Chrome gửi Intent đúng chuẩn. Gặp lỗi 2026-10-07 với `zalo.me/<SĐT>` ("Trang này không tìm thấy" trong trình duyệt của Zalo, ngẫu nhiên).
 
-**Quy tắc:** link cần mở app cụ thể → chặn ở `shouldOverrideLoad` của plugin native (xem `ExternalLinkPlugin.java`), gửi Intent BROWSABLE và chỉ đích danh màn xử lý; khai báo `<queries>` gói đó trong manifest (Android 11+). Sửa native → build + phát APK mới.
+**Trạng thái: CHƯA GIẢI QUYẾT.** APK 1.3 thử chặn ở `shouldOverrideLoad` (`ExternalLinkPlugin.java`) và tự đoán màn xử lý của Zalo → hỏng 100%. Chi tiết, các cách đã thử và phương án tiếp: `docs/zalo-android-issue.md`.
+
+**Quy tắc:** không đoán cấu trúc bên trong app khác — đọc dữ liệu thật qua `adb` (dumpsys/logcat) trước khi viết code chọn màn; cài thử qua `adb install -r` trước khi phát APK.
 

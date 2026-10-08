@@ -84,6 +84,7 @@
             <button id="catalog-btn" class="menu-item">Giỏ hàng (dự án · toà · căn)</button>
             <div class="menu-group-label">Cài đặt</div>
             <button id="zalo-greeting-btn" class="menu-item">Mẫu tin Zalo</button>
+            <button id="team-btn" class="menu-item" hidden>Đồng nghiệp</button>
             <div class="menu-sep"></div>
             <button id="logout-btn" class="menu-item">Đăng xuất</button>
           </div>
@@ -165,6 +166,10 @@
       </button>
       <div id="filter-panel" class="pop-panel" hidden>
         <div class="pop-title">Bộ lọc</div>
+          <div class="pop-group" id="filter-owner-group" hidden>
+            <div class="pop-label">Người phụ trách</div>
+            <div id="filter-owner-presets" class="date-presets" role="group" aria-label="Lọc theo người phụ trách"></div>
+          </div>
           <div class="pop-group">
             <div class="pop-label">Loại căn</div>
             <div id="filter-apt-presets" class="date-presets" role="group" aria-label="Lọc theo loại căn"></div>
@@ -279,6 +284,10 @@
         </button>
         <div id="lead-filter-panel" class="pop-panel" hidden>
           <div class="pop-title">Bộ lọc</div>
+          <div class="pop-group" id="lead-owner-group" hidden>
+            <div class="pop-label">Người phụ trách</div>
+            <div id="lead-owner-presets" class="date-presets" role="group" aria-label="Lọc theo người phụ trách"></div>
+          </div>
           <div class="pop-group">
             <div class="pop-label">Loại căn</div>
             <div id="lead-apt-presets" class="date-presets" role="group" aria-label="Lọc theo loại căn"></div>
@@ -397,6 +406,12 @@
         </div><!-- /.detail-phone-row -->
       </div><!-- /.detail-id-text -->
     </div><!-- /.detail-id-row -->
+    <!-- Nhóm (js/team.js): báo "chỉ xem" khi khách do đồng nghiệp phụ trách; nút Giao khách; người cùng theo dõi. -->
+    <div id="detail-readonly" class="ro-banner" hidden></div>
+    <div class="detail-team-row">
+      <span id="detail-followers" class="detail-followers" hidden></span>
+      <button id="detail-assign-btn" class="btn-ghost btn-small assign-btn" type="button" hidden>👥 Giao khách</button>
+    </div>
 
     <div class="detail-badges">
       <div class="detail-badge">
@@ -900,6 +915,7 @@
       <a id="lead-zalo-btn" class="card-zalo" target="_blank" rel="noopener" aria-label="Nhắn Zalo"><img class="ic-zalo" src="/icons/zalo.png" alt="Zalo" /></a>
     </div>
     <div id="lead-meta" class="lead-meta"></div>
+    <div id="lead-readonly" class="ro-banner" hidden></div>
     <div id="lead-dropped" class="lead-dropped" hidden></div>
 
     <div class="sched-label">Các lần gọi</div>
@@ -933,6 +949,7 @@
       <button type="button" id="lead-qualify-btn" class="lead-act lead-act-qualify">✓ Đạt → chuyển vào chăm sóc</button>
       <button type="button" id="lead-reopen-btn" class="lead-act lead-act-reopen" hidden>↺ Mở lại</button>
     </div>
+    <button type="button" id="lead-assign-btn" class="btn-ghost btn-small assign-btn lead-assign" hidden>👥 Giao khách cho đồng nghiệp</button>
   </div>
 </dialog>
 
@@ -1057,6 +1074,51 @@
   </div>
 </dialog>
 
+<!-- GIAO KHÁCH cho đồng nghiệp (js/team.js). 2 kiểu: vẫn theo dõi (chỉ xem) / giao hẳn. -->
+<dialog id="assign-modal">
+  <div class="callact">
+    <button type="button" id="assign-cancel-x" class="callact-x" aria-label="Đóng">✕</button>
+    <h2 id="assign-title">Giao khách</h2>
+    <p id="assign-sub" class="callact-sub"></p>
+    <div class="sched-label">Giao cho</div>
+    <div id="assign-members" class="sched-opts"></div>
+    <div id="assign-mode-group">
+      <div class="sched-label">Sau khi giao</div>
+      <div id="assign-modes" class="sched-opts assign-modes">
+        <button type="button" class="sched-opt is-sel" data-mode="keep"><b>Tôi vẫn theo dõi</b><span>Khách vẫn hiện trong danh sách của tôi, chỉ xem</span></button>
+        <button type="button" class="sched-opt" data-mode="full"><b>Giao hẳn</b><span>Khách biến khỏi danh sách của tôi</span></button>
+      </div>
+    </div>
+    <div class="sched-label">Ghi chú cho người nhận <span class="sched-optional">(không bắt buộc)</span></div>
+    <textarea id="assign-note" class="sched-reason" rows="2" placeholder="vd: khách hẹn xem nhà mẫu thứ 7, ưu tiên căn 2N"></textarea>
+    <div id="assign-error" class="sched-error"></div>
+    <div class="callact-btns">
+      <button type="button" id="assign-save" class="btn-primary">Giao</button>
+      <button type="button" id="assign-cancel" class="btn-secondary">Huỷ</button>
+    </div>
+  </div>
+</dialog>
+
+<!-- ĐỒNG NGHIỆP (menu avatar). Trưởng nhóm thêm/xoá bằng email; ai cũng đặt được tên hiển thị của mình. -->
+<dialog id="team-modal" class="greeting-modal">
+  <div class="greeting-box">
+    <button type="button" id="team-close" class="callact-x" aria-label="Đóng">✕</button>
+    <h2 class="greeting-title">Đồng nghiệp</h2>
+    <p id="team-hint" class="greeting-hint"></p>
+    <div id="team-list" class="team-list"></div>
+    <div id="team-add-row" class="team-add-row" hidden>
+      <input id="team-email" type="email" class="tpl-name" placeholder="Email đồng nghiệp" autocomplete="off" />
+      <button type="button" id="team-add-btn" class="btn-primary btn-small">Thêm</button>
+    </div>
+    <div class="sched-label">Tên hiển thị của bạn</div>
+    <div class="team-add-row">
+      <input id="team-my-name" class="tpl-name" placeholder="vd: Duy" maxlength="40" />
+      <button type="button" id="team-name-save" class="btn-ghost btn-small">Lưu tên</button>
+    </div>
+    <div id="team-error" class="sched-error"></div>
+  </div>
+</dialog>
+
 <!-- GỢI Ý LỊCH sau khi đổi bậc / bấm Đạt (nhịp theo bậc: js/followup.js). -->
 <dialog id="followup-modal">
   <div class="callact">
@@ -1083,6 +1145,7 @@
 <script src="/js/followup.js"></script>
 <script src="/js/catalog.js"></script>
 <script src="/js/app.js"></script>
+<script src="/js/team.js"></script>
 <script src="/js/calls.js"></script>
 <script src="/js/search-ui.js"></script>
 <script src="/js/catalog-ui.js"></script>

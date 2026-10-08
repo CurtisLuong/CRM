@@ -83,6 +83,10 @@ Quyết định D-001 tại `docs/decisions.md`. Tóm tắt:
 - Lead từ landing page được API repo Marquee_Homes ghi thẳng vào bảng (service role, `source ["website"]`, cột `web_*` cho UTM) và tự vào lớp 1.
 - `owner_id` của lead landing = `WEB_OWNER_ID` trong API (mặc định `a70e8d12…`). Kiểm tra 2026-10-06: đây chính là tài khoản sale duy nhất của chủ dự án (role `sale`), không có tài khoản "Website" riêng — chú thích "tài khoản Website" trong `lead.js` là tên gọi cũ. Khi thêm đồng nghiệp, lead landing vẫn chỉ vào tài khoản này (người khác không thấy do RLS) — cần quyết định cách giao lead trước khi mở rộng.
 
+## Nhóm và giao khách
+
+Quyết định D-003. `owner_id` = người phụ trách; `followers uuid[]` = người cùng theo dõi (chỉ xem); `team_members` = đồng nghiệp do admin thêm bằng email (RPC `team_list` / `team_add` / `team_remove` / `team_set_my_name`). RLS: xem = phụ trách / theo dõi / admin; sửa, xoá = phụ trách / admin; người phụ trách mới phải thuộc nhóm; trigger `guard_customer_assignment` chặn đổi `owner_id`/`followers` trái phép. Client: `js/team.js` (bộ lọc "Người phụ trách", hộp Giao khách, hộp Đồng nghiệp, chế độ chỉ xem), `js/db.js` `assertWritable()` chặn ghi khách không phụ trách. Pull vẫn kéo mọi dòng RLS cho phép; việc / nhắc / thống kê dùng `ownedCustomers()`. Migration: `SQL/add_team_assign.sql`.
+
 ## Nhật ký cuộc gọi
 
 Quyết định D-002. Dữ liệu ở `customers.call_attempts` (không bảng riêng): `{at, result, note, duration, origin, device_id, direction}`; `result` trống = chưa ghi chú. Logic + hộp ghi chung ở `js/calls.js`:

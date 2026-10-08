@@ -24,6 +24,7 @@ const AVATAR_BUCKET = 'customer-avatars'; // bucket PUBLIC riêng cho ảnh đ�
 let _db = null;
 let _supabase = null;
 let _currentUserId = null;
+let _lastAssignError = null; // lỗi giao khách gần nhất (xem flushQueue)
 let _lastSyncError = null; // lỗi ĐẨY LÊN gần nhất (để hiển thị nếu hàng đợi kẹt)
 let _lastPullError = null; // lỗi KÉO XUỐNG gần nhất (mạng lỗi → dữ liệu đang hiển thị có thể CŨ)
 
@@ -131,6 +132,18 @@ function queueAdd(op) {
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
   }));
+}
+
+// CHỈ NGƯỜI PHỤ TRÁCH được ghi (D-003): khách đồng nghiệp phụ trách mà mình chỉ theo dõi /
+// xem qua "Cả nhóm" → mọi thao tác ghi bị chặn TẠI ĐÂY (trước khi đụng cache local), kể cả khi
+// giao diện sót 1 nút sửa. Riêng thao tác GIAO KHÁCH (update kèm opts.assign) được phép cho admin.
+class ReadOnlyError extends Error {
+  constructor(name) { super(`Khách do ${name || 'đồng nghiệp'} phụ trách — bạn chỉ xem được`); this.code = 'READ_ONLY'; }
+}
+async function assertWritable(customerId) {
+  if (!customerId) return;
+  const rec = (await localGetAll()).find((r) => r.id === customerId);
+  if (rec && rec.owner_id && rec.owner_id !== _currentUserId) throw new ReadOnlyError();
 }
 
 function queueGetAll() {
@@ -246,6 +259,7 @@ const CRM = {
   },
 
   async update(id, payload, opts = {}) {
+    if (!opts.assign) await assertWritable(id); // opts.assign: giao khách (RLS + trigger DB kiểm tra quyền)
     const existing = (await localGetAll()).find((r) => r.id === id) || { id };
     const now = new Date().toISOString();
     // care_stage_updated_at + lịch sử ghi thêm 1 mốc khi:
@@ -303,6 +317,7 @@ const CRM = {
 
   /** Thêm 1 ghi chú mới (lên đầu danh sách). */
   async addNote(id, text) {
+    await assertWritable(id);
     const t = (text || '').trim();
     const existing = (await localGetAll()).find((r) => r.id === id);
     if (!existing || !t) return;
@@ -318,6 +333,7 @@ const CRM = {
 
   /** Sửa nội dung 1 ghi chú (nhận diện theo `at`). Để trống = xoá ghi chú đó. */
   async updateNote(id, at, text) {
+    await assertWritable(id);
     const existing = (await localGetAll()).find((r) => r.id === id);
     if (!existing) return;
     const t = (text || '').trim();
@@ -335,6 +351,7 @@ const CRM = {
 
   /** Xoá 1 ghi chú (nhận diện theo `at`). */
   async deleteNote(id, at) {
+    await assertWritable(id);
     const existing = (await localGetAll()).find((r) => r.id === id);
     if (!existing) return;
     const list = (Array.isArray(existing.notes_manual) ? existing.notes_manual : []).filter((n) => n.at !== at);
@@ -350,6 +367,7 @@ const CRM = {
 
   /** Thêm 1 việc mới (xuống cuối danh sách). */
   async addTask(id, text) {
+    await assertWritable(id);
     const t = (text || '').trim();
     const existing = (await localGetAll()).find((r) => r.id === id);
     if (!existing || !t) return;
@@ -365,6 +383,7 @@ const CRM = {
 
   /** Sửa nội dung 1 việc (nhận diện theo `at`). Để trống = xoá việc đó. */
   async updateTask(id, at, text) {
+    await assertWritable(id);
     const existing = (await localGetAll()).find((r) => r.id === id);
     if (!existing) return;
     const t = (text || '').trim();
@@ -382,6 +401,7 @@ const CRM = {
 
   /** Xoá 1 việc (nhận diện theo `at`). */
   async deleteTask(id, at) {
+    await assertWritable(id);
     const existing = (await localGetAll()).find((r) => r.id === id);
     if (!existing) return;
     const list = (Array.isArray(existing.next_tasks) ? existing.next_tasks : []).filter((n) => n.at !== at);
@@ -407,6 +427,7 @@ const CRM = {
 
   /** Upload 1 file (File/Blob) lên Storage + tạo dòng metadata. Trả về row. */
   async uploadDocument(customerId, file, kind = 'khac', label = null) {
+    await assertWritable(customerId);
     if (!this.isOnline() || !_supabase) throw new Error('Cần mạng để tải tài liệu lên');
     const mime = file.type || 'application/octet-stream';
     let ext = 'bin';
@@ -431,6 +452,7 @@ const CRM = {
 
   /** Xoá 1 tài liệu (cả file lẫn metadata). */
   async deleteDocument(doc) {
+    await assertWritable(doc && doc.customer_id);
     if (!this.isOnline() || !_supabase) throw new Error('Cần mạng để xoá tài liệu');
     await _supabase.storage.from(DOC_BUCKET).remove([doc.storage_path]);
     const { error } = await _supabase.from('documents').delete().eq('id', doc.id);
@@ -444,6 +466,7 @@ const CRM = {
 
   /** Đổi/đặt avatar: upload ảnh mới → set avatar_path → xoá file avatar cũ (nếu có). */
   async uploadAvatar(customerId, file) {
+    await assertWritable(customerId);
     if (!this.isOnline() || !_supabase) throw new Error('Cần mạng để đổi ảnh đại diện');
     const existing = (await localGetAll()).find((r) => r.id === customerId);
     const oldPath = existing && existing.avatar_path;
@@ -472,6 +495,7 @@ const CRM = {
 
   /** Gỡ avatar: xoá file + đặt avatar_path = null. */
   async removeAvatar(customerId) {
+    await assertWritable(customerId);
     const existing = (await localGetAll()).find((r) => r.id === customerId);
     const oldPath = existing && existing.avatar_path;
     if (oldPath && this.isOnline() && _supabase) {
@@ -488,6 +512,7 @@ const CRM = {
 
   /** Đổi/đặt ảnh bìa: upload ảnh mới → set cover_path → xoá file bìa cũ (nếu có). */
   async uploadCover(customerId, file) {
+    await assertWritable(customerId);
     if (!this.isOnline() || !_supabase) throw new Error('Cần mạng để đổi ảnh bìa');
     const existing = (await localGetAll()).find((r) => r.id === customerId);
     const oldPath = existing && existing.cover_path;
@@ -512,6 +537,7 @@ const CRM = {
 
   /** Gỡ ảnh bìa: xoá file + đặt cover_path = null. */
   async removeCover(customerId) {
+    await assertWritable(customerId);
     const existing = (await localGetAll()).find((r) => r.id === customerId);
     const oldPath = existing && existing.cover_path;
     if (oldPath && this.isOnline() && _supabase) {
@@ -598,6 +624,7 @@ const CRM = {
    * note + đánh dấu `edited_at` = giờ sửa (để card tính "Cập nhật" theo hoạt động ghi chú).
    */
   async updateCareHistoryNote(id, at, note) {
+    await assertWritable(id);
     const existing = (await localGetAll()).find((r) => r.id === id);
     if (!existing) return;
     const history = Array.isArray(existing.care_stage_history) ? existing.care_stage_history.slice() : [];
@@ -613,6 +640,7 @@ const CRM = {
   },
 
   async remove(id) {
+    await assertWritable(id);
     await localDelete(id);
     await queueAdd({ type: 'delete', recordId: id, ts: new Date().toISOString() });
     this.flushQueue();
@@ -663,6 +691,16 @@ const CRM = {
             _lastSyncError = null;
             continue; // xử lý op kế tiếp, không chặn hàng đợi
           }
+          // GIAO KHÁCH lỗi (người nhận đã có khách trùng SĐT 23505, hoặc DB từ chối quyền 42501)
+          // → bỏ op để không kẹt hàng đợi; pull() sau đó trả khách về đúng trạng thái server.
+          if (op.type === 'update' && op.payload && 'owner_id' in op.payload
+              && (e.code === '23505' || e.code === '42501' || /duplicate key|unique constraint/i.test(e.message || ''))) {
+            if (epoch !== _scopeEpoch) break;
+            await deleteOp(op.opId);
+            _lastAssignError = e.code === '42501' ? (e.message || 'Không có quyền giao khách này')
+              : 'Không giao được: người nhận đã có khách trùng số điện thoại trong danh sách của họ';
+            continue;
+          }
           // Lỗi khác (mạng, hoặc update vi phạm ràng buộc...) → ghi lại + dừng để
           // giữ thứ tự; app hiện rõ để user xử lý.
           _lastSyncError = { opId: op.opId, type: op.type, recordId: op.recordId, message: e.message || String(e), code: e.code || null };
@@ -682,6 +720,33 @@ const CRM = {
   },
 
   lastSyncError() { return _lastSyncError; },
+  /** Lỗi giao khách gần nhất (rồi xoá) — app hiện thông báo 1 lần. */
+  takeAssignError() { const e = _lastAssignError; _lastAssignError = null; return e; },
+
+  // ---- NHÓM (D-003, SQL/add_team_assign.sql) — cần mạng; app cache danh sách để dùng offline ----
+  async teamList() {
+    if (!this.isOnline() || !_supabase) return undefined;
+    const { data, error } = await _supabase.rpc('team_list');
+    if (error) { console.warn('team_list lỗi (đã chạy SQL/add_team_assign.sql chưa?):', error.message || error); return undefined; }
+    return data || [];
+  },
+  async teamAdd(email) {
+    if (!this.isOnline() || !_supabase) throw new Error('Cần mạng để thêm đồng nghiệp');
+    const { data, error } = await _supabase.rpc('team_add', { member_email: email });
+    if (error) throw error;
+    return data;
+  },
+  async teamRemove(userId) {
+    if (!this.isOnline() || !_supabase) throw new Error('Cần mạng để xoá đồng nghiệp');
+    const { error } = await _supabase.rpc('team_remove', { member_id: userId });
+    if (error) throw error;
+  },
+  async setMyName(name) {
+    if (!this.isOnline() || !_supabase) throw new Error('Cần mạng để đổi tên');
+    const { error } = await _supabase.rpc('team_set_my_name', { new_name: name });
+    if (error) throw error;
+  },
+  userId() { return _currentUserId; },
   lastPullError() { return _lastPullError; },
 
   // Xoá toàn bộ hàng đợi đang chờ (escape hatch khi 1 thao tác kẹt vĩnh viễn).

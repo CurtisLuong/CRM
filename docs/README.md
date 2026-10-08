@@ -18,6 +18,8 @@ Giữ root dễ nhìn và giúp AI chỉ đọc thông tin cần cho task. `CLAU
 | `loan-module.md` | Quy tắc tính vay, cập nhật lãi suất, gỡ lỗi | Sửa module vay; tài liệu hiện có, không được tái tạo trong bộ này |
 | `gio-hang.md` | Giỏ hàng, chỉnh sửa và nhập Excel | Sửa catalog; tài liệu hiện có, không được tái tạo trong bộ này |
 | `huong-dan-follow-up.md` | Hướng dẫn dùng nhịp follow-up + mẫu tin Zalo, và cách chỉnh thông số trong `js/followup.js` | Sửa nhịp gọi / khung giờ / mẫu Zalo; trả lời chủ dự án cách chỉnh |
+| `huong-dan-nhom.md` | Hướng dẫn cài đặt nhóm và giao khách cho đồng nghiệp (cho chủ dự án) | Khi thêm đồng nghiệp / hỏi cách giao khách |
+| `zalo-android-issue.md` | Lỗi tồn đọng: nút Zalo trong app APK Android — hiện tượng, cách đã thử, phương án tiếp | Trước khi sửa cách mở Zalo / link ra ngoài trên vỏ Android |
 | `sale-focus-roadmap.md` | Tham chiếu CRM (FUB, Salesforce, LionDesk, Meey), lộ trình đề xuất và thông tin nên thu thập thêm | Khi chọn tính năng tiếp theo; là đề xuất, chưa phải yêu cầu đã duyệt |
 
 ## Cấu trúc đề xuất

@@ -36,6 +36,10 @@ Tổng quan ưu tiên HÀNH ĐỘNG trước báo cáo: lời chào + 4 chỉ s�
 
 Nhịp follow-up (2026-10-07): gợi ý lịch luôn là GỢI Ý để sale bấm xác nhận (không tự đặt ngầm). Thông số nhịp/khung giờ/mẫu Zalo mặc định chỉ đặt trong `FOLLOWUP_CONFIG` / `ZALO_TEMPLATES_DEFAULT` của `js/followup.js`; hướng dẫn cho chủ dự án ở `docs/huong-dan-follow-up.md`.
 
+## Nhóm và giao khách (2026-10-08)
+
+Không thêm tab: chọn phạm vi khách bằng mục "Người phụ trách" ĐẦU panel Bộ lọc sẵn có (Tiềm năng + Khách mới dùng chung; chỉ hiện khi nhóm có ≥ 2 người). Khách không do mình phụ trách: nhãn `👤 Tên` trên thẻ, hồ sơ / hộp Khách mới có dòng "chỉ xem" và ẩn nút sửa. Nút "👥 Giao khách" trong hồ sơ và hộp Khách mới; "Đồng nghiệp" trong menu avatar nhóm Cài đặt.
+
 ## Tìm kiếm và bộ lọc (2026-10-07)
 
 Dùng bộ lọc sẵn có của từng trang Tiềm năng / Khách mới; không thêm panel lọc tìm kiếm thứ hai dưới header. Loại căn dùng các nút chọn cùng kiểu với bộ lọc thời gian: Tất cả, Studio, 1N, 2N, 3N…; nhóm theo số phòng ngủ, gồm các biến thể cộng / góc / số WC. Số phòng khác xuất hiện khi dữ liệu có; có Khác và Chưa rõ. Kết hợp với các điều kiện lọc hiện tại, chấm báo lọc và Xoá lọc dùng chung.

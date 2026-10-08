@@ -42,6 +42,7 @@
    */
   function open(opts) {
     const c = findCustomer(opts.customerId); if (!c) return;
+    if (!isMine(c)) return; // khách đồng nghiệp phụ trách — chỉ xem, không ghi cuộc gọi (js/team.js)
     const existing = opts.editAt ? callAttemptsOf(c).find((a) => a.at === opts.editAt) : null;
     st = {
       customerId: c.id,
@@ -246,7 +247,8 @@
   function customerByNumber(number) {
     const d = phoneDigits(normalizePhoneVN(number));
     if (!d) return null;
-    return allCustomers.find((c) => phoneDigits(c.phone) === d) || null;
+    // Chỉ khách MÌNH phụ trách (D-003): khách giao cho đồng nghiệp thì nhật ký gọi là của họ.
+    return allCustomers.find((c) => isMine(c) && phoneDigits(c.phone) === d) || null;
   }
   /**
    * Ghi các cuộc gọi của thiết bị thành "chưa ghi chú". CHỈ giữ cuộc tới/từ SĐT có trong danh
@@ -327,7 +329,7 @@
   function autoOpenLatestPending() {
     if (document.querySelector('dialog[open]')) return;
     let best = null;
-    for (const c of allCustomers) for (const a of pendingCallsOf(c)) if (!best || a.at > best.a.at) best = { c, a };
+    for (const c of allCustomers) if (isMine(c)) for (const a of pendingCallsOf(c)) if (!best || a.at > best.a.at) best = { c, a };
     if (best) open({ customerId: best.c.id, editAt: best.a.at });
   }
 

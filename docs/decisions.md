@@ -84,3 +84,21 @@ Ví dụ và mẫu trong bộ tài liệu không phải sự chấp thuận cho 
 - Chấp thuận: người dùng chọn "Ngoại lệ cục bộ" và đề xuất desktop/iOS web, Android Capacitor (chat 2026-10-07).
 - Tài liệu đã cập nhật: `CLAUDE.md`, `AGENTS.md`, `docs/architecture.md`, `docs/FEATURE_IDEAS.md`, `docs/CHANGELOG.md`
 - Trạng thái: Đang áp dụng (giai đoạn 1 web + vỏ Android đã build 2026-10-07; chưa thử trên máy thật)
+
+### D-003 — Nhóm sale + giao khách cho đồng nghiệp
+
+- Ngày: 2026-10-08
+- Loại: Mở rộng trong phạm vi (CLAUDE.md §1 "có thể mở rộng dần cho vài đồng nghiệp") — đổi mô hình quyền dữ liệu, KHÔNG phải multi-tenant
+- Nguyên tắc liên quan: `CLAUDE.md` §2 (RLS + GRANT; local-first + last-write-wins)
+- Quyết định:
+  - `customers.owner_id` = NGƯỜI PHỤ TRÁCH (giữ nghĩa cũ); thêm `customers.followers uuid[]` = người cùng theo dõi, CHỈ XEM.
+  - 3 kịch bản: khách của tôi / giao nhưng tôi vẫn theo dõi (followers chứa tôi) / giao hẳn (không còn trong followers).
+  - Đồng nghiệp = `team_members`, trưởng nhóm (role `admin`) thêm bằng email; người nhận phải thuộc nhóm (RLS `with check` + trigger `guard_customer_assignment`).
+  - Trưởng nhóm (admin) XEM mọi khách; khách người khác phụ trách cũng chỉ xem, riêng GIAO LẠI thì được. Mặc định danh sách "Của tôi" = phụ trách + đang theo dõi; "Cả nhóm" / từng người qua mục "Người phụ trách" trong Bộ lọc.
+  - Chỉ người phụ trách ghi: chặn ở `js/db.js` (`assertWritable`) + RLS update/delete. Việc hôm nay, chuông nhắc, thống kê Tổng quan, nhật ký gọi máy: chỉ khách mình phụ trách.
+  - Giao khách đi qua hàng đợi offline như mọi thao tác (update `owner_id` + `followers`, cờ `opts.assign`); server từ chối (trùng SĐT bên người nhận / sai quyền) → bỏ thao tác + báo.
+- Phạm vi: `SQL/add_team_assign.sql`, `js/team.js`, `js/db.js`, `js/app.js`, `js/calls.js`. Tài liệu đính kèm (bảng `documents` + file `customer-docs`) ai xem được khách thì xem được. Báo giá vay (`loan_quotes`) vẫn theo người tạo.
+- Lý do và đánh đổi: giữ 1 bảng `customers` + RLS, không cần backend riêng; last-write-wins vẫn đủ vì mỗi khách chỉ 1 người ghi. Đánh đổi: SĐT unique theo người phụ trách → giao cho người đã có cùng SĐT sẽ bị từ chối; lead landing page vẫn vào tài khoản trưởng nhóm rồi chia tay.
+- Chấp thuận: người dùng chọn (chat 2026-10-08): thêm đồng nghiệp bằng email; trưởng nhóm xem hết; theo dõi = chỉ xem; nhắc việc chỉ cho người phụ trách.
+- Tài liệu đã cập nhật: `CLAUDE.md`, `AGENTS.md`, `docs/architecture.md`, `docs/design.md`, `docs/huong-dan-nhom.md`, `docs/CHANGELOG.md`
+- Trạng thái: Đã code 2026-10-08; chưa chạy SQL trên Supabase, chưa thử với tài khoản thật

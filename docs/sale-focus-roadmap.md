@@ -46,7 +46,7 @@ Không cần migration, chỉ dùng dữ liệu đang có:
 - Mốc sau chốt: ngày ký HĐMB, ngày bàn giao, kỷ niệm nhận nhà → tự nhắc chăm sóc và xin giới thiệu (kiểu LionDesk).
 - Hoa hồng dự kiến / đã nhận theo deal + **mục tiêu tháng** (số chốt, số cuộc gọi/ngày) hiển thị tiến độ trên Tổng quan.
 
-### Bước 5 — Nhóm nhỏ (khi có đồng nghiệp dùng)
+### Bước 5 — Nhóm nhỏ (ĐÃ LÀM 2026-10-08 — D-003, `docs/huong-dan-nhom.md`)
 - Chia lead mới cho sale (luân phiên hoặc theo dự án), bảng xếp hạng hoạt động cho admin, xem Việc hôm nay của từng người. RLS/role admin đã có nền; cần thiết kế quyền cẩn thận trước khi làm.
 
 ### Bước 6 — Tự động hoá đầu vào
