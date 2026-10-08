@@ -211,6 +211,9 @@ input:focus, select:focus, textarea:focus {
   border-radius: 50%; background: #E0503F; border: 1.5px solid var(--teal);
 }
 
+/* Icon trong tab header: chỉ hiện ở desktop (xem @media min-width 900px bên dưới). */
+.tab-ic { display: none; width: 19px; height: 19px; flex: none; }
+
 @media (prefers-reduced-motion: reduce) {
   .topbar, .topbar-search-wrap, .topbar-brand span, .topbar .tab-nav, .topbar-menu { transition: none; }
 }
@@ -315,6 +318,38 @@ input:focus, select:focus, textarea:focus {
 }
 .avatar-btn:hover { background: var(--seal-dark); }
 .avatar-btn { position: relative; padding: 0; }
+
+/* ===== DESKTOP (≥900px): GỘP 1 HÀNG — logo · | · tab · ô tìm (giãn) · đồng bộ/chuông/avatar =====
+   Hàng trên dùng display: contents để logo và cụm nút thành ô lưới riêng. Ô tìm hết absolute.
+   Header đã gọn nên KHÔNG thu gọn khi cuộn (chỉ thêm bóng); icon Lọc vẫn hiện khi cuộn ở tab Khách hàng. */
+@media (min-width: 900px) {
+  .topbar, .topbar.collapsed, .topbar.no-search {
+    display: grid; align-items: center; column-gap: 22px;
+    grid-template-columns: auto auto minmax(0, 1fr) auto;
+    grid-template-areas: "brand tabs search actions";
+    padding: calc(10px + var(--sat)) 24px 10px;
+  }
+  .topbar-row-top { display: contents; }
+  .topbar-brand { grid-area: brand; gap: 10px; font-size: 20px; }
+  .topbar-brand::after { content: ""; width: 1px; height: 30px; margin-left: 12px; background: rgba(255,255,255,0.16); }
+  .brand-logo { height: 32px; }
+  .topbar .tab-nav, .topbar.collapsed .tab-nav {
+    grid-area: tabs; height: 42px; max-height: 42px; max-width: none; opacity: 1;
+    padding: 4px; border-width: 1px; background: transparent; border-color: transparent;
+  }
+  .tab-btn { flex: none; gap: 9px; padding: 0 18px; font-size: 14.5px; }
+  .tab-ic { display: block; }
+  .topbar-search-wrap, .topbar.collapsed .topbar-search-wrap, .topbar.collapsed.has-filter .topbar-search-wrap {
+    grid-area: search; position: relative; top: auto; left: auto; right: auto;
+  }
+  .topbar-search { height: 42px; font-size: 14.5px; }
+  .topbar-actions, .topbar.collapsed .topbar-actions { grid-area: actions; gap: 10px; }
+  .topbar.collapsed .topbar-brand { gap: 10px; }
+  .topbar.collapsed .topbar-brand span { max-width: 260px; opacity: 1; }
+  .topbar.collapsed .topbar-menu, .topbar.collapsed .notif-wrap { max-width: none; opacity: 1; overflow: visible; pointer-events: auto; }
+  .avatar-btn { width: 36px; height: 36px; font-size: 15px; }
+}
+
 /* Mũi tên menu ở góc dưới-phải avatar (kiểu Facebook) */
 .avatar-caret {
   position: absolute; right: -4px; bottom: -4px;

@@ -6,6 +6,12 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-08 — Header desktop gộp 1 hàng
+
+- Màn ≥900px: logo "Sổ Khách" · vạch ngăn · tab Tổng quan / Khách hàng (thêm icon) · ô tìm giãn rộng · đồng bộ / chuông / avatar trên cùng 1 hàng. Header desktop không thu gọn khi cuộn; icon Lọc vẫn hiện khi cuộn ở tab Khách hàng. Điện thoại giữ bố cục cũ.
+- File: `index.html` (icon tab), `css/style.css`, `sw.js` (v53), `docs/design.md`.
+- Đã kiểm tra trình duyệt local (dữ liệu giả): 1024px, 1440px, 375px, màn Tính vay (không ô tìm), menu avatar. Chưa deploy.
+
 ## 2026-10-08 — Tab Khách hàng: "Tiềm năng", lọc trạng thái vào Bộ lọc, icon Lọc ở header thu gọn
 
 - Nhóm "Đang chăm" đổi tên lại thành **Tiềm năng** (tab, dòng đếm, tìm ở Tổng quan, toast, thống kê). Tiềm năng / Khách nhóm bỏ số trên tab — số khách chỉ ở dòng dưới thanh công cụ. Khách mới giữ badge: đăng ký hôm qua + hôm nay, chưa loại, chưa có cuộc gọi đầu.
