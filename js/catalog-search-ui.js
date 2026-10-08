@@ -90,7 +90,7 @@
     if(!c.projects?.length||!c.apt_type){showToast('Bổ sung dự án và loại căn trước khi tìm căn phù hợp.');return;}
     $('#catalog-btn').click();customerId=id;panel.open=true;$('#inventory-status').value='available';render();
   }
-  const button=document.createElement('button');button.type='button';button.className='btn-small';button.id='detail-match-units';button.textContent='Tìm căn phù hợp';
+  const button=document.createElement('button');button.type='button';button.className='btn-small';button.id='detail-match-units';button.innerHTML='<svg class="btn-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg>Tìm căn phù hợp';
   $('#detail-loan-btn').after(button);button.addEventListener('click',()=>forCustomer(detailId));
   window.CatalogSearchUI={render,reset,forCustomer};
 })();

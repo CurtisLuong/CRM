@@ -398,72 +398,104 @@
   <div class="detail-cover" id="detail-cover">
     <img id="detail-cover-img" class="cover-img" alt="" hidden />
     <button id="detail-back-btn" class="cover-btn cover-btn-back" type="button">← Quay lại</button>
-    <button id="detail-edit-btn" class="cover-btn cover-btn-edit" type="button">✎ Sửa</button>
+    <!-- Nút ⋯ (thêm thao tác) góc phải bìa: Sửa thông tin · Copy prompt phân tích AI. -->
+    <div class="cover-more" id="detail-more">
+      <button id="detail-more-btn" class="cover-btn cover-btn-more" type="button" aria-label="Thêm thao tác" aria-haspopup="true" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="5" cy="12" r="1.8" fill="currentColor"/><circle cx="12" cy="12" r="1.8" fill="currentColor"/><circle cx="19" cy="12" r="1.8" fill="currentColor"/></svg>
+      </button>
+      <div id="detail-more-pop" class="pop-panel io-menu-pop detail-more-pop" hidden>
+        <button id="detail-edit-btn" class="io-menu-item" type="button">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>
+          Sửa thông tin khách
+        </button>
+        <button id="detail-ai-export-btn" class="io-menu-item" type="button">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg>
+          Copy prompt phân tích AI
+        </button>
+      </div>
+    </div>
     <span class="cover-cam" aria-hidden="true">
       <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.2"/></svg>
     </span>
   </div>
 
-  <div class="detail-body">
-    <div class="detail-id-row">
-      <!-- Ảnh đại diện: bấm để xem gốc + đổi ảnh. Nội dung (ảnh / chữ cái) do JS đặt. -->
-      <button id="detail-avatar" class="detail-avatar" type="button" aria-label="Ảnh đại diện"></button>
-      <div class="detail-id-text">
+  <div class="detail-body" id="detail-body" data-active-tab="overview">
+    <!-- ĐẦU HỒ SƠ (khối trắng nối liền ảnh bìa): avatar + tên · SĐT + Gọi/Zalo/Danh bạ + Giao khách · 4 tab.
+         Bố cục "cân bằng – rõ ràng theo nhóm": quy tắc ở docs/design.md (mục Trang hồ sơ khách). -->
+    <div class="detail-hero">
+      <div class="detail-id-row">
+        <!-- Ảnh đại diện: bấm để xem gốc + đổi ảnh. Nội dung (ảnh / chữ cái) do JS đặt. -->
+        <button id="detail-avatar" class="detail-avatar" type="button" aria-label="Ảnh đại diện"></button>
         <h1 id="detail-name" class="detail-name"></h1>
-        <div class="detail-phone-row">
-          <span id="detail-phone" class="detail-phone"></span>
-      <a id="detail-call-btn" class="icon-btn" aria-label="Gọi điện">
-        <svg class="ic-phone" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
-      </a>
-      <a id="detail-zalo-btn" class="icon-btn" target="_blank" rel="noopener" aria-label="Nhắn Zalo">
-        <img class="ic-zalo" src="/icons/zalo.png" alt="Zalo" />
-      </a>
-      <button id="detail-contact-btn" class="icon-btn" type="button" aria-label="Lưu vào danh bạ" title="Lưu vào danh bạ">
-        <svg class="ic-contact" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M15 20v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 3 18.5V20"/>
-          <circle cx="9" cy="8" r="3.5"/>
-          <line x1="19" y1="8" x2="19" y2="14"/>
-          <line x1="22" y1="11" x2="16" y2="11"/>
-        </svg>
-      </button>
-        </div><!-- /.detail-phone-row -->
-      </div><!-- /.detail-id-text -->
-    </div><!-- /.detail-id-row -->
-    <!-- Nhóm (js/team.js): báo "chỉ xem" khi khách do đồng nghiệp phụ trách; nút Giao khách; người cùng theo dõi. -->
-    <div id="detail-readonly" class="ro-banner" hidden></div>
-    <div class="detail-team-row">
-      <span id="detail-followers" class="detail-followers" hidden></span>
-      <button id="detail-assign-btn" class="btn-ghost btn-small assign-btn" type="button" hidden>👥 Giao khách</button>
+      </div>
+      <div class="detail-phone-row">
+        <span id="detail-phone" class="detail-phone"></span>
+        <a id="detail-call-btn" class="icon-btn" aria-label="Gọi điện">
+          <svg class="ic-phone" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+        </a>
+        <a id="detail-zalo-btn" class="icon-btn" target="_blank" rel="noopener" aria-label="Nhắn Zalo">
+          <img class="ic-zalo" src="/icons/zalo.png" alt="Zalo" />
+        </a>
+        <button id="detail-contact-btn" class="icon-btn" type="button" aria-label="Lưu vào danh bạ" title="Lưu vào danh bạ">
+          <svg class="ic-contact" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M15 20v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 3 18.5V20"/>
+            <circle cx="9" cy="8" r="3.5"/>
+            <line x1="19" y1="8" x2="19" y2="14"/>
+            <line x1="22" y1="11" x2="16" y2="11"/>
+          </svg>
+        </button>
+        <!-- Nhóm (js/team.js): nút Giao khách nằm cuối hàng SĐT. -->
+        <button id="detail-assign-btn" class="btn-ghost btn-small assign-btn" type="button" hidden>👥 Giao khách</button>
+      </div>
+      <!-- Báo "chỉ xem" khi khách do đồng nghiệp phụ trách; người cùng theo dõi. -->
+      <div id="detail-readonly" class="ro-banner" hidden></div>
+      <div class="detail-team-row">
+        <span id="detail-followers" class="detail-followers" hidden></span>
+      </div>
+      <!-- 4 TAB nhóm nội dung. Mỗi thẻ bên dưới khai báo data-tabs = tab chứa nó (1 thẻ có thể ở nhiều tab). -->
+      <nav id="detail-tabs" class="detail-tabs" role="tablist" aria-label="Nhóm thông tin khách">
+        <button type="button" class="detail-tab is-active" data-tab="overview" role="tab">Tổng quan</button>
+        <button type="button" class="detail-tab" data-tab="interact" role="tab">Tương tác</button>
+        <button type="button" class="detail-tab" data-tab="info" role="tab">Thông tin</button>
+        <button type="button" class="detail-tab" data-tab="history" role="tab">Lịch sử</button>
+      </nav>
     </div>
 
-    <div class="detail-badges">
-      <div class="detail-badge">
+    <!-- TỔNG QUAN: 2 thẻ chỉ số (Tiến độ → bấm sang Lịch sử · Quan tâm) + Liên lạc (nếu có). -->
+    <div class="detail-badges" data-tabs="overview">
+      <button type="button" class="detail-badge dcard is-link" data-goto-tab="history" aria-label="Tiến độ — xem lịch sử chăm sóc">
         <span class="detail-badge-label">Tiến độ</span>
-        <span id="detail-stage-dots" class="dot-row"></span>
+        <span class="detail-badge-main"><span id="detail-stage-dots" class="dot-row"></span><span class="dcard-chev" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></span></span>
         <span id="detail-stage-text" class="detail-badge-text"></span>
-      </div>
-      <div class="detail-badge">
+      </button>
+      <div class="detail-badge dcard">
         <span class="detail-badge-label">Quan tâm</span>
-        <span id="detail-interest-dots" class="dot-row"></span>
-        <span id="detail-interest-text" class="detail-badge-text"></span>
+        <span class="detail-badge-main"><span id="detail-interest-dots" class="dot-row"></span><span id="detail-interest-text" class="detail-badge-num"></span></span>
       </div>
-      <div class="detail-badge" id="detail-contact-badge" hidden>
+      <div class="detail-badge dcard" id="detail-contact-badge" hidden>
         <span class="detail-badge-label">Liên lạc</span>
         <span id="detail-contact-text" class="detail-badge-text"></span>
       </div>
     </div>
 
-    <div class="detail-call">
+    <div class="detail-call" data-tabs="overview">
       <!-- VIỆC TIẾP THEO = CHECKLIST: lịch "Hẹn gọi" (nếu có) + các việc chưa xong, xếp theo hạn.
            Mỗi dòng có ô tích + đếm ngược (còn X / đến hạn / quá hạn). Tích việc → ghi mốc "Xong việc"
            vào lịch sử chăm sóc; tích Hẹn gọi → hộp thoại Gọi xong / Hẹn lại / Huỷ như cũ.
            Việc đã xong gom vào "Đã xong (n)" thu gọn bên dưới — xổ ra để hoàn tác (có hỏi lại). -->
       <div id="detail-tasks-wrap" class="tasks-wrap">
-        <span class="na-eyebrow">Việc tiếp theo</span>
+        <div class="dcard-head tasks-head">
+          <span class="dcard-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="3.5" width="16" height="17" rx="3"/><path d="M8.5 9l1.6 1.6L13 7.7M8.5 15h7"/></svg></span>
+          <h3>Việc tiếp theo</h3>
+        </div>
         <div id="detail-tasks" class="tasks-list"></div>
         <div class="tasks-actions">
           <button type="button" id="detail-task-add-btn" class="btn-small">＋ Thêm việc</button>
           <button type="button" id="detail-schedule-btn" class="btn-small">＋ Hẹn gọi</button>
+          <button type="button" class="btn-small js-log-call" id="detail-log-call-btn">
+            <svg class="btn-ic" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+            Ghi cuộc gọi
+          </button>
         </div>
         <div id="detail-done-wrap" class="tasks-done" hidden>
           <button type="button" id="detail-done-toggle" class="tasks-done-toggle" aria-expanded="false" aria-controls="detail-done-list">
@@ -475,15 +507,37 @@
       </div>
     </div>
 
-    <!-- NHẬT KÝ CUỘC GỌI (khách Tiềm năng) — cùng dữ liệu call_attempts với tab Khách mới. -->
-    <section class="detail-section" id="detail-calls-section">
-      <h3>Cuộc gọi</h3>
-      <div id="detail-calls" class="lead-attempts"></div>
-      <button type="button" id="detail-log-call-btn" class="btn-small detail-log-call">📞 Ghi cuộc gọi</button>
+
+    <section class="detail-section dcard" data-tabs="overview">
+      <div class="dcard-head">
+        <span class="dcard-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 10.5 12 4l8 6.5V20h-5.5v-6h-5v6H4z"/></svg></span>
+        <h3>Căn hộ quan tâm</h3>
+        <button type="button" class="dcard-go" data-edit-open aria-label="Sửa căn hộ quan tâm" title="Sửa căn hộ quan tâm"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
+      </div>
+      <table class="detail-table"><tbody id="detail-apt"></tbody></table>
     </section>
 
-    <section class="detail-section">
-      <h3>Ghi chú</h3>
+    <!-- TÍNH KHOẢN VAY — phương án đã lưu của khách + bảng tính (điền sẵn mã căn/diện tích).
+         Logic ở js/loan/loan-crm.js; nút "Tìm căn phù hợp" do js/catalog-search-ui.js chèn sau #detail-loan-btn. -->
+    <section class="detail-section dcard" id="detail-loan-section" data-tabs="overview">
+      <div class="dcard-head">
+        <span class="dcard-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2.5"/><path d="M8.5 7h7M8.5 11.5h.01M12 11.5h.01M15.5 11.5h.01M8.5 15.5h.01M12 15.5h.01M15.5 15.5h.01"/></svg></span>
+        <h3>Tính khoản vay</h3>
+      </div>
+      <div id="detail-loan-quotes" class="loan-quotes" hidden></div>
+      <div class="dcard-actions">
+        <button id="detail-loan-btn" class="btn-small" type="button">💰 Tính khoản vay</button>
+      </div>
+      <div id="detail-loan-panel" hidden></div>
+    </section>
+
+    <!-- GHI CHÚ — ở Tổng quan chỉ xem trước 3 ghi chú mới nhất (bấm › sang Tương tác để xem hết). -->
+    <section class="detail-section dcard" id="detail-notes-section" data-tabs="overview interact">
+      <div class="dcard-head">
+        <span class="dcard-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 3.5h9l3 3V20a.5.5 0 0 1-.5.5h-11A.5.5 0 0 1 6 20z"/><path d="M9 10h6M9 13.5h6M9 17h3.5"/></svg></span>
+        <h3>Ghi chú</h3>
+        <button type="button" class="dcard-go" data-goto-tab="interact" id="detail-notes-go" aria-label="Xem tất cả ghi chú" title="Xem tất cả ghi chú"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
+      </div>
       <!-- Khung ghi chú: danh sách + nút "Thêm ghi chú" nằm CHUNG trong 1 khung. -->
       <div class="notes-frame">
         <div id="detail-notes" class="detail-notes-box"></div>
@@ -498,52 +552,55 @@
       </div>
     </section>
 
-    <section class="detail-section">
-      <h3>Căn hộ quan tâm</h3>
-      <table class="detail-table"><tbody id="detail-apt"></tbody></table>
+    <!-- TƯƠNG TÁC: nhật ký cuộc gọi — cùng dữ liệu call_attempts với tab Khách mới. -->
+    <section class="detail-section dcard" id="detail-calls-section" data-tabs="interact">
+      <div class="dcard-head">
+        <span class="dcard-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 4h3.5l1.5 4-2 1.5a10 10 0 0 0 6.5 6.5l1.5-2 4 1.5V19a1 1 0 0 1-1 1A15 15 0 0 1 4 5a1 1 0 0 1 1-1z"/></svg></span>
+        <h3>Cuộc gọi</h3>
+      </div>
+      <div id="detail-calls" class="lead-attempts"></div>
+      <div class="dcard-actions">
+        <button type="button" class="btn-small js-log-call">📞 Ghi cuộc gọi</button>
+      </div>
     </section>
 
-    <!-- TÍNH KHOẢN VAY — phương án đã lưu của khách + bảng tính (điền sẵn mã căn/diện tích).
-         Logic ở js/loan/loan-crm.js. -->
-    <section class="detail-section" id="detail-loan-section">
-      <h3>Tính khoản vay</h3>
-      <div id="detail-loan-quotes" class="loan-quotes" hidden></div>
-      <button id="detail-loan-btn" class="btn-small" type="button">💰 Tính khoản vay</button>
-      <div id="detail-loan-panel" hidden></div>
-    </section>
-
-    <section class="detail-section">
-      <h3>Thông tin cá nhân</h3>
+    <!-- THÔNG TIN -->
+    <section class="detail-section dcard" data-tabs="info">
+      <div class="dcard-head">
+        <span class="dcard-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.6"/><path d="M5 20a7 7 0 0 1 14 0"/></svg></span>
+        <h3>Thông tin cá nhân</h3>
+        <button type="button" class="dcard-go" data-edit-open aria-label="Sửa thông tin" title="Sửa thông tin"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
+      </div>
       <div id="detail-personal" class="detail-personal"></div>
     </section>
 
-    <section class="detail-section" id="detail-history-section" hidden>
-      <h3>Lịch sử chăm sóc</h3>
-      <div id="detail-history" class="cs-log"></div>
-    </section>
-
     <!-- NÂNG CAO — gập mặc định; chỉ hiện khi có ít nhất 1 trường (JS toggle). -->
-    <details class="detail-section adv-section" id="detail-advanced-section" hidden>
+    <details class="detail-section adv-section dcard" id="detail-advanced-section" data-tabs="info" hidden>
       <summary>Nâng cao</summary>
       <div id="detail-advanced"></div>
     </details>
 
-    <!-- PHÂN TÍCH AI — copy 1 prompt (kèm dữ liệu khách này dạng JSON) để dán vào
-         ChatGPT / Claude / Gemini nhờ phân tích. Thuần client, không gọi API. -->
-    <section class="detail-section" id="detail-ai-section">
-      <h3>Phân tích AI</h3>
-      <button id="detail-ai-export-btn" class="btn-small" type="button">📋 Copy prompt phân tích</button>
-      <div class="docs-hint">Sao chép prompt kèm dữ liệu khách này, dán vào ChatGPT / Claude / Gemini để nhờ phân tích tính cách &amp; gợi ý cách tiếp cận.</div>
-    </section>
-
-    <section class="detail-section" id="detail-docs-section">
-      <h3>Tài liệu</h3>
+    <section class="detail-section dcard" id="detail-docs-section" data-tabs="info">
+      <div class="dcard-head">
+        <span class="dcard-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M14 3.5H7a1 1 0 0 0-1 1v15a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V7.5z"/><path d="M14 3.5v4h4"/><path d="M9 13h6M9 16.5h4"/></svg></span>
+        <h3>Tài liệu</h3>
+      </div>
       <button id="detail-docs-toggle" class="btn-small" type="button">📎 Xem tài liệu (0)</button>
       <div id="detail-docs-body" hidden>
         <div id="detail-docs" class="docs-list"></div>
         <div class="docs-hint">Thêm/xoá tài liệu trong trang "Sửa thông tin khách".</div>
       </div>
     </section>
+
+    <!-- LỊCH SỬ: dòng thời gian chăm sóc theo bậc (renderCareHistory). -->
+    <section class="detail-section dcard" id="detail-history-section" data-tabs="history" hidden>
+      <div class="dcard-head">
+        <span class="dcard-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4.5v3.5h3.5"/><path d="M12 8v4.5l3 1.8"/></svg></span>
+        <h3>Lịch sử chăm sóc</h3>
+      </div>
+      <div id="detail-history" class="cs-log"></div>
+    </section>
+    <div id="detail-history-empty" class="dcard dcard-empty" data-tabs="history" hidden>Chưa có lịch sử chăm sóc.</div>
   </div>
 </section>
 

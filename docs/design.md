@@ -6,12 +6,33 @@ Tài liệu này tách nội dung thiết kế có trong CLAUDE.md gốc và bi�
 
 ## Phong cách đang được mô tả
 
-- Giao diện theo kiểu “báo cáo bất động sản trang trọng”.
+- Giao diện theo kiểu “báo cáo bất động sản trang trọng”, trình bày theo thẻ nhóm thông tin (xem mục "Vibe thiết kế" bên dưới).
 - Tông be/xanh rêu/cam đất.
 - Style chính trong `css/style.css`.
 - Module vay có `css/loan.css`, class tiền tố `.lm-`.
 
 File nguồn không quy định chính xác mã màu, spacing, breakpoint, font size hay thư viện component. Khi chỉnh sửa, tra giá trị và pattern hiện có trong code; không tự đặt thêm thông số rồi coi đó là chuẩn đã duyệt.
+
+## Vibe thiết kế: "cân bằng – rõ ràng theo nhóm" (chuẩn từ 2026-10-08)
+
+Áp dụng cho MỌI màn mới hoặc khi làm lại màn cũ. Mẫu chuẩn: trang hồ sơ khách (`#detail-screen`); token và class dùng chung ở khối cuối `css/style.css` ("TRANG HỒ SƠ KHÁCH — CÂN BẰNG…").
+
+1. **Chia nội dung thành THẺ theo nhóm thông tin.** Mỗi nhóm 1 thẻ `.dcard`: nền trắng trên nền giấy ngà, viền ấm nhạt `--card-border`, bo `--card-radius` (16px), bóng rất nhẹ `--card-shadow`, các thẻ cách nhau `--card-gap` (12px). Không lồng khung trong khung (bỏ viền/nền của khối con nằm trong thẻ).
+2. **Đầu thẻ = icon nét + tiêu đề + (›).** `.dcard-head`: icon line 20px (stroke ~1.7, màu xanh mực nhạt), tiêu đề 15–16px đậm, chữ thường (không VIẾT HOA, không chữ xám nhỏ). Có trang/khu xem chi tiết hơn → nút chevron `›` (`.dcard-go`) mép phải, không viết chữ "Xem thêm".
+3. **Tổng quan trước, chi tiết sau.** Màn nhiều thông tin chia TAB gạch chân (vd hồ sơ: Tổng quan · Tương tác · Thông tin · Lịch sử). Tab đầu chỉ chứa thứ cần để hành động ngay; danh sách dài ở tab đầu chỉ xem trước 2–3 mục mới nhất + `›` sang tab đầy đủ. Một thẻ có thể thuộc nhiều tab (`data-tabs="overview interact"`).
+4. **Chỉ 1 điểm nhấn màu mỗi màn.** Đỏ son (`--seal`) dành cho hành động tiếp theo (vd thẻ "Việc tiếp theo": nền hồng giấy, viền trái đỏ son, tiêu đề đỏ son) và tab đang chọn. Các thẻ khác trung tính. Không thêm màu mới ngoài bảng màu sẵn có.
+5. **Chỉ số ngắn = thẻ nhỏ xếp lưới 2 cột** (vd Tiến độ / Quan tâm): nhãn trên, chấm/giá trị dưới; thẻ bấm được có `›`.
+6. **Nút phụ đồng đều**: nền trắng, viền nhạt, bo 10px, chữ đậm vừa, có icon nhỏ nếu cần; xếp hàng ngang, tự xuống dòng trên điện thoại. Nút chính (đỏ son) chỉ dùng khi thật sự là hành động chính.
+7. **Thao tác ít dùng gom vào menu ⋯** (vd Sửa thông tin, Copy prompt AI) thay vì nút nổi riêng; thao tác dùng hằng ngày (Gọi, Zalo, Giao khách) để lộ ra ngoài.
+8. **Bảng thông tin trong thẻ**: cột nhãn nền giấy ngà, chữ xám; cột giá trị chữ đậm; dòng ẩn khi không có dữ liệu.
+9. **Điện thoại trước**: kiểm tra ở 375px — thẻ sát lề 12px, tab chia đều không cuộn ngang, nút xuống dòng gọn. Desktop giữ cột nội dung tối đa ~720px.
+
+## Trang hồ sơ khách (2026-10-08)
+
+- Đầu trang: ảnh bìa (← Quay lại · ⋯ menu: Sửa thông tin khách, Copy prompt phân tích AI) nối liền khối trắng: avatar đè mép bìa + tên · SĐT + Gọi / Zalo / Lưu danh bạ + Giao khách · 4 tab.
+- **Tổng quan**: Tiến độ (› sang Lịch sử) · Quan tâm · Liên lạc (nếu có) → Việc tiếp theo (+ Thêm việc · + Hẹn gọi · Ghi cuộc gọi) → Căn hộ quan tâm (› mở Sửa) → Tính khoản vay (Tính khoản vay · Tìm căn phù hợp) → Ghi chú (3 mới nhất, › sang Tương tác).
+- **Tương tác**: Ghi chú đầy đủ · Cuộc gọi. **Thông tin**: Thông tin cá nhân (› mở Sửa) · Nâng cao · Tài liệu. **Lịch sử**: Lịch sử chăm sóc.
+- Mở khách khác → về tab Tổng quan. Thêm khối mới = thêm 1 thẻ `.dcard` với `data-tabs` phù hợp; logic chuyển tab: `setDetailTab()` trong `js/app.js`.
 
 ## Cách chỉnh UI
 

@@ -2997,7 +2997,7 @@ function openDetail(id) {
   if (!c) return;
   // Lead (lớp 1) chưa có trang hồ sơ riêng → mở hộp "Khách mới" (ghi cuộc gọi / Đạt / Loại).
   if (!isQualified(c)) { openLeadSheet(id); return; }
-  if (id !== detailId) doneOpen = false; // khách khác → thu gọn mục "Đã xong"
+  if (id !== detailId) { doneOpen = false; setDetailTab('overview'); } // khách khác → về tab Tổng quan, thu gọn "Đã xong"
   detailId = id;
   applyTeamDetail(c); // chỉ xem / nút Giao khách (js/team.js)
   editingHistoryAt = null; // mở khách mới → thoát chế độ sửa note cũ
@@ -3116,6 +3116,7 @@ function renderCareHistory(history, registeredAt) {
   const section = $('#detail-history-section');
   const box = $('#detail-history');
   const flat = Array.isArray(history) ? [...history] : [];
+  $('#detail-history-empty').hidden = flat.length > 0;
   if (flat.length === 0) { section.hidden = true; box.innerHTML = ''; return; }
   section.hidden = false;
   flat.sort((a, b) => (a.at || '').localeCompare(b.at || '')); // thời gian tăng dần
@@ -3748,9 +3749,50 @@ async function coverRemove() {
   } catch (e) { console.warn('cover remove lỗi:', e); status.textContent = '⚠️ Gỡ thất bại.'; }
 }
 
-// Bấm vùng cover (trừ 2 nút nổi Quay lại/Sửa) → mở viewer ảnh bìa.
+// ---- 4 TAB hồ sơ: Tổng quan · Tương tác · Thông tin · Lịch sử ----
+// Mỗi thẻ khai báo data-tabs="overview interact…"; thẻ không thuộc tab đang chọn → .tab-off (ẩn).
+// Ghi chú ở Tổng quan chỉ xem trước 3 ghi chú (CSS theo data-active-tab).
+let detailTab = 'overview';
+function setDetailTab(tab, scroll) {
+  detailTab = tab;
+  const body = $('#detail-body'); if (!body) return;
+  body.dataset.activeTab = tab;
+  $$('#detail-tabs .detail-tab').forEach((b) => {
+    const on = b.dataset.tab === tab;
+    b.classList.toggle('is-active', on); b.setAttribute('aria-selected', String(on));
+  });
+  $$('#detail-body [data-tabs]').forEach((el) => el.classList.toggle('tab-off', !el.dataset.tabs.split(' ').includes(tab)));
+  // Đổi tab khi đang cuộn sâu → đưa thanh tab về sát đỉnh để thấy nội dung tab mới từ đầu.
+  if (scroll) {
+    const top = $('#detail-tabs').getBoundingClientRect().top;
+    if (top < 0 || scroll === 'force') window.scrollTo({ top: Math.max(0, window.scrollY + top - 60), behavior: 'smooth' });
+  }
+}
+$('#detail-tabs')?.addEventListener('click', (e) => {
+  const b = e.target.closest('.detail-tab'); if (b) setDetailTab(b.dataset.tab, true);
+});
+$('#detail-body')?.addEventListener('click', (e) => {
+  const g = e.target.closest('[data-goto-tab]');
+  if (g) { setDetailTab(g.dataset.gotoTab, 'force'); return; }
+  if (e.target.closest('[data-edit-open]') && detailId && !$('#detail-screen').classList.contains('is-readonly')) openForm(detailId);
+});
+// Nút ⋯ trên ảnh bìa: Sửa thông tin · Copy prompt AI. Bấm mục nào cũng đóng menu.
+$('#detail-more-btn')?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  const pop = $('#detail-more-pop'), open = pop.hidden;
+  pop.hidden = !open; $('#detail-more-btn').setAttribute('aria-expanded', String(open));
+});
+document.addEventListener('click', (e) => {
+  const pop = $('#detail-more-pop');
+  if (pop && !pop.hidden && (!e.target.closest('#detail-more') || e.target.closest('.io-menu-item'))) {
+    pop.hidden = true; $('#detail-more-btn').setAttribute('aria-expanded', 'false');
+  }
+});
+setDetailTab('overview');
+
+// Bấm vùng cover (trừ nút nổi Quay lại / ⋯) → mở viewer ảnh bìa.
 $('#detail-cover')?.addEventListener('click', (e) => {
-  if (e.target.closest('.cover-btn')) return;
+  if (e.target.closest('.cover-btn, .cover-more')) return;
   if (detailId) openCoverViewer(detailId);
 });
 $('#detail-avatar')?.addEventListener('click', () => { if (detailId) openAvatarViewer(detailId); });
@@ -3969,7 +4011,10 @@ function renderDetailCalls(c) {
       + (base > 0 ? `<div class="lead-dim">… và ${base} cuộc cũ hơn</div>` : '')
     : '<div class="lead-dim">Chưa có cuộc gọi nào được ghi.</div>';
 }
-$('#detail-log-call-btn')?.addEventListener('click', () => { if (detailId && window.CallLog) CallLog.open({ customerId: detailId }); });
+// Nút "Ghi cuộc gọi" có ở thẻ Việc tiếp theo (Tổng quan) và thẻ Cuộc gọi (Tương tác).
+document.addEventListener('click', (e) => {
+  if (e.target.closest('#detail-screen .js-log-call') && detailId && window.CallLog) CallLog.open({ customerId: detailId });
+});
 $('#detail-calls')?.addEventListener('click', (e) => {
   const b = e.target.closest('[data-call-at]'); if (!b || !detailId || !window.CallLog) return;
   CallLog.open({ customerId: detailId, editAt: b.dataset.callAt });

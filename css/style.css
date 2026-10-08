@@ -864,8 +864,6 @@ input:focus, select:focus, textarea:focus {
   font-size: 13px; padding: 6px 12px; -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
 }
 .cover-btn-back { left: 12px; }
-/* Nút Sửa nổi trên cover: chữ + icon (✎) màu đỏ son cho dễ nhìn/nổi bật. */
-.cover-btn-edit { right: 12px; color: var(--seal); font-weight: 600; }
 .cover-btn:active { background: rgba(0, 0, 0, 0.6); }
 /* Gợi ý "đổi ảnh bìa" — icon máy ảnh mờ góc dưới phải (trang trí, không chặn click bìa). */
 .cover-cam { position: absolute; right: 12px; bottom: 10px; z-index: 1; pointer-events: none; color: rgba(255, 255, 255, 0.92); background: rgba(0, 0, 0, 0.32); width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
@@ -874,8 +872,6 @@ input:focus, select:focus, textarea:focus {
 /* Hàng đầu (kiểu FB mobile): avatar tròn ĐÈ lên mép dưới cover (margin âm nửa avatar),
    TÊN + SĐT xuống dòng NGAY DƯỚI avatar (không cạnh phải — vì hàng SĐT có icon nên cao). */
 .detail-id-row { margin-bottom: 16px; }
-.detail-id-text { min-width: 0; margin-top: 10px; }
-.detail-id-text .detail-phone-row { margin-bottom: 0; }
 /* Avatar tròn = --av; viền trắng dày để nổi trên cover; margin âm để đè lên cover. */
 .detail-avatar {
   position: relative; /* chữ cái làm nền, ảnh phủ tuyệt đối lên trên */
@@ -2028,7 +2024,7 @@ body { padding-bottom: var(--sab); }          /* nội dung cuối trang không 
 .inventory-card { border:1px solid #dfdcd2; border-radius:9px; padding:12px; margin:10px 0; background:#fff; font-size:13px; }
 .inventory-card p { margin:7px 0; }
 #inventory-client-results small { display:block; margin-top:5px; color:#73796f; }
-#detail-match-units { margin-left:8px; }
+#detail-match-units { margin-left:0; }
 
 /* ===== Nhóm & giao khách (js/team.js, D-003) ===== */
 .tag-owner { font-size: 11px; font-weight: var(--badge-fw-normal); color: #4a5a8a; background: #eef0f7; border: 1px solid #d9ddec; border-radius: 100px; padding: 1px 8px; white-space: nowrap; }
@@ -2052,7 +2048,8 @@ body { padding-bottom: var(--sab); }          /* nội dung cuối trang không 
 /* CHỈ XEM: ẩn các nút sửa khi khách do đồng nghiệp phụ trách (db.js vẫn chặn nếu sót) */
 #detail-screen.is-readonly #detail-edit-btn, #detail-screen.is-readonly #detail-edit-btn-sticky,
 #detail-screen.is-readonly .cover-cam, #detail-screen.is-readonly #detail-task-add-btn,
-#detail-screen.is-readonly #detail-schedule-btn, #detail-screen.is-readonly #detail-log-call-btn,
+#detail-screen.is-readonly #detail-schedule-btn, #detail-screen.is-readonly .js-log-call,
+#detail-screen.is-readonly [data-edit-open],
 #detail-screen.is-readonly #detail-note-add, #detail-screen.is-readonly .task-act,
 #detail-screen.is-readonly .task-check, #detail-screen.is-readonly .done-undo,
 #detail-screen.is-readonly .doc-del, #detail-screen.is-readonly .call-annotate,
@@ -2114,3 +2111,125 @@ body:has(#detail-screen.is-readonly:not([hidden])) #avatar-remove-btn,
   #filter-panel, #lead-filter-panel { left: auto; right: 0; }
 }
 
+
+
+/* =====================================================================================
+   TRANG HỒ SƠ KHÁCH — "CÂN BẰNG, RÕ RÀNG THEO NHÓM" (2026-10-08)
+   Quy tắc dùng lại cho màn khác: docs/design.md → mục "Vibe thiết kế: thẻ theo nhóm".
+   Đặt CUỐI file để đè style cũ của trang chi tiết.
+   ===================================================================================== */
+:root {
+  --card-border: #ECE6DA;
+  --card-radius: 16px;
+  --card-shadow: 0 1px 2px rgba(80, 60, 30, .04), 0 6px 16px rgba(80, 60, 30, .05);
+  --card-gap: 12px;
+  --icon-stroke: 1.7;
+}
+.tab-off { display: none !important; }
+
+/* Ảnh bìa + khối đầu hồ sơ ghép thành 1 thẻ: bìa bo góc trên, khối trắng bo góc dưới. */
+.detail-cover { border-radius: var(--card-radius) var(--card-radius) 0 0; }
+.cover-more { position: absolute; top: 12px; right: 12px; z-index: 3; }
+.cover-more .cover-btn-more { position: static; width: 34px; height: 34px; padding: 0; display: flex; align-items: center; justify-content: center; }
+.detail-more-pop { top: calc(100% + 6px); right: 0; left: auto; min-width: 220px; }
+.detail-hero {
+  margin: 0 -20px var(--card-gap); padding: 0 20px;
+  background: #fff; border: 1px solid var(--card-border); border-top: none;
+  border-radius: 0 0 var(--card-radius) var(--card-radius); box-shadow: var(--card-shadow);
+}
+.detail-hero .detail-id-row { display: flex; align-items: flex-end; gap: 14px; margin-bottom: 12px; }
+.detail-hero .detail-name { margin: 0 0 4px; font-size: 24px; line-height: 1.2; min-width: 0; }
+.detail-hero .detail-phone-row { margin-bottom: 12px; gap: 8px; }
+.detail-hero .detail-phone-row .icon-btn { padding: 7px 12px; border-radius: 10px; border-color: var(--card-border); }
+.detail-hero .assign-btn { margin-left: auto; border-radius: 10px; padding: 7px 12px; font-weight: 600; }
+.detail-hero .ro-banner { margin: 0 0 10px; }
+.detail-hero .detail-team-row { margin: 0 0 8px; }
+.detail-tabs {
+  display: flex; margin: 0 -20px; padding: 0 8px; border-top: 1px solid #F1ECE2;
+  overflow-x: auto; scrollbar-width: none;
+}
+.detail-tabs::-webkit-scrollbar { display: none; }
+.detail-tab {
+  flex: 1 1 auto; padding: 12px 10px 10px; border: none; background: none; cursor: pointer;
+  font: inherit; font-size: 14.5px; font-weight: 600; color: #7a7a70; white-space: nowrap;
+  border-bottom: 2.5px solid transparent;
+}
+.detail-tab:hover { color: var(--ink); }
+.detail-tab.is-active { color: var(--ink); border-bottom-color: var(--seal); }
+
+/* THẺ (card) dùng chung: nền trắng, viền ấm nhạt, bo 16, bóng rất nhẹ, cách nhau 12px. */
+.dcard {
+  background: #fff; border: 1px solid var(--card-border); border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow); padding: 14px 16px; margin-bottom: var(--card-gap);
+}
+.detail-section.dcard { margin-bottom: var(--card-gap); }
+.dcard-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.dcard-head h3, .detail-section .dcard-head h3 {
+  flex: 1; margin: 0; font-family: inherit; font-size: 15.5px; font-weight: 700;
+  text-transform: none; letter-spacing: 0; color: var(--ink);
+}
+.dcard-ic { flex: none; display: inline-flex; color: var(--teal-light); }
+.dcard-ic svg, .dcard-go svg, .dcard-chev svg {
+  width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: var(--icon-stroke);
+  stroke-linecap: round; stroke-linejoin: round;
+}
+.dcard-go {
+  flex: none; width: 30px; height: 30px; margin: -4px -6px -4px 0; padding: 0; border: none; border-radius: 50%;
+  background: transparent; color: #8a8a7e; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+}
+.dcard-go:hover { background: var(--paper); color: var(--ink); }
+.dcard-go svg, .dcard-chev svg { width: 18px; height: 18px; }
+.dcard-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.dcard-empty { text-align: center; color: #9a9a8e; font-size: 14px; padding: 28px 16px; }
+/* Nút phụ trong thẻ: nền trắng, viền nhạt, bo 10, chữ đậm vừa — đều nhau, không tranh với nút chính. */
+#detail-body .btn-small {
+  display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 10px;
+  background: #fff; border: 1px solid #E6DFD2; color: var(--ink); font-weight: 600; font-size: 13.5px;
+}
+#detail-body .btn-small:hover { border-color: #CFC6B4; background: #FCFAF6; }
+#detail-body .btn-small.btn-primary { background: var(--seal); border-color: var(--seal); color: #fff; }
+.btn-ic { width: 15px; height: 15px; flex: none; }
+
+/* 2 thẻ chỉ số Tiến độ / Quan tâm cạnh nhau (Liên lạc nếu có: full hàng). */
+.detail-badges { display: grid; grid-template-columns: 1fr 1fr; align-items: stretch; gap: var(--card-gap); margin-bottom: var(--card-gap); }
+.detail-badge.dcard {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin: 0;
+  padding: 12px 14px; text-align: left; font: inherit; color: inherit; border-radius: var(--card-radius);
+}
+.detail-badge.is-link { cursor: pointer; transition: border-color .15s; }
+.detail-badge.is-link:hover { border-color: #D8CFBE; }
+.detail-badge .detail-badge-label { font-size: 13.5px; font-weight: 600; color: var(--ink); }
+.detail-badge-main { display: flex; align-items: center; gap: 10px; width: 100%; }
+.detail-badge-num { margin-left: auto; font-size: 15px; font-weight: 700; color: var(--ink); }
+.detail-badge .detail-badge-text { font-size: 14px; font-weight: 600; }
+.dcard-chev { margin-left: auto; display: inline-flex; color: #8a8a7e; }
+.detail-badges .dot { width: 11px; height: 11px; }
+#detail-contact-badge { grid-column: 1 / -1; flex-direction: row; align-items: center; }
+
+/* Việc tiếp theo = thẻ NHẤN DUY NHẤT của trang: nền hồng giấy, viền trái đỏ son, tiêu đề đỏ son. */
+.detail-call { margin-bottom: var(--card-gap); }
+.tasks-wrap {
+  background: #FCF5F2; border: 1px solid #F0DCD5; border-left: 4px solid var(--seal);
+  border-radius: var(--card-radius); box-shadow: var(--card-shadow); padding: 14px 16px;
+}
+.tasks-head h3 { color: var(--seal); }
+.tasks-head .dcard-ic { color: var(--seal); }
+.tasks-wrap .task-item { background: #fff; }
+
+/* Ghi chú trong thẻ: bỏ khung lồng; ở Tổng quan chỉ xem trước 3 ghi chú mới nhất. */
+.dcard .notes-frame { border: none; background: none; padding: 0; border-radius: 0; }
+#detail-body[data-active-tab="overview"] #detail-notes > .note-item:nth-child(n+4) { display: none; }
+#detail-body:not([data-active-tab="overview"]) #detail-notes-go { display: none; }
+.dcard .detail-table { border-color: #EFEAE0; border-radius: 12px; }
+
+/* Nâng cao (details) dạng thẻ. */
+.adv-section.dcard { border: 1px solid var(--card-border); border-radius: var(--card-radius); padding: 0; background: #fff; }
+
+@media (max-width: 560px) {
+  .detail-body { padding: 0 12px 20px; }
+  .detail-hero { margin: 0 -12px var(--card-gap); padding: 0 16px; border-radius: 0 0 var(--card-radius) var(--card-radius); }
+  .detail-tabs { margin: 0 -16px; }
+  .detail-cover { border-radius: 0; }
+  .dcard { padding: 13px 14px; }
+  .detail-tab { font-size: 14px; padding: 12px 4px 10px; }
+}

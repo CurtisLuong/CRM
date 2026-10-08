@@ -6,6 +6,14 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-08 — Trang hồ sơ khách: thẻ theo nhóm + 4 tab; quy tắc thiết kế mới
+
+- Đầu hồ sơ: bìa (← Quay lại · ⋯ menu Sửa thông tin / Copy prompt AI — bỏ nút "✎ Sửa" nổi và mục Phân tích AI riêng) nối khối trắng: avatar + tên, SĐT + Gọi/Zalo/Danh bạ + Giao khách (dời từ hàng riêng), 4 tab Tổng quan · Tương tác · Thông tin · Lịch sử.
+- Mỗi khối thành thẻ có icon + tiêu đề (+ › khi có chỗ xem/sửa): Tiến độ (› Lịch sử) / Quan tâm dạng 2 thẻ, Việc tiếp theo (thêm nút Ghi cuộc gọi), Căn hộ (› Sửa), Tính khoản vay (+ icon cho Tìm căn phù hợp), Ghi chú (Tổng quan xem trước 3, › Tương tác), Cuộc gọi, Thông tin cá nhân, Nâng cao, Tài liệu, Lịch sử chăm sóc (trống → "Chưa có lịch sử").
+- `docs/design.md`: thêm mục "Vibe thiết kế: cân bằng – rõ ràng theo nhóm" (quy tắc dùng cho các màn sau) + "Trang hồ sơ khách". Token `--card-*` ở cuối `css/style.css`.
+- File: `index.html`, `js/app.js`, `js/catalog-search-ui.js`, `css/style.css`, `sw.js` (v61), `docs/design.md`.
+- Đã kiểm tra trình duyệt local (dữ liệu thử, 375px + ~700px): 4 tab đúng thẻ, xem trước 3 ghi chú, › chuyển tab, menu ⋯, Lịch sử. Chưa thử với dữ liệu thật / ảnh bìa thật, chưa deploy.
+
 ## 2026-10-08 — Khung giờ gọi thống nhất toàn app (D-005)
 
 - 1 nguồn duy nhất `FOLLOWUP_CONFIG.callSlots` (js/followup.js): Sáng 09:00–10:00 · Trưa 11:30–12:15 · Chiều 14:30–15:30 · Tối 20:00–20:45. Nút giờ hộp **Hẹn gọi** (trước 9–10h/14–15h/20–21h) và hộp **Thêm việc** (trước 9:00/14:00/20:00) giờ do app.js vẽ từ nguồn này; nhịp khách mới dùng chung (đổi tên `leadSlots` → `callSlots`).
