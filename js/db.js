@@ -341,7 +341,11 @@ const CRM = {
     const idx = list.findIndex((n) => n.at === at);
     if (idx === -1) return;
     if (!t) list.splice(idx, 1);
-    else list[idx] = { ...list[idx], text: t };
+    else {
+      const entry = { ...list[idx], text: t };
+      if (due) entry.due = due; else delete entry.due;
+      list[idx] = entry;
+    }
     const record = { ...existing, notes_manual: list };
     await localPut(record);
     await queueAdd({ type: 'update', recordId: id, payload: { notes_manual: list }, ts: new Date().toISOString() });
@@ -362,18 +366,21 @@ const CRM = {
     return record;
   },
 
-  // ---- VIỆC TIẾP THEO (next_tasks): mảng {text, at}, GIỮ thứ tự tạo (cũ → mới) ----
+  // ---- VIỆC TIẾP THEO (next_tasks): mảng {text, at, due?}, GIỮ thứ tự tạo (cũ → mới) ----
+  // due = hạn ngày giờ (ISO), tuỳ chọn — không có thì bỏ trống khoá.
   // Chỉ đồng bộ riêng cột next_tasks (partial update) → không đụng field khác.
 
   /** Thêm 1 việc mới (xuống cuối danh sách). */
-  async addTask(id, text) {
+  async addTask(id, text, due) {
     await assertWritable(id);
     const t = (text || '').trim();
     const existing = (await localGetAll()).find((r) => r.id === id);
     if (!existing || !t) return;
     const now = new Date().toISOString();
     const list = Array.isArray(existing.next_tasks) ? existing.next_tasks.slice() : [];
-    list.push({ text: t, at: now }); // việc mới xuống cuối
+    const entry = { text: t, at: now };
+    if (due) entry.due = due;
+    list.push(entry); // việc mới xuống cuối
     const record = { ...existing, next_tasks: list, updated_at: now };
     await localPut(record);
     await queueAdd({ type: 'update', recordId: id, payload: { next_tasks: list, updated_at: now }, ts: now });
@@ -381,8 +388,8 @@ const CRM = {
     return record;
   },
 
-  /** Sửa nội dung 1 việc (nhận diện theo `at`). Để trống = xoá việc đó. */
-  async updateTask(id, at, text) {
+  /** Sửa nội dung + hạn 1 việc (nhận diện theo `at`). Nội dung trống = xoá việc đó; due trống = bỏ hạn. */
+  async updateTask(id, at, text, due) {
     await assertWritable(id);
     const existing = (await localGetAll()).find((r) => r.id === id);
     if (!existing) return;
@@ -391,7 +398,11 @@ const CRM = {
     const idx = list.findIndex((n) => n.at === at);
     if (idx === -1) return;
     if (!t) list.splice(idx, 1);
-    else list[idx] = { ...list[idx], text: t };
+    else {
+      const entry = { ...list[idx], text: t };
+      if (due) entry.due = due; else delete entry.due;
+      list[idx] = entry;
+    }
     const record = { ...existing, next_tasks: list };
     await localPut(record);
     await queueAdd({ type: 'update', recordId: id, payload: { next_tasks: list }, ts: new Date().toISOString() });

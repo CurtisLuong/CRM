@@ -1450,7 +1450,13 @@ input[name="apt_type_other"] { margin-top: 8px; }
 .tasks-empty { font-size: 13px; color: #9a9a8e; }
 .task-item { display: flex; align-items: flex-start; gap: 8px; font-size: 14px; color: var(--ink); }
 .task-bullet { color: var(--seal); line-height: 1.45; }
-.task-text { flex: 1; white-space: pre-wrap; line-height: 1.45; }
+.task-body { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.task-text { white-space: pre-wrap; line-height: 1.45; }
+.task-due { font-size: 12px; color: #6b6b60; }
+.task-due.is-today { color: #A8741A; font-weight: 600; }
+.task-due.is-overdue { color: var(--seal); font-weight: 600; }
+.task-due-field { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 13px; color: #6b6b60; }
+.task-due-input { flex: 1; min-width: 0; font: inherit; font-size: 14px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink); }
 .task-act { flex: 0 0 auto; border: none; background: transparent; cursor: pointer; color: #8a8a7e; font-size: 14px; padding: 0 4px; line-height: 1.4; }
 .task-act:hover { color: var(--ink); }
 .task-editing { flex-direction: column; align-items: stretch; }

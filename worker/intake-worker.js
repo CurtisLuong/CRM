@@ -3,7 +3,9 @@
 // Route hiện có:
 //   POST /ocr   — nhận ảnh (base64), gọi Gemini vision, trả JSON field khách để
 //                 app tự điền vào form "Thêm khách" (KHÔNG lưu thẳng — user rà tay).
-// Route để dành cho sau (kênh 3 – leads landing page): CHƯA bật ở file này.
+//   /fb/*       — Facebook Lead Ads → ghi thẳng khách mới vào Supabase (xem fb-leads.js):
+//                 GET/POST /fb/webhook · POST /fb/manual (Make/Zapier) · POST /fb/poll (quét ngay)
+//   cron 5 phút — quét lead Facebook mới (lưới an toàn cho webhook) — [triggers] trong wrangler.toml
 //
 // ─────────────────────────────────────────────────────────────────────────────
 // Biến/secret cần đặt cho Worker (Dashboard > Worker > Settings > Variables, hoặc
@@ -124,11 +126,18 @@ CÁC FIELD (đúng thuộc tính CRM):
   • KHÔNG tự suy hôm nay/hôm qua/năm — chỉ đọc ĐÚNG những gì ghi trong ảnh; app sẽ tự tính.
   • Không thấy mốc thời gian tin nhắn nào → tất cả 4 field null.`;
 
+import { handleFb, pollLeads } from './fb-leads.js';
+
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const origin = env.ALLOWED_ORIGIN || '*';
-    if (request.method === 'OPTIONS') return withCors(new Response(null, { status: 204 }), origin);
     const url = new URL(request.url);
+    // Facebook gọi server-to-server (không cần CORS) — xử lý trước.
+    if (url.pathname.startsWith('/fb/')) {
+      const res = await handleFb(request, env, ctx);
+      if (res) return res;
+    }
+    if (request.method === 'OPTIONS') return withCors(new Response(null, { status: 204 }), origin);
     if (request.method === 'POST' && url.pathname === '/ocr') {
       const res = await handleOcr(request, env);
       // Trạm Cloudflare NHẬN yêu cầu (vd SIN, HKG). Nơi code thực sự chạy (sau ghim vị trí) xem header
@@ -137,6 +146,12 @@ export default {
       return withCors(res, origin);
     }
     return withCors(json({ error: 'Not found' }, 404), origin);
+  },
+
+  // Cron (wrangler.toml [triggers]): quét lead Facebook mới mỗi 5 phút.
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(pollLeads(env).then((r) => console.log('fb poll', JSON.stringify(r)))
+      .catch((e) => console.error('fb poll lỗi', e.message)));
   },
 };
 

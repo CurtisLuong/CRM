@@ -1,6 +1,7 @@
 # Cấu hình deploy cho intake-worker (Cloudflare Worker).
 # Deploy: cd worker && wrangler deploy
-# Các secret (GEMINI_API_KEY, SUPABASE_URL, SUPABASE_ANON_KEY, ALLOWED_ORIGIN)
+# Các secret (GEMINI_API_KEY, SUPABASE_URL, SUPABASE_ANON_KEY, ALLOWED_ORIGIN, và nhóm FB_* +
+# SUPABASE_SERVICE_ROLE_KEY cho Facebook Lead Ads — xem README)
 # đặt bằng `wrangler secret put <TÊN>` — KHÔNG ghi vào file này.
 
 name = "intake-worker"
@@ -13,3 +14,8 @@ compatibility_date = "2025-01-01"
 # đều gọi Gemini từ cùng 1 vùng được hỗ trợ. Đổi vùng: xem developers.cloudflare.com/workers/configuration/placement/
 [placement]
 region = "gcp:us-east4"
+
+# Quét lead Facebook mới mỗi 5 phút (fb-leads.js pollLeads) — chạy được cả khi app Meta chưa Live.
+# Chưa đặt FB_PAGE_ID / FB_PAGE_ACCESS_TOKEN thì lượt quét tự bỏ qua.
+[triggers]
+crons = ["*/5 * * * *"]

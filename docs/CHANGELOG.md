@@ -6,6 +6,21 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-08 — Việc tiếp theo có hạn ngày giờ (tuỳ chọn)
+
+- Khi thêm/sửa việc cho khách Đang chăm có ô "Hạn (tuỳ chọn)" (ngày + giờ, nút ✕ bỏ hạn). Dưới việc hiện "Hạn: Ngày mai · 14:00"; trong hôm nay tô vàng đất, quá hạn hiện "Quá hạn · …" màu đỏ son.
+- Dữ liệu: thêm khoá `due` (ISO) vào từng phần tử `next_tasks` (jsonb) — không cần migration; việc cũ không có hạn vẫn hiển thị như trước.
+- File: `js/app.js`, `js/db.js`, `css/style.css`, `sw.js` (v50).
+- Đã kiểm tra trình duyệt local (dữ liệu giả, không đăng nhập): hiển thị hạn/quá hạn, nạp lại hạn khi sửa. Chưa thử lưu thật lên Supabase, chưa deploy.
+
+## 2026-10-08 — Facebook Lead Ads ghi thẳng vào CRM (Worker)
+
+- `worker/fb-leads.js` (route trong intake-worker): webhook `/fb/webhook` (xác minh + kiểm chữ ký `X-Hub-Signature-256`), cron quét lead mọi form mỗi 5 phút (chạy được khi app Meta chưa Live), `/fb/manual` cho Make/Zapier, `/fb/poll` quét ngay — có mật khẩu.
+- Lead → khách mới của `FB_LEAD_OWNER_ID` (trưởng nhóm): kênh facebook_ads, intake_method api, chiến dịch = tên chiến dịch/form, giờ đăng ký = giờ gửi form, câu trả lời → "Thông tin đăng ký", câu hỏi loại căn → apt_type. SĐT đã có → gộp (thêm kênh + ghi chú đăng ký lại), không tạo trùng.
+- Bảng `fb_leads` (`SQL/add_fb_leads.sql`): chống trùng theo mã lead, giữ dữ liệu gốc kể cả khi lỗi; chỉ trưởng nhóm xem.
+- File: `worker/fb-leads.js` (mới), `worker/intake-worker.js`, `worker/wrangler.toml` (cron), `worker/README.md`, `SQL/add_fb_leads.sql`, `tests/fb-leads.test.mjs`, `docs/architecture.md`, `docs/sale-focus-roadmap.md`.
+- Đã kiểm tra: `node tests/fb-leads.test.mjs` (giả lập Supabase + Graph: tạo / gộp / lỗi / webhook / chữ ký / cron chống trùng / manual); `wrangler deploy --dry-run` đóng gói OK. CHƯA deploy Worker, chưa chạy SQL, chưa thử với Page/token Meta thật.
+
 ## 2026-10-08 — Điều hướng mới: Tổng quan · Khách hàng (Đang chăm / Khách mới / Khách nhóm) (D-004)
 
 - Header còn 2 tab. Tab Khách hàng có dải 3 nhóm: Đang chăm (đổi tên từ "Tiềm năng"; chỉ khách mình phụ trách) · Khách mới (badge chưa gọi, hiện cả trên tab Khách hàng) · Khách nhóm (khách đồng nghiệp phụ trách, cả 2 lớp; chỉ hiện khi có nhóm). Nhớ nhóm xem gần nhất.

@@ -49,7 +49,7 @@ Không cần migration, chỉ dùng dữ liệu đang có:
 ### Bước 5 — Nhóm nhỏ (ĐÃ LÀM 2026-10-08 — D-003, `docs/huong-dan-nhom.md`)
 - Chia lead mới cho sale (luân phiên hoặc theo dự án), bảng xếp hạng hoạt động cho admin, xem Việc hôm nay của từng người. RLS/role admin đã có nền; cần thiết kế quyền cẩn thận trước khi làm.
 
-### Bước 6 — Tự động hoá đầu vào
+### Bước 6 — Tự động hoá đầu vào (Facebook Lead Ads ĐÃ CODE 2026-10-08 — `worker/README.md`; Zalo OA chưa làm)
 - Đẩy lead Facebook Lead Ads / landing page vào thẳng Supabase + thông báo ngay (tốc độ gọi lần đầu). Landing page đã ghi thẳng; Facebook Lead Ads và Zalo OA là bước tiếp.
 
 ## 4. Việc không nên làm (giữ app đơn giản)

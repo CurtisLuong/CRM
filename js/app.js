@@ -3999,11 +3999,24 @@ let editingTaskAt = null; // null = không sửa; 1 'at' = sửa việc đó; 'n
 function taskEditorHtml(at, isNew) {
   return `<div class="task-item task-editing">
       <textarea class="task-edit-input" rows="2" placeholder="Nội dung việc cần làm..."></textarea>
+      <label class="task-due-field">
+        <span>Hạn (tuỳ chọn)</span>
+        <input type="datetime-local" class="task-due-input" />
+        <button type="button" class="task-act" data-task-due-clear title="Bỏ hạn">✕</button>
+      </label>
       <div class="task-edit-btns">
         <button class="btn-small btn-primary" data-task-save="${at}">✓ Lưu</button>
         <button class="btn-small btn-danger" data-task-del="${at}">${isNew ? 'Huỷ' : '🗑 Xoá việc'}</button>
       </div>
     </div>`;
+}
+// Nhãn hạn việc: "Hôm nay · 14:00" + trạng thái: quá hạn (overdue) · trong hôm nay (today).
+function taskDueInfo(due) {
+  const d = new Date(due);
+  if (isNaN(d)) return null;
+  const now = new Date();
+  const state = d < now ? 'overdue' : (isoDateLocal(d) === isoDateLocal(now) ? 'today' : '');
+  return { label: relDayLabel(d) + ' · ' + fmtClock(d.getTime()), state };
 }
 function renderDetailTasks(c) {
   const box = $('#detail-tasks');
@@ -4016,12 +4029,21 @@ function renderDetailTasks(c) {
     } else {
       html += `<div class="task-item">
           <span class="task-bullet">•</span>
-          <span class="task-text">${escapeHtml(t.text || '')}</span>
+          <span class="task-body">
+            <span class="task-text">${escapeHtml(t.text || '')}</span>
+            ${dueHtml(t.due)}
+          </span>
           <button class="task-act" data-task-edit="${at}" title="Sửa việc">✎</button>
         </div>`;
     }
   }
   if (editingTaskAt === 'new') html += taskEditorHtml('new', true);
+  function dueHtml(due) {
+    const info = due && taskDueInfo(due);
+    if (!info) return '';
+    const pre = info.state === 'overdue' ? 'Quá hạn · ' : 'Hạn: ';
+    return `<span class="task-due${info.state ? ' is-' + info.state : ''}">${pre}${escapeHtml(info.label)}</span>`;
+  }
   if (!html) html = '<div class="tasks-empty">Chưa có việc nào.</div>';
   box.innerHTML = html;
   // Đang sửa/thêm → nạp nội dung cũ (nếu sửa) + focus, con trỏ cuối chuỗi.
@@ -4030,6 +4052,8 @@ function renderDetailTasks(c) {
     if (ta) {
       const entry = tasks.find((t) => t.at === editingTaskAt);
       ta.value = entry ? (entry.text || '') : '';
+      const di = box.querySelector('.task-due-input');
+      if (di && entry && entry.due && !isNaN(new Date(entry.due))) di.value = toLocalDatetimeInput(new Date(entry.due));
       ta.focus();
       ta.setSelectionRange(ta.value.length, ta.value.length);
     }
@@ -4044,12 +4068,13 @@ async function afterTaskChange() {
   const c = allCustomers.find((x) => x.id === detailId);
   if (c) renderDetailCall(c); // vẽ lại khu next action
 }
-async function saveTask(at, text) {
+async function saveTask(at, text, dueLocal) {
   const t = (text || '').trim();
+  const due = dueLocal ? new Date(dueLocal).toISOString() : null; // datetime-local (giờ máy) → ISO
   if (at === 'new') {
-    if (t && detailId) await CRM.addTask(detailId, t); // trống → không thêm
+    if (t && detailId) await CRM.addTask(detailId, t, due); // trống → không thêm
   } else if (detailId) {
-    await CRM.updateTask(detailId, at, t || null); // trống = xoá
+    await CRM.updateTask(detailId, at, t || null, due); // trống = xoá
   }
   editingTaskAt = null;
   await afterTaskChange();
@@ -4066,7 +4091,16 @@ $('#detail-tasks')?.addEventListener('click', (e) => {
   const ed = e.target.closest('[data-task-edit]');
   if (ed) { editingTaskAt = ed.dataset.taskEdit; rerenderTasks(); return; }
   const sv = e.target.closest('[data-task-save]');
-  if (sv) { const ta = $('#detail-tasks .task-edit-input'); saveTask(sv.dataset.taskSave, ta ? ta.value : ''); return; }
+  if (sv) {
+    const ta = $('#detail-tasks .task-edit-input'), di = $('#detail-tasks .task-due-input');
+    saveTask(sv.dataset.taskSave, ta ? ta.value : '', di ? di.value : '');
+    return;
+  }
+  if (e.target.closest('[data-task-due-clear]')) {
+    e.preventDefault(); // nằm trong <label> → không mở lại picker
+    const di = $('#detail-tasks .task-due-input'); if (di) di.value = '';
+    return;
+  }
   const dl = e.target.closest('[data-task-del]');
   if (dl) { deleteTaskEntry(dl.dataset.taskDel); return; }
 });
