@@ -315,6 +315,7 @@ let progressFilter = 'active'; // lọc trạng thái: 'active' | 'done' | 'all'
 // Lọc theo THỜI GIAN ĐĂNG KÝ (registered_at, fallback created_at). preset:
 // 'all'|'today'|'week'|'month'|'custom'; custom dùng from/to ('YYYY-MM-DD').
 let dateFilter = { preset: 'all', from: null, to: null };
+let qualPreset = 'all'; // lọc theo thời gian LÊN Tiềm năng (qualified_at): 'all' | 'today' | 'week' | 'month'
 let aptTypeFilter = ''; // Bedroom group filter in the existing Tiềm năng panel.
 let stageFilter = '';      // lọc theo bậc Tiến độ (dropdown): '' = Tất cả, hoặc tên bậc
 let calExpanded = true;     // lịch Tuỳ chọn đang mở? (tự thu gọn sau khi chọn xong khoảng)
@@ -1183,7 +1184,7 @@ function clearAccountView() {
   clearInterval(accountSyncTimer); accountSyncTimer = null;
   CRM.suspend(); Catalog.scope(null); if (window.CatalogSearchUI) CatalogSearchUI.reset();
   allCustomers = []; resetTeamState(); custGroup = 'care'; _searchWarmGeneration++; _queryContext = null; resetSearchPages();
-  progressFilter = 'active'; stageFilter = ''; aptTypeFilter = ''; dateFilter = {preset:'all',from:null,to:null};
+  progressFilter = 'active'; qualPreset = 'all'; stageFilter = ''; aptTypeFilter = ''; dateFilter = {preset:'all',from:null,to:null};
   leadFilter = 'open'; leadSrcFilter = ''; leadDatePreset = 'all'; leadAptTypeFilter = '';
   $('#filter-min-interest').value = 0; $('#filter-interest-val').textContent = '0';
   $('#search-input').value = '';
@@ -1219,6 +1220,12 @@ function matchesFilters(c) {
   if (range) {
     const t = Date.parse(c.registered_at || c.created_at || '');
     if (isNaN(t) || t < range.start || t >= range.end) return false;
+  }
+  // Thời gian LÊN Tiềm năng (qualified_at) — vd từ thẻ "Khách tiềm năng tuần này" ở Tổng quan.
+  const qRange = qualPreset !== 'all' ? presetRange(qualPreset) : null;
+  if (qRange) {
+    const t = Date.parse(c.qualified_at || '');
+    if (isNaN(t) || t < qRange.start || t >= qRange.end) return false;
   }
   return true;
 }
@@ -5153,6 +5160,8 @@ const DASH_GROUP_LIMIT = 5;            // mỗi nhóm việc hiện tối đa N 
 // Lựa chọn của các thẻ phân tích (nhớ trên máy): khoảng ngày Hiệu quả bán hàng · tab Căn khách quan tâm.
 const LS_DASH_RANGE = 'crm_dash_range', LS_DASH_APT_TAB = 'crm_dash_apt_tab';
 let dashRange = (() => { try { const v = Number(localStorage.getItem(LS_DASH_RANGE)); return [7, 30, 90].includes(v) ? v : 30; } catch { return 30; } })();
+const LS_DASH_PERF_TAB = 'crm_dash_perf_tab';
+let dashPerfTab = (() => { try { return localStorage.getItem(LS_DASH_PERF_TAB) === 'month' ? 'month' : 'week'; } catch { return 'week'; } })();
 let dashAptTab = (() => { try { const v = localStorage.getItem(LS_DASH_APT_TAB); return ['type', 'building', 'budget'].includes(v) ? v : 'type'; } catch { return 'type'; } })();
 const PERF_SERIES = [['Khách mới', 'var(--teal-light)'], ['Đã liên hệ', '#D29B2C'], ['Chuyển giai đoạn', 'var(--seal)']];
 // Thẻ "Hiệu quả bán hàng": 7 ngày → 7 cột theo ngày · 30 ngày → 6 cột × 5 ngày · 90 ngày → 13 cột × 7 ngày.
@@ -5475,7 +5484,7 @@ function renderDashboard() {
     <div class="kpi-strip">
       ${kpi('Việc cần làm', todo, byKey.due.items.length ? `<b class="txt-bad">${byKey.due.items.length} quá giờ hẹn</b>` : 'không có hẹn quá giờ', 'todo', byKey.due.items.length ? 'urgent' : '')}
       ${kpi('Khách mới chờ gọi', byKey.new.items.length, stlMed != null ? `gọi lần đầu sau ~${escapeHtml(formatDuration(stlMed))}` : 'chưa có số liệu phản hồi', 'leads', byKey.new.items.length ? 'hot' : '')}
-      ${kpi('Cuộc gọi tuần này', thisWk.calls, `${thisWk.talked} nói chuyện được · tuần trước ${lastWk.calls}`, 'week')}
+      ${kpi('Khách tiềm năng tuần này', thisWk.qualified, `tuần trước ${lastWk.qualified} ${delta(thisWk.qualified, lastWk.qualified)}`, 'qualweek')}
       ${kpi('Chốt tháng này', closedMonth, `${bookingNow} khách đang Booking`, 'pipeline', closedMonth ? 'good' : '')}
     </div>`;
 
@@ -5539,19 +5548,24 @@ function renderDashboard() {
       · đã chốt ${all.filter((c) => c.care_stage === 'Kí HĐMB').length} · không chốt ${all.filter((c) => isQualified(c) && c.care_stage === CARE_STAGE_DROPPED).length}</div>`;
   const pipeCard = dashCard('Pipeline đang chăm', pipeHtml, 'Bấm 1 bậc để xem danh sách khách ở bậc đó. Giá trị = tổng giá căn đang nhắm.', 'dash-pipe');
 
-  // ---- 3c) Hiệu suất tuần (so với tuần trước) ----
+  // ---- 3c) Hiệu suất: tab Tuần (tuần này vs tuần trước) · Tháng (tháng này vs tháng trước) ----
+  const isMonth = dashPerfTab === 'month';
+  const prevMonth0 = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1).getTime();
+  const [cur, prev] = isMonth ? [activity(month0, now + 1), activity(prevMonth0, month0)] : [thisWk, lastWk];
   const perfRow = (label, a, b) => `<div class="perf-row"><span>${label}</span><b>${a}</b><span class="perf-prev">${b}</span>${delta(a, b) || '<span class="kpi-delta"></span>'}</div>`;
-  const perfHtml = `<div class="perf">
-      <div class="perf-row perf-head"><span></span><span>Tuần này</span><span>Tuần trước</span><span></span></div>
-      ${perfRow('Khách mới vào', thisWk.leads, lastWk.leads)}
-      ${perfRow('Cuộc gọi', thisWk.calls, lastWk.calls)}
-      ${perfRow('Nói chuyện được', thisWk.talked, lastWk.talked)}
-      ${perfRow('Chuyển Tiềm năng', thisWk.qualified, lastWk.qualified)}
-      ${perfRow('Booking / Kí', thisWk.deals, lastWk.deals)}
+  const perfHtml = `<div class="dash-seg" role="tablist">${[['week', 'Tuần'], ['month', 'Tháng']].map(([k, t]) =>
+      `<button type="button" class="dash-seg-btn${dashPerfTab === k ? ' is-active' : ''}" data-perf-tab="${k}" role="tab">${t}</button>`).join('')}</div>
+    <div class="perf">
+      <div class="perf-row perf-head"><span></span><span>${isMonth ? 'Tháng này' : 'Tuần này'}</span><span>${isMonth ? 'Tháng trước' : 'Tuần trước'}</span><span></span></div>
+      ${perfRow('Khách mới vào', cur.leads, prev.leads)}
+      ${perfRow('Cuộc gọi', cur.calls, prev.calls)}
+      ${perfRow('Nói chuyện được', cur.talked, prev.talked)}
+      ${perfRow('Chuyển Tiềm năng', cur.qualified, prev.qualified)}
+      ${perfRow('Booking / Kí', cur.deals, prev.deals)}
     </div>
     <div class="perf-foot">Tốc độ gọi khách mới (30 ngày): <b>${stlMed != null ? escapeHtml(formatDuration(stlMed)) : '—'}</b>
       ${stl.length ? `<span class="perf-prev">· ${pctOf(stl.filter((v) => v <= 3600000).length, stl.length)}% gọi trong 1 giờ</span>` : ''}</div>`;
-  const perfCard = dashCard('Hiệu suất tuần', perfHtml, 'Tính từ thứ Hai. Tốc độ gọi = trung vị thời gian từ lúc khách đăng ký tới cuộc gọi đầu tiên.', 'dash-perf');
+  const perfCard = dashCard('Hiệu suất', perfHtml, `${isMonth ? 'Tính từ ngày 1 đầu tháng; tháng trước tính cả tháng.' : 'Tính từ thứ Hai.'} Tốc độ gọi = trung vị thời gian từ lúc khách đăng ký tới cuộc gọi đầu tiên.`, 'dash-perf');
 
   // ---- 4) PHÂN TÍCH (thu gọn) — các biểu đồ báo cáo ----
   const analytics = renderDashAnalytics(all);
@@ -5738,6 +5752,8 @@ function renderDashAnalytics(all) {
 $('#dashboard-content')?.addEventListener('click', (e) => {
   const rg = e.target.closest('[data-dash-range]');
   if (rg) { dashRange = Number(rg.dataset.dashRange); try { localStorage.setItem(LS_DASH_RANGE, String(dashRange)); } catch {} renderDashboard(); return; }
+  const pt = e.target.closest('[data-perf-tab]');
+  if (pt) { dashPerfTab = pt.dataset.perfTab; try { localStorage.setItem(LS_DASH_PERF_TAB, dashPerfTab); } catch {} renderDashboard(); return; }
   const at = e.target.closest('[data-apt-tab]');
   if (at) { dashAptTab = at.dataset.aptTab; try { localStorage.setItem(LS_DASH_APT_TAB, dashAptTab); } catch {} renderDashboard(); return; }
   const more = e.target.closest('[data-more]');
@@ -5762,6 +5778,13 @@ $('#dashboard-content')?.addEventListener('click', (e) => {
   const go = e.target.closest('[data-go]');
   if (!go) return;
   if (go.dataset.go === 'leads') { showLeadView(); return; }
+  if (go.dataset.go === 'qualweek') { // → Tiềm năng, lọc "Lên Tiềm năng: Tuần này" (mọi trạng thái — khớp số trên thẻ)
+    $('#search-input').value = '';
+    progressFilter = 'all'; stageFilter = ''; aptTypeFilter = ''; dateFilter = { preset: 'all', from: null, to: null };
+    $('#filter-min-interest').value = 0; $('#filter-interest-val').textContent = '0';
+    qualPreset = 'week'; syncStageLabel(); syncDatePresetUI(); updateFilterDot();
+    showListView(); window.scrollTo(0, 0); return;
+  }
   const target = { todo: '#dash-todo', week: '.dash-perf', pipeline: '.dash-pipe' }[go.dataset.go];
   const el = target && $(target);
   if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -5997,7 +6020,7 @@ function renderAptTypeFilter(id, selected) {
 // Chấm báo "đang có lọc nâng cao" trên icon phễu (tiến độ ≠ tất cả HOẶC quan tâm >0 HOẶC có lọc thời gian).
 function isAdvancedFilterActive() {
   const interest = Number($('#filter-min-interest').value || 0);
-  return !!(progressFilter !== 'active' || stageFilter || aptTypeFilter || interest > 0 || dateFilterRange() || (custGroup === 'team' && ownerScope !== 'all'));
+  return !!(progressFilter !== 'active' || qualPreset !== 'all' || stageFilter || aptTypeFilter || interest > 0 || dateFilterRange() || (custGroup === 'team' && ownerScope !== 'all'));
 }
 // Đồng bộ 2 chỉ báo "đang có lọc nâng cao": chấm đỏ trên icon phễu + nút "Xoá lọc ✕"
 // cạnh dòng "[x] khách hàng". Cả 2 chỉ hiện khi có lọc khác mặc định (giữ UI gọn).
@@ -6009,6 +6032,7 @@ function updateFilterDot() {
   const clearBtn = $('#clear-filter-inline');
   if (clearBtn) clearBtn.hidden = !active;
   $$('#filter-progress-presets .date-preset').forEach((b) => b.classList.toggle('is-sel', b.dataset.progress === progressFilter));
+  $$('#filter-qual-presets .date-preset').forEach((b) => b.classList.toggle('is-sel', b.dataset.qual === qualPreset));
   syncHdrFilter();
 }
 // Trạng thái nhóm Tiềm năng / Khách nhóm (trong panel Bộ lọc): 'active' Đang chăm (mặc định) | 'done' | 'all'.
@@ -6021,7 +6045,7 @@ function syncHdrFilter() {
 }
 // Đưa bộ lọc nâng cao về mặc định (tiến độ = Tất cả, quan tâm ≥ 0%).
 function resetAdvancedFilters() {
-  progressFilter = 'active'; aptTypeFilter = ''; ownerScope = 'all'; resetSearchPages();
+  progressFilter = 'active'; qualPreset = 'all'; aptTypeFilter = ''; ownerScope = 'all'; resetSearchPages();
   stageFilter = '';
   syncStageLabel(); closeStagePop();
   $('#filter-min-interest').value = 0;
@@ -6602,6 +6626,10 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   // --- Lọc thời gian đăng ký: chọn preset. Preset thường (Tất cả/Hôm nay/Tuần/Tháng) áp NGAY.
   //     "Tuỳ chọn" chỉ mở lịch (nạp nháp = khoảng đang áp dụng), CHƯA đổi lọc — chờ bấm Áp dụng. ---
+  $('#filter-qual-presets').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-qual]'); if (!b) return;
+    e.stopPropagation(); qualPreset = b.dataset.qual; resetSearchPages(); updateFilterDot(); renderList();
+  });
   $('#filter-date-presets').addEventListener('click', (e) => {
     const b = e.target.closest('.date-preset'); if (!b) return;
     dateFilter.preset = b.dataset.preset;

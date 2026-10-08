@@ -199,6 +199,16 @@
           <!-- Lịch tuỳ biến: bấm ngày bắt đầu + ngày kết thúc trên CÙNG 1 bảng; JS render (renderCalendar). -->
           <div id="filter-date-custom" class="date-cal" hidden></div>
         </div>
+        <!-- Lên Tiềm năng (qualified_at) — dùng khi bấm "Khách tiềm năng tuần này" ở Tổng quan. -->
+        <div class="pop-group">
+          <div class="pop-label">Thời gian lên Tiềm năng</div>
+          <div id="filter-qual-presets" class="date-presets" role="group" aria-label="Lọc theo thời gian lên Tiềm năng">
+            <button type="button" class="date-preset is-sel" data-qual="all">Tất cả</button>
+            <button type="button" class="date-preset" data-qual="today">Hôm nay</button>
+            <button type="button" class="date-preset" data-qual="week">Tuần này</button>
+            <button type="button" class="date-preset" data-qual="month">Tháng này</button>
+          </div>
+        </div>
         <div class="pop-group">
           <div class="pop-label">Tiến độ</div>
           <!-- Dropdown tuỳ biến (như dropdown Trạng thái): hiện bậc đang chọn, bấm mới xổ danh sách. -->

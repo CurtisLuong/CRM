@@ -6,6 +6,19 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-08 — Thẻ chỉ số "Khách tiềm năng tuần này" (thay "Cuộc gọi tuần này")
+
+- Ô chỉ số thứ 3 ở đầu Tổng quan: số khách lên Tiềm năng từ thứ Hai (so tuần trước, mũi tên tăng/giảm). Bấm → nhóm Tiềm năng, lọc "Thời gian lên Tiềm năng: Tuần này", trạng thái Tất cả (khớp số trên thẻ), chấm đỏ + Xoá lọc như các lọc khác.
+- Bộ lọc Tiềm năng/Khách nhóm thêm nhóm "Thời gian lên Tiềm năng" (Tất cả · Hôm nay · Tuần này · Tháng này) theo `qualified_at`.
+- File: `index.html`, `js/app.js`, `sw.js` (v68).
+- Đã kiểm tra trình duyệt local (dữ liệu giả): số trên thẻ = số khách sau khi bấm, Xoá lọc trả về mặc định. Chưa deploy.
+
+## 2026-10-08 — Tổng quan: "Hiệu suất tuần" → "Hiệu suất" có tab Tuần / Tháng
+
+- Tab Tuần: tuần này (từ thứ Hai) so với tuần trước (như cũ). Tab Tháng: tháng này (từ ngày 1) so với cả tháng trước. Giữ nguyên 5 chỉ số + tốc độ gọi khách mới; lựa chọn tab nhớ trên máy.
+- File: `js/app.js`, `sw.js` (v67).
+- Đã kiểm tra trình duyệt local (dữ liệu giả). Chưa deploy.
+
 ## 2026-10-08 — Hộp Khách mới: đếm ngược hẹn gọi, nút Hẹn gọi, Giao khách chỉ icon
 
 - Có lịch hẹn gọi → dòng "Hẹn gọi · giờ · lý do" + đếm ngược (còn X / đến hạn / quá hạn, dùng chung `countdownTag` với checklist hồ sơ); bấm → Gọi xong / Hẹn lại / Huỷ gọi.
