@@ -18,14 +18,16 @@ File nguồn không quy định chính xác mã màu, spacing, breakpoint, font 
 Áp dụng cho MỌI màn mới hoặc khi làm lại màn cũ. Mẫu chuẩn: trang hồ sơ khách (`#detail-screen`); token và class dùng chung ở khối cuối `css/style.css` ("TRANG HỒ SƠ KHÁCH — CÂN BẰNG…").
 
 1. **Chia nội dung thành THẺ theo nhóm thông tin.** Mỗi nhóm 1 thẻ `.dcard`: nền trắng trên nền giấy ngà, viền ấm nhạt `--card-border`, bo `--card-radius` (16px), bóng rất nhẹ `--card-shadow`, các thẻ cách nhau `--card-gap` (12px). Không lồng khung trong khung (bỏ viền/nền của khối con nằm trong thẻ).
-2. **Đầu thẻ = icon nét + tiêu đề + (›).** `.dcard-head`: icon line 20px (stroke ~1.7, màu xanh mực nhạt), tiêu đề 15–16px đậm, chữ thường (không VIẾT HOA, không chữ xám nhỏ). Có trang/khu xem chi tiết hơn → nút chevron `›` (`.dcard-go`) mép phải, không viết chữ "Xem thêm".
+2. **Đầu thẻ = icon nét + tiêu đề + (›).** `.dcard-head`: icon line 20px (stroke ~1.7, màu xanh mực nhạt), tiêu đề 15px đậm 600, chữ thường (không VIẾT HOA, không chữ xám nhỏ). Có trang/khu xem chi tiết hơn → nút chevron `›` (`.dcard-go`) mép phải, không viết chữ "Xem thêm".
 3. **Tổng quan trước, chi tiết sau.** Màn nhiều thông tin chia TAB gạch chân (vd hồ sơ: Tổng quan · Tương tác · Thông tin · Lịch sử). Tab đầu chỉ chứa thứ cần để hành động ngay; danh sách dài ở tab đầu chỉ xem trước 2–3 mục mới nhất + `›` sang tab đầy đủ. Một thẻ có thể thuộc nhiều tab (`data-tabs="overview interact"`).
 4. **Chỉ 1 điểm nhấn màu mỗi màn.** Đỏ son (`--seal`) dành cho hành động tiếp theo (vd thẻ "Việc tiếp theo": nền hồng giấy, viền trái đỏ son, tiêu đề đỏ son) và tab đang chọn. Các thẻ khác trung tính. Không thêm màu mới ngoài bảng màu sẵn có.
 5. **Chỉ số ngắn = thẻ nhỏ xếp lưới 2 cột** (vd Tiến độ / Quan tâm): nhãn trên, chấm/giá trị dưới; thẻ bấm được có `›`.
-6. **Nút phụ đồng đều**: nền trắng, viền nhạt, bo 10px, chữ đậm vừa, có icon nhỏ nếu cần; xếp hàng ngang, tự xuống dòng trên điện thoại. Nút chính (đỏ son) chỉ dùng khi thật sự là hành động chính.
+6. **Nút phụ đồng đều**: nền trắng, viền nhạt, bo 10px, chữ thường 13px, có icon nhỏ nếu cần; xếp hàng ngang, tự xuống dòng trên điện thoại. Nút chính (đỏ son) chỉ dùng khi thật sự là hành động chính.
 7. **Thao tác ít dùng gom vào menu ⋯** (vd Sửa thông tin, Copy prompt AI) thay vì nút nổi riêng; thao tác dùng hằng ngày (Gọi, Zalo, Giao khách) để lộ ra ngoài.
-8. **Bảng thông tin trong thẻ**: cột nhãn nền giấy ngà, chữ xám; cột giá trị chữ đậm; dòng ẩn khi không có dữ liệu.
+8. **Bảng thông tin trong thẻ**: cột nhãn nền giấy ngà, chữ xám; cột giá trị chữ thường màu mực; dòng ẩn khi không có dữ liệu.
 9. **Điện thoại trước**: kiểm tra ở 375px — thẻ sát lề 12px, tab chia đều không cuộn ngang, nút xuống dòng gọn. Desktop giữ cột nội dung tối đa ~720px.
+10. **Chữ đậm CHỈ cho tiêu đề** (tiêu đề thẻ/section, tiêu đề thẻ chỉ số, tên khách ở đầu trang). Nội dung, giá trị, số điện thoại, nút, tab, nhãn trạng thái → chữ thường (tab đang chọn tối đa 500, phân biệt bằng màu + gạch chân). Phân cấp bằng cỡ chữ / màu / khoảng cách, không bằng in đậm.
+11. **Cỡ chữ ngang các màn khác**: nội dung 14px, nút 13px, tab 13.5px, chữ phụ 12–12.5px, tiêu đề thẻ 15px. Không tăng cỡ chữ riêng cho 1 màn.
 
 ## Trang hồ sơ khách (2026-10-08)
 

@@ -2233,3 +2233,19 @@ body:has(#detail-screen.is-readonly:not([hidden])) #avatar-remove-btn,
   .dcard { padding: 13px 14px; }
   .detail-tab { font-size: 14px; padding: 12px 4px 10px; }
 }
+
+/* CHỮ trong hồ sơ (2026-10-08): CHỈ tiêu đề thẻ đậm (600); còn lại chữ thường; cỡ chữ ngang các màn
+   khác (nội dung 14px, nút 13px, tab 13.5px). Tên khách = tiêu đề trang (serif) giữ đậm. */
+.dcard-head h3, .detail-section .dcard-head h3 { font-size: 15px; font-weight: 600; }
+.detail-badge .detail-badge-label { font-weight: 600; }               /* tiêu đề thẻ chỉ số */
+.detail-hero .detail-phone { font-weight: 400; }
+.detail-tab { font-size: 13.5px; font-weight: 400; }
+.detail-tab.is-active { font-weight: 500; }
+.detail-badge .detail-badge-text, .detail-badge-num { font-size: 14px; font-weight: 400; }
+#detail-body .btn-small { font-size: 13px; font-weight: 400; }
+#detail-body .detail-table th { font-weight: 400; }
+#detail-body .detail-table td { font-weight: 400; }
+#detail-body .task-kind { font-weight: 400; color: var(--seal); }
+#detail-body .task-due { font-weight: 400; }
+#detail-body .tasks-done-toggle { font-weight: 400; }
+.detail-hero .assign-btn { font-weight: 400; }

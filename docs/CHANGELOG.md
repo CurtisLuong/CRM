@@ -6,6 +6,14 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-08 — Hồ sơ khách: bớt chữ đậm, cỡ chữ ngang màn khác
+
+- Đo thực tế: nội dung hồ sơ vẫn 14px như danh sách; cảm giác "chữ to" do quá nhiều chữ đậm (SĐT, tab, giá trị chỉ số, giá trị bảng, nút đều 600–700) và nút/tab/tiêu đề to hơn nửa cỡ.
+- Chỉ tiêu đề thẻ (15px/600) + tiêu đề thẻ chỉ số + tên khách còn đậm; SĐT, giá trị, bảng, nút (13px), tab (13.5px, đang chọn 500), nhãn "Hẹn gọi", hạn việc → chữ thường.
+- `docs/design.md`: thêm quy tắc 10 (chữ đậm chỉ cho tiêu đề) và 11 (cỡ chữ ngang các màn khác); sửa quy tắc 2, 6, 8 cho khớp.
+- File: `css/style.css`, `sw.js` (v62), `docs/design.md`.
+- Đã kiểm tra trình duyệt local (375px): đo lại cỡ/độ đậm từng phần tử. Chưa deploy.
+
 ## 2026-10-08 — Trang hồ sơ khách: thẻ theo nhóm + 4 tab; quy tắc thiết kế mới
 
 - Đầu hồ sơ: bìa (← Quay lại · ⋯ menu Sửa thông tin / Copy prompt AI — bỏ nút "✎ Sửa" nổi và mục Phân tích AI riêng) nối khối trắng: avatar + tên, SĐT + Gọi/Zalo/Danh bạ + Giao khách (dời từ hàng riêng), 4 tab Tổng quan · Tương tác · Thông tin · Lịch sử.
