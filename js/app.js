@@ -1076,7 +1076,7 @@ function searchFields(c) {
   for (const n of (Array.isArray(c.notes_manual) ? c.notes_manual : [])) f.push(['Ghi chú', n && n.text]);
   for (const h of (Array.isArray(c.care_stage_history) ? c.care_stage_history : [])) f.push(['Lịch sử chăm sóc', h && h.note]);
   for (const a of (Array.isArray(c.call_attempts) ? c.call_attempts : [])) f.push(['Cuộc gọi', a && a.note]);
-  for (const t of (Array.isArray(c.next_tasks) ? c.next_tasks : [])) f.push(['Việc tiếp theo', t && t.text]);
+  for (const t of openTasksOf(c)) f.push(['Việc tiếp theo', t.text]);
   return f.filter(([, v]) => v != null && String(v).trim() !== '').map(([label, v]) => [label, String(v)]);
 }
 function customerSearchDoc(c) {
@@ -2993,6 +2993,7 @@ function openDetail(id) {
   if (!c) return;
   // Lead (lớp 1) chưa có trang hồ sơ riêng → mở hộp "Khách mới" (ghi cuộc gọi / Đạt / Loại).
   if (!isQualified(c)) { openLeadSheet(id); return; }
+  if (id !== detailId) doneOpen = false; // khách khác → thu gọn mục "Đã xong"
   detailId = id;
   applyTeamDetail(c); // chỉ xem / nút Giao khách (js/team.js)
   editingHistoryAt = null; // mở khách mới → thoát chế độ sửa note cũ
@@ -3941,12 +3942,6 @@ function callReminder(c) {
   return { state: 'missed', text: 'quên gọi ' + fmtClock(start), sort: start };
 }
 
-// Vẽ khu "lịch gọi" ở trang chi tiết: nhãn hẹn + nút đặt/đổi/xoá lịch + BADGE đếm
-// ngược (giống card). Badge chỉ hiện khi có lịch trong tầm nhắc; bấm → mở hộp
-// thoại "đã gọi / hẹn lại". Gọi lại định kỳ để đếm ngược tự cập nhật.
-// Khu "Hành động tiếp theo" (lịch gọi) ở trang chi tiết. Có lịch → thẻ phân cấp
-// [Hẹn gọi · badge] / [ngày · giờ] / [lý do], bấm cả thẻ để mở hộp thoại Đã gọi /
-// Hẹn lại / Huỷ lịch. Chưa có lịch → nút "＋ Đặt lịch gọi".
 // Mục "Cuộc gọi" trong hồ sơ: 5 cuộc gần nhất (mới → cũ), kèm nút ghi chú cho cuộc chưa ghi.
 function renderDetailCalls(c) {
   const all = callAttemptsOf(c);
@@ -3963,34 +3958,11 @@ $('#detail-calls')?.addEventListener('click', (e) => {
   CallLog.open({ customerId: detailId, editAt: b.dataset.callAt });
 });
 
+// Khu "Việc tiếp theo" (checklist) ở trang chi tiết — gồm cả lịch Hẹn gọi. Gọi lại định kỳ (30s)
+// để đếm ngược tự cập nhật. Nút "＋ Hẹn gọi" chỉ khi chưa có lịch.
 function renderDetailCall(c) {
-  const card = $('#detail-next-action');
-  const tasksWrap = $('#detail-tasks-wrap');
-  if (c.next_call_at) {
-    // CÓ lịch → thẻ nhắc gọi là "next action". Dòng "khi": "Ngày mai · 09:00–10:00".
-    const s = new Date(c.next_call_at);
-    const e = c.next_call_end ? new Date(c.next_call_end) : s;
-    const tt = fmtClock(s.getTime()) + (e.getTime() !== s.getTime() ? '–' + fmtClock(e.getTime()) : '');
-    $('#detail-na-when').textContent = relDayLabel(s) + ' · ' + tt;
-    const reasonEl = $('#detail-na-reason');
-    reasonEl.textContent = c.next_call_reason || '';
-    reasonEl.hidden = !c.next_call_reason;
-    // Badge trạng thái đếm ngược. Lịch xa >24h → callReminder null → ẩn badge (thẻ vẫn bấm được).
-    const rem = callReminder(c);
-    const badge = $('#detail-call-badge');
-    if (rem) { badge.hidden = false; badge.className = 'call-tag call-' + rem.state; badge.textContent = rem.text; }
-    else { badge.hidden = true; }
-    card.className = 'next-action' + (rem ? ' na-' + rem.state : ''); // viền trái theo độ gấp
-    card.hidden = false;
-  } else {
-    card.hidden = true;
-  }
-  // "Việc tiếp theo": luôn hiện khi chưa có lịch; có lịch thì vẫn hiện nếu còn việc
-  // (việc có hạn không được bị che). Nút "Đặt lịch gọi" chỉ khi chưa có lịch.
-  const hasTasks = Array.isArray(c.next_tasks) && c.next_tasks.length > 0;
-  tasksWrap.hidden = !!c.next_call_at && !hasTasks;
   $('#detail-schedule-btn').hidden = !!c.next_call_at;
-  if (!tasksWrap.hidden) renderDetailTasks(c);
+  renderDetailTasks(c);
 }
 
 // ---- "Việc tiếp theo": danh sách việc tự do, mỗi việc có thể có hạn ngày giờ ----
@@ -4022,19 +3994,88 @@ function taskDueChip(t) {
   const txt = (info.state === 'overdue' ? 'Quá hạn · ' : '') + info.label;
   return `<span class="task-due${info.state ? ' is-' + info.state : ''}">${CLOCK_SVG}${escapeHtml(txt)}</span>`;
 }
+// Việc chưa xong / đã xong (việc cũ không có done_at = chưa xong).
+function openTasksOf(c) { return (Array.isArray(c.next_tasks) ? c.next_tasks : []).filter((t) => t && !t.done_at); }
+function doneTasksOf(c) { return (Array.isArray(c.next_tasks) ? c.next_tasks : []).filter((t) => t && t.done_at); }
+// "còn X": <1h → "30p" · <24h → "2:00" · xa hơn → "N ngày" (đếm theo ngày lịch, như hạn cả ngày).
+function fmtCountdown(startMs) {
+  const ms = startMs - Date.now();
+  if (ms < 86400000) return fmtRemainMs(ms);
+  return Math.round((startOfDayMs(startMs) - startOfDayMs(Date.now())) / 86400000) + ' ngày';
+}
+// Đếm ngược CHUNG cho checklist, cùng cơ chế nhắc gọi: trước mốc → 'soon' (còn X; xa >24h → 'far',
+// màu nhạt) · từ mốc đến hết khung + 30 phút → 'due' (đến hạn) · sau đó → 'missed' (quá hạn).
+// Hạn "cả ngày": đến hạn suốt ngày đó, quá hạn từ hôm sau; trước đó đếm theo ngày lịch.
+function countdownTag(startMs, endMs, allDay) {
+  if (isNaN(startMs)) return null;
+  const now = Date.now();
+  if (allDay) {
+    const d = Math.round((startOfDayMs(startMs) - startOfDayMs(now)) / 86400000);
+    if (d > 0) return { state: d > 1 ? 'far' : 'soon', text: `còn ${d} ngày` };
+    return d === 0 ? { state: 'due', text: 'đến hạn' } : { state: 'missed', text: 'quá hạn' };
+  }
+  if (now < startMs) {
+    const remain = startMs - now;
+    return { state: remain > 86400000 ? 'far' : 'soon', text: 'còn ' + fmtCountdown(startMs) };
+  }
+  if (now <= (isNaN(endMs) ? startMs : endMs) + 30 * 60000) return { state: 'due', text: 'đến hạn' };
+  return { state: 'missed', text: 'quá hạn' };
+}
+function countdownHtml(cd) { return cd ? `<span class="call-tag call-${cd.state}">${escapeHtml(cd.text)}</span>` : ''; }
+let doneOpen = false; // mục "Đã xong" đang mở?
 function renderDetailTasks(c) {
   const box = $('#detail-tasks');
-  const tasks = Array.isArray(c.next_tasks) ? c.next_tasks : [];
-  box.innerHTML = tasks.length ? tasks.map((t) => {
+  // Dòng checklist: lịch Hẹn gọi + việc chưa xong, xếp theo mốc thời gian (không hạn xuống cuối).
+  const rows = [];
+  if (c.next_call_at) {
+    const s = Date.parse(c.next_call_at), e = c.next_call_end ? Date.parse(c.next_call_end) : s;
+    const when = relDayLabel(new Date(s)) + ' · ' + fmtClock(s) + (e !== s ? '–' + fmtClock(e) : '');
+    const cd = countdownTag(s, e, false);
+    rows.push({ ms: s, html: `<div class="task-item task-call${cd ? ' is-' + cd.state : ''}">
+        <button type="button" class="task-check" data-call-act aria-label="Xác nhận cuộc gọi"></button>
+        <span class="task-body" data-call-act role="button" tabindex="0">
+          <span class="task-text"><b class="task-kind">Hẹn gọi</b>${c.next_call_reason ? ' · ' + escapeHtml(c.next_call_reason) : ''}</span>
+          <span class="task-meta"><span class="task-due">${CLOCK_SVG}${escapeHtml(when)}</span>${countdownHtml(cd)}</span>
+        </span>
+      </div>` });
+  }
+  for (const t of openTasksOf(c)) {
+    const ms = taskDueMs(t);
+    const cd = countdownTag(ms, ms, !!t.due_allday);
+    const at = escapeHtml(t.at || '');
     const info = taskDueInfo(t);
-    return `<div class="task-item${info && info.state ? ' is-' + info.state : ''}">
+    rows.push({ ms, html: `<div class="task-item${cd ? ' is-' + cd.state : ''}">
+        <button type="button" class="task-check" data-task-done="${at}" aria-label="Đánh dấu xong"></button>
         <span class="task-body">
           <span class="task-text">${escapeHtml(t.text || '')}</span>
-          ${taskDueChip(t)}
+          ${info ? `<span class="task-meta"><span class="task-due">${CLOCK_SVG}${escapeHtml(info.label)}</span>${countdownHtml(cd)}</span>` : ''}
         </span>
-        <button type="button" class="task-act" data-task-edit="${escapeHtml(t.at || '')}" title="Sửa việc">✎</button>
+        <button type="button" class="task-act" data-task-edit="${at}" title="Sửa việc">✎</button>
+      </div>` });
+  }
+  rows.sort((x, y) => (isNaN(x.ms) ? Infinity : x.ms) - (isNaN(y.ms) ? Infinity : y.ms)); // sort ổn định → không hạn giữ thứ tự tạo
+  box.innerHTML = rows.length ? rows.map((r) => r.html).join('') : '<div class="tasks-empty">Chưa có việc nào.</div>';
+
+  // Mục "Đã xong (n)": phụ, thu gọn mặc định; mới xong lên đầu; mỗi dòng có nút Hoàn tác.
+  const done = doneTasksOf(c).sort((x, y) => y.done_at.localeCompare(x.done_at));
+  $('#detail-done-wrap').hidden = !done.length;
+  if (!done.length) doneOpen = false;
+  $('#detail-done-count').textContent = done.length ? `(${done.length})` : '';
+  $('#detail-done-toggle').setAttribute('aria-expanded', String(doneOpen));
+  $('#detail-done-wrap').classList.toggle('is-open', doneOpen);
+  const list = $('#detail-done-list');
+  list.hidden = !doneOpen;
+  list.innerHTML = done.map((t) => {
+    const d = new Date(t.done_at);
+    return `<div class="done-item">
+        <span class="done-tick" aria-hidden="true">✓</span>
+        <span class="done-body">
+          <span class="done-text">${escapeHtml(t.text || '')}</span>
+          <span class="done-when">Xong ${escapeHtml(taskDayLabel(d))} · ${fmtClock(d.getTime())}</span>
+        </span>
+        <button type="button" class="done-undo" data-task-undo="${escapeHtml(t.at || '')}">Hoàn tác</button>
       </div>`;
-  }).join('') : '<div class="tasks-empty">Chưa có việc nào.</div>';
+  }).join('');
 }
 async function afterTaskChange() {
   await refreshList(); // cập nhật allCustomers
@@ -4135,8 +4176,42 @@ async function deleteTaskModal() {
 }
 $('#detail-task-add-btn')?.addEventListener('click', () => openTaskModal(null));
 $('#detail-tasks')?.addEventListener('click', (e) => {
+  if ($('#detail-screen').classList.contains('is-readonly')) return; // khách đồng nghiệp: chỉ xem
   const ed = e.target.closest('[data-task-edit]');
-  if (ed) openTaskModal(ed.dataset.taskEdit);
+  if (ed) { openTaskModal(ed.dataset.taskEdit); return; }
+  const dn = e.target.closest('[data-task-done]');
+  if (dn) { completeTaskEntry(dn.dataset.taskDone, dn); return; }
+  if (e.target.closest('[data-call-act]') && detailId) openCallAction(detailId); // Hẹn gọi → Gọi xong / Hẹn lại / Huỷ
+});
+$('#detail-tasks')?.addEventListener('keydown', (e) => {
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('.task-body[data-call-act]')) { e.preventDefault(); e.target.click(); }
+});
+// Tích xong → hiệu ứng gạch ngang ngắn rồi ghi (mốc "Xong việc" vào lịch sử chăm sóc).
+async function completeTaskEntry(at, btn) {
+  if (!detailId) return;
+  const row = btn.closest('.task-item');
+  if (row) { row.classList.add('is-checking'); await new Promise((r) => setTimeout(r, 320)); }
+  await CRM.completeTask(detailId, at);
+  showToast('Đã xong · đã ghi vào lịch sử chăm sóc');
+  await refreshList();
+  openDetail(detailId); // vẽ lại checklist + timeline chăm sóc
+}
+$('#detail-done-toggle')?.addEventListener('click', () => {
+  doneOpen = !doneOpen;
+  const c = allCustomers.find((x) => x.id === detailId);
+  if (c) renderDetailTasks(c);
+});
+$('#detail-done-list')?.addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-task-undo]'); if (!b || !detailId) return;
+  if ($('#detail-screen').classList.contains('is-readonly')) return;
+  const c = allCustomers.find((x) => x.id === detailId);
+  const t = c && doneTasksOf(c).find((x) => x.at === b.dataset.taskUndo);
+  if (!t) return;
+  if (!confirm(`Hoàn tác "${t.text || ''}"?\n\nViệc sẽ quay lại danh sách cần làm và ghi chú "Xong việc" trong lịch sử chăm sóc sẽ bị xoá.`)) return;
+  await CRM.reopenTask(detailId, t.at);
+  showToast('Đã hoàn tác');
+  await refreshList();
+  openDetail(detailId);
 });
 $('#task-date')?.addEventListener('click', (e) => {
   const b = e.target.closest('.sched-opt'); if (!b) return;
@@ -4308,8 +4383,6 @@ $('#callact-resched')?.addEventListener('click', async () => {
   openScheduler(id);
 });
 $('#callact-close')?.addEventListener('click', () => $('#call-action-modal').close());
-// Bấm thẻ "Hành động tiếp theo" (trang chi tiết) → hộp thoại Đã gọi / Hẹn lại / Huỷ gọi.
-$('#detail-next-action')?.addEventListener('click', () => { if (detailId) openCallAction(detailId); });
 
 // Cập nhật đếm ngược định kỳ: danh sách (card) + badge trang chi tiết.
 setInterval(() => {
@@ -5042,7 +5115,7 @@ function dashActionGroups(all) {
       // ở các nhóm chăm lại phía dưới.
       key: 'tasks', title: 'Việc đến hạn hôm nay',
       items: all.filter((c) => !c.disqualified_at)
-        .map((c) => ({ c, due: (Array.isArray(c.next_tasks) ? c.next_tasks : [])
+        .map((c) => ({ c, due: openTasksOf(c)
           .map((t) => ({ t, info: taskDueInfo(t) }))
           .filter((x) => x.info && x.info.ms < tomorrow0)
           .sort((a, b) => a.info.ms - b.info.ms) }))
@@ -5121,8 +5194,8 @@ function dashActionGroups(all) {
       // Mỗi khách đang chăm phải có bước tiếp theo (Next Step) — nhóm này gom phần còn lại
       // (khách đã nằm ở nhóm trên thì không lặp lại).
       key: 'nonext', title: 'Chưa có việc tiếp theo', contact: true,
-      hint: 'Đặt lịch gọi hoặc thêm "Việc tiếp theo" để khách không bị bỏ quên.',
-      items: activeQ.filter((c) => !hasFutureCall(c) && !(Array.isArray(c.next_tasks) && c.next_tasks.length))
+      hint: 'Hẹn gọi hoặc thêm "Việc tiếp theo" để khách không bị bỏ quên.',
+      items: activeQ.filter((c) => !hasFutureCall(c) && !openTasksOf(c).length)
         .map((c) => ({ c, idle: Math.floor((now - (lastTouchMs(c) || now)) / 86400000) }))
         .sort((a, b) => (b.c.interest_level || 0) - (a.c.interest_level || 0) || b.idle - a.idle)
         .map(({ c, idle }) => ({ c, sub: `Quan tâm ${c.interest_level || 0}% · liên hệ cuối ${idle} ngày trước` })),

@@ -454,25 +454,23 @@
     </div>
 
     <div class="detail-call">
-      <!-- CÓ lịch → thẻ "Hành động tiếp theo": bấm cả thẻ để mở hộp thoại Đã gọi /
-           Hẹn lại / Huỷ lịch. Đổi lịch & Xoá lịch nay nằm trong hộp thoại đó nên
-           không còn nút riêng ở đây. Bấm được kể cả khi lịch xa >24h (chưa có badge). -->
-      <button id="detail-next-action" class="next-action" type="button" hidden>
-        <span class="na-head">
-          <span class="na-eyebrow">Hẹn gọi</span>
-          <span id="detail-call-badge" class="call-tag" hidden></span>
-        </span>
-        <span id="detail-na-when" class="na-when"></span>
-        <span id="detail-na-reason" class="na-reason" hidden></span>
-      </button>
-      <!-- CHƯA có lịch → "VIỆC TIẾP THEO": danh sách việc tự do (sửa/xoá từng việc) +
-           nút thêm việc / đặt lịch gọi. -->
-      <div id="detail-tasks-wrap" class="tasks-wrap" hidden>
+      <!-- VIỆC TIẾP THEO = CHECKLIST: lịch "Hẹn gọi" (nếu có) + các việc chưa xong, xếp theo hạn.
+           Mỗi dòng có ô tích + đếm ngược (còn X / đến hạn / quá hạn). Tích việc → ghi mốc "Xong việc"
+           vào lịch sử chăm sóc; tích Hẹn gọi → hộp thoại Gọi xong / Hẹn lại / Huỷ như cũ.
+           Việc đã xong gom vào "Đã xong (n)" thu gọn bên dưới — xổ ra để hoàn tác (có hỏi lại). -->
+      <div id="detail-tasks-wrap" class="tasks-wrap">
         <span class="na-eyebrow">Việc tiếp theo</span>
         <div id="detail-tasks" class="tasks-list"></div>
         <div class="tasks-actions">
           <button type="button" id="detail-task-add-btn" class="btn-small">＋ Thêm việc</button>
-          <button type="button" id="detail-schedule-btn" class="btn-small">＋ Đặt lịch gọi</button>
+          <button type="button" id="detail-schedule-btn" class="btn-small">＋ Hẹn gọi</button>
+        </div>
+        <div id="detail-done-wrap" class="tasks-done" hidden>
+          <button type="button" id="detail-done-toggle" class="tasks-done-toggle" aria-expanded="false" aria-controls="detail-done-list">
+            <span>Đã xong</span> <span id="detail-done-count" class="tasks-done-count"></span>
+            <svg class="tasks-done-caret" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div id="detail-done-list" class="tasks-done-list" hidden></div>
         </div>
       </div>
     </div>
@@ -877,7 +875,7 @@
 <!-- ============ ĐẶT LỊCH GỌI (dùng chung: trang chi tiết + "hẹn lại") ============ -->
 <dialog id="schedule-modal">
   <div class="sched">
-    <h2>Đặt lịch gọi</h2>
+    <h2>Hẹn gọi</h2>
     <div class="sched-label">Chọn giờ</div>
     <div class="sched-opts" id="sched-time">
       <button type="button" class="sched-opt" data-time="9-10h">9–10h</button>
@@ -898,12 +896,12 @@
     <div id="sched-error" class="sched-error"></div>
     <div class="form-actions">
       <button type="button" id="sched-cancel" class="btn-ghost">Huỷ</button>
-      <button type="button" id="sched-save" class="btn-primary">Lưu lịch gọi</button>
+      <button type="button" id="sched-save" class="btn-primary">Lưu hẹn gọi</button>
     </div>
   </div>
 </dialog>
 
-<!-- ============ THÊM / SỬA VIỆC TIẾP THEO (cùng kiểu Đặt lịch gọi) ============ -->
+<!-- ============ THÊM / SỬA VIỆC TIẾP THEO (cùng kiểu Hẹn gọi) ============ -->
 <dialog id="task-modal">
   <div class="sched">
     <h2 id="task-modal-title">Thêm việc</h2>

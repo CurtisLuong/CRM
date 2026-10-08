@@ -6,6 +6,15 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-08 — "Việc tiếp theo" thành checklist (gồm Hẹn gọi), mục Đã xong + hoàn tác
+
+- Hồ sơ khách: "Việc tiếp theo" là checklist xếp theo hạn — lịch **Hẹn gọi** (đổi tên từ "Đặt lịch gọi") là 1 dòng trong đó; tích Hẹn gọi → hộp thoại Gọi xong / Hẹn lại / Huỷ gọi như cũ (bỏ thẻ hẹn gọi riêng).
+- Tích 1 việc → `done_at` + ghi mốc "Xong việc: …" vào lịch sử chăm sóc ở bậc hiện tại (`log_at` trỏ tới mốc đó), cùng 1 lần đồng bộ (`CRM.completeTask`). Việc xong vào mục phụ "Đã xong (n)" thu gọn; xổ ra → "Hoàn tác" (hỏi xác nhận) → việc quay lại danh sách và mốc "Xong việc" bị xoá đồng bộ (`CRM.reopenTask`).
+- Mọi việc có hạn + Hẹn gọi có đếm ngược cùng cơ chế nhắc gọi: còn X (phút / giờ:phút / ngày) · đến hạn (tới hết khung + 30 phút; hạn cả ngày: cả ngày đó) · quá hạn. Xa >24h hiện màu nhạt.
+- Tổng quan (Việc đến hạn, Chưa có việc tiếp theo) và Xuất dữ liệu chỉ tính việc chưa xong. Không cần migration (khoá mới trong `next_tasks` jsonb).
+- File: `index.html`, `js/app.js`, `js/db.js`, `css/style.css`, `sw.js` (v58), `docs/huong-dan-follow-up.md`.
+- Đã kiểm tra trình duyệt local (IndexedDB thử, không Supabase; desktop + 375px): đếm ngược các trạng thái, tích xong → mốc "Xong việc" trong lịch sử, Đã xong thu gọn/xổ ra, hoàn tác có hỏi (đồng ý → xoá mốc; huỷ → giữ nguyên), tích Hẹn gọi mở hộp thoại gọi. Chưa thử đồng bộ thật lên Supabase, chưa deploy.
+
 ## 2026-10-08 — Logo "Sổ Khách" bấm về trang chủ
 
 - Bấm logo/tên "Sổ Khách" ở header (hoặc Enter khi focus) → xoá từ khoá đang tìm, mở Tổng quan, cuộn lên đầu trang.

@@ -49,7 +49,7 @@ Nhịp theo bậc:
 - Chỉ hỏi khi khách **chưa có** lịch hẹn sắp tới.
 
 ### 3. Nhóm "Chưa có việc tiếp theo" ở Tổng quan
-Gom khách Đang chăm đang chăm mà **không có lịch hẹn** và **không có mục "Việc tiếp theo"**. Mục tiêu: nhóm này luôn trống. Bấm tên khách → đặt lịch hoặc thêm việc.
+Gom khách Tiềm năng đang chăm mà **không có lịch hẹn** và **không còn việc nào chưa xong** trong "Việc tiếp theo" (việc đã tích xong không tính). Mục tiêu: nhóm này luôn trống. Bấm tên khách → hẹn gọi hoặc thêm việc.
 
 ### 4. Mẫu tin Zalo
 - Bấm **icon Zalo** của khách → hộp có nút lớn **Mở Zalo** ở trên cùng (chỉ mở chat, không copy — dùng hằng ngày). Bên dưới chỉ có **1 tin nhắn gợi ý** (tối đa 2 khi có thêm 1 tình huống rõ ràng), kèm lý do gợi ý. Bấm tin gợi ý → app copy nội dung (đã điền tên, anh/chị, dự án) và mở Zalo → bạn **dán**. Cần mẫu khác → bấm dòng nhỏ **Chọn mẫu khác**.

@@ -362,7 +362,8 @@ const CRM = {
     return record;
   },
 
-  // ---- VIỆC TIẾP THEO (next_tasks): mảng {text, at, due?, due_allday?}, GIỮ thứ tự tạo (cũ → mới) ----
+  // ---- VIỆC TIẾP THEO (next_tasks): mảng {text, at, due?, due_allday?, done_at?, log_at?}, GIỮ thứ tự tạo ----
+  // done_at = lúc bấm xong (việc vào mục "Đã xong"); log_at = `at` của mốc "Xong việc" trong care_stage_history.
   // due = hạn ngày giờ (ISO), tuỳ chọn. due_allday = true → hạn "cả ngày" (due = 23:59 hôm đó).
   // Tham số `due` của addTask/updateTask: { due, due_allday } hoặc null (không hạn).
   // Chỉ đồng bộ riêng cột next_tasks (partial update) → không đụng field khác.
@@ -404,6 +405,64 @@ const CRM = {
     const record = { ...existing, next_tasks: list };
     await localPut(record);
     await queueAdd({ type: 'update', recordId: id, payload: { next_tasks: list }, ts: new Date().toISOString() });
+    this.flushQueue();
+    return record;
+  },
+
+  /**
+   * Đánh dấu XONG 1 việc: done_at = bây giờ + ghi 1 mốc "Xong việc: …" vào lịch sử chăm sóc
+   * ở BẬC HIỆN TẠI. log_at = `at` của mốc đó → hoàn tác xoá đúng mốc ấy. 1 lần đồng bộ duy nhất.
+   */
+  async completeTask(id, at) {
+    await assertWritable(id);
+    const existing = (await localGetAll()).find((r) => r.id === id);
+    if (!existing) return;
+    const list = Array.isArray(existing.next_tasks) ? existing.next_tasks.slice() : [];
+    const idx = list.findIndex((n) => n.at === at);
+    if (idx === -1 || list[idx].done_at) return;
+    const now = new Date().toISOString();
+    const entry = { ...list[idx], done_at: now };
+    const payload = { updated_at: now };
+    if (existing.care_stage) {
+      const history = Array.isArray(existing.care_stage_history) ? existing.care_stage_history.slice() : [];
+      history.push({ stage: existing.care_stage, note: 'Xong việc: ' + (entry.text || ''), at: now });
+      entry.log_at = now;
+      payload.care_stage_history = history;
+      payload.care_stage_updated_at = now;
+    }
+    list[idx] = entry;
+    payload.next_tasks = list;
+    const record = { ...existing, ...payload };
+    await localPut(record);
+    await queueAdd({ type: 'update', recordId: id, payload, ts: now });
+    this.flushQueue();
+    return record;
+  },
+
+  /** Hoàn tác việc đã xong: bỏ done_at + xoá mốc "Xong việc" tương ứng (log_at) khỏi lịch sử chăm sóc. */
+  async reopenTask(id, at) {
+    await assertWritable(id);
+    const existing = (await localGetAll()).find((r) => r.id === id);
+    if (!existing) return;
+    const list = Array.isArray(existing.next_tasks) ? existing.next_tasks.slice() : [];
+    const idx = list.findIndex((n) => n.at === at);
+    if (idx === -1 || !list[idx].done_at) return;
+    const now = new Date().toISOString();
+    const entry = { ...list[idx] };
+    const logAt = entry.log_at;
+    delete entry.done_at; delete entry.log_at;
+    list[idx] = entry;
+    const payload = { next_tasks: list, updated_at: now };
+    const hist = Array.isArray(existing.care_stage_history) ? existing.care_stage_history : [];
+    if (logAt && hist.some((h) => h.at === logAt)) {
+      const history = hist.filter((h) => h.at !== logAt);
+      payload.care_stage_history = history;
+      // Mốc "cập nhật chăm sóc" quay về mốc cuối còn lại (như trước khi bấm xong).
+      if (history.length) payload.care_stage_updated_at = history[history.length - 1].at;
+    }
+    const record = { ...existing, ...payload };
+    await localPut(record);
+    await queueAdd({ type: 'update', recordId: id, payload, ts: now });
     this.flushQueue();
     return record;
   },
