@@ -1157,8 +1157,8 @@ function snipsHtml(c, ctx, cls, limit = 2) {
 }
 function matchesSearch(c, ctx = searchCtx()) { return customerSearchResult(c, ctx).match; }
 const SEARCH_PAGE_SIZE = 50;
-let searchPages = { list: 1, leads: 1, qualified: 1, new: 1 };
-function resetSearchPages() { searchPages = { list: 1, leads: 1, qualified: 1, new: 1 }; }
+let searchPages = { list: 1, leads: 1, qualified: 1, new: 1, team: 1 };
+function resetSearchPages() { searchPages = { list: 1, leads: 1, qualified: 1, new: 1, team: 1 }; }
 function renderSearchView() {
   if (!$('#dashboard-view').hidden) renderDashboard();
   else if (!$('#lead-view').hidden) renderLeads();
@@ -1167,7 +1167,7 @@ function renderSearchView() {
 function clearAccountView() {
   clearInterval(accountSyncTimer); accountSyncTimer = null;
   CRM.suspend(); Catalog.scope(null); if (window.CatalogSearchUI) CatalogSearchUI.reset();
-  allCustomers = []; resetTeamState(); _searchWarmGeneration++; _queryContext = null; resetSearchPages();
+  allCustomers = []; resetTeamState(); custGroup = 'care'; _searchWarmGeneration++; _queryContext = null; resetSearchPages();
   progressFilter = 'active'; stageFilter = ''; aptTypeFilter = ''; dateFilter = {preset:'all',from:null,to:null};
   leadFilter = 'open'; leadSrcFilter = ''; leadDatePreset = 'all'; leadAptTypeFilter = '';
   $('#filter-min-interest').value = 0; $('#filter-interest-val').textContent = '0';
@@ -1181,8 +1181,9 @@ function clearAccountView() {
 let _listFilterContext = null;
 function matchesFilters(c) {
   // Trang chủ CHỈ hiện khách lớp 2 (đã xác nhận quan tâm). Lead ở tab "Khách mới".
-  if (!isQualified(c)) return false;
-  if (!matchesOwnerScope(c)) return false; // Người phụ trách (js/team.js) — mặc định: của tôi + đang theo dõi
+  // Đang chăm: khách lớp 2 MÌNH phụ trách. Khách nhóm: khách đồng nghiệp phụ trách (cả 2 lớp), lọc theo người.
+  if (custGroup === 'team') { if (isMine(c) || !matchesTeamPerson(c)) return false; }
+  else if (!isQualified(c) || !isMine(c)) return false;
   if (!matchesSearch(c, _listFilterContext?.ctx)) return false;
   if (aptTypeFilter && (CRMSearch.apartmentGroup(c.apt_type) || 'missing') !== aptTypeFilter) return false;
   const stage = stageFilter;
@@ -1247,7 +1248,9 @@ function visibleCustomers() {
   return list;
 }
 
+let _emptyStateText = null; // chữ gốc của #empty-state (nhóm Đang chăm)
 function renderList() {
+  if (_emptyStateText === null) _emptyStateText = $('#empty-state').textContent;
   if ($('#list-view').hidden) return;
   const fullList = visibleCustomers(), list = fullList.slice(0, searchPages.list * SEARCH_PAGE_SIZE);
   // Map nhắc-gọi để hiển thị nhãn trên card/dòng (danh sách đã được đẩy nhắc-gọi lên đầu).
@@ -1258,7 +1261,11 @@ function renderList() {
   container.innerHTML = '';
   container.classList.toggle('list-mode', viewMode === 'list');
   $('#empty-state').hidden = list.length !== 0;
-  $('#result-count').textContent = `${fullList.length} khách hàng · Tiềm năng${ownerScopeLabel() ? ' · ' + ownerScopeLabel() : ''}${searchCtx() ? ' · theo độ liên quan' : ''}`;
+  const groupLabel = custGroup === 'team' ? 'Khách nhóm' + (ownerScopeLabel() ? ' · ' + ownerScopeLabel() : '') : 'Đang chăm';
+  $('#result-count').textContent = `${fullList.length} khách hàng · ${groupLabel}${searchCtx() ? ' · theo độ liên quan' : ''}`;
+  $('#empty-state').textContent = custGroup === 'team'
+    ? (hasTeam() ? 'Chưa có khách nào giao cho đồng nghiệp. Mở hồ sơ khách → 👥 Giao khách.' : 'Chưa có nhóm — trưởng nhóm thêm đồng nghiệp ở menu avatar → Đồng nghiệp.')
+    : _emptyStateText;
   $('#list-search-more').hidden = list.length >= fullList.length;
   $('#list-search-more').textContent = `Xem thêm (${fullList.length - list.length} khách)`;
   updateFilterDot(); // giữ chấm đỏ + nút "Xoá lọc ✕" luôn khớp trạng thái lọc
@@ -2298,7 +2305,7 @@ async function handleFormSubmit(e) {
       delete payload.contact_status;
     }
     const created = await CRM.create(payload, opts);
-    if (created) showToast(created.qualified_at ? 'Đã thêm vào Tiềm năng' : 'Đã thêm vào Khách mới');
+    if (created) showToast(created.qualified_at ? 'Đã thêm vào Đang chăm' : 'Đã thêm vào Khách mới');
     if (created && created.qualified_at) pendingFollowup = { id: created.id, stage: QUALIFIED_STAGE };
     // Nếu OCR đọc được 1 ghi chú → thêm thành 1 note tự nhập cho khách vừa tạo.
     if (created && pendingOcrNote) { await CRM.addNote(created.id, pendingOcrNote); pendingOcrNote = null; }
@@ -4292,11 +4299,11 @@ function leadStatusTag(c) {
 }
 
 function renderLeads() {
-  const leads = allCustomers.filter((c) => !isQualified(c) && matchesOwnerScope(c));
+  const leads = allCustomers.filter((c) => !isQualified(c) && isMine(c)); // khách mới MÌNH phụ trách
   // Badge tab = VIỆC CẦN LÀM NGAY: lead đăng ký HÔM QUA + HÔM NAY, chưa loại, CHƯA GỌI lần nào (gọi sớm dễ bắt máy).
   // Gọi xong → số giảm; hết → badge ẩn. (Đếm hết lead làm số luôn to → bị "nhờn", mất tác dụng nhắc.)
   const since = new Date(); since.setHours(0, 0, 0, 0); since.setDate(since.getDate() - 1); // 0h hôm qua
-  const urgent = leads.filter((c) => isMine(c) && !c.disqualified_at && !callAttemptsOf(c).length
+  const urgent = leads.filter((c) => !c.disqualified_at && !callAttemptsOf(c).length
     && Date.parse(c.registered_at || c.created_at || '') >= since.getTime()).length;
   const badge = $('#lead-count-badge');
   if (badge) {
@@ -4304,6 +4311,9 @@ function renderLeads() {
     badge.hidden = urgent === 0;
     badge.title = `${urgent} khách đăng ký hôm qua/hôm nay chưa gọi`;
   }
+  const tabBadge = $('#cust-tab-badge'); // cùng số trên tab Khách hàng (nhìn thấy từ Tổng quan)
+  if (tabBadge) { tabBadge.textContent = badge ? badge.textContent : String(urgent); tabBadge.hidden = urgent === 0; tabBadge.title = badge ? badge.title : ''; }
+  if (!$('#cust-subtabs').hidden) syncCustSubtabs();
   const view = $('#lead-view');
   if (!view || view.hidden) return; // tab đang ẩn → chỉ cập nhật badge
 
@@ -4311,7 +4321,7 @@ function renderLeads() {
   const fullList = orderLeads(leads.filter((c) => leadMatchesFilter(c, ctx, range)));
   const list = fullList.slice(0, searchPages.leads * SEARCH_PAGE_SIZE);
   syncLeadFilterUI();
-  $('#lead-result-count').textContent = `${fullList.length} khách · Khách mới${ownerScopeLabel() ? ' · ' + ownerScopeLabel() : ''}${searchCtx() ? ' · theo độ liên quan' : ''}`;
+  $('#lead-result-count').textContent = `${fullList.length} khách · Khách mới${searchCtx() ? ' · theo độ liên quan' : ''}`;
   $('#lead-search-more').hidden = list.length >= fullList.length;
   $('#lead-search-more').textContent = `Xem thêm (${fullList.length - list.length} khách)`;
   $('#lead-empty').hidden = list.length !== 0;
@@ -4511,15 +4521,14 @@ function toggleLeadPop(pop, btn) {
 }
 function syncLeadFilterUI() {
   renderAptTypeFilter('lead-apt-presets', leadAptTypeFilter);
-  renderOwnerScope('lead-owner-group', 'lead-owner-presets');
   $('#lead-src-presets').innerHTML = [['', 'Tất cả'], ...Object.entries(SOURCES)].map(([code, label]) =>
     `<button type="button" class="date-preset${code === leadSrcFilter ? ' is-sel' : ''}" data-src="${code}">${escapeHtml(label)}</button>`).join('');
   $$('#lead-date-presets .date-preset').forEach((b) => b.classList.toggle('is-sel', b.dataset.preset === leadDatePreset));
-  const active = !!leadSrcFilter || leadDatePreset !== 'all' || !!leadAptTypeFilter || ownerScope !== 'mine';
+  const active = !!leadSrcFilter || leadDatePreset !== 'all' || !!leadAptTypeFilter;
   $('#lead-filter-dot').hidden = !active;
   $('#lead-clear-filter').hidden = !active;
 }
-function resetLeadFilters() { leadSrcFilter = ''; leadDatePreset = 'all'; leadAptTypeFilter = ''; ownerScope = 'mine'; resetSearchPages(); renderLeads(); }
+function resetLeadFilters() { leadSrcFilter = ''; leadDatePreset = 'all'; leadAptTypeFilter = ''; resetSearchPages(); renderLeads(); }
 function renderLeadSortOptions() {
   $('#lead-sort-options').innerHTML = LEAD_SORT_ATTRS.map((a) => {
     const dir = leadSortDraft[a.key];
@@ -4641,8 +4650,9 @@ function renderDashSearch() {
   const order = (a, b) => searchOrder(a, b, ctx) || (Number(!!a.disqualified_at || isCareDone(a.care_stage)) - Number(!!b.disqualified_at || isCareDone(b.care_stage)))
     || (a.full_name || '').localeCompare(b.full_name || '', 'vi');
   const groups = [
-    ['Tiềm năng', hits.filter(isQualified).sort(order), 'qualified'],
-    ['Khách mới', hits.filter((c) => !isQualified(c)).sort(order), 'new'],
+    ['Đang chăm', hits.filter((c) => isMine(c) && isQualified(c)).sort(order), 'qualified'],
+    ['Khách mới', hits.filter((c) => isMine(c) && !isQualified(c)).sort(order), 'new'],
+    ['Khách nhóm', hits.filter((c) => !isMine(c)).sort(order), 'team'],
   ];
   const total = hits.length;
   $('#dash-search').innerHTML = `<div class="search-total">${total ? `Tìm thấy ${total} khách` : 'Không tìm thấy khách nào.'}</div>` +
@@ -4658,7 +4668,12 @@ $('#dash-search')?.addEventListener('click', (e) => {
   const more = e.target.closest('[data-search-more]'); if (more) { searchPages[more.dataset.searchMore]++; renderDashSearch(); return; }
   const row = e.target.closest('[data-search-open]'); if (!row) return;
   const c = allCustomers.find((x) => x.id === row.dataset.searchOpen); if (!c) return;
-  if (isQualified(c)) {
+  if (!isMine(c)) { // khách đồng nghiệp phụ trách → nhóm Khách nhóm, xem mọi người + mọi tiến độ
+    ownerScope = 'all'; stageFilter = ''; progressFilter = 'all';
+    $('#progress-label').textContent = 'Tất cả';
+    $$('#progress-pop .status-opt').forEach((o) => o.classList.toggle('is-sel', o.dataset.value === 'all'));
+    showTeamView(); openDetail(c.id);
+  } else if (isQualified(c)) {
     // Khách đã xong (chốt/không chốt) bị ẩn ở bộ lọc mặc định → chuyển bộ lọc sang "Tất cả".
     if (isCareDone(c.care_stage) && progressFilter === 'active') {
       progressFilter = 'all';
@@ -4746,19 +4761,45 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && suggestB
 // công cụ (loan...) mở từ menu tài khoản, không có tab — màn công cụ có nút ← về Tổng quan.
 // Ô tìm kiếm hiện ở 3 tab chính (không hiện ở màn công cụ).
 const SEARCH_VIEWS = ['dashboard', 'list', 'leads']; // Tổng quan: tìm → trang kết quả tạm
+// Tab "Khách hàng" (D-004) có 3 NHÓM: 'care' Đang chăm (#list-view) · 'leads' Khách mới (#lead-view) ·
+// 'team' Khách nhóm (#list-view, khách đồng nghiệp phụ trách — js/team.js). custGroup = nhóm đang xem;
+// bấm tab Khách hàng → mở lại nhóm xem gần nhất.
+let custGroup = 'care';
+const LS_CUST_GROUP = 'crm_cust_group';
 function setActiveView(name) { // 'list' | 'leads' | 'dashboard' | 'loan'
   $('.topbar').classList.toggle('no-search', !SEARCH_VIEWS.includes(name));
   $('#list-view').hidden = name !== 'list';
   $('#lead-view').hidden = name !== 'leads';
   closeLeadPops();
-  $('#tab-leads').classList.toggle('is-active', name === 'leads');
   $('#dashboard-view').hidden = name !== 'dashboard';
   $('#loan-view').hidden = name !== 'loan';
-  $('#tab-list').classList.toggle('is-active', name === 'list');
+  const isCust = name === 'list' || name === 'leads';
+  $('#tab-customers').classList.toggle('is-active', isCust);
   $('#tab-dashboard').classList.toggle('is-active', name === 'dashboard');
+  $('#cust-subtabs').hidden = !isCust;
+  if (isCust) {
+    try { localStorage.setItem(LS_CUST_GROUP, custGroup); } catch { /* bỏ qua */ }
+    syncCustSubtabs();
+  }
 }
-function showListView() { setActiveView('list'); renderList(); }
-function showLeadView() { setActiveView('leads'); renderLeads(); }
+function syncCustSubtabs() {
+  $$('#cust-subtabs .cust-subtab').forEach((b) => {
+    const on = b.dataset.group === custGroup;
+    b.classList.toggle('is-active', on); b.setAttribute('aria-selected', String(on));
+  });
+  const others = allCustomers.filter((c) => !isMine(c));
+  $('#sub-team').hidden = !(hasTeam() || others.length);
+  $('#sub-care-count').textContent = String(allCustomers.filter((c) => isMine(c) && isQualified(c) && !isCareDone(c.care_stage)).length);
+  $('#sub-team-count').textContent = others.length ? String(others.length) : '';
+}
+function showListView() { custGroup = 'care'; setActiveView('list'); renderList(); }      // Đang chăm
+function showTeamView() { custGroup = 'team'; setActiveView('list'); renderList(); }      // Khách nhóm
+function showLeadView() { custGroup = 'leads'; setActiveView('leads'); renderLeads(); }   // Khách mới
+function showCustomerGroup(g) {
+  if (g === 'leads') showLeadView();
+  else if (g === 'team' && !$('#sub-team').hidden) showTeamView();
+  else showListView();
+}
 function showDashboardView() { setActiveView('dashboard'); renderDashboard(); }
 function showLoanView() { setActiveView('loan'); if (window.LoanCRM) LoanCRM.mountTab(); } // js/loan/loan-crm.js
 
@@ -4950,7 +4991,7 @@ function dashActionGroups(all) {
     },
     {
       key: 'decide', title: 'Đã nói chuyện — chờ phân loại', contact: true,
-      hint: 'Chuyển sang Tiềm năng hoặc loại để danh sách Khách mới gọn.',
+      hint: 'Bấm Đạt (chuyển sang Đang chăm) hoặc Loại để danh sách Khách mới gọn.',
       items: leadsWithCall((c) => {
         const talked = callAttemptsOf(c).filter((a) => a.result === 'talked');
         return talked.length && now - Date.parse(talked[talked.length - 1].at) >= DASH_LEAD_RETRY_H * 3600000;
@@ -4972,7 +5013,7 @@ function dashActionGroups(all) {
         .map(({ c, idle }) => ({ c, sub: `Quan tâm ${c.interest_level || 0}% · ${idle} ngày chưa liên hệ` })),
     },
     {
-      key: 'warm', title: 'Tiềm năng lâu chưa chăm', contact: true,
+      key: 'warm', title: 'Khách đang chăm lâu chưa liên hệ', contact: true,
       items: activeQ.filter((c) => !hasFutureCall(c) && (c.interest_level || 0) < hotMin)
         .map((c) => ({ c, idle: Math.floor((now - (lastTouchMs(c) || now)) / 86400000) }))
         .filter((x) => x.idle >= DASH_IDLE_WARM_DAYS)
@@ -5155,7 +5196,7 @@ function renderDashboard() {
       ${perfRow('Khách mới vào', thisWk.leads, lastWk.leads)}
       ${perfRow('Cuộc gọi', thisWk.calls, lastWk.calls)}
       ${perfRow('Nói chuyện được', thisWk.talked, lastWk.talked)}
-      ${perfRow('Lên Tiềm năng', thisWk.qualified, lastWk.qualified)}
+      ${perfRow('Chuyển Đang chăm', thisWk.qualified, lastWk.qualified)}
       ${perfRow('Booking / Kí', thisWk.deals, lastWk.deals)}
     </div>
     <div class="perf-foot">Tốc độ gọi khách mới (30 ngày): <b>${stlMed != null ? escapeHtml(formatDuration(stlMed)) : '—'}</b>
@@ -5318,9 +5359,9 @@ function renderDashAnalytics(all) {
     });
   });
   const srcItems = Object.entries(srcMap).sort((a, b) => b[1].n - a[1].n)
-    .map(([s, m]) => ({ label: s === '?' ? 'Chưa rõ' : sourceLabel(s), value: m.n, sub: `· ${pctOf(m.q, m.n)}% lên TN` }));
+    .map(([s, m]) => ({ label: s === '?' ? 'Chưa rõ' : sourceLabel(s), value: m.n, sub: `· ${pctOf(m.q, m.n)}% Đạt` }));
   cards.push(dashCard('Nguồn khách', hbars(srcItems, { color: '#8a7bb0' }),
-    'Số khách theo kênh và tỉ lệ chuyển sang Tiềm năng (TN) — kênh nào ra khách thật.'));
+    'Số khách theo kênh và tỉ lệ Đạt (chuyển sang Đang chăm) — kênh nào ra khách thật.'));
 
   return cards;
 }
@@ -5587,7 +5628,7 @@ function renderAptTypeFilter(id, selected) {
 // Chấm báo "đang có lọc nâng cao" trên icon phễu (tiến độ ≠ tất cả HOẶC quan tâm >0 HOẶC có lọc thời gian).
 function isAdvancedFilterActive() {
   const interest = Number($('#filter-min-interest').value || 0);
-  return !!(stageFilter || aptTypeFilter || interest > 0 || dateFilterRange() || ownerScope !== 'mine');
+  return !!(stageFilter || aptTypeFilter || interest > 0 || dateFilterRange() || (custGroup === 'team' && ownerScope !== 'all'));
 }
 // Đồng bộ 2 chỉ báo "đang có lọc nâng cao": chấm đỏ trên icon phễu + nút "Xoá lọc ✕"
 // cạnh dòng "[x] khách hàng". Cả 2 chỉ hiện khi có lọc khác mặc định (giữ UI gọn).
@@ -5601,7 +5642,7 @@ function updateFilterDot() {
 }
 // Đưa bộ lọc nâng cao về mặc định (tiến độ = Tất cả, quan tâm ≥ 0%).
 function resetAdvancedFilters() {
-  aptTypeFilter = ''; ownerScope = 'mine'; resetSearchPages();
+  aptTypeFilter = ''; ownerScope = 'all'; resetSearchPages();
   stageFilter = '';
   syncStageLabel(); closeStagePop();
   $('#filter-min-interest').value = 0;
@@ -5948,8 +5989,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const t = loadImportTemplates()[+b.dataset.tpl];
     if (t) { $('#import-header').checked = !!t.headerRow; renderImportMap(t.mapping); }
   });
-  $('#tab-list').addEventListener('click', showListView);
-  $('#tab-leads').addEventListener('click', showLeadView);
+  $('#tab-customers').addEventListener('click', () => {
+    let g = custGroup; try { g = localStorage.getItem(LS_CUST_GROUP) || g; } catch { /* bỏ qua */ }
+    showCustomerGroup(g);
+  });
+  $('#cust-subtabs').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-group]'); if (!b) return;
+    closeToolPops(); resetSearchPages(); showCustomerGroup(b.dataset.group);
+  });
   $('#tab-dashboard').addEventListener('click', showDashboardView);
   $('#tool-loan-btn').addEventListener('click', () => { $('#topbar-menu').classList.remove('open'); showLoanView(); window.scrollTo(0, 0); });
   $('#loan-back-btn').addEventListener('click', showDashboardView);

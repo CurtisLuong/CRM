@@ -91,11 +91,11 @@
         </div>
       </div>
     </div>
-    <!-- TAB CHÍNH (tầng 1) — chỉ 3 mục. Công cụ khác (Tính vay...) nằm trong menu tài khoản. -->
+    <!-- TAB CHÍNH (tầng 1) — 2 mục (chốt 2026-10-08, D-004). "Khách hàng" chia 3 nhóm ở thanh #cust-subtabs.
+         Công cụ khác (Tính vay...) nằm trong menu tài khoản. -->
     <nav class="tab-nav">
       <button id="tab-dashboard" class="tab-btn is-active">Tổng quan</button>
-      <button id="tab-list" class="tab-btn">Tiềm năng</button>
-      <button id="tab-leads" class="tab-btn">Khách mới <span id="lead-count-badge" class="tab-badge" hidden>0</span></button>
+      <button id="tab-customers" class="tab-btn">Khách hàng <span id="cust-tab-badge" class="tab-badge" hidden>0</span></button>
     </nav>
     <div class="topbar-search-wrap">
       <span class="search-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg></span>
@@ -141,6 +141,14 @@
     <button type="button" id="app-update-btn" class="btn-primary btn-small">Cập nhật</button>
     <button type="button" id="app-update-close" class="app-update-x" aria-label="Để sau">✕</button>
   </div>
+
+  <!-- NHÓM KHÁCH (tầng 2 của tab Khách hàng): Đang chăm (#list-view) · Khách mới (#lead-view) ·
+       Khách nhóm (#list-view, chế độ custGroup='team' — khách đồng nghiệp phụ trách). Logic: app.js setActiveView. -->
+  <nav id="cust-subtabs" class="cust-subtabs" role="tablist" aria-label="Nhóm khách" hidden>
+    <button type="button" class="cust-subtab is-active" data-group="care" role="tab">Đang chăm <span id="sub-care-count" class="sub-count"></span></button>
+    <button type="button" class="cust-subtab" data-group="leads" role="tab">Khách mới <span id="lead-count-badge" class="tab-badge" hidden>0</span></button>
+    <button type="button" class="cust-subtab" data-group="team" role="tab" id="sub-team" hidden>Khách nhóm <span id="sub-team-count" class="sub-count"></span></button>
+  </nav>
 
   <div id="list-view" hidden>
   <div class="toolbar">
@@ -262,7 +270,7 @@
   <!-- LỚP 1 "KHÁCH MỚI": lead chưa xác nhận quan tâm (qualified_at trống). Logic: renderLeads()
        trong app.js. Đạt → sang tab Khách hàng; Loại → giữ lại kèm lý do để đánh giá campaign. -->
   <div id="lead-view" hidden>
-    <!-- Thanh công cụ CÙNG kiểu tab Tiềm năng: dropdown trạng thái · Bộ lọc (kênh, thời gian
+    <!-- Thanh công cụ CÙNG kiểu nhóm Đang chăm: dropdown trạng thái · Bộ lọc (kênh, thời gian
          đăng ký) · Sắp xếp. State riêng (leadFilter/leadSrcFilter/leadDateFilter/leadSort) trong app.js. -->
     <div class="toolbar">
       <div class="tool-pop status-select-wrap">
@@ -284,10 +292,6 @@
         </button>
         <div id="lead-filter-panel" class="pop-panel" hidden>
           <div class="pop-title">Bộ lọc</div>
-          <div class="pop-group" id="lead-owner-group" hidden>
-            <div class="pop-label">Người phụ trách</div>
-            <div id="lead-owner-presets" class="date-presets" role="group" aria-label="Lọc theo người phụ trách"></div>
-          </div>
           <div class="pop-group">
             <div class="pop-label">Loại căn</div>
             <div id="lead-apt-presets" class="date-presets" role="group" aria-label="Lọc theo loại căn"></div>
@@ -340,9 +344,9 @@
   <div id="dashboard-view">
     <div id="dashboard-content" class="dash-grid"></div>
     <!-- TRANG TÌM KIẾM TẠM: gõ vào ô tìm ở tab Tổng quan → thay biểu đồ bằng kết quả gộp
-         (Tiềm năng + Khách mới). Xoá ô tìm → về biểu đồ. Logic: renderDashSearch() trong app.js. -->
+         (Đang chăm + Khách mới + Khách nhóm). Xoá ô tìm → về biểu đồ. Logic: renderDashSearch() trong app.js. -->
     <div id="dash-search" class="dash-search" aria-live="polite" hidden></div>
-    <!-- Nút thêm khách nổi (FAB) ở Tổng quan — khách mới vào tab Khách mới (hoặc thẳng Tiềm năng nếu tick). -->
+    <!-- Nút thêm khách nổi (FAB) ở Tổng quan — khách mới vào nhóm Khách mới (hoặc thẳng Đang chăm nếu tick). -->
     <button id="add-dash-btn" class="fab" title="Thêm khách" aria-label="Thêm khách">+</button>
   </div>
 

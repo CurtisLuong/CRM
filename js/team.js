@@ -4,7 +4,9 @@
 //   1. Khách của tôi           : owner_id = tôi
 //   2. Giao, tôi vẫn theo dõi  : owner_id = đồng nghiệp, followers chứa tôi → tôi CHỈ XEM
 //   3. Giao hẳn                : owner_id = đồng nghiệp, tôi không còn trong followers → khách biến khỏi
-//                                danh sách của tôi (trưởng nhóm/admin vẫn xem qua bộ lọc "Cả nhóm")
+//                                danh sách của tôi (trưởng nhóm/admin vẫn xem ở nhóm "Khách nhóm")
+// Hiển thị (D-004): tab Khách hàng → Đang chăm / Khách mới = khách MÌNH phụ trách; "Khách nhóm" = khách
+// đồng nghiệp phụ trách mà mình thấy được (đang theo dõi; admin: cả nhóm), lọc theo người ở Bộ lọc.
 //
 // Quy tắc:
 //   • Chỉ NGƯỜI PHỤ TRÁCH ghi được (db.js chặn + RLS). Trưởng nhóm (admin) xem mọi khách nhưng khách
@@ -15,7 +17,7 @@
 // File này dùng các hàm/biến global của app.js (allCustomers, currentUser, openDetail…).
 
 let team = [];            // [{user_id, full_name, email, is_admin, is_me}] — rỗng nếu chưa chạy SQL / chưa vào nhóm
-let ownerScope = 'mine';  // 'mine' | 'following' | 'team' | <user_id đồng nghiệp>
+let ownerScope = 'all';   // lọc trong nhóm "Khách nhóm": 'all' | 'following' | <user_id đồng nghiệp>
 const LS_TEAM = 'crm_team:'; // + userId
 
 function meId() { return currentUser ? currentUser.id : null; }
@@ -29,16 +31,14 @@ function memberName(id) {
   return m ? (m.full_name || (m.email || '').split('@')[0] || 'Đồng nghiệp') : 'Đồng nghiệp';
 }
 function ownedCustomers() { return allCustomers.filter(isMine); }
-function matchesOwnerScope(c) {
-  if (ownerScope === 'mine') return isMine(c) || isFollowing(c);
-  if (ownerScope === 'following') return !isMine(c) && isFollowing(c);
-  if (ownerScope === 'team') return true;
+function matchesTeamPerson(c) {
+  if (ownerScope === 'all') return true;
+  if (ownerScope === 'following') return isFollowing(c);
   return c.owner_id === ownerScope;
 }
 function ownerScopeLabel() {
-  if (ownerScope === 'mine') return '';
+  if (ownerScope === 'all') return '';
   if (ownerScope === 'following') return 'Đang theo dõi';
-  if (ownerScope === 'team') return 'Cả nhóm';
   return memberName(ownerScope);
 }
 // Nhãn người phụ trách trên thẻ — chỉ hiện với khách KHÔNG do mình phụ trách.
@@ -47,17 +47,15 @@ function ownerTagHtml(c) {
   return `<span class="tag tag-owner" title="Người phụ trách">👤 ${escapeHtml(memberName(c.owner_id))}</span>`;
 }
 
-// Mục "Người phụ trách" trong panel Bộ lọc (Tiềm năng + Khách mới dùng chung trạng thái).
+// Mục "Người phụ trách" trong panel Bộ lọc — CHỈ ở nhóm "Khách nhóm" và chỉ trưởng nhóm (đồng nghiệp
+// thường chỉ thấy khách mình đang theo dõi nên không cần lọc).
 function renderOwnerScope(groupId, presetsId) {
   const group = document.getElementById(groupId); if (!group) return;
-  group.hidden = !hasTeam();
-  if (!hasTeam()) { ownerScope = 'mine'; return; }
-  const opts = [['mine', 'Của tôi'], ['following', 'Đã giao, đang theo dõi']];
-  if (amAdmin()) {
-    opts.push(['team', 'Cả nhóm']);
-    team.filter((m) => !m.is_me).forEach((m) => opts.push([m.user_id, memberName(m.user_id)]));
-  }
-  if (!opts.some(([v]) => v === ownerScope)) ownerScope = 'mine';
+  group.hidden = !(custGroup === 'team' && amAdmin() && hasTeam());
+  if (group.hidden) return;
+  const opts = [['all', 'Tất cả'], ['following', 'Tôi đang theo dõi']];
+  team.filter((m) => !m.is_me).forEach((m) => opts.push([m.user_id, memberName(m.user_id)]));
+  if (!opts.some(([v]) => v === ownerScope)) ownerScope = 'all';
   document.getElementById(presetsId).innerHTML = opts.map(([v, label]) =>
     `<button type="button" class="date-preset${v === ownerScope ? ' is-sel' : ''}" data-scope="${escapeHtml(v)}">${escapeHtml(label)}</button>`).join('');
 }
@@ -66,10 +64,9 @@ function onScopeClick(e) {
   e.stopPropagation(); // giữ panel mở
   ownerScope = b.dataset.scope;
   resetSearchPages();
-  renderList(); renderLeads();
+  renderList();
 }
 $('#filter-owner-presets')?.addEventListener('click', onScopeClick);
-$('#lead-owner-presets')?.addEventListener('click', onScopeClick);
 
 // ---- Tải danh sách nhóm: cache local trước (offline), rồi lấy bản mới từ server ----
 async function syncTeam() {
@@ -84,10 +81,11 @@ async function syncTeam() {
 }
 function afterTeamChange() {
   $('#team-btn').hidden = !team.length && !amAdmin();
+  if (!$('#cust-subtabs').hidden) syncCustSubtabs();
   renderList(); renderLeads();
   if (!$('#dashboard-view').hidden) renderDashboard();
 }
-function resetTeamState() { team = []; ownerScope = 'mine'; }
+function resetTeamState() { team = []; ownerScope = 'all'; }
 
 // ---- Trạng thái "chỉ xem" + nút Giao khách ở trang hồ sơ / hộp Khách mới ----
 function canAssign(c) { return hasTeam() && (isMine(c) || amAdmin()); }
@@ -178,7 +176,7 @@ function renderTeamModal() {
   const admin = amAdmin();
   $('#team-add-row').hidden = !admin;
   $('#team-hint').textContent = admin
-    ? 'Đồng nghiệp tự tạo tài khoản trong app (màn đăng nhập → Tạo tài khoản mới), rồi bạn nhập email của họ để thêm vào nhóm.'
+    ? 'Khách giao cho đồng nghiệp nằm ở tab Khách hàng → Khách nhóm. Đồng nghiệp tự tạo tài khoản trong app (màn đăng nhập → Tạo tài khoản mới), rồi bạn nhập email của họ để thêm vào nhóm.'
     : 'Trưởng nhóm quản lý danh sách này. Bạn có thể đặt tên hiển thị của mình để đồng nghiệp dễ nhận ra.';
   const me = team.find((m) => m.is_me);
   $('#team-my-name').value = (me && me.full_name) || '';

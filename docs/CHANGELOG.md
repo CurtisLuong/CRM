@@ -6,6 +6,14 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-08 — Điều hướng mới: Tổng quan · Khách hàng (Đang chăm / Khách mới / Khách nhóm) (D-004)
+
+- Header còn 2 tab. Tab Khách hàng có dải 3 nhóm: Đang chăm (đổi tên từ "Tiềm năng"; chỉ khách mình phụ trách) · Khách mới (badge chưa gọi, hiện cả trên tab Khách hàng) · Khách nhóm (khách đồng nghiệp phụ trách, cả 2 lớp; chỉ hiện khi có nhóm). Nhớ nhóm xem gần nhất.
+- Bộ lọc "Người phụ trách" chuyển vào Khách nhóm (chỉ trưởng nhóm): Tất cả · Tôi đang theo dõi · từng người; bỏ khỏi Khách mới. Tìm ở Tổng quan chia 3 nhóm, bấm khách đồng nghiệp → mở ở Khách nhóm.
+- Đổi chữ hiển thị "Tiềm năng" → "Đang chăm" (toast, Tổng quan, hướng dẫn).
+- File: `index.html`, `js/app.js`, `js/team.js`, `js/calls.js`, `js/followup.js` (chú thích), `css/style.css`, `sw.js` (v49), `docs/design.md`, `docs/decisions.md`, `docs/huong-dan-nhom.md`, `docs/huong-dan-follow-up.md`.
+- Đã kiểm tra trình duyệt local (dữ liệu giả, 375px): 2 tab, 3 nhóm đúng khách, badge, nhớ nhóm, lọc người phụ trách trong Khách nhóm. Chưa thử với dữ liệu thật, chưa deploy.
+
 ## 2026-10-08 — Nhóm sale + giao khách cho đồng nghiệp (D-003)
 
 - 3 kịch bản: khách của tôi / giao nhưng tôi vẫn theo dõi (chỉ xem) / giao hẳn. Nút "👥 Giao khách" trong hồ sơ và hộp Khách mới; menu avatar → "Đồng nghiệp" (trưởng nhóm thêm/xoá bằng email, ai cũng đặt tên hiển thị).

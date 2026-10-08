@@ -26,7 +26,7 @@ const FOLLOWUP_CONFIG = {
   leadTalkedDays: 1,
   leadTalkedReason: 'Chốt phân loại: Đạt hay Loại',
 
-  // 3) NHỊP THEO BẬC (khách Tiềm năng nói chuyện được, đổi bậc, hoặc vừa Đạt).
+  // 3) NHỊP THEO BẬC (khách Đang chăm nói chuyện được, đổi bậc, hoặc vừa Đạt).
   //    days = gọi lại sau mấy ngày; reason = lý do hiện ở lịch hẹn. Bỏ 1 dòng = bậc đó không gợi ý.
   stages: {
     'Đang chăm sóc': { days: 3,  reason: 'Gửi thêm thông tin dự án' },
@@ -56,9 +56,9 @@ const FOLLOWUP_CONFIG = {
   //    • KHÁCH TIỀM NĂNG — theo BẬC đang ở (bảng stageTemplate).
   //    Hộp Zalo chỉ hiện 1 mẫu gợi ý; tối đa 2 khi có thêm 1 lý do rõ ràng:
   //        sinh nhật sát ngày → 'sinh_nhat' (lên trước mẫu theo bậc);
-  //        khách Tiềm năng gọi hỏng liên tiếp ≥ qualifiedMissedTemplateAfter → thêm 'goi_nho'.
+  //        khách Đang chăm gọi hỏng liên tiếp ≥ qualifiedMissedTemplateAfter → thêm 'goi_nho'.
   leadMissedTemplateAfter: 3,       // khách mới gọi hỏng liên tiếp ≥ N lần → mẫu "Gọi chưa được"
-  qualifiedMissedTemplateAfter: 3,  // khách Tiềm năng gọi hỏng ≥ N lần → thêm "Gọi chưa được" làm gợi ý thứ 2 (0 = tắt)
+  qualifiedMissedTemplateAfter: 3,  // khách Đang chăm gọi hỏng ≥ N lần → thêm "Gọi chưa được" làm gợi ý thứ 2 (0 = tắt)
   birthdayTemplateDays: 1,          // 0 = chỉ đúng ngày sinh nhật; 1 = hôm nay hoặc ngày mai
   stageTemplate: {
     'Đăng kí mới':   'chao',
@@ -146,7 +146,7 @@ const ZALO_TEMPLATES_DEFAULT = [
   }
   function isQ(c) { return !!(c && c.qualified_at); }
 
-  /** Gợi ý khi đổi sang bậc `stage` (hoặc khách Tiềm năng vừa nói chuyện được). null = không gợi ý. */
+  /** Gợi ý khi đổi sang bậc `stage` (hoặc khách Đang chăm vừa nói chuyện được). null = không gợi ý. */
   function forStage(c, stage) {
     const s = C.stages[stage];
     return s ? schedule(c, s.days, 'main', s.reason) : null;

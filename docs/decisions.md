@@ -102,3 +102,13 @@ Ví dụ và mẫu trong bộ tài liệu không phải sự chấp thuận cho 
 - Chấp thuận: người dùng chọn (chat 2026-10-08): thêm đồng nghiệp bằng email; trưởng nhóm xem hết; theo dõi = chỉ xem; nhắc việc chỉ cho người phụ trách.
 - Tài liệu đã cập nhật: `CLAUDE.md`, `AGENTS.md`, `docs/architecture.md`, `docs/design.md`, `docs/huong-dan-nhom.md`, `docs/CHANGELOG.md`
 - Trạng thái: Đã code 2026-10-08; chưa chạy SQL trên Supabase, chưa thử với tài khoản thật
+
+### D-004 — Điều hướng 2 tab: Tổng quan · Khách hàng (3 nhóm khách)
+
+- Ngày: 2026-10-08
+- Loại: Đổi cách tổ chức UI (thay quy tắc "tầng 1 tối đa 3 tab" chốt 2026-10-06 trong `docs/design.md`)
+- Quyết định: header chỉ còn Tổng quan · Khách hàng. Khách hàng chia 3 nhóm bằng dải tab dưới header: Đang chăm (thay tên "Tiềm năng", chỉ khách mình phụ trách) · Khách mới · Khách nhóm (khách đồng nghiệp phụ trách, D-003). Bộ lọc "Người phụ trách" chỉ còn trong Khách nhóm (trưởng nhóm).
+- Lý do: phân cấp rõ hơn khi có thêm nhóm khách thứ 3; tab header không phình ra.
+- Phạm vi: `index.html` (`#tab-customers`, `#cust-subtabs`), `js/app.js` (`custGroup`, `setActiveView`, `showCustomerGroup`, `matchesFilters`, tìm ở Tổng quan), `js/team.js`, `css/style.css`, `docs/design.md`.
+- Chấp thuận: người dùng yêu cầu trực tiếp kèm cấu trúc cụ thể (chat 2026-10-08).
+- Trạng thái: Đang áp dụng (chưa deploy lúc ghi)

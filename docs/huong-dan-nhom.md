@@ -18,19 +18,20 @@ Mở hồ sơ khách (hoặc hộp Khách mới) → **👥 Giao khách** → ch
 
 | Chọn | Kết quả |
 |---|---|
-| **Tôi vẫn theo dõi** | Đồng nghiệp phụ trách. Khách vẫn ở danh sách của bạn với nhãn `👤 Tên`, bạn **chỉ xem** (không sửa, không ghi cuộc gọi). |
-| **Giao hẳn** | Đồng nghiệp phụ trách. Khách biến khỏi danh sách "Của tôi". Là trưởng nhóm, bạn vẫn xem được qua Bộ lọc → "Cả nhóm" hoặc tên đồng nghiệp. |
+| **Tôi vẫn theo dõi** | Đồng nghiệp phụ trách. Khách chuyển sang nhóm **Khách nhóm** với nhãn `👤 Tên`, bạn **chỉ xem** (không sửa, không ghi cuộc gọi). |
+| **Giao hẳn** | Đồng nghiệp phụ trách. Khách biến khỏi danh sách của bạn. Là trưởng nhóm, bạn vẫn xem được ở nhóm **Khách nhóm**. |
 
 - Có ô ghi chú cho người nhận (vd "khách hẹn xem nhà mẫu thứ 7"). Việc giao được ghi vào dòng thời gian chăm sóc của khách.
 - **Lấy lại khách**: trưởng nhóm mở khách → Giao khách → chọn **Tôi (lấy lại)**.
 - Lịch hẹn gọi, ghi chú, tài liệu đi theo khách sang người nhận.
 - Giao được cả khi mất mạng — app đồng bộ khi có mạng. Nếu người nhận đã có khách **trùng số điện thoại**, việc giao bị từ chối và app báo lại; khách vẫn thuộc bạn.
 
-## Xem khách theo người phụ trách
-Bộ lọc (icon phễu) ở tab Tiềm năng / Khách mới → mục **Người phụ trách** (chỉ hiện khi nhóm có từ 2 người):
-- **Của tôi** (mặc định): khách bạn phụ trách + khách đã giao mà bạn vẫn theo dõi.
-- **Đã giao, đang theo dõi**: chỉ các khách đã giao mà bạn theo dõi.
-- **Cả nhóm** / **tên đồng nghiệp** (chỉ trưởng nhóm): mọi khách / khách của từng người — chỉ xem, giao lại được.
+## Khách đã giao nằm ở đâu
+Tab **Khách hàng** chia 3 nhóm (dải tab ngay dưới thanh tìm kiếm):
+- **Đang chăm**: khách bạn đang phụ trách (đã Đạt).
+- **Khách mới**: khách mới bạn đang phụ trách (chưa Đạt).
+- **Khách nhóm**: khách đồng nghiệp phụ trách mà bạn thấy được — khách đã giao nhưng bạn vẫn theo dõi; trưởng nhóm thấy thêm mọi khách của nhóm (kể cả khách đã giao hẳn). Thẻ có nhãn `👤 Tên người phụ trách`; mở ra chỉ xem.
+  - Trưởng nhóm: Bộ lọc (icon phễu) → **Người phụ trách**: Tất cả · Tôi đang theo dõi · từng đồng nghiệp.
 
 ## Ai được làm gì
 | | Người phụ trách | Người theo dõi | Trưởng nhóm (khách người khác) |

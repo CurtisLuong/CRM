@@ -29,8 +29,8 @@ Gợi ý theo kết quả:
 | Sai số | Gợi ý loại khách (lý do "Số sai"). |
 | Bận, hẹn gọi lại | Lưu xong mở hộp chọn giờ (khách tự hẹn giờ). |
 | Nói chuyện được — khách mới | Hẹn sau 1 ngày: "Chốt phân loại: Đạt hay Loại". |
-| Nói chuyện được — khách Tiềm năng | Theo **bậc hiện tại** (bảng dưới). |
-| Khách Tiềm năng gọi hỏng nhiều lần | Không gợi ý loại; sau mốc 7 ngày thì cứ 7 ngày gọi 1 lần, kèm nhắc "thử nhắn Zalo". |
+| Nói chuyện được — khách Đang chăm | Theo **bậc hiện tại** (bảng dưới). |
+| Khách Đang chăm gọi hỏng nhiều lần | Không gợi ý loại; sau mốc 7 ngày thì cứ 7 ngày gọi 1 lần, kèm nhắc "thử nhắn Zalo". |
 
 Nhịp theo bậc:
 
@@ -45,18 +45,18 @@ Nhịp theo bậc:
 **Khung giờ** lấy theo ô **Nghề nghiệp** trong hồ sơ khách — nên điền nghề cho khách để giờ gợi ý chuẩn hơn. Lịch rơi vào Chủ nhật tự dời sang Thứ Hai.
 
 ### 2. Khi đổi bậc / bấm "Đạt" — hỏi luôn lịch tiếp theo
-- Sửa khách và **chuyển bậc lên** (vd Đang chăm sóc → Xem dự án), hoặc bấm **Đạt** ở tab Khách mới, hoặc thêm khách mới có tick "vào thẳng Tiềm năng" → hiện hộp **"Hẹn lần liên hệ tiếp theo?"** với ngày giờ và nội dung gợi ý (sửa được nội dung).
+- Sửa khách và **chuyển bậc lên** (vd Đang chăm sóc → Xem dự án), hoặc bấm **Đạt** ở nhóm Khách mới, hoặc thêm khách mới có tick "đưa thẳng vào danh sách chăm sóc" → hiện hộp **"Hẹn lần liên hệ tiếp theo?"** với ngày giờ và nội dung gợi ý (sửa được nội dung).
 - Chỉ hỏi khi khách **chưa có** lịch hẹn sắp tới.
 
 ### 3. Nhóm "Chưa có việc tiếp theo" ở Tổng quan
-Gom khách Tiềm năng đang chăm mà **không có lịch hẹn** và **không có mục "Việc tiếp theo"**. Mục tiêu: nhóm này luôn trống. Bấm tên khách → đặt lịch hoặc thêm việc.
+Gom khách Đang chăm đang chăm mà **không có lịch hẹn** và **không có mục "Việc tiếp theo"**. Mục tiêu: nhóm này luôn trống. Bấm tên khách → đặt lịch hoặc thêm việc.
 
 ### 4. Mẫu tin Zalo
 - Bấm **icon Zalo** của khách → hộp có nút lớn **Mở Zalo** ở trên cùng (chỉ mở chat, không copy — dùng hằng ngày). Bên dưới chỉ có **1 tin nhắn gợi ý** (tối đa 2 khi có thêm 1 tình huống rõ ràng), kèm lý do gợi ý. Bấm tin gợi ý → app copy nội dung (đã điền tên, anh/chị, dự án) và mở Zalo → bạn **dán**. Cần mẫu khác → bấm dòng nhỏ **Chọn mẫu khác**.
 - Cách app chọn tin gợi ý:
   - **Khách mới** (tab Khách mới), luôn 1 tin — theo lịch sử gọi: chưa gọi / mới gọi hỏng 1–2 lần → **Chào kết bạn**; gọi hỏng liên tiếp từ 3 lần → **Gọi chưa được**; đã nói chuyện được → **Gửi thông tin / bảng giá**. Cuộc gọi tự nạp từ máy Android chưa ghi chú mà 0 giây cũng tính là gọi hỏng.
-  - **Khách Tiềm năng** — theo **bậc đang ở**: Đang chăm sóc → Gửi thông tin · Xem dự án → Hỏi thăm sau khi xem · Hỗ trợ hồ sơ, Booking → Nhắc giấy tờ · Kí HĐMB → Chúc mừng.
-  - Thêm tin thứ 2 (chỉ với khách Tiềm năng): hôm nay/mai là sinh nhật → **Chúc mừng sinh nhật** (xếp lên trước); hoặc gọi hỏng liên tiếp từ 3 lần → **Gọi chưa được**.
+  - **Khách Đang chăm** — theo **bậc đang ở**: Đang chăm sóc → Gửi thông tin · Xem dự án → Hỏi thăm sau khi xem · Hỗ trợ hồ sơ, Booking → Nhắc giấy tờ · Kí HĐMB → Chúc mừng.
+  - Thêm tin thứ 2 (chỉ với khách Đang chăm): hôm nay/mai là sinh nhật → **Chúc mừng sinh nhật** (xếp lên trước); hoặc gọi hỏng liên tiếp từ 3 lần → **Gọi chưa được**.
 - Trên điện thoại Android (trình duyệt / app cài từ Chrome), nút Zalo mở **thẳng app Zalo**, không đi qua trang web zalo.me nữa. Máy chưa cài Zalo thì mới mở trang web.
 - **Sửa nội dung mẫu**: menu avatar → **Mẫu tin Zalo**. Sửa tên/nội dung từng mẫu, **+ Thêm mẫu** riêng, **Xoá** mẫu tự thêm, **Khôi phục mặc định** nếu lỡ sửa hỏng. Mẫu để trống sẽ bị ẩn.
 - Ô tự điền trong mẫu:
@@ -98,7 +98,7 @@ slots: {
 ```js
 missDelaysDays: [1, 2, 4, 7],   // lần hỏng 1 → 1 ngày, lần 2 → 2 ngày, lần 3 → 4, lần 4 → 7
 leadMaxAttempts: 5,             // khách mới hỏng 5 lần liên tiếp → gợi ý loại
-qualifiedMissRepeatDays: 7,     // khách Tiềm năng: sau các mốc trên cứ 7 ngày gọi 1 lần
+qualifiedMissRepeatDays: 7,     // khách Đang chăm: sau các mốc trên cứ 7 ngày gọi 1 lần
 ```
 - Muốn dồn dập hơn với lead nóng từ quảng cáo: `[0, 1, 2, 4]` (0 = gọi lại ngay trong hôm nay nếu khung giờ chưa qua, đã qua thì sang mai).
 - Muốn bớt làm phiền: `[2, 4, 7, 14]`.
@@ -129,7 +129,7 @@ stageTemplate: { 'Xem dự án': 'sau_xem', ... },  // khách TIỀM NĂNG: bậ
 Mã mẫu: `chao`, `goi_nho`, `thong_tin`, `sau_xem`, `nhac_ho_so`, `sinh_nhat`, `chuc_mung`. Mẫu tự thêm trong app có mã dạng `u_…` (không gắn vào gợi ý tự động được, chỉ chọn tay).
 
 ### Ngưỡng ở Tổng quan (trong `js/app.js`, cạnh `dashActionGroups`)
-- `DASH_IDLE_WARM_DAYS = 14` — Tiềm năng bao lâu chưa liên hệ thì vào nhóm "lâu chưa chăm".
+- `DASH_IDLE_WARM_DAYS = 14` — khách Đang chăm bao lâu chưa liên hệ thì vào nhóm "lâu chưa chăm".
 - `DASH_LEAD_RETRY_H = 24` — khách mới gọi chưa được bao lâu thì vào nhóm "Gọi lại".
 - `DASH_BIRTHDAY_DAYS = 7` — nhắc sinh nhật trong mấy ngày tới.
 - "Khách nóng" (≥ 60%) và "nguội sau 7 ngày" dùng chung với chuông thông báo: `hotInterestMin`, `idleDays` trong `js/notifications.js`.
