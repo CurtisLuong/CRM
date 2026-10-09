@@ -19,6 +19,12 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 - Đóng khi đang cuộn sâu → tự cuộn về đầu thẻ. Chiều cao thanh tên khách đo bằng JS (`--detail-bar-h`).
 - File: `index.html`, `js/loan/loan-crm.js`, `css/loan.css`
 
+## 2026-10-09 — Thẻ khách (Tiềm năng / Khách nhóm) theo thiết kế chung
+
+- Bo 16px + bóng nhẹ, bỏ dải màu trái; avatar nền nhạt; tên 1 dòng không đậm (trước bị ngắt nhiều dòng vì nhãn nhắc gọi chung hàng → nhãn chuyển xuống hàng nhãn); nút gọi / Zalo tròn; nhãn cùng cỡ; chân thẻ vạch mảnh + nút "Sửa" viền. Điện thoại: thẻ cao theo nội dung (không cắt ghi chú).
+- Thẻ Khách mới: nhãn SLA chuyển xuống dòng riêng (trước ép tên thành nhiều dòng).
+- File: `css/style.css`, `js/app.js`, `sw.js` (v86), `docs/design.md`.
+
 ## 2026-10-09 — Màu khung app xanh rêu nhạt + thanh trạng thái Android
 
 - Header, thanh dưới, thanh dính hồ sơ và dải sau thanh trạng thái dùng chung màu khung `--chrome` `#E6ECE8` (tách rõ khỏi nội dung nền giấy). Hết dải xanh rêu đậm sót ở thanh trạng thái Android; icon giờ/pin chuyển màu tối (`SystemBars` style `LIGHT`). `theme-color` / manifest → `#E6ECE8`.

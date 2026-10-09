@@ -2679,3 +2679,60 @@ body:has(#detail-screen.is-readonly:not([hidden])) #avatar-remove-btn,
 .int-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
 .int-leg-n { color: #9a9a90; }
 .hbar-legend { margin-top: 12px; }
+
+/* ===== THẺ KHÁCH (Tiềm năng / Khách nhóm, dạng thẻ) — làm lại 2026-10-09 theo thẻ Tổng quan =====
+   Bo 16px + viền nhạt + bóng rất nhẹ (token --card-*), không dải màu viền trái (mức quan tâm đã có nhãn ngọn lửa),
+   avatar nền nhạt chữ cùng màu, tên 1 dòng không đậm, nút gọi / Zalo tròn nhỏ, nhãn cùng cỡ, chân thẻ có vạch mảnh. */
+.customer-list { gap: var(--card-gap); }
+.customer-card {
+  background: #fff; border: 1px solid var(--card-border); border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow); padding: 16px 16px 12px;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+.customer-card::before { display: none; }
+.customer-card:hover { border-color: #DDD5C5; box-shadow: 0 1px 2px rgba(80,60,30,.05), 0 8px 22px rgba(80,60,30,.08); }
+.customer-card .card-top { gap: 12px; align-items: center; }
+.customer-card .card-avatar {
+  width: 44px; height: 44px; margin-top: 0;
+  background: color-mix(in srgb, var(--avc, #6b6b60) 14%, #fff); color: var(--avc, #6b6b60);
+  font-family: inherit; font-weight: 500; font-size: 17px;
+}
+.customer-card .card-head { align-items: center; }
+.customer-card .card-name { font-weight: 500; font-size: 15.5px; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.customer-card .phone-row { gap: 6px; margin-top: 2px; }
+.customer-card .phone-number { font-size: 13px; color: #6b6b60; font-variant-numeric: tabular-nums; margin-right: 2px; }
+.customer-card .card-phone, .customer-card .card-zalo {
+  width: 28px; height: 28px; border-radius: 50%; background: #F3F0E9;
+  display: inline-flex; align-items: center; justify-content: center; flex: none; line-height: 0;
+}
+.customer-card .card-phone { color: var(--ink); font-size: 14px; }
+.customer-card .card-phone:hover, .customer-card .card-zalo:hover { background: #ECE7DC; }
+.customer-card .card-zalo .ic-zalo { height: 16px; }
+.customer-card .card-menu-btn { color: #9a9a90; padding: 2px 6px; }
+.customer-card .card-progress { gap: 6px; margin-top: 12px; }
+.card-progress .tag, .card-progress .stage-pill, .card-progress .call-tag { font-size: 11.5px; line-height: 1.3; padding: 3px 9px; }
+.card-progress .tag { background: #F3F0E9; color: #55564e; }
+.card-progress .tag.tag-contact { background: color-mix(in srgb, var(--cs) 13%, #fff); color: color-mix(in srgb, var(--cs) 70%, #000); }
+.card-progress .tag-interest .ti-flames { color: inherit; }
+.card-progress .tag-interest.ti-am      { background: #F5EBF1; color: #8A5A7C; }
+.card-progress .tag-interest.ti-nong    { background: #F2E4EE; color: #8A4A78; }
+.card-progress .tag-interest.ti-ratnong { background: #E9D6E3; color: #5E2A52; }
+.card-progress .call-tag { font-weight: 500; }
+.card-progress .stage-pill { font-weight: 500; }
+.customer-card .card-notes { font-size: 12.5px; color: #6b6b60; line-height: 1.45; margin-top: 10px; }
+.customer-card .card-footer { border-top: 1px solid #F1EEE7; margin-top: auto; padding-top: 10px; }
+.customer-card .card-updated { font-style: normal; font-size: 11.5px; color: #9a9a90; }
+.card-edit {
+  display: inline-flex; align-items: center; gap: 5px; font: inherit; font-size: 12.5px; color: #55564e;
+  background: transparent; border: 1px solid var(--card-border); border-radius: 999px; padding: 4px 12px; cursor: pointer;
+}
+.card-edit:hover { background: #F7F4EE; color: var(--ink); }
+.card-edit svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+/* Lưới nhiều cột (máy tính) giữ thẻ cao bằng nhau; điện thoại 1 cột → thẻ tự cao theo nội dung (không cắt ghi chú). */
+.customer-card { height: 256px; }
+@media (max-width: 640px) {
+  .customer-card { height: auto; }
+  .customer-card .card-notes { flex: none; }
+  .customer-card .card-footer { margin-top: 12px; }
+}
+.lead-sla-row { margin-top: 6px; } /* nhãn SLA thẻ Khách mới — dòng riêng, không ép tên */

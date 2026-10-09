@@ -339,6 +339,7 @@ const OCCUPATIONS = ['Tự do', 'Công ty, DN', 'Công, viên chức', 'Công an
 // Icon điện thoại (SVG inline, tô theo màu chữ, cỡ ăn theo font-size chỗ đặt).
 // Zalo dùng ảnh icons/Zalo-icon.png (đặt trong <img>).
 const PHONE_SVG = icon('call', 'ic-phone'); // icon dùng chung (js/icons.js — D-006)
+const EDIT_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>'; // bút sửa (icon giao diện thuần)
 
 // Icon đồng hồ nhỏ (SVG inline) — dùng cho pill khoảng thời gian giữa 2 bậc trên timeline.
 const CLOCK_SVG = '<svg class="cs-gap-ic" viewBox="0 0 24 24" width="12" height="12" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 7.5V12l3 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
@@ -1467,7 +1468,6 @@ function renderList() {
             <div class="card-name">${hlName(c, ctx)}</div>
             <div class="card-head-right">
               ${ownerTagHtml(c)}
-              ${reminders.has(c.id) ? `<button class="call-tag call-${reminders.get(c.id).state}" data-calltag="${c.id}">${escapeHtml(reminders.get(c.id).text)}</button>` : ''}
               <div class="card-menu"${isMine(c) ? '' : ' hidden'}>
                 <button class="card-menu-btn" data-action="menu" aria-label="Tuỳ chọn khác">⋯</button>
                 <div class="card-menu-pop">
@@ -1486,6 +1486,7 @@ function renderList() {
         </div>
       </div>
       <div class="card-progress">
+        ${reminders.has(c.id) ? `<button class="call-tag call-${reminders.get(c.id).state}" data-calltag="${c.id}">${escapeHtml(reminders.get(c.id).text)}</button>` : ''}
         ${stagePill}
         ${isMine(c) ? slaTagHtml(c) : ''}
         ${c.contact_status ? `<span class="tag tag-contact" style="--cs:${contactColor(c.contact_status)}">${escapeHtml(c.contact_status)}</span>` : ''}
@@ -1499,7 +1500,7 @@ function renderList() {
       <div class="card-notes">${cardNotesInner}</div>
       <div class="card-footer">
         <span class="card-updated">${updated ? 'Cập nhật ' + escapeHtml(updated) : ''}</span>
-        ${isMine(c) ? `<button class="btn-small" data-action="edit" data-id="${c.id}">Sửa</button>` : ''}
+        ${isMine(c) ? `<button class="card-edit" data-action="edit" data-id="${c.id}">${EDIT_SVG}Sửa</button>` : ''}
       </div>
     `;
     container.appendChild(card);
@@ -3658,7 +3659,7 @@ function cardAvatarMarkup(c) {
   const bg = avatarColor(c.full_name || '');
   const letter = escapeHtml(lastWordInitial(c.full_name));
   const img = c.avatar_path ? avatarImgTag(c.avatar_path) : '';
-  return `<div class="card-avatar" style="background:${bg}">${letter}${img}</div>`;
+  return `<div class="card-avatar" style="--avc:${bg}">${letter}${img}</div>`; // nền nhạt + chữ cùng màu (CSS)
 }
 function renderDetailAvatar(c) {
   const el = $('#detail-avatar');
@@ -4871,7 +4872,7 @@ function leadCardHtml(c, ctx) {
           <div class="card-head-right">
             ${ownerTagHtml(c)}
             ${rem ? `<span class="call-tag call-${rem.state}">${escapeHtml(rem.text)}</span>` : ''}
-            ${leadStatusTag(c)}${slaTagHtml(c)}
+            ${leadStatusTag(c)}
           </div>
         </div>
         <div class="phone-row">
@@ -4879,6 +4880,7 @@ function leadCardHtml(c, ctx) {
           <a class="card-phone" href="tel:${normalizePhone(c.phone)}" data-call-id="${c.id}" aria-label="Gọi ${escapeHtml(c.phone || '')}">${PHONE_SVG}</a>
           <a class="card-zalo" href="${zaloHref}" ${zaloAttr} data-id="${c.id}" aria-label="Nhắn Zalo"><img class="ic-zalo" src="/icons/zalo.png" alt="Zalo" /></a>
         </div>
+        ${(() => { const t = slaTagHtml(c); return t ? `<div class="lead-sla-row">${t}</div>` : ''; })()}
         ${meta ? `<div class="lead-card-meta">${meta}</div>` : ''}
         ${snipsHtml(c, ctx, 'card-snip')}
         <div class="lead-card-last">${lastLine}</div>

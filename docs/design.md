@@ -100,6 +100,10 @@ Thang độ quan tâm (`INTEREST_TIERS`, `js/app.js`): tông mận nhạt → đ
 - Nhãn SLA dùng chung màu đếm ngược: quá mục tiêu = vàng sáng, quá hạn mức = đỏ đậm; còn trong mục tiêu thì thẻ khách không hiện (hồ sơ / hộp Khách mới hiện xám nhạt).
 - Hồ sơ: thẻ "Tốc độ phễu" (thanh thời gian, vạch = mục tiêu, cuối thanh = hạn mức) + 4 ô tích Booking + nút "Xác nhận đã Ký HĐMB". Phân tích: thẻ "Phễu & tốc độ (SLA)" thay thẻ phễu cũ; Pipeline thêm ô milestone "★ Đã ký HĐMB".
 
+## Thẻ khách trong danh sách (2026-10-09)
+
+Thẻ Tiềm năng / Khách nhóm dùng cùng token thẻ Tổng quan (`--card-border`, `--card-radius`, `--card-shadow`): không dải màu viền trái; avatar nền nhạt chữ cùng màu (không nền đặc, không chữ có chân); tên 1 dòng, cắt "…", không đậm; SĐT xám nhỏ + nút gọi / Zalo tròn 28px nền be; hàng nhãn cùng cỡ (nhắc gọi đứng đầu, rồi bậc, SLA, liên lạc, mức quan tâm nền mận, loại căn / mệnh / cung nền be); ghi chú xám 2 dòng; chân thẻ có vạch mảnh: "Cập nhật …" (không nghiêng) + nút "Sửa" viền mảnh có icon bút. Máy tính: thẻ cao đều 256px; điện thoại (1 cột): cao theo nội dung. Thẻ Khách mới chưa đổi kiểu; nhãn SLA ở dòng riêng dưới SĐT.
+
 ## Biểu đồ (2026-10-09)
 
 - Thanh ngang (`hbars`): thanh mảnh 8px, nền `#F1EEE7`, mọi dòng 1 lưới chung (thanh thẳng hàng), số không đậm + chữ phụ xám. Màu = 1 màu nhãn lạnh cho cả biểu đồ (bảng "Màu nhãn"); `part` = phần đậm trong thanh, phần còn lại cùng màu nhạt.
