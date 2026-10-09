@@ -521,28 +521,9 @@
       </nav>
     </div>
 
-    <!-- TỔNG QUAN: 2 thẻ chỉ số (Tiến độ → bấm sang Lịch sử · Quan tâm) + Liên lạc (nếu có). -->
-    <div class="detail-badges" data-tabs="overview">
-      <button type="button" class="detail-badge dcard is-link" data-goto-tab="history" aria-label="Tiến độ — xem lịch sử chăm sóc">
-        <span class="detail-badge-label">Tiến độ</span>
-        <span class="detail-badge-main"><span id="detail-stage-dots" class="dot-row"></span><span class="dcard-chev" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></span></span>
-        <span id="detail-stage-text" class="detail-badge-text"></span>
-      </button>
-      <div class="detail-badge dcard">
-        <span class="detail-badge-label">Quan tâm</span>
-        <span class="detail-badge-main"><span id="detail-interest-dots" class="dot-row"></span><span id="detail-interest-text" class="detail-badge-num"></span></span>
-      </div>
-      <div class="detail-badge dcard" id="detail-contact-badge" hidden>
-        <span class="detail-badge-label">Liên lạc</span>
-        <span id="detail-contact-text" class="detail-badge-text"></span>
-      </div>
-    </div>
-
-    <!-- TỐC ĐỘ PHỄU (D-008, js/velocity.js): giai đoạn + thanh thời gian (mục tiêu / hạn mức) + mục tiêu
-         giai đoạn; bậc Booking & Làm hồ sơ có mini-checklist 4 bước + nút "Xác nhận đã Ký HĐMB".
-         Nuôi dài hạn / Đã mua → thẻ trạng thái ngoài phễu. App tự chuyển quá hạn → dòng Hoàn tác. JS: renderDetailSla(). -->
-    <section class="detail-section dcard sla-card" id="detail-sla" data-tabs="overview" hidden></section>
-
+    <!-- ===== THỨ TỰ THẺ TAB TỔNG QUAN (quy tắc cố định — docs/design.md "Hồ sơ khách"):
+         1 Việc tiếp theo (LUÔN ĐẦU TIÊN) · 2 Tốc độ phễu · 3 Căn hộ quan tâm · 4 Ghi chú · 5 Tính khoản vay ·
+         6 Chỉ số Tiến độ/Quan tâm/Liên lạc. Thêm thẻ mới → đặt SAU các thẻ này, không chen lên trên. ===== -->
     <div class="detail-call" data-tabs="overview">
       <!-- VIỆC TIẾP THEO = CHECKLIST: lịch "Hẹn gọi" (nếu có) + các việc chưa xong, xếp theo hạn.
            Mỗi dòng có ô tích + đếm ngược (còn X / đến hạn / quá hạn). Tích việc → ghi mốc "Xong việc"
@@ -572,6 +553,10 @@
       </div>
     </div>
 
+    <!-- TỐC ĐỘ PHỄU (D-008, js/velocity.js): giai đoạn + thanh thời gian (mục tiêu / hạn mức) + mục tiêu
+         giai đoạn; bậc Booking & Làm hồ sơ có mini-checklist 4 bước + nút "Xác nhận đã Ký HĐMB".
+         Nuôi dài hạn / Đã mua → thẻ trạng thái ngoài phễu. App tự chuyển quá hạn → dòng Hoàn tác. JS: renderDetailSla(). -->
+    <section class="detail-section dcard sla-card" id="detail-sla" data-tabs="overview" hidden></section>
 
     <section class="detail-section dcard" data-tabs="overview">
       <div class="dcard-head">
@@ -580,24 +565,6 @@
         <button type="button" class="dcard-go" data-edit-open aria-label="Sửa căn hộ quan tâm" title="Sửa căn hộ quan tâm"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
       </div>
       <table class="detail-table"><tbody id="detail-apt"></tbody></table>
-    </section>
-
-    <!-- TÍNH KHOẢN VAY — phương án đã lưu của khách + bảng tính (điền sẵn mã căn/diện tích).
-         Logic ở js/loan/loan-crm.js; nút "Tìm căn phù hợp" do js/catalog-search-ui.js chèn sau #detail-loan-btn. -->
-    <section class="detail-section dcard" id="detail-loan-section" data-tabs="overview">
-      <div class="dcard-head">
-        <span class="dcard-ic" aria-hidden="true" data-icon="loan"></span>
-        <h3>Tính khoản vay</h3>
-        <!-- Nút đóng nằm ở tiêu đề — tiêu đề DÍNH ĐỈNH (dưới thanh mini) khi bảng tính đang mở. -->
-        <button id="detail-loan-close" class="loan-head-close" type="button" hidden aria-label="Đóng bảng tính">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>Đóng
-        </button>
-      </div>
-      <div id="detail-loan-quotes" class="loan-quotes" hidden></div>
-      <div class="dcard-actions">
-        <button id="detail-loan-btn" class="btn-small" type="button">💰 Tính khoản vay</button>
-      </div>
-      <div id="detail-loan-panel" hidden></div>
     </section>
 
     <!-- GHI CHÚ — ở Tổng quan chỉ xem trước 3 ghi chú mới nhất (bấm › sang Tương tác để xem hết). -->
@@ -620,6 +587,41 @@
         </div>
       </div>
     </section>
+
+    <!-- TÍNH KHOẢN VAY — phương án đã lưu của khách + bảng tính (điền sẵn mã căn/diện tích).
+         Logic ở js/loan/loan-crm.js; nút "Tìm căn phù hợp" do js/catalog-search-ui.js chèn sau #detail-loan-btn. -->
+    <section class="detail-section dcard" id="detail-loan-section" data-tabs="overview">
+      <div class="dcard-head">
+        <span class="dcard-ic" aria-hidden="true" data-icon="loan"></span>
+        <h3>Tính khoản vay</h3>
+        <!-- Nút đóng nằm ở tiêu đề — tiêu đề DÍNH ĐỈNH (dưới thanh mini) khi bảng tính đang mở. -->
+        <button id="detail-loan-close" class="loan-head-close" type="button" hidden aria-label="Đóng bảng tính">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>Đóng
+        </button>
+      </div>
+      <div id="detail-loan-quotes" class="loan-quotes" hidden></div>
+      <div class="dcard-actions">
+        <button id="detail-loan-btn" class="btn-small" type="button">💰 Tính khoản vay</button>
+      </div>
+      <div id="detail-loan-panel" hidden></div>
+    </section>
+
+    <!-- TỔNG QUAN: 2 thẻ chỉ số (Tiến độ → bấm sang Lịch sử · Quan tâm) + Liên lạc (nếu có). -->
+    <div class="detail-badges" data-tabs="overview">
+      <button type="button" class="detail-badge dcard is-link" data-goto-tab="history" aria-label="Tiến độ — xem lịch sử chăm sóc">
+        <span class="detail-badge-label">Tiến độ</span>
+        <span class="detail-badge-main"><span id="detail-stage-dots" class="dot-row"></span><span class="dcard-chev" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></span></span>
+        <span id="detail-stage-text" class="detail-badge-text"></span>
+      </button>
+      <div class="detail-badge dcard">
+        <span class="detail-badge-label">Quan tâm</span>
+        <span class="detail-badge-main"><span id="detail-interest-dots" class="dot-row"></span><span id="detail-interest-text" class="detail-badge-num"></span></span>
+      </div>
+      <div class="detail-badge dcard" id="detail-contact-badge" hidden>
+        <span class="detail-badge-label">Liên lạc</span>
+        <span id="detail-contact-text" class="detail-badge-text"></span>
+      </div>
+    </div>
 
     <!-- TƯƠNG TÁC: nhật ký cuộc gọi — cùng dữ liệu call_attempts với tab Khách mới. -->
     <section class="detail-section dcard" id="detail-calls-section" data-tabs="interact">

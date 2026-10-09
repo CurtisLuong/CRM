@@ -6,6 +6,12 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-09 — Sắp xếp lại tab Tổng quan trong hồ sơ khách
+
+- Thứ tự mới: Việc tiếp theo (luôn đầu) → Tốc độ phễu → Căn hộ quan tâm → Ghi chú → Tính khoản vay → chỉ số
+  Tiến độ/Quan tâm/Liên lạc. Quy tắc ghi ở `docs/design.md` mục "Hồ sơ khách".
+- File: `index.html`, `docs/design.md`
+
 ## 2026-10-09 — Tiêu đề "Tính khoản vay" dính đỉnh khi mở bảng tính trong hồ sơ khách
 
 - Mở bảng tính ở trang khách rồi cuộn xuống: tiêu đề thẻ (icon + "Tính khoản vay") dính ngay dưới thanh tên khách,

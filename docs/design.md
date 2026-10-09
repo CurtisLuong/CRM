@@ -159,6 +159,19 @@ Dùng bộ lọc sẵn có của từng nhóm Tiềm năng / Khách mới / Khá
 
 Giỏ hàng có panel tìm riêng trong dialog hiện có; matching mở từ hồ sơ hoặc căn. Count có aria-live, kết quả hỗ trợ focus / phím mũi tên / Enter; Cmd/Ctrl+K đưa về ô tìm. Các nút lọc xuống dòng trong panel hiện có ở màn hẹp, không kéo tràn ngang.
 
+## Hồ sơ khách — thứ tự thẻ tab Tổng quan (chốt 2026-10-09)
+
+Thứ tự cố định, từ trên xuống:
+
+1. **Việc tiếp theo** — LUÔN LUÔN đứng đầu tab Tổng quan. Không thẻ nào (kể cả thẻ mới, banner, chỉ số) được chen lên trên.
+2. Tốc độ phễu (`#detail-sla`, ẩn với khách không có SLA).
+3. Căn hộ quan tâm.
+4. Ghi chú (xem trước; xem hết ở tab Tương tác).
+5. Tính khoản vay.
+6. Các thẻ còn lại (chỉ số Tiến độ · Quan tâm · Liên lạc).
+
+Thêm thẻ mới vào Tổng quan → đặt sau các thẻ trên; muốn đổi thứ tự 1–5 → hỏi chủ dự án trước. Thứ tự theo vị trí trong `index.html` (khối `#detail-screen`, có comment đánh dấu).
+
 ## Font và tiếng Việt
 
 File nguồn ghi font heading đang dùng `"Georgia", "Times New Roman", serif` sau khi gặp lỗi với `"Iowan Old Style"` trên macOS.
