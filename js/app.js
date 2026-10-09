@@ -5508,20 +5508,38 @@ function renderDashboard() {
       ${todoHtml}
     </div>`;
 
-  // ---- 3a) Lịch hẹn 7 ngày tới (sau hôm nay) ----
+  // ---- 3a) Lịch hẹn 7 ngày tới (sau hôm nay): lịch HẸN GỌI + VIỆC CẦN LÀM có hạn của từng khách ----
+  // Xếp theo thời điểm gần nhất lên trên; hiện 5 dòng đầu, còn lại "Xem thêm" (dashExpanded 'upcoming').
   const tomorrow0 = startOfDayMs(now) + 86400000;
-  const upcoming = all.filter((c) => !c.disqualified_at && c.next_call_at)
-    .map((c) => ({ c, t: Date.parse(c.next_call_at) }))
-    .filter((x) => x.t >= tomorrow0 && x.t < tomorrow0 + 7 * 86400000)
-    .sort((a, b) => a.t - b.t);
-  const upHtml = upcoming.length ? `<div class="up-list">` + upcoming.map(({ c, t }) => `
+  const inWeek = (t) => t >= tomorrow0 && t < tomorrow0 + 7 * 86400000;
+  const upcoming = [];
+  for (const c of all) {
+    if (c.disqualified_at) continue;
+    const ct = c.next_call_at ? Date.parse(c.next_call_at) : NaN;
+    if (inWeek(ct)) upcoming.push({ c, t: ct, kind: 'call', text: c.next_call_reason || '' });
+    for (const tk of openTasksOf(c)) {
+      const tt = taskDueMs(tk);
+      if (inWeek(tt)) upcoming.push({ c, t: tt, kind: 'task', text: tk.text || '', allDay: !!tk.due_allday });
+    }
+  }
+  upcoming.sort((a, b) => a.t - b.t);
+  const upOpen = dashExpanded.has('upcoming');
+  const upShown = upOpen ? upcoming : upcoming.slice(0, DASH_GROUP_LIMIT);
+  const upRest = upcoming.length - upShown.length;
+  const UP_IC = {
+    call: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5.2 3.5h2.9l1.4 3.8-1.9 1.3a11 11 0 0 0 5.2 5.2l1.3-1.9 3.8 1.4v2.9a1.6 1.6 0 0 1-1.7 1.6A15.6 15.6 0 0 1 3.6 5.2a1.6 1.6 0 0 1 1.6-1.7z"/></svg>',
+    task: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3.5" width="16" height="17" rx="3"/><path d="M8.5 9l1.6 1.6L13 7.7M8.5 15h7"/></svg>',
+  };
+  const upHtml = upcoming.length ? `<div class="up-list">` + upShown.map(({ c, t, kind, text, allDay }) => `
       <button type="button" class="up-row" data-open="${c.id}">
-        <span class="up-when">${escapeHtml(dashWhen(t))}</span>
+        <span class="up-when">${escapeHtml(allDay ? dashWhen(t).replace(/\s\d{2}:\d{2}$/, '') + ' · cả ngày' : dashWhen(t))}</span>
         <span class="up-name">${escapeHtml(c.full_name || '(chưa tên)')}</span>
-        ${c.next_call_reason ? `<span class="up-reason">${escapeHtml(c.next_call_reason)}</span>` : ''}
+        <span class="up-reason up-${kind}"><span class="up-ic">${UP_IC[kind]}</span>${escapeHtml(kind === 'call' ? 'Hẹn gọi' + (text ? ' · ' + text : '') : text)}</span>
       </button>`).join('') + `</div>`
-    : '<div class="dash-empty">Chưa có lịch hẹn nào trong 7 ngày tới.</div>';
-  const upCard = dashCard(`Lịch hẹn 7 ngày tới (${upcoming.length})`, upHtml);
+      + (upRest > 0 ? `<button type="button" class="btn-ghost act-more" data-more="upcoming">Xem thêm ${upRest} việc</button>`
+        : (upOpen && upcoming.length > DASH_GROUP_LIMIT ? `<button type="button" class="btn-ghost act-more" data-more="upcoming">Thu gọn</button>` : ''))
+    : '<div class="dash-empty">Chưa có lịch hẹn hay việc nào trong 7 ngày tới.</div>';
+  const upCard = dashCard(`Lịch hẹn 7 ngày tới (${upcoming.length})`, upHtml, 'Hẹn gọi và việc cần làm có hạn của từng khách, gần đến hạn nhất ở trên.');
 
   // ---- 3b) Pipeline đang chăm (lớp Tiềm năng, theo bậc hiện tại) ----
   const hotMin = dashHotMin();

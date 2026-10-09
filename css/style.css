@@ -1262,7 +1262,11 @@ input:focus, select:focus, textarea:focus {
 .up-row:hover .up-name { text-decoration: underline; }
 .up-when { font-size: 11.5px; color: #6b6b60; font-variant-numeric: tabular-nums; }
 .up-name { font-size: 13px; font-weight: 600; }
-.up-reason { grid-column: 2; font-size: 11.5px; color: #8a8a80; }
+.up-reason { grid-column: 2; font-size: 11.5px; color: #8a8a80; display: flex; align-items: center; gap: 4px; min-width: 0; }
+.up-ic { flex: none; display: inline-flex; }
+.up-ic svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.up-call .up-ic { color: var(--teal-light); }
+.up-task .up-ic { color: var(--seal); }
 
 /* Pipeline đang chăm */
 .pipe-bar { display: flex; height: 10px; border-radius: 100px; overflow: hidden; background: #efece4; gap: 2px; margin-bottom: 8px; }
