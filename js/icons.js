@@ -25,6 +25,8 @@ const ICON_PATHS = {
   loan:        '<rect x="5" y="3" width="14" height="18" rx="2.5"/><path d="M8.5 7h7M8.5 11.5h.01M12 11.5h.01M15.5 11.5h.01M8.5 15.5h.01M12 15.5h.01M15.5 15.5h.01"/>', // Tính vay
   note:        '<path d="M6 3.5h9l3 3V20a.5.5 0 0 1-.5.5h-11A.5.5 0 0 1 6 20z"/><path d="M9 10h6M9 13.5h6M9 17h3.5"/>', // Ghi chú · ghi chú cuộc gọi
   history:     '<path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4.5v3.5h3.5"/><path d="M12 8v4.5l3 1.8"/>', // Lịch sử chăm sóc
+  chart:       '<path d="M4 20h16"/><path d="M7 16.5V11M12 16.5V6.5M17 16.5v-3.5"/>',          // Phân tích
+  insight:     '<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.4 1 1.1 1 1.8V16h5v-.3c0-.7.4-1.4 1-1.8A6 6 0 0 0 12 3z"/>', // Gợi ý
   calendar:    '<rect x="4" y="5" width="16" height="15" rx="2.5"/><path d="M8 3.5v3M16 3.5v3M4 10h16"/>', // Lịch hẹn
   bell:        '<path d="M6 9.5a6 6 0 0 1 12 0c0 4.6 1.6 6.2 2.2 6.8H3.8c.6-.6 2.2-2.2 2.2-6.8Z"/><path d="M10 19.5a2.1 2.1 0 0 0 4 0"/>', // Thông báo · Việc cần làm hôm nay
   assign:      { vb: '0 0 30 24', d: '<circle cx="6" cy="8" r="2.8"/><path d="M2 19.5v-1a4 4 0 0 1 8 0v1"/><circle cx="24" cy="10.5" r="2.5"/><path d="M20.3 19.5v-.75a3.7 3.7 0 0 1 7.4 0v.75"/><path d="M11.8 7.5h6.4M16.4 5.7l1.8 1.8-1.8 1.8"/><path d="M18.2 13.5h-6.4M13.6 11.7l-1.8 1.8 1.8 1.8"/>' }, // Giao khách

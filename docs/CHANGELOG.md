@@ -6,6 +6,16 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-09 — Tab Công việc + tab Phân tích (D-007)
+
+- 4 tab chính: Tổng quan · Khách hàng · **Công việc** · **Phân tích** (desktop: header; điện thoại: thanh dưới 5 ô có ＋ giữa).
+- **Công việc:** mọi hẹn gọi + việc chưa xong của khách mình phụ trách, chia Quá hạn · Hôm nay · 7 ngày tới · Sau đó · Chưa có hạn; chip lọc theo loại việc; tích xong tại chỗ (ghi "Xong việc" vào lịch sử), tích hẹn gọi → hộp gọi; bấm thẻ mở khách; "Đã xong 30 ngày qua" thu gọn.
+- **Phân tích:** thẻ "Gợi ý từ dữ liệu" (khung giờ nghe máy tốt nhất, tốc độ gọi ↔ tỉ lệ lên Tiềm năng, kênh tốt/kém nhất, khách mới >24h chưa gọi, khách nóng đang nguội, bậc ứ đọng >3 tuần; có ngưỡng dữ liệu tối thiểu + nút hành động) + Pipeline + Hiệu suất + các biểu đồ cũ (bỏ mục "Phân tích & báo cáo" thu gọn ở Tổng quan).
+- **Tổng quan** gọn: 4 chỉ số · Việc cần làm hôm nay · 5 hẹn gần nhất ("Xem tất cả" → Công việc). Ô "Chốt tháng này" → Phân tích (Pipeline).
+- Đề xuất tính năng lớn tiếp theo ghi ở `docs/FEATURE_IDEAS.md` (mục "Đề xuất lớn 2026-10-09").
+- File: `index.html`, `js/app.js`, `js/icons.js` (icon `chart`, `insight`), `css/style.css`, `sw.js` (v76), `docs/decisions.md` (D-007), `docs/design.md`, `docs/FEATURE_IDEAS.md`.
+- Đã kiểm tra trình duyệt local (60 khách giả, 375px + 1280px): nhóm/đếm Công việc, lọc loại, gợi ý + "Cần thêm dữ liệu", nút trong thẻ Phân tích, "Xem tất cả" → Công việc, ô Chốt tháng này → Phân tích. Chưa thử tích xong với dữ liệu thật (Supabase), chưa deploy.
+
 ## 2026-10-09 — Icon thống nhất toàn app (D-006) + thẻ Hiệu suất làm lại
 
 - `js/icons.js` mới: bộ icon dùng chung (`ICON_PATHS`, `STAGE_ICON`, `icon()`, `stageIcon()`, `data-icon` tự điền). Chuyển sang dùng chung: tab header + thanh dưới, chuông, menu tìm, các thẻ hồ sơ, nút gọi (kiểu đặc → kiểu nét, mọi nơi), Hẹn gọi (ống nghe + đồng hồ — cả nút "Hẹn gọi" trong hồ sơ), Giao khách, loại việc, thẻ chỉ số + smartlist + lịch hẹn + pipeline Tổng quan, số khách trên thanh công cụ. Gộp trùng: "Hồ sơ" (loại việc) = icon bậc Hỗ trợ hồ sơ = Tài liệu; "Tham quan" = bậc Xem dự án (con mắt); Căn hộ / Giỏ hàng có icon toà nhà riêng (không dùng chung icon Tổng quan); "Chốt tháng này" = icon Kí HĐ; nhóm "Hẹn gọi còn lại hôm nay" = icon Hẹn gọi.

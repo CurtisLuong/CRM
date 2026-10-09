@@ -3,6 +3,31 @@
 Chưa cái nào được làm. Sắp xếp thô theo mức độ nên làm sớm. Khi bắt tay làm
 1 mục, chuyển ghi chú tiến độ sang `CHANGELOG.md` và xoá/cập nhật mục ở đây.
 
+## Đề xuất lớn 2026-10-09 (đã bàn với Curtis — thứ tự nên làm)
+
+> ĐÃ LÀM 2026-10-09: tab **Công việc** + tab **Phân tích có gợi ý** (D-007) — xem CHANGELOG.
+> Còn lại theo thứ tự khuyến nghị:
+
+1. **Ổn định & triển khai thật trước khi thêm tính năng lớn.** Chạy SQL còn tồn
+   (`add_zalo_templates.sql`, `add_team_assign.sql` + đặt trưởng nhóm, `add_fb_leads.sql`),
+   deploy Worker Facebook Lead Ads, thử APK Android trên máy thật, dùng thật 1–2 tuần
+   (các thay đổi giao diện 2026-10-08/09 mới kiểm tra bằng dữ liệu giả).
+2. **Hồ sơ NOXH theo khách** (bước 3 `docs/sale-focus-roadmap.md`). Checklist điều kiện
+   (thu nhập, nhà ở, cư trú…) + giấy tờ cần nộp, trạng thái thiếu / đã nhận / đã nộp; tự tạo
+   việc loại "Hồ sơ" nhắc giấy còn thiếu. NOXH chốt hay không phụ thuộc hồ sơ → app đỡ nhiều nhất.
+3. **Thông báo đẩy trên điện thoại khi đến hạn hẹn gọi / việc.** Hiện chỉ nhắc khi app đang mở.
+   Android: thông báo cục bộ qua vỏ Capacitor (D-002); web/iOS: xem mục "PUSH thật (Tầng 2)" bên dưới.
+4. **Tự ghi lần nhắn Zalo.** Bấm gửi mẫu tin → ghi 1 dòng "Đã nhắn Zalo (mẫu …)" vào lịch sử khách,
+   tính là 1 lần liên hệ → số liệu Hiệu suất / gợi ý chính xác hơn.
+5. **Báo khách hợp căn mới.** Giỏ hàng có căn mới khớp loại căn + ngân sách của khách đang chăm
+   → tự tạo việc "Nhắn tin báo căn mới" cho khách đó.
+6. **Mở rộng Gợi ý ở tab Phân tích** khi dữ liệu thật đủ nhiều: theo dự án, theo nghề nghiệp
+   (khung giờ hợp từng nghề), lý do loại theo kênh/chiến dịch, dự báo khách sắp chốt.
+   Cân nhắc dùng AI (Gemini qua Worker sẵn có) để tóm tắt sau khi gợi ý theo quy tắc đã ổn.
+
+Không nên làm tab "Công cụ" (Tính vay, Giỏ hàng…): dùng thỉnh thoảng và thường cho 1 khách cụ thể →
+giữ trong hồ sơ khách, menu avatar, menu trong ô tìm; không chiếm ô thanh điều hướng.
+
 ## Nên làm sớm (giá trị cao, ít công sức)
 
 <!-- ĐÃ LÀM 2026-08-19: Trang chi tiết khách (màn hình #detail-screen) —

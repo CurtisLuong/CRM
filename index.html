@@ -103,6 +103,8 @@
     <nav class="tab-nav">
       <button id="tab-dashboard" class="tab-btn is-active"><span class="tab-ic" data-icon="home"></span>Tổng quan</button>
       <button id="tab-customers" class="tab-btn"><span class="tab-ic" data-icon="customers"></span>Khách hàng</button>
+      <button id="tab-tasks" class="tab-btn"><span class="tab-ic" data-icon="task"></span>Công việc</button>
+      <button id="tab-analytics" class="tab-btn"><span class="tab-ic" data-icon="chart"></span>Phân tích</button>
     </nav>
     <div class="topbar-search-wrap">
       <span class="search-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg></span>
@@ -387,6 +389,18 @@
 
   <!-- TÍNH VAY — bảng tính khoản vay NOXH độc lập (không gắn khách). Module ở js/loan/,
        gắn vào CRM qua js/loan/loan-crm.js. Mount lần đầu khi bấm tab. -->
+  <!-- CÔNG VIỆC (D-007): mọi hẹn gọi + việc của mọi khách mình phụ trách, chia Quá hạn · Hôm nay ·
+       7 ngày tới · Sau đó · Chưa có hạn · Đã xong; lọc theo loại việc. Logic: renderTasksView() trong app.js. -->
+  <div id="tasks-view" hidden>
+    <div id="tasks-content" class="tasks-page"></div>
+  </div>
+
+  <!-- PHÂN TÍCH (D-007): Gợi ý từ dữ liệu + Pipeline + Hiệu suất + các biểu đồ (trước nằm ở Tổng quan).
+       Logic: renderDashboard('analytics') trong app.js. -->
+  <div id="analytics-view" hidden>
+    <div id="analytics-content" class="dash-grid analytics-page"></div>
+  </div>
+
   <div id="loan-view" hidden>
     <div class="tool-head">
       <button id="loan-back-btn" class="tool-back" type="button" aria-label="Về Tổng quan">←</button>
@@ -400,19 +414,27 @@
     <div id="loan-app"></div>
   </div>
 
-  <!-- THANH ĐIỀU HƯỚNG DƯỚI (điện thoại < 900px): Tổng quan · [＋ thêm khách] · Khách hàng.
+  <!-- THANH ĐIỀU HƯỚNG DƯỚI (điện thoại < 900px): Tổng quan · Khách hàng · [＋ thêm khách] · Công việc · Phân tích (D-007).
        Thay tab trên header + nút ＋ nổi ở màn hẹp; desktop vẫn dùng tab header + nút nổi. -->
   <nav id="bottom-nav" class="bottom-nav" aria-label="Điều hướng chính">
     <button type="button" class="bn-item is-active" data-bn="dashboard">
       <span class="bn-ic" data-icon="home"></span>
       <span>Tổng quan</span>
     </button>
-    <button type="button" class="bn-add" id="bn-add" aria-label="Thêm khách" title="Thêm khách">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-    </button>
     <button type="button" class="bn-item" data-bn="customers">
       <span class="bn-ic" data-icon="customers"></span>
       <span>Khách hàng</span>
+    </button>
+    <button type="button" class="bn-add" id="bn-add" aria-label="Thêm khách" title="Thêm khách">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+    </button>
+    <button type="button" class="bn-item" data-bn="tasks">
+      <span class="bn-ic" data-icon="task"></span>
+      <span>Công việc</span>
+    </button>
+    <button type="button" class="bn-item" data-bn="analytics">
+      <span class="bn-ic" data-icon="chart"></span>
+      <span>Phân tích</span>
     </button>
   </nav>
 </section>

@@ -838,7 +838,8 @@ async function refreshList() {
   scheduleSearchWarmup();
   renderList();
   renderLeads();
-  if (!$('#dashboard-view').hidden) renderDashboard(); // Tổng quan là màn mặc định khi mở app
+  rerenderDashViews(); // Tổng quan (màn mặc định) / Phân tích nếu đang mở
+  if (!$('#tasks-view').hidden) renderTasksView();
   updateSyncBadge();
   renderNotifications();
   const assignErr = CRM.takeAssignError(); // giao khách bị server từ chối (trùng SĐT bên người nhận…)
@@ -5102,16 +5103,20 @@ const SEARCH_VIEWS = ['dashboard', 'list', 'leads']; // Tổng quan: tìm → tr
 // bấm tab Khách hàng → mở lại nhóm xem gần nhất.
 let custGroup = 'care';
 const LS_CUST_GROUP = 'crm_cust_group';
-function setActiveView(name) { // 'list' | 'leads' | 'dashboard' | 'loan'
+function setActiveView(name) { // 'list' | 'leads' | 'dashboard' | 'tasks' | 'analytics' | 'loan'
   $('.topbar').classList.toggle('no-search', !SEARCH_VIEWS.includes(name));
   $('#list-view').hidden = name !== 'list';
   $('#lead-view').hidden = name !== 'leads';
   closeLeadPops();
   $('#dashboard-view').hidden = name !== 'dashboard';
+  $('#tasks-view').hidden = name !== 'tasks';
+  $('#analytics-view').hidden = name !== 'analytics';
   $('#loan-view').hidden = name !== 'loan';
   const isCust = name === 'list' || name === 'leads';
   $('#tab-customers').classList.toggle('is-active', isCust);
   $('#tab-dashboard').classList.toggle('is-active', name === 'dashboard');
+  $('#tab-tasks').classList.toggle('is-active', name === 'tasks');
+  $('#tab-analytics').classList.toggle('is-active', name === 'analytics');
   $$('#bottom-nav .bn-item').forEach((b) => b.classList.toggle('is-active', b.dataset.bn === (isCust ? 'customers' : name)));
   $('#cust-bar').hidden = !isCust;
   $('#list-toolbar').hidden = name !== 'list';  // thanh công cụ riêng từng nhóm, cùng nằm trong #cust-bar
@@ -5139,6 +5144,13 @@ function showCustomerGroup(g) {
   else showListView();
 }
 function showDashboardView() { setActiveView('dashboard'); renderDashboard(); }
+function showTasksView() { setActiveView('tasks'); renderTasksView(); }                   // Công việc (D-007)
+function showAnalyticsView() { setActiveView('analytics'); renderDashboard('analytics'); } // Phân tích (D-007)
+// Vẽ lại màn Tổng quan / Phân tích đang mở (sau khi bấm nút trong thẻ, đổi dữ liệu…).
+function rerenderDashViews() {
+  if (!$('#dashboard-view').hidden) renderDashboard();
+  if (!$('#analytics-view').hidden) renderDashboard('analytics');
+}
 function showLoanView() { setActiveView('loan'); if (window.LoanCRM) LoanCRM.mountTab(); } // js/loan/loan-crm.js
 
 // ---- helper nhỏ ----
@@ -5269,7 +5281,6 @@ function salesPerfHtml(all) {
 const DASH_IDLE_WARM_DAYS = 14;        // Tiềm năng (không nóng) bao lâu chưa liên hệ thì nhắc
 const DASH_LEAD_RETRY_H = 24;          // lead chưa nói chuyện được: gọi lại sau N giờ
 const DASH_BIRTHDAY_DAYS = 7;          // nhắc sinh nhật trong N ngày tới
-const LS_DASH_ANALYTICS = 'crm_dash_analytics_open';
 const dashExpanded = new Set();        // các nhóm việc đang mở "Xem thêm"
 const dashOpenGroups = new Set();      // smartlist "Việc cần làm hôm nay": các nhóm đang xổ danh sách khách
 // Icon nét dùng ở Tổng quan (thẻ chỉ số + smartlist). Nét 1.8, theo vibe thẻ nhóm (docs/design.md).
@@ -5473,13 +5484,200 @@ function dashActionGroups(all) {
   return groups;
 }
 
-function renderDashboard() {
+// ================= TAB CÔNG VIỆC (D-007) =================
+// Mọi lịch HẸN GỌI + VIỆC chưa xong của khách mình phụ trách, chia nhóm theo thời hạn; lọc theo
+// loại việc (TASK_KINDS · icon dùng chung js/icons.js). Dòng: giờ · chấm màu loại · thẻ (tên · nhãn
+// loại · icon + nội dung · đếm ngược) · ô tích (việc → xong, ghi vào lịch sử; hẹn gọi → hộp gọi).
+let tasksKindFilter = 'all', tasksDoneOpen = false;
+function collectWorkItems(all) {
+  const items = [];
+  for (const c of all) {
+    if (c.disqualified_at) continue;
+    if (c.next_call_at) {
+      const t = Date.parse(c.next_call_at), e = c.next_call_end ? Date.parse(c.next_call_end) : t;
+      items.push({ c, kind: 'call', t, end: e, text: 'Hẹn gọi' + (c.next_call_reason ? ' · ' + c.next_call_reason : '') });
+    }
+    for (const tk of openTasksOf(c)) {
+      const t = taskDueMs(tk);
+      items.push({ c, kind: taskKind(tk), t, end: t, allDay: !!tk.due_allday, text: tk.text || '', at: tk.at });
+    }
+  }
+  return items;
+}
+function renderTasksView() {
+  const box = $('#tasks-content'); if (!box || $('#tasks-view').hidden) return;
+  const all = ownedCustomers();
+  const now = Date.now(), today0 = startOfDayMs(now), DAY = 86400000;
+  const itemsAll = collectWorkItems(all);
+  const counts = {}; itemsAll.forEach((x) => { counts[x.kind] = (counts[x.kind] || 0) + 1; });
+  const items = tasksKindFilter === 'all' ? itemsAll : itemsAll.filter((x) => x.kind === tasksKindFilter);
+  // Nhóm theo thời hạn (đếm ngược cùng cơ chế checklist: quá hạn = qua khung + 30 phút / hết ngày).
+  const groupOf = (x) => {
+    if (isNaN(x.t)) return 'nodue';
+    const cd = countdownTag(x.t, x.end, x.allDay);
+    if (cd && cd.state === 'missed') return 'overdue';
+    const d = startOfDayMs(x.t);
+    if (d <= today0) return 'today';
+    if (d < today0 + 8 * DAY) return 'week';
+    return 'later';
+  };
+  const GROUPS = [['overdue', 'Quá hạn', 'alarm'], ['today', 'Hôm nay', 'bell'], ['week', '7 ngày tới', 'calendar'], ['later', 'Sau đó', 'calendar'], ['nodue', 'Chưa có hạn', 'task']];
+  const byG = {}; GROUPS.forEach(([k]) => { byG[k] = []; });
+  items.forEach((x) => byG[groupOf(x)].push(x));
+  Object.values(byG).forEach((arr) => arr.sort((a, b) => (isNaN(a.t) ? 0 : a.t) - (isNaN(b.t) ? 0 : b.t)));
+  const row = (x) => {
+    const k = TASK_KINDS[x.kind] || TASK_KINDS.other;
+    const hasT = !isNaN(x.t);
+    const d = hasT ? new Date(x.t) : null;
+    const diff = hasT ? Math.round((startOfDayMs(x.t) - today0) / DAY) : null;
+    const day = !hasT ? '' : diff === 0 ? 'Hôm nay' : diff === 1 ? 'Mai' : diff === -1 ? 'Hôm qua' : `${VI_WD_SHORT[d.getDay()]} ${ddmm(d)}`;
+    const cd = hasT ? countdownTag(x.t, x.end, x.allDay) : null;
+    const check = x.kind === 'call'
+      ? `<button type="button" class="task-check" data-wk-call="${x.c.id}" aria-label="Xác nhận cuộc gọi"></button>`
+      : `<button type="button" class="task-check" data-wk-done="${x.c.id}|${escapeHtml(x.at)}" aria-label="Đánh dấu xong"></button>`;
+    return `<div class="up2-item kind-${x.kind}">
+        <div class="up2-when">${hasT ? `<span class="up2-day">${day}</span>
+          <span class="up2-time${x.allDay ? ' is-allday' : ''}">${x.allDay ? 'Cả ngày' : hhmm(x.t)}</span>` : '<span class="up2-day">Chưa hạn</span>'}</div>
+        <div class="up2-axis" aria-hidden="true"><span class="up2-dot"></span></div>
+        <div class="up2-card wk-card">
+          ${check}
+          <button type="button" class="wk-open" data-open="${x.c.id}">
+            <span class="up2-top"><span class="up2-name">${escapeHtml(x.c.full_name || '(chưa tên)')}</span><span class="up2-chip">${escapeHtml(k.label)}</span></span>
+            <span class="up2-text">${kindIconHtml(x.kind, 'up2-ic')}<span>${escapeHtml(x.text)}</span></span>
+            ${cd ? `<span class="wk-cd">${countdownHtml(cd)}</span>` : ''}
+          </button>
+        </div>
+      </div>`;
+  };
+  const chips = [['all', 'Tất cả', itemsAll.length], ...Object.keys(TASK_KINDS).filter((k) => counts[k]).map((k) => [k, TASK_KINDS[k].label, counts[k]])];
+  // Đã xong (30 ngày gần nhất) — phụ, thu gọn; hoàn tác vẫn làm ở hồ sơ khách.
+  const done = [];
+  for (const c of all) for (const tk of doneTasksOf(c)) if (now - Date.parse(tk.done_at) < 30 * DAY && (tasksKindFilter === 'all' || taskKind(tk) === tasksKindFilter)) done.push({ c, tk });
+  done.sort((a, b) => b.tk.done_at.localeCompare(a.tk.done_at));
+  const overdueN = byG.overdue.length, todayN = byG.today.length;
+  box.innerHTML = `
+    <div class="tasks-head">
+      <div><h2 class="tasks-title">Công việc</h2>
+        <div class="tasks-sum">${items.length} việc đang mở${overdueN ? ` · <span class="txt-bad">${overdueN} quá hạn</span>` : ''}${todayN ? ` · ${todayN} hôm nay` : ''}</div></div>
+    </div>
+    <div class="wk-chips" role="tablist">${chips.map(([k, label, n]) =>
+      `<button type="button" class="wk-chip${tasksKindFilter === k ? ' is-sel' : ''}${k !== 'all' ? ' kind-' + k : ''}" data-wk-kind="${k}">${k !== 'all' ? kindIconHtml(k, 'wk-chip-ic') : ''}${escapeHtml(label)} <span class="wk-chip-n">${n}</span></button>`).join('')}</div>
+    ${items.length ? GROUPS.filter(([g]) => byG[g].length).map(([g, title, ic]) => `
+      <section class="dash-card wk-group wk-${g}">
+        <div class="wk-group-head"><span class="wk-group-ic" aria-hidden="true">${icon(ic)}</span><h3>${title}</h3><span class="wk-group-n">${byG[g].length}</span></div>
+        <div class="up2-list">${byG[g].map(row).join('')}</div>
+      </section>`).join('') : '<div class="dash-card"><div class="dash-empty">Không có việc nào đang mở. Thêm việc hoặc hẹn gọi trong hồ sơ khách.</div></div>'}
+    ${done.length ? `<div class="tasks-done wk-done${tasksDoneOpen ? ' is-open' : ''}">
+        <button type="button" class="tasks-done-toggle" data-wk-done-toggle>Đã xong 30 ngày qua <span class="tasks-done-count">(${done.length})</span>
+          <svg class="tasks-done-caret" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        ${tasksDoneOpen ? `<div class="tasks-done-list">${done.map(({ c, tk }) => `<button type="button" class="done-item wk-done-item" data-open="${c.id}">
+            <span class="done-tick" aria-hidden="true">✓</span><span class="done-body"><span class="done-text">${escapeHtml(tk.text || '')}</span>
+            <span class="done-when">${escapeHtml(c.full_name || '')} · xong ${escapeHtml(taskDayLabel(new Date(tk.done_at)))} ${fmtClock(Date.parse(tk.done_at))}</span></span></button>`).join('')}</div>` : ''}
+      </div>` : ''}`;
+}
+$('#tasks-content')?.addEventListener('click', async (e) => {
+  const kb = e.target.closest('[data-wk-kind]');
+  if (kb) { tasksKindFilter = kb.dataset.wkKind; renderTasksView(); return; }
+  if (e.target.closest('[data-wk-done-toggle]')) { tasksDoneOpen = !tasksDoneOpen; renderTasksView(); return; }
+  const dn = e.target.closest('[data-wk-done]');
+  if (dn) {
+    const [cid, at] = dn.dataset.wkDone.split('|');
+    const it = dn.closest('.up2-item'); if (it) { it.classList.add('is-checking'); await new Promise((r) => setTimeout(r, 300)); }
+    await CRM.completeTask(cid, at);
+    showToast('Đã xong · đã ghi vào lịch sử chăm sóc');
+    await refreshList(); return;
+  }
+  const cl = e.target.closest('[data-wk-call]');
+  if (cl) { openCallAction(cl.dataset.wkCall); return; }
+  const op = e.target.closest('[data-open]');
+  if (op) { const c = allCustomers.find((x) => x.id === op.dataset.open); if (c) { if (isQualified(c)) openDetail(c.id); else openLeadSheet(c.id); } }
+});
+
+// ================= PHÂN TÍCH · GỢI Ý TỪ DỮ LIỆU (D-007) =================
+// Quy tắc đơn giản trên chính dữ liệu của mình (không dùng AI). Mỗi gợi ý chỉ hiện khi đủ dữ liệu
+// (ngưỡng INSIGHT_MIN) để tránh kết luận sai từ vài khách; chưa đủ → liệt kê ở dòng "Cần thêm dữ liệu".
+const INSIGHT_MIN = { slotCalls: 10, speedGroup: 8, channelLeads: 10, stuckDays: 21, hotIdleDays: 7 };
+function analyticsInsightsHtml(all) {
+  const now = Date.now(), H = 3600000, DAY = 86400000;
+  const out = [], pending = [];
+  const pct = (a, b) => (b ? Math.round((a / b) * 100) : 0);
+  // 1) Khung giờ gọi nghe máy tốt nhất (callSlots — D-005).
+  if (window.FOLLOWUP) {
+    const st = {}; FOLLOWUP.callSlots().forEach((x) => { st[x.key] = { ...x, n: 0, ok: 0 }; });
+    all.forEach((c) => callAttemptsOf(c).forEach((a) => {
+      if (!a.result) return; const k = FOLLOWUP.slotOfTime(Date.parse(a.at)); if (!st[k]) return;
+      st[k].n++; if (a.result === 'talked') st[k].ok++;
+    }));
+    const ok = Object.values(st).filter((x) => x.n >= INSIGHT_MIN.slotCalls).sort((a, b) => b.ok / b.n - a.ok / a.n);
+    if (ok.length >= 2) {
+      const best = ok[0], worst = ok[ok.length - 1];
+      out.push({ ic: 'call_sched', tone: 'good', title: `Gọi khung ${best.name.toLowerCase()} (${best.text}) nghe máy nhiều nhất: ${pct(best.ok, best.n)}%`,
+        why: `${best.n} cuộc đã ghi kết quả. Khung ${worst.name.toLowerCase()} chỉ ${pct(worst.ok, worst.n)}% (${worst.n} cuộc) → dồn cuộc gọi quan trọng vào khung ${best.name.toLowerCase()}.` });
+    } else pending.push(`khung giờ gọi (cần ≥ ${INSIGHT_MIN.slotCalls} cuộc có kết quả ở ít nhất 2 khung)`);
+  }
+  // 2) Tốc độ gọi lần đầu ↔ tỉ lệ lên Tiềm năng.
+  const fast = { n: 0, q: 0 }, slow = { n: 0, q: 0 };
+  all.forEach((c) => {
+    const reg = Date.parse(c.registered_at || c.created_at || ''); const first = callAttemptsOf(c)[0];
+    if (isNaN(reg) || !first) return;
+    const g = Date.parse(first.at) - reg <= H ? fast : slow; g.n++; if (isQualified(c)) g.q++;
+  });
+  if (fast.n >= INSIGHT_MIN.speedGroup && slow.n >= INSIGHT_MIN.speedGroup) {
+    const a = pct(fast.q, fast.n), b = pct(slow.q, slow.n);
+    out.push({ ic: 'idle', tone: a > b ? 'good' : 'info', title: `Gọi trong 1 giờ đầu: ${a}% lên Tiềm năng · gọi muộn hơn: ${b}%`,
+      why: `${fast.n} khách được gọi sớm, ${slow.n} khách gọi sau 1 giờ.${a > b ? ' Gọi ngay khi khách vừa đăng ký hiệu quả hơn rõ.' : ''}` });
+  } else pending.push(`tốc độ gọi (cần ≥ ${INSIGHT_MIN.speedGroup} khách mỗi nhóm gọi trong / sau 1 giờ)`);
+  // 3) Kênh ra khách tốt / kém nhất.
+  const src = {};
+  all.forEach((c) => sourceListOf(c.source).forEach((k) => { const m = src[k] || (src[k] = { n: 0, q: 0 }); m.n++; if (isQualified(c)) m.q++; }));
+  const ch = Object.entries(src).filter(([, m]) => m.n >= INSIGHT_MIN.channelLeads).sort((a, b) => b[1].q / b[1].n - a[1].q / a[1].n);
+  if (ch.length >= 2) {
+    const [bk, bm] = ch[0], [wk, wm] = ch[ch.length - 1];
+    out.push({ ic: 'chart', tone: 'info', title: `Kênh ${sourceLabel(bk)} ra khách thật tốt nhất: ${pct(bm.q, bm.n)}% Đạt`,
+      why: `${bm.n} khách. ${sourceLabel(wk)} thấp nhất: ${pct(wm.q, wm.n)}% (${wm.n} khách) — cân nhắc chuyển ngân sách / công sức.` });
+  } else pending.push(`kênh khách (cần ≥ ${INSIGHT_MIN.channelLeads} khách ở ít nhất 2 kênh)`);
+  // 4) Khách mới quá 24 giờ chưa gọi (việc làm ngay).
+  const late = all.filter((c) => !isQualified(c) && !c.disqualified_at && !callAttemptsOf(c).length
+    && now - Date.parse(c.registered_at || c.created_at || '') > DAY);
+  if (late.length) out.push({ ic: 'new_lead', tone: 'urgent', title: `${late.length} khách mới đăng ký hơn 24 giờ vẫn chưa được gọi`,
+    why: 'Khách gọi càng muộn càng khó nghe máy.', go: 'leads-new', act: 'Mở danh sách' });
+  // 5) Khách nóng đang nguội.
+  const hotMin = dashHotMin();
+  const hotIdle = all.filter((c) => isQualified(c) && !isCareDone(c.care_stage) && (c.interest_level || 0) >= hotMin
+    && now - (lastTouchMs(c) || now) >= INSIGHT_MIN.hotIdleDays * DAY);
+  if (hotIdle.length) out.push({ ic: 'hot', tone: 'urgent', title: `${hotIdle.length} khách nóng (≥ ${hotMin}%) hơn ${INSIGHT_MIN.hotIdleDays} ngày chưa liên hệ`,
+    why: hotIdle.slice(0, 3).map((c) => c.full_name).join(', ') + (hotIdle.length > 3 ? '…' : ''), go: 'todo-dash', act: 'Xem việc hôm nay' });
+  // 6) Bậc đang ứ đọng (khách đứng yên quá lâu ở 1 bậc).
+  const stuck = {};
+  all.filter((c) => isQualified(c) && !isCareDone(c.care_stage)).forEach((c) => {
+    const t = Date.parse(c.care_stage_updated_at || c.qualified_at || ''); if (isNaN(t) || now - t < INSIGHT_MIN.stuckDays * DAY) return;
+    stuck[c.care_stage] = (stuck[c.care_stage] || 0) + 1;
+  });
+  const top = Object.entries(stuck).sort((a, b) => b[1] - a[1])[0];
+  if (top) out.push({ ic: STAGE_ICON[top[0]] || 'alert', tone: 'info', title: `${top[1]} khách đứng yên ở bậc "${top[0]}" quá ${INSIGHT_MIN.stuckDays / 7} tuần`,
+    why: 'Xem lại từng khách: cần thêm thông tin, hẹn gặp, hay nên chuyển Loại?', stage: top[0], act: 'Xem khách' });
+  const cards = out.map((x) => `<div class="ins-item ins-${x.tone}">
+      <span class="ins-ic" aria-hidden="true">${icon(x.ic)}</span>
+      <span class="ins-body"><span class="ins-title">${escapeHtml(x.title)}</span><span class="ins-why">${escapeHtml(x.why)}</span></span>
+      ${x.go || x.stage ? `<button type="button" class="ins-act" ${x.stage ? `data-stage="${escapeHtml(x.stage)}"` : `data-go="${x.go}"`}>${escapeHtml(x.act)} ›</button>` : ''}
+    </div>`).join('');
+  return `<div class="dash-card ins-card">
+      <div class="dash-todo-head"><span class="sl-head-ic ins-head-ic" aria-hidden="true">${icon('insight')}</span><h3>Gợi ý từ dữ liệu</h3></div>
+      <p class="dash-hint">Tính từ chính khách & cuộc gọi của bạn. Gợi ý chỉ hiện khi đủ dữ liệu.</p>
+      ${cards || '<div class="dash-empty">Chưa có gợi ý nào — dữ liệu còn ít hoặc mọi thứ đang ổn.</div>'}
+      ${pending.length ? `<div class="ins-pending">Cần thêm dữ liệu: ${escapeHtml(pending.join(' · '))}.</div>` : ''}
+    </div>`;
+}
+
+// mode 'dash' (mặc định) → Tổng quan: chỉ số + Việc cần làm hôm nay + 5 hẹn gần nhất.
+// mode 'analytics' → tab Phân tích: Gợi ý + Pipeline + Hiệu suất + biểu đồ (D-007). Cùng 1 lần tính số liệu.
+function renderDashboard(mode) {
+  const isAna = mode === 'analytics';
   const all = ownedCustomers(); // việc / thống kê chỉ tính khách MÌNH phụ trách (js/team.js)
-  const box = $('#dashboard-content');
+  const box = isAna ? $('#analytics-content') : $('#dashboard-content');
   // Đang gõ tìm ở Tổng quan → hiện trang kết quả tạm thay cho bàn làm việc.
-  const q = $('#search-input').value.trim();
-  $('#dash-search').hidden = !q;
-  box.hidden = !!q;
+  const q = isAna ? '' : $('#search-input').value.trim();
+  if (!isAna) { $('#dash-search').hidden = !q; box.hidden = !!q; }
   if (q) { renderDashSearch(); return; }
   if (!all.length) {
     box.innerHTML = `<div class="dash-card"><div class="dash-empty">Chưa có khách hàng nào. Bấm + để thêm khách đầu tiên.</div></div>`;
@@ -5608,7 +5806,7 @@ function renderDashboard() {
     }
   }
   upcoming.sort((a, b) => a.t - b.t);
-  const upOpen = dashExpanded.has('upcoming');
+  const upOpen = false; // Tổng quan chỉ xem trước 5 mục; đủ danh sách ở tab Công việc
   const upShown = upOpen ? upcoming : upcoming.slice(0, DASH_GROUP_LIMIT);
   // Dòng thời gian: cột trái = thứ · giờ · còn bao lâu; chấm màu theo loại việc trên trục dọc;
   // thẻ phải = tên khách · nhãn loại (màu) · icon + nội dung · ›. Chữ đậm chỉ ở tiêu đề thẻ (docs/design.md).
@@ -5632,8 +5830,7 @@ function renderDashboard() {
         </button>
       </div>`;
   };
-  const upToggle = upcoming.length > DASH_GROUP_LIMIT
-    ? `<button type="button" class="up2-all" data-more="upcoming">${upOpen ? 'Thu gọn' : 'Xem tất cả'} <svg viewBox="0 0 24 24" aria-hidden="true"><path d="${upOpen ? 'M6 15l6-6 6 6' : 'M5 12h14M13 6l6 6-6 6'}"/></svg></button>` : '';
+  const upToggle = `<button type="button" class="up2-all" data-go="tasks">Xem tất cả <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>`;
   const upCard = `<div class="dash-card dash-up">
       <div class="up2-head">
         <span class="up2-head-ic" aria-hidden="true">${DASH_IC.cal}</span>
@@ -5727,20 +5924,21 @@ function renderDashboard() {
 
   // ---- 4) PHÂN TÍCH (thu gọn) — các biểu đồ báo cáo ----
   const analytics = renderDashAnalytics(all);
-  let anaOpen = false;
-  try { anaOpen = localStorage.getItem(LS_DASH_ANALYTICS) === '1'; } catch (_) { /* bỏ qua */ }
 
+  if (isAna) {
+    box.innerHTML = `${analyticsInsightsHtml(all)}
+      <div class="dash-main ana-main">
+        <div class="dash-main-left">${pipeCard}</div>
+        <div class="dash-main-right">${perfCard}</div>
+      </div>
+      <div class="dash-ana-grid">${analytics.join('')}</div>`;
+    return;
+  }
   box.innerHTML = `${headHtml}
     <div class="dash-main">
       <div class="dash-main-left">${todoCard}</div>
-      <div class="dash-main-right" id="dash-week">${upCard}${pipeCard}${perfCard}</div>
-    </div>
-    <details class="dash-analytics"${anaOpen ? ' open' : ''}>
-      <summary>Phân tích & báo cáo <span>phễu chuyển đổi · nguồn khách · căn hộ quan tâm</span></summary>
-      <div class="dash-ana-grid">${analytics.join('')}</div>
-    </details>`;
-  const det = box.querySelector('.dash-analytics');
-  det.addEventListener('toggle', () => { try { localStorage.setItem(LS_DASH_ANALYTICS, det.open ? '1' : '0'); } catch (_) { /* bỏ qua */ } });
+      <div class="dash-main-right" id="dash-week">${upCard}</div>
+    </div>`;
 }
 
 // Các biểu đồ báo cáo (trước đây là toàn bộ Tổng quan) — nay nằm trong mục "Phân tích" thu gọn.
@@ -5907,20 +6105,21 @@ function renderDashAnalytics(all) {
 }
 
 // Bàn làm việc: mở khách / xem thêm nhóm / lọc theo bậc / nhảy theo chỉ số nhanh.
-$('#dashboard-content')?.addEventListener('click', (e) => {
+['#dashboard-content', '#analytics-content'].forEach((sel) => $(sel)?.addEventListener('click', dashCardClick));
+function dashCardClick(e) {
   const rg = e.target.closest('[data-dash-range]');
-  if (rg) { dashRange = Number(rg.dataset.dashRange); try { localStorage.setItem(LS_DASH_RANGE, String(dashRange)); } catch {} renderDashboard(); return; }
+  if (rg) { dashRange = Number(rg.dataset.dashRange); try { localStorage.setItem(LS_DASH_RANGE, String(dashRange)); } catch {} rerenderDashViews(); return; }
   const pt = e.target.closest('[data-perf-tab]');
-  if (pt) { dashPerfTab = pt.dataset.perfTab; try { localStorage.setItem(LS_DASH_PERF_TAB, dashPerfTab); } catch {} renderDashboard(); return; }
+  if (pt) { dashPerfTab = pt.dataset.perfTab; try { localStorage.setItem(LS_DASH_PERF_TAB, dashPerfTab); } catch {} rerenderDashViews(); return; }
   const at = e.target.closest('[data-apt-tab]');
-  if (at) { dashAptTab = at.dataset.aptTab; try { localStorage.setItem(LS_DASH_APT_TAB, dashAptTab); } catch {} renderDashboard(); return; }
+  if (at) { dashAptTab = at.dataset.aptTab; try { localStorage.setItem(LS_DASH_APT_TAB, dashAptTab); } catch {} rerenderDashViews(); return; }
   const sl = e.target.closest('[data-sl]');
-  if (sl) { const k = sl.dataset.sl; if (dashOpenGroups.has(k)) dashOpenGroups.delete(k); else dashOpenGroups.add(k); renderDashboard(); return; }
+  if (sl) { const k = sl.dataset.sl; if (dashOpenGroups.has(k)) dashOpenGroups.delete(k); else dashOpenGroups.add(k); rerenderDashViews(); return; }
   const more = e.target.closest('[data-more]');
   if (more) {
     const k = more.dataset.more;
     if (dashExpanded.has(k)) dashExpanded.delete(k); else dashExpanded.add(k);
-    renderDashboard(); return;
+    rerenderDashViews(); return;
   }
   const open = e.target.closest('[data-open]');
   // Mở tại chỗ (không đổi tab) để làm xong việc là quay lại đúng danh sách việc.
@@ -5951,10 +6150,18 @@ $('#dashboard-content')?.addEventListener('click', (e) => {
     qualPreset = 'week'; syncStageLabel(); syncDatePresetUI(); updateFilterDot();
     showListView(); window.scrollTo(0, 0); return;
   }
-  const target = { todo: '#dash-todo', week: '.dash-perf', pipeline: '.dash-pipe' }[go.dataset.go];
-  const el = target && $(target);
+  if (go.dataset.go === 'tasks') { showTasksView(); window.scrollTo(0, 0); return; }
+  if (go.dataset.go === 'todo-dash') { showDashboardView(); setTimeout(() => $('#dash-todo')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50); return; }
+  // Pipeline / Hiệu suất nằm ở tab Phân tích (D-007) → sang tab rồi cuộn tới thẻ.
+  if (go.dataset.go === 'pipeline' || go.dataset.go === 'week') {
+    showAnalyticsView();
+    const el = $(go.dataset.go === 'pipeline' ? '#analytics-content .dash-pipe' : '#analytics-content .dash-perf');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    return;
+  }
+  const el = go.dataset.go === 'todo' && $('#dash-todo');
   if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-});
+}
 
 // -------------------------------------------------------------- WIRE UP ---
 
@@ -6571,10 +6778,12 @@ document.addEventListener('DOMContentLoaded', () => {
     closeToolPops(); resetSearchPages(); showCustomerGroup(b.dataset.group);
   });
   $('#tab-dashboard').addEventListener('click', showDashboardView);
+  $('#tab-tasks').addEventListener('click', showTasksView);
+  $('#tab-analytics').addEventListener('click', showAnalyticsView);
   // Thanh điều hướng dưới (điện thoại): bấm hộ tab header; nút ＋ bấm hộ nút ＋ nổi của màn đang xem.
   $('#bottom-nav').addEventListener('click', (e) => {
     const it = e.target.closest('.bn-item');
-    if (it) { $(it.dataset.bn === 'customers' ? '#tab-customers' : '#tab-dashboard').click(); window.scrollTo(0, 0); return; }
+    if (it) { $({ customers: '#tab-customers', tasks: '#tab-tasks', analytics: '#tab-analytics' }[it.dataset.bn] || '#tab-dashboard').click(); window.scrollTo(0, 0); return; }
     if (e.target.closest('#bn-add')) {
       const fab = !$('#lead-view').hidden ? '#add-lead-btn' : !$('#list-view').hidden ? '#add-customer-btn' : '#add-dash-btn';
       $(fab).click();

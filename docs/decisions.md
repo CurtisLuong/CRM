@@ -114,6 +114,7 @@ Ví dụ và mẫu trong bộ tài liệu không phải sự chấp thuận cho 
 - Trạng thái: Đang áp dụng (chưa deploy lúc ghi)
 - Cập nhật 2026-10-08 (người dùng yêu cầu trực tiếp): nhóm "Đang chăm" đổi tên lại thành **Tiềm năng**. Tiềm năng / Khách nhóm không hiện số trên tab (số khách nằm ở dòng dưới thanh công cụ); Khách mới giữ badge (đăng ký hôm qua + hôm nay, chưa có cuộc gọi đầu). Lọc trạng thái (Đang chăm/Đã xong · Cần gọi/Đã loại) chuyển vào panel Bộ lọc, mặc định Đang chăm / Cần gọi. Đổi kiểu xem thẻ/danh sách nằm trong menu 3 chấm. Header thu gọn ở tab Khách hàng có icon Lọc bên trái nút đồng bộ (chấm đỏ khi đang lọc).
 - Cập nhật 2026-10-09 (người dùng yêu cầu trực tiếp): trạng thái Khách mới đổi thành Tất cả (mặc định, đã loại xếp cuối) · Chưa gọi · Cần gọi lại · Đã loại; ô "Khách mới chờ gọi" ở Tổng quan mở Khách mới với lọc Chưa gọi.
+- Cập nhật 2026-10-09: số tab chính tăng lên 4 — xem **D-007** (thay quy tắc "chỉ 2 tab" của mục này).
 - Cập nhật 2026-10-09 (người dùng yêu cầu trực tiếp): trên điện thoại / màn hẹp (<900px) 2 tab Tổng quan · Khách hàng chuyển xuống thanh điều hướng dưới, kèm nút ＋ thêm khách ở giữa (thay tab header + nút ＋ nổi ở màn hẹp). Desktop giữ tab trên header. Vẫn chỉ 2 tab chính.
 
 ### D-005 — Khung giờ gọi thống nhất toàn app (1 nguồn duy nhất)
@@ -135,4 +136,15 @@ Ví dụ và mẫu trong bộ tài liệu không phải sự chấp thuận cho 
 - Lý do: trước đây mỗi thẻ tự vẽ SVG (cùng "Hồ sơ" có 2 icon, "Căn hộ" dùng chung icon với "Tổng quan", nút gọi kiểu đặc lẫn kiểu nét…) → không nhất quán, sửa 1 chỗ quên chỗ khác.
 - Chấp thuận: người dùng yêu cầu trực tiếp (chat 2026-10-09): "icon cho mỗi stage, action phải thống nhất trên toàn app. Cái này đổi thì vị trí khác cũng đổi".
 - Tài liệu đã cập nhật: `CLAUDE.md`, `AGENTS.md`, `docs/design.md`, `docs/CHANGELOG.md`
+- Trạng thái: Đang áp dụng (chưa deploy lúc ghi)
+
+### D-007 — 4 tab chính: Tổng quan · Khách hàng · Công việc · Phân tích
+
+- Ngày: 2026-10-09
+- Loại: Đổi cách tổ chức UI (thay quy tắc "chỉ 2 tab chính" của D-004)
+- Quyết định: thêm 2 tab ngang hàng: **Công việc** (mọi hẹn gọi + việc của khách mình phụ trách: Quá hạn · Hôm nay · 7 ngày tới · Sau đó · Chưa có hạn · Đã xong; lọc theo loại việc; tích xong tại chỗ) và **Phân tích** (Gợi ý từ dữ liệu theo quy tắc, có ngưỡng dữ liệu tối thiểu + Pipeline + Hiệu suất + các biểu đồ). Tổng quan gọn lại: 4 chỉ số · Việc cần làm hôm nay · 5 hẹn gần nhất ("Xem tất cả" → Công việc). Điện thoại: thanh dưới Tổng quan · Khách hàng · [＋] · Công việc · Phân tích; desktop: 4 tab trên header. Không làm tab "Công cụ" (công cụ giữ trong hồ sơ / menu).
+- Lý do: Tổng quan đang gánh cả "làm gì ngay" lẫn toàn bộ việc sắp tới và báo cáo; tách ra mỗi màn rõ 1 việc. Mẫu giao diện người dùng gửi có 4 mục + nút ＋.
+- Chấp thuận: người dùng duyệt đề xuất (chat 2026-10-09): "Làm tab công việc và phân tích như bạn đề xuất".
+- Phạm vi: `index.html` (`#tab-tasks`, `#tab-analytics`, `#tasks-view`, `#analytics-view`, `#bottom-nav`), `js/app.js` (`setActiveView`, `renderTasksView`, `renderDashboard('analytics')`, `analyticsInsightsHtml`, `dashCardClick`), `js/icons.js` (`chart`, `insight`), `css/style.css`, `docs/design.md`.
+- Tài liệu đã cập nhật: `docs/design.md`, `docs/FEATURE_IDEAS.md`, `docs/CHANGELOG.md`
 - Trạng thái: Đang áp dụng (chưa deploy lúc ghi)
