@@ -2736,3 +2736,52 @@ body:has(#detail-screen.is-readonly:not([hidden])) #avatar-remove-btn,
   .customer-card .card-footer { margin-top: 12px; }
 }
 .lead-sla-row { margin-top: 6px; } /* nhãn SLA thẻ Khách mới — dòng riêng, không ép tên */
+
+/* ===== NÚT TIỆN ÍCH + BẢNG TIỆN ÍCH (thay avatar, 2026-10-09) =====
+   Nút tròn lưới 9 chấm trên khung app. Bảng: dòng tài khoản · lưới ô tiện ích (icon trong ô vuông bo nền nhạt
+   theo màu nhãn --tc) · chân: Đăng xuất. Thêm tiện ích = thêm 1 .app-tile (index.html). */
+.apps-btn {
+  width: 34px; height: 34px; border-radius: 50%; border: none; padding: 0; cursor: pointer; margin-left: 2px;
+  background: rgba(26, 46, 41, 0.07); color: var(--ink);
+  display: inline-flex; align-items: center; justify-content: center; flex: none;
+  transition: background .15s ease;
+}
+.apps-btn:hover { background: rgba(26, 46, 41, 0.12); }
+.topbar-menu.open .apps-btn { background: var(--ink); color: #fff; }
+.apps-btn-ic { display: inline-flex; width: 18px; height: 18px; }
+.apps-btn-ic svg { width: 100%; height: 100%; fill: currentColor; stroke: none; }
+.menu-pop.apps-pop {
+  width: 300px; max-width: calc(100vw - 24px); padding: 8px; border-radius: 16px;
+  border: 1px solid var(--card-border); box-shadow: 0 12px 32px rgba(26, 46, 41, 0.14), 0 2px 6px rgba(26, 46, 41, 0.06);
+  top: calc(100% + 10px);
+}
+.apps-account { display: flex; align-items: center; gap: 10px; padding: 8px 8px 12px; border-bottom: 1px solid #F1EEE7; }
+.apps-avatar {
+  width: 36px; height: 36px; border-radius: 50%; flex: none; display: inline-flex; align-items: center; justify-content: center;
+  background: #F2E4EE; color: #8A4A78; font-size: 15px; font-weight: 500;
+}
+.apps-account-body { display: flex; flex-direction: column; min-width: 0; }
+.apps-account-label { font-size: 11.5px; color: #9a9a90; }
+.apps-email { font-size: 13px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.apps-label { font-size: 11.5px; color: #9a9a90; padding: 12px 8px 6px; }
+.apps-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; }
+.app-tile {
+  display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 10px 4px 9px;
+  border: none; border-radius: 12px; background: transparent; cursor: pointer; font: inherit; color: var(--ink);
+}
+.app-tile[hidden] { display: none; }
+.app-tile:hover, .app-tile:focus-visible { background: #F7F4EE; outline: none; }
+.app-tile-ic {
+  width: 42px; height: 42px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center;
+  background: color-mix(in srgb, var(--tc, #6b6b60) 13%, #fff); color: var(--tc, #6b6b60);
+}
+.app-tile-ic svg { width: 21px; height: 21px; }
+.app-tile-name { font-size: 12px; line-height: 1.25; text-align: center; color: #3a3a34; }
+.apps-foot { margin-top: 6px; padding-top: 6px; border-top: 1px solid #F1EEE7; }
+.apps-row {
+  display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 10px; border: none; border-radius: 10px;
+  background: transparent; font: inherit; font-size: 13.5px; color: #55564e; cursor: pointer; text-align: left;
+}
+.apps-row:hover { background: #F7F4EE; color: var(--ink); }
+.apps-row-ic { display: inline-flex; width: 18px; height: 18px; color: #8a8a80; }
+.apps-row-ic svg { width: 100%; height: 100%; }

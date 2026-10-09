@@ -81,19 +81,25 @@
           </div>
         </div>
         <div class="topbar-menu" id="topbar-menu">
-          <!-- Mũi tên nhỏ góc dưới-phải (kiểu Facebook) báo hiệu avatar mở được menu. -->
-          <button id="user-menu-btn" class="avatar-btn" aria-label="Tài khoản và công cụ" aria-haspopup="true"><span class="avatar-initial">?</span><span class="avatar-caret" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
-          <!-- MENU PHỤ (tầng 2): công cụ + cài đặt. Tính năng mới thêm vào đây, KHÔNG thêm tab. -->
-          <div class="menu-pop">
-            <div class="menu-email" id="user-email"></div>
-            <div class="menu-group-label">Công cụ</div>
-            <button id="tool-loan-btn" class="menu-item">Tính vay</button>
-            <button id="catalog-btn" class="menu-item">Giỏ hàng (dự án · toà · căn)</button>
-            <div class="menu-group-label">Cài đặt</div>
-            <button id="zalo-greeting-btn" class="menu-item">Mẫu tin Zalo</button>
-            <button id="team-btn" class="menu-item" hidden>Đồng nghiệp</button>
-            <div class="menu-sep"></div>
-            <button id="logout-btn" class="menu-item">Đăng xuất</button>
+          <!-- NÚT TIỆN ÍCH (lưới 9 chấm, thay avatar 2026-10-09): mở bảng tiện ích + tài khoản.
+               Thêm tiện ích mới = thêm 1 <button class="app-tile"> vào .apps-grid (icon từ js/icons.js, --tc = màu nhãn
+               trong docs/design.md). KHÔNG thêm tab cho công cụ dùng thỉnh thoảng (D-007). -->
+          <button id="user-menu-btn" class="apps-btn" type="button" aria-label="Tiện ích và tài khoản" aria-haspopup="true" aria-expanded="false"><span class="apps-btn-ic" data-icon="apps" aria-hidden="true"></span></button>
+          <div class="menu-pop apps-pop" role="menu" aria-label="Tiện ích và tài khoản">
+            <div class="apps-account">
+              <span class="apps-avatar avatar-initial" aria-hidden="true">?</span>
+              <span class="apps-account-body"><span class="apps-account-label">Tài khoản</span><span class="apps-email" id="user-email"></span></span>
+            </div>
+            <div class="apps-label">Tiện ích</div>
+            <div class="apps-grid">
+              <button id="tool-loan-btn" class="app-tile" type="button" role="menuitem" style="--tc:#3E6A8A"><span class="app-tile-ic" data-icon="loan"></span><span class="app-tile-name">Tính vay</span></button>
+              <button id="catalog-btn" class="app-tile" type="button" role="menuitem" style="--tc:#2B7A8C"><span class="app-tile-ic" data-icon="apartment"></span><span class="app-tile-name">Giỏ hàng</span></button>
+              <button id="zalo-greeting-btn" class="app-tile" type="button" role="menuitem" style="--tc:#5160A8"><span class="app-tile-ic" data-icon="message"></span><span class="app-tile-name">Mẫu tin nhắn</span></button>
+              <button id="team-btn" class="app-tile" type="button" role="menuitem" style="--tc:#6E5F99" hidden><span class="app-tile-ic" data-icon="team"></span><span class="app-tile-name">Đồng nghiệp</span></button>
+            </div>
+            <div class="apps-foot">
+              <button id="logout-btn" class="apps-row" type="button" role="menuitem"><span class="apps-row-ic" data-icon="logout"></span>Đăng xuất</button>
+            </div>
           </div>
         </div>
       </div>
@@ -410,10 +416,31 @@
       <button id="loan-back-btn" class="tool-back" type="button" aria-label="Về Tổng quan">←</button>
       <h2>Tính vay</h2>
     </div>
-    <div class="loan-consultant">
-      <span>Tư vấn viên in trên PDF:</span>
-      <input id="loan-consultant-name" type="text" placeholder="Tên" />
-      <input id="loan-consultant-phone" type="tel" placeholder="SĐT" />
+    <!-- Hàng đầu màn Tính vay: [Khách hàng — chọn để gắn phiếu, tự điền dự án / loại căn / diện tích / chính sách
+         dự án] · [Tư vấn viên in trên PDF]. Tự xuống dòng khi hẹp. Logic: js/loan/loan-crm.js (loanPicker*). -->
+    <div class="loan-topbar">
+      <div class="loan-field loan-cust">
+        <span class="loan-field-label">Khách hàng</span>
+        <div class="loan-cust-wrap">
+          <button type="button" id="loan-cust-btn" class="loan-cust-btn" aria-haspopup="listbox" aria-expanded="false">
+            <span class="loan-cust-ic" data-icon="person" aria-hidden="true"></span>
+            <span id="loan-cust-text" class="loan-cust-text">Chọn khách (không bắt buộc)</span>
+            <svg class="loan-cust-caret" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5"/></svg>
+          </button>
+          <button type="button" id="loan-cust-clear" class="loan-cust-clear" aria-label="Bỏ chọn khách" hidden>✕</button>
+          <div id="loan-cust-pop" class="loan-cust-pop" hidden>
+            <input id="loan-cust-search" class="loan-cust-search" type="search" placeholder="Tìm tên, SĐT…" autocomplete="off" />
+            <div id="loan-cust-list" class="loan-cust-list" role="listbox"></div>
+          </div>
+        </div>
+      </div>
+      <div class="loan-field loan-consultant">
+        <span class="loan-field-label">Tư vấn viên</span>
+        <div class="loan-consultant-inputs">
+          <input id="loan-consultant-name" type="text" placeholder="Tên" />
+          <input id="loan-consultant-phone" type="tel" placeholder="SĐT" />
+        </div>
+      </div>
     </div>
     <div id="loan-app"></div>
   </div>

@@ -23,8 +23,13 @@ tất cả nằm SAU `app.js` (loan-crm.js dùng biến `sb`, `allCustomers` c�
 
 ## 2. Dùng trong CRM
 
-- **Tab "Tính vay"** (header): bảng tính không gắn khách. Ô "Tư vấn viên in trên PDF"
-  nhập tên + SĐT một lần, lưu theo từng máy.
+- **Màn "Tính vay"** (bảng Tiện ích): hàng đầu gồm **Khách hàng** · **Tư vấn viên** (1 hàng,
+  tự xuống dòng khi hẹp). Tư vấn viên (in trên PDF) nhập tên + SĐT một lần, lưu theo từng máy.
+  Khách hàng không bắt buộc: bấm → danh sách khách Tiềm năng đang chăm (mình phụ trách, chưa Đã mua /
+  Loại) + ô tìm theo tên / SĐT (dùng chung bộ tìm của ô tìm tổng, gõ không dấu được). Chọn khách →
+  bảng tính dựng lại, điền sẵn dự án / toà / mã căn / loại căn / diện tích; chính sách dự án (VAT,
+  KPBT, tiến độ CĐT, bàn giao) tự lấy theo dự án trong giỏ hàng; "Lưu phương án" gắn vào khách đó.
+  ✕ = bỏ chọn, về bảng tính độc lập.
 - **Trang chi tiết khách → "Tính khoản vay"**: bấm 💰 → bảng tính điền sẵn mã căn +
   diện tích của khách. "💾 Lưu phương án" lưu gắn với khách; các phương án đã lưu hiện
   thành danh sách phía trên, bấm "Mở" để mở lại.

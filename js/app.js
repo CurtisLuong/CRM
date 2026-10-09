@@ -562,9 +562,9 @@ async function onLoggedIn(user) {
   Catalog.scope(user.id);
   // Nhớ user để lần sau mất mạng vẫn vào xem dữ liệu offline được.
   try { localStorage.setItem(LS_LAST_USER, JSON.stringify({ id: user.id, email: user.email || '' })); } catch {}
-  // Avatar = chữ cái đầu của email; menu hiện email đầy đủ
+  // Bảng tiện ích: dòng tài khoản = chữ cái đầu email + email đầy đủ
   const email = user.email || '';
-  $('#user-menu-btn .avatar-initial').textContent = (email[0] || '?').toUpperCase(); // giữ nguyên mũi tên menu
+  $('#topbar-menu .avatar-initial').textContent = (email[0] || '?').toUpperCase();
   $('#user-email').textContent = email;
   showAppScreen();
   focusSearchOnDesktop(); // con trỏ nằm sẵn ở ô tìm kiếm khi vừa vào app
@@ -7225,9 +7225,11 @@ document.addEventListener('DOMContentLoaded', () => {
     e.stopPropagation();
     $('#search-menu').classList.remove('open');
     $('#topbar-menu').classList.toggle('open');
+    $('#user-menu-btn').setAttribute('aria-expanded', String($('#topbar-menu').classList.contains('open')));
   });
   document.addEventListener('click', (e) => {
     if (!e.target.closest('#topbar-menu')) $('#topbar-menu').classList.remove('open');
+    else if (e.target.closest('.app-tile, .apps-row')) $('#topbar-menu').classList.remove('open'); // chọn 1 tiện ích → đóng bảng
   });
 
   // --- Menu đa năng trong ô tìm: mỗi mục "bấm hộ" nút gốc (data-proxy) → dùng lại logic sẵn có ---

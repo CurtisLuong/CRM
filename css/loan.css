@@ -162,6 +162,39 @@ details.lm-card[open] > summary { margin-bottom: 10px; }
 .loan-quote .lq-sub { color: #6b716d; font-size: 12px; }
 .loan-quote b { font-variant-numeric: tabular-nums; }
 /* Tab "Tính vay": dòng nhập tên/SĐT tư vấn viên in trên PDF */
-.loan-consultant { max-width: 860px; margin: 12px auto 0; padding: 0 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 13px; color: #6b716d; }
-.loan-consultant input { flex: 1 1 140px; width: auto; padding: 6px 10px; font-size: 14px; }
+/* Hàng đầu màn Tính vay: [Khách hàng] · [Tư vấn viên] — 1 hàng khi đủ rộng, tự xuống dòng khi hẹp. */
+.loan-topbar { max-width: 860px; margin: 12px auto 0; padding: 0 16px; display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 16px; }
+.loan-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.loan-field-label { font-size: 12px; color: #8a8a80; }
+.loan-cust { flex: 1 1 260px; }
+.loan-consultant { flex: 1 1 280px; }
+.loan-consultant-inputs { display: flex; gap: 8px; }
+.loan-consultant input { flex: 1 1 0; min-width: 0; width: auto; height: 38px; padding: 0 10px; font-size: 14px; border-radius: 10px; }
+.loan-cust-wrap { position: relative; display: flex; align-items: center; }
+.loan-cust-btn {
+  flex: 1 1 auto; min-width: 0; height: 38px; display: flex; align-items: center; gap: 8px; padding: 0 34px 0 10px;
+  font: inherit; font-size: 14px; color: #8a8a80; background: #fff; border: 1px solid var(--card-border, #ECE6DA); border-radius: 10px; cursor: pointer; text-align: left;
+}
+.loan-cust-btn:hover { border-color: #D8CFBE; }
+.loan-cust-btn.is-set { color: var(--ink); }
+.loan-cust-ic { display: inline-flex; width: 16px; height: 16px; color: #8a8a80; flex: none; }
+.loan-cust-ic svg { width: 100%; height: 100%; }
+.loan-cust-text { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.loan-cust-caret { width: 16px; height: 16px; flex: none; fill: none; stroke: #8a8a80; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.loan-cust-btn.is-set .loan-cust-caret { display: none; }
+.loan-cust-clear { position: absolute; right: 6px; width: 26px; height: 26px; border: none; border-radius: 50%; background: transparent; color: #8a8a80; cursor: pointer; font-size: 13px; }
+.loan-cust-clear:hover { background: #F3F0E9; color: var(--ink); }
+.loan-cust-pop {
+  position: absolute; left: 0; right: 0; top: calc(100% + 6px); z-index: 50; min-width: 260px;
+  background: #fff; border: 1px solid var(--card-border, #ECE6DA); border-radius: 14px; padding: 8px;
+  box-shadow: 0 12px 32px rgba(26, 46, 41, 0.14), 0 2px 6px rgba(26, 46, 41, 0.06);
+}
+.loan-cust-search { width: 100%; height: 36px; padding: 0 12px; border: 1px solid var(--card-border, #ECE6DA); border-radius: 999px; font: inherit; font-size: 14px; background: #F7F4EE; box-sizing: border-box; }
+.loan-cust-search:focus { outline: none; background: #fff; border-color: #CFC7B6; }
+.loan-cust-list { max-height: 300px; overflow-y: auto; margin-top: 6px; }
+.loan-cust-row { display: flex; flex-direction: column; gap: 1px; width: 100%; padding: 8px 10px; border: none; border-radius: 10px; background: transparent; cursor: pointer; text-align: left; font: inherit; }
+.loan-cust-row:hover, .loan-cust-row.is-sel { background: #F7F4EE; }
+.loan-cust-name { font-size: 14px; color: var(--ink); }
+.loan-cust-meta { font-size: 12px; color: #8a8a80; }
+.loan-cust-empty, .loan-cust-more { font-size: 12.5px; color: #9a9a90; padding: 10px; text-align: center; }
 .lm-field input.lm-other { margin-top: 6px; }

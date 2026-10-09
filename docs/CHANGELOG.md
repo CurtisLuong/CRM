@@ -19,6 +19,16 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 - Đóng khi đang cuộn sâu → tự cuộn về đầu thẻ. Chiều cao thanh tên khách đo bằng JS (`--detail-bar-h`).
 - File: `index.html`, `js/loan/loan-crm.js`, `css/loan.css`
 
+## 2026-10-09 — Tính vay: chọn khách để gắn phiếu
+
+- Màn Tính vay: hàng đầu [Khách hàng] · [Tư vấn viên] (nhãn rút gọn từ "Tư vấn viên in trên PDF"), tự xuống dòng khi hẹp. Chọn khách (danh sách khách Tiềm năng đang chăm + tìm theo tên / SĐT, dùng bộ tìm chung) → bảng tính điền sẵn dự án / loại căn / diện tích / chính sách dự án, lưu phương án vào hồ sơ khách.
+- File: `index.html`, `js/loan/loan-crm.js`, `css/loan.css`, `sw.js` (v88), `docs/loan-module.md`.
+
+## 2026-10-09 — Nút & bảng Tiện ích thay menu avatar
+
+- Avatar ở header → nút lưới 9 chấm. Bảng mới: dòng tài khoản + lưới ô Tính vay · Giỏ hàng · Mẫu tin nhắn · Đồng nghiệp + Đăng xuất. Giữ nguyên id nút cũ nên mọi chức năng / lối tắt trong menu ô tìm vẫn chạy. Icon mới `apps`, `team`, `logout`.
+- File: `index.html`, `css/style.css`, `js/app.js`, `js/icons.js`, `sw.js` (v87), `docs/design.md`.
+
 ## 2026-10-09 — Thẻ khách (Tiềm năng / Khách nhóm) theo thiết kế chung
 
 - Bo 16px + bóng nhẹ, bỏ dải màu trái; avatar nền nhạt; tên 1 dòng không đậm (trước bị ngắt nhiều dòng vì nhãn nhắc gọi chung hàng → nhãn chuyển xuống hàng nhãn); nút gọi / Zalo tròn; nhãn cùng cỡ; chân thẻ vạch mảnh + nút "Sửa" viền. Điện thoại: thẻ cao theo nội dung (không cắt ghi chú).

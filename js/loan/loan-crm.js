@@ -4,7 +4,8 @@
  * escapeHtml, showToast). KHÔNG đặt tên biến `supabase` (xem CLAUDE.md mục 5.1).
  *
  * 2 điểm gắn:
- *   A. Màn "Tính vay" (#loan-view, mở từ menu tài khoản › Công cụ) — bảng tính độc lập, không gắn khách.
+ *   A. Màn "Tính vay" (#loan-view, mở từ bảng Tiện ích) — bảng tính độc lập, hoặc chọn khách ở ô "Khách hàng"
+ *      để điền sẵn số liệu của khách và lưu phương án vào hồ sơ khách đó.
  *   B. Trang chi tiết khách (#detail-loan-section) — điền sẵn mã căn / diện tích,
  *      lưu phương án gắn với khách, liệt kê + mở lại phương án đã lưu.
  *
@@ -50,11 +51,87 @@
     if (detailUI) detailUI.refresh();
   });
 
+  // Khách → giá trị điền sẵn cho bảng tính (dự án / toà / mã căn / loại căn / diện tích). Chỉ field có giá trị —
+  // truyền undefined sẽ đè mất mặc định của module. Chính sách trả (VAT, KPBT, tiến độ CĐT, bàn giao…) module
+  // tự lấy theo dự án trong giỏ hàng.
+  function unitOf(c) {
+    var unit = {};
+    if (Array.isArray(c.projects) && c.projects[0]) unit.projectName = c.projects[0];
+    if (c.apt_type) unit.aptType = canonicalAptType(c.apt_type);
+    if (c.apt_code) unit.code = String(c.apt_code).trim();
+    if (c.building_code) unit.building = String(c.building_code).trim();
+    if (Number(c.apt_area) > 0) unit.area = Number(c.apt_area);
+    return unit;
+  }
+
   // ---------- A. Tab "Tính vay" ----------
+  // Có ô "Khách hàng": chọn khách → dựng lại bảng tính với số liệu của khách, "Lưu phương án" gắn vào khách đó.
   var tabUI = null;
-  function mountTab() {
-    if (tabUI) return; // đã mount → giữ nguyên số đang nhập khi qua lại giữa các tab
-    tabUI = LoanModule.mount(document.getElementById('loan-app'), crmOptions());
+  var tabCid = null; // khách đang gắn ở màn Tính vay (null = bảng tính độc lập)
+  function mountTab(force) {
+    if (tabUI && !force) return; // đã mount → giữ nguyên số đang nhập khi qua lại giữa các tab
+    if (tabUI) { tabUI.destroy(); tabUI = null; }
+    var c = tabCid ? customerOf(tabCid) : null;
+    tabUI = LoanModule.mount(document.getElementById('loan-app'), c
+      ? Object.assign(crmOptions(), {
+          customer: { id: c.id, name: c.full_name, phone: c.phone }, unit: unitOf(c),
+          onSaved: function () { if (currentCid === c.id) loadQuotes(c.id); showToast('Đã lưu phương án vào hồ sơ ' + (c.full_name || 'khách')); }
+        })
+      : crmOptions());
+    renderPickerLabel();
+  }
+
+  // ---- Ô chọn khách (màn Tính vay): khách đang active = Tiềm năng mình phụ trách, chưa Đã mua / Loại.
+  // Tìm dùng chung bộ tìm của ô tìm tổng (CRMSearch + matchesSearch: tên, SĐT, bỏ dấu…).
+  var pickBtn = document.getElementById('loan-cust-btn');
+  var pickClear = document.getElementById('loan-cust-clear');
+  var pickPop = document.getElementById('loan-cust-pop');
+  var pickSearch = document.getElementById('loan-cust-search');
+  var pickList = document.getElementById('loan-cust-list');
+  var PICK_LIMIT = 30;
+  function activeCustomers() {
+    return allCustomers.filter(function (c) { return isQualified(c) && isMine(c) && !isCareDone(c.care_stage); });
+  }
+  function renderPickerLabel() {
+    if (!pickBtn) return;
+    var c = tabCid ? customerOf(tabCid) : null;
+    document.getElementById('loan-cust-text').textContent = c ? (c.full_name || '(chưa tên)') + (c.phone ? ' · ' + c.phone : '') : 'Chọn khách (không bắt buộc)';
+    pickBtn.classList.toggle('is-set', !!c);
+    pickClear.hidden = !c;
+  }
+  function renderPickList() {
+    var q = pickSearch.value.trim();
+    var ctx = q ? window.CRMSearch.compile(q, 'all') : null;
+    if (ctx && !ctx.active) ctx = null;
+    if (ctx) Object.assign(ctx, { qNorm: ctx.text, isPhone: ctx.phoneOnly, qPhone: ctx.digits, results: new WeakMap() });
+    var list = activeCustomers().filter(function (c) { return !ctx || matchesSearch(c, ctx); })
+      .sort(function (a, b) { return (a.full_name || '').localeCompare(b.full_name || '', 'vi'); });
+    var shown = list.slice(0, PICK_LIMIT);
+    pickList.innerHTML = shown.length ? shown.map(function (c) {
+      var meta = [c.phone, Array.isArray(c.projects) && c.projects[0], c.apt_type && canonicalAptType(c.apt_type)].filter(Boolean).join(' · ');
+      return '<button type="button" class="loan-cust-row' + (c.id === tabCid ? ' is-sel' : '') + '" role="option" data-cid="' + c.id + '">' +
+        '<span class="loan-cust-name">' + escapeHtml(c.full_name || '(chưa tên)') + '</span>' +
+        '<span class="loan-cust-meta">' + escapeHtml(meta) + '</span></button>';
+    }).join('') + (list.length > PICK_LIMIT ? '<div class="loan-cust-more">+' + (list.length - PICK_LIMIT) + ' khách — gõ để tìm</div>' : '')
+      : '<div class="loan-cust-empty">' + (q ? 'Không có khách khớp' : 'Chưa có khách Tiềm năng đang chăm sóc') + '</div>';
+  }
+  function openPicker(open) {
+    pickPop.hidden = !open;
+    pickBtn.setAttribute('aria-expanded', String(open));
+    if (open) { pickSearch.value = ''; renderPickList(); setTimeout(function () { pickSearch.focus(); }, 0); }
+  }
+  if (pickBtn) {
+    pickBtn.addEventListener('click', function (e) { e.stopPropagation(); openPicker(pickPop.hidden); });
+    pickSearch.addEventListener('input', renderPickList);
+    pickSearch.addEventListener('keydown', function (e) { if (e.key === 'Escape') openPicker(false); });
+    pickList.addEventListener('click', function (e) {
+      var r = e.target.closest('[data-cid]'); if (!r) return;
+      tabCid = r.getAttribute('data-cid');
+      openPicker(false);
+      mountTab(true);
+    });
+    pickClear.addEventListener('click', function () { tabCid = null; mountTab(true); });
+    document.addEventListener('click', function (e) { if (!pickPop.hidden && !e.target.closest('.loan-cust-wrap')) openPicker(false); });
   }
 
   // ---------- B. Trang chi tiết khách ----------
@@ -90,13 +167,7 @@
     var c = customerOf(currentCid);
     if (!c) return;
     if (detailUI) detailUI.destroy();
-    // Chỉ điền sẵn field có giá trị — truyền undefined sẽ đè mất mặc định của module.
-    var unit = {};
-    if (Array.isArray(c.projects) && c.projects[0]) unit.projectName = c.projects[0];
-    if (c.apt_type) unit.aptType = canonicalAptType(c.apt_type);
-    if (c.apt_code) unit.code = String(c.apt_code).trim();
-    if (c.building_code) unit.building = String(c.building_code).trim();
-    if (Number(c.apt_area) > 0) unit.area = Number(c.apt_area);
+    var unit = unitOf(c);
     panel.hidden = false;
     detailUI = LoanModule.mount(panel, Object.assign(crmOptions(), {
       customer: { id: c.id, name: c.full_name, phone: c.phone },
