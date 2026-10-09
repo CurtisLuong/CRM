@@ -100,6 +100,12 @@ Thang độ quan tâm (`INTEREST_TIERS`, `js/app.js`): tông mận nhạt → đ
 - Nhãn SLA dùng chung màu đếm ngược: quá mục tiêu = vàng sáng, quá hạn mức = đỏ đậm; còn trong mục tiêu thì thẻ khách không hiện (hồ sơ / hộp Khách mới hiện xám nhạt).
 - Hồ sơ: thẻ "Tốc độ phễu" (thanh thời gian, vạch = mục tiêu, cuối thanh = hạn mức) + 4 ô tích Booking + nút "Xác nhận đã Ký HĐMB". Phân tích: thẻ "Phễu & tốc độ (SLA)" thay thẻ phễu cũ; Pipeline thêm ô milestone "★ Đã ký HĐMB".
 
+## Biểu đồ (2026-10-09)
+
+- Thanh ngang (`hbars`): thanh mảnh 8px, nền `#F1EEE7`, mọi dòng 1 lưới chung (thanh thẳng hàng), số không đậm + chữ phụ xám. Màu = 1 màu nhãn lạnh cho cả biểu đồ (bảng "Màu nhãn"); `part` = phần đậm trong thanh, phần còn lại cùng màu nhạt.
+- Đường xu hướng (`sparkline`): nét 1.6px, vùng tô 8%, chỉ chấm điểm cuối kèm số, vạch mốc nét đứt.
+- Số lớn: chữ mảnh (300) màu mực, không tô màu cảnh báo.
+
 ## Tab Công việc & Phân tích (D-007, 2026-10-09)
 
 - **Công việc:** chip lọc loại việc (có số) · nhóm Quá hạn (tiêu đề đỏ son) / Hôm nay / 7 ngày tới / Sau đó / Chưa có hạn, mỗi nhóm 1 thẻ, dòng dạng dòng thời gian như Lịch hẹn 7 ngày + ô tích (việc → xong, ghi lịch sử; hẹn gọi → hộp Gọi xong / Hẹn lại) + đếm ngược · "Đã xong 30 ngày qua" thu gọn cuối trang.

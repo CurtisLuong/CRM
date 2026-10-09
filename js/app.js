@@ -1266,6 +1266,8 @@ let searchPages = { list: 1, leads: 1, qualified: 1, new: 1, team: 1 };
 function resetSearchPages() { searchPages = { list: 1, leads: 1, qualified: 1, new: 1, team: 1 }; }
 function renderSearchView() {
   if (!$('#dashboard-view').hidden) renderDashboard();
+  else if (!$('#analytics-view').hidden) renderDashboard('analytics');
+  else if (!$('#tasks-view').hidden) renderTasksView();
   else if (!$('#lead-view').hidden) renderLeads();
   else if (!$('#list-view').hidden) renderList();
 }
@@ -5202,7 +5204,7 @@ function dashSearchRow(c) {
       ${tag}
     </button>`;
 }
-function renderDashSearch() {
+function renderDashSearch(boxSel = '#dash-search') {
   const ctx = searchCtx();
   const hits = allCustomers.filter((c) => matchesSearch(c, ctx));
   // Đang chăm/cần gọi lên trước, đã xong/đã loại xuống cuối; trong nhóm: tên A→Z.
@@ -5214,7 +5216,7 @@ function renderDashSearch() {
     ['Khách nhóm', hits.filter((c) => !isMine(c)).sort(order), 'team'],
   ];
   const total = hits.length;
-  $('#dash-search').innerHTML = `<div class="search-total">${total ? `Tìm thấy ${total} khách` : 'Không tìm thấy khách nào.'}</div>` +
+  $(boxSel).innerHTML = `<div class="search-total">${total ? `Tìm thấy ${total} khách` : 'Không tìm thấy khách nào.'}</div>` +
     groups.filter(([, list]) => list.length).map(([title, list, group]) => `
       <section class="search-group">
         <div class="search-group-title">${title} <span>${list.length}</span></div>
@@ -5223,8 +5225,8 @@ function renderDashSearch() {
       </section>`).join('');
 }
 // Bấm kết quả → sang tab tương ứng (giữ nguyên từ khoá để tab đó cũng lọc đúng khách) + mở khách.
-$('#dash-search')?.addEventListener('click', (e) => {
-  const more = e.target.closest('[data-search-more]'); if (more) { searchPages[more.dataset.searchMore]++; renderDashSearch(); return; }
+['#dash-search', '#ana-search'].forEach((sel) => $(sel)?.addEventListener('click', (e) => {
+  const more = e.target.closest('[data-search-more]'); if (more) { searchPages[more.dataset.searchMore]++; renderDashSearch(sel); return; }
   const row = e.target.closest('[data-search-open]'); if (!row) return;
   const c = allCustomers.find((x) => x.id === row.dataset.searchOpen); if (!c) return;
   if (!isMine(c)) { // khách đồng nghiệp phụ trách → nhóm Khách nhóm, xem mọi người + mọi tiến độ
@@ -5241,7 +5243,7 @@ $('#dash-search')?.addEventListener('click', (e) => {
     showLeadView();
     openLeadSheet(c.id);
   }
-});
+}));
 
 // ------------------------------------------------- GỢI Ý NHẬP (thay datalist) ------
 // <datalist> trên Android WebView do hệ thống vẽ riêng → trong hộp thoại có cuộn bị lệch chỗ, nhấp nháy, lúc
@@ -5309,7 +5311,8 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && suggestB
 // Thứ bậc điều hướng: tab chính (dashboard / list "Tiềm năng" / leads "Khách mới") ở header;
 // công cụ (loan...) mở từ menu tài khoản, không có tab — màn công cụ có nút ← về Tổng quan.
 // Ô tìm kiếm hiện ở 3 tab chính (không hiện ở màn công cụ).
-const SEARCH_VIEWS = ['dashboard', 'list', 'leads']; // Tổng quan: tìm → trang kết quả tạm
+// Mọi tab chính đều có ô tìm: Tổng quan / Phân tích → trang kết quả tạm; Công việc → lọc việc theo khách / nội dung.
+const SEARCH_VIEWS = ['dashboard', 'list', 'leads', 'tasks', 'analytics'];
 // Tab "Khách hàng" (D-004) có 3 NHÓM: 'care' Tiềm năng (#list-view) · 'leads' Khách mới (#lead-view) ·
 // 'team' Khách nhóm (#list-view, khách đồng nghiệp phụ trách — js/team.js). custGroup = nhóm đang xem;
 // bấm tab Khách hàng → mở lại nhóm xem gần nhất.
@@ -5386,15 +5389,25 @@ function lastNWeeks(n) {
 function ddmm(d) { return `${d.getDate()}/${d.getMonth() + 1}`; }
 
 // Bar ngang dùng chung: items = [{label, value, sub?, color?}]
+// Thanh ngang tối giản (2026-10-09): tên · thanh mảnh · số (+ chữ phụ). Màu: item.color → opts.color →
+// xanh thép (nhãn: KHÔNG đỏ / vàng / xanh lá — docs/design.md). item.part = phần đậm trong thanh
+// (vd khách Đạt trong tổng khách của kênh), phần còn lại tô nhạt cùng màu.
 function hbars(items, opts = {}) {
   if (!items.length) return `<div class="dash-empty">${opts.empty || 'Chưa có dữ liệu'}</div>`;
   const mx = opts.max || Math.max(...items.map((i) => i.value), 1);
-  return `<div class="hbars">` + items.map((i) => `
+  return `<div class="hbars">` + items.map((i) => {
+    const col = i.color || opts.color || '#3E6A8A';
+    const w = Math.max(pctOf(i.value, mx), 2);
+    const fill = i.part != null
+      ? `<div class="hbar-fill is-split" style="width:${w}%;--hc:${col}"><span style="width:${i.value ? pctOf(i.part, i.value) : 0}%"></span></div>`
+      : `<div class="hbar-fill" style="width:${w}%;background:${col}"></div>`;
+    return `
     <div class="hbar-row">
       <div class="hbar-label" title="${escapeHtml(i.label)}">${escapeHtml(i.label)}</div>
-      <div class="hbar-track"><div class="hbar-fill" style="width:${Math.max(pctOf(i.value, mx), 2)}%;background:${i.color || 'var(--teal-light)'}"></div></div>
+      <div class="hbar-track">${fill}</div>
       <div class="hbar-val">${opts.fmt ? opts.fmt(i.value) : i.value}${i.sub ? `<span class="hbar-sub"> ${escapeHtml(i.sub)}</span>` : ''}</div>
-    </div>`).join('') + `</div>`;
+    </div>`;
+  }).join('') + `</div>`;
 }
 
 // Cột dọc (khách mới theo tuần)
@@ -5409,19 +5422,26 @@ function vbars(values, labels, color) {
 }
 
 // Đường xu hướng (SVG) cho điểm quan tâm TB theo tuần (thang 0–100)
-function sparkline(values, labels) {
+// Đường xu hướng % (0–100) tối giản: nét mảnh + vùng tô rất nhạt, chỉ chấm điểm cuối, vạch mốc "Nóng" (60%).
+function sparkline(values, labels, color = '#8A4A78') {
   const pts = values.map((v, i) => ({ x: i, v }));
   const defined = pts.filter((p) => p.v != null);
   if (defined.length < 1) return '<div class="dash-empty">Chưa đủ dữ liệu</div>';
-  const W = 280, H = 90, pad = 10, n = values.length;
-  const X = (i) => pad + (n > 1 ? i * (W - 2 * pad) / (n - 1) : (W - 2 * pad) / 2);
-  const Y = (v) => H - pad - (v / 100) * (H - 2 * pad);
+  const W = 280, H = 96, padX = 10, top = 10, bottom = 18, n = values.length;
+  const X = (i) => padX + (n > 1 ? i * (W - 2 * padX) / (n - 1) : (W - 2 * padX) / 2);
+  const Y = (v) => H - bottom - (v / 100) * (H - top - bottom);
   const path = defined.map((p, i) => `${i ? 'L' : 'M'}${X(p.x).toFixed(1)},${Y(p.v).toFixed(1)}`).join(' ');
-  const dots = defined.map((p) => `<circle cx="${X(p.x).toFixed(1)}" cy="${Y(p.v).toFixed(1)}" r="3" fill="var(--terracotta)"/>`).join('');
-  const xlabels = labels.map((l, i) => `<text x="${X(i).toFixed(1)}" y="${H - 1}" class="spark-x">${escapeHtml(l)}</text>`).join('');
-  return `<svg viewBox="0 0 ${W} ${H}" class="spark">
-    <line x1="${pad}" y1="${Y(50)}" x2="${W - pad}" y2="${Y(50)}" class="spark-mid"/>
-    <path d="${path}" fill="none" stroke="var(--terracotta)" stroke-width="2"/>${dots}${xlabels}</svg>`;
+  const area = defined.length > 1 ? `${path} L${X(defined[defined.length - 1].x).toFixed(1)},${Y(0)} L${X(defined[0].x).toFixed(1)},${Y(0)} Z` : '';
+  const last = defined[defined.length - 1];
+  const xlabels = labels.map((l, i) => (i % 2 === (n - 1) % 2 ? `<text x="${X(i).toFixed(1)}" y="${H - 3}" class="spark-x">${escapeHtml(l)}</text>` : '')).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" class="spark" role="img" aria-label="Xu hướng mức quan tâm theo tuần">
+    <line x1="${padX}" y1="${Y(0)}" x2="${W - padX}" y2="${Y(0)}" class="spark-base"/>
+    <line x1="${padX}" y1="${Y(60)}" x2="${W - padX}" y2="${Y(60)}" class="spark-mid"/>
+    <text x="${W - padX}" y="${Y(60) + 9}" class="spark-ref">Nóng 60%</text>
+    ${area ? `<path d="${area}" fill="${color}" opacity=".08"/>` : ''}
+    <path d="${path}" fill="none" stroke="${color}" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+    <circle cx="${X(last.x).toFixed(1)}" cy="${Y(last.v).toFixed(1)}" r="3" fill="#fff" stroke="${color}" stroke-width="1.6"/>
+    <text x="${X(last.x).toFixed(1)}" y="${(Y(last.v) - 7).toFixed(1)}" class="spark-last">${last.v}%</text>${xlabels}</svg>`;
 }
 
 function dashCard(title, bodyHtml, hint, extraClass) {
@@ -5731,7 +5751,9 @@ function renderTasksView() {
   const box = $('#tasks-content'); if (!box || $('#tasks-view').hidden) return;
   const all = ownedCustomers();
   const now = Date.now(), today0 = startOfDayMs(now), DAY = 86400000;
-  const itemsAll = collectWorkItems(all);
+  // Ô tìm trên header → lọc việc theo khách (cùng bộ tìm chung: tên, SĐT, dự án, ghi chú, nội dung việc…).
+  const sctx = searchCtx();
+  const itemsAll = collectWorkItems(all).filter((x) => !sctx || matchesSearch(x.c, sctx));
   const counts = {}; itemsAll.forEach((x) => { counts[x.kind] = (counts[x.kind] || 0) + 1; });
   const items = tasksKindFilter === 'all' ? itemsAll : itemsAll.filter((x) => x.kind === tasksKindFilter);
   // Nhóm theo thời hạn (đếm ngược cùng cơ chế checklist: quá hạn = qua khung + 30 phút / hết ngày).
@@ -5775,13 +5797,14 @@ function renderTasksView() {
   const chips = [['all', 'Tất cả', itemsAll.length], ...Object.keys(TASK_KINDS).filter((k) => counts[k]).map((k) => [k, TASK_KINDS[k].label, counts[k]])];
   // Đã xong (30 ngày gần nhất) — phụ, thu gọn; hoàn tác vẫn làm ở hồ sơ khách.
   const done = [];
-  for (const c of all) for (const tk of doneTasksOf(c)) if (now - Date.parse(tk.done_at) < 30 * DAY && (tasksKindFilter === 'all' || taskKind(tk) === tasksKindFilter)) done.push({ c, tk });
+  for (const c of all) for (const tk of doneTasksOf(c)) if (now - Date.parse(tk.done_at) < 30 * DAY && (tasksKindFilter === 'all' || taskKind(tk) === tasksKindFilter)
+    && (!sctx || matchesSearch(c, sctx))) done.push({ c, tk });
   done.sort((a, b) => b.tk.done_at.localeCompare(a.tk.done_at));
   const overdueN = byG.overdue.length, todayN = byG.today.length;
   box.innerHTML = `
     <div class="tasks-head">
       <div><h2 class="tasks-title">Công việc</h2>
-        <div class="tasks-sum">${items.length} việc đang mở${overdueN ? ` · <span class="txt-bad">${overdueN} quá hạn</span>` : ''}${todayN ? ` · ${todayN} hôm nay` : ''}</div></div>
+        <div class="tasks-sum">${sctx ? `Tìm “${escapeHtml($('#search-input').value.trim())}”: ` : ''}${items.length} việc đang mở${overdueN ? ` · <span class="txt-bad">${overdueN} quá hạn</span>` : ''}${todayN ? ` · ${todayN} hôm nay` : ''}</div></div>
     </div>
     <div class="wk-chips" role="tablist">${chips.map(([k, label, n]) =>
       `<button type="button" class="wk-chip${tasksKindFilter === k ? ' is-sel' : ''}${k !== 'all' ? ' kind-' + k : ''}" data-wk-kind="${k}">${k !== 'all' ? kindIconHtml(k, 'wk-chip-ic') : ''}${escapeHtml(label)} <span class="wk-chip-n">${n}</span></button>`).join('')}</div>
@@ -5789,7 +5812,7 @@ function renderTasksView() {
       <section class="dash-card wk-group wk-${g}">
         <div class="wk-group-head"><span class="wk-group-ic" aria-hidden="true">${icon(ic)}</span><h3>${title}</h3><span class="wk-group-n">${byG[g].length}</span></div>
         <div class="up2-list">${byG[g].map(row).join('')}</div>
-      </section>`).join('') : '<div class="dash-card"><div class="dash-empty">Không có việc nào đang mở. Thêm việc hoặc hẹn gọi trong hồ sơ khách.</div></div>'}
+      </section>`).join('') : `<div class="dash-card"><div class="dash-empty">${sctx ? 'Không có việc nào khớp từ khoá.' : 'Không có việc nào đang mở. Thêm việc hoặc hẹn gọi trong hồ sơ khách.'}</div></div>`}
     ${done.length ? `<div class="tasks-done wk-done${tasksDoneOpen ? ' is-open' : ''}">
         <button type="button" class="tasks-done-toggle" data-wk-done-toggle>Đã xong 30 ngày qua <span class="tasks-done-count">(${done.length})</span>
           <svg class="tasks-done-caret" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
@@ -5898,10 +5921,11 @@ function renderDashboard(mode) {
   const isAna = mode === 'analytics';
   const all = ownedCustomers(); // việc / thống kê chỉ tính khách MÌNH phụ trách (js/team.js)
   const box = isAna ? $('#analytics-content') : $('#dashboard-content');
-  // Đang gõ tìm ở Tổng quan → hiện trang kết quả tạm thay cho bàn làm việc.
-  const q = isAna ? '' : $('#search-input').value.trim();
-  if (!isAna) { $('#dash-search').hidden = !q; box.hidden = !!q; }
-  if (q) { renderDashSearch(); return; }
+  // Đang gõ tìm ở Tổng quan / Phân tích → hiện trang kết quả tạm thay cho nội dung tab.
+  const q = $('#search-input').value.trim();
+  const searchBox = isAna ? '#ana-search' : '#dash-search';
+  $(searchBox).hidden = !q; box.hidden = !!q;
+  if (q) { renderDashSearch(searchBox); return; }
   if (!all.length) {
     box.innerHTML = `<div class="dash-card"><div class="dash-empty">Chưa có khách hàng nào. Bấm + để thêm khách đầu tiên.</div></div>`;
     return;
@@ -6271,10 +6295,19 @@ function renderDashAnalytics(all) {
   // Cũng gom theo NGÀY ĐĂNG KÝ để khớp với chart "Khách mới theo tuần" ở trên.
   withInterest.forEach((c) => { const i = weekIdx(c.registered_at || c.created_at); if (i >= 0) { wSum[i] += c.interest_level; wCnt[i]++; } });
   const avgByWeek = weeks.map((w, i) => (wCnt[i] ? Math.round(wSum[i] / wCnt[i]) : null));
-  const trendHtml = `<div class="big-stat">${avgAll}%<span class="big-stat-cap">quan tâm TB toàn pipeline</span></div>`
-    + `<div class="dash-sub-title">Xu hướng khách mới theo tuần</div>` + sparkline(avgByWeek, weeks.map(ddmm));
+  // Phân bố 4 mức (Nguội → Rất nóng, tông mận) — thanh xếp chồng + chú thích; số TB không tô màu cảnh báo.
+  const tierRows = [...INTEREST_TIERS].reverse().map((t) => ({ t, n: withInterest.filter((c) => interestTier(c.interest_level).key === t.key).length }));
+  const tierTotal = withInterest.length || 1;
+  const trendHtml = withInterest.length ? `
+    <div class="int-head"><span class="int-num">${avgAll}%</span>${interestTagHtml(interestTier(avgAll))}</div>
+    <div class="int-cap">quan tâm trung bình · ${withInterest.length} khách Tiềm năng</div>
+    <div class="int-stack" role="img" aria-label="Phân bố mức quan tâm">${tierRows.filter((r) => r.n).map((r) =>
+      `<span style="flex:${r.n};background:${r.t.color}" title="${escapeHtml(r.t.label)}: ${r.n}"></span>`).join('')}</div>
+    <div class="int-legend">${tierRows.map((r) => `<span class="int-leg"><span class="int-dot" style="background:${r.t.color}"></span>${escapeHtml(r.t.label)} <span class="int-leg-n">${r.n} · ${pctOf(r.n, tierTotal)}%</span></span>`).join('')}</div>
+    <div class="dash-sub-title">Quan tâm TB của khách theo tuần đăng ký</div>${sparkline(avgByWeek, weeks.map(ddmm))}`
+    : '<div class="dash-empty">Chưa có khách Tiềm năng</div>';
   cards.push(dashCard('Mức độ quan tâm trung bình', trendHtml,
-    'Đường đi lên = khách mới vào đang "nóng" hơn; đi xuống = "nguội" hơn.'));
+    'Phân bố khách Tiềm năng theo mức quan tâm. Đường xu hướng đi lên = khách mới vào đang "nóng" hơn.'));
 
   // 5) PHÂN BỔ LOẠI CĂN / TOÀ (TẤT CẢ khách, mọi bậc) --------------------
   // limit: chỉ giữ top-N (bỏ trống = lấy hết). Loại căn để hết → tổng phân bổ = tổng
@@ -6291,11 +6324,13 @@ function renderDashAnalytics(all) {
     if (limit) entries = entries.slice(0, limit);
     return entries.map(([label, value]) => ({ label, value }));
   };
-  // Chuyển tab Loại căn / Toà / Ngân sách (dashAptTab), giữ dạng thanh ngang.
+  // Thêm "· x%" = tỉ trọng trong nhóm đang xem.
+  const withShare = (items) => { const t = items.reduce((s, x) => s + x.value, 0) || 1; return items.map((x) => ({ ...x, sub: `· ${pctOf(x.value, t)}%` })); };
+  // Chuyển tab Loại căn / Toà / Ngân sách (dashAptTab), giữ dạng thanh ngang. Màu mỗi tab 1 màu nhãn lạnh.
   const APT_TABS = [['type', 'Loại căn'], ['building', 'Toà'], ['budget', 'Ngân sách']];
   let aptBody;
   if (dashAptTab === 'building') {
-    aptBody = hbars(tally(all, 'building_code', 8), { empty: 'Chưa có dữ liệu mã toà', color: '#8a7bb0' });
+    aptBody = hbars(withShare(tally(all, 'building_code', 8)), { empty: 'Chưa có dữ liệu mã toà', color: '#2B7A8C' });
   } else if (dashAptTab === 'budget') {
     // Ngân sách (VNĐ, ô "Ngân sách" trong hồ sơ) gom theo khoảng.
     const BINS = [[0, 5e8, 'Dưới 500 triệu'], [5e8, 1e9, '500 triệu – 1 tỷ'], [1e9, 1.5e9, '1 – 1,5 tỷ'],
@@ -6306,11 +6341,11 @@ function renderDashAnalytics(all) {
       if (!isFinite(v) || v <= 0) { none++; return; }
       const i = BINS.findIndex(([lo, hi]) => v >= lo && v < hi); if (i >= 0) cnt[i]++;
     });
-    const items = BINS.map(([, , label], i) => ({ label, value: cnt[i] })).filter((x) => x.value);
+    const items = withShare(BINS.map(([, , label], i) => ({ label, value: cnt[i] })).filter((x) => x.value));
     aptBody = hbars(items, { empty: 'Chưa có khách nào nhập ngân sách', color: '#3E6A8A' })
       + (none && items.length ? `<div class="dash-foot">${none} khách chưa có ngân sách</div>` : '');
   } else {
-    aptBody = hbars(tally(all, 'apt_type', 0, canonicalAptType), { empty: 'Chưa có dữ liệu loại căn' });
+    aptBody = hbars(withShare(tally(all, 'apt_type', 0, canonicalAptType)), { empty: 'Chưa có dữ liệu loại căn', color: '#5160A8' });
   }
   const aptTabsHtml = `<div class="dash-seg" role="tablist">${APT_TABS.map(([k, t]) =>
     `<button type="button" class="dash-seg-btn${dashAptTab === k ? ' is-active' : ''}" data-apt-tab="${k}" role="tab">${t}</button>`).join('')}</div>`;
@@ -6327,9 +6362,12 @@ function renderDashAnalytics(all) {
     });
   });
   const srcItems = Object.entries(srcMap).sort((a, b) => b[1].n - a[1].n)
-    .map(([s, m]) => ({ label: s === '?' ? 'Chưa rõ' : sourceLabel(s), value: m.n, sub: `· ${pctOf(m.q, m.n)}% Đạt` }));
-  cards.push(dashCard('Nguồn khách', hbars(srcItems, { color: '#8a7bb0' }),
-    'Số khách theo kênh và tỉ lệ Đạt (chuyển sang Tiềm năng) — kênh nào ra khách thật.'));
+    .map(([s, m]) => ({ label: s === '?' ? 'Chưa rõ' : sourceLabel(s), value: m.n, part: m.q, sub: `· ${pctOf(m.q, m.n)}% Đạt` }));
+  // Thanh = tổng khách của kênh; phần đậm = khách Đạt (lên Tiềm năng).
+  const srcLegend = srcItems.length ? `<div class="int-legend hbar-legend"><span class="int-leg"><span class="int-dot" style="background:#6E5F99"></span>Đạt (lên Tiềm năng)</span>
+    <span class="int-leg"><span class="int-dot" style="background:#DCD7EA"></span>Chưa Đạt / Loại</span></div>` : '';
+  cards.push(dashCard('Nguồn khách', hbars(srcItems, { color: '#6E5F99' }) + srcLegend,
+    'Số khách theo kênh; phần đậm là khách Đạt (chuyển sang Tiềm năng) — kênh nào ra khách thật.'));
 
   return cards;
 }

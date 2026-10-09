@@ -6,6 +6,13 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-09 — Ô tìm ở mọi tab + 3 biểu đồ Phân tích theo màu mới
+
+- Ô tìm trên header có ở cả **Công việc** (lọc việc theo khách: tên, SĐT, dự án, ghi chú, nội dung việc…) và **Phân tích** (trang kết quả tạm như Tổng quan).
+- **Mức độ quan tâm trung bình:** số TB chữ mảnh màu mực + nhãn mức (ngọn lửa), thanh phân bố 4 mức tông mận + chú thích, đường xu hướng mảnh màu mận có vạch "Nóng 60%".
+- **Căn khách quan tâm / Nguồn khách:** thanh mảnh thẳng hàng, số không đậm, thêm tỉ trọng %; mỗi tab 1 màu nhãn lạnh (Loại căn chàm · Toà xanh dầu · Ngân sách xanh thép). Nguồn khách: phần đậm của thanh = khách Đạt. Sửa lỗi `hbars` bỏ qua màu truyền vào (mọi thanh trước đây ra xanh rêu).
+- File: `index.html`, `js/app.js`, `css/style.css`, `sw.js` (v81).
+
 ## 2026-10-09 — Phễu 5 giai đoạn + SLA (velocity) (D-008)
 
 - Bậc: Đăng kí mới → Đang tiếp cận → Đang chăm sóc → Xem dự án → **Booking & Làm hồ sơ** (gộp Hỗ trợ hồ sơ + Booking) → ★ milestone **Đã ký HĐMB** (nút "Xác nhận đã Ký HĐMB", khách vào mục Đã mua). Thêm **Nuôi dài hạn** ngoài phễu.
