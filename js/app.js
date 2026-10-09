@@ -5079,6 +5079,7 @@ function setActiveView(name) { // 'list' | 'leads' | 'dashboard' | 'loan'
   const isCust = name === 'list' || name === 'leads';
   $('#tab-customers').classList.toggle('is-active', isCust);
   $('#tab-dashboard').classList.toggle('is-active', name === 'dashboard');
+  $$('#bottom-nav .bn-item').forEach((b) => b.classList.toggle('is-active', b.dataset.bn === (isCust ? 'customers' : name)));
   $('#cust-bar').hidden = !isCust;
   $('#list-toolbar').hidden = name !== 'list';  // thanh công cụ riêng từng nhóm, cùng nằm trong #cust-bar
   $('#lead-toolbar').hidden = name !== 'leads';
@@ -5237,6 +5238,27 @@ const DASH_LEAD_RETRY_H = 24;          // lead chưa nói chuyện được: g�
 const DASH_BIRTHDAY_DAYS = 7;          // nhắc sinh nhật trong N ngày tới
 const LS_DASH_ANALYTICS = 'crm_dash_analytics_open';
 const dashExpanded = new Set();        // các nhóm việc đang mở "Xem thêm"
+const dashOpenGroups = new Set();      // smartlist "Việc cần làm hôm nay": các nhóm đang xổ danh sách khách
+// Icon nét dùng ở Tổng quan (thẻ chỉ số + smartlist). Nét 1.8, theo vibe thẻ nhóm (docs/design.md).
+const DASH_IC = {
+  todo: '<svg viewBox="0 0 24 24"><rect x="4" y="3.5" width="16" height="17" rx="3"/><path d="M8.5 9l1.6 1.6L13 7.7M8.5 15h7"/></svg>',
+  bell: '<svg viewBox="0 0 24 24"><path d="M6 9.5a6 6 0 0 1 12 0c0 4.6 1.6 6.2 2.2 6.8H3.8c.6-.6 2.2-2.2 2.2-6.8Z"/><path d="M10 19.5a2.1 2.1 0 0 0 4 0"/></svg>',
+  new: '<svg viewBox="0 0 24 24"><circle cx="10" cy="8" r="3.5"/><path d="M3.5 19.5a6.5 6.5 0 0 1 11.5-4.2"/><path d="M18 14v6M15 17h6"/></svg>',
+  qual: '<svg viewBox="0 0 24 24"><circle cx="9" cy="8.5" r="3.2"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><circle cx="16.5" cy="9.5" r="2.6"/><path d="M16 14.2a4.6 4.6 0 0 1 4.8 4.8"/></svg>',
+  deal: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M8.3 12.3l2.5 2.5 4.9-5.2"/></svg>',
+  phone: '<svg viewBox="0 0 24 24"><path d="M5.2 3.5h2.9l1.4 3.8-1.9 1.3a11 11 0 0 0 5.2 5.2l1.3-1.9 3.8 1.4v2.9a1.6 1.6 0 0 1-1.7 1.6A15.6 15.6 0 0 1 3.6 5.2a1.6 1.6 0 0 1 1.6-1.7z"/></svg>',
+  alarm: '<svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="7"/><path d="M12 9.5V13l2.3 1.6M4.5 5.5l2.5-2M19.5 5.5l-2.5-2"/></svg>',
+  cal: '<svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2.5"/><path d="M8 3.5v3M16 3.5v3M4 10h16"/></svg>',
+  redo: '<svg viewBox="0 0 24 24"><path d="M5.2 3.5h2.9l1.4 3.8-1.9 1.3a11 11 0 0 0 5.2 5.2l1.3-1.9 3.8 1.4v2.9a1.6 1.6 0 0 1-1.7 1.6A15.6 15.6 0 0 1 3.6 5.2a1.6 1.6 0 0 1 1.6-1.7z"/><path d="M15 3.5h5v5M20 3.5l-5.5 5.5"/></svg>',
+  decide: '<svg viewBox="0 0 24 24"><path d="M12 4v16M5 20h14M6 8h12M6 8l-2.5 6a3 3 0 0 0 5 0zM18 8l-2.5 6a3 3 0 0 0 5 0z"/></svg>',
+  note: '<svg viewBox="0 0 24 24"><path d="M6 3.5h9l3 3V20a.5.5 0 0 1-.5.5h-11A.5.5 0 0 1 6 20z"/><path d="M9 10h6M9 13.5h6M9 17h3.5"/></svg>',
+  flame: '<svg viewBox="0 0 24 24"><path d="M12 21c-3.6 0-6.5-2.6-6.5-6.2 0-3.6 3-5.5 3.6-9.3 2.4 1.4 3.6 3.6 3.4 6 1-.6 1.7-1.6 2-2.9 1.9 1.6 3 3.8 3 6.2 0 3.6-2.9 6.2-5.5 6.2z"/></svg>',
+  clock: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>',
+  alert: '<svg viewBox="0 0 24 24"><path d="M12 4 3 19.5h18z"/><path d="M12 10v4.5M12 17.2v.1"/></svg>',
+  cake: '<svg viewBox="0 0 24 24"><path d="M4.5 20.5h15V13a2 2 0 0 0-2-2h-11a2 2 0 0 0-2 2z"/><path d="M4.5 15.5c1.5 1 3 1 4.5 0s3-1 4.5 0 3 1 4.5 0M12 11V7.5M12 4.5v.1"/></svg>',
+};
+// Nhóm việc (dashActionGroups key) → icon smartlist.
+const SL_ICON = { due: 'alarm', tasks: 'todo', today: 'cal', new: 'new', retry: 'redo', decide: 'decide', pending: 'note', hot: 'flame', warm: 'clock', nonext: 'alert', bday: 'cake' };
 function dashHotMin() { return (window.NOTIF && NOTIF.config.hotInterestMin) || 60; }
 function dashIdleHotDays() { return (window.NOTIF && NOTIF.config.idleDays) || 7; }
 
@@ -5490,8 +5512,10 @@ function renderDashboard() {
   const lunar = window.LunarUtil ? LunarUtil.convertSolar2Lunar(d.getDate(), d.getMonth() + 1, d.getFullYear()) : null;
   const lunarTxt = lunar ? ` · ${lunar.day}/${lunar.month} âm lịch` : '';
   const delta = (a, b) => (a === b ? '' : `<span class="kpi-delta ${a > b ? 'up' : 'down'}">${a > b ? '▲' : '▼'} ${Math.abs(a - b)}</span>`);
-  const kpi = (label, value, sub, go, tone) => `
-    <button type="button" class="kpi${tone ? ' is-' + tone : ''}" ${go ? `data-go="${go}"` : ''}>
+  // Thẻ chỉ số: icon trong ô màu nhạt (màu theo loại: tone) + nhãn + số + dòng phụ. Bấm → tới chỗ liên quan.
+  const kpi = (label, value, sub, go, tone, icon) => `
+    <button type="button" class="kpi kpi-${icon}${tone ? ' is-' + tone : ''}" ${go ? `data-go="${go}"` : ''}>
+      <span class="kpi-ic" aria-hidden="true">${DASH_IC[icon] || ''}</span>
       <span class="kpi-label">${label}</span>
       <span class="kpi-value">${value}</span>
       <span class="kpi-sub">${sub}</span>
@@ -5505,30 +5529,47 @@ function renderDashboard() {
       <div class="dash-head-msg">${todo ? `Hôm nay có <b>${todo}</b> việc cần xử lý` : 'Không còn việc tồn đọng 👍'}</div>
     </div>
     <div class="kpi-strip">
-      ${kpi('Việc cần làm', todo, byKey.due.items.length ? `<b class="txt-bad">${byKey.due.items.length} quá giờ hẹn</b>` : 'không có hẹn quá giờ', 'todo', byKey.due.items.length ? 'urgent' : '')}
-      ${kpi('Khách mới chờ gọi', byKey.new.items.length, stlMed != null ? `gọi lần đầu sau ~${escapeHtml(formatDuration(stlMed))}` : 'chưa có số liệu phản hồi', 'leads-new', byKey.new.items.length ? 'hot' : '')}
-      ${kpi('Khách tiềm năng tuần này', thisWk.qualified, `tuần trước ${lastWk.qualified} ${delta(thisWk.qualified, lastWk.qualified)}`, 'qualweek')}
-      ${kpi('Chốt tháng này', closedMonth, `${bookingNow} khách đang Booking`, 'pipeline', closedMonth ? 'good' : '')}
+      ${kpi('Việc cần làm', todo, byKey.due.items.length ? `<b class="txt-bad">${byKey.due.items.length} quá giờ hẹn</b>` : 'không có hẹn quá giờ', 'todo', byKey.due.items.length ? 'urgent' : '', 'todo')}
+      ${kpi('Khách mới chờ gọi', byKey.new.items.length, stlMed != null ? `gọi lần đầu sau ~${escapeHtml(formatDuration(stlMed))}` : 'chưa có số liệu phản hồi', 'leads-new', byKey.new.items.length ? 'hot' : '', 'new')}
+      ${kpi('Khách tiềm năng tuần này', thisWk.qualified, `tuần trước ${lastWk.qualified} ${delta(thisWk.qualified, lastWk.qualified)}`, 'qualweek', '', 'qual')}
+      ${kpi('Chốt tháng này', closedMonth, `${bookingNow} khách đang Booking`, 'pipeline', closedMonth ? 'good' : '', 'deal')}
     </div>`;
 
-  // ---- 2) VIỆC HÔM NAY ----
+  // ---- 2) VIỆC CẦN LÀM HÔM NAY = SMARTLIST ----
+  // Mỗi nhóm việc = 1 dòng gọn: icon · "N" + tên nhóm · tên vài khách đầu (quét nhanh) · ›.
+  // Bấm dòng → xổ danh sách khách của nhóm (dashOpenGroups); trong đó vẫn giới hạn 5 + "Xem thêm".
   const shown = groups.filter((g) => g.items.length);
   const todoHtml = shown.length ? shown.map((g) => {
-    const open = dashExpanded.has(g.key);
-    const rows = (open ? g.items : g.items.slice(0, DASH_GROUP_LIMIT));
+    const opened = dashOpenGroups.has(g.key);
+    const more = dashExpanded.has(g.key);
+    const rows = more ? g.items : g.items.slice(0, DASH_GROUP_LIMIT);
     const rest = g.items.length - rows.length;
-    return `<section class="act-group${g.tone ? ' is-' + g.tone : ''}">
-        <div class="act-group-title"><span>${escapeHtml(g.title)}</span><span class="act-count">${g.items.length}</span>${g.key === 'new' ? '<button type="button" class="act-group-go" data-go="leads-new">Mở danh sách ›</button>' : ''}</div>
-        ${g.hint ? `<div class="act-hint">${escapeHtml(g.hint)}</div>` : ''}
-        <div class="act-list">${rows.map((x) => dashActRow(x.c, x.sub, x.tone ?? g.tone, g.zalo)).join('')}</div>
-        ${rest > 0 ? `<button type="button" class="btn-ghost act-more" data-more="${g.key}">Xem thêm ${rest} khách</button>`
-          : (open && g.items.length > DASH_GROUP_LIMIT ? `<button type="button" class="btn-ghost act-more" data-more="${g.key}">Thu gọn</button>` : '')}
+    const names = g.items.slice(0, 3).map((x) => x.c.full_name || '(chưa tên)').join(', ') + (g.items.length > 3 ? '…' : '');
+    return `<section class="sl-group${g.tone ? ' is-' + g.tone : ''}${opened ? ' is-open' : ''}">
+        <button type="button" class="sl-row" data-sl="${g.key}" aria-expanded="${opened}">
+          <span class="sl-ic" aria-hidden="true">${DASH_IC[SL_ICON[g.key]] || DASH_IC.todo}</span>
+          <span class="sl-body">
+            <span class="sl-title"><span class="sl-n">${g.items.length}</span> ${escapeHtml(g.title)}</span>
+            <span class="sl-sub">${escapeHtml(opened && g.hint ? g.hint : names)}</span>
+          </span>
+          <span class="sl-chev" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span>
+        </button>
+        ${opened ? `<div class="sl-list">
+          ${g.key === 'new' ? '<button type="button" class="act-group-go" data-go="leads-new">Mở danh sách Khách mới ›</button>' : ''}
+          <div class="act-list">${rows.map((x) => dashActRow(x.c, x.sub, x.tone ?? g.tone, g.zalo)).join('')}</div>
+          ${rest > 0 ? `<button type="button" class="btn-ghost act-more" data-more="${g.key}">Xem thêm ${rest} khách</button>`
+            : (more && g.items.length > DASH_GROUP_LIMIT ? `<button type="button" class="btn-ghost act-more" data-more="${g.key}">Thu gọn</button>` : '')}
+        </div>` : ''}
       </section>`;
   }).join('') : '<div class="dash-empty">Đã xử lý hết việc hôm nay. Có thể gọi chăm lại khách cũ hoặc nhập thêm khách mới.</div>';
   const todoCard = `<div class="dash-card dash-todo" id="dash-todo">
-      <h3>Việc hôm nay</h3>
-      <p class="dash-hint">Xếp theo mức ưu tiên: hẹn gọi → việc đến hạn → khách mới → gọi lại → chăm lại. Bấm tên để mở hồ sơ, bấm 📞 để gọi — gọi xong app tự gợi ý lịch gọi lại.</p>
-      ${todoHtml}
+      <div class="dash-todo-head">
+        <span class="sl-head-ic" aria-hidden="true">${DASH_IC.bell}</span>
+        <h3>Việc cần làm hôm nay</h3>
+        <span class="dash-todo-n">${todo}</span>
+      </div>
+      <p class="dash-hint">Xếp theo ưu tiên: hẹn gọi → việc đến hạn → khách mới → gọi lại → chăm lại. Bấm 1 dòng để xem khách; bấm 📞 để gọi — gọi xong app tự gợi ý lịch gọi lại.</p>
+      <div class="sl-list-wrap">${todoHtml}</div>
     </div>`;
 
   // ---- 3a) Lịch hẹn 7 ngày tới (sau hôm nay): lịch HẸN GỌI + VIỆC CẦN LÀM có hạn của từng khách ----
@@ -5797,6 +5838,8 @@ $('#dashboard-content')?.addEventListener('click', (e) => {
   if (pt) { dashPerfTab = pt.dataset.perfTab; try { localStorage.setItem(LS_DASH_PERF_TAB, dashPerfTab); } catch {} renderDashboard(); return; }
   const at = e.target.closest('[data-apt-tab]');
   if (at) { dashAptTab = at.dataset.aptTab; try { localStorage.setItem(LS_DASH_APT_TAB, dashAptTab); } catch {} renderDashboard(); return; }
+  const sl = e.target.closest('[data-sl]');
+  if (sl) { const k = sl.dataset.sl; if (dashOpenGroups.has(k)) dashOpenGroups.delete(k); else dashOpenGroups.add(k); renderDashboard(); return; }
   const more = e.target.closest('[data-more]');
   if (more) {
     const k = more.dataset.more;
@@ -6451,6 +6494,15 @@ document.addEventListener('DOMContentLoaded', () => {
     closeToolPops(); resetSearchPages(); showCustomerGroup(b.dataset.group);
   });
   $('#tab-dashboard').addEventListener('click', showDashboardView);
+  // Thanh điều hướng dưới (điện thoại): bấm hộ tab header; nút ＋ bấm hộ nút ＋ nổi của màn đang xem.
+  $('#bottom-nav').addEventListener('click', (e) => {
+    const it = e.target.closest('.bn-item');
+    if (it) { $(it.dataset.bn === 'customers' ? '#tab-customers' : '#tab-dashboard').click(); window.scrollTo(0, 0); return; }
+    if (e.target.closest('#bn-add')) {
+      const fab = !$('#lead-view').hidden ? '#add-lead-btn' : !$('#list-view').hidden ? '#add-customer-btn' : '#add-dash-btn';
+      $(fab).click();
+    }
+  });
   // Logo "Sổ Khách" = nút về trang chủ: xoá từ khoá đang tìm (để thấy bàn làm việc), mở Tổng quan, lên đầu trang.
   const goHome = () => {
     const si = $('#search-input');

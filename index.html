@@ -399,6 +399,22 @@
     </div>
     <div id="loan-app"></div>
   </div>
+
+  <!-- THANH ĐIỀU HƯỚNG DƯỚI (điện thoại < 900px): Tổng quan · [＋ thêm khách] · Khách hàng.
+       Thay tab trên header + nút ＋ nổi ở màn hẹp; desktop vẫn dùng tab header + nút nổi. -->
+  <nav id="bottom-nav" class="bottom-nav" aria-label="Điều hướng chính">
+    <button type="button" class="bn-item is-active" data-bn="dashboard">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5V20h-5.5v-6h-5v6H4z"/></svg>
+      <span>Tổng quan</span>
+    </button>
+    <button type="button" class="bn-add" id="bn-add" aria-label="Thêm khách" title="Thêm khách">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+    </button>
+    <button type="button" class="bn-item" data-bn="customers">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8.5" r="3.2"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><circle cx="16.5" cy="9.5" r="2.6"/><path d="M16 14.2a4.6 4.6 0 0 1 4.8 4.8"/></svg>
+      <span>Khách hàng</span>
+    </button>
+  </nav>
 </section>
 
 <!-- ============ MÀN HÌNH CHI TIẾT KHÁCH ============ -->

@@ -6,6 +6,14 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-09 — Thanh điều hướng dưới (điện thoại) + Tổng quan dạng smartlist
+
+- Điện thoại / màn hẹp (<900px): thanh điều hướng dưới Tổng quan · [＋] · Khách hàng; nút ＋ tròn nổi giữa bấm hộ nút ＋ của màn đang xem (thêm khách / thêm khách mới). Tab trên header + nút ＋ nổi góc phải ẩn ở màn hẹp; ô tìm dồn lên ngay dưới logo; thông báo nhỏ (toast) đẩy lên trên thanh. Desktop giữ như cũ.
+- Tổng quan: 4 thẻ chỉ số có ô icon màu nhạt theo loại (Việc cần làm · Khách mới chờ gọi · Khách tiềm năng tuần này · Chốt tháng này), số không còn serif to. "Việc hôm nay" → **Việc cần làm hôm nay** dạng smartlist: mỗi nhóm việc 1 dòng (icon · số + tên nhóm · tên 3 khách đầu · ›), bấm để xổ danh sách khách (vẫn 5 + Xem thêm, nút gọi). Thẻ Tổng quan theo token thẻ chung (bo 16, bóng nhẹ).
+- `docs/design.md` (điều hướng + Tổng quan), `docs/decisions.md` (D-004 cập nhật).
+- File: `index.html`, `js/app.js`, `css/style.css`, `sw.js` (v72), docs trên.
+- Đã kiểm tra trình duyệt local (dữ liệu giả, 375px + 1280px): chuyển tab bằng thanh dưới, nút ＋ mở form đúng màn, smartlist mở/đóng + Xem thêm; desktop không có thanh dưới. Chưa deploy.
+
 ## 2026-10-09 — Khách mới (lọc Tất cả): khách đã loại gom dưới nút "Xem khách đã loại"
 
 - Lọc Tất cả, không đang tìm: khách đã loại không hiện lẫn trong danh sách mà gom dưới nút nhỏ "Xem khách đã loại (n)" cuối danh sách; bấm để mở/ẩn, thẻ vẫn hiện mờ như cũ. Đang tìm kiếm → hiện lẫn theo độ liên quan. Lọc Đã loại → hiện bình thường.
