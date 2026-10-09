@@ -1230,6 +1230,8 @@ input:focus, select:focus, textarea:focus {
 /* Nhóm việc */
 .act-group + .act-group { margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--line); }
 .act-group-title { display: flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 700; color: var(--ink); margin-bottom: 6px; }
+.act-group-go { margin-left: auto; border: none; background: none; padding: 2px 0; cursor: pointer; font: inherit; font-size: 12px; font-weight: 400; color: #6b6b60; }
+.act-group-go:hover { color: var(--ink); text-decoration: underline; }
 .act-count { font-size: 11px; font-weight: 700; color: #fff; background: var(--teal-light); border-radius: 100px; padding: 1px 8px; }
 .act-group.is-urgent .act-count { background: var(--seal); }
 .act-group.is-hot .act-count { background: #d1743a; }

@@ -6,6 +6,13 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-09 — Khách mới: lọc trạng thái Tất cả · Chưa gọi · Cần gọi lại · Đã loại
+
+- Nhóm Trạng thái trong Bộ lọc Khách mới: **Tất cả** (mặc định; khách đã loại xếp cuối danh sách) · **Chưa gọi** (chưa có cuộc gọi đầu) · **Cần gọi lại** (đã gọi ≥1 lần, chưa loại) · **Đã loại**. Trước: Cần gọi (mặc định) · Đã loại · Tất cả.
+- Tổng quan: ô "Khách mới chờ gọi" và nút "Mở danh sách ›" ở nhóm "Khách mới chưa gọi" (Việc hôm nay) → Khách mới, lọc sẵn "Chưa gọi" (bỏ lọc khác + từ khoá tìm).
+- File: `index.html`, `js/app.js`, `css/style.css`, `sw.js` (v70), `docs/design.md`.
+- Đã kiểm tra trình duyệt local (12 khách giả): đếm từng lọc khớp tổng, bấm thẻ → lọc Chưa gọi, đã loại xếp cuối. Chưa deploy.
+
 ## 2026-10-09 — Tổng quan: "Lịch hẹn 7 ngày tới" gồm cả việc cần làm
 
 - Thẻ gộp lịch Hẹn gọi + các việc (Việc tiếp theo) còn mở có hạn trong 7 ngày tới (từ ngày mai) của từng khách; mỗi dòng: thời điểm (việc "cả ngày" ghi "· cả ngày") · tên khách · icon ống nghe "Hẹn gọi · lý do" hoặc icon việc + nội dung. Xếp gần đến hạn nhất lên trên; hiện 5 dòng, "Xem thêm N việc" / "Thu gọn". Việc đã xong không tính.

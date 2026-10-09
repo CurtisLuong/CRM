@@ -113,6 +113,7 @@ Ví dụ và mẫu trong bộ tài liệu không phải sự chấp thuận cho 
 - Chấp thuận: người dùng yêu cầu trực tiếp kèm cấu trúc cụ thể (chat 2026-10-08).
 - Trạng thái: Đang áp dụng (chưa deploy lúc ghi)
 - Cập nhật 2026-10-08 (người dùng yêu cầu trực tiếp): nhóm "Đang chăm" đổi tên lại thành **Tiềm năng**. Tiềm năng / Khách nhóm không hiện số trên tab (số khách nằm ở dòng dưới thanh công cụ); Khách mới giữ badge (đăng ký hôm qua + hôm nay, chưa có cuộc gọi đầu). Lọc trạng thái (Đang chăm/Đã xong · Cần gọi/Đã loại) chuyển vào panel Bộ lọc, mặc định Đang chăm / Cần gọi. Đổi kiểu xem thẻ/danh sách nằm trong menu 3 chấm. Header thu gọn ở tab Khách hàng có icon Lọc bên trái nút đồng bộ (chấm đỏ khi đang lọc).
+- Cập nhật 2026-10-09 (người dùng yêu cầu trực tiếp): trạng thái Khách mới đổi thành Tất cả (mặc định, đã loại xếp cuối) · Chưa gọi · Cần gọi lại · Đã loại; ô "Khách mới chờ gọi" ở Tổng quan mở Khách mới với lọc Chưa gọi.
 
 ### D-005 — Khung giờ gọi thống nhất toàn app (1 nguồn duy nhất)
 

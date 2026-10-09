@@ -437,7 +437,9 @@ const LEAD_DROP_TOP = ['gia_cao', 'pha_campaign', 'khong_du_dieu_kien', 'khong_l
 function dropReasonLabel(code) { return LEAD_DROP_REASONS[code] || code || ''; }
 // Gợi ý loại "Không liên lạc được": ≥3 lần gọi, chưa lần nào nói chuyện được.
 const LEAD_UNREACHABLE_SUGGEST = (window.FOLLOWUP && FOLLOWUP.config.leadMaxAttempts) || 5; // js/followup.js
-let leadFilter = 'open';     // dropdown trạng thái: 'open' (cần gọi) | 'dropped' | 'all'
+// Trạng thái Khách mới (trong panel Bộ lọc): 'all' Tất cả (mặc định — khách đã loại xếp cuối) ·
+// 'new' Chưa gọi (chưa có cuộc gọi đầu) · 'retry' Cần gọi lại (đã gọi ≥1 lần, chưa loại) · 'dropped' Đã loại.
+let leadFilter = 'all';
 let leadSrcFilter = '';      // bộ lọc kênh: '' = tất cả, hoặc mã trong SOURCES
 let leadAptTypeFilter = '';
 let leadDatePreset = 'all';  // bộ lọc thời gian đăng ký: 'all' | 'today' | 'week' | 'month'
@@ -1185,7 +1187,7 @@ function clearAccountView() {
   CRM.suspend(); Catalog.scope(null); if (window.CatalogSearchUI) CatalogSearchUI.reset();
   allCustomers = []; resetTeamState(); custGroup = 'care'; _searchWarmGeneration++; _queryContext = null; resetSearchPages();
   progressFilter = 'active'; qualPreset = 'all'; stageFilter = ''; aptTypeFilter = ''; dateFilter = {preset:'all',from:null,to:null};
-  leadFilter = 'open'; leadSrcFilter = ''; leadDatePreset = 'all'; leadAptTypeFilter = '';
+  leadFilter = 'all'; leadSrcFilter = ''; leadDatePreset = 'all'; leadAptTypeFilter = '';
   $('#filter-min-interest').value = 0; $('#filter-interest-val').textContent = '0';
   $('#search-input').value = '';
   for (const id of ['customer-list', 'lead-list', 'dash-search', 'dashboard-content', 'detail-notes', 'detail-history', 'cat-body']) {
@@ -4496,12 +4498,12 @@ setInterval(() => {
 // call_attempts {at, result, note}; khoảng cách giữa các lần + giờ gọi TỰ suy từ `at`.
 // Đạt → lớp 2 (trang chủ, có hồ sơ). Loại → giữ kèm lý do để đánh giá campaign/landing.
 
+const LEAD_STATUS_GROUP = { new: 'new', calling: 'retry', dropped: 'dropped' }; // leadStatus → nút lọc
 function leadMatchesFilter(c, ctx = searchCtx(), range = presetRange(leadDatePreset)) {
   if (isQualified(c)) return false;
   if (leadAptTypeFilter && (CRMSearch.apartmentGroup(c.apt_type) || 'missing') !== leadAptTypeFilter) return false;
   const st = leadStatus(c);
-  if (leadFilter === 'open' && st === 'dropped') return false;
-  if (leadFilter === 'dropped' && st !== 'dropped') return false;
+  if (leadFilter !== 'all' && leadFilter !== LEAD_STATUS_GROUP[st]) return false;
   if (leadSrcFilter && !sourceListOf(c.source).includes(leadSrcFilter)) return false;
   if (range) {
     const t = Date.parse(c.registered_at || c.created_at || '');
@@ -4538,7 +4540,9 @@ function orderLeads(list) {
     return 0;
   });
   const due = (c) => { const r = !c.disqualified_at && callReminder(c); return r && r.state !== 'soon'; };
-  return ctx ? arr : [...arr.filter(due), ...arr.filter((c) => !due(c))];
+  if (ctx) return arr;
+  // Đến giờ hẹn gọi lên đầu · khách đã loại xuống cuối (khi xem "Tất cả").
+  return [...arr.filter(due), ...arr.filter((c) => !due(c) && !c.disqualified_at), ...arr.filter((c) => !due(c) && c.disqualified_at)];
 }
 
 function leadStatusTag(c) {
@@ -4802,14 +4806,14 @@ function syncLeadFilterUI() {
   $$('#lead-date-presets .date-preset').forEach((b) => b.classList.toggle('is-sel', b.dataset.preset === leadDatePreset));
   $$('#lead-status-presets .date-preset').forEach((b) => b.classList.toggle('is-sel', b.dataset.leadStatus === leadFilter));
   // Trạng thái mặc định "Cần gọi" không tính là đang lọc.
-  const active = leadFilter !== 'open' || !!leadSrcFilter || leadDatePreset !== 'all' || !!leadAptTypeFilter;
+  const active = leadFilter !== 'all' || !!leadSrcFilter || leadDatePreset !== 'all' || !!leadAptTypeFilter;
   $('#lead-filter-dot').hidden = !active;
   $('#lead-clear-filter').hidden = !active;
   syncHdrFilter();
 }
 // Trạng thái Khách mới (nằm trong panel Bộ lọc): 'open' Cần gọi (mặc định) | 'dropped' Đã loại | 'all'.
 function setLeadFilter(v) { leadFilter = v; resetSearchPages(); renderLeads(); syncLeadFilterUI(); }
-function resetLeadFilters() { leadFilter = 'open'; leadSrcFilter = ''; leadDatePreset = 'all'; leadAptTypeFilter = ''; resetSearchPages(); renderLeads(); syncLeadFilterUI(); }
+function resetLeadFilters() { leadFilter = 'all'; leadSrcFilter = ''; leadDatePreset = 'all'; leadAptTypeFilter = ''; resetSearchPages(); renderLeads(); syncLeadFilterUI(); }
 function renderLeadSortOptions() {
   $('#lead-sort-options').innerHTML = LEAD_SORT_ATTRS.map((a) => {
     const dir = leadSortDraft[a.key];
@@ -4968,7 +4972,7 @@ $('#dash-search')?.addEventListener('click', (e) => {
     openDetail(c.id);
   } else {
     // Lead đã loại bị ẩn ở "Cần gọi" → chuyển dropdown sang "Tất cả".
-    if (c.disqualified_at && leadFilter === 'open') leadFilter = 'all';
+    if (leadFilter !== 'all' && leadFilter !== LEAD_STATUS_GROUP[leadStatus(c)]) leadFilter = 'all'; // lọc đang ẩn khách này
     showLeadView();
     openLeadSheet(c.id);
   }
@@ -5483,7 +5487,7 @@ function renderDashboard() {
     </div>
     <div class="kpi-strip">
       ${kpi('Việc cần làm', todo, byKey.due.items.length ? `<b class="txt-bad">${byKey.due.items.length} quá giờ hẹn</b>` : 'không có hẹn quá giờ', 'todo', byKey.due.items.length ? 'urgent' : '')}
-      ${kpi('Khách mới chờ gọi', byKey.new.items.length, stlMed != null ? `gọi lần đầu sau ~${escapeHtml(formatDuration(stlMed))}` : 'chưa có số liệu phản hồi', 'leads', byKey.new.items.length ? 'hot' : '')}
+      ${kpi('Khách mới chờ gọi', byKey.new.items.length, stlMed != null ? `gọi lần đầu sau ~${escapeHtml(formatDuration(stlMed))}` : 'chưa có số liệu phản hồi', 'leads-new', byKey.new.items.length ? 'hot' : '')}
       ${kpi('Khách tiềm năng tuần này', thisWk.qualified, `tuần trước ${lastWk.qualified} ${delta(thisWk.qualified, lastWk.qualified)}`, 'qualweek')}
       ${kpi('Chốt tháng này', closedMonth, `${bookingNow} khách đang Booking`, 'pipeline', closedMonth ? 'good' : '')}
     </div>`;
@@ -5495,7 +5499,7 @@ function renderDashboard() {
     const rows = (open ? g.items : g.items.slice(0, DASH_GROUP_LIMIT));
     const rest = g.items.length - rows.length;
     return `<section class="act-group${g.tone ? ' is-' + g.tone : ''}">
-        <div class="act-group-title"><span>${escapeHtml(g.title)}</span><span class="act-count">${g.items.length}</span></div>
+        <div class="act-group-title"><span>${escapeHtml(g.title)}</span><span class="act-count">${g.items.length}</span>${g.key === 'new' ? '<button type="button" class="act-group-go" data-go="leads-new">Mở danh sách ›</button>' : ''}</div>
         ${g.hint ? `<div class="act-hint">${escapeHtml(g.hint)}</div>` : ''}
         <div class="act-list">${rows.map((x) => dashActRow(x.c, x.sub, x.tone ?? g.tone, g.zalo)).join('')}</div>
         ${rest > 0 ? `<button type="button" class="btn-ghost act-more" data-more="${g.key}">Xem thêm ${rest} khách</button>`
@@ -5796,6 +5800,11 @@ $('#dashboard-content')?.addEventListener('click', (e) => {
   const go = e.target.closest('[data-go]');
   if (!go) return;
   if (go.dataset.go === 'leads') { showLeadView(); return; }
+  if (go.dataset.go === 'leads-new') { // → Khách mới, lọc "Chưa gọi" (bỏ các lọc khác + từ khoá tìm)
+    $('#search-input').value = '';
+    leadSrcFilter = ''; leadDatePreset = 'all'; leadAptTypeFilter = ''; leadFilter = 'new'; resetSearchPages();
+    showLeadView(); syncLeadFilterUI(); window.scrollTo(0, 0); return;
+  }
   if (go.dataset.go === 'qualweek') { // → Tiềm năng, lọc "Lên Tiềm năng: Tuần này" (mọi trạng thái — khớp số trên thẻ)
     $('#search-input').value = '';
     progressFilter = 'all'; stageFilter = ''; aptTypeFilter = ''; dateFilter = { preset: 'all', from: null, to: null };
