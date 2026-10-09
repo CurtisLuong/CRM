@@ -53,8 +53,8 @@ Nhịp theo bậc:
 |---|---|---|
 | Đang chăm sóc | 3 ngày | Gửi thêm thông tin dự án |
 | Xem dự án | 2 ngày | Hỏi cảm nhận sau khi xem dự án |
-| Hỗ trợ hồ sơ | 2 ngày | Nhắc giấy tờ hồ sơ còn thiếu |
-| Booking | 3 ngày | Nhắc tiến độ đóng tiền / ký HĐMB |
+| Booking & Làm hồ sơ | 3 ngày | Nhắc giấy tờ / tiến độ hồ sơ |
+| Nuôi dài hạn | 90 ngày | Liên hệ lại khách nuôi dài hạn |
 | Kí HĐMB | 30 ngày | Chăm sóc sau bán, xin giới thiệu |
 
 **Khung giờ khách Tiềm năng** là 1 trong 4 khung chung, chọn theo ô **Nghề nghiệp** trong hồ sơ khách — nên điền nghề cho khách để giờ gợi ý chuẩn hơn. Lịch rơi vào Chủ nhật tự dời sang Thứ Hai.
@@ -70,7 +70,7 @@ Gom khách Tiềm năng đang chăm mà **không có lịch hẹn** và **không
 - Bấm **icon Zalo** của khách → hộp có nút lớn **Mở Zalo** ở trên cùng (chỉ mở chat, không copy — dùng hằng ngày). Bên dưới chỉ có **1 tin nhắn gợi ý** (tối đa 2 khi có thêm 1 tình huống rõ ràng), kèm lý do gợi ý. Bấm tin gợi ý → app copy nội dung (đã điền tên, anh/chị, dự án) và mở Zalo → bạn **dán**. Cần mẫu khác → bấm dòng nhỏ **Chọn mẫu khác**.
 - Cách app chọn tin gợi ý:
   - **Khách mới** (tab Khách mới), luôn 1 tin — theo lịch sử gọi: chưa gọi / mới gọi hỏng 1–2 lần → **Chào kết bạn**; gọi hỏng liên tiếp từ 3 lần → **Gọi chưa được**; đã nói chuyện được → **Gửi thông tin / bảng giá**. Cuộc gọi tự nạp từ máy Android chưa ghi chú mà 0 giây cũng tính là gọi hỏng.
-  - **Khách Đang chăm** — theo **bậc đang ở**: Đang chăm sóc → Gửi thông tin · Xem dự án → Hỏi thăm sau khi xem · Hỗ trợ hồ sơ, Booking → Nhắc giấy tờ · Kí HĐMB → Chúc mừng.
+  - **Khách Đang chăm** — theo **bậc đang ở**: Đang chăm sóc → Gửi thông tin · Xem dự án → Hỏi thăm sau khi xem · Booking & Làm hồ sơ → Nhắc giấy tờ · Nuôi dài hạn → Gửi thông tin · Kí HĐMB → Chúc mừng.
   - Thêm tin thứ 2 (chỉ với khách Đang chăm): hôm nay/mai là sinh nhật → **Chúc mừng sinh nhật** (xếp lên trước); hoặc gọi hỏng liên tiếp từ 3 lần → **Gọi chưa được**.
 - Trên điện thoại Android (trình duyệt / app cài từ Chrome), nút Zalo mở **thẳng app Zalo**, không đi qua trang web zalo.me nữa. Máy chưa cài Zalo thì mới mở trang web.
 - **Sửa nội dung mẫu**: menu avatar → **Mẫu tin Zalo**. Sửa tên/nội dung từng mẫu, **+ Thêm mẫu** riêng, **Xoá** mẫu tự thêm, **Khôi phục mặc định** nếu lỡ sửa hỏng. Mẫu để trống sẽ bị ẩn.

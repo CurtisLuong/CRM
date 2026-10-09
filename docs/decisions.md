@@ -148,3 +148,20 @@ Ví dụ và mẫu trong bộ tài liệu không phải sự chấp thuận cho 
 - Phạm vi: `index.html` (`#tab-tasks`, `#tab-analytics`, `#tasks-view`, `#analytics-view`, `#bottom-nav`), `js/app.js` (`setActiveView`, `renderTasksView`, `renderDashboard('analytics')`, `analyticsInsightsHtml`, `dashCardClick`), `js/icons.js` (`chart`, `insight`), `css/style.css`, `docs/design.md`.
 - Tài liệu đã cập nhật: `docs/design.md`, `docs/FEATURE_IDEAS.md`, `docs/CHANGELOG.md`
 - Trạng thái: Đang áp dụng (chưa deploy lúc ghi)
+
+### D-008 — Phễu 5 giai đoạn + SLA (velocity) từng giai đoạn
+
+- Ngày: 2026-10-09
+- Loại: Đổi quy ước dữ liệu toàn dự án (bộ bậc `care_stage`) + quy tắc tự xử lý mới
+- Quyết định:
+  1. **5 giai đoạn + 1 milestone:** Đăng kí mới → Đang tiếp cận → Đang chăm sóc → Xem dự án → Booking & Làm hồ sơ → ★ Ký HĐMB. Gộp "Hỗ trợ hồ sơ" + "Booking" (từ lúc Booking là đồng hồ làm hồ sơ chạy). Ký HĐMB thành nút "Xác nhận đã Ký HĐMB" = Deal Won, khách vào mục "Đã mua" (giá trị lưu giữ `Kí HĐMB`). 1 khách = 1 căn.
+  2. **Nuôi dài hạn** tách từ Đang chăm sóc: khách chưa đủ tiền ngay, hẹn 3–6 tháng; ra khỏi phễu chính, không tính tốc độ / tỉ lệ chuyển đổi.
+  3. **SLA mỗi giai đoạn = mục tiêu + hạn mức:** Đăng kí mới < 30 phút / 4 giờ (đăng ký sau 22h → tính từ 7h sáng hôm sau; 0h–6h → 7h cùng ngày) · Đang tiếp cận 1–2 ngày / 7 ngày · Đang chăm sóc 7–10 ngày / 20 ngày · Xem dự án 7 / 14 ngày · Booking & Làm hồ sơ 45 ngày / 2,5 tháng. Quá mục tiêu → nhãn vàng; quá hạn mức → đỏ đậm + thông báo.
+  4. **Tự xử lý quá hạn mức (tự chuyển + ghi lịch sử + hoàn tác):** Đang tiếp cận quá 7 ngày chưa nói chuyện được → Loại "Không liên lạc được" (mở lại = đồng hồ tính lại); Đang chăm sóc quá 20 ngày → Nuôi dài hạn + hẹn gọi lại 3 tháng (nút Hoàn tác 3 ngày). Khách đã quá hạn trước khi có tính năng được tính hạn mức từ 2026-10-10.
+  5. **Checklist ngầm bậc Booking & Làm hồ sơ** (không thêm cột phễu): Xác nhận cư trú (3–5 ngày) · Xác nhận điều kiện nhà ở (~15 ngày sau bước 1) · CĐT/Sở thẩm định đạt (5–7 ngày) · Thông báo ký HĐMB.
+  6. **Một nguồn duy nhất:** mọi con số SLA ở `js/velocity.js` (`VELOCITY_CONFIG`) — sửa 1 nơi là đổi toàn app (giống D-005).
+- Lý do: phễu 7 bậc dàn trải, không đo được tốc độ; cần mốc rõ để biết khách nào đang ứ và tự dọn khách nguội khỏi phễu.
+- Chấp thuận: người dùng gửi đặc tả (chat 2026-10-09) và chọn: Xem dự án 7 / 14 ngày; tự chuyển có ghi lịch sử + hoàn tác; khách cũ Hỗ trợ hồ sơ + Booking → Booking & Làm hồ sơ; 1 khách = 1 căn.
+- Phạm vi: `SQL/add_funnel_velocity.sql` (ràng buộc bậc, cột `booking_steps`, `sla_anchor_at`), `SQL/schema.sql`, `js/velocity.js` (mới), `js/app.js`, `js/db.js` (`historyMeta`), `js/notifications.js` (rule `sla_over`), `js/followup.js`, `js/icons.js` (`nurture`, `sla`), `index.html`, `css/style.css`.
+- Tài liệu đã cập nhật: `CLAUDE.md`, `AGENTS.md`, `docs/funnel-velocity.md`, `docs/architecture.md`, `docs/design.md`, `docs/huong-dan-follow-up.md`, `docs/CHANGELOG.md`
+- Trạng thái: Đang áp dụng (chưa chạy SQL, chưa deploy lúc ghi)

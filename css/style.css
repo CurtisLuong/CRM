@@ -805,7 +805,7 @@ input:focus, select:focus, textarea:focus {
 
 .tag { font-size: 11px; padding: 3px 8px; border-radius: 100px; background: #eee; color: #444; font-weight: var(--badge-fw-normal); }
 .tag-stage { background: #e4ecec; color: var(--teal); }
-.tag-won { background: #dfeadf; color: var(--good); font-weight: var(--badge-fw-bold); } /* khách Kí HĐMB */
+.tag-won { background: #F2E4EE; color: #8A4A78; font-weight: var(--badge-fw-bold); } /* khách Đã ký HĐMB (mận — nhãn, không xanh lá) */
 /* Mệnh: cùng thiết kế với Loại căn (nền xám trung tính, chữ thường) — không nền be riêng. */
 .tag-menh { background: #eee; color: #444; }
 .tag-cung { background: #eee; color: #444; } /* copy style của badge Mệnh */
@@ -2490,7 +2490,9 @@ body:has(#detail-screen.is-readonly:not([hidden])) #avatar-remove-btn,
 .pipe2-stage { font-size: 12.5px; color: #55564e; line-height: 1.3; min-height: 2.6em; }
 .pipe2-n { font-size: 24px; font-weight: 400; line-height: 1.2; margin-top: 4px; font-variant-numeric: tabular-nums; }
 .pipe2-hotn { font-size: 12px; color: #9a9a8e; }
-.pipe2-hotn.is-on { color: #B8722C; }
+.pipe2-hotn.is-on { color: #7A5A44; }
+.pipe2-over { font-size: 12px; color: #A1171E; } /* cảnh báo quá hạn mức SLA (đỏ đậm = quá hạn) */
+.pipe2-won { background: #FBF6F9; border-style: dashed; }
 .pipe2-val { font-size: 11.5px; color: #8a8a7e; }
 .pipe2-pct { font-size: 12px; color: #55564e; margin-top: auto; padding-top: 8px; } /* ghim đáy ô → các thanh % thẳng hàng */
 .pipe2-track { display: block; width: 100%; height: 5px; border-radius: 999px; background: #EDEAE2; overflow: hidden; margin-top: 4px; }
@@ -2594,3 +2596,56 @@ body:has(#detail-screen.is-readonly:not([hidden])) #avatar-remove-btn,
   .ins-body { flex: 1 1 calc(100% - 46px); }
   .ins-act { margin-left: 46px; }
 }
+
+/* ===== Phễu 5 giai đoạn + SLA (D-008, js/velocity.js) ===== */
+.stage-pill.is-won { color: #8A4A78; background: #F2E4EE; }
+.stage-pill .sp-star { font-size: 12px; line-height: 1; }
+.stage-pill.is-nurture { color: #4F5D70; background: #E9EDF2; }
+.stage-pill .sp-ic { width: 14px; height: 14px; flex: none; }
+.stage-x.stage-won { color: #8A4A78; font-weight: 400; }
+.sla-tag { cursor: default; font-weight: 500; }
+/* Phễu & tốc độ (Phân tích) */
+.vel { display: flex; flex-direction: column; gap: 6px; }
+.vel-row { display: flex; flex-direction: column; gap: 4px; }
+.vel-bar { position: relative; height: 34px; border-radius: 8px; background: var(--paper); overflow: hidden; display: flex; align-items: center; justify-content: space-between; padding: 0 12px; }
+.vel-fill { position: absolute; inset: 0 auto 0 0; border-radius: 8px; opacity: .22; }
+.vel-name, .vel-n { position: relative; display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--ink); white-space: nowrap; }
+.vel-ic { width: 16px; height: 16px; flex: none; }
+.vel-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-size: 11.5px; color: #7a7a70; padding: 0 2px; }
+.vel-meta .call-tag { cursor: default; font-weight: 500; }
+.vel-over { color: #A1171E; }
+.vel-dim { color: #9a9a90; font-size: 11.5px; }
+.vel-won { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; padding: 10px 12px; border: 1px dashed #D9C3D2; border-radius: 10px; background: #FBF6F9; color: #8A4A78; font-size: 13px; }
+.vel-won-n { font-size: 16px; }
+.vel-out { margin-top: 6px; font-size: 11.5px; color: #7a7a70; }
+
+/* Thẻ Tốc độ phễu ở hồ sơ */
+.sla-card .dcard-head { align-items: center; }
+.sla-head-tag { margin-left: auto; cursor: default; font-weight: 500; }
+.sla-stage { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 13px; margin-top: 4px; }
+.sla-stage-name { display: inline-flex; align-items: center; gap: 6px; }
+.sla-stage-ic { width: 16px; height: 16px; color: var(--teal-light); }
+.sla-stage-time { color: #6b6b60; font-size: 12.5px; }
+.sla-bar { position: relative; height: 8px; border-radius: 999px; background: #EDEAE2; margin: 8px 0 4px; overflow: visible; }
+.sla-bar-fill { position: absolute; inset: 0 auto 0 0; border-radius: 999px; background: #9AA3AE; }
+.sla-bar.is-warn .sla-bar-fill { background: #F5D66E; }
+.sla-bar.is-over .sla-bar-fill { background: #A1171E; }
+.sla-bar-mark { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; background: var(--ink); opacity: .55; border-radius: 1px; }
+.sla-scale { display: flex; justify-content: space-between; font-size: 11.5px; color: #7a7a70; }
+.sla-note { font-size: 12.5px; color: #55564e; margin: 8px 0 0; line-height: 1.45; }
+.sla-rule { color: #7a7a70; font-size: 12px; margin-top: 4px; }
+.sla-steps { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+.sla-step { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid var(--card-border); border-radius: 10px; background: #FCFBF8; cursor: pointer; }
+.sla-step input { width: 18px; height: 18px; flex: none; accent-color: var(--ink); }
+.sla-step-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.sla-step-name { font-size: 13px; color: var(--ink); }
+.sla-step-std { font-size: 11.5px; color: #8a8a80; }
+.sla-step.is-done .sla-step-name { color: #8a8a80; text-decoration: line-through; }
+.sla-step-when { font-size: 11.5px; color: #8a8a80; white-space: nowrap; }
+.sla-step .call-tag { cursor: default; }
+.sla-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.sla-actions .btn-ic svg, .sla-actions svg.btn-ic { width: 15px; height: 15px; }
+.sla-won-btn { color: #8A4A78; border-color: #D9C3D2; }
+.sla-undo { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 8px; padding: 8px 10px; border-radius: 10px; background: #FFF8E1; font-size: 12.5px; color: #5a4a10; }
+.sla-undo-ic { width: 16px; height: 16px; flex: none; }
+.sla-undo .btn-small { margin-left: auto; }

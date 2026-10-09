@@ -284,7 +284,8 @@ const CRM = {
         }
       } else {
         // Append 1 mốc mới (đổi bậc thường, hoặc ghi thêm lần cùng bậc).
-        history.push({ stage: payload.care_stage || null, note: opts.careStageNote || null, at: now });
+        // opts.historyMeta: field gắn thêm vào mốc (vd {auto:'sla'} = app tự chuyển vì quá SLA — D-008).
+        history.push({ stage: payload.care_stage || null, note: opts.careStageNote || null, at: now, ...(opts.historyMeta || {}) });
       }
       record.care_stage_history = history;
     }

@@ -1,33 +1,39 @@
 /* app.js — UI + điều phối chính của CRM */
 
-// 7 bậc tiến độ chăm sóc "đi tới" (bậc 1 → bậc 7), theo đúng thứ tự phễu bán hàng.
-// Bậc 1 ('Đăng kí mới') = mặc định khi vừa tạo khách. Bậc 7 ('Kí HĐMB') = chăm sóc
-// XONG, chốt thành công. (Trước 2026-08-26 danh sách này mô tả LẪN cả kênh liên
-// lạc — nay kênh liên lạc tách sang CONTACT_STATUS bên dưới, xem CHANGELOG.)
+// PHỄU 5 GIAI ĐOẠN + 1 MILESTONE (D-008, 2026-10-09 — trước là 7 bậc):
+// Đăng kí mới → Đang tiếp cận → Đang chăm sóc → Xem dự án → Booking & Làm hồ sơ → ★ Kí HĐMB.
+// Bậc 1–2 thuộc lớp 1 "Khách mới" (D-001). SLA (mục tiêu / hạn mức) từng giai đoạn: js/velocity.js.
 const CARE_STAGES = [
   'Đăng kí mới',
   'Đang tiếp cận',
   'Đang chăm sóc',
   'Xem dự án',
-  'Hỗ trợ hồ sơ',
-  'Booking',
-  'Kí HĐMB',
+  'Booking & Làm hồ sơ',
 ];
 
 // Bậc mặc định cho khách MỚI — form tạo khách tự chọn sẵn bậc này.
 const CARE_STAGE_DEFAULT = 'Đăng kí mới';
 
-// 'Loại' KHÔNG phải bậc thứ 8 của phễu — nó là 1 trạng thái KẾT THÚC quá trình
-// chăm sóc mà không chốt được (khách bị loại). Về mặt "đã xong hay chưa" nó tương
-// đương bậc 7 (đều là xong), nhưng hiển thị dấu ✕ ĐỎ để phân biệt "loại" với "đã
-// ký hợp đồng".
+// 3 trạng thái NGOÀI phễu (không phải bậc, không tính tốc độ phễu):
+//  - 'Kí HĐMB' = MILESTONE chốt deal (Deal Won) → khách vào mục "Đã mua". Đặt bằng nút
+//    "Xác nhận đã Ký HĐMB" (giá trị lưu giữ tên cũ 'Kí HĐMB' để khỏi đổi dữ liệu cũ).
+//  - 'Nuôi dài hạn' = khách chưa đủ tiền ngay, hẹn 3–6 tháng → rút khỏi phễu chính.
+//  - 'Loại' = kết thúc không chốt (hiển thị "Không chốt").
+const CARE_STAGE_WON = 'Kí HĐMB';
+const CARE_STAGE_NURTURE = 'Nuôi dài hạn';
 const CARE_STAGE_DROPPED = 'Loại';
+const CARE_STAGE_BOOKING = 'Booking & Làm hồ sơ';
+// Bậc cũ đã gộp → bậc mới (khách cũ chưa chạy SQL/add_funnel_velocity.sql + lịch sử cũ).
+const CARE_STAGE_LEGACY = { 'Hỗ trợ hồ sơ': CARE_STAGE_BOOKING, 'Booking': CARE_STAGE_BOOKING };
+function normStage(s) { return CARE_STAGE_LEGACY[s] || s; }
 
-// Danh sách đổ vào các <select>: 7 bậc + trạng thái kết thúc ở cuối cùng.
-const CARE_STAGE_OPTIONS = [...CARE_STAGES, CARE_STAGE_DROPPED];
+// Danh sách đổ vào các <select>: 5 bậc + 3 trạng thái ngoài phễu ở cuối.
+const CARE_STAGE_OPTIONS = [...CARE_STAGES, CARE_STAGE_NURTURE, CARE_STAGE_WON, CARE_STAGE_DROPPED];
 
 // Hai trạng thái coi là "chăm sóc đã xong" — mặc định ẩn khỏi dashboard.
-const CARE_DONE_STAGES = ['Kí HĐMB', CARE_STAGE_DROPPED];
+const CARE_DONE_STAGES = [CARE_STAGE_WON, CARE_STAGE_DROPPED];
+// Khách lớp 2 đang ở trong phễu chính (không Nuôi dài hạn / Đã mua / Loại).
+function inFunnel(c) { return !!c && CARE_STAGES.includes(normStage(c.care_stage)); }
 
 // Mức quan tâm MẶC ĐỊNH của khách mới (form, nhập Excel; landing page dùng default cột DB
 // — xem SQL/interest_default_20.sql). Chỉnh 1 chỗ này + default cột nếu muốn đổi.
@@ -38,9 +44,8 @@ const INTEREST_DEFAULT_NEW = 20;
 const STAGE_INTEREST = {
   'Đang chăm sóc': 60,
   'Xem dự án': 75,
-  'Hỗ trợ hồ sơ': 85,
-  'Booking': 95,
-  'Kí HĐMB': 100,
+  [CARE_STAGE_BOOKING]: 90,
+  [CARE_STAGE_WON]: 100,
   [CARE_STAGE_DROPPED]: 0,
 };
 
@@ -190,29 +195,32 @@ const CARE_STAGE_COLORS = {
   'Đang tiếp cận':  '#3E6A8A', // xanh thép (= màu "Gọi")
   'Đang chăm sóc':  '#5160A8', // chàm
   'Xem dự án':      '#2B7A8C', // xanh dầu (= màu "Tham quan")
-  'Hỗ trợ hồ sơ':   '#6E5F99', // tím (= màu "Hồ sơ")
-  'Booking':        '#2E3A6E', // xanh than
-  'Kí HĐMB':        '#8A4A78', // mận (= màu "Kí HĐ") — chốt
+  [CARE_STAGE_BOOKING]: '#2E3A6E', // xanh than
+  [CARE_STAGE_NURTURE]: '#6B7A8F', // xám thép — ngoài phễu
+  [CARE_STAGE_WON]: '#8A4A78',     // mận (= màu "Kí HĐ") — milestone chốt
   [CARE_STAGE_DROPPED]: '#9A9A90', // xám — không chốt (kèm dấu ✕)
+  'Hỗ trợ hồ sơ': '#2E3A6E', 'Booking': '#2E3A6E', // tên cũ (lịch sử) = màu bậc đã gộp
 };
 
 // Khách chưa đặt tiến độ (bỏ trống) coi như bậc 1 'Đăng kí mới' (theo yêu cầu).
+// Đã mua / Loại → vòng đầy; Nuôi dài hạn → giữ mức bậc Đang chăm sóc (bậc nó tách ra).
 function careLevel(stage) {
-  if (stage === CARE_STAGE_DROPPED) return 7; // vòng đầy như bậc 7
-  const idx = CARE_STAGES.indexOf(stage);
+  if (stage === CARE_STAGE_DROPPED || stage === CARE_STAGE_WON) return CARE_STAGES.length;
+  if (stage === CARE_STAGE_NURTURE) return CARE_STAGES.indexOf(QUALIFIED_STAGE) + 1;
+  const idx = CARE_STAGES.indexOf(normStage(stage));
   return idx === -1 ? 1 : idx + 1; // bỏ trống / lạ → bậc 1
 }
 
 function careColor(stage) {
-  return CARE_STAGE_COLORS[stage] || CARE_STAGE_COLORS[CARE_STAGE_DEFAULT];
+  return CARE_STAGE_COLORS[stage] || CARE_STAGE_COLORS[normStage(stage)] || CARE_STAGE_COLORS[CARE_STAGE_DEFAULT];
 }
 
 // Nhãn HIỂN THỊ của bậc (chỉ để xem). Giá trị lưu + lúc chọn trong form/bộ lọc vẫn là tên
 // bậc gốc: 'Loại' hiển thị "Không chốt" (khách đã chăm nhưng mất deal — khác lead bị loại ở
 // tab Khách mới).
-const CARE_STAGE_DISPLAY = { [CARE_STAGE_DROPPED]: 'Không chốt' };
+const CARE_STAGE_DISPLAY = { [CARE_STAGE_DROPPED]: 'Không chốt', [CARE_STAGE_WON]: 'Đã ký HĐMB' };
 function careLabel(stage) {
-  const s = stage || CARE_STAGE_DEFAULT;
+  const s = normStage(stage || CARE_STAGE_DEFAULT);
   return CARE_STAGE_DISPLAY[s] || s;
 }
 
@@ -220,12 +228,33 @@ function isCareDone(stage) {
   return CARE_DONE_STAGES.includes(stage);
 }
 
-// Thứ hạng để SẮP XẾP theo tiến độ (khác careLevel dùng để vẽ vòng tròn):
-// bỏ trống → 1, 7 bậc phễu → 1-7, 'Loại' → 8 (xếp cuối cùng).
+// Thứ hạng để SẮP XẾP / so tiến lùi (khác careLevel dùng để vẽ vòng tròn):
+// bỏ trống → 1, 5 bậc phễu → 1-5, Nuôi dài hạn → 3.5 (tách từ Đang chăm sóc), Đã mua → 6, 'Loại' → 7.
 function careSortRank(stage) {
-  if (stage === CARE_STAGE_DROPPED) return 8;
-  const idx = CARE_STAGES.indexOf(stage);
+  if (stage === CARE_STAGE_DROPPED) return CARE_STAGES.length + 2;
+  if (stage === CARE_STAGE_WON) return CARE_STAGES.length + 1;
+  if (stage === CARE_STAGE_NURTURE) return CARE_STAGES.indexOf(QUALIFIED_STAGE) + 1.5;
+  const idx = CARE_STAGES.indexOf(normStage(stage));
   return idx === -1 ? 1 : idx + 1;
+}
+
+// Pill tiến độ (thẻ khách, danh sách): vòng tròn % theo bậc + "x/5" + tên bậc.
+// Loại → "✕ Không chốt" xám · Đã mua → "★ Đã ký HĐMB" mận · Nuôi dài hạn → icon, không phân số.
+function stagePillHtml(stage) {
+  const label = escapeHtml(careLabel(stage));
+  if (stage === CARE_STAGE_DROPPED) return `<span class="stage-pill is-dropped" title="${label}"><span class="sp-xmark">✕</span><span class="sp-name">${label}</span></span>`;
+  if (stage === CARE_STAGE_WON) return `<span class="stage-pill is-won" title="${label}"><span class="sp-star">★</span><span class="sp-name">${label}</span></span>`;
+  if (stage === CARE_STAGE_NURTURE) return `<span class="stage-pill is-nurture" title="${label} — ngoài phễu chính">${icon('nurture', 'sp-ic')}<span class="sp-name">${label}</span></span>`;
+  const level = careLevel(stage), n = CARE_STAGES.length;
+  return `<span class="stage-pill" style="--ring:${careColor(stage)}; --pct:${Math.round((level / n) * 100)}" title="${label}"><span class="sp-ring"></span><span class="sp-frac">${level}/${n}</span><span class="sp-name">${label}</span></span>`;
+}
+
+// Nhãn SLA (js/velocity.js): mặc định chỉ hiện khi quá mục tiêu (vàng) / quá hạn (đỏ đậm);
+// all=true → hiện cả khi còn trong mục tiêu (xám nhạt) — dùng ở hồ sơ / hộp Khách mới.
+function slaTagHtml(c, all) {
+  const st = window.VELOCITY && VELOCITY.status(c);
+  if (!st || (!all && st.state === 'ok')) return '';
+  return `<span class="call-tag sla-tag ${st.cls}" title="SLA ${escapeHtml(st.label)}: mục tiêu ${escapeHtml(VELOCITY.config.phases[st.key].targetText)}, tối đa ${escapeHtml(VELOCITY.config.phases[st.key].maxText)}">${escapeHtml(st.text)}</span>`;
 }
 
 // 4 bậc MỨC QUAN TÂM → nhãn + màu + số ngọn lửa (badge trên card / list, slider, chấm hồ sơ).
@@ -321,7 +350,7 @@ let sb = null;
 let currentUser = null;
 let accountSyncTimer = null;
 let allCustomers = [];
-let progressFilter = 'active'; // lọc trạng thái: 'active' | 'done' | 'all' (dropdown tuỳ biến)
+let progressFilter = 'active'; // lọc trạng thái: 'active' | 'nurture' | 'won' | 'dropped' | 'all'
 // Lọc theo THỜI GIAN ĐĂNG KÝ (registered_at, fallback created_at). preset:
 // 'all'|'today'|'week'|'month'|'custom'; custom dùng from/to ('YYYY-MM-DD').
 let dateFilter = { preset: 'all', from: null, to: null };
@@ -840,10 +869,56 @@ $('#sync-btn')?.addEventListener('click', () => {
 
 // -------------------------------------------------------------- LIST ------
 
+// ---- TỰ XỬ LÝ QUÁ HẠN MỨC SLA (D-008, quy tắc ở js/velocity.js) — chạy mỗi lần nạp danh sách ----
+//  • Khách mới "Đang tiếp cận" quá hạn mức, chưa nói chuyện được → Loại "Không liên lạc được"
+//    (mở lại ở hộp Khách mới = đặt lại đồng hồ, sla_anchor_at).
+//  • "Đang chăm sóc" quá hạn mức → "Nuôi dài hạn" + hẹn gọi lại; mốc lịch sử gắn {auto:'sla'} →
+//    hồ sơ hiện nút Hoàn tác trong VELOCITY.config.autoUndoDays ngày.
+// Chỉ khách MÌNH phụ trách. Trả về true nếu có thay đổi.
+let slaAutoRunning = false;
+async function runSlaAutomation() {
+  if (slaAutoRunning || !window.VELOCITY || !currentUser) return false;
+  slaAutoRunning = true;
+  const n = { drop: 0, nurture: 0 };
+  try {
+    for (const c of allCustomers) {
+      if (!isMine(c)) continue;
+      const a = VELOCITY.autoAction(c); if (!a) continue;
+      const cfg = VELOCITY.config.phases[a.phase];
+      try {
+        if (a.type === 'drop') {
+          await CRM.update(c.id, {
+            disqualified_at: new Date().toISOString(), disqualify_reason: VELOCITY.config.dropReason,
+            disqualify_note: `Tự động: quá ${cfg.maxText} ở "${cfg.label}" chưa liên lạc được (SLA)`,
+            next_call_at: null, next_call_end: null, next_call_reason: null,
+          });
+          n.drop++;
+        } else if (a.type === 'nurture') {
+          const payload = { care_stage: CARE_STAGE_NURTURE };
+          const sug = window.FOLLOWUP && FOLLOWUP.forStage(c, CARE_STAGE_NURTURE);
+          if (sug && !(c.next_call_at && Date.parse(c.next_call_at) > Date.now())) {
+            Object.assign(payload, { next_call_at: sug.start.toISOString(), next_call_end: sug.end.toISOString(), next_call_reason: sug.reason });
+          }
+          await CRM.update(c.id, payload, { careStageNote: `Tự động: quá ${cfg.maxText} ở "${cfg.label}" (SLA) → Nuôi dài hạn`, historyMeta: { auto: 'sla' } });
+          n.nurture++;
+        }
+      } catch (e) { console.warn('Tự chuyển SLA lỗi:', c.id, e); }
+    }
+  } finally { slaAutoRunning = false; }
+  if (!n.drop && !n.nurture) return false;
+  const parts = [];
+  if (n.drop) parts.push(`${n.drop} khách mới → Loại (quá hạn tiếp cận)`);
+  if (n.nurture) parts.push(`${n.nurture} khách → Nuôi dài hạn (quá hạn chăm sóc)`);
+  showToast('Tự chuyển theo SLA: ' + parts.join(' · '));
+  return true;
+}
+
 async function refreshList() {
   const userId = currentUser?.id;
   const customers = await CRM.list();
   if (userId !== currentUser?.id) return;
+  // Bậc cũ đã gộp ('Hỗ trợ hồ sơ' / 'Booking') → 'Booking & Làm hồ sơ' (chỉ trong bộ nhớ; DB đổi qua SQL/add_funnel_velocity.sql).
+  for (const c of customers) if (CARE_STAGE_LEGACY[c.care_stage]) c.care_stage = normStage(c.care_stage);
   allCustomers = customers;
   scheduleSearchWarmup();
   renderList();
@@ -852,6 +927,7 @@ async function refreshList() {
   if (!$('#tasks-view').hidden) renderTasksView();
   updateSyncBadge();
   renderNotifications();
+  if (await runSlaAutomation()) return refreshList(); // app vừa tự chuyển khách quá SLA → vẽ lại
   const assignErr = CRM.takeAssignError(); // giao khách bị server từ chối (trùng SĐT bên người nhận…)
   if (assignErr) alert('⚠️ ' + assignErr);
 }
@@ -1221,10 +1297,14 @@ function matchesFilters(c) {
     if (c.care_stage !== stage) return false;
   } else {
     // Không chọn bậc cụ thể → áp bộ lọc trạng thái (mặc định chỉ hiện "đang chăm sóc").
-    const progress = progressFilter; // 'active' | 'done' | 'all' (dropdown tuỳ biến)
-    const done = isCareDone(c.care_stage);
-    if (progress === 'active' && done) return false;
-    if (progress === 'done' && !done) return false;
+    // 'active' = trong phễu chính · 'nurture' = Nuôi dài hạn · 'won' = Đã mua · 'dropped' = Không chốt · 'all'.
+    const progress = progressFilter;
+    const st = c.care_stage;
+    if (progress === 'active' && (isCareDone(st) || st === CARE_STAGE_NURTURE)) return false;
+    if (progress === 'nurture' && st !== CARE_STAGE_NURTURE) return false;
+    if (progress === 'won' && st !== CARE_STAGE_WON) return false;
+    if (progress === 'dropped' && st !== CARE_STAGE_DROPPED) return false;
+    if (progress === 'done' && !isCareDone(st)) return false;
   }
   const minInterest = _listFilterContext?.minInterest ?? Number($('#filter-min-interest').value || 0);
   if ((c.interest_level || 0) < minInterest) return false;
@@ -1357,16 +1437,8 @@ function renderList() {
     const tier = interestTier(c.interest_level ?? 0);
     card.style.setProperty('--tier', tier.color);
 
-    // Tiến độ chăm sóc → GỘP thành 1 pill nền tint theo màu bậc: vòng tròn nhỏ (đĩa
-    // conic đầy theo % bậc) + "x/7" + tên bậc. Riêng bậc 'Loại' → pill đỏ nhạt
-    // "✕ Loại" (không phải bước phễu nên không có vòng tiến độ).
-    const isDropped = c.care_stage === CARE_STAGE_DROPPED;
-    const level = careLevel(c.care_stage);
-    const ringPct = Math.round((level / 7) * 100);
-    const ringColor = careColor(c.care_stage);
-    const stagePill = isDropped
-      ? `<span class="stage-pill is-dropped" title="${escapeHtml(careLabel(c.care_stage))}"><span class="sp-xmark">✕</span><span class="sp-name">${escapeHtml(careLabel(c.care_stage))}</span></span>`
-      : `<span class="stage-pill" style="--ring:${ringColor}; --pct:${ringPct}" title="${escapeHtml(careLabel(c.care_stage))}"><span class="sp-ring"></span><span class="sp-frac">${level}/7</span><span class="sp-name">${escapeHtml(careLabel(c.care_stage))}</span></span>`;
+    // Tiến độ chăm sóc → 1 pill (stagePillHtml) + nhãn SLA khi quá mục tiêu / quá hạn (slaTagHtml).
+    const stagePill = stagePillHtml(c.care_stage);
     // Timestamp "Cập nhật" = hoạt động care timeline mới nhất (đổi bậc HOẶC ghi/sửa note).
     // Dùng chung với sắp xếp (cardUpdatedAt) → thứ tự card khớp con số hiển thị.
     const updated = timeAgo(cardUpdatedAt(c));
@@ -1413,7 +1485,7 @@ function renderList() {
       </div>
       <div class="card-progress">
         ${stagePill}
-        ${c.care_stage === 'Kí HĐMB' ? '<span class="tag tag-won">✓ Đã chốt</span>' : ''}
+        ${isMine(c) ? slaTagHtml(c) : ''}
         ${c.contact_status ? `<span class="tag tag-contact" style="--cs:${contactColor(c.contact_status)}">${escapeHtml(c.contact_status)}</span>` : ''}
         ${contactLostWarning(c) ? `<span class="tag tag-contact-warn" title="Đã >7 ngày chưa tương tác — kiểm tra lại">⚠ nghi mất liên lạc</span>` : ''}
         ${interestTagHtml(tier)}
@@ -2264,7 +2336,9 @@ async function handleFormSubmit(e) {
     }
     const newStage = payload.care_stage;
     const orig = formOriginalStage;
-    if (newStage && orig && careSortRank(newStage) < careSortRank(orig)) {
+    // Vào / ra Nuôi dài hạn KHÔNG coi là lùi (chỉ rút khỏi phễu / quay lại phễu, giữ nguyên lịch sử).
+    const nurtureMove = newStage === CARE_STAGE_NURTURE || orig === CARE_STAGE_NURTURE;
+    if (newStage && orig && !nurtureMove && careSortRank(newStage) < careSortRank(orig)) {
       // (a) CẬP NHẬT LÙI: bậc mới thấp hơn bậc cũ → cảnh báo trước khi xoá lịch sử.
       const ok = confirm(
         '⚠️ CẬP NHẬT LÙI TIẾN ĐỘ\n\n' +
@@ -2274,7 +2348,7 @@ async function handleFormSubmit(e) {
       );
       if (!ok) return; // huỷ: giữ nguyên form để sửa lại
       opts.rewind = true;
-      opts.keepStages = CARE_STAGE_OPTIONS.filter((s) => careSortRank(s) <= careSortRank(newStage));
+      opts.keepStages = [...CARE_STAGE_OPTIONS, ...Object.keys(CARE_STAGE_LEGACY)].filter((s) => careSortRank(s) <= careSortRank(newStage));
     } else if (newStage && newStage === orig && isRepeatableStage(newStage) && note) {
       // (b) Cùng bậc lặp được + có ghi chú → ghi thêm 1 lần liên hệ mới.
       opts.forceLog = true;
@@ -2552,20 +2626,26 @@ function buildAnalysisJSON(c) {
 function buildAnalysisPrompt(c) {
   const jsonStr = JSON.stringify(buildAnalysisJSON(c), null, 2);
   // Thang phễu dựng ĐỘNG từ CARE_STAGES (khỏi lệch nếu sau này đổi bộ bậc).
-  const ladder = CARE_STAGES.join(' → ') + ` (kèm trạng thái kết thúc "${CARE_STAGE_DROPPED}").`;
+  const ladder = CARE_STAGES.join(' → ') + ` → ★ "Đã ký HĐMB" (milestone chốt deal). Ngoài phễu: "${CARE_STAGE_NURTURE}" (hẹn 3–6 tháng), "${careLabel(CARE_STAGE_DROPPED)}".`;
 
   // Tính sẵn bậc hiện tại + bậc KẾ cần đẩy tới → cho LLM tiêu điểm cụ thể.
   const cur = c.care_stage || CARE_STAGE_DEFAULT;
   let nextLine;
   if (cur === CARE_STAGE_DROPPED) {
-    nextLine = `Khách đang ở trạng thái "${CARE_STAGE_DROPPED}" (đã ngừng chăm). Hãy đánh giá CÓ NÊN mở lại không; nếu có, bước đầu tiên để khơi lại là gì.`;
+    nextLine = `Khách đang ở trạng thái "${careLabel(CARE_STAGE_DROPPED)}" (đã ngừng chăm). Hãy đánh giá CÓ NÊN mở lại không; nếu có, bước đầu tiên để khơi lại là gì.`;
+  } else if (cur === CARE_STAGE_WON) {
+    nextLine = 'Khách ĐÃ KÝ HĐMB (đã mua). Tập trung chăm sóc sau bán, giữ quan hệ, xin giới thiệu khách mới.';
+  } else if (cur === CARE_STAGE_NURTURE) {
+    nextLine = `Khách đang "${CARE_STAGE_NURTURE}" (chưa đủ tiền ngay, hẹn 3–6 tháng). Gợi ý cách giữ liên lạc nhẹ nhàng và dấu hiệu nào cho thấy nên đưa khách quay lại "Đang chăm sóc".`;
   } else {
     const idx = CARE_STAGES.indexOf(cur);
     const i = idx === -1 ? 0 : idx;
+    const st = window.VELOCITY && VELOCITY.status(c);
+    const sla = st ? ` SLA giai đoạn này: mục tiêu ${VELOCITY.config.phases[st.key].targetText}, tối đa ${VELOCITY.config.phases[st.key].maxText}; khách đã ở ${VELOCITY.fmt(st.elapsed)}.` : '';
     if (i >= CARE_STAGES.length - 1) {
-      nextLine = `Khách đã ở bậc cuối "${CARE_STAGES[CARE_STAGES.length - 1]}" — tập trung GIỮ khách & hoàn tất thủ tục, không cần đẩy bậc.`;
+      nextLine = `Khách đang ở giai đoạn cuối "${cur}" — tập trung hoàn tất hồ sơ để Ký HĐMB.${sla}`;
     } else {
-      nextLine = `Bậc HIỆN TẠI của khách: "${cur}". Bậc KẾ cần đẩy tới: "${CARE_STAGES[i + 1]}". Mốc CHUYỂN ĐỔI trọng tâm của cả phễu: "Booking".`;
+      nextLine = `Bậc HIỆN TẠI của khách: "${cur}". Bậc KẾ cần đẩy tới: "${CARE_STAGES[i + 1]}". Mốc CHUYỂN ĐỔI trọng tâm của cả phễu: "${CARE_STAGE_BOOKING}".${sla}`;
     }
   }
 
@@ -2871,16 +2951,16 @@ let editingHistoryAt = null; // mốc lịch sử đang sửa note (theo 'at'), 
 let addingCareNote = false;  // đang mở ô "+ Thêm ghi chú" dưới bậc hiện tại?
 let editingNoteAt = null; // ghi chú tự nhập đang sửa (theo 'at'), null = không sửa
 
-// Chuỗi HTML các "chấm" tiến độ: 7 chấm, tô tới bậc hiện tại. Tất cả các chấm đã tô
-// mang CÙNG 1 màu = màu của BẬC HIỆN TẠI (vd bậc 4 → 4 chấm cùng màu vàng xanh; bậc 7
-// → 7 chấm cùng màu xanh lá). Chấm chưa đạt bậc → xám. Cùng màu với vòng tiến độ ngoài card.
+// Chuỗi HTML các "chấm" tiến độ: 1 chấm / bậc phễu (5), tô tới bậc hiện tại, CÙNG 1 màu =
+// màu bậc hiện tại; chưa đạt → xám. Cùng màu với vòng tiến độ ngoài card.
 function stageDotsHtml(stage) {
-  // Bậc 'Loại' → dấu ✕ đỏ (không vẽ 7 chấm phễu).
+  // 'Loại' → dấu ✕; Đã mua → ★ (không vẽ chấm phễu).
   if (stage === CARE_STAGE_DROPPED) return `<span class="stage-x">✕</span>`;
+  if (stage === CARE_STAGE_WON) return `<span class="stage-x stage-won">★</span>`;
   const level = careLevel(stage);
   const color = careColor(stage);
   let out = '';
-  for (let i = 1; i <= 7; i++) {
+  for (let i = 1; i <= CARE_STAGES.length; i++) {
     out += `<span class="dot" style="background:${i <= level ? color : '#dcd9cf'}"></span>`;
   }
   return out;
@@ -3238,7 +3318,7 @@ function renderCareHistory(history, registeredAt) {
       <div class="cs-node${isLast ? ' cs-node-last' : ''}" style="--ring:${color}">
         <span class="cs-stage-dot"></span>
         <div class="cs-stage-head">
-          <span class="cs-stage">${escapeHtml(node.stage)}</span>
+          <span class="cs-stage">${escapeHtml(CARE_STAGE_DISPLAY[node.stage] || node.stage)}</span>
           <span class="cs-stage-time">${escapeHtml(formatLogTime(node.at))}</span>
         </div>
         ${notesBlock}
@@ -4068,7 +4148,125 @@ $('#detail-calls')?.addEventListener('click', (e) => {
 function renderDetailCall(c) {
   $('#detail-schedule-btn').hidden = !!c.next_call_at;
   renderDetailTasks(c);
+  renderDetailSla(c);
 }
+
+// ---- TỐC ĐỘ PHỄU ở hồ sơ (D-008) — SLA từ js/velocity.js ----
+// Mốc lịch sử do app TỰ chuyển vì quá SLA ({auto:'sla'}) còn trong hạn hoàn tác → mốc đó, không thì null.
+function slaAutoEntry(c) {
+  const h = Array.isArray(c.care_stage_history) ? c.care_stage_history : [];
+  const last = h[h.length - 1];
+  if (!last || last.auto !== 'sla' || last.stage !== c.care_stage) return null;
+  const days = (Date.now() - Date.parse(last.at)) / 86400000;
+  return days <= VELOCITY.config.autoUndoDays ? last : null;
+}
+function slaDateLabel(ms) { const d = new Date(ms); return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`; }
+function renderDetailSla(c) {
+  const box = $('#detail-sla'); if (!box) return;
+  if (!window.VELOCITY || !isQualified(c)) { box.hidden = true; return; }
+  const V = VELOCITY, mine = isMine(c);
+  const auto = slaAutoEntry(c);
+  const undo = auto && mine ? `<div class="sla-undo">${icon('alert', 'sla-undo-ic')}<span>App đã tự chuyển sang "${escapeHtml(careLabel(c.care_stage))}" vì quá hạn mức SLA.</span>
+      <button type="button" class="btn-small" data-sla="undo">Hoàn tác</button></div>` : '';
+  const head = (ic, title, extra) => `<div class="dcard-head"><span class="dcard-ic" aria-hidden="true">${icon(ic)}</span><h3>${title}</h3>${extra || ''}</div>`;
+  let html = '';
+  if (c.care_stage === CARE_STAGE_WON) {
+    const at = V.stageEnteredAt(c);
+    html = head('contract', 'Đã ký HĐMB') + `<p class="sla-note">★ Chốt deal${isNaN(at) ? '' : ' ngày ' + slaDateLabel(at)} — khách nằm trong mục "Đã mua".</p>`;
+  } else if (c.care_stage === CARE_STAGE_NURTURE) {
+    const at = V.stageEnteredAt(c);
+    html = head('nurture', 'Nuôi dài hạn') + undo
+      + `<p class="sla-note">Ngoài phễu chính (không tính tốc độ phễu)${isNaN(at) ? '' : ' từ ' + slaDateLabel(at)}. Liên hệ lại theo lịch hẹn gọi.</p>`
+      + (mine ? `<div class="sla-actions"><button type="button" class="btn-small" data-sla="refunnel">${icon('customers', 'btn-ic')}Đưa lại vào phễu</button></div>` : '');
+  } else {
+    const st = V.status(c);
+    if (!st) { box.hidden = true; return; }
+    const cfg = V.config.phases[st.key];
+    const pct = (v) => Math.max(0, Math.min(100, v));
+    const fill = pct((st.elapsed / st.max) * 100), mark = pct((st.target / st.max) * 100);
+    html = head('sla', 'Tốc độ phễu', `<span class="call-tag ${st.cls} sla-head-tag">${escapeHtml(st.text)}</span>`) + undo
+      + `<div class="sla-stage"><span class="sla-stage-name">${stageIcon(c.care_stage, 'sla-stage-ic')}${escapeHtml(careLabel(c.care_stage))}</span>
+          <span class="sla-stage-time">đã ${escapeHtml(V.fmt(st.elapsed))}</span></div>
+        <div class="sla-bar is-${st.state}" role="img" aria-label="Đã ${escapeHtml(V.fmt(st.elapsed))} trên hạn mức ${escapeHtml(cfg.maxText)}">
+          <span class="sla-bar-fill" style="width:${fill}%"></span><span class="sla-bar-mark" style="left:${mark}%"></span></div>
+        <div class="sla-scale"><span>Mục tiêu ${escapeHtml(cfg.targetText)}</span><span>Tối đa ${escapeHtml(cfg.maxText)}</span></div>
+        ${cfg.goal ? `<p class="sla-note">Mục tiêu giai đoạn: ${escapeHtml(cfg.goal)}.</p>` : ''}
+        <p class="sla-note sla-rule">${escapeHtml(cfg.rule || '')}</p>`;
+    if (normStage(c.care_stage) === CARE_STAGE_BOOKING) {
+      const steps = V.bookingSteps(c);
+      html += `<div class="sla-steps">${steps.map((r, i) => {
+        const tag = r.state === 'done' ? `<span class="sla-step-when">xong ${escapeHtml(relDayLabel(r.doneAt))}</span>`
+          : r.due ? `<span class="call-tag ${r.state === 'over' ? 'call-missed' : r.state === 'warn' ? 'call-soon' : 'call-far'}">${r.state === 'over' ? 'quá hạn ' + escapeHtml(V.fmt(Date.now() - r.due)) : 'hạn ' + escapeHtml(relDayLabel(r.due))}</span>` : '';
+        return `<label class="sla-step${r.state === 'done' ? ' is-done' : ''}">
+          <input type="checkbox" data-sla-step="${r.key}"${r.state === 'done' ? ' checked' : ''}${mine ? '' : ' disabled'} />
+          <span class="sla-step-body"><span class="sla-step-name">Bước ${i + 1}: ${escapeHtml(r.label)}</span>${r.text ? `<span class="sla-step-std">Chuẩn: ${escapeHtml(r.text)}</span>` : ''}</span>
+          ${tag}</label>`;
+      }).join('')}</div>`;
+    }
+    if (mine) {
+      const btns = [];
+      if (normStage(c.care_stage) === CARE_STAGE_BOOKING) btns.push(`<button type="button" class="btn-small sla-won-btn" data-sla="won">${icon('contract', 'btn-ic')}Xác nhận đã Ký HĐMB</button>`);
+      if (c.care_stage === QUALIFIED_STAGE || c.care_stage === 'Xem dự án') btns.push(`<button type="button" class="btn-small" data-sla="nurture">${icon('nurture', 'btn-ic')}Chuyển Nuôi dài hạn</button>`);
+      if (btns.length) html += `<div class="sla-actions">${btns.join('')}</div>`;
+    }
+  }
+  box.innerHTML = html;
+  box.hidden = false;
+}
+// Ghi 1 mốc vào lịch sử chăm sóc cùng lúc với payload (để hoàn tác xoá đúng mốc đó).
+function slaHistoryPush(c, note, at, extra) {
+  const h = Array.isArray(c.care_stage_history) ? c.care_stage_history.slice() : [];
+  h.push({ stage: c.care_stage, note, at, ...(extra || {}) });
+  return h;
+}
+$('#detail-sla')?.addEventListener('change', async (e) => {
+  const cb = e.target.closest('[data-sla-step]'); if (!cb || !detailId) return;
+  const c = allCustomers.find((x) => x.id === detailId); if (!c) return;
+  const key = cb.dataset.slaStep;
+  const def = VELOCITY.config.bookingSteps.find((x) => x.key === key);
+  const steps = { ...(c.booking_steps || {}) };
+  const now = new Date().toISOString();
+  if (cb.checked) {
+    steps[key] = now;
+    const hist = slaHistoryPush(c, `Hồ sơ: ✓ ${def ? def.label : key}`, now, { step: key });
+    await CRM.update(c.id, { booking_steps: steps, care_stage_history: hist, care_stage_updated_at: now });
+  } else {
+    if (!confirm(`Bỏ đánh dấu "${def ? def.label : key}"? Dòng ghi trong lịch sử chăm sóc cũng được xoá.`)) { cb.checked = true; return; }
+    const doneAt = steps[key]; delete steps[key];
+    const hist = (Array.isArray(c.care_stage_history) ? c.care_stage_history : []).filter((h) => !(h && h.step === key && h.at === doneAt));
+    await CRM.update(c.id, { booking_steps: steps, care_stage_history: hist });
+  }
+  await refreshList();
+  openDetail(c.id);
+});
+$('#detail-sla')?.addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-sla]'); if (!b || !detailId) return;
+  const c = allCustomers.find((x) => x.id === detailId); if (!c) return;
+  const act = b.dataset.sla;
+  if (act === 'won') {
+    if (!confirm('Xác nhận khách đã KÝ HĐMB?\n\nGiao dịch đóng thành công (Deal Won) — khách chuyển vào mục "Đã mua".')) return;
+    await CRM.update(c.id, { care_stage: CARE_STAGE_WON, interest_level: STAGE_INTEREST[CARE_STAGE_WON] }, { careStageNote: '★ Đã ký HĐMB — chốt deal' });
+    await refreshList(); openDetail(c.id);
+    showToast('★ Đã ký HĐMB — khách vào mục Đã mua');
+    offerFollowup(c.id, CARE_STAGE_WON);
+  } else if (act === 'nurture') {
+    if (!confirm(`Chuyển khách sang "${CARE_STAGE_NURTURE}"?\n\nKhách rút khỏi phễu chính (không tính tốc độ / tỉ lệ chuyển đổi), hẹn liên hệ lại sau ${VELOCITY.config.nurtureRecallMonths} tháng.`)) return;
+    await CRM.update(c.id, { care_stage: CARE_STAGE_NURTURE }, { careStageNote: 'Chuyển Nuôi dài hạn (chưa đủ điều kiện ngay)' });
+    await refreshList(); openDetail(c.id);
+    offerFollowup(c.id, CARE_STAGE_NURTURE);
+  } else if (act === 'refunnel') {
+    await CRM.update(c.id, { care_stage: QUALIFIED_STAGE }, { careStageNote: 'Đưa lại vào phễu từ Nuôi dài hạn' });
+    await refreshList(); openDetail(c.id);
+    showToast('Đã đưa lại vào phễu — SLA "Đang chăm sóc" tính lại từ hôm nay');
+  } else if (act === 'undo') {
+    const h = Array.isArray(c.care_stage_history) ? c.care_stage_history : [];
+    const prev = [...h].reverse().find((x, i) => i > 0 && x && x.stage && x.stage !== c.care_stage);
+    const back = prev ? normStage(prev.stage) : QUALIFIED_STAGE;
+    await CRM.update(c.id, { care_stage: back }, { careStageNote: 'Hoàn tác tự chuyển SLA — đồng hồ giai đoạn tính lại từ hôm nay' });
+    await refreshList(); openDetail(c.id);
+    showToast(`Đã hoàn tác — khách quay lại "${careLabel(back)}"`);
+  }
+});
 
 // ---- "Việc tiếp theo": danh sách việc tự do, mỗi việc có thể có hạn ngày giờ ----
 // Thêm/sửa qua hộp thoại #task-modal (giống "Hẹn gọi"): ngày Không hạn / Hôm nay / Ngày mai /
@@ -4667,7 +4865,7 @@ function leadCardHtml(c, ctx) {
           <div class="card-head-right">
             ${ownerTagHtml(c)}
             ${rem ? `<span class="call-tag call-${rem.state}">${escapeHtml(rem.text)}</span>` : ''}
-            ${leadStatusTag(c)}
+            ${leadStatusTag(c)}${slaTagHtml(c)}
           </div>
         </div>
         <div class="phone-row">
@@ -4712,7 +4910,10 @@ function renderLeadSheet(c) {
     ['Căn quan tâm', [c.apt_type ? canonicalAptType(c.apt_type) : '', c.apt_code || ''].filter(Boolean).join(' · ')],
     ['Đăng ký', reg ? formatLogTime(reg) : ''], // giờ + ngày cụ thể (thẻ ngoài danh sách đã có "… trước")
   ].filter(([, v]) => v);
-  $('#lead-meta').innerHTML = rows.map(([k, v]) => `<div><span class="lead-k">${escapeHtml(k)}</span> ${escapeHtml(v)}</div>`).join('');
+  // SLA giai đoạn khách mới (Đăng kí mới < 30 phút / tối đa 4 giờ · Đang tiếp cận 1–2 ngày / tối đa 7 ngày — js/velocity.js).
+  const sla = !dropped && window.VELOCITY ? VELOCITY.status(c) : null;
+  const slaRow = sla ? `<div class="lead-sla"><span class="lead-k">SLA</span> ${escapeHtml(sla.label)} ${slaTagHtml(c, true)}</div>` : '';
+  $('#lead-meta').innerHTML = rows.map(([k, v]) => `<div><span class="lead-k">${escapeHtml(k)}</span> ${escapeHtml(v)}</div>`).join('') + slaRow;
 
   const dropEl = $('#lead-dropped');
   dropEl.hidden = !dropped;
@@ -4839,7 +5040,8 @@ async function saveLeadDrop() {
 
 async function reopenLead() {
   const c = currentLead(); if (!c) return;
-  await CRM.update(c.id, { disqualified_at: null, disqualify_reason: null, disqualify_note: null });
+  // sla_anchor_at: đồng hồ SLA khách mới tính lại từ lúc mở lại (khỏi bị tự loại ngay lần nữa — D-008).
+  await CRM.update(c.id, { disqualified_at: null, disqualify_reason: null, disqualify_note: null, sla_anchor_at: new Date().toISOString() });
   await afterLeadChange();
 }
 
@@ -4985,7 +5187,7 @@ function dashSearchRow(c) {
   let tag;
   if (lead) tag = leadStatusTag(c);
   else if (c.care_stage === CARE_STAGE_DROPPED) tag = `<span class="lead-tag lead-tag-dropped">✕ ${escapeHtml(careLabel(c.care_stage))}</span>`;
-  else if (c.care_stage === 'Kí HĐMB') tag = '<span class="tag tag-won">✓ Đã chốt</span>';
+  else if (c.care_stage === CARE_STAGE_WON) tag = '<span class="tag tag-won">★ Đã ký HĐMB</span>';
   else tag = `<span class="lead-tag">${escapeHtml(careLabel(c.care_stage))}</span>`;
   const meta = [sourceDisplay(c.source), (Array.isArray(c.projects) && c.projects.length) ? c.projects.join(', ') : '']
     .filter(Boolean).map(escapeHtml).join(' · ');
@@ -5297,10 +5499,10 @@ const dashOpenGroups = new Set();      // smartlist "Việc cần làm hôm nay"
 const DASH_IC = Object.fromEntries(Object.entries({ // tên ngắn ở Tổng quan → icon dùng chung (js/icons.js — D-006)
   todo: 'task', bell: 'bell', new: 'new_lead', qual: 'customers', deal: 'contract', phone: 'call', alarm: 'alarm',
   cal: 'calendar', sched: 'call_sched', redo: 'call_again', talked: 'talked', decide: 'decide', note: 'note',
-  flame: 'hot', clock: 'idle', alert: 'alert', cake: 'birthday',
+  flame: 'hot', clock: 'idle', alert: 'alert', cake: 'birthday', sla: 'sla',
 }).map(([k, v]) => [k, icon(v)]));
 // Nhóm việc (dashActionGroups key) → icon smartlist.
-const SL_ICON = { due: 'alarm', tasks: 'todo', today: 'sched', new: 'new', retry: 'redo', decide: 'decide', pending: 'note', hot: 'flame', warm: 'clock', nonext: 'alert', bday: 'cake' };
+const SL_ICON = { due: 'alarm', sla: 'sla', tasks: 'todo', today: 'sched', new: 'new', retry: 'redo', decide: 'decide', pending: 'note', hot: 'flame', warm: 'clock', nonext: 'alert', bday: 'cake' };
 function dashHotMin() { return (window.NOTIF && NOTIF.config.hotInterestMin) || 60; }
 function dashIdleHotDays() { return (window.NOTIF && NOTIF.config.idleDays) || 7; }
 
@@ -5368,8 +5570,9 @@ function dashActionGroups(all) {
   const callStart = (c) => (c.next_call_at ? Date.parse(c.next_call_at) : NaN);
   const hasFutureCall = (c) => callStart(c) > now;
   const openLeads = all.filter((c) => !isQualified(c) && !c.disqualified_at);
-  const activeQ = all.filter((c) => isQualified(c) && !isCareDone(c.care_stage));
+  const activeQ = all.filter((c) => isQualified(c) && inFunnel(c)); // Nuôi dài hạn: chỉ nhắc theo lịch hẹn gọi
   const leadsWithCall = (fn) => openLeads.filter((c) => !hasFutureCall(c)).filter(fn);
+  const slaOf = (c) => (window.VELOCITY ? VELOCITY.status(c, now) : null);
   const lastCallOf = (c) => { const a = callAttemptsOf(c); return a[a.length - 1]; };
 
   const groups = [
@@ -5378,6 +5581,14 @@ function dashActionGroups(all) {
       items: all.filter((c) => !c.disqualified_at && callStart(c) <= now)
         .sort((a, b) => callStart(a) - callStart(b))
         .map((c) => ({ c, sub: `Hẹn ${dashWhen(callStart(c))}${c.next_call_reason ? ' · ' + c.next_call_reason : ''}` })),
+    },
+    {
+      // Khách Tiềm năng quá HẠN MỨC SLA giai đoạn (D-008, js/velocity.js) — cần đẩy bậc / xử lý ngay.
+      key: 'sla', title: 'Quá hạn mức SLA phễu', tone: 'urgent', contact: true,
+      hint: 'Đẩy khách sang giai đoạn kế, hoặc chuyển Nuôi dài hạn / Loại để phễu không ứ đọng.',
+      items: activeQ.map((c) => ({ c, st: slaOf(c) })).filter((x) => x.st && x.st.state === 'over')
+        .sort((a, b) => (b.st.elapsed - b.st.max) - (a.st.elapsed - a.st.max))
+        .map(({ c, st }) => ({ c, sub: `${careLabel(c.care_stage)} · ${st.text} (tối đa ${VELOCITY.config.phases[st.key].maxText})` })),
     },
     {
       // Việc tiếp theo có hạn từ nay đến hết hôm nay (kể cả quá hạn). Không theo luật
@@ -5413,7 +5624,9 @@ function dashActionGroups(all) {
         .map((c) => {
           const reg = Date.parse(c.registered_at || c.created_at);
           const proj = Array.isArray(c.projects) && c.projects.length ? ' · ' + c.projects.join(', ') : '';
-          return { c, sub: `Chờ ${isNaN(reg) ? '?' : formatDuration(now - reg)} · ${sourceDisplay(c.source)}${proj}` };
+          const st = slaOf(c); // SLA Đăng kí mới: mục tiêu < 30 phút, tối đa 4 giờ
+          return { c, tone: st && st.state === 'over' ? 'urgent' : undefined,
+            sub: `Chờ ${isNaN(reg) ? '?' : formatDuration(now - reg)}${st && st.state !== 'ok' ? ' · SLA ' + st.text : ''} · ${sourceDisplay(c.source)}${proj}` };
         }),
     },
     {
@@ -5653,13 +5866,13 @@ function analyticsInsightsHtml(all) {
     why: 'Khách gọi càng muộn càng khó nghe máy.', go: 'leads-new', act: 'Mở danh sách' });
   // 5) Khách nóng đang nguội.
   const hotMin = dashHotMin();
-  const hotIdle = all.filter((c) => isQualified(c) && !isCareDone(c.care_stage) && (c.interest_level || 0) >= hotMin
+  const hotIdle = all.filter((c) => isQualified(c) && inFunnel(c) && (c.interest_level || 0) >= hotMin
     && now - (lastTouchMs(c) || now) >= INSIGHT_MIN.hotIdleDays * DAY);
   if (hotIdle.length) out.push({ ic: 'hot', tone: 'urgent', title: `${hotIdle.length} khách nóng (≥ ${hotMin}%) hơn ${INSIGHT_MIN.hotIdleDays} ngày chưa liên hệ`,
     why: hotIdle.slice(0, 3).map((c) => c.full_name).join(', ') + (hotIdle.length > 3 ? '…' : ''), go: 'todo-dash', act: 'Xem việc hôm nay' });
   // 6) Bậc đang ứ đọng (khách đứng yên quá lâu ở 1 bậc).
   const stuck = {};
-  all.filter((c) => isQualified(c) && !isCareDone(c.care_stage)).forEach((c) => {
+  all.filter((c) => isQualified(c) && inFunnel(c)).forEach((c) => {
     const t = Date.parse(c.care_stage_updated_at || c.qualified_at || ''); if (isNaN(t) || now - t < INSIGHT_MIN.stuckDays * DAY) return;
     stuck[c.care_stage] = (stuck[c.care_stage] || 0) + 1;
   });
@@ -5714,7 +5927,7 @@ function renderDashboard(mode) {
         r.calls++; if (x.result === 'talked') r.talked++;
       }
       const hist = Array.isArray(c.care_stage_history) ? c.care_stage_history : [];
-      if (hist.some((h) => h && (h.stage === 'Booking' || h.stage === 'Kí HĐMB') && inRange(h.at, a, b))) r.deals++;
+      if (hist.some((h) => h && (normStage(h.stage) === CARE_STAGE_BOOKING || h.stage === CARE_STAGE_WON) && inRange(h.at, a, b))) r.deals++;
     }
     return r;
   };
@@ -5722,8 +5935,8 @@ function renderDashboard(mode) {
 
   // Chốt trong tháng: khách có mốc 'Kí HĐMB' từ đầu tháng.
   const closedMonth = all.filter((c) => (Array.isArray(c.care_stage_history) ? c.care_stage_history : [])
-    .some((h) => h && h.stage === 'Kí HĐMB' && inRange(h.at, month0, now + 1))).length;
-  const bookingNow = all.filter((c) => c.care_stage === 'Booking').length;
+    .some((h) => h && h.stage === CARE_STAGE_WON && inRange(h.at, month0, now + 1))).length;
+  const bookingNow = all.filter((c) => c.care_stage === CARE_STAGE_BOOKING).length;
 
   // Speed to lead: trung vị thời gian từ đăng ký → cuộc gọi đầu, khách đăng ký 30 ngày qua.
   const stl = all.filter((c) => inRange(c.registered_at || c.created_at, now - 30 * 86400000, now + 1))
@@ -5856,19 +6069,22 @@ function renderDashboard(mode) {
 
   // ---- 3b) Pipeline đang chăm (lớp Tiềm năng, theo bậc hiện tại) ----
   const hotMin = dashHotMin();
-  const pipeStages = CARE_STAGES.filter((s) => !LEAD_ONLY_STAGES.includes(s) && !isCareDone(s));
-  const activeQ = all.filter((c) => isQualified(c) && !isCareDone(c.care_stage));
+  // Phễu chính lớp 2 (D-008): Đang chăm sóc · Xem dự án · Booking & Làm hồ sơ — Nuôi dài hạn / Đã mua / Loại ở ngoài.
+  const pipeStages = CARE_STAGES.filter((s) => !LEAD_ONLY_STAGES.includes(s));
+  const activeQ = all.filter((c) => isQualified(c) && inFunnel(c));
   const stageOf = (c) => (pipeStages.includes(c.care_stage) ? c.care_stage : QUALIFIED_STAGE);
   const pipeTotal = activeQ.length || 1;
   const pipeRows = pipeStages.map((s) => {
     const list = activeQ.filter((c) => stageOf(c) === s);
     const value = list.reduce((sum, c) => sum + (Number(c.apt_price) || 0), 0);
-    return { s, n: list.length, hot: list.filter((c) => (c.interest_level || 0) >= hotMin).length, value };
+    const over = list.filter((c) => { const st = window.VELOCITY && VELOCITY.status(c); return st && st.state === 'over'; }).length;
+    return { s, n: list.length, hot: list.filter((c) => (c.interest_level || 0) >= hotMin).length, value, over };
   });
+  const nurtureN = all.filter((c) => isQualified(c) && c.care_stage === CARE_STAGE_NURTURE).length;
   // Thẻ pipeline (2026-10-09): dòng tổng + thanh xếp chồng · 4 ô bậc (icon ô tròn màu bậc · tên · số ·
   // "N nóng" · % + thanh nhỏ; bấm → danh sách lọc bậc) · chân thẻ 3 số. Chữ đậm chỉ ở tiêu đề thẻ.
   const hotAll = activeQ.filter((c) => (c.interest_level || 0) >= hotMin).length;
-  const closedN = all.filter((c) => c.care_stage === 'Kí HĐMB').length;
+  const closedN = all.filter((c) => c.care_stage === CARE_STAGE_WON).length; // 1 khách = 1 căn
   const lostN = all.filter((c) => isQualified(c) && c.care_stage === CARE_STAGE_DROPPED).length;
   const pipeHtml = `
     <div class="pipe2-sum"><span>Tổng <span class="pipe2-num">${activeQ.length}</span> khách đang chăm sóc</span>
@@ -5881,20 +6097,27 @@ function renderDashboard(mode) {
         <span class="pipe2-stage">${escapeHtml(r.s)}</span>
         <span class="pipe2-n">${r.n}</span>
         <span class="pipe2-hotn${r.hot ? ' is-on' : ''}">${r.hot} nóng</span>
+        ${r.over ? `<span class="pipe2-over">${r.over} quá hạn SLA</span>` : ''}
         ${r.value ? `<span class="pipe2-val">${escapeHtml(formatPrice(r.value))}</span>` : ''}
         <span class="pipe2-pct">${pct}%</span>
         <span class="pipe2-track"><span style="width:${pct}%"></span></span>
       </button>`;
-    }).join('')}</div>
+    }).join('')}
+      <button type="button" class="pipe2-tile pipe2-won" data-go="won-list" style="--pc:${careColor(CARE_STAGE_WON)}" title="Xem khách đã ký HĐMB">
+        <span class="pipe2-ic" aria-hidden="true">${stageIcon(CARE_STAGE_WON)}</span>
+        <span class="pipe2-stage">★ Đã ký HĐMB</span>
+        <span class="pipe2-n">${closedN}</span>
+        <span class="pipe2-hotn">căn · milestone chốt deal</span>
+      </button></div>
     <div class="pipe2-foot">
       <div class="pipe2-stat"><span class="pipe2-sic" aria-hidden="true">${DASH_IC.qual}</span><span><span class="pipe2-big">${activeQ.length}</span><span class="pipe2-cap">khách đang chăm sóc</span></span></div>
       <div class="pipe2-stat"><span class="pipe2-sic is-hot" aria-hidden="true">${DASH_IC.flame}</span><span><span class="pipe2-big">${pctOf(hotAll, pipeTotal)}%</span><span class="pipe2-cap">khách nóng</span></span></div>
-      <div class="pipe2-stat"><span class="pipe2-sic" aria-hidden="true">${DASH_IC.deal}</span><span class="pipe2-cap">đã chốt ${closedN}<br>không chốt ${lostN}</span></div>
+      <div class="pipe2-stat"><span class="pipe2-sic" aria-hidden="true">${DASH_IC.deal}</span><span class="pipe2-cap">nuôi dài hạn ${nurtureN}<br>không chốt ${lostN}</span></div>
     </div>`;
   const pipeCard = `<div class="dash-card dash-pipe">
       <div class="pipe2-head"><h3>Pipeline đang chăm sóc</h3>
         <button type="button" class="up2-all" data-go="pipeline-list">Xem chi tiết <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div>
-      <p class="dash-hint">Bấm 1 bậc để xem danh sách khách ở bậc đó. Giá trị = tổng giá căn đang nhắm.</p>
+      <p class="dash-hint">Bấm 1 bậc để xem danh sách khách ở bậc đó. Giá trị = tổng giá căn đang nhắm. Nuôi dài hạn nằm ngoài phễu.</p>
       ${pipeHtml}
     </div>`;
 
@@ -5918,7 +6141,7 @@ function renderDashboard(mode) {
       ${perfRow('call', '#3E6A8A', 'Cuộc gọi', cur.calls, prev.calls)}
       ${perfRow('talked', '#2B7A8C', 'Nói chuyện được', cur.talked, prev.talked)}
       ${perfRow(STAGE_ICON[QUALIFIED_STAGE], careColor(QUALIFIED_STAGE), 'Chuyển Tiềm năng', cur.qualified, prev.qualified)}
-      ${perfRow('contract', careColor('Kí HĐMB'), 'Booking / Kí', cur.deals, prev.deals)}
+      ${perfRow('contract', careColor(CARE_STAGE_WON), 'Booking / Kí', cur.deals, prev.deals)}
     </div>
     <div class="pipe2-foot perf2-foot">
       <div class="pipe2-stat"><span class="pipe2-sic" aria-hidden="true">${icon('idle')}</span>
@@ -5951,6 +6174,78 @@ function renderDashboard(mode) {
     </div>`;
 }
 
+// ---- PHỄU & TỐC ĐỘ (D-008) — 5 giai đoạn theo VELOCITY.config.order + milestone Đã ký HĐMB ----
+// Thời gian từng giai đoạn của 1 khách:
+//   Đăng kí mới = đăng ký (giờ đêm dời sáng) → cuộc gọi đầu · Đang tiếp cận = cuộc gọi đầu → Đạt / Loại
+//   Lớp 2 = các lượt trong care_stage_history (bậc cũ đã gộp quy về bậc mới); lượt đang chạy tính tới bây giờ.
+// Khách đang Nuôi dài hạn KHÔNG tính (rút khỏi phễu để không méo tỉ lệ chuyển đổi).
+function funnelVelocityHtml(all, nowMs) {
+  const V = window.VELOCITY; if (!V) return '';
+  const keys = V.config.order, P = V.config.phases;
+  const keyOfStage = (st) => keys.find((k) => P[k].stage && P[k].stage === normStage(st));
+  const reach = {}, sum = {}, cnt = {}, over = {};
+  keys.forEach((k) => { reach[k] = 0; sum[k] = 0; cnt[k] = 0; over[k] = 0; });
+  let won = 0, nurture = 0, dropped = 0;
+  const addSpan = (k, a, b) => { if (!isNaN(a) && !isNaN(b) && b >= a) { sum[k] += b - a; cnt[k]++; } };
+  for (const c of all) {
+    if (c.care_stage === CARE_STAGE_NURTURE) { nurture++; continue; }
+    if (c.care_stage === CARE_STAGE_DROPPED || (!isQualified(c) && c.disqualified_at)) dropped++;
+    const got = new Set(['new_lead']);
+    const calls = callAttemptsOf(c).filter((a) => a && a.at).sort((a, b) => a.at.localeCompare(b.at));
+    const reg = V.newLeadStart(Date.parse(c.registered_at || c.created_at));
+    const first = calls.length ? Date.parse(calls[0].at) : NaN;
+    const q = c.qualified_at ? Date.parse(c.qualified_at) : NaN;
+    const leadEnd = !isNaN(q) ? q : c.disqualified_at ? Date.parse(c.disqualified_at) : nowMs;
+    // Khách vào thẳng lớp 2 không qua cuộc gọi nào (nhập tay đã xác nhận) → không có số liệu "chờ gọi".
+    if (!isNaN(first) || !isQualified(c)) addSpan('new_lead', reg, !isNaN(first) ? Math.min(first, leadEnd) : leadEnd);
+    if (!isNaN(first) && first <= leadEnd) { got.add('approach'); addSpan('approach', first, leadEnd); }
+    if (isQualified(c)) {
+      got.add('approach'); got.add('care');
+      const hist = (Array.isArray(c.care_stage_history) ? c.care_stage_history : []).filter((h) => h && h.at && h.stage && !LEAD_ONLY_STAGES.includes(h.stage))
+        .sort((a, b) => a.at.localeCompare(b.at));
+      const runs = [];
+      for (const h of hist) { const st = normStage(h.stage); if (runs.length && runs[runs.length - 1].st === st) continue; runs.push({ st, at: Date.parse(h.at) }); }
+      if (!runs.length) runs.push({ st: normStage(c.care_stage), at: q });
+      runs.forEach((r, i) => {
+        if (r.st === CARE_STAGE_WON) { got.add('won'); return; }
+        const k = keyOfStage(r.st); if (!k) return;
+        got.add(k);
+        addSpan(k, r.at, i < runs.length - 1 ? runs[i + 1].at : nowMs);
+      });
+      if (c.care_stage === CARE_STAGE_WON) got.add('won');
+    }
+    // Đã tới giai đoạn sau → tính là đã qua các giai đoạn trước (khách nhảy bậc).
+    const maxI = Math.max(...keys.map((k, i) => (got.has(k) ? i : -1)), got.has('won') ? keys.length - 1 : -1);
+    keys.forEach((k, i) => { if (i <= maxI) reach[k]++; });
+    if (got.has('won')) won++;
+    const st = isMine(c) && V.status(c, nowMs);
+    if (st && st.state === 'over') over[st.key]++;
+  }
+  const convs = keys.map((k, i) => (i === 0 ? null : pctOf(reach[k], reach[keys[i - 1]])));
+  let worst = -1, worstV = 101;
+  convs.forEach((v, i) => { if (v != null && reach[keys[i - 1]] > 0 && v < worstV) { worstV = v; worst = i; } });
+  const maxN = reach[keys[0]] || 1;
+  let html = '<div class="vel">';
+  keys.forEach((k, i) => {
+    const cfg = P[k];
+    if (i > 0) html += `<div class="funnel2-conv${i === worst ? ' is-bottleneck' : ''}">↓ ${convs[i]}%${i === worst ? ' · nút thắt' : ''}</div>`;
+    const avg = cnt[k] ? sum[k] / cnt[k] : null;
+    const cls = avg == null ? '' : avg >= cfg.max ? 'call-missed' : avg >= cfg.target ? 'call-soon' : 'call-far';
+    const color = careColor(cfg.stage || CARE_STAGES[i]);
+    html += `<div class="vel-row">
+      <div class="vel-bar"><span class="vel-fill" style="width:${Math.max(pctOf(reach[k], maxN), 2)}%;background:${color}"></span>
+        <span class="vel-name">${stageIcon(cfg.stage || CARE_STAGES[i], 'vel-ic')}${escapeHtml(cfg.label)}</span><span class="vel-n">${reach[k]} khách</span></div>
+      <div class="vel-meta">${avg != null ? `<span class="call-tag ${cls}">TB ${escapeHtml(V.fmt(avg))}</span>` : '<span class="vel-dim">chưa có dữ liệu</span>'}
+        <span>mục tiêu ${escapeHtml(cfg.targetText)} · tối đa ${escapeHtml(cfg.maxText)}</span>
+        ${over[k] ? `<span class="vel-over">${over[k]} đang quá hạn</span>` : ''}</div>
+    </div>`;
+  });
+  html += `<div class="funnel2-conv">↓ ${pctOf(won, reach[keys[keys.length - 1]])}%</div>
+    <div class="vel-won">${icon('contract', 'vel-ic')}<span>★ Đã ký HĐMB: <span class="vel-won-n">${won}</span> căn</span><span class="vel-dim">milestone · không tính giờ</span></div>
+    <div class="vel-out">Ngoài phễu: Nuôi dài hạn ${nurture} khách (không tính) · Loại / không chốt ${dropped} khách</div></div>`;
+  return html;
+}
+
 // Các biểu đồ báo cáo (trước đây là toàn bộ Tổng quan) — nay nằm trong mục "Phân tích" thu gọn.
 function renderDashAnalytics(all) {
   const weeks = lastNWeeks(8);
@@ -5958,83 +6253,8 @@ function renderDashAnalytics(all) {
   const weekIdx = (iso) => { const k = mondayOf(iso).getTime(); return wkeys.has(k) ? wkeys.get(k) : -1; };
   const cards = [];
   const nowMs = Date.now();
-  const TERMINAL_STAGES = new Set(['Kí HĐMB', CARE_STAGE_DROPPED]);
-  const sCount = {}, sSum = {}, sCnt = {};
-  all.forEach((c) => {
-    const flat = Array.isArray(c.care_stage_history)
-      ? [...c.care_stage_history].sort((a, b) => (a.at || '').localeCompare(b.at || ''))
-      : [];
-    if (!flat.length) return;
-    // Rút gọn thành danh sách LƯỢT: at = mốc VÀO bậc (mốc đầu của chuỗi cùng bậc).
-    const runs = [];
-    for (const e of flat) {
-      const prev = runs[runs.length - 1];
-      if (prev && prev.stage === e.stage) continue;
-      runs.push({ stage: e.stage, at: e.at });
-    }
-    // Chuẩn hoá lượt đầu = 'Đăng kí mới' tại mốc đăng ký (giống renderCareHistory):
-    // lượt đầu đã đúng bậc → gắn lại mốc; chưa có → chèn 1 lượt tổng hợp ở đầu.
-    const regAt = c.registered_at || c.created_at || null;
-    if (runs[0].stage === CARE_STAGE_DEFAULT) {
-      if (regAt) runs[0].at = regAt;
-    } else {
-      let at = regAt || runs[0].at;
-      if (runs[0].at && at && at > runs[0].at) at = runs[0].at; // không muộn hơn lượt sau
-      runs.unshift({ stage: CARE_STAGE_DEFAULT, at });
-    }
-    const seen = new Set(); // mỗi bậc đếm 1 lần cho 1 khách (phòng khách quay lại bậc cũ)
-    for (let i = 0; i < runs.length; i++) {
-      const st = runs[i].stage;
-      if (!st) continue;
-      if (!seen.has(st)) { seen.add(st); sCount[st] = (sCount[st] || 0) + 1; }
-      if (TERMINAL_STAGES.has(st)) continue; // bậc thời điểm → không tính thời lượng
-      const endMs = (i < runs.length - 1) ? new Date(runs[i + 1].at).getTime() : nowMs;
-      const dur = endMs - new Date(runs[i].at).getTime();
-      if (dur >= 0) { sSum[st] = (sSum[st] || 0) + dur; sCnt[st] = (sCnt[st] || 0) + 1; }
-    }
-  });
-
-  // 7 thanh (mỗi bậc 1 thanh, màu theo bậc, opacity giảm để chữ nổi). Chữ CHÌM trong
-  // thanh: [Tên bậc] trái · [Thời gian TB] giữa · [Số khách] phải.
-  // Trục căn chữ thời gian (căn TRÁI từ trục này): dịch trái NỬA bề rộng chuỗi mẫu
-  // '2 ngày 10 giờ' để chuỗi cỡ đó nằm ĐÚNG GIỮA thanh. Đo theo font THỰC của thiết bị
-  // (Android/Mac khác nhau) → luôn chuẩn. Bơm vào CSS qua biến --t-shift.
-  const _cv = renderDashboard._cv || (renderDashboard._cv = document.createElement('canvas'));
-  const _ctx = _cv.getContext('2d');
-  _ctx.font = `12px ${getComputedStyle(document.body).fontFamily}`;
-  const timeShift = Math.round(_ctx.measureText('2 ngày 10 giờ').width / 2);
-  let funnelHtml = `<div class="funnel2" style="--t-shift:${timeShift}px">`;
-  const maxCount = sCount[CARE_STAGE_DEFAULT] || 1; // 'Đăng kí mới' = tổng khách → thanh dài nhất
-  // % chuyển đổi từ bậc trước sang bậc này (= số khách bậc này / số khách bậc trước) +
-  // tìm "nút thắt" (bước rớt nhiều nhất — % thấp nhất mà bậc trước còn khách).
-  const convs = CARE_STAGES.map((s, i) => (i === 0 ? null : pctOf(sCount[s] || 0, sCount[CARE_STAGES[i - 1]] || 0)));
-  let worst = -1, worstV = 101;
-  convs.forEach((v, i) => { if (v != null && (sCount[CARE_STAGES[i - 1]] || 0) > 0 && v < worstV) { worstV = v; worst = i; } });
-  CARE_STAGES.forEach((s, i) => {
-    // Dòng % chuyển đổi giữa bậc trước và bậc này (không có ở bậc đầu).
-    if (i > 0) {
-      const bn = i === worst;
-      funnelHtml += `<div class="funnel2-conv${bn ? ' is-bottleneck' : ''}">↓ ${convs[i]}%${bn ? ' · nút thắt' : ''}</div>`;
-    }
-    const n = sCount[s] || 0;
-    const avgMs = sCnt[s] ? sSum[s] / sCnt[s] : null;
-    const barPct = Math.max(pctOf(n, maxCount), 2);
-    const timeTxt = avgMs != null ? escapeHtml(formatDuration(avgMs)) : '';
-    funnelHtml += `
-      <div class="funnel2-row">
-        <div class="funnel2-fill" style="width:${barPct}%;background:${careColor(s)}"></div>
-        <div class="funnel2-txt">
-          <span class="funnel2-stage">${escapeHtml(s)}</span>
-          <span class="funnel2-time">${timeTxt}</span>
-          <span class="funnel2-n">${n} khách</span>
-        </div>
-      </div>`;
-  });
-  funnelHtml += '</div>';
-  const dropped = all.filter((c) => c.care_stage === CARE_STAGE_DROPPED).length;
-  if (dropped) funnelHtml += `<div class="funnel-dropped">Đã loại (kết thúc, không chốt): ${dropped} khách</div>`;
-  cards.push(dashCard('PHỄU KHÁCH HÀNG', funnelHtml,
-    'Thanh dài = nhiều khách (dạng phễu). Mỗi thanh: tên bậc · thời gian TB ở bậc · số khách đã/đang ở bậc. Dòng % = tỉ lệ đi tiếp sang bậc sau (nút thắt = rớt nhiều nhất).'));
+  cards.push(dashCard('Phễu & tốc độ (SLA)', funnelVelocityHtml(all, nowMs),
+    'Mỗi giai đoạn: số khách đã qua · thời gian trung bình so với mục tiêu / hạn mức · số khách đang quá hạn. Dòng % = tỉ lệ đi tiếp (nút thắt = rớt nhiều nhất). Khách Nuôi dài hạn không tính.'));
 
   // 2) HIỆU QUẢ BÁN HÀNG (thay "Khách mới theo tuần") ------------------------
   // 3 chuỗi theo thời gian: Khách mới (ngày đăng ký) · Đã liên hệ (số khách có ≥1 cuộc gọi trong
@@ -6148,6 +6368,7 @@ function dashCardClick(e) {
   if (!go) return;
   if (go.dataset.go === 'leads') { showLeadView(); return; }
   if (go.dataset.go === 'pipeline-list') { setProgressFilter('active'); stageFilter = ''; syncStageLabel(); showListView(); window.scrollTo(0, 0); return; }
+  if (go.dataset.go === 'won-list') { setProgressFilter('won'); stageFilter = ''; syncStageLabel(); showListView(); window.scrollTo(0, 0); return; }
   if (go.dataset.go === 'leads-new') { // → Khách mới, lọc "Chưa gọi" (bỏ các lọc khác + từ khoá tìm)
     $('#search-input').value = '';
     leadSrcFilter = ''; leadDatePreset = 'all'; leadAptTypeFilter = ''; leadFilter = 'new'; resetSearchPages();
@@ -6178,7 +6399,7 @@ function dashCardClick(e) {
 function populateSelects() {
   // Bộ lọc "Tiến độ" nay là DROPDOWN tuỳ biến (như dropdown Trạng thái).
   // Trang chủ chỉ có khách lớp 2 → không liệt kê bậc thuộc lớp 1 (LEAD_ONLY_STAGES).
-  $('#stage-pop').innerHTML = [['', 'Tất cả'], ...CARE_STAGE_OPTIONS.filter((s) => !LEAD_ONLY_STAGES.includes(s)).map((s) => [s, s])]
+  $('#stage-pop').innerHTML = [['', 'Tất cả'], ...CARE_STAGE_OPTIONS.filter((s) => !LEAD_ONLY_STAGES.includes(s)).map((s) => [s, careLabel(s)])]
     .map(([val, label]) =>
       `<button type="button" class="status-opt${val === stageFilter ? ' is-sel' : ''}" data-value="${escapeHtml(val)}" role="option">${escapeHtml(label)}</button>`
     ).join('');
@@ -6187,7 +6408,7 @@ function populateSelects() {
   renderSortOptions();
 
   // Form chỉ sửa tiến độ cho khách lớp 2 → bỏ bậc lớp 1 (lead dùng hộp "Khách mới").
-  const formStageOptions = ['<option value="">— Chưa xác định —</option>', ...CARE_STAGE_OPTIONS.filter((s) => !LEAD_ONLY_STAGES.includes(s)).map((s) => `<option value="${s}">${s}</option>`)].join('');
+  const formStageOptions = ['<option value="">— Chưa xác định —</option>', ...CARE_STAGE_OPTIONS.filter((s) => !LEAD_ONLY_STAGES.includes(s)).map((s) => `<option value="${s}">${careLabel(s)}</option>`)].join('');
   $('#customer-form').care_stage.innerHTML = formStageOptions;
 
   // Trạng thái liên lạc (độc lập với tiến độ) — dropdown trong form.
@@ -6257,7 +6478,7 @@ function closeStagePop() {
 // Đồng bộ nhãn nút Tiến độ + đánh dấu mục đang chọn theo stageFilter.
 function syncStageLabel() {
   const lbl = $('#stage-label');
-  if (lbl) lbl.textContent = stageFilter || 'Tất cả';
+  if (lbl) lbl.textContent = stageFilter ? careLabel(stageFilter) : 'Tất cả';
   $$('#stage-pop .status-opt').forEach((o) => o.classList.toggle('is-sel', o.dataset.value === stageFilter));
 }
 // Đóng TẤT CẢ (gồm cả panel Bộ lọc). Dùng cho các đóng CHỦ ĐÍCH: bấm icon phễu, nút "Áp dụng".
@@ -6645,7 +6866,11 @@ function parseImportValue(key, raw) {
     case 'apt_type': return canonicalAptType(String(s).trim()) || null;
     case 'projects': return String(s).split(/[,;]/).map((x) => x.trim()).filter(Boolean);
     case 'interest_level': { const n = Math.round(Number(String(s).replace('%', '').trim())); return isFinite(n) ? Math.max(0, Math.min(100, n)) : null; }
-    case 'care_stage': { const st = String(s).trim(); return CARE_STAGE_OPTIONS.find((x) => x.toLowerCase() === st.toLowerCase()) || null; }
+    case 'care_stage': { // nhận cả tên cũ ('Hỗ trợ hồ sơ' / 'Booking') và nhãn hiển thị ('Đã ký HĐMB', 'Không chốt')
+      const st = String(s).trim().toLowerCase();
+      const hit = [...CARE_STAGE_OPTIONS, ...Object.keys(CARE_STAGE_LEGACY)].find((x) => x.toLowerCase() === st || careLabel(x).toLowerCase() === st);
+      return hit ? normStage(hit) : null;
+    }
     default: return null;
   }
 }

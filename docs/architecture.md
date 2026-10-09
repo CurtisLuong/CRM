@@ -88,6 +88,10 @@ Quyết định D-001 tại `docs/decisions.md`. Tóm tắt:
 
 Quyết định D-003. `owner_id` = người phụ trách; `followers uuid[]` = người cùng theo dõi (chỉ xem); `team_members` = đồng nghiệp do admin thêm bằng email (RPC `team_list` / `team_add` / `team_remove` / `team_set_my_name`). RLS: xem = phụ trách / theo dõi / admin; sửa, xoá = phụ trách / admin; người phụ trách mới phải thuộc nhóm; trigger `guard_customer_assignment` chặn đổi `owner_id`/`followers` trái phép. Client: `js/team.js` (bộ lọc "Người phụ trách", hộp Giao khách, hộp Đồng nghiệp, chế độ chỉ xem), `js/db.js` `assertWritable()` chặn ghi khách không phụ trách. Pull vẫn kéo mọi dòng RLS cho phép; việc / nhắc / thống kê dùng `ownedCustomers()`. Migration: `SQL/add_team_assign.sql`.
 
+## Phễu và tốc độ (SLA)
+
+Quyết định D-008. Bậc (`care_stage`): 5 giai đoạn `Đăng kí mới` → `Đang tiếp cận` (lớp 1) → `Đang chăm sóc` → `Xem dự án` → `Booking & Làm hồ sơ`; ngoài phễu: `Nuôi dài hạn`, `Kí HĐMB` (milestone Đã mua), `Loại`. Hai tên cũ `Hỗ trợ hồ sơ`/`Booking` còn trong lịch sử và được DB cho phép (bản app cũ), app quy về `Booking & Làm hồ sơ` (`normStage`). Mục tiêu / hạn mức, giờ tính SLA khách mới, checklist Booking và tự xử lý quá hạn khai báo một chỗ ở `js/velocity.js` (`VELOCITY_CONFIG`). Cột: `booking_steps jsonb` ({mã bước: thời điểm}), `sla_anchor_at` (đặt lại đồng hồ). Tự xử lý chạy ở client mỗi lần nạp danh sách (`runSlaAutomation` trong `js/app.js`), chỉ khách mình phụ trách; mốc tự chuyển gắn `{auto:'sla'}` trong `care_stage_history` để hoàn tác. Migration: `SQL/add_funnel_velocity.sql`. Hướng dẫn: `docs/funnel-velocity.md`.
+
 ## Nhật ký cuộc gọi
 
 Quyết định D-002. Dữ liệu ở `customers.call_attempts` (không bảng riêng): `{at, result, note, duration, origin, device_id, direction}`; `result` trống = chưa ghi chú. Logic + hộp ghi chung ở `js/calls.js`:

@@ -17,6 +17,7 @@ Giữ root dễ nhìn và giúp AI chỉ đọc thông tin cần cho task. `CLAU
 | `project-status.md` | Snapshot và điểm cần xác minh | Handoff hoặc task phụ thuộc trạng thái |
 | `loan-module.md` | Quy tắc tính vay, cập nhật lãi suất, gỡ lỗi | Sửa module vay; tài liệu hiện có, không được tái tạo trong bộ này |
 | `gio-hang.md` | Giỏ hàng, chỉnh sửa và nhập Excel | Sửa catalog; tài liệu hiện có, không được tái tạo trong bộ này |
+| `funnel-velocity.md` | Phễu 5 giai đoạn, SLA (mục tiêu / hạn mức), tự chuyển quá hạn, checklist Booking — cấu hình ở `js/velocity.js` | Sửa bậc phễu / SLA; trả lời chủ dự án cách chỉnh |
 | `huong-dan-follow-up.md` | Hướng dẫn dùng nhịp follow-up + mẫu tin Zalo, và cách chỉnh thông số trong `js/followup.js` | Sửa nhịp gọi / khung giờ / mẫu Zalo; trả lời chủ dự án cách chỉnh |
 | `huong-dan-nhom.md` | Hướng dẫn cài đặt nhóm và giao khách cho đồng nghiệp (cho chủ dự án) | Khi thêm đồng nghiệp / hỏi cách giao khách |
 | `zalo-android-issue.md` | Lỗi tồn đọng: nút Zalo trong app APK Android — hiện tượng, cách đã thử, phương án tiếp | Trước khi sửa cách mở Zalo / link ra ngoài trên vỏ Android |

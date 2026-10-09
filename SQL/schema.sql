@@ -64,10 +64,11 @@ create table if not exists public.customers (
     'Đang tiếp cận',
     'Đang chăm sóc',
     'Xem dự án',
-    'Hỗ trợ hồ sơ',
-    'Booking',
-    'Kí HĐMB',
-    'Loại'                     -- kết thúc chăm sóc, không chốt được (bị loại)
+    'Booking & Làm hồ sơ',     -- gộp 'Hỗ trợ hồ sơ' + 'Booking' (add_funnel_velocity.sql, D-008)
+    'Nuôi dài hạn',            -- rút khỏi phễu chính
+    'Kí HĐMB',                 -- milestone Đã mua (deal won)
+    'Loại',                    -- kết thúc chăm sóc, không chốt được (bị loại)
+    'Hỗ trợ hồ sơ', 'Booking'  -- tên cũ, chỉ để bản app cũ đồng bộ không lỗi
   )),
   -- Trạng thái LIÊN LẠC gần nhất — ĐỘC LẬP với care_stage (kênh/kết quả liên hệ,
   -- không phải độ sâu phễu). Xem change_care_stages_and_contact_status.sql.
@@ -102,6 +103,9 @@ create table if not exists public.customers (
   disqualify_reason text,             -- mã lý do (xem LEAD_DROP_REASONS trong js/app.js)
   disqualify_note text,
   call_attempts jsonb not null default '[]'::jsonb, -- mảng {at, result, note} các lần gọi ở lớp 1
+  -- PHỄU SLA (add_funnel_velocity.sql, D-008): checklist bậc Booking & Làm hồ sơ {mã bước: thời điểm}
+  booking_steps jsonb not null default '{}'::jsonb,
+  sla_anchor_at timestamptz,          -- mốc đặt lại đồng hồ SLA (vd mở lại khách mới bị tự loại)
   updated_by uuid,
   -- đường dẫn ảnh đại diện trong Storage bucket customer-docs (xem add_avatar.sql)
   avatar_path text

@@ -33,7 +33,7 @@ File nguồn không quy định chính xác mã màu, spacing, breakpoint, font 
 
 **Một khái niệm = một icon, ở mọi nơi.** Icon của bậc chăm sóc, hành động / loại việc và các khái niệm chính chỉ khai báo ở `js/icons.js` (`ICON_PATHS`, bậc → icon ở `STAGE_ICON`). Đổi icon 1 khái niệm = sửa 1 dòng ở đó → thanh điều hướng, Tổng quan, hồ sơ, hộp Khách mới, checklist, lịch hẹn… đổi theo. Không vẽ SVG riêng cho khái niệm đã có; khái niệm mới → thêm vào `ICON_PATHS` trước rồi dùng.
 
-- JS: `icon('call')`, `icon('call', 'btn-ic')`, `stageIcon('Booking')`. HTML tĩnh: `<span class="…" data-icon="call"></span>` (tự điền khi tải trang). Icon nét 24×24, stroke 1.8, màu theo `currentColor`.
+- JS: `icon('call')`, `icon('call', 'btn-ic')`, `stageIcon('Booking & Làm hồ sơ')`. HTML tĩnh: `<span class="…" data-icon="call"></span>` (tự điền khi tải trang). Icon nét 24×24, stroke 1.8, màu theo `currentColor`.
 - Icon giao diện thuần (mũi tên ›, ✕ đóng, ⋯, phễu lọc, sắp xếp, mây đồng bộ, máy ảnh, bút sửa) không thuộc bảng này.
 
 | Khái niệm | Tên icon | Dùng ở |
@@ -55,10 +55,12 @@ File nguồn không quy định chính xác mã màu, spacing, breakpoint, font 
 | Nói chuyện được | `talked` | Hiệu suất |
 | Nhắn tin / Zalo | `message` | loại việc |
 | Hẹn cafe | `cafe` | loại việc |
-| Hồ sơ · bậc Hỗ trợ hồ sơ · Tài liệu | `docs` | loại việc, pipeline, hồ sơ |
+| Hồ sơ · Tài liệu | `docs` | loại việc, hồ sơ |
 | Tham quan nhà mẫu · bậc Xem dự án | `visit` | loại việc, pipeline |
-| Booking | `booking` | pipeline |
-| Kí HĐ · bậc Kí HĐMB · Chốt | `contract` | loại việc, thẻ chỉ số, pipeline, Hiệu suất |
+| bậc Booking & Làm hồ sơ | `booking` | pipeline, phễu |
+| Nuôi dài hạn | `nurture` | thẻ khách, hồ sơ |
+| SLA · tốc độ phễu | `sla` | hồ sơ, smartlist |
+| Kí HĐ · milestone Đã ký HĐMB · Chốt | `contract` | loại việc, thẻ chỉ số, pipeline, Hiệu suất |
 | Việc · Việc tiếp theo | `task` | loại việc Khác, hồ sơ, thẻ chỉ số |
 | Loại / không chốt | `drop` | bậc Loại |
 | Đến giờ / quá giờ hẹn | `alarm` | smartlist |
@@ -81,15 +83,22 @@ Bảng màu nhãn (khái niệm trùng icon thì trùng màu):
 | Xanh thép | `#3E6A8A` | Gọi · bậc Đang tiếp cận · Hẹn gọi lại · Việc hôm nay (thẻ chỉ số) |
 | Chàm | `#5160A8` | Nhắn tin / Zalo · bậc Đang chăm sóc (Tiềm năng) · Chờ kết bạn Zalo |
 | Xanh dầu | `#2B7A8C` | Tham quan · bậc Xem dự án · Nói chuyện được · Phản hồi tốt |
-| Tím | `#6E5F99` | Hồ sơ · bậc Hỗ trợ hồ sơ · nhóm thông tin / Gợi ý |
-| Xanh than | `#2E3A6E` | bậc Booking |
-| Mận | `#8A4A78` | Kí HĐ · bậc Kí HĐMB · Chốt |
+| Tím | `#6E5F99` | Hồ sơ · nhóm thông tin / Gợi ý |
+| Xanh than | `#2E3A6E` | bậc Booking & Làm hồ sơ |
+| Xám thép | `#6B7A8F` | Nuôi dài hạn (ngoài phễu) |
+| Mận | `#8A4A78` | Kí HĐ · milestone Đã ký HĐMB · Chốt |
 | Nâu | `#7A5A44` | Hẹn cafe · Khách mới vào · Chưa gọi được · nhóm Khách nóng |
 | Xám | `#9AA3AE` / `#9A9A90` / `#6b6b60` | bậc Đăng kí mới · Không chốt / Mất liên lạc · việc Khác |
 
 Màu loại việc khai báo ở `.kind-*` (`css/style.css`), màu bậc ở `CARE_STAGE_COLORS`, trạng thái liên hệ ở `CONTACT_STATUS_COLORS` (`js/app.js`). Thêm nhãn mới → chọn trong bảng trên hoặc màu lạnh / trung tính khác, không chọn đỏ / vàng / cam / xanh lá.
 
 Thang độ quan tâm (`INTEREST_TIERS`, `js/app.js`): tông mận nhạt → đậm + số ngọn lửa (`icon('hot')`) — Nguội `#8B93A0` (không lửa) · Ấm `#B98AA8` (1 lửa) · Nóng `#8A4A78` (2) · Rất nóng `#5E2A52` (3). Mận = màu Kí HĐ: khách càng nóng càng gần chốt.
+
+## Phễu 5 giai đoạn & SLA (D-008, 2026-10-09)
+
+- Pill tiến độ: vòng % + "x/5" + tên bậc; Đã mua = "★ Đã ký HĐMB" nền mận nhạt; Nuôi dài hạn = icon `nurture`, nền xám thép, không phân số; Không chốt = "✕" xám.
+- Nhãn SLA dùng chung màu đếm ngược: quá mục tiêu = vàng sáng, quá hạn mức = đỏ đậm; còn trong mục tiêu thì thẻ khách không hiện (hồ sơ / hộp Khách mới hiện xám nhạt).
+- Hồ sơ: thẻ "Tốc độ phễu" (thanh thời gian, vạch = mục tiêu, cuối thanh = hạn mức) + 4 ô tích Booking + nút "Xác nhận đã Ký HĐMB". Phân tích: thẻ "Phễu & tốc độ (SLA)" thay thẻ phễu cũ; Pipeline thêm ô milestone "★ Đã ký HĐMB".
 
 ## Tab Công việc & Phân tích (D-007, 2026-10-09)
 

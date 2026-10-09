@@ -1,7 +1,7 @@
 // sw.js — cache "app shell" để mở app được kể cả khi mất mạng.
 // Dữ liệu khách hàng KHÔNG cache ở đây — nó nằm trong IndexedDB (xem js/db.js).
 
-const CACHE_NAME = 'crm-khach-hang-v79';
+const CACHE_NAME = 'crm-khach-hang-v80';
 const NET_TIMEOUT = 5000; // ms: mạng chậm quá thì rơi về cache, tránh treo "Đang tải lại..."
 const APP_SHELL = [
   '/',
@@ -18,6 +18,7 @@ const APP_SHELL = [
   '/js/notifications.js',
   '/js/icons.js',
   '/js/followup.js',
+  '/js/velocity.js',
   '/js/catalog.js',
   '/js/app.js',
   '/js/team.js',

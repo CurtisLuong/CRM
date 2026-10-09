@@ -21,6 +21,7 @@ Chủ dự án không có background lập trình: ưu tiên giải pháp đơn 
 - Quyền dữ liệu dùng RLS và GRANT; không bỏ một lớp để thay thế cho lớp kia.
 - Thông tin khách được thu thập dần. Theo đặc tả gốc, `phone`, `full_name`, `owner_id` là bắt buộc; các field thông tin khách khác cho phép trống. Đối chiếu schema khi sửa.
 - Gợi ý hẹn gọi và preset giờ gọi phải thống nhất toàn app (D-005): chỉ khai báo khung giờ ở `FOLLOWUP_CONFIG.callSlots` (`js/followup.js`); mọi chỗ khác đọc từ đó, sửa 1 nơi là đổi tất cả.
+- Bậc phễu và SLA (mục tiêu / hạn mức từng giai đoạn, tự chuyển quá hạn, checklist Booking) phải thống nhất toàn app (D-008): chỉ khai báo ở `VELOCITY_CONFIG` (`js/velocity.js`); mọi chỗ khác đọc từ đó.
 - Icon của bậc chăm sóc, hành động / loại việc và khái niệm chính phải thống nhất toàn app (D-006): chỉ khai báo ở `js/icons.js`; mọi chỗ khác dùng `icon()` / `stageIcon()` / `data-icon`, đổi 1 nơi là đổi tất cả.
 - Giữ phong cách báo cáo bất động sản trang trọng, bảng màu be/xanh rêu/cam đất. Theo quy tắc tại `docs/design.md` khi sửa UI.
 - Tái sử dụng cấu trúc, style và module hiện có khi phù hợp; không đổi kiến trúc để giải quyết một chỉnh sửa nhỏ.
@@ -39,6 +40,7 @@ Chủ dự án không có background lập trình: ưu tiên giải pháp đơn 
 | Supabase/CDN, auth, RLS/GRANT | Phần JavaScript/Supabase trong `docs/pitfalls.md` |
 | PWA, cache hoặc cập nhật app | Phần Service Worker trong `docs/pitfalls.md` |
 | Module vay | `docs/loan-module.md`; code trong `js/loan/` và `css/loan.css` |
+| Bậc phễu, SLA / tốc độ phễu, Nuôi dài hạn, Đã mua, checklist Booking | `docs/funnel-velocity.md`; `docs/decisions.md` D-008; `js/velocity.js` (cấu hình) |
 | Nhịp follow-up, gợi ý lịch gọi, khung giờ gọi, mẫu tin Zalo | `docs/huong-dan-follow-up.md`; `docs/decisions.md` D-005; `js/followup.js` (cấu hình), `js/calls.js` |
 | Nhóm sale, giao khách, quyền xem/sửa khách | `docs/decisions.md` D-003; `docs/architecture.md` (Nhóm và giao khách); `js/team.js`, `SQL/add_team_assign.sql` |
 | Giỏ hàng hoặc nhập Excel | `docs/gio-hang.md`; `js/catalog.js`, `js/catalog-ui.js` |

@@ -6,6 +6,15 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-09 — Phễu 5 giai đoạn + SLA (velocity) (D-008)
+
+- Bậc: Đăng kí mới → Đang tiếp cận → Đang chăm sóc → Xem dự án → **Booking & Làm hồ sơ** (gộp Hỗ trợ hồ sơ + Booking) → ★ milestone **Đã ký HĐMB** (nút "Xác nhận đã Ký HĐMB", khách vào mục Đã mua). Thêm **Nuôi dài hạn** ngoài phễu.
+- SLA mục tiêu / hạn mức từng giai đoạn (`js/velocity.js`): nhãn vàng / đỏ đậm trên thẻ, hộp Khách mới, hồ sơ; nhóm "Quá hạn mức SLA phễu" ở Tổng quan; thông báo khi quá hạn mức.
+- Tự chuyển quá hạn: Đang tiếp cận > 7 ngày chưa nói chuyện được → Loại "Không liên lạc được"; Đang chăm sóc > 20 ngày → Nuôi dài hạn + hẹn gọi lại 3 tháng (Hoàn tác 3 ngày). Khách quá hạn từ trước được tính từ 2026-10-10.
+- Hồ sơ: thẻ "Tốc độ phễu" + 4 ô tích hồ sơ bậc Booking. Phân tích: thẻ "Phễu & tốc độ (SLA)" thay phễu cũ; Pipeline 3 bậc + ô "★ Đã ký HĐMB: X căn". Bộ lọc: Trong phễu · Nuôi dài hạn · Đã mua · Không chốt · Tất cả.
+- **Cần chạy `SQL/add_funnel_velocity.sql` trước khi deploy** (ràng buộc bậc mới, cột `booking_steps`, `sla_anchor_at`, đổi khách Hỗ trợ hồ sơ / Booking).
+- File: `SQL/add_funnel_velocity.sql`, `SQL/schema.sql`, `js/velocity.js` (mới), `js/app.js`, `js/db.js`, `js/notifications.js`, `js/followup.js`, `js/icons.js`, `index.html`, `css/style.css`, `sw.js` (v80), docs.
+
 ## 2026-10-09 — Màu nhãn & icon hành động bỏ đỏ / vàng / xanh lá
 
 - Đỏ, vàng, xanh lá chỉ còn dùng cho badge / cảnh báo cấp bách (quá hạn / sắp đến / đã xong). Nhãn và icon hành động chuyển sang bảng màu lạnh / trung tính: loại việc, bậc chăm sóc (vòng tiến độ, pipeline, phễu), bậc Không chốt (xám), trạng thái liên hệ, thẻ chỉ số Tổng quan, Hiệu suất, chú thích biểu đồ, avatar, icon tiêu đề thẻ. Quy tắc + bảng màu: `docs/design.md` mục "Màu nhãn & icon hành động".

@@ -25,7 +25,7 @@ const NOTIF_CONFIG = {
   callGraceMin: 30,   // phút ân hạn sau khi hết khung giờ gọi vẫn còn nhắc
   // Các bậc "kết thúc chăm sóc" — khách đã xong thì KHÔNG nhắc nữa.
   // (Giữ khớp với CARE_DONE_STAGES trong app.js — nếu đổi 1 bên nhớ đổi bên kia.)
-  doneStages: ['Kí HĐMB', 'Loại'],
+  doneStages: ['Kí HĐMB', 'Loại', 'Nuôi dài hạn'], // Nuôi dài hạn: ngoài phễu, chỉ nhắc theo lịch hẹn gọi
 };
 
 // ─── Helper thời gian (nội bộ, không đụng helper của app.js) ────────────────
@@ -120,6 +120,24 @@ registerRule({
       title: 'Khách nóng cần liên hệ lại',
       body: 'Quan tâm ' + interest + '% · ' + days + ' ngày chưa liên hệ',
       sortAt: last, // mốc tương tác càng cũ (số nhỏ) → càng gấp → lên trước
+    };
+  },
+});
+
+// RULE 2b — QUÁ HẠN MỨC SLA PHỄU (D-008). Mục tiêu / hạn mức từng giai đoạn ở js/velocity.js.
+// Khách mới quá 4 giờ chưa gọi → 'urgent'; giai đoạn khác quá hạn mức → 'warn'.
+registerRule({
+  key: 'sla_over',
+  evaluate(c, now) {
+    if (!window.VELOCITY) return null;
+    const st = window.VELOCITY.status(c, now);
+    if (!st || st.state !== 'over') return null;
+    const cfg = window.VELOCITY.config.phases[st.key];
+    return {
+      level: st.key === 'new_lead' ? 'urgent' : 'warn',
+      title: st.key === 'new_lead' ? 'Khách mới quá ' + cfg.maxText + ' chưa gọi' : 'Quá hạn mức: ' + cfg.label,
+      body: 'Tối đa ' + cfg.maxText + ' · ' + st.text,
+      sortAt: st.start,
     };
   },
 });

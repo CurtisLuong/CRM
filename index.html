@@ -176,8 +176,10 @@
           <div class="pop-group">
             <div class="pop-label">Trạng thái</div>
             <div id="filter-progress-presets" class="date-presets" role="group" aria-label="Lọc theo trạng thái">
-              <button type="button" class="date-preset is-sel" data-progress="active">Đang chăm</button>
-              <button type="button" class="date-preset" data-progress="done">Đã xong</button>
+              <button type="button" class="date-preset is-sel" data-progress="active">Trong phễu</button>
+              <button type="button" class="date-preset" data-progress="nurture">Nuôi dài hạn</button>
+              <button type="button" class="date-preset" data-progress="won">Đã mua</button>
+              <button type="button" class="date-preset" data-progress="dropped">Không chốt</button>
               <button type="button" class="date-preset" data-progress="all">Tất cả</button>
             </div>
           </div>
@@ -533,6 +535,11 @@
         <span id="detail-contact-text" class="detail-badge-text"></span>
       </div>
     </div>
+
+    <!-- TỐC ĐỘ PHỄU (D-008, js/velocity.js): giai đoạn + thanh thời gian (mục tiêu / hạn mức) + mục tiêu
+         giai đoạn; bậc Booking & Làm hồ sơ có mini-checklist 4 bước + nút "Xác nhận đã Ký HĐMB".
+         Nuôi dài hạn / Đã mua → thẻ trạng thái ngoài phễu. App tự chuyển quá hạn → dòng Hoàn tác. JS: renderDetailSla(). -->
+    <section class="detail-section dcard sla-card" id="detail-sla" data-tabs="overview" hidden></section>
 
     <div class="detail-call" data-tabs="overview">
       <!-- VIỆC TIẾP THEO = CHECKLIST: lịch "Hẹn gọi" (nếu có) + các việc chưa xong, xếp theo hạn.
@@ -1321,6 +1328,7 @@
 <script src="/js/notifications.js"></script>
 <script src="/js/icons.js"></script>
 <script src="/js/followup.js"></script>
+<script src="/js/velocity.js"></script>
 <script src="/js/catalog.js"></script>
 <script src="/js/app.js"></script>
 <script src="/js/team.js"></script>

@@ -57,8 +57,8 @@ const FOLLOWUP_CONFIG = {
   stages: {
     'Đang chăm sóc': { days: 3,  reason: 'Gửi thêm thông tin dự án' },
     'Xem dự án':     { days: 2,  reason: 'Hỏi cảm nhận sau khi xem dự án' },
-    'Hỗ trợ hồ sơ':  { days: 2,  reason: 'Nhắc giấy tờ hồ sơ còn thiếu' },
-    'Booking':       { days: 3,  reason: 'Nhắc tiến độ đóng tiền / ký HĐMB' },
+    'Booking & Làm hồ sơ': { days: 3, reason: 'Nhắc giấy tờ / tiến độ hồ sơ' },
+    'Nuôi dài hạn':  { days: 90, reason: 'Liên hệ lại khách nuôi dài hạn' }, // 3 tháng (velocity.js nurtureRecallMonths)
     'Kí HĐMB':       { days: 30, reason: 'Chăm sóc sau bán, xin giới thiệu' },
   },
 
@@ -91,8 +91,8 @@ const FOLLOWUP_CONFIG = {
     'Đang tiếp cận': 'chao',
     'Đang chăm sóc': 'thong_tin',
     'Xem dự án':     'sau_xem',
-    'Hỗ trợ hồ sơ':  'nhac_ho_so',
-    'Booking':       'nhac_ho_so',
+    'Booking & Làm hồ sơ': 'nhac_ho_so',
+    'Nuôi dài hạn':  'thong_tin',
     'Kí HĐMB':       'chuc_mung',
     'Loại':          'thong_tin',
   },

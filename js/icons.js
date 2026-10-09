@@ -43,6 +43,8 @@ const ICON_PATHS = {
   contract:    '<path d="M14 3.5H7a1 1 0 0 0-1 1v15a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-12z"/><path d="M14 3.5v4h4"/><path d="M9 16.5c1-1.5 1.8-1.5 2.4 0s1.4 1.5 2.6-.5"/>', // Kí HĐMB · Kí HĐ · Chốt
   task:        '<rect x="4" y="3.5" width="16" height="17" rx="3"/><path d="M8.5 9l1.6 1.6L13 7.7M8.5 15h7"/>', // Việc · Việc tiếp theo · Việc cần làm
   drop:        '<circle cx="12" cy="12" r="8.5"/><path d="M9 9l6 6M15 9l-6 6"/>',                    // Loại / không chốt
+  nurture:     '<path d="M12 20.5V11"/><path d="M12 13c0-3.6-2.6-6-6.5-6 0 3.6 2.6 6 6.5 6zM12 11c0-3.3 2.3-5.5 6-5.5 0 3.3-2.3 5.5-6 5.5z"/><path d="M8 20.5h8"/>', // Nuôi dài hạn
+  sla:         '<path d="M10 2.5h4M12 2.5v2.5"/><circle cx="12" cy="13.5" r="7.5"/><path d="M12 9.5v4l2.5 1.5"/>', // SLA · tốc độ phễu
   // ── Tình trạng / nhắc việc ──
   alarm:       '<circle cx="12" cy="13" r="7"/><path d="M12 9.5V13l2.3 1.6M4.5 5.5l2.5-2M19.5 5.5l-2.5-2"/>', // Đến giờ / quá giờ hẹn
   decide:      '<path d="M12 4v16M5 20h14M6 8h12M6 8l-2.5 6a3 3 0 0 0 5 0zM18 8l-2.5 6a3 3 0 0 0 5 0z"/>', // Chờ phân loại (Đạt / Loại)
@@ -55,7 +57,8 @@ const ICON_PATHS = {
 // Bậc chăm sóc → icon (pipeline, thẻ chỉ số, mọi chỗ hiện bậc kèm icon).
 const STAGE_ICON = {
   'Đăng kí mới': 'new_lead', 'Đang tiếp cận': 'call', 'Đang chăm sóc': 'customers', 'Xem dự án': 'visit',
-  'Hỗ trợ hồ sơ': 'docs', 'Booking': 'booking', 'Kí HĐMB': 'contract', 'Loại': 'drop',
+  'Booking & Làm hồ sơ': 'booking', 'Nuôi dài hạn': 'nurture', 'Kí HĐMB': 'contract', 'Loại': 'drop',
+  'Hỗ trợ hồ sơ': 'booking', 'Booking': 'booking', // tên cũ (lịch sử) = bậc đã gộp
 };
 
 function icon(name, cls) {
