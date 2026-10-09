@@ -139,6 +139,22 @@ details.lm-card[open] > summary { margin-bottom: 10px; }
 /* Panel trong trang chi tiết khách: bỏ padding/nền riêng để hoà vào detail-section */
 .lm-root.lm-embedded { padding: 8px 0 0; background: transparent; max-width: none; }
 .lm-root.lm-embedded .lm-actions { background: linear-gradient(transparent, var(--paper, #F7F4EE) 30%); }
+/* Bảng tính đang mở trong trang khách: tiêu đề thẻ (icon + "Tính khoản vay" + nút Đóng) DÍNH ĐỈNH ngay dưới
+   thanh mini, tới khi cuộn qua hết thẻ (sticky trong phạm vi section). --detail-bar-h do loan-crm.js đo. */
+#detail-loan-section.is-loan-open .dcard-head {
+  position: sticky; top: var(--detail-bar-h, 0px); z-index: 5;
+  margin: -14px -16px 12px; padding: 10px 16px;
+  background: #fff; border-bottom: 1px solid var(--line, #E4DFD3);
+  border-radius: var(--card-radius, 16px) var(--card-radius, 16px) 0 0;
+}
+@media (max-width: 560px) { #detail-loan-section.is-loan-open .dcard-head { margin: -13px -14px 12px; padding: 10px 14px; } }
+.loan-head-close {
+  flex: none; display: inline-flex; align-items: center; gap: 4px;
+  font: inherit; font-size: 13px; font-weight: 600; color: var(--ink, #1A2E29); cursor: pointer;
+  background: var(--paper, #F7F4EE); border: 1px solid var(--line, #E4DFD3); border-radius: 999px; padding: 5px 12px 5px 9px;
+}
+.loan-head-close:hover { background: #efeadf; }
+.loan-head-close svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; }
 /* Danh sách phương án đã lưu (trang chi tiết khách) */
 .loan-quotes { display: grid; gap: 6px; margin: 8px 0; }
 .loan-quote { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid var(--line, #E4DFD3); border-radius: 10px; background: #fff; font-size: 13px; }

@@ -62,6 +62,7 @@
   var btn = document.getElementById('detail-loan-btn');
   var panel = document.getElementById('detail-loan-panel');
   var quotesEl = document.getElementById('detail-loan-quotes');
+  var closeBtn = document.getElementById('detail-loan-close');
   var detailUI = null;
   var currentCid = null;
   var quotes = [];
@@ -71,8 +72,19 @@
   function closePanel() {
     if (detailUI) { detailUI.destroy(); detailUI = null; }
     panel.hidden = true;
-    btn.textContent = '💰 Tính khoản vay';
+    btn.hidden = false;
+    if (closeBtn) closeBtn.hidden = true;
+    if (section) section.classList.remove('is-loan-open');
   }
+
+  // Tiêu đề thẻ dính ngay DƯỚI thanh mini (#detail-stickybar, fixed) → đo chiều cao thật của thanh
+  // (gồm vùng thanh trạng thái --sat) gán vào biến CSS, tránh đoán số cứng.
+  function syncStickyTop() {
+    var bar = document.getElementById('detail-stickybar');
+    var screen = document.getElementById('detail-screen');
+    if (bar && screen && bar.offsetHeight) screen.style.setProperty('--detail-bar-h', bar.offsetHeight + 'px');
+  }
+  window.addEventListener('resize', function () { if (detailUI) syncStickyTop(); });
 
   function openPanel(initialState) {
     var c = customerOf(currentCid);
@@ -93,7 +105,11 @@
       onSaved: function () { loadQuotes(c.id); }
     }));
     panel.classList.add('lm-embedded');
-    btn.textContent = '✕ Đóng bảng tính';
+    // Đang mở: nút mở ẩn đi, nút Đóng nằm ở tiêu đề dính đỉnh (CSS: #detail-loan-section.is-loan-open).
+    btn.hidden = true;
+    if (closeBtn) closeBtn.hidden = false;
+    section.classList.add('is-loan-open');
+    syncStickyTop();
   }
 
   async function loadQuotes(cid) {
@@ -135,6 +151,15 @@
   if (btn) {
     btn.addEventListener('click', function () {
       if (detailUI) closePanel(); else openPanel(null);
+    });
+    if (closeBtn) closeBtn.addEventListener('click', function () {
+      // Đóng khi đang cuộn sâu trong bảng tính → bảng co lại, đưa thẻ về tầm mắt (khỏi bị "lạc" xuống thẻ khác).
+      var wasStuck = section.getBoundingClientRect().top < 0;
+      closePanel();
+      if (wasStuck) {
+        var barH = parseFloat(getComputedStyle(document.getElementById('detail-screen')).getPropertyValue('--detail-bar-h')) || 0;
+        window.scrollTo(0, window.scrollY + section.getBoundingClientRect().top - barH - 8);
+      }
     });
     quotesEl.addEventListener('click', function (e) {
       var b = e.target.closest('[data-loan-quote]');

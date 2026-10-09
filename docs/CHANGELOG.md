@@ -6,6 +6,13 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-09 — Tiêu đề "Tính khoản vay" dính đỉnh khi mở bảng tính trong hồ sơ khách
+
+- Mở bảng tính ở trang khách rồi cuộn xuống: tiêu đề thẻ (icon + "Tính khoản vay") dính ngay dưới thanh tên khách,
+  tới khi cuộn qua hết thẻ thì trôi đi. Nút Đóng chuyển lên bên phải tiêu đề này (nút "✕ Đóng bảng tính" dưới đáy bỏ).
+- Đóng khi đang cuộn sâu → tự cuộn về đầu thẻ. Chiều cao thanh tên khách đo bằng JS (`--detail-bar-h`).
+- File: `index.html`, `js/loan/loan-crm.js`, `css/loan.css`
+
 ## 2026-10-09 — Ô tìm ở mọi tab + 3 biểu đồ Phân tích theo màu mới
 
 - Ô tìm trên header có ở cả **Công việc** (lọc việc theo khách: tên, SĐT, dự án, ghi chú, nội dung việc…) và **Phân tích** (trang kết quả tạm như Tổng quan).
