@@ -667,13 +667,13 @@ HTMLDialogElement.prototype.showModal = function () {
   this.dataset.openedAt = String(performance.now()); // để biết hộp nào mở sau cùng
   return _showModal.apply(this, arguments);
 };
-// ---- THANH TRẠNG THÁI (vỏ Android): icon giờ/pin màu TRẮNG trên nền thanh tiêu đề xanh đậm ----
-// Plugin lõi SystemBars của Capacitor 8 (style 'DARK' = nền tối → icon sáng). Chỉ đổi thanh TRÊN; thanh điều
-// hướng dưới giữ theo giao diện (nền be → icon tối). Trình duyệt thường: không làm gì.
-(function setStatusBarLight() {
+// ---- THANH TRẠNG THÁI (vỏ Android): icon giờ/pin màu TỐI trên nền khung app sáng (--chrome, header sáng 2026-10-09) ----
+// Plugin lõi SystemBars của Capacitor 8 (style 'LIGHT' = nền sáng → icon tối; trước đây 'DARK' cho header xanh đậm).
+// Dải màu phía sau thanh trạng thái là body::before trong style.css. Trình duyệt thường: không làm gì.
+(function setStatusBarStyle() {
   const cap = window.Capacitor;
   if (!cap || typeof cap.isNativePlatform !== 'function' || !cap.isNativePlatform() || typeof cap.nativePromise !== 'function') return;
-  cap.nativePromise('SystemBars', 'setStyle', { style: 'DARK', bar: 'StatusBar' }).catch(() => {});
+  cap.nativePromise('SystemBars', 'setStyle', { style: 'LIGHT', bar: 'StatusBar' }).catch(() => {});
 })();
 
 // ---- NÚT CẬP NHẬT APP (chỉ trong vỏ Android) ----

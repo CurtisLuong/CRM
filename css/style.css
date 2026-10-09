@@ -7,6 +7,11 @@
      giấy ngà + mực in xanh đen + đỏ son mộc dấu (accent chính) + xanh lá trầm (phụ) */
   --ink: #1A2E29;        /* xanh đen đậm — chữ chính & nền header (như mực in) */
   --paper: #F7F4EE;      /* giấy ngà */
+  /* KHUNG APP (header + thanh dưới + dải thanh trạng thái): xanh rêu rất nhạt pha từ màu mực —
+     tông lạnh tách rõ khỏi nội dung nền giấy ấm (2026-10-09, phương án 2). */
+  --chrome: #E6ECE8;
+  --chrome-line: #D5DDD8;
+  --chrome-muted: #6F7D77; /* icon phụ trên khung */
   --panel: #ffffff;      /* nền thẻ */
   --teal: #1A2E29;       /* alias mực in (dùng cho header, tab, chữ nhấn) */
   --teal-light: #2C4A42; /* xanh đậm nhạt hơn cho viền/hover */
@@ -150,11 +155,11 @@ input:focus, select:focus, textarea:focus {
   flex-direction: column;
   gap: 6px;
   padding: 8px 16px;
-  /* HEADER SÁNG (2026-10-09, phương án A): cùng nền giấy với trang, ngăn bằng 1 đường kẻ mảnh —
-     hoà vào nội dung (thẻ trắng, icon nét mảnh). Màu đậm duy nhất còn lại: tab đang chọn (desktop) + nút ＋. */
-  background: var(--paper);
+  /* HEADER SÁNG (2026-10-09): nền KHUNG APP xanh rêu rất nhạt (--chrome), cùng màu thanh dưới — tách rõ
+     vùng điều khiển khỏi nội dung nền giấy. Màu đậm duy nhất: tab đang chọn (desktop) + nút ＋. */
+  background: var(--chrome);
   color: var(--ink);
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--chrome-line);
   position: sticky; top: 0; z-index: 20;
 }
 /* HEADER GỌN (2026-10-07): hàng trên 30px · tab 34px · ô tìm 36px, cách nhau 6px.
@@ -188,9 +193,9 @@ input:focus, select:focus, textarea:focus {
   gap: 0;
   padding-top: calc(6px + var(--sat));
   padding-bottom: 6px;
-  background: rgba(247, 244, 238, 0.94);
+  background: rgba(230, 236, 232, 0.94);
   -webkit-backdrop-filter: saturate(1.4) blur(10px); backdrop-filter: saturate(1.4) blur(10px);
-  box-shadow: 0 4px 14px rgba(80, 60, 30, 0.06);
+  box-shadow: 0 4px 14px rgba(26, 46, 41, 0.06);
 }
 .topbar.collapsed .topbar-search-wrap { top: calc(3px + var(--sat)); left: 54px; right: 52px; }
 .topbar.collapsed .topbar-brand { gap: 0; }
@@ -205,7 +210,7 @@ input:focus, select:focus, textarea:focus {
    Ô tìm co thêm 36px để chừa chỗ. Chấm đỏ = đang lọc (cùng kiểu .tool-dot). */
 .hdr-filter-btn {
   position: relative; flex: none; width: 32px; height: 32px; padding: 0; border: none; border-radius: 50%;
-  background: transparent; color: #6b6b60; cursor: pointer;
+  background: transparent; color: var(--chrome-muted); cursor: pointer;
   display: inline-flex; align-items: center; justify-content: center;
   max-width: 0; opacity: 0; overflow: visible; pointer-events: none; visibility: hidden;
   transition: opacity 0.2s ease, max-width 0.3s cubic-bezier(0.4,0,0.2,1), visibility 0.2s;
@@ -216,7 +221,7 @@ input:focus, select:focus, textarea:focus {
 .topbar.collapsed.has-filter .topbar-search-wrap { right: 88px; }
 .hdr-filter-dot {
   position: absolute; top: 4px; right: 4px; width: 8px; height: 8px;
-  border-radius: 50%; background: #A1171E; border: 1.5px solid var(--paper);
+  border-radius: 50%; background: #A1171E; border: 1.5px solid var(--chrome);
 }
 
 /* Icon trong tab header: hiện ở mọi cỡ màn (desktop to hơn — xem @media min-width 900px). */
@@ -233,13 +238,13 @@ input:focus, select:focus, textarea:focus {
 .tab-nav {
   display: flex; gap: 2px; height: 34px; padding: 3px;
   max-width: 420px; /* laptop: không kéo dài hết màn (canh trái); điện thoại hẹp hơn nên vẫn full */
-  border-radius: 999px; background: #fff; border: 1px solid var(--line);
+  border-radius: 999px; background: #fff; border: 1px solid var(--chrome-line);
 }
 .tab-btn {
   flex: 1 1 0; min-width: 0;
   display: inline-flex; align-items: center; justify-content: center;
   font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer;
-  border: none; background: transparent; color: #6b6b60;
+  border: none; background: transparent; color: var(--chrome-muted);
   padding: 0 10px; border-radius: 999px;
   transition: background 0.15s ease, color 0.15s ease;
 }
@@ -255,25 +260,25 @@ input:focus, select:focus, textarea:focus {
 }
 .topbar-search-wrap .search-ic {
   position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
-  width: 18px; height: 18px; color: #8a8a80; pointer-events: none; display: flex;
+  width: 18px; height: 18px; color: var(--chrome-muted); pointer-events: none; display: flex;
 }
 .topbar-search-wrap .search-ic svg { width: 100%; height: 100%; display: block; }
 .topbar-search {
   width: 100%; height: 36px;
   font: inherit; font-size: 14px; padding: 0 44px 0 38px; border-radius: 999px;
-  border: 1px solid var(--card-border, #ECE6DA);
+  border: 1px solid var(--chrome-line);
   background: #fff; color: var(--ink);
   -webkit-appearance: none; appearance: none;
 }
 .topbar-search::placeholder { color: #9a9a90; }
-.topbar-search:focus { outline: none; border-color: #CFC7B6; box-shadow: 0 0 0 3px rgba(26,46,41,0.06); }
+.topbar-search:focus { outline: none; border-color: #B9C5BE; box-shadow: 0 0 0 3px rgba(26,46,41,0.06); }
 .topbar-search::-webkit-search-cancel-button { opacity: 0.5; }
 
 /* MENU ĐA NĂNG trong ô tìm (icon thanh trượt, neo phải). Panel dùng lại .menu-pop/.menu-item. */
 .search-menu { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); }
 .search-menu-btn {
   width: 30px; height: 30px; border-radius: 50%; border: none; padding: 0; cursor: pointer;
-  background: transparent; color: #6b6b60;
+  background: transparent; color: var(--chrome-muted);
   display: flex; align-items: center; justify-content: center;
 }
 .search-menu-btn svg { width: 19px; height: 19px; display: block; }
@@ -297,7 +302,7 @@ input:focus, select:focus, textarea:focus {
 .sync-btn.sync-syncing { cursor: default; }        /* đang đồng bộ → không bấm */
 .sync-btn .sync-ic { display: inline-flex; width: 21px; height: 21px; }
 .sync-btn .sync-ic svg { width: 100%; height: 100%; display: block; }
-.sync-btn.sync-synced  .sync-ic { color: #8a8a80; }   /* đã đồng bộ = bình thường → xám, không gây chú ý */
+.sync-btn.sync-synced  .sync-ic { color: var(--chrome-muted); }   /* đã đồng bộ = bình thường → xám, không gây chú ý */
 .sync-btn.sync-syncing .sync-ic { color: #3E6A8A; }
 .sync-ic .spin { transform-origin: 12px 12px; animation: spin 0.7s linear infinite; } /* chỉ mũi tên xoay */
 .sync-btn.sync-offline .sync-ic { color: #b9bec4; }
@@ -340,7 +345,7 @@ input:focus, select:focus, textarea:focus {
   }
   .topbar-row-top { display: contents; }
   .topbar-brand { grid-area: brand; gap: 10px; font-size: 20px; }
-  .topbar-brand::after { content: ""; width: 1px; height: 30px; margin-left: 12px; background: var(--line); }
+  .topbar-brand::after { content: ""; width: 1px; height: 30px; margin-left: 12px; background: var(--chrome-line); }
   .brand-logo { height: 32px; }
   .topbar .tab-nav, .topbar.collapsed .tab-nav {
     grid-area: tabs; height: 42px; max-height: 42px; max-width: none; opacity: 1;
@@ -363,7 +368,7 @@ input:focus, select:focus, textarea:focus {
 .avatar-caret {
   position: absolute; right: -4px; bottom: -4px;
   width: 14px; height: 14px; border-radius: 50%;
-  background: #fff; color: var(--ink); border: 2px solid var(--paper); box-shadow: 0 0 0 1px var(--line);
+  background: #fff; color: var(--ink); border: 2px solid var(--chrome); box-shadow: 0 0 0 1px var(--chrome-line);
   display: flex; align-items: center; justify-content: center; box-sizing: border-box;
 }
 .avatar-caret svg { width: 9px; height: 9px; display: block; transition: transform 0.2s ease; }
@@ -396,7 +401,7 @@ input:focus, select:focus, textarea:focus {
   position: absolute; top: -1px; right: -2px; min-width: 15px; height: 15px;
   padding: 0 3px; border-radius: 8px; background: #A1171E; color: #fff;
   font-size: 10px; font-weight: 600; line-height: 15px; text-align: center;
-  border: 1.5px solid var(--paper); box-sizing: content-box;
+  border: 1.5px solid var(--chrome); box-sizing: content-box;
 }
 .notif-pop {
   display: none; position: absolute; right: 0; top: calc(100% + 8px);
@@ -844,7 +849,7 @@ input:focus, select:focus, textarea:focus {
 .detail-stickybar {
   position: fixed; top: 0; left: 0; right: 0; z-index: 20;
   display: flex; align-items: center; gap: 12px; padding: calc(10px + var(--sat)) 14px 10px;
-  background: rgba(247, 244, 238, 0.94); color: var(--ink); border-bottom: 1px solid var(--line);
+  background: rgba(230, 236, 232, 0.94); color: var(--ink); border-bottom: 1px solid var(--chrome-line);
   -webkit-backdrop-filter: saturate(1.4) blur(10px); backdrop-filter: saturate(1.4) blur(10px);
   transform: translateY(-100%); transition: transform 0.22s ease;
 }
@@ -2008,11 +2013,11 @@ dialog#form-modal { position: fixed; } /* làm mốc cho lớp phủ absolute */
 .auto-tag { display: inline-block; margin-left: 6px; padding: 0 7px; border-radius: 999px; background: #e4ecea; color: var(--teal-light); font-size: 11px; font-weight: 600; vertical-align: 1px; }
 
 /* ===== TRÀN VIỀN (app Android / iOS PWA) =====
-   Dải màu xanh đậm luôn nằm sau thanh trạng thái (giờ/pin) → mọi màn (danh sách, hồ sơ, đăng nhập) đều liền
-   màu với thanh tiêu đề. Trình duyệt thường --sat = 0 → không thấy gì. Icon trạng thái chuyển trắng: js/app.js. */
+   Dải màu KHUNG APP (--chrome) luôn nằm sau thanh trạng thái (giờ/pin) → mọi màn đều liền màu với header.
+   Trình duyệt thường --sat = 0 → không thấy gì. Icon giờ/pin màu tối (nền sáng): js/app.js setStatusBarStyle. */
 body::before {
   content: ''; position: fixed; top: 0; left: 0; right: 0; height: var(--sat);
-  background: var(--ink); z-index: 2100; pointer-events: none; /* > .ptr-indicator (2000): thanh "Kéo để tải lại" khi ẩn nằm khuất sau dải này */
+  background: var(--chrome); z-index: 2100; pointer-events: none; /* > .ptr-indicator (2000): thanh "Kéo để tải lại" khi ẩn nằm khuất sau dải này */
 }
 #detail-screen { padding-top: var(--sat); }   /* ảnh bìa hồ sơ bắt đầu dưới thanh trạng thái */
 body { padding-bottom: var(--sab); }          /* nội dung cuối trang không bị thanh điều hướng che */
@@ -2343,19 +2348,19 @@ body:has(#detail-screen.is-readonly:not([hidden])) #avatar-remove-btn,
   .bottom-nav {
     display: grid; grid-template-columns: 1fr 1fr auto 1fr 1fr; align-items: center;
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
-    padding: 6px 8px calc(6px + var(--sab)); background: rgba(255, 255, 255, 0.97);
-    border-top: 1px solid var(--card-border); box-shadow: 0 -4px 16px rgba(80, 60, 30, .06);
+    padding: 6px 8px calc(6px + var(--sab)); background: rgba(230, 236, 232, 0.97); /* khung app, cùng màu header */
+    border-top: 1px solid var(--chrome-line); box-shadow: 0 -4px 16px rgba(26, 46, 41, .05);
     -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
   }
   .bn-item {
     display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 4px 0;
-    border: none; background: none; cursor: pointer; font: inherit; font-size: 11.5px; color: #8a8a7e; white-space: nowrap;
+    border: none; background: none; cursor: pointer; font: inherit; font-size: 11.5px; color: var(--chrome-muted); white-space: nowrap;
   }
   .bn-item svg { width: 23px; height: 23px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
   .bn-item.is-active { color: var(--ink); font-weight: 500; }
   .bn-item.is-active svg { stroke-width: 2.1; }
   .bn-add {
-    width: 54px; height: 54px; margin-top: -22px; border-radius: 50%; border: 4px solid var(--paper);
+    width: 54px; height: 54px; margin-top: -22px; border-radius: 50%; border: 4px solid var(--chrome);
     background: var(--ink); color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center;
     box-shadow: 0 6px 16px rgba(26, 46, 41, .3);
   }

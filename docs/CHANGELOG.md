@@ -19,6 +19,11 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 - Đóng khi đang cuộn sâu → tự cuộn về đầu thẻ. Chiều cao thanh tên khách đo bằng JS (`--detail-bar-h`).
 - File: `index.html`, `js/loan/loan-crm.js`, `css/loan.css`
 
+## 2026-10-09 — Màu khung app xanh rêu nhạt + thanh trạng thái Android
+
+- Header, thanh dưới, thanh dính hồ sơ và dải sau thanh trạng thái dùng chung màu khung `--chrome` `#E6ECE8` (tách rõ khỏi nội dung nền giấy). Hết dải xanh rêu đậm sót ở thanh trạng thái Android; icon giờ/pin chuyển màu tối (`SystemBars` style `LIGHT`). `theme-color` / manifest → `#E6ECE8`.
+- File: `css/style.css`, `js/app.js`, `index.html`, `manifest.json`, `sw.js` (v84), `docs/design.md`.
+
 ## 2026-10-09 — Header sáng (phương án A)
 
 - Header đổi từ mảng xanh mực sang nền giấy + đường kẻ mảnh, chữ / icon màu mực; ô tìm nền trắng; logo bản không nền (`icons/logo-mark.svg`); avatar mận nhạt (bỏ đỏ); icon đồng bộ xám khi bình thường (bỏ xanh lá); chấm chuông đỏ đậm. Desktop: tab đang chọn nền mực. Header thu gọn + thanh dính hồ sơ: nền giấy mờ. `theme-color` / manifest → `#F7F4EE`.
