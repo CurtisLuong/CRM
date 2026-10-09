@@ -522,8 +522,26 @@
     </div>
 
     <!-- ===== THỨ TỰ THẺ TAB TỔNG QUAN (quy tắc cố định — docs/design.md "Hồ sơ khách"):
-         1 Việc tiếp theo (LUÔN ĐẦU TIÊN) · 2 Tốc độ phễu · 3 Căn hộ quan tâm · 4 Ghi chú · 5 Tính khoản vay ·
-         6 Chỉ số Tiến độ/Quan tâm/Liên lạc. Thêm thẻ mới → đặt SAU các thẻ này, không chen lên trên. ===== -->
+         0 Chỉ số trạng thái Tiến độ · Quan tâm · Liên lạc (LUÔN TRÊN CÙNG — quét nhanh) ·
+         1 Việc tiếp theo (luôn là thẻ nội dung đầu tiên) · 2 Tốc độ phễu · 3 Căn hộ quan tâm · 4 Ghi chú ·
+         5 Tính khoản vay. Thêm thẻ mới → đặt SAU các thẻ này, không chen lên trên. ===== -->
+    <!-- TỔNG QUAN: 2 thẻ chỉ số (Tiến độ → bấm sang Lịch sử · Quan tâm) + Liên lạc (nếu có). -->
+    <div class="detail-badges" data-tabs="overview">
+      <button type="button" class="detail-badge dcard is-link" data-goto-tab="history" aria-label="Tiến độ — xem lịch sử chăm sóc">
+        <span class="detail-badge-label">Tiến độ</span>
+        <span class="detail-badge-main"><span id="detail-stage-dots" class="dot-row"></span><span class="dcard-chev" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></span></span>
+        <span id="detail-stage-text" class="detail-badge-text"></span>
+      </button>
+      <div class="detail-badge dcard">
+        <span class="detail-badge-label">Quan tâm</span>
+        <span class="detail-badge-main"><span id="detail-interest-dots" class="dot-row"></span><span id="detail-interest-text" class="detail-badge-num"></span></span>
+      </div>
+      <div class="detail-badge dcard" id="detail-contact-badge" hidden>
+        <span class="detail-badge-label">Liên lạc</span>
+        <span id="detail-contact-text" class="detail-badge-text"></span>
+      </div>
+    </div>
+
     <div class="detail-call" data-tabs="overview">
       <!-- VIỆC TIẾP THEO = CHECKLIST: lịch "Hẹn gọi" (nếu có) + các việc chưa xong, xếp theo hạn.
            Mỗi dòng có ô tích + đếm ngược (còn X / đến hạn / quá hạn). Tích việc → ghi mốc "Xong việc"
@@ -605,23 +623,6 @@
       </div>
       <div id="detail-loan-panel" hidden></div>
     </section>
-
-    <!-- TỔNG QUAN: 2 thẻ chỉ số (Tiến độ → bấm sang Lịch sử · Quan tâm) + Liên lạc (nếu có). -->
-    <div class="detail-badges" data-tabs="overview">
-      <button type="button" class="detail-badge dcard is-link" data-goto-tab="history" aria-label="Tiến độ — xem lịch sử chăm sóc">
-        <span class="detail-badge-label">Tiến độ</span>
-        <span class="detail-badge-main"><span id="detail-stage-dots" class="dot-row"></span><span class="dcard-chev" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></span></span>
-        <span id="detail-stage-text" class="detail-badge-text"></span>
-      </button>
-      <div class="detail-badge dcard">
-        <span class="detail-badge-label">Quan tâm</span>
-        <span class="detail-badge-main"><span id="detail-interest-dots" class="dot-row"></span><span id="detail-interest-text" class="detail-badge-num"></span></span>
-      </div>
-      <div class="detail-badge dcard" id="detail-contact-badge" hidden>
-        <span class="detail-badge-label">Liên lạc</span>
-        <span id="detail-contact-text" class="detail-badge-text"></span>
-      </div>
-    </div>
 
     <!-- TƯƠNG TÁC: nhật ký cuộc gọi — cùng dữ liệu call_attempts với tab Khách mới. -->
     <section class="detail-section dcard" id="detail-calls-section" data-tabs="interact">

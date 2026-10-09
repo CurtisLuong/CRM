@@ -163,14 +163,14 @@ Giỏ hàng có panel tìm riêng trong dialog hiện có; matching mở từ h�
 
 Thứ tự cố định, từ trên xuống:
 
-1. **Việc tiếp theo** — LUÔN LUÔN đứng đầu tab Tổng quan. Không thẻ nào (kể cả thẻ mới, banner, chỉ số) được chen lên trên.
+0. **Chỉ số trạng thái** Tiến độ · Quan tâm · Liên lạc — LUÔN TRÊN CÙNG để quét nhanh tình trạng khách (sửa 2026-10-09).
+1. **Việc tiếp theo** — LUÔN LUÔN là thẻ nội dung đầu tiên, ngay dưới hàng chỉ số. Không thẻ nào khác (thẻ mới, banner…) được chen giữa.
 2. Tốc độ phễu (`#detail-sla`, ẩn với khách không có SLA).
 3. Căn hộ quan tâm.
 4. Ghi chú (xem trước; xem hết ở tab Tương tác).
 5. Tính khoản vay.
-6. Các thẻ còn lại (chỉ số Tiến độ · Quan tâm · Liên lạc).
 
-Thêm thẻ mới vào Tổng quan → đặt sau các thẻ trên; muốn đổi thứ tự 1–5 → hỏi chủ dự án trước. Thứ tự theo vị trí trong `index.html` (khối `#detail-screen`, có comment đánh dấu).
+Thêm thẻ mới vào Tổng quan → đặt sau các thẻ trên; muốn đổi thứ tự 0–5 → hỏi chủ dự án trước. Thứ tự theo vị trí trong `index.html` (khối `#detail-screen`, có comment đánh dấu).
 
 ## Font và tiếng Việt
 
