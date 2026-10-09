@@ -126,3 +126,13 @@ Ví dụ và mẫu trong bộ tài liệu không phải sự chấp thuận cho 
 - Chấp thuận: người dùng yêu cầu trực tiếp (chat 2026-10-08): "gợi ý gọi phải unified trong toàn bộ app, sửa 1 cái là sửa tất cả".
 - Tài liệu đã cập nhật: `CLAUDE.md`, `AGENTS.md`, `docs/huong-dan-follow-up.md`, `docs/CHANGELOG.md`
 - Trạng thái: Đang áp dụng (chưa deploy lúc ghi)
+
+### D-006 — Icon thống nhất toàn app (1 nguồn duy nhất)
+
+- Ngày: 2026-10-09
+- Loại: Nguyên tắc toàn dự án
+- Quyết định: icon của bậc chăm sóc, hành động / loại việc và khái niệm chính chỉ khai báo ở `js/icons.js` (`ICON_PATHS`, `STAGE_ICON`); mọi chỗ dùng `icon()` / `stageIcon()` / `data-icon`. Một khái niệm = một icon ở mọi nơi; đổi 1 dòng là đổi toàn app. Bảng khái niệm → icon ở `docs/design.md` (mục "Icon thống nhất").
+- Lý do: trước đây mỗi thẻ tự vẽ SVG (cùng "Hồ sơ" có 2 icon, "Căn hộ" dùng chung icon với "Tổng quan", nút gọi kiểu đặc lẫn kiểu nét…) → không nhất quán, sửa 1 chỗ quên chỗ khác.
+- Chấp thuận: người dùng yêu cầu trực tiếp (chat 2026-10-09): "icon cho mỗi stage, action phải thống nhất trên toàn app. Cái này đổi thì vị trí khác cũng đổi".
+- Tài liệu đã cập nhật: `CLAUDE.md`, `AGENTS.md`, `docs/design.md`, `docs/CHANGELOG.md`
+- Trạng thái: Đang áp dụng (chưa deploy lúc ghi)

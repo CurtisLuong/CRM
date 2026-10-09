@@ -6,6 +6,27 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-09 — Icon thống nhất toàn app (D-006) + thẻ Hiệu suất làm lại
+
+- `js/icons.js` mới: bộ icon dùng chung (`ICON_PATHS`, `STAGE_ICON`, `icon()`, `stageIcon()`, `data-icon` tự điền). Chuyển sang dùng chung: tab header + thanh dưới, chuông, menu tìm, các thẻ hồ sơ, nút gọi (kiểu đặc → kiểu nét, mọi nơi), Hẹn gọi (ống nghe + đồng hồ — cả nút "Hẹn gọi" trong hồ sơ), Giao khách, loại việc, thẻ chỉ số + smartlist + lịch hẹn + pipeline Tổng quan, số khách trên thanh công cụ. Gộp trùng: "Hồ sơ" (loại việc) = icon bậc Hỗ trợ hồ sơ = Tài liệu; "Tham quan" = bậc Xem dự án (con mắt); Căn hộ / Giỏ hàng có icon toà nhà riêng (không dùng chung icon Tổng quan); "Chốt tháng này" = icon Kí HĐ; nhóm "Hẹn gọi còn lại hôm nay" = icon Hẹn gọi.
+- Thẻ Hiệu suất: tab Tuần/Tháng giữ; mỗi chỉ số 1 dòng (icon ô tròn · tên + kỳ trước · số kỳ này không đậm · chip ▲/▼) + chân thẻ tốc độ gọi / % gọi trong 1 giờ.
+- Nguyên tắc ghi ở `CLAUDE.md` + `AGENTS.md`, `docs/decisions.md` (D-006), `docs/design.md` (bảng khái niệm → icon).
+- File: `js/icons.js` (mới), `index.html`, `js/app.js`, `css/style.css`, `sw.js` (v75, thêm icons.js vào app shell), docs trên.
+- Đã kiểm tra trình duyệt local (dữ liệu giả, 375px): mọi `data-icon` đã điền (22/22), Tổng quan / danh sách / hồ sơ hiện icon đúng, thẻ Hiệu suất. Chưa deploy.
+
+## 2026-10-09 — Tổng quan: thẻ "Pipeline đang chăm sóc" làm lại (tối giản)
+
+- Dòng tổng "Tổng N khách đang chăm sóc" · "X% khách nóng" + thanh xếp chồng theo bậc; 4 ô bậc (icon ô tròn màu bậc · tên · số · "N nóng" · tổng giá căn nếu có · % + thanh nhỏ, ghim đáy cho thẳng hàng) — bấm ô → Tiềm năng lọc bậc đó; chân thẻ 3 số (đang chăm · % nóng · đã chốt / không chốt). "Xem chi tiết →" → Tiềm năng (Đang chăm, bỏ lọc bậc). Số to nhưng không in đậm.
+- File: `js/app.js`, `css/style.css`, `sw.js` (v74).
+- Đã kiểm tra trình duyệt local (dữ liệu giả, 375px): số liệu, bấm ô bậc (3 khách Hỗ trợ hồ sơ), Xem chi tiết (10 khách). Chưa deploy.
+
+## 2026-10-09 — Loại việc có icon riêng + "Lịch hẹn 7 ngày tới" dạng dòng thời gian
+
+- Việc tiếp theo có thêm **loại** (`next_tasks[].kind`, không cần migration): Nhắn tin · Hẹn cafe · Hồ sơ · Tham quan · Kí HĐ · Khác; Hẹn gọi là loại của lịch gọi. Chọn ở hộp Thêm/Sửa việc (nút có icon); việc cũ tự đoán theo chữ (nhắn/zalo, cafe, hồ sơ/giấy tờ, nhà mẫu/sa bàn, hợp đồng/HĐMB/kí). Checklist hồ sơ hiện icon loại trước nội dung.
+- Tổng quan · Lịch hẹn 7 ngày tới: dòng thời gian (thứ/ngày · giờ · còn N ngày | chấm màu theo loại | thẻ: tên · nhãn loại · icon + nội dung · ›), "Xem tất cả" / "Thu gọn" ở đầu thẻ, vẫn 5 dòng mặc định, gần hạn nhất trên cùng. Không in đậm ngoài tiêu đề thẻ.
+- File: `index.html`, `js/app.js`, `js/db.js`, `css/style.css`, `sw.js` (v73), `docs/design.md`.
+- Đã kiểm tra trình duyệt local (dữ liệu giả, 375px): 7 loại hiện đúng icon/màu, Xem tất cả/Thu gọn, hộp Sửa việc chọn sẵn loại đoán từ chữ. Chưa thử lưu loại việc lên Supabase, chưa deploy.
+
 ## 2026-10-09 — Thanh điều hướng dưới (điện thoại) + Tổng quan dạng smartlist
 
 - Điện thoại / màn hẹp (<900px): thanh điều hướng dưới Tổng quan · [＋] · Khách hàng; nút ＋ tròn nổi giữa bấm hộ nút ＋ của màn đang xem (thêm khách / thêm khách mới). Tab trên header + nút ＋ nổi góc phải ẩn ở màn hẹp; ô tìm dồn lên ngay dưới logo; thông báo nhỏ (toast) đẩy lên trên thanh. Desktop giữ như cũ.

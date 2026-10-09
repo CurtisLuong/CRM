@@ -29,6 +29,50 @@ File nguồn không quy định chính xác mã màu, spacing, breakpoint, font 
 10. **Chữ đậm CHỈ cho tiêu đề** (tiêu đề thẻ/section, tiêu đề thẻ chỉ số, tên khách ở đầu trang). Nội dung, giá trị, số điện thoại, nút, tab, nhãn trạng thái → chữ thường (tab đang chọn tối đa 500, phân biệt bằng màu + gạch chân). Phân cấp bằng cỡ chữ / màu / khoảng cách, không bằng in đậm.
 11. **Cỡ chữ ngang các màn khác**: nội dung 14px, nút 13px, tab 13.5px, chữ phụ 12–12.5px, tiêu đề thẻ 15px. Không tăng cỡ chữ riêng cho 1 màn.
 
+## Icon thống nhất (D-006, 2026-10-09)
+
+**Một khái niệm = một icon, ở mọi nơi.** Icon của bậc chăm sóc, hành động / loại việc và các khái niệm chính chỉ khai báo ở `js/icons.js` (`ICON_PATHS`, bậc → icon ở `STAGE_ICON`). Đổi icon 1 khái niệm = sửa 1 dòng ở đó → thanh điều hướng, Tổng quan, hồ sơ, hộp Khách mới, checklist, lịch hẹn… đổi theo. Không vẽ SVG riêng cho khái niệm đã có; khái niệm mới → thêm vào `ICON_PATHS` trước rồi dùng.
+
+- JS: `icon('call')`, `icon('call', 'btn-ic')`, `stageIcon('Booking')`. HTML tĩnh: `<span class="…" data-icon="call"></span>` (tự điền khi tải trang). Icon nét 24×24, stroke 1.8, màu theo `currentColor`.
+- Icon giao diện thuần (mũi tên ›, ✕ đóng, ⋯, phễu lọc, sắp xếp, mây đồng bộ, máy ảnh, bút sửa) không thuộc bảng này.
+
+| Khái niệm | Tên icon | Dùng ở |
+|---|---|---|
+| Tổng quan | `home` | tab header, thanh dưới |
+| Khách hàng · Tiềm năng · bậc Đang chăm sóc | `customers` | tab, số khách, thẻ chỉ số, pipeline, Hiệu suất |
+| Khách mới · Thêm khách · bậc Đăng kí mới | `new_lead` | thẻ chỉ số, smartlist, menu, Hiệu suất |
+| Thông tin cá nhân | `person` | hồ sơ |
+| Căn hộ · Giỏ hàng | `apartment` | hồ sơ, menu tìm |
+| Tính vay | `loan` | hồ sơ, menu tìm |
+| Ghi chú · cuộc gọi chưa ghi chú | `note` | hồ sơ, smartlist |
+| Lịch sử chăm sóc | `history` | hồ sơ |
+| Lịch hẹn | `calendar` | Lịch hẹn 7 ngày |
+| Thông báo · Việc cần làm hôm nay | `bell` | header, smartlist |
+| Giao khách | `assign` | hồ sơ, hộp Khách mới |
+| Gọi · Cuộc gọi · Ghi cuộc gọi | `call` | nút gọi, hồ sơ, hộp Khách mới, Hiệu suất |
+| Hẹn gọi | `call_sched` | checklist, Lịch hẹn 7 ngày, hộp Khách mới, nút Hẹn gọi, smartlist |
+| Gọi lại (chưa liên lạc được) | `call_again` | smartlist |
+| Nói chuyện được | `talked` | Hiệu suất |
+| Nhắn tin / Zalo | `message` | loại việc |
+| Hẹn cafe | `cafe` | loại việc |
+| Hồ sơ · bậc Hỗ trợ hồ sơ · Tài liệu | `docs` | loại việc, pipeline, hồ sơ |
+| Tham quan nhà mẫu · bậc Xem dự án | `visit` | loại việc, pipeline |
+| Booking | `booking` | pipeline |
+| Kí HĐ · bậc Kí HĐMB · Chốt | `contract` | loại việc, thẻ chỉ số, pipeline, Hiệu suất |
+| Việc · Việc tiếp theo | `task` | loại việc Khác, hồ sơ, thẻ chỉ số |
+| Loại / không chốt | `drop` | bậc Loại |
+| Đến giờ / quá giờ hẹn | `alarm` | smartlist |
+| Chờ phân loại | `decide` | smartlist |
+| Khách nóng | `hot` | smartlist, pipeline |
+| Lâu chưa liên hệ · tốc độ gọi | `idle` | smartlist, Hiệu suất |
+| Thiếu việc tiếp theo | `alert` | smartlist |
+| Sinh nhật | `birthday` | smartlist |
+
+## Loại việc & Lịch hẹn 7 ngày (2026-10-09)
+
+- Mỗi việc có **loại** (icon nét + màu riêng, khai báo 1 chỗ ở `TASK_KINDS` trong `js/app.js`, màu ở CSS `.kind-<loại>`): Hẹn gọi (lịch gọi) · Nhắn tin/Zalo · Hẹn cafe · Hồ sơ (thu thập/bổ sung) · Tham quan (nhà mẫu/sa bàn) · Kí HĐ · Khác. Chọn ở hộp Thêm/Sửa việc; việc cũ chưa có loại → đoán theo chữ. Icon loại dùng chung ở checklist hồ sơ và Lịch hẹn 7 ngày — thêm chỗ hiển thị việc mới thì dùng lại `kindIconHtml()`.
+- Thẻ "Lịch hẹn 7 ngày tới" dạng dòng thời gian: cột trái thứ/ngày · giờ · "còn N ngày"; chấm màu theo loại trên trục dọc; thẻ phải: tên khách · nhãn loại (viên màu nhạt) · icon + nội dung · ›. 5 dòng + "Xem tất cả" ở đầu thẻ. Chữ đậm vẫn chỉ ở tiêu đề thẻ (giờ to hơn nhưng không đậm).
+
 ## Trang hồ sơ khách (2026-10-08)
 
 - Đầu trang: ảnh bìa (← Quay lại · ⋯ menu: Sửa thông tin khách, Copy prompt phân tích AI) nối liền khối trắng: avatar đè mép bìa + tên · SĐT + Gọi / Zalo / Lưu danh bạ + Giao khách · 4 tab.

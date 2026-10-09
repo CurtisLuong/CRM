@@ -299,7 +299,7 @@ const OCCUPATIONS = ['Tự do', 'Công ty, DN', 'Công, viên chức', 'Công an
 
 // Icon điện thoại (SVG inline, tô theo màu chữ, cỡ ăn theo font-size chỗ đặt).
 // Zalo dùng ảnh icons/Zalo-icon.png (đặt trong <img>).
-const PHONE_SVG = '<svg class="ic-phone" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>';
+const PHONE_SVG = icon('call', 'ic-phone'); // icon dùng chung (js/icons.js — D-006)
 
 // Icon đồng hồ nhỏ (SVG inline) — dùng cho pill khoảng thời gian giữa 2 bậc trên timeline.
 const CLOCK_SVG = '<svg class="cs-gap-ic" viewBox="0 0 24 24" width="12" height="12" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 7.5V12l3 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
@@ -1274,7 +1274,7 @@ function visibleCustomers() {
 
 // Số khách trên thanh công cụ: [icon người — cùng icon tab Khách hàng] + số (gọn, tiết kiệm chỗ).
 // Chữ đầy đủ ("25 khách hàng · …") nằm ở aria-label + tooltip.
-const PEOPLE_SVG = '<svg class="count-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8.5" r="3.2"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><circle cx="16.5" cy="9.5" r="2.6"/><path d="M16 14.2a4.6 4.6 0 0 1 4.8 4.8"/></svg>';
+const PEOPLE_SVG = icon('customers', 'count-ic');
 function setResultCount(el, n, scope) {
   const full = `${n} khách hàng${scope}${searchCtx() ? ' · theo độ liên quan' : ''}`;
   el.innerHTML = `${PEOPLE_SVG}<span class="count-num">${n}</span>${scope ? `<span class="count-scope">${escapeHtml(scope)}</span>` : ''}`;
@@ -4141,7 +4141,7 @@ function renderDetailTasks(c) {
     rows.push({ ms, html: `<div class="task-item${cd ? ' is-' + cd.state : ''}">
         <button type="button" class="task-check" data-task-done="${at}" aria-label="Đánh dấu xong"></button>
         <span class="task-body">
-          <span class="task-text">${escapeHtml(t.text || '')}</span>
+          <span class="task-text">${kindIconHtml(taskKind(t), 'task-kind-ic')}${escapeHtml(t.text || '')}</span>
           ${info ? `<span class="task-meta"><span class="task-due">${CLOCK_SVG}${escapeHtml(info.label)}</span>${countdownHtml(cd)}</span>` : ''}
         </span>
         <button type="button" class="task-act" data-task-edit="${at}" title="Sửa việc">✎</button>
@@ -4178,9 +4178,40 @@ async function afterTaskChange() {
 }
 
 // ---- Hộp thoại thêm/sửa việc ----
-let taskEditAt = null, taskDate = 'none', taskTime = 'allday'; // taskEditAt null = thêm mới
+let taskEditAt = null, taskDate = 'none', taskTime = 'allday', taskKindSel = 'other'; // taskEditAt null = thêm mới
+// LOẠI VIỆC (mỗi loại 1 icon + màu riêng; "Hẹn gọi" là lịch gọi next_call_at, không phải việc).
+// Việc cũ chưa có kind → đoán theo chữ (taskKind). Thêm loại = thêm 1 dòng ở đây + CSS .kind-<key>.
+const TASK_KINDS = {
+  call:     { label: 'Hẹn gọi',   icon: icon('call_sched') },
+  message:  { label: 'Nhắn tin',  icon: icon('message') },
+  cafe:     { label: 'Hẹn cafe',  icon: icon('cafe') },
+  docs:     { label: 'Hồ sơ',     icon: icon('docs') },
+  visit:    { label: 'Tham quan', icon: icon('visit') },
+  contract: { label: 'Kí HĐ',     icon: icon('contract') },
+  other:    { label: 'Việc',      icon: icon('task') },
+};
+const TASK_KIND_PICK = ['message', 'cafe', 'docs', 'visit', 'contract', 'other']; // nút chọn trong hộp Thêm việc
+function taskKind(t) {
+  if (t && TASK_KINDS[t.kind]) return t.kind;
+  const s = ((t && t.text) || '').toLowerCase();
+  if (/nhắn|zalo|tin nhắn|\bsms\b/.test(s)) return 'message';
+  if (/cafe|cà phê|cafê|coffee|gặp mặt|gặp nói chuyện/.test(s)) return 'cafe';
+  if (/hồ sơ|giấy tờ|bổ sung|cccd|xác nhận/.test(s)) return 'docs';
+  if (/nhà mẫu|sa bàn|tham quan|xem dự án|xem nhà/.test(s)) return 'visit';
+  if (/hợp đồng|hđmb|(^|\s)(kí|ký)(\s|$)|đặt cọc|booking/.test(s)) return 'contract';
+  return 'other';
+}
+function kindIconHtml(kind, cls) { const k = TASK_KINDS[kind] || TASK_KINDS.other; return `<span class="${cls || 'kind-ic'} kind-${kind}" aria-hidden="true">${k.icon}</span>`; }
+(function renderTaskKindOpts() {
+  const box = $('#task-kind'); if (!box) return;
+  box.innerHTML = TASK_KIND_PICK.map((k) => `<button type="button" class="sched-opt kind-opt kind-${k}" data-kind="${k}">${TASK_KINDS[k].icon}${TASK_KINDS[k].label === 'Việc' ? 'Khác' : TASK_KINDS[k].label}</button>`).join('');
+  box.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-kind]'); if (!b) return;
+    taskKindSel = b.dataset.kind; selectTaskOpt('task-kind', taskKindSel);
+  });
+})();
 function selectTaskOpt(group, val) {
-  $$(`#${group} .sched-opt`).forEach((x) => x.classList.toggle('is-sel', x.dataset.v === val));
+  $$(`#${group} .sched-opt`).forEach((x) => x.classList.toggle('is-sel', (x.dataset.v ?? x.dataset.kind) === val));
 }
 function syncTaskDueUi() {
   selectTaskOpt('task-date', taskDate);
@@ -4222,6 +4253,8 @@ function openTaskModal(at) {
   $('#task-modal-title').textContent = entry ? 'Sửa việc' : 'Thêm việc';
   $('#task-modal-sub').textContent = c.full_name || '';
   $('#task-text').value = entry ? (entry.text || '') : '';
+  taskKindSel = entry ? taskKind(entry) : 'other';
+  $$('#task-kind .sched-opt').forEach((x) => x.classList.toggle('is-sel', x.dataset.kind === taskKindSel));
   $('#task-delete').hidden = !entry;
   $('#task-error').textContent = '';
   $('#task-date-custom').value = ''; $('#task-time-custom').value = '';
@@ -4257,8 +4290,8 @@ async function saveTaskModal() {
     err.textContent = 'Thời điểm này đã qua. Chọn giờ sau hiện tại.'; return;
   }
   if (!detailId) return;
-  if (taskEditAt) await CRM.updateTask(detailId, taskEditAt, text, due);
-  else await CRM.addTask(detailId, text, due);
+  if (taskEditAt) await CRM.updateTask(detailId, taskEditAt, text, due, taskKindSel);
+  else await CRM.addTask(detailId, text, due, taskKindSel);
   $('#task-modal').close();
   await afterTaskChange();
 }
@@ -4739,7 +4772,7 @@ function renderLeadSheet(c) {
 function currentLead() { return allCustomers.find((x) => x.id === leadSheetId); }
 function refreshLeadSheetIfOpen() { const c = $('#lead-modal').open && currentLead(); if (c) renderLeadSheet(c); }
 // Icon "Hẹn gọi" (ống nghe + đồng hồ).
-const CALL_SCHED_SVG = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.2 3.5h2.9l1.4 3.8-1.9 1.3a11 11 0 0 0 5.2 5.2l1.3-1.9 3.8 1.4v2.9a1.6 1.6 0 0 1-1.7 1.6A15.6 15.6 0 0 1 3.6 5.2a1.6 1.6 0 0 1 1.6-1.7z"/><circle cx="17.6" cy="6.4" r="3.9"/><path d="M17.6 4.6v1.9l1.3.9"/></svg>';
+const CALL_SCHED_SVG = icon('call_sched');
 async function afterLeadChange() {
   await refreshList();
   const c = currentLead();
@@ -5240,25 +5273,13 @@ const LS_DASH_ANALYTICS = 'crm_dash_analytics_open';
 const dashExpanded = new Set();        // các nhóm việc đang mở "Xem thêm"
 const dashOpenGroups = new Set();      // smartlist "Việc cần làm hôm nay": các nhóm đang xổ danh sách khách
 // Icon nét dùng ở Tổng quan (thẻ chỉ số + smartlist). Nét 1.8, theo vibe thẻ nhóm (docs/design.md).
-const DASH_IC = {
-  todo: '<svg viewBox="0 0 24 24"><rect x="4" y="3.5" width="16" height="17" rx="3"/><path d="M8.5 9l1.6 1.6L13 7.7M8.5 15h7"/></svg>',
-  bell: '<svg viewBox="0 0 24 24"><path d="M6 9.5a6 6 0 0 1 12 0c0 4.6 1.6 6.2 2.2 6.8H3.8c.6-.6 2.2-2.2 2.2-6.8Z"/><path d="M10 19.5a2.1 2.1 0 0 0 4 0"/></svg>',
-  new: '<svg viewBox="0 0 24 24"><circle cx="10" cy="8" r="3.5"/><path d="M3.5 19.5a6.5 6.5 0 0 1 11.5-4.2"/><path d="M18 14v6M15 17h6"/></svg>',
-  qual: '<svg viewBox="0 0 24 24"><circle cx="9" cy="8.5" r="3.2"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><circle cx="16.5" cy="9.5" r="2.6"/><path d="M16 14.2a4.6 4.6 0 0 1 4.8 4.8"/></svg>',
-  deal: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M8.3 12.3l2.5 2.5 4.9-5.2"/></svg>',
-  phone: '<svg viewBox="0 0 24 24"><path d="M5.2 3.5h2.9l1.4 3.8-1.9 1.3a11 11 0 0 0 5.2 5.2l1.3-1.9 3.8 1.4v2.9a1.6 1.6 0 0 1-1.7 1.6A15.6 15.6 0 0 1 3.6 5.2a1.6 1.6 0 0 1 1.6-1.7z"/></svg>',
-  alarm: '<svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="7"/><path d="M12 9.5V13l2.3 1.6M4.5 5.5l2.5-2M19.5 5.5l-2.5-2"/></svg>',
-  cal: '<svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2.5"/><path d="M8 3.5v3M16 3.5v3M4 10h16"/></svg>',
-  redo: '<svg viewBox="0 0 24 24"><path d="M5.2 3.5h2.9l1.4 3.8-1.9 1.3a11 11 0 0 0 5.2 5.2l1.3-1.9 3.8 1.4v2.9a1.6 1.6 0 0 1-1.7 1.6A15.6 15.6 0 0 1 3.6 5.2a1.6 1.6 0 0 1 1.6-1.7z"/><path d="M15 3.5h5v5M20 3.5l-5.5 5.5"/></svg>',
-  decide: '<svg viewBox="0 0 24 24"><path d="M12 4v16M5 20h14M6 8h12M6 8l-2.5 6a3 3 0 0 0 5 0zM18 8l-2.5 6a3 3 0 0 0 5 0z"/></svg>',
-  note: '<svg viewBox="0 0 24 24"><path d="M6 3.5h9l3 3V20a.5.5 0 0 1-.5.5h-11A.5.5 0 0 1 6 20z"/><path d="M9 10h6M9 13.5h6M9 17h3.5"/></svg>',
-  flame: '<svg viewBox="0 0 24 24"><path d="M12 21c-3.6 0-6.5-2.6-6.5-6.2 0-3.6 3-5.5 3.6-9.3 2.4 1.4 3.6 3.6 3.4 6 1-.6 1.7-1.6 2-2.9 1.9 1.6 3 3.8 3 6.2 0 3.6-2.9 6.2-5.5 6.2z"/></svg>',
-  clock: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>',
-  alert: '<svg viewBox="0 0 24 24"><path d="M12 4 3 19.5h18z"/><path d="M12 10v4.5M12 17.2v.1"/></svg>',
-  cake: '<svg viewBox="0 0 24 24"><path d="M4.5 20.5h15V13a2 2 0 0 0-2-2h-11a2 2 0 0 0-2 2z"/><path d="M4.5 15.5c1.5 1 3 1 4.5 0s3-1 4.5 0 3 1 4.5 0M12 11V7.5M12 4.5v.1"/></svg>',
-};
+const DASH_IC = Object.fromEntries(Object.entries({ // tên ngắn ở Tổng quan → icon dùng chung (js/icons.js — D-006)
+  todo: 'task', bell: 'bell', new: 'new_lead', qual: 'customers', deal: 'contract', phone: 'call', alarm: 'alarm',
+  cal: 'calendar', sched: 'call_sched', redo: 'call_again', talked: 'talked', decide: 'decide', note: 'note',
+  flame: 'hot', clock: 'idle', alert: 'alert', cake: 'birthday',
+}).map(([k, v]) => [k, icon(v)]));
 // Nhóm việc (dashActionGroups key) → icon smartlist.
-const SL_ICON = { due: 'alarm', tasks: 'todo', today: 'cal', new: 'new', retry: 'redo', decide: 'decide', pending: 'note', hot: 'flame', warm: 'clock', nonext: 'alert', bday: 'cake' };
+const SL_ICON = { due: 'alarm', tasks: 'todo', today: 'sched', new: 'new', retry: 'redo', decide: 'decide', pending: 'note', hot: 'flame', warm: 'clock', nonext: 'alert', bday: 'cake' };
 function dashHotMin() { return (window.NOTIF && NOTIF.config.hotInterestMin) || 60; }
 function dashIdleHotDays() { return (window.NOTIF && NOTIF.config.idleDays) || 7; }
 
@@ -5580,30 +5601,51 @@ function renderDashboard() {
   for (const c of all) {
     if (c.disqualified_at) continue;
     const ct = c.next_call_at ? Date.parse(c.next_call_at) : NaN;
-    if (inWeek(ct)) upcoming.push({ c, t: ct, kind: 'call', text: c.next_call_reason || '' });
+    if (inWeek(ct)) upcoming.push({ c, t: ct, kind: 'call', text: 'Hẹn gọi' + (c.next_call_reason ? ' · ' + c.next_call_reason : '') });
     for (const tk of openTasksOf(c)) {
       const tt = taskDueMs(tk);
-      if (inWeek(tt)) upcoming.push({ c, t: tt, kind: 'task', text: tk.text || '', allDay: !!tk.due_allday });
+      if (inWeek(tt)) upcoming.push({ c, t: tt, kind: taskKind(tk), text: tk.text || '', allDay: !!tk.due_allday });
     }
   }
   upcoming.sort((a, b) => a.t - b.t);
   const upOpen = dashExpanded.has('upcoming');
   const upShown = upOpen ? upcoming : upcoming.slice(0, DASH_GROUP_LIMIT);
-  const upRest = upcoming.length - upShown.length;
-  const UP_IC = {
-    call: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5.2 3.5h2.9l1.4 3.8-1.9 1.3a11 11 0 0 0 5.2 5.2l1.3-1.9 3.8 1.4v2.9a1.6 1.6 0 0 1-1.7 1.6A15.6 15.6 0 0 1 3.6 5.2a1.6 1.6 0 0 1 1.6-1.7z"/></svg>',
-    task: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3.5" width="16" height="17" rx="3"/><path d="M8.5 9l1.6 1.6L13 7.7M8.5 15h7"/></svg>',
+  // Dòng thời gian: cột trái = thứ · giờ · còn bao lâu; chấm màu theo loại việc trên trục dọc;
+  // thẻ phải = tên khách · nhãn loại (màu) · icon + nội dung · ›. Chữ đậm chỉ ở tiêu đề thẻ (docs/design.md).
+  const upItem = ({ c, t, kind, text, allDay }) => {
+    const d = new Date(t);
+    const diff = Math.round((startOfDayMs(t) - startOfDayMs(now)) / 86400000);
+    const k = TASK_KINDS[kind] || TASK_KINDS.other;
+    return `<div class="up2-item kind-${kind}">
+        <div class="up2-when">
+          <span class="up2-day">${diff === 1 ? 'Mai' : VI_WD_SHORT[d.getDay()] + ' ' + ddmm(d)}</span>
+          <span class="up2-time${allDay ? ' is-allday' : ''}">${allDay ? 'Cả ngày' : hhmm(t)}</span>
+          <span class="up2-rel">${diff === 1 ? 'Ngày mai' : 'còn ' + diff + ' ngày'}</span>
+        </div>
+        <div class="up2-axis" aria-hidden="true"><span class="up2-dot"></span></div>
+        <button type="button" class="up2-card" data-open="${c.id}">
+          <span class="up2-main">
+            <span class="up2-top"><span class="up2-name">${escapeHtml(c.full_name || '(chưa tên)')}</span><span class="up2-chip">${escapeHtml(k.label)}</span></span>
+            <span class="up2-text">${kindIconHtml(kind, 'up2-ic')}<span>${escapeHtml(text)}</span></span>
+          </span>
+          <span class="up2-chev" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span>
+        </button>
+      </div>`;
   };
-  const upHtml = upcoming.length ? `<div class="up-list">` + upShown.map(({ c, t, kind, text, allDay }) => `
-      <button type="button" class="up-row" data-open="${c.id}">
-        <span class="up-when">${escapeHtml(allDay ? dashWhen(t).replace(/\s\d{2}:\d{2}$/, '') + ' · cả ngày' : dashWhen(t))}</span>
-        <span class="up-name">${escapeHtml(c.full_name || '(chưa tên)')}</span>
-        <span class="up-reason up-${kind}"><span class="up-ic">${UP_IC[kind]}</span>${escapeHtml(kind === 'call' ? 'Hẹn gọi' + (text ? ' · ' + text : '') : text)}</span>
-      </button>`).join('') + `</div>`
-      + (upRest > 0 ? `<button type="button" class="btn-ghost act-more" data-more="upcoming">Xem thêm ${upRest} việc</button>`
-        : (upOpen && upcoming.length > DASH_GROUP_LIMIT ? `<button type="button" class="btn-ghost act-more" data-more="upcoming">Thu gọn</button>` : ''))
-    : '<div class="dash-empty">Chưa có lịch hẹn hay việc nào trong 7 ngày tới.</div>';
-  const upCard = dashCard(`Lịch hẹn 7 ngày tới (${upcoming.length})`, upHtml, 'Hẹn gọi và việc cần làm có hạn của từng khách, gần đến hạn nhất ở trên.');
+  const upToggle = upcoming.length > DASH_GROUP_LIMIT
+    ? `<button type="button" class="up2-all" data-more="upcoming">${upOpen ? 'Thu gọn' : 'Xem tất cả'} <svg viewBox="0 0 24 24" aria-hidden="true"><path d="${upOpen ? 'M6 15l6-6 6 6' : 'M5 12h14M13 6l6 6-6 6'}"/></svg></button>` : '';
+  const upCard = `<div class="dash-card dash-up">
+      <div class="up2-head">
+        <span class="up2-head-ic" aria-hidden="true">${DASH_IC.cal}</span>
+        <div class="up2-head-text">
+          <h3>Lịch hẹn 7 ngày tới (${upcoming.length})</h3>
+          <p class="dash-hint">Hẹn gọi và việc cần làm có hạn của từng khách, gần đến hạn nhất ở trên.</p>
+        </div>
+        ${upToggle}
+      </div>
+      ${upcoming.length ? `<div class="up2-list">${upShown.map(upItem).join('')}</div>`
+        : '<div class="dash-empty">Chưa có lịch hẹn hay việc nào trong 7 ngày tới.</div>'}
+    </div>`;
 
   // ---- 3b) Pipeline đang chăm (lớp Tiềm năng, theo bậc hiện tại) ----
   const hotMin = dashHotMin();
@@ -5616,38 +5658,72 @@ function renderDashboard() {
     const value = list.reduce((sum, c) => sum + (Number(c.apt_price) || 0), 0);
     return { s, n: list.length, hot: list.filter((c) => (c.interest_level || 0) >= hotMin).length, value };
   });
+  // Thẻ pipeline (2026-10-09): dòng tổng + thanh xếp chồng · 4 ô bậc (icon ô tròn màu bậc · tên · số ·
+  // "N nóng" · % + thanh nhỏ; bấm → danh sách lọc bậc) · chân thẻ 3 số. Chữ đậm chỉ ở tiêu đề thẻ.
+  const hotAll = activeQ.filter((c) => (c.interest_level || 0) >= hotMin).length;
+  const closedN = all.filter((c) => c.care_stage === 'Kí HĐMB').length;
+  const lostN = all.filter((c) => isQualified(c) && c.care_stage === CARE_STAGE_DROPPED).length;
   const pipeHtml = `
-    <div class="pipe-bar">${pipeRows.filter((r) => r.n).map((r) => `<span style="flex:${r.n};background:${careColor(r.s)}" title="${escapeHtml(r.s)}: ${r.n}"></span>`).join('')}</div>
-    <div class="pipe-rows">${pipeRows.map((r) => `
-      <button type="button" class="pipe-row" data-stage="${escapeHtml(r.s)}">
-        <span class="pipe-dot" style="background:${careColor(r.s)}"></span>
-        <span class="pipe-stage">${escapeHtml(r.s)}</span>
-        <span class="pipe-hot">${r.hot ? `${r.hot} nóng` : ''}</span>
-        <span class="pipe-val">${r.value ? escapeHtml(formatPrice(r.value)) : ''}</span>
-        <span class="pipe-n">${r.n}</span>
-      </button>`).join('')}</div>
-    <div class="pipe-foot">${activeQ.length} khách đang chăm · ${pctOf(activeQ.filter((c) => (c.interest_level || 0) >= hotMin).length, pipeTotal)}% nóng
-      · đã chốt ${all.filter((c) => c.care_stage === 'Kí HĐMB').length} · không chốt ${all.filter((c) => isQualified(c) && c.care_stage === CARE_STAGE_DROPPED).length}</div>`;
-  const pipeCard = dashCard('Pipeline đang chăm', pipeHtml, 'Bấm 1 bậc để xem danh sách khách ở bậc đó. Giá trị = tổng giá căn đang nhắm.', 'dash-pipe');
+    <div class="pipe2-sum"><span>Tổng <span class="pipe2-num">${activeQ.length}</span> khách đang chăm sóc</span>
+      <span class="pipe2-hot">${pctOf(hotAll, pipeTotal)}% khách nóng</span></div>
+    <div class="pipe-bar pipe2-bar">${pipeRows.filter((r) => r.n).map((r) => `<span style="flex:${r.n};background:${careColor(r.s)}" title="${escapeHtml(r.s)}: ${r.n}"></span>`).join('')}</div>
+    <div class="pipe2-grid">${pipeRows.map((r) => {
+      const col = careColor(r.s), pct = pctOf(r.n, pipeTotal);
+      return `<button type="button" class="pipe2-tile" data-stage="${escapeHtml(r.s)}" style="--pc:${col}" title="Xem khách ở bậc ${escapeHtml(r.s)}">
+        <span class="pipe2-ic" aria-hidden="true">${stageIcon(r.s)}</span>
+        <span class="pipe2-stage">${escapeHtml(r.s)}</span>
+        <span class="pipe2-n">${r.n}</span>
+        <span class="pipe2-hotn${r.hot ? ' is-on' : ''}">${r.hot} nóng</span>
+        ${r.value ? `<span class="pipe2-val">${escapeHtml(formatPrice(r.value))}</span>` : ''}
+        <span class="pipe2-pct">${pct}%</span>
+        <span class="pipe2-track"><span style="width:${pct}%"></span></span>
+      </button>`;
+    }).join('')}</div>
+    <div class="pipe2-foot">
+      <div class="pipe2-stat"><span class="pipe2-sic" aria-hidden="true">${DASH_IC.qual}</span><span><span class="pipe2-big">${activeQ.length}</span><span class="pipe2-cap">khách đang chăm sóc</span></span></div>
+      <div class="pipe2-stat"><span class="pipe2-sic is-hot" aria-hidden="true">${DASH_IC.flame}</span><span><span class="pipe2-big">${pctOf(hotAll, pipeTotal)}%</span><span class="pipe2-cap">khách nóng</span></span></div>
+      <div class="pipe2-stat"><span class="pipe2-sic" aria-hidden="true">${DASH_IC.deal}</span><span class="pipe2-cap">đã chốt ${closedN}<br>không chốt ${lostN}</span></div>
+    </div>`;
+  const pipeCard = `<div class="dash-card dash-pipe">
+      <div class="pipe2-head"><h3>Pipeline đang chăm sóc</h3>
+        <button type="button" class="up2-all" data-go="pipeline-list">Xem chi tiết <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div>
+      <p class="dash-hint">Bấm 1 bậc để xem danh sách khách ở bậc đó. Giá trị = tổng giá căn đang nhắm.</p>
+      ${pipeHtml}
+    </div>`;
 
   // ---- 3c) Hiệu suất: tab Tuần (tuần này vs tuần trước) · Tháng (tháng này vs tháng trước) ----
   const isMonth = dashPerfTab === 'month';
   const prevMonth0 = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1).getTime();
   const [cur, prev] = isMonth ? [activity(month0, now + 1), activity(prevMonth0, month0)] : [thisWk, lastWk];
-  const perfRow = (label, a, b) => `<div class="perf-row"><span>${label}</span><b>${a}</b><span class="perf-prev">${b}</span>${delta(a, b) || '<span class="kpi-delta"></span>'}</div>`;
+  // Hiệu suất (2026-10-09): tab Tuần/Tháng · mỗi chỉ số 1 dòng: icon ô tròn (icon dùng chung) · tên + "trước: N"
+  // · số kỳ này (to, không đậm) · chip ▲/▼ chênh lệch · chân thẻ: tốc độ gọi khách mới.
+  const perfChip = (a, b) => (a === b ? '<span class="perf2-chip is-flat">—</span>'
+    : `<span class="perf2-chip ${a > b ? 'is-up' : 'is-down'}">${a > b ? '▲' : '▼'} ${Math.abs(a - b)}</span>`);
+  const perfRow = (ic, color, label, a, b) => `<div class="perf2-row" style="--pc:${color}">
+      <span class="pipe2-ic perf2-ic" aria-hidden="true">${icon(ic)}</span>
+      <span class="perf2-label">${label}<span class="perf2-prev">${isMonth ? 'tháng trước' : 'tuần trước'}: ${b}</span></span>
+      <span class="perf2-val">${a}</span>${perfChip(a, b)}
+    </div>`;
   const perfHtml = `<div class="dash-seg" role="tablist">${[['week', 'Tuần'], ['month', 'Tháng']].map(([k, t]) =>
       `<button type="button" class="dash-seg-btn${dashPerfTab === k ? ' is-active' : ''}" data-perf-tab="${k}" role="tab">${t}</button>`).join('')}</div>
-    <div class="perf">
-      <div class="perf-row perf-head"><span></span><span>${isMonth ? 'Tháng này' : 'Tuần này'}</span><span>${isMonth ? 'Tháng trước' : 'Tuần trước'}</span><span></span></div>
-      ${perfRow('Khách mới vào', cur.leads, prev.leads)}
-      ${perfRow('Cuộc gọi', cur.calls, prev.calls)}
-      ${perfRow('Nói chuyện được', cur.talked, prev.talked)}
-      ${perfRow('Chuyển Tiềm năng', cur.qualified, prev.qualified)}
-      ${perfRow('Booking / Kí', cur.deals, prev.deals)}
+    <div class="perf2-list">
+      ${perfRow('new_lead', '#A8741A', 'Khách mới vào', cur.leads, prev.leads)}
+      ${perfRow('call', 'var(--teal-light)', 'Cuộc gọi', cur.calls, prev.calls)}
+      ${perfRow('talked', 'var(--good)', 'Nói chuyện được', cur.talked, prev.talked)}
+      ${perfRow(STAGE_ICON[QUALIFIED_STAGE], careColor(QUALIFIED_STAGE), 'Chuyển Tiềm năng', cur.qualified, prev.qualified)}
+      ${perfRow('contract', careColor('Kí HĐMB'), 'Booking / Kí', cur.deals, prev.deals)}
     </div>
-    <div class="perf-foot">Tốc độ gọi khách mới (30 ngày): <b>${stlMed != null ? escapeHtml(formatDuration(stlMed)) : '—'}</b>
-      ${stl.length ? `<span class="perf-prev">· ${pctOf(stl.filter((v) => v <= 3600000).length, stl.length)}% gọi trong 1 giờ</span>` : ''}</div>`;
-  const perfCard = dashCard('Hiệu suất', perfHtml, `${isMonth ? 'Tính từ ngày 1 đầu tháng; tháng trước tính cả tháng.' : 'Tính từ thứ Hai.'} Tốc độ gọi = trung vị thời gian từ lúc khách đăng ký tới cuộc gọi đầu tiên.`, 'dash-perf');
+    <div class="pipe2-foot perf2-foot">
+      <div class="pipe2-stat"><span class="pipe2-sic" aria-hidden="true">${icon('idle')}</span>
+        <span><span class="pipe2-cap">Tốc độ gọi khách mới (30 ngày)</span><span class="pipe2-big">${stlMed != null ? escapeHtml(formatDuration(stlMed)) : '—'}</span></span></div>
+      ${stl.length ? `<div class="pipe2-stat"><span class="pipe2-sic" aria-hidden="true">${icon('call')}</span>
+        <span><span class="pipe2-cap">Gọi trong 1 giờ</span><span class="pipe2-big">${pctOf(stl.filter((v) => v <= 3600000).length, stl.length)}%</span></span></div>` : ''}
+    </div>`;
+  const perfCard = `<div class="dash-card dash-perf">
+      <h3>Hiệu suất</h3>
+      <p class="dash-hint">${isMonth ? 'Tháng này (từ ngày 1) so với cả tháng trước.' : 'Tuần này (từ thứ Hai) so với tuần trước.'} Tốc độ gọi = trung vị thời gian từ lúc khách đăng ký tới cuộc gọi đầu tiên.</p>
+      ${perfHtml}
+    </div>`;
 
   // ---- 4) PHÂN TÍCH (thu gọn) — các biểu đồ báo cáo ----
   const analytics = renderDashAnalytics(all);
@@ -5862,6 +5938,7 @@ $('#dashboard-content')?.addEventListener('click', (e) => {
   const go = e.target.closest('[data-go]');
   if (!go) return;
   if (go.dataset.go === 'leads') { showLeadView(); return; }
+  if (go.dataset.go === 'pipeline-list') { setProgressFilter('active'); stageFilter = ''; syncStageLabel(); showListView(); window.scrollTo(0, 0); return; }
   if (go.dataset.go === 'leads-new') { // → Khách mới, lọc "Chưa gọi" (bỏ các lọc khác + từ khoá tìm)
     $('#search-input').value = '';
     leadSrcFilter = ''; leadDatePreset = 'all'; leadAptTypeFilter = ''; leadFilter = 'new'; resetSearchPages();

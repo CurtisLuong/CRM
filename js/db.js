@@ -362,14 +362,14 @@ const CRM = {
     return record;
   },
 
-  // ---- VIỆC TIẾP THEO (next_tasks): mảng {text, at, due?, due_allday?, done_at?, log_at?}, GIỮ thứ tự tạo ----
+  // ---- VIỆC TIẾP THEO (next_tasks): mảng {text, at, kind?, due?, due_allday?, done_at?, log_at?}, GIỮ thứ tự tạo ----
   // done_at = lúc bấm xong (việc vào mục "Đã xong"); log_at = `at` của mốc "Xong việc" trong care_stage_history.
   // due = hạn ngày giờ (ISO), tuỳ chọn. due_allday = true → hạn "cả ngày" (due = 23:59 hôm đó).
   // Tham số `due` của addTask/updateTask: { due, due_allday } hoặc null (không hạn).
   // Chỉ đồng bộ riêng cột next_tasks (partial update) → không đụng field khác.
 
   /** Thêm 1 việc mới (xuống cuối danh sách). */
-  async addTask(id, text, due) {
+  async addTask(id, text, due, kind) {
     await assertWritable(id);
     const t = (text || '').trim();
     const existing = (await localGetAll()).find((r) => r.id === id);
@@ -377,6 +377,7 @@ const CRM = {
     const now = new Date().toISOString();
     const list = Array.isArray(existing.next_tasks) ? existing.next_tasks.slice() : [];
     const entry = { text: t, at: now };
+    if (kind) entry.kind = kind; // loại việc: message | cafe | docs | visit | contract | other
     if (due && due.due) { entry.due = due.due; if (due.due_allday) entry.due_allday = true; }
     list.push(entry); // việc mới xuống cuối
     const record = { ...existing, next_tasks: list, updated_at: now };
@@ -387,7 +388,7 @@ const CRM = {
   },
 
   /** Sửa nội dung + hạn 1 việc (nhận diện theo `at`). Nội dung trống = xoá việc đó; due trống = bỏ hạn. */
-  async updateTask(id, at, text, due) {
+  async updateTask(id, at, text, due, kind) {
     await assertWritable(id);
     const existing = (await localGetAll()).find((r) => r.id === id);
     if (!existing) return;
@@ -398,6 +399,7 @@ const CRM = {
     if (!t) list.splice(idx, 1);
     else {
       const entry = { ...list[idx], text: t };
+      if (kind) entry.kind = kind;
       delete entry.due; delete entry.due_allday;
       if (due && due.due) { entry.due = due.due; if (due.due_allday) entry.due_allday = true; }
       list[idx] = entry;

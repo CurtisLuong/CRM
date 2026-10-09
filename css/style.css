@@ -695,7 +695,7 @@ input:focus, select:focus, textarea:focus {
 .card-phone { color: var(--teal); text-decoration: none; font-size: 14px; display: inline-flex; align-items: center; }
 .card-zalo { display: inline-flex; align-items: center; line-height: 0; }
 /* Cỡ icon ăn theo font-size của SĐT (đặt bằng em) để luôn tương xứng cỡ chữ */
-.ic-phone { width: 1.05em; height: 1.05em; fill: currentColor; flex-shrink: 0; }
+.ic-phone { width: 1.05em; height: 1.05em; fill: none; flex-shrink: 0; }
 .ic-zalo { height: 1.35em; width: auto; display: block; }
 
 /* Dòng tiến độ: vòng NHỎ (đĩa conic đầy theo bậc) + "x/7" + tên bước + các tag */
@@ -910,7 +910,7 @@ input:focus, select:focus, textarea:focus {
   cursor: pointer;
 }
 .detail-phone-row .icon-btn:hover { border-color: var(--teal-light); }
-.detail-phone-row .ic-phone { width: 1.25em; height: 1.25em; fill: currentColor; }
+.detail-phone-row .ic-phone { width: 1.25em; height: 1.25em; display: inline-flex; }
 .detail-phone-row .ic-zalo { height: 1.4em; width: auto; display: block; }
 .detail-phone-row .ic-contact { width: 1.35em; height: 1.35em; display: block; } /* icon "thêm liên hệ" (person +) */
 
@@ -1252,7 +1252,7 @@ input:focus, select:focus, textarea:focus {
 .act-sub { font-size: 11.5px; color: #7a7a70; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .act-call { display: inline-flex; align-items: center; justify-content: center; min-width: 46px; color: var(--good); border-left: 1px solid var(--line); }
 .act-call:hover { background: #eef3ef; }
-.act-call .ic-phone { width: 19px; height: 19px; fill: currentColor; }
+.act-call .ic-phone { width: 19px; height: 19px; fill: none; }
 .act-zalo { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; border-left: 1px solid var(--line); }
 .act-zalo .ic-zalo { width: 22px; height: 22px; }
 .act-more { margin-top: 6px; width: 100%; font-size: 12px; padding: 6px; }
@@ -2410,3 +2410,130 @@ body:has(#detail-screen.is-readonly:not([hidden])) #avatar-remove-btn,
   .sl-list { padding: 0 10px 12px; }
   .kpi-value { font-size: 24px; }
 }
+
+
+/* ===== LOẠI VIỆC: màu + icon (TASK_KINDS trong app.js) — dùng chung checklist, hộp Thêm việc, Lịch hẹn 7 ngày ===== */
+.kind-call     { --kc: #3D6B4F; --kt: #E3EEE6; }
+.kind-message  { --kc: #B0342A; --kt: #F6E1DA; }
+.kind-cafe     { --kc: #A8741A; --kt: #F6E6C9; }
+.kind-docs     { --kc: #6E5F99; --kt: #ECE8F4; }
+.kind-visit    { --kc: #2C4A42; --kt: #DCE7E1; }
+.kind-contract { --kc: #8F2A22; --kt: #F1E2DE; }
+.kind-other    { --kc: #6b6b60; --kt: #EFECE3; }
+.kind-ic svg, .task-kind-ic svg, .up2-ic svg, .kind-opt svg { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.task-kind-ic { display: inline-flex; vertical-align: -3px; margin-right: 6px; color: var(--kc); }
+.task-kind-ic svg { width: 16px; height: 16px; }
+.kind-opt { display: inline-flex; align-items: center; gap: 6px; }
+.kind-opt svg { width: 16px; height: 16px; color: var(--kc); }
+.kind-opt.is-sel svg { color: #fff; }
+
+/* ===== LỊCH HẸN 7 NGÀY TỚI — dòng thời gian (2026-10-09) ===== */
+.up2-head { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 8px; }
+.up2-head-ic { flex: none; width: 40px; height: 40px; border-radius: 50%; background: #EFECE3; color: var(--ink); display: inline-flex; align-items: center; justify-content: center; }
+.up2-head-ic svg, .up2-all svg, .up2-chev svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.up2-head-text { flex: 1; min-width: 0; }
+.up2-head-text h3 { margin: 2px 0 2px; }
+.up2-head-text .dash-hint { margin: 0; }
+.up2-all { flex: none; display: inline-flex; align-items: center; gap: 4px; margin-top: 2px; border: none; background: none; cursor: pointer; font: inherit; font-size: 13px; color: var(--teal-light); white-space: nowrap; }
+.up2-all svg { width: 16px; height: 16px; }
+.up2-all:hover { color: var(--ink); }
+.up2-list { display: flex; flex-direction: column; }
+.up2-item { display: grid; grid-template-columns: 62px 22px minmax(0, 1fr); align-items: stretch; }
+.up2-when { display: flex; flex-direction: column; justify-content: center; padding: 8px 0; }
+.up2-day { font-size: 12.5px; color: #55564e; }
+.up2-time { font-size: 17px; color: var(--ink); font-variant-numeric: tabular-nums; line-height: 1.25; }
+.up2-rel { font-size: 11px; color: #9a9a8e; white-space: nowrap; }
+.up2-day, .up2-time { white-space: nowrap; }
+.up2-time.is-allday { font-size: 14px; }
+.up2-axis { position: relative; display: flex; align-items: center; justify-content: center; }
+.up2-axis::before { content: ""; position: absolute; top: 0; bottom: 0; left: 50%; width: 2px; margin-left: -1px; background: #E6E1D5; }
+.up2-item:first-child .up2-axis::before { top: 50%; }
+.up2-item:last-child .up2-axis::before { bottom: 50%; }
+.up2-dot { position: relative; width: 11px; height: 11px; border-radius: 50%; background: var(--kc); box-shadow: 0 0 0 3px #fff, 0 0 0 4px var(--kt); }
+.up2-card {
+  display: flex; align-items: center; gap: 8px; margin: 5px 0; padding: 10px 10px 10px 14px; min-width: 0;
+  background: #FCFBF8; border: 1px solid #EEE9DD; border-radius: 12px; cursor: pointer; font: inherit; text-align: left; color: var(--ink);
+}
+.up2-card:hover { border-color: #D8CFBE; background: #fff; }
+.up2-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.up2-top { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.up2-name { flex: 1; min-width: 0; font-size: 14.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.up2-chip { flex: none; font-size: 11.5px; padding: 2px 9px; border-radius: 999px; background: var(--kt); color: var(--kc); }
+.up2-text { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: #6b6b60; min-width: 0; }
+.up2-text > span:last-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.up2-ic { flex: none; display: inline-flex; color: var(--kc); }
+.up2-ic svg { width: 15px; height: 15px; }
+.up2-chev { flex: none; display: inline-flex; color: #9a9a8e; }
+.up2-chev svg { width: 18px; height: 18px; }
+@media (max-width: 560px) { .up2-item { grid-template-columns: 56px 20px minmax(0, 1fr); } .up2-time { font-size: 16px; } }
+
+
+/* ===== PIPELINE ĐANG CHĂM SÓC (2026-10-09) — tối giản: số to nhưng không đậm, màu theo bậc ===== */
+.pipe2-head { display: flex; align-items: center; gap: 10px; }
+.pipe2-head h3 { flex: 1; margin: 0; }
+.dash-pipe .dash-hint { margin-top: 2px; }
+.pipe2-sum { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 13.5px; color: #55564e; margin: 4px 0 8px; }
+.pipe2-num { color: var(--ink); font-size: 15px; }
+.pipe2-hot { color: #B8722C; white-space: nowrap; }
+.pipe2-bar { height: 12px; margin-bottom: 14px; }
+.pipe2-bar span { opacity: .85; }
+.pipe2-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.pipe2-tile {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 0; padding: 12px 10px 12px;
+  background: #FCFBF8; border: 1px solid #EEE9DD; border-radius: 14px; cursor: pointer; font: inherit; text-align: left; color: var(--ink);
+}
+.pipe2-tile:hover { border-color: #D8CFBE; background: #fff; }
+.pipe2-ic { width: 38px; height: 38px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 8px;
+  color: var(--pc); background: #F1EEE6; background: color-mix(in srgb, var(--pc) 18%, #fff); }
+.pipe2-ic svg, .pipe2-sic svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.pipe2-stage { font-size: 12.5px; color: #55564e; line-height: 1.3; min-height: 2.6em; }
+.pipe2-n { font-size: 24px; font-weight: 400; line-height: 1.2; margin-top: 4px; font-variant-numeric: tabular-nums; }
+.pipe2-hotn { font-size: 12px; color: #9a9a8e; }
+.pipe2-hotn.is-on { color: #B8722C; }
+.pipe2-val { font-size: 11.5px; color: #8a8a7e; }
+.pipe2-pct { font-size: 12px; color: #55564e; margin-top: auto; padding-top: 8px; } /* ghim đáy ô → các thanh % thẳng hàng */
+.pipe2-track { display: block; width: 100%; height: 5px; border-radius: 999px; background: #EDEAE2; overflow: hidden; margin-top: 4px; }
+.pipe2-track span { display: block; height: 100%; border-radius: 999px; background: var(--pc); }
+.pipe2-foot { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 14px; padding: 12px 6px; background: #FAF8F3; border: 1px solid #F0EBE0; border-radius: 12px; }
+.pipe2-stat { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 0 8px; }
+.pipe2-stat + .pipe2-stat { border-left: 1px solid #E8E3D7; }
+.pipe2-sic { flex: none; display: inline-flex; color: #6b6b60; }
+.pipe2-sic.is-hot { color: #C9782E; }
+.pipe2-big { display: block; font-size: 18px; line-height: 1.2; color: var(--ink); }
+.pipe2-cap { display: block; font-size: 11.5px; color: #7a7a70; line-height: 1.35; }
+@media (max-width: 560px) {
+  .pipe2-grid { gap: 6px; }
+  .pipe2-tile { padding: 10px 8px; }
+  .pipe2-ic { width: 32px; height: 32px; }
+  .pipe2-ic svg { width: 17px; height: 17px; }
+  .pipe2-stat { padding: 0 5px; gap: 6px; }
+  .pipe2-sic svg { width: 17px; height: 17px; }
+}
+
+
+/* ===== ICON DÙNG CHUNG (js/icons.js — D-006): phần tử có data-icon tự điền <svg> ===== */
+[data-icon] { display: inline-flex; flex: none; }
+[data-icon] > svg { width: 100%; height: 100%; display: block; }
+.menu-item.has-ic .menu-ic { width: 18px; height: 18px; color: var(--teal-light); }
+.bn-ic { width: 23px; height: 23px; }
+.notif-ic[data-icon] { width: 21px; height: 21px; }
+.btn-ic { width: 15px; height: 15px; }
+.lead-btn-ic { width: 18px; height: 18px; }
+.lead-assign-ic { width: 23px; height: 18px; }
+.dcard-ic[data-icon] { width: 20px; height: 20px; }
+
+
+/* ===== HIỆU SUẤT (2026-10-09) — cùng phong cách thẻ Pipeline: dòng icon + số không đậm ===== */
+.perf2-list { display: flex; flex-direction: column; gap: 6px; }
+.perf2-row { display: flex; align-items: center; gap: 12px; padding: 9px 12px; background: #FCFBF8; border: 1px solid #EEE9DD; border-radius: 12px; }
+.perf2-ic.pipe2-ic { flex: none; width: 34px; height: 34px; margin: 0; }
+.perf2-ic svg { width: 18px; height: 18px; }
+.perf2-label { flex: 1; min-width: 0; display: flex; flex-direction: column; font-size: 13.5px; color: var(--ink); }
+.perf2-prev { font-size: 11.5px; color: #9a9a8e; }
+.perf2-val { font-size: 20px; font-weight: 400; color: var(--ink); font-variant-numeric: tabular-nums; }
+.perf2-chip { flex: none; min-width: 44px; text-align: center; font-size: 11.5px; padding: 2px 8px; border-radius: 999px; }
+.perf2-chip.is-up { background: #E3EEE6; color: var(--good); }
+.perf2-chip.is-down { background: #F6E1DA; color: var(--bad); }
+.perf2-chip.is-flat { background: #EFECE3; color: #9a9a8e; }
+.perf2-foot { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.perf2-foot .pipe2-cap { font-size: 11.5px; }
