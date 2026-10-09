@@ -6,6 +6,12 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-09 — Khách mới (lọc Tất cả): khách đã loại gom dưới nút "Xem khách đã loại"
+
+- Lọc Tất cả, không đang tìm: khách đã loại không hiện lẫn trong danh sách mà gom dưới nút nhỏ "Xem khách đã loại (n)" cuối danh sách; bấm để mở/ẩn, thẻ vẫn hiện mờ như cũ. Đang tìm kiếm → hiện lẫn theo độ liên quan. Lọc Đã loại → hiện bình thường.
+- File: `index.html`, `js/app.js`, `css/style.css`, `sw.js` (v71).
+- Đã kiểm tra trình duyệt local (dữ liệu giả): đếm thẻ, mở/ẩn, lọc Đã loại, thẳng lề với danh sách. Chưa deploy.
+
 ## 2026-10-09 — Khách mới: lọc trạng thái Tất cả · Chưa gọi · Cần gọi lại · Đã loại
 
 - Nhóm Trạng thái trong Bộ lọc Khách mới: **Tất cả** (mặc định; khách đã loại xếp cuối danh sách) · **Chưa gọi** (chưa có cuộc gọi đầu) · **Cần gọi lại** (đã gọi ≥1 lần, chưa loại) · **Đã loại**. Trước: Cần gọi (mặc định) · Đã loại · Tất cả.

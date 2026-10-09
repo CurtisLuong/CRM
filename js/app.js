@@ -4577,13 +4577,31 @@ function renderLeads() {
 
   const ctx = searchCtx(); // dùng tô đậm từ khoá trên thẻ
   const fullList = visibleLeads(leads);
-  const list = fullList.slice(0, searchPages.leads * SEARCH_PAGE_SIZE);
+  // Lọc "Tất cả" (không đang tìm): khách ĐÃ LOẠI gom dưới nút "Xem khách đã loại (n)" cuối danh sách
+  // (mở ra vẫn hiện mờ như cũ). Đang tìm → hiện lẫn theo độ liên quan để không sót kết quả.
+  const hideDropped = leadFilter === 'all' && !ctx;
+  const mainList = hideDropped ? fullList.filter((c) => !c.disqualified_at) : fullList;
+  const droppedList = hideDropped ? fullList.filter((c) => c.disqualified_at) : [];
+  const list = mainList.slice(0, searchPages.leads * SEARCH_PAGE_SIZE);
   syncLeadFilterUI();
   setResultCount($('#lead-result-count'), fullList.length, '');
-  $('#lead-search-more').hidden = list.length >= fullList.length;
-  $('#lead-search-more').textContent = `Xem thêm (${fullList.length - list.length} khách)`;
+  $('#lead-search-more').hidden = list.length >= mainList.length;
+  $('#lead-search-more').textContent = `Xem thêm (${mainList.length - list.length} khách)`;
   $('#lead-empty').hidden = list.length !== 0;
-  $('#lead-list').innerHTML = list.map((c) => {
+  $('#lead-dropped-wrap').hidden = !droppedList.length;
+  if (!droppedList.length) leadDroppedOpen = false;
+  $('#lead-dropped-toggle').innerHTML = `${leadDroppedOpen ? 'Ẩn' : 'Xem'} khách đã loại (${droppedList.length})
+    <svg class="lead-dropped-caret" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  $('#lead-dropped-toggle').setAttribute('aria-expanded', String(leadDroppedOpen));
+  $('#lead-dropped-wrap').classList.toggle('is-open', leadDroppedOpen);
+  $('#lead-dropped-list').hidden = !leadDroppedOpen;
+  $('#lead-dropped-list').innerHTML = leadDroppedOpen ? droppedList.map((c) => leadCardHtml(c, ctx)).join('') : '';
+  $('#lead-list').innerHTML = list.map((c) => leadCardHtml(c, ctx)).join('');
+}
+let leadDroppedOpen = false; // mục "Xem khách đã loại" đang mở?
+// 1 thẻ khách mới trong danh sách (khách đã loại: class is-dropped → hiện mờ).
+function leadCardHtml(c, ctx) {
+  {
     const attempts = callAttemptsOf(c);
     const last = attempts[attempts.length - 1];
     const rem = (c.disqualified_at || !isMine(c)) ? null : callReminder(c);
@@ -4617,7 +4635,7 @@ function renderLeads() {
         ${snipsHtml(c, ctx, 'card-snip')}
         <div class="lead-card-last">${lastLine}</div>
       </div>`;
-  }).join('');
+  }
 }
 
 // ---- Hộp chi tiết lead ----
@@ -4781,11 +4799,12 @@ async function reopenLead() {
   await afterLeadChange();
 }
 
-$('#lead-list')?.addEventListener('click', (e) => {
+['#lead-list', '#lead-dropped-list'].forEach((sel) => $(sel)?.addEventListener('click', (e) => {
   if (e.target.closest('a')) return; // gọi / Zalo → để link chạy bình thường
   const card = e.target.closest('.lead-card');
   if (card) openLeadSheet(card.dataset.id);
-});
+}));
+$('#lead-dropped-toggle')?.addEventListener('click', () => { leadDroppedOpen = !leadDroppedOpen; renderLeads(); });
 // ---- Thanh công cụ tab Khách mới (cùng kiểu tab Tiềm năng) ----
 const LEAD_POPS = [['#lead-filter-panel', '#lead-filter-btn'], ['#lead-sort-panel', '#lead-sort-btn'], ['#lead-io-menu-pop', '#lead-io-menu-btn']];
 function closeLeadPops(except) {

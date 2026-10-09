@@ -2306,3 +2306,17 @@ body:has(#detail-screen.is-readonly:not([hidden])) #avatar-remove-btn,
 .lead-appt .call-tag { flex: none; cursor: pointer; }
 .lead-act-assign { flex: none; display: inline-flex; align-items: center; justify-content: center; padding: 10px 14px; background: #fff; color: var(--ink); border: 1px solid var(--line); }
 .lead-act-assign:hover { border-color: var(--teal-light); }
+
+
+/* Khách mới · lọc Tất cả: nút "Xem khách đã loại (n)" — phụ, chữ nhỏ xám, giữa danh sách. */
+.lead-dropped-wrap { padding: 0 20px 70px; margin-top: -44px; } /* kéo sát danh sách (bù padding đáy 60px của .customer-list) */
+.lead-dropped-toggle {
+  display: flex; align-items: center; gap: 4px; margin: 4px auto 0; padding: 7px 14px;
+  border: 1px dashed #D8D2C4; border-radius: 999px; background: transparent; cursor: pointer;
+  font: inherit; font-size: 13px; color: #7a7a70;
+}
+.lead-dropped-toggle:hover { color: var(--ink); border-color: #B9B2A2; }
+.lead-dropped-caret { width: 15px; height: 15px; transition: transform .18s ease; }
+.lead-dropped-wrap.is-open .lead-dropped-caret { transform: rotate(180deg); }
+.lead-dropped-list { padding: 12px 0 0; }
+

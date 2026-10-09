@@ -367,6 +367,11 @@
   <div id="lead-view" hidden>
     <div id="lead-list" class="customer-list"></div>
     <button id="lead-search-more" class="btn-ghost search-more" type="button" hidden>Xem thêm</button>
+    <!-- Lọc "Tất cả": khách đã loại gom ở đây, mặc định thu gọn (renderLeads). -->
+    <div id="lead-dropped-wrap" class="lead-dropped-wrap" hidden>
+      <button type="button" id="lead-dropped-toggle" class="lead-dropped-toggle" aria-expanded="false" aria-controls="lead-dropped-list"></button>
+      <div id="lead-dropped-list" class="customer-list lead-dropped-list" hidden></div>
+    </div>
     <div id="lead-empty" class="empty-state" hidden>Không có khách mới nào ở mục này.</div>
     <button id="add-lead-btn" class="fab" title="Thêm khách mới" aria-label="Thêm khách mới">+</button>
   </div>
