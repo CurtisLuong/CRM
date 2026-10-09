@@ -6,6 +6,13 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-09 — Màu nhãn & icon hành động bỏ đỏ / vàng / xanh lá
+
+- Đỏ, vàng, xanh lá chỉ còn dùng cho badge / cảnh báo cấp bách (quá hạn / sắp đến / đã xong). Nhãn và icon hành động chuyển sang bảng màu lạnh / trung tính: loại việc, bậc chăm sóc (vòng tiến độ, pipeline, phễu), bậc Không chốt (xám), trạng thái liên hệ, thẻ chỉ số Tổng quan, Hiệu suất, chú thích biểu đồ, avatar, icon tiêu đề thẻ. Quy tắc + bảng màu: `docs/design.md` mục "Màu nhãn & icon hành động".
+- Nhãn đếm ngược: sắp đến vàng sáng `#F5D66E`, đến hạn đỏ nhạt `#FF7075`, quá hạn đỏ đậm `#A1171E` (trước là xám).
+- Thang độ quan tâm bỏ cam/đỏ → tông mận nhạt → đậm + 1–3 ngọn lửa (Nguội không lửa): badge card/list, slider form, chấm ở hồ sơ.
+- File: `css/style.css`, `js/app.js`, `docs/design.md`, `sw.js` (v79).
+
 ## 2026-10-09 — Tab Công việc + tab Phân tích (D-007)
 
 - 4 tab chính: Tổng quan · Khách hàng · **Công việc** · **Phân tích** (desktop: header; điện thoại: thanh dưới 5 ô có ＋ giữa).

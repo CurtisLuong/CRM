@@ -654,16 +654,17 @@ input:focus, select:focus, textarea:focus {
 .card-name { font-weight: 600; font-size: 16px; min-width: 0; flex: 1; }
 .card-head-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 
-/* Tag nhắc gọi (dóng ngang tên): vàng=sắp gọi, đỏ=đến giờ, xám=quên gọi.
+/* Tag nhắc gọi / đếm ngược (dóng ngang tên): vàng sáng=sắp đến, đỏ nhạt=đến hạn, đỏ đậm=quá hạn
+   (docs/design.md "Màu nhãn & icon hành động").
    Text theo scheme (mực in). Bấm vào → popup xác nhận gọi. */
 .call-tag {
   flex-shrink: 0; margin-top: 1px;
   border: none; cursor: pointer; font: inherit; font-size: 11px; font-weight: 700;
   padding: 3px 9px; border-radius: 100px; white-space: nowrap; color: var(--ink);
 }
-.call-soon { background: #EBC85C; }              /* vàng nghệ ấm */
-.call-due { background: #E29A8E; }               /* đỏ son nhạt, không gắt */
-.call-missed { background: #D8D4C8; color: #5f5f57; } /* xám giấy */
+.call-soon { background: #F5D66E; }              /* vàng sáng — sắp đến */
+.call-due { background: #FF7075; }               /* đỏ nhạt — đến hạn */
+.call-missed { background: #A1171E; color: #fff; } /* đỏ đậm — quá hạn */
 .call-tag:hover { filter: brightness(0.96); }
 
 /* Nút menu "⋯" + popover chứa nút Xoá */
@@ -717,16 +718,16 @@ input:focus, select:focus, textarea:focus {
   background: conic-gradient(var(--ring) calc(var(--pct) * 1%), color-mix(in srgb, var(--ring) 22%, #fff) 0);
 }
 .stage-pill .sp-frac { white-space: nowrap; }
-/* Bậc 'Loại' → pill đỏ nhạt, dấu ✕ đỏ đặc + "Loại". */
-.stage-pill.is-dropped { color: #a32d2d; background: #fbeaea; }
+/* Bậc 'Loại' → pill xám, dấu ✕ xám đặc + "Không chốt" (nhãn: không dùng đỏ — docs/design.md). */
+.stage-pill.is-dropped { color: #5f5f56; background: #EFECE3; }
 .stage-pill.is-dropped .sp-xmark {
   width: 14px; height: 14px; border-radius: 50%; flex: 0 0 auto;
   display: inline-flex; align-items: center; justify-content: center;
-  font-size: 9px; font-weight: 700; color: #fff; background: #c0392b;
+  font-size: 9px; font-weight: 700; color: #fff; background: #8a8a80;
 }
 
 /* Dấu ✕ ở trang chi tiết (hàng "Tiến độ") — cỡ to hơn, không nền. */
-.stage-x { font-size: 15px; font-weight: 800; color: #c0392b; line-height: 1; }
+.stage-x { font-size: 15px; font-weight: 800; color: #8a8a80; line-height: 1; }
 
 /* Badge TRẠNG THÁI LIÊN LẠC (độc lập tiến độ) — quan trọng THỨ 2 sau progress.
    Mang MÀU riêng theo trạng thái: nền tint + chữ đậm-màu cùng tông (không icon),
@@ -742,19 +743,19 @@ input:focus, select:focus, textarea:focus {
 .tag-contact-warn { background: #fbeccd; color: #9c6f1a; font-weight: var(--badge-fw-bold); }
 
 /* Badge MỨC QUAN TÂM trên card: cùng THIẾT KẾ với Loại căn & Mệnh (nền xám #eee,
-   chữ #444, font thường) — CHỈ KHÁC là có chấm ◆ mang màu theo bậc quan tâm. */
+   chữ #444, font thường) — CHỈ KHÁC là có 1–3 ngọn lửa mang màu mận theo bậc (Nguội: không lửa). */
 .tag.tag-interest {
   font-weight: var(--badge-fw-normal);
   display: inline-flex; align-items: center; gap: 4px;
   background: #eee; color: #444;
 }
-.tag-interest .ti-dot { font-size: 9px; line-height: 1; }
-/* Base .ti-* chỉ tô MÀU ◆ (không đụng nền/chữ pill trên card). List view có rule
-   riêng, cụ thể hơn (.cust-row .tag-interest.ti-*) nên vẫn giữ nền tint bên đó. */
-.ti-nguoi   .ti-dot { color: #8b93a0; }
-.ti-am      .ti-dot { color: #e8a33d; }
-.ti-nong    .ti-dot { color: #c94f3e; }
-.ti-ratnong .ti-dot { color: #a8302a; }
+.tag-interest .ti-flames { display: inline-flex; gap: 0; margin-left: -2px; }
+.tag-interest .ti-flames svg { width: 12px; height: 12px; margin-right: -2px; }
+/* Base .ti-* chỉ tô MÀU ngọn lửa (không đụng nền/chữ pill trên card). List view có rule
+   riêng, cụ thể hơn (.cust-row .tag-interest.ti-*) nên có nền tint bên đó. */
+.ti-am      .ti-flames { color: #B98AA8; }
+.ti-nong    .ti-flames { color: #8A4A78; }
+.ti-ratnong .ti-flames { color: #5E2A52; }
 
 /* ===== LIST VIEW (dòng gọn) — bật khi #customer-list có class .list-mode =====
    LUÔN 1 HÀNG (kể cả điện thoại): [Tên đầy đủ] ......... [SĐT …xxxxx + loại căn +
@@ -794,13 +795,13 @@ input:focus, select:focus, textarea:focus {
 .cust-row .tag-interest { flex: 0 0 auto; font-size: 11px; padding: 2px 8px; white-space: nowrap; }
 /* Chỉ báo nhắc gọi trong list (nhãn, không phải nút) — dùng chung màu call-soon/due/missed. */
 .row-call { flex: 0 0 auto; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 100px; white-space: nowrap; color: var(--ink); }
-/* Trong list bỏ chấm ◆ (tiết kiệm chỗ cho tên đầy đủ) → thay bằng NỀN pill theo màu bậc
-   để vẫn phân biệt Nguội/Ấm/Nóng/Rất nóng ngay. Selector cụ thể hơn để thắng .tag (nền xám). */
-.cust-row .tag-interest .ti-dot { display: none; }
-.cust-row .tag-interest.ti-nguoi   { background: #edeff2; color: #5f6b7a; }
-.cust-row .tag-interest.ti-am      { background: #fbeccd; color: #9c6f1a; }
-.cust-row .tag-interest.ti-nong    { background: #f7ddd7; color: #a83f30; }
-.cust-row .tag-interest.ti-ratnong { background: #f2d3d0; color: #8f231d; }
+/* Trong list: NỀN pill tint mận theo bậc + ngọn lửa cùng màu chữ, phân biệt Nguội/Ấm/Nóng/Rất nóng ngay.
+   Selector cụ thể hơn để thắng .tag (nền xám). */
+.cust-row .tag-interest .ti-flames { color: inherit; }
+.cust-row .tag-interest.ti-nguoi   { background: #EDEFF2; color: #5f6b7a; }
+.cust-row .tag-interest.ti-am      { background: #F5EBF1; color: #8A5A7C; }
+.cust-row .tag-interest.ti-nong    { background: #F2E4EE; color: #8A4A78; }
+.cust-row .tag-interest.ti-ratnong { background: #E9D6E3; color: #5E2A52; }
 
 .tag { font-size: 11px; padding: 3px 8px; border-radius: 100px; background: #eee; color: #444; font-weight: var(--badge-fw-normal); }
 .tag-stage { background: #e4ecec; color: var(--teal); }
@@ -1268,7 +1269,7 @@ input:focus, select:focus, textarea:focus {
 .up-ic { flex: none; display: inline-flex; }
 .up-ic svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .up-call .up-ic { color: var(--teal-light); }
-.up-task .up-ic { color: var(--seal); }
+.up-task .up-ic { color: #6E5F99; }
 
 /* Pipeline đang chăm */
 .pipe-bar { display: flex; height: 10px; border-radius: 100px; overflow: hidden; background: #efece4; gap: 2px; margin-bottom: 8px; }
@@ -1331,8 +1332,8 @@ dialog#form-modal::backdrop { background: rgba(20, 30, 30, 0.5); }
 
 /* ===== Mức độ quan tâm: readout (%+ nhãn bậc) + slider đổi màu theo bậc =====
    Màu bậc do JS bơm vào (biến --intr-color + nền gradient inline), khớp
-   INTEREST_TIERS trong app.js. Nguội #8b93a0 / Ấm #e8a33d / Nóng #c94f3e /
-   Rất nóng #a8302a. */
+   INTEREST_TIERS trong app.js. Nguội #8B93A0 / Ấm #B98AA8 / Nóng #8A4A78 /
+   Rất nóng #5E2A52 (tông mận). */
 .interest-readout { display: flex; align-items: center; gap: 6px; }
 /* Chữ % cùng cỡ + độ đậm với nhãn "Mức độ quan tâm" (13px, thường). */
 #interest-output { font-weight: 400; font-size: 13px; color: #4a4a42; }
@@ -1500,9 +1501,9 @@ input[name="apt_type_other"] { margin-top: 8px; }
   border-radius: 10px; padding: 9px 8px 9px 10px;
   transition: opacity .25s ease;
 }
-.task-item.is-soon { border-left-color: #EBC85C; }
-.task-item.is-due { border-left-color: #E29A8E; background: #fbf1ec; }
-.task-item.is-missed { border-left-color: #C9C4B6; }
+.task-item.is-soon { border-left-color: #F5D66E; }
+.task-item.is-due { border-left-color: #FF7075; background: #fff3f3; }
+.task-item.is-missed { border-left-color: #A1171E; }
 .task-check {
   flex: none; width: 20px; height: 20px; margin-top: 1px; padding: 0; cursor: pointer;
   border: 1.6px solid #B9B2A2; border-radius: 50%; background: #fff; position: relative;
@@ -2224,7 +2225,7 @@ body:has(#detail-screen.is-readonly:not([hidden])) #avatar-remove-btn,
   border-radius: var(--card-radius); box-shadow: var(--card-shadow); padding: 14px 16px;
 }
 .tasks-head h3 { color: var(--seal); }
-.tasks-head .dcard-ic { color: var(--seal); }
+.tasks-head .dcard-ic { color: var(--teal-light); }
 .tasks-wrap .task-item { background: #fff; }
 
 /* Ghi chú trong thẻ: bỏ khung lồng; ở Tổng quan chỉ xem trước 3 ghi chú mới nhất. */
@@ -2296,9 +2297,9 @@ body:has(#detail-screen.is-readonly:not([hidden])) #avatar-remove-btn,
   background: #FAF8F3; border: 1px solid #EEE9DD; border-left: 3px solid #E4DFD3; border-radius: 10px;
 }
 .lead-appt:hover { border-color: #D8CFBE; }
-.lead-appt.is-soon { border-left-color: #EBC85C; }
-.lead-appt.is-due { border-left-color: #E29A8E; background: #fbf1ec; }
-.lead-appt.is-missed { border-left-color: #C9C4B6; }
+.lead-appt.is-soon { border-left-color: #F5D66E; }
+.lead-appt.is-due { border-left-color: #FF7075; background: #fff3f3; }
+.lead-appt.is-missed { border-left-color: #A1171E; }
 .lead-appt-ic { flex: none; display: inline-flex; color: var(--teal-light); }
 .lead-appt-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
 .lead-appt-when { font-size: 14px; }
@@ -2371,10 +2372,10 @@ body:has(#detail-screen.is-readonly:not([hidden])) #avatar-remove-btn,
 .kpi.is-urgent, .kpi.is-hot, .kpi.is-good { border-top-color: var(--card-border); } /* bỏ viền màu trên cũ — màu nằm ở ô icon */
 .kpi-ic { width: 32px; height: 32px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 4px; }
 .kpi-ic svg, .sl-ic svg, .sl-head-ic svg, .sl-chev svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-.kpi-todo { background: #FCF6F3; } .kpi-todo .kpi-ic { background: #F6E1DA; color: var(--seal); }
-.kpi-new  { background: #FDF7EE; } .kpi-new .kpi-ic  { background: #F6E6C9; color: #A8741A; }
-.kpi-qual { background: #F4F7F4; } .kpi-qual .kpi-ic { background: #DFE9E1; color: var(--good); }
-.kpi-deal { background: #F3F6F4; } .kpi-deal .kpi-ic { background: #DCE7E1; color: var(--teal-light); }
+.kpi-todo { background: #F4F7FA; } .kpi-todo .kpi-ic { background: #E2EBF2; color: #3E6A8A; }
+.kpi-new  { background: #F9F6F3; } .kpi-new .kpi-ic  { background: #EFE6DF; color: #7A5A44; }
+.kpi-qual { background: #F5F6FB; } .kpi-qual .kpi-ic { background: #E6E8F5; color: #5160A8; }
+.kpi-deal { background: #FAF5F8; } .kpi-deal .kpi-ic { background: #F2E4EE; color: #8A4A78; }
 .kpi-label { font-size: 13px; font-weight: 400; color: #55564e; text-transform: none; letter-spacing: 0; }
 .kpi-value { font-family: inherit; font-size: 26px; font-weight: 600; line-height: 1.15; }
 .kpi-sub { font-size: 12px; }
@@ -2383,7 +2384,7 @@ body:has(#detail-screen.is-readonly:not([hidden])) #avatar-remove-btn,
 .dash-todo { background: #FCF5F2; border-color: #F0DCD5; border-left: 4px solid var(--seal); }
 .dash-todo-head { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
 .dash-todo-head h3 { flex: 1; margin: 0; color: var(--seal); }
-.sl-head-ic { display: inline-flex; color: var(--seal); }
+.sl-head-ic { display: inline-flex; color: var(--teal-light); }
 .dash-todo-n { font-size: 16px; font-weight: 600; color: var(--ink); }
 .sl-list-wrap { background: #fff; border: 1px solid #F1E6E1; border-radius: 12px; overflow: hidden; }
 .sl-group + .sl-group { border-top: 1px solid #F1ECE4; }
@@ -2394,7 +2395,7 @@ body:has(#detail-screen.is-readonly:not([hidden])) #avatar-remove-btn,
 .sl-row:hover { background: #FCFAF6; }
 .sl-ic { flex: none; width: 36px; height: 36px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; background: #EEF2EF; color: var(--teal-light); }
 .sl-group.is-urgent .sl-ic { background: #F6E1DA; color: var(--seal); }
-.sl-group.is-hot .sl-ic { background: #F6E6C9; color: #A8741A; }
+.sl-group.is-hot .sl-ic { background: #EFE6DF; color: #7A5A44; }
 .sl-group.is-info .sl-ic { background: #ECE8F4; color: #6E5F99; }
 .sl-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .sl-title { font-size: 14px; }
@@ -2413,12 +2414,12 @@ body:has(#detail-screen.is-readonly:not([hidden])) #avatar-remove-btn,
 
 
 /* ===== LOẠI VIỆC: màu + icon (TASK_KINDS trong app.js) — dùng chung checklist, hộp Thêm việc, Lịch hẹn 7 ngày ===== */
-.kind-call     { --kc: #3D6B4F; --kt: #E3EEE6; }
-.kind-message  { --kc: #B0342A; --kt: #F6E1DA; }
-.kind-cafe     { --kc: #A8741A; --kt: #F6E6C9; }
+.kind-call     { --kc: #3E6A8A; --kt: #E2EBF2; }
+.kind-message  { --kc: #5160A8; --kt: #E6E8F5; }
+.kind-cafe     { --kc: #7A5A44; --kt: #EFE6DF; }
 .kind-docs     { --kc: #6E5F99; --kt: #ECE8F4; }
-.kind-visit    { --kc: #2C4A42; --kt: #DCE7E1; }
-.kind-contract { --kc: #8F2A22; --kt: #F1E2DE; }
+.kind-visit    { --kc: #2B7A8C; --kt: #DDEEF1; }
+.kind-contract { --kc: #8A4A78; --kt: #F2E4EE; }
 .kind-other    { --kc: #6b6b60; --kt: #EFECE3; }
 .kind-ic svg, .task-kind-ic svg, .up2-ic svg, .kind-opt svg { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .task-kind-ic { display: inline-flex; vertical-align: -3px; margin-right: 6px; color: var(--kc); }
@@ -2498,7 +2499,7 @@ body:has(#detail-screen.is-readonly:not([hidden])) #avatar-remove-btn,
 .pipe2-stat { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 0 8px; }
 .pipe2-stat + .pipe2-stat { border-left: 1px solid #E8E3D7; }
 .pipe2-sic { flex: none; display: inline-flex; color: #6b6b60; }
-.pipe2-sic.is-hot { color: #C9782E; }
+.pipe2-sic.is-hot { color: #7A5A44; }
 .pipe2-big { display: block; font-size: 18px; line-height: 1.2; color: var(--ink); }
 .pipe2-cap { display: block; font-size: 11.5px; color: #7a7a70; line-height: 1.35; }
 @media (max-width: 560px) {
@@ -2572,7 +2573,7 @@ body:has(#detail-screen.is-readonly:not([hidden])) #avatar-remove-btn,
 
 /* Gợi ý từ dữ liệu */
 .ins-card { margin-bottom: var(--card-gap); }
-.ins-head-ic { color: #A8741A; }
+.ins-head-ic { color: #6E5F99; }
 .ins-card .dash-todo-head h3 { color: var(--ink); }
 .ins-item { display: flex; align-items: flex-start; gap: 12px; padding: 10px 0; border-top: 1px solid #F1ECE4; }
 .ins-item:first-of-type { border-top: none; }

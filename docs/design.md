@@ -68,6 +68,29 @@ File nguồn không quy định chính xác mã màu, spacing, breakpoint, font 
 | Thiếu việc tiếp theo | `alert` | smartlist |
 | Sinh nhật | `birthday` | smartlist |
 
+## Màu nhãn & icon hành động (2026-10-09)
+
+**Đỏ, vàng (cả cam) và xanh lá chỉ dành cho badge / cảnh báo mức cấp bách:** đỏ = quá hạn / gấp, vàng = sắp đến, xanh lá = đã xong / ổn. Nhãn (bậc chăm sóc, trạng thái liên hệ, loại việc, thẻ chỉ số, chú thích biểu đồ, avatar) và icon hành động **không** dùng 3 màu này, để màu cảnh báo luôn nổi bật và không bị hiểu nhầm.
+
+Màu đếm ngược / nhắc hẹn (`.call-soon` / `.call-due` / `.call-missed` và viền trái `.is-*` trong `css/style.css`): **sắp đến** vàng sáng `#F5D66E` · **đến hạn** đỏ nhạt `#FF7075` · **quá hạn** đỏ đậm `#A1171E` (chữ trắng) · còn xa (>24 giờ) xám nhạt.
+
+Bảng màu nhãn (khái niệm trùng icon thì trùng màu):
+
+| Màu | Mã | Dùng cho |
+|---|---|---|
+| Xanh thép | `#3E6A8A` | Gọi · bậc Đang tiếp cận · Hẹn gọi lại · Việc hôm nay (thẻ chỉ số) |
+| Chàm | `#5160A8` | Nhắn tin / Zalo · bậc Đang chăm sóc (Tiềm năng) · Chờ kết bạn Zalo |
+| Xanh dầu | `#2B7A8C` | Tham quan · bậc Xem dự án · Nói chuyện được · Phản hồi tốt |
+| Tím | `#6E5F99` | Hồ sơ · bậc Hỗ trợ hồ sơ · nhóm thông tin / Gợi ý |
+| Xanh than | `#2E3A6E` | bậc Booking |
+| Mận | `#8A4A78` | Kí HĐ · bậc Kí HĐMB · Chốt |
+| Nâu | `#7A5A44` | Hẹn cafe · Khách mới vào · Chưa gọi được · nhóm Khách nóng |
+| Xám | `#9AA3AE` / `#9A9A90` / `#6b6b60` | bậc Đăng kí mới · Không chốt / Mất liên lạc · việc Khác |
+
+Màu loại việc khai báo ở `.kind-*` (`css/style.css`), màu bậc ở `CARE_STAGE_COLORS`, trạng thái liên hệ ở `CONTACT_STATUS_COLORS` (`js/app.js`). Thêm nhãn mới → chọn trong bảng trên hoặc màu lạnh / trung tính khác, không chọn đỏ / vàng / cam / xanh lá.
+
+Thang độ quan tâm (`INTEREST_TIERS`, `js/app.js`): tông mận nhạt → đậm + số ngọn lửa (`icon('hot')`) — Nguội `#8B93A0` (không lửa) · Ấm `#B98AA8` (1 lửa) · Nóng `#8A4A78` (2) · Rất nóng `#5E2A52` (3). Mận = màu Kí HĐ: khách càng nóng càng gần chốt.
+
 ## Tab Công việc & Phân tích (D-007, 2026-10-09)
 
 - **Công việc:** chip lọc loại việc (có số) · nhóm Quá hạn (tiêu đề đỏ son) / Hôm nay / 7 ngày tới / Sau đó / Chưa có hạn, mỗi nhóm 1 thẻ, dòng dạng dòng thời gian như Lịch hẹn 7 ngày + ô tích (việc → xong, ghi lịch sử; hẹn gọi → hộp Gọi xong / Hẹn lại) + đếm ngược · "Đã xong 30 ngày qua" thu gọn cuối trang.

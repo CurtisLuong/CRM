@@ -65,10 +65,11 @@ const CONTACT_STATUSES = [
   'Mất liên lạc',
 ];
 const CONTACT_STATUS_COLORS = {
-  'Chưa gọi được':    '#b0463a', // đỏ đất — gọi không bắt máy
-  'Hẹn gọi lại':      '#c96a4f', // cam đất — có nghe, đang bận
-  'Chờ kết bạn Zalo': '#d29b2c', // vàng cam — đã gửi lời mời, chờ accept
-  'Phản hồi tốt':     '#3f8f6b', // xanh ngọc — tích cực
+  // Nhãn → không dùng đỏ / vàng / xanh lá (dành cho cảnh báo cấp bách — docs/design.md).
+  'Chưa gọi được':    '#7A5A44', // nâu — gọi không bắt máy
+  'Hẹn gọi lại':      '#3E6A8A', // xanh thép — có nghe, đang bận
+  'Chờ kết bạn Zalo': '#5160A8', // chàm (= màu "Nhắn tin") — đã gửi lời mời
+  'Phản hồi tốt':     '#2B7A8C', // xanh dầu — tích cực
   'Mất liên lạc':     '#9a9a90', // xám — không phản hồi >7 ngày
 };
 function contactColor(s) {
@@ -180,17 +181,19 @@ function cardUpdatedAt(c) {
   return m || c.updated_at || '';
 }
 
-// Màu từng bậc (đỏ đất → xanh lá: càng về sau càng "chín"). Giữ nguyên color scheme
-// cũ theo VỊ TRÍ bậc. Bậc 'Loại' = ĐỎ (kèm dấu ✕) để nổi bật là khách bị loại.
+// Màu từng bậc — NHÃN, nên KHÔNG dùng đỏ / vàng / xanh lá (3 màu đó dành cho badge & cảnh báo mức
+// cấp bách: quá hạn / sắp đến / đã xong — docs/design.md "Màu nhãn & icon"). Bậc có icon trùng loại
+// việc (gọi, tham quan, hồ sơ, kí) dùng đúng màu loại việc đó (.kind-* trong style.css).
+// Bậc 'Loại' = xám (kèm dấu ✕), không đỏ.
 const CARE_STAGE_COLORS = {
-  'Đăng kí mới':    '#a8382f', // đỏ son — vừa tạo, chưa tiếp cận (rõ ĐỎ, tách bậc 2)
-  'Đang tiếp cận':  '#d1743a', // cam đất — rõ CAM để không lẫn với bậc 1
-  'Đang chăm sóc':  '#d29b2c', // vàng cam
-  'Xem dự án':      '#b6a92f', // vàng xanh
-  'Hỗ trợ hồ sơ':   '#7f9b3f', // xanh cốm
-  'Booking':        '#3f8f6b', // xanh ngọc
-  'Kí HĐMB':        '#2f7d5e', // xanh lá đậm — chốt thành công
-  [CARE_STAGE_DROPPED]: '#c0392b', // đỏ — bị loại (kèm dấu ✕)
+  'Đăng kí mới':    '#9AA3AE', // xám xanh — vừa tạo, chưa tiếp cận
+  'Đang tiếp cận':  '#3E6A8A', // xanh thép (= màu "Gọi")
+  'Đang chăm sóc':  '#5160A8', // chàm
+  'Xem dự án':      '#2B7A8C', // xanh dầu (= màu "Tham quan")
+  'Hỗ trợ hồ sơ':   '#6E5F99', // tím (= màu "Hồ sơ")
+  'Booking':        '#2E3A6E', // xanh than
+  'Kí HĐMB':        '#8A4A78', // mận (= màu "Kí HĐ") — chốt
+  [CARE_STAGE_DROPPED]: '#9A9A90', // xám — không chốt (kèm dấu ✕)
 };
 
 // Khách chưa đặt tiến độ (bỏ trống) coi như bậc 1 'Đăng kí mới' (theo yêu cầu).
@@ -225,18 +228,25 @@ function careSortRank(stage) {
   return idx === -1 ? 1 : idx + 1;
 }
 
-// 4 bậc MỨC QUAN TÂM → nhãn + màu (dùng cho viền trái card + badge trên card).
+// 4 bậc MỨC QUAN TÂM → nhãn + màu + số ngọn lửa (badge trên card / list, slider, chấm hồ sơ).
+// Tông mận nhạt → đậm (nhãn: KHÔNG đỏ / vàng / xanh lá — docs/design.md "Màu nhãn & icon hành động");
+// mận = màu Kí HĐ → khách càng nóng càng "gần chốt". Ngọn lửa = icon('hot') lặp 0–3 lần.
 // Ngưỡng: Nguội <35, Ấm 35–<60, Nóng 60–<80, Rất nóng >=80. Xếp min giảm dần để
 // find() lấy đúng bậc đầu tiên khách đạt.
 const INTEREST_TIERS = [
-  { key: 'ratnong', label: 'Rất nóng', color: '#a8302a', min: 80 },
-  { key: 'nong',    label: 'Nóng',     color: '#c94f3e', min: 60 },
-  { key: 'am',      label: 'Ấm',       color: '#e8a33d', min: 35 },
-  { key: 'nguoi',   label: 'Nguội',    color: '#8b93a0', min: 0 },
+  { key: 'ratnong', label: 'Rất nóng', color: '#5E2A52', min: 80, flames: 3 },
+  { key: 'nong',    label: 'Nóng',     color: '#8A4A78', min: 60, flames: 2 },
+  { key: 'am',      label: 'Ấm',       color: '#B98AA8', min: 35, flames: 1 },
+  { key: 'nguoi',   label: 'Nguội',    color: '#8B93A0', min: 0,  flames: 0 },
 ];
 function interestTier(pct) {
   const v = pct || 0;
   return INTEREST_TIERS.find((t) => v >= t.min) || INTEREST_TIERS[INTEREST_TIERS.length - 1];
+}
+// Badge mức quan tâm (card + list): ngọn lửa × số bậc (Nguội: không lửa) + nhãn.
+function interestTagHtml(tier) {
+  const fl = tier.flames ? `<span class="ti-flames" aria-hidden="true">${icon('hot').repeat(tier.flames)}</span>` : '';
+  return `<span class="tag tag-interest ti-${tier.key}">${fl}${escapeHtml(tier.label)}</span>`;
 }
 
 // Cập nhật giao diện "Mức độ quan tâm" trong form: chữ %, nhãn bậc, và MÀU thanh
@@ -1321,7 +1331,7 @@ function renderList() {
       let interestHtml = '';
       if (c.interest_level != null) {
         const tier = interestTier(c.interest_level);
-        interestHtml = `<span class="tag tag-interest ti-${tier.key}"><span class="ti-dot">◆</span> ${escapeHtml(tier.label)}</span>`;
+        interestHtml = interestTagHtml(tier);
       }
       // Chỉ báo NHẮC GỌI (cùng rule/màu như card) — cho thấy vì sao khách này bị đẩy lên đầu.
       // Chỉ là nhãn (không phải nút; bấm dòng vẫn mở chi tiết).
@@ -1406,7 +1416,7 @@ function renderList() {
         ${c.care_stage === 'Kí HĐMB' ? '<span class="tag tag-won">✓ Đã chốt</span>' : ''}
         ${c.contact_status ? `<span class="tag tag-contact" style="--cs:${contactColor(c.contact_status)}">${escapeHtml(c.contact_status)}</span>` : ''}
         ${contactLostWarning(c) ? `<span class="tag tag-contact-warn" title="Đã >7 ngày chưa tương tác — kiểm tra lại">⚠ nghi mất liên lạc</span>` : ''}
-        <span class="tag tag-interest ti-${tier.key}"><span class="ti-dot">◆</span> ${tier.label}</span>
+        ${interestTagHtml(tier)}
         ${c.apt_type ? `<span class="tag">${escapeHtml(canonicalAptType(c.apt_type))}</span>` : ''}
         ${menhShort ? `<span class="tag tag-menh">${escapeHtml(menhShort)}</span>` : ''}
         ${cung ? `<span class="tag tag-cung">${escapeHtml(cung)}</span>` : ''}
@@ -3542,7 +3552,7 @@ function lastWordInitial(name) {
   return last ? last[0].toUpperCase() : '?';
 }
 // Màu nền cho avatar chữ (theo tên) — giúp phân biệt khách với nhau. Tông đất/rêu/son của app.
-const AVATAR_COLORS = ['#B0342A', '#3D6B4F', '#B5892F', '#5B7C99', '#8A5A44', '#6B5B95', '#2C6E6B'];
+const AVATAR_COLORS = ['#8A4A78', '#3E6A8A', '#7A5A44', '#5B7C99', '#2E3A6E', '#6B5B95', '#2B7A8C']; // không đỏ/vàng/xanh lá
 function avatarColor(name) {
   let h = 0;
   for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
@@ -5232,7 +5242,7 @@ let dashRange = (() => { try { const v = Number(localStorage.getItem(LS_DASH_RAN
 const LS_DASH_PERF_TAB = 'crm_dash_perf_tab';
 let dashPerfTab = (() => { try { return localStorage.getItem(LS_DASH_PERF_TAB) === 'month' ? 'month' : 'week'; } catch { return 'week'; } })();
 let dashAptTab = (() => { try { const v = localStorage.getItem(LS_DASH_APT_TAB); return ['type', 'building', 'budget'].includes(v) ? v : 'type'; } catch { return 'type'; } })();
-const PERF_SERIES = [['Khách mới', 'var(--teal-light)'], ['Đã liên hệ', '#D29B2C'], ['Chuyển giai đoạn', 'var(--seal)']];
+const PERF_SERIES = [['Khách mới', '#7A5A44'], ['Đã liên hệ', '#3E6A8A'], ['Chuyển giai đoạn', '#8A4A78']];
 // Thẻ "Hiệu quả bán hàng": 7 ngày → 7 cột theo ngày · 30 ngày → 6 cột × 5 ngày · 90 ngày → 13 cột × 7 ngày.
 function salesPerfHtml(all) {
   const [n, size] = dashRange === 7 ? [7, 1] : dashRange === 30 ? [6, 5] : [13, 7];
@@ -5904,9 +5914,9 @@ function renderDashboard(mode) {
   const perfHtml = `<div class="dash-seg" role="tablist">${[['week', 'Tuần'], ['month', 'Tháng']].map(([k, t]) =>
       `<button type="button" class="dash-seg-btn${dashPerfTab === k ? ' is-active' : ''}" data-perf-tab="${k}" role="tab">${t}</button>`).join('')}</div>
     <div class="perf2-list">
-      ${perfRow('new_lead', '#A8741A', 'Khách mới vào', cur.leads, prev.leads)}
-      ${perfRow('call', 'var(--teal-light)', 'Cuộc gọi', cur.calls, prev.calls)}
-      ${perfRow('talked', 'var(--good)', 'Nói chuyện được', cur.talked, prev.talked)}
+      ${perfRow('new_lead', '#7A5A44', 'Khách mới vào', cur.leads, prev.leads)}
+      ${perfRow('call', '#3E6A8A', 'Cuộc gọi', cur.calls, prev.calls)}
+      ${perfRow('talked', '#2B7A8C', 'Nói chuyện được', cur.talked, prev.talked)}
       ${perfRow(STAGE_ICON[QUALIFIED_STAGE], careColor(QUALIFIED_STAGE), 'Chuyển Tiềm năng', cur.qualified, prev.qualified)}
       ${perfRow('contract', careColor('Kí HĐMB'), 'Booking / Kí', cur.deals, prev.deals)}
     </div>
@@ -6077,7 +6087,7 @@ function renderDashAnalytics(all) {
       const i = BINS.findIndex(([lo, hi]) => v >= lo && v < hi); if (i >= 0) cnt[i]++;
     });
     const items = BINS.map(([, , label], i) => ({ label, value: cnt[i] })).filter((x) => x.value);
-    aptBody = hbars(items, { empty: 'Chưa có khách nào nhập ngân sách', color: '#3D6B4F' })
+    aptBody = hbars(items, { empty: 'Chưa có khách nào nhập ngân sách', color: '#3E6A8A' })
       + (none && items.length ? `<div class="dash-foot">${none} khách chưa có ngân sách</div>` : '');
   } else {
     aptBody = hbars(tally(all, 'apt_type', 0, canonicalAptType), { empty: 'Chưa có dữ liệu loại căn' });
