@@ -150,17 +150,20 @@ input:focus, select:focus, textarea:focus {
   flex-direction: column;
   gap: 6px;
   padding: 8px 16px;
-  background: var(--teal);
-  color: #fff;
+  /* HEADER SÁNG (2026-10-09, phương án A): cùng nền giấy với trang, ngăn bằng 1 đường kẻ mảnh —
+     hoà vào nội dung (thẻ trắng, icon nét mảnh). Màu đậm duy nhất còn lại: tab đang chọn (desktop) + nút ＋. */
+  background: var(--paper);
+  color: var(--ink);
+  border-bottom: 1px solid var(--line);
   position: sticky; top: 0; z-index: 20;
 }
 /* HEADER GỌN (2026-10-07): hàng trên 30px · tab 34px · ô tìm 36px, cách nhau 6px.
    Chiều cao cố định để tính được vị trí ô tìm (absolute): top = 8 + 30 + 6 + 34 + 6 = 84px. */
 .topbar-row-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; height: 30px; }
-.topbar-brand { display: flex; align-items: center; gap: 8px; font-family: "Georgia", "Times New Roman", serif; font-size: 18px; font-weight: 700; color: #fff; white-space: nowrap; letter-spacing: 0.01em; }
+.topbar-brand { display: flex; align-items: center; gap: 8px; font-family: "Georgia", "Times New Roman", serif; font-size: 18px; font-weight: 600; color: var(--ink); white-space: nowrap; letter-spacing: 0.01em; }
 #brand-home { cursor: pointer; border-radius: 8px; -webkit-tap-highlight-color: transparent; }
 #brand-home:hover { opacity: 0.88; }
-#brand-home:focus-visible { outline: 2px solid rgba(255,255,255,0.6); outline-offset: 3px; }
+#brand-home:focus-visible { outline: 2px solid rgba(26,46,41,0.35); outline-offset: 3px; }
 .brand-logo { height: 28px; width: auto; flex: none; border-radius: 7px; }
 /* Chừa chỗ (padding-bottom) cho ô tìm — nó nằm ABSOLUTE để trượt mượt được (xem dưới). */
 .topbar { padding: calc(8px + var(--sat)) 16px 48px; transition: padding 0.3s cubic-bezier(0.4,0,0.2,1), gap 0.3s cubic-bezier(0.4,0,0.2,1), box-shadow 0.3s ease; }
@@ -185,7 +188,9 @@ input:focus, select:focus, textarea:focus {
   gap: 0;
   padding-top: calc(6px + var(--sat));
   padding-bottom: 6px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+  background: rgba(247, 244, 238, 0.94);
+  -webkit-backdrop-filter: saturate(1.4) blur(10px); backdrop-filter: saturate(1.4) blur(10px);
+  box-shadow: 0 4px 14px rgba(80, 60, 30, 0.06);
 }
 .topbar.collapsed .topbar-search-wrap { top: calc(3px + var(--sat)); left: 54px; right: 52px; }
 .topbar.collapsed .topbar-brand { gap: 0; }
@@ -200,18 +205,18 @@ input:focus, select:focus, textarea:focus {
    Ô tìm co thêm 36px để chừa chỗ. Chấm đỏ = đang lọc (cùng kiểu .tool-dot). */
 .hdr-filter-btn {
   position: relative; flex: none; width: 32px; height: 32px; padding: 0; border: none; border-radius: 50%;
-  background: transparent; color: rgba(255,255,255,0.85); cursor: pointer;
+  background: transparent; color: #6b6b60; cursor: pointer;
   display: inline-flex; align-items: center; justify-content: center;
   max-width: 0; opacity: 0; overflow: visible; pointer-events: none; visibility: hidden;
   transition: opacity 0.2s ease, max-width 0.3s cubic-bezier(0.4,0,0.2,1), visibility 0.2s;
 }
 .hdr-filter-btn svg { width: 18px; height: 18px; display: block; }
-.hdr-filter-btn:hover { background: rgba(255,255,255,0.12); color: #fff; }
+.hdr-filter-btn:hover { background: rgba(26,46,41,0.06); color: var(--ink); }
 .topbar.collapsed.has-filter .hdr-filter-btn { max-width: 32px; opacity: 1; pointer-events: auto; visibility: visible; }
 .topbar.collapsed.has-filter .topbar-search-wrap { right: 88px; }
 .hdr-filter-dot {
   position: absolute; top: 4px; right: 4px; width: 8px; height: 8px;
-  border-radius: 50%; background: #E0503F; border: 1.5px solid var(--teal);
+  border-radius: 50%; background: #A1171E; border: 1.5px solid var(--paper);
 }
 
 /* Icon trong tab header: hiện ở mọi cỡ màn (desktop to hơn — xem @media min-width 900px). */
@@ -228,18 +233,18 @@ input:focus, select:focus, textarea:focus {
 .tab-nav {
   display: flex; gap: 2px; height: 34px; padding: 3px;
   max-width: 420px; /* laptop: không kéo dài hết màn (canh trái); điện thoại hẹp hơn nên vẫn full */
-  border-radius: 999px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 999px; background: #fff; border: 1px solid var(--line);
 }
 .tab-btn {
   flex: 1 1 0; min-width: 0;
   display: inline-flex; align-items: center; justify-content: center;
   font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer;
-  border: none; background: transparent; color: rgba(255,255,255,0.72);
+  border: none; background: transparent; color: #6b6b60;
   padding: 0 10px; border-radius: 999px;
   transition: background 0.15s ease, color 0.15s ease;
 }
-.tab-btn:hover { color: #fff; background: rgba(255,255,255,0.10); }
-.tab-btn.is-active { background: var(--paper); color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,0.18); }
+.tab-btn:hover { color: var(--ink); background: rgba(26,46,41,0.06); }
+.tab-btn.is-active, .tab-btn.is-active:hover { background: var(--ink); color: #fff; }
 
 /* Ô tìm nhanh: ABSOLUTE để trượt mượt giữa 2 vị trí (đầy đủ = hàng 3 rộng hết; thu gọn = giữa
    logo và refresh). top/left/right đều animate được → co bề rộng + di chuyển mượt, không méo chữ. */
@@ -250,29 +255,29 @@ input:focus, select:focus, textarea:focus {
 }
 .topbar-search-wrap .search-ic {
   position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
-  width: 18px; height: 18px; color: rgba(255,255,255,0.7); pointer-events: none; display: flex;
+  width: 18px; height: 18px; color: #8a8a80; pointer-events: none; display: flex;
 }
 .topbar-search-wrap .search-ic svg { width: 100%; height: 100%; display: block; }
 .topbar-search {
   width: 100%; height: 36px;
   font: inherit; font-size: 14px; padding: 0 44px 0 38px; border-radius: 999px;
-  border: 1px solid rgba(255,255,255,0.18);
-  background: rgba(255,255,255,0.08); color: #fff;
+  border: 1px solid var(--card-border, #ECE6DA);
+  background: #fff; color: var(--ink);
   -webkit-appearance: none; appearance: none;
 }
-.topbar-search::placeholder { color: rgba(255,255,255,0.55); }
-.topbar-search:focus { outline: none; border-color: rgba(255,255,255,0.55); background: rgba(255,255,255,0.14); }
-.topbar-search::-webkit-search-cancel-button { filter: invert(1); opacity: 0.6; }
+.topbar-search::placeholder { color: #9a9a90; }
+.topbar-search:focus { outline: none; border-color: #CFC7B6; box-shadow: 0 0 0 3px rgba(26,46,41,0.06); }
+.topbar-search::-webkit-search-cancel-button { opacity: 0.5; }
 
 /* MENU ĐA NĂNG trong ô tìm (icon thanh trượt, neo phải). Panel dùng lại .menu-pop/.menu-item. */
 .search-menu { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); }
 .search-menu-btn {
   width: 30px; height: 30px; border-radius: 50%; border: none; padding: 0; cursor: pointer;
-  background: transparent; color: rgba(255,255,255,0.8);
+  background: transparent; color: #6b6b60;
   display: flex; align-items: center; justify-content: center;
 }
 .search-menu-btn svg { width: 19px; height: 19px; display: block; }
-.search-menu-btn:hover, .search-menu.open .search-menu-btn { background: rgba(255,255,255,0.14); color: #fff; }
+.search-menu-btn:hover, .search-menu.open .search-menu-btn { background: rgba(26,46,41,0.06); color: var(--ink); }
 .search-menu.open .menu-pop { display: block; }
 .search-menu .search-menu-pop { top: calc(100% + 10px); min-width: 210px; } /* đặt specificity cao hơn .menu-pop (khai báo sau) */
 .menu-item.has-ic { display: flex; align-items: center; gap: 10px; }
@@ -288,24 +293,24 @@ input:focus, select:focus, textarea:focus {
   border: none; background: transparent;
   display: inline-flex; align-items: center; justify-content: center; flex: none; padding: 0;
 }
-.sync-btn:hover { background: rgba(255,255,255,0.12); }
+.sync-btn:hover { background: rgba(26,46,41,0.06); }
 .sync-btn.sync-syncing { cursor: default; }        /* đang đồng bộ → không bấm */
 .sync-btn .sync-ic { display: inline-flex; width: 21px; height: 21px; }
 .sync-btn .sync-ic svg { width: 100%; height: 100%; display: block; }
-.sync-btn.sync-synced  .sync-ic { color: #35c26a; }
-.sync-btn.sync-syncing .sync-ic { color: #e8973a; }
+.sync-btn.sync-synced  .sync-ic { color: #8a8a80; }   /* đã đồng bộ = bình thường → xám, không gây chú ý */
+.sync-btn.sync-syncing .sync-ic { color: #3E6A8A; }
 .sync-ic .spin { transform-origin: 12px 12px; animation: spin 0.7s linear infinite; } /* chỉ mũi tên xoay */
 .sync-btn.sync-offline .sync-ic { color: #b9bec4; }
-.sync-btn.sync-error   .sync-ic { color: #ec6a5c; }
+.sync-btn.sync-error   .sync-ic { color: #A1171E; }   /* lỗi = cảnh báo thật → đỏ đậm */
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* Tooltip chữ trạng thái, hiện khi hover/focus */
 .sync-tip {
   position: absolute; top: calc(100% + 6px); right: 0;
-  background: #26332f; color: #EEECE7; border: 1px solid rgba(255,255,255,0.12);
+  background: #fff; color: var(--ink); border: 1px solid var(--line);
   border-radius: 8px; padding: 7px 10px; font-size: 12px; line-height: 1.45;
   white-space: pre-line; text-align: left; min-width: 150px;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.28);
+  box-shadow: 0 8px 20px rgba(80,60,30,0.12);
   opacity: 0; visibility: hidden; transform: translateY(-3px);
   transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s;
   pointer-events: none; z-index: 60;
@@ -318,9 +323,9 @@ input:focus, select:focus, textarea:focus {
 .topbar-menu { position: relative; }
 .avatar-btn {
   width: 30px; height: 30px; border-radius: 50%; cursor: pointer; border: none;
-  background: var(--seal); color: #fff; font-weight: 700; font-size: 13px; margin-left: 4px;
+  background: #F2E4EE; color: #8A4A78; font-weight: 600; font-size: 13px; margin-left: 4px; /* mận nhạt — nhãn, không đỏ */
 }
-.avatar-btn:hover { background: var(--seal-dark); }
+.avatar-btn:hover { background: #E9D6E3; }
 .avatar-btn { position: relative; padding: 0; }
 
 /* ===== DESKTOP (≥900px): GỘP 1 HÀNG — logo · | · tab · ô tìm (giãn) · đồng bộ/chuông/avatar =====
@@ -335,7 +340,7 @@ input:focus, select:focus, textarea:focus {
   }
   .topbar-row-top { display: contents; }
   .topbar-brand { grid-area: brand; gap: 10px; font-size: 20px; }
-  .topbar-brand::after { content: ""; width: 1px; height: 30px; margin-left: 12px; background: rgba(255,255,255,0.16); }
+  .topbar-brand::after { content: ""; width: 1px; height: 30px; margin-left: 12px; background: var(--line); }
   .brand-logo { height: 32px; }
   .topbar .tab-nav, .topbar.collapsed .tab-nav {
     grid-area: tabs; height: 42px; max-height: 42px; max-width: none; opacity: 1;
@@ -358,7 +363,7 @@ input:focus, select:focus, textarea:focus {
 .avatar-caret {
   position: absolute; right: -4px; bottom: -4px;
   width: 14px; height: 14px; border-radius: 50%;
-  background: #e9e6dd; color: var(--ink); border: 2px solid var(--teal);
+  background: #fff; color: var(--ink); border: 2px solid var(--paper); box-shadow: 0 0 0 1px var(--line);
   display: flex; align-items: center; justify-content: center; box-sizing: border-box;
 }
 .avatar-caret svg { width: 9px; height: 9px; display: block; transition: transform 0.2s ease; }
@@ -383,15 +388,15 @@ input:focus, select:focus, textarea:focus {
   border: none; background: transparent;
   display: inline-flex; align-items: center; justify-content: center; padding: 0;
 }
-.notif-btn:hover { background: rgba(255,255,255,0.12); }
-.notif-ic { display: inline-flex; width: 21px; height: 21px; color: #EEECE7; }
+.notif-btn:hover { background: rgba(26,46,41,0.06); }
+.notif-ic { display: inline-flex; width: 21px; height: 21px; color: var(--ink); }
 .notif-ic svg { width: 100%; height: 100%; display: block; }
 /* Chấm đỏ + số. Đỏ = có việc gấp (đến giờ gọi / quên gọi / khách nóng cần nhắc). */
 .notif-dot {
   position: absolute; top: -1px; right: -2px; min-width: 15px; height: 15px;
-  padding: 0 3px; border-radius: 8px; background: #ec5b4c; color: #fff;
-  font-size: 10px; font-weight: 700; line-height: 15px; text-align: center;
-  border: 1.5px solid var(--teal, #1A2E29); box-sizing: content-box;
+  padding: 0 3px; border-radius: 8px; background: #A1171E; color: #fff;
+  font-size: 10px; font-weight: 600; line-height: 15px; text-align: center;
+  border: 1.5px solid var(--paper); box-sizing: content-box;
 }
 .notif-pop {
   display: none; position: absolute; right: 0; top: calc(100% + 8px);
@@ -839,11 +844,12 @@ input:focus, select:focus, textarea:focus {
 .detail-stickybar {
   position: fixed; top: 0; left: 0; right: 0; z-index: 20;
   display: flex; align-items: center; gap: 12px; padding: calc(10px + var(--sat)) 14px 10px;
-  background: var(--teal); color: #fff;
+  background: rgba(247, 244, 238, 0.94); color: var(--ink); border-bottom: 1px solid var(--line);
+  -webkit-backdrop-filter: saturate(1.4) blur(10px); backdrop-filter: saturate(1.4) blur(10px);
   transform: translateY(-100%); transition: transform 0.22s ease;
 }
 .detail-stickybar.is-visible { transform: translateY(0); }
-.stickybar-btn { flex: none; background: transparent; border: none; color: #fff; cursor: pointer; font-size: 22px; line-height: 1; padding: 2px 6px; }
+.stickybar-btn { flex: none; background: transparent; border: none; color: var(--ink); cursor: pointer; font-size: 22px; line-height: 1; padding: 2px 6px; }
 .stickybar-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: "Georgia", "Times New Roman", serif; font-size: 17px; }
 .stickybar-edit { flex: none; background: var(--seal); color: #fff; border: none; cursor: pointer; font-size: 13px; font-weight: 600; padding: 5px 12px; border-radius: 6px; }
 

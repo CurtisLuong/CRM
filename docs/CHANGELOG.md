@@ -19,6 +19,11 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 - Đóng khi đang cuộn sâu → tự cuộn về đầu thẻ. Chiều cao thanh tên khách đo bằng JS (`--detail-bar-h`).
 - File: `index.html`, `js/loan/loan-crm.js`, `css/loan.css`
 
+## 2026-10-09 — Header sáng (phương án A)
+
+- Header đổi từ mảng xanh mực sang nền giấy + đường kẻ mảnh, chữ / icon màu mực; ô tìm nền trắng; logo bản không nền (`icons/logo-mark.svg`); avatar mận nhạt (bỏ đỏ); icon đồng bộ xám khi bình thường (bỏ xanh lá); chấm chuông đỏ đậm. Desktop: tab đang chọn nền mực. Header thu gọn + thanh dính hồ sơ: nền giấy mờ. `theme-color` / manifest → `#F7F4EE`.
+- File: `css/style.css`, `index.html`, `manifest.json`, `icons/logo-mark.svg` (mới), `sw.js` (v83), `docs/design.md`.
+
 ## 2026-10-09 — Form khách gọn hơn
 
 - Nguồn khách: ô Chiến dịch gập vào "Mở rộng". Thông tin cá nhân: Họ tên lên trước Số điện thoại; Ngày sinh gập vào "Mở rộng" (đếm "· N đã điền" tính ngày sinh là 1 trường; nhập sai ngày sinh thì tự mở ra để thấy lỗi).
