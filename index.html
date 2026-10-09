@@ -700,15 +700,21 @@
           <label>Kênh *
             <select name="source_channel" required></select>
           </label>
-          <label>Chiến dịch
-            <input name="campaign" type="text" list="cf-campaign-list" autocomplete="off" placeholder="vd: FB-Marquee-T10-video" />
-            <datalist id="cf-campaign-list"></datalist>
-          </label>
           <!-- Chỉ khi TẠO MỚI: khách đã gọi & xác nhận quan tâm → bỏ qua lớp Khách mới. -->
           <label class="span-2 form-check" id="qualify-now-wrap">
             <input name="qualify_now" type="checkbox" />
             Đã nói chuyện &amp; khách quan tâm → đưa thẳng vào danh sách chăm sóc
           </label>
+          <!-- Chiến dịch: ít khi nhập tay (lead web tự có UTM) → gập dưới "Mở rộng". -->
+          <details class="form-more span-2">
+            <summary><span class="more-open">Mở rộng</span><span class="more-close">Thu gọn</span><span class="more-count"></span></summary>
+            <div class="form-grid">
+              <label>Chiến dịch
+                <input name="campaign" type="text" list="cf-campaign-list" autocomplete="off" placeholder="vd: FB-Marquee-T10-video" />
+                <datalist id="cf-campaign-list"></datalist>
+              </label>
+            </div>
+          </details>
         </div>
       </fieldset>
 
@@ -716,11 +722,11 @@
       <fieldset class="span-2">
         <legend>Thông tin cá nhân</legend>
         <div class="form-grid">
-          <label>Số điện thoại *
-            <input name="phone" type="tel" required placeholder="09xxxxxxxx" />
-          </label>
           <label>Họ tên *
             <input name="full_name" type="text" required />
+          </label>
+          <label>Số điện thoại *
+            <input name="phone" type="tel" required placeholder="09xxxxxxxx" />
           </label>
           <label>Giới tính
             <select name="gender">
@@ -730,24 +736,24 @@
               <option value="khác">Khác</option>
             </select>
           </label>
-          <!-- Ngày sinh (dương lịch) dạng dd/MM/YYYY 1 ô, tự nhảy đoạn. Năm bỏ trống/&lt;4 số
-               = partial (chỉ có Cung, không Mệnh). Xem wireDobInput/updateDobDerived trong app.js. -->
-          <label>Ngày sinh (dương lịch)
-            <div class="seg-box" id="dob-box">
-              <input class="seg seg-d" id="dob-day" maxlength="2" inputmode="numeric" placeholder="dd" aria-label="Ngày" autocomplete="off" />
-              <span class="sep">/</span>
-              <input class="seg seg-m" id="dob-mon" maxlength="2" inputmode="numeric" placeholder="MM" aria-label="Tháng" autocomplete="off" />
-              <span class="sep">/</span>
-              <input class="seg seg-y" id="dob-year" maxlength="4" inputmode="numeric" placeholder="YYYY" aria-label="Năm" autocomplete="off" />
-            </div>
-            <div id="dob-err" class="dob-err"></div>
-          </label>
           <!-- Mệnh & Cung được SUY từ ngày sinh (tính lúc lưu trong handleFormSubmit), không
                cần nhập/sửa nên đã bỏ khỏi form cho gọn. Vẫn hiển thị ở trang chi tiết. -->
           <!-- Trường ít dùng: gập dưới "Mở rộng" (2 chiều, mặc định gập — openForm đóng lại mỗi lần mở). -->
           <details class="form-more span-2">
             <summary><span class="more-open">Mở rộng</span><span class="more-close">Thu gọn</span><span class="more-count"></span></summary>
             <div class="form-grid">
+              <!-- Ngày sinh (dương lịch) dạng dd/MM/YYYY 1 ô, tự nhảy đoạn. Năm bỏ trống/&lt;4 số
+                   = partial (chỉ có Cung, không Mệnh). Xem wireDobInput/updateDobDerived trong app.js. -->
+              <label>Ngày sinh (dương lịch)
+                <div class="seg-box" id="dob-box">
+                  <input class="seg seg-d" id="dob-day" maxlength="2" inputmode="numeric" placeholder="dd" aria-label="Ngày" autocomplete="off" />
+                  <span class="sep">/</span>
+                  <input class="seg seg-m" id="dob-mon" maxlength="2" inputmode="numeric" placeholder="MM" aria-label="Tháng" autocomplete="off" />
+                  <span class="sep">/</span>
+                  <input class="seg seg-y" id="dob-year" maxlength="4" inputmode="numeric" placeholder="YYYY" aria-label="Năm" autocomplete="off" />
+                </div>
+                <div id="dob-err" class="dob-err"></div>
+              </label>
               <label>Trạng thái hôn nhân
                 <select name="marital_status">
                   <option value="">— Chưa rõ —</option>

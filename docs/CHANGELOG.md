@@ -19,6 +19,11 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 - Đóng khi đang cuộn sâu → tự cuộn về đầu thẻ. Chiều cao thanh tên khách đo bằng JS (`--detail-bar-h`).
 - File: `index.html`, `js/loan/loan-crm.js`, `css/loan.css`
 
+## 2026-10-09 — Form khách gọn hơn
+
+- Nguồn khách: ô Chiến dịch gập vào "Mở rộng". Thông tin cá nhân: Họ tên lên trước Số điện thoại; Ngày sinh gập vào "Mở rộng" (đếm "· N đã điền" tính ngày sinh là 1 trường; nhập sai ngày sinh thì tự mở ra để thấy lỗi).
+- File: `index.html`, `js/app.js`, `sw.js` (v82).
+
 ## 2026-10-09 — Ô tìm ở mọi tab + 3 biểu đồ Phân tích theo màu mới
 
 - Ô tìm trên header có ở cả **Công việc** (lọc việc theo khách: tên, SĐT, dự án, ghi chú, nội dung việc…) và **Phân tích** (trang kết quả tạm như Tổng quan).

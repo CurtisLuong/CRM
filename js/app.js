@@ -1889,8 +1889,11 @@ $('#customer-form')?.qualify_now?.addEventListener('change', syncInterestVisibil
 
 // Đếm trường có giá trị trong 1 nhóm "Mở rộng" → hiện "· 3 đã điền" cạnh nút (biết có dữ liệu ẩn).
 function updateMoreCount(det) {
-  const n = [...det.querySelectorAll('input:not([type=hidden]):not([hidden]), select')]
-    .filter((el) => String(el.value || '').trim() !== '').length;
+  // Ngày sinh = 3 ô (dd / MM / YYYY) nhưng chỉ tính là 1 trường.
+  const segs = [...det.querySelectorAll('.seg-box .seg')];
+  const n = [...det.querySelectorAll('input:not([type=hidden]):not([hidden]):not(.seg), select')]
+    .filter((el) => String(el.value || '').trim() !== '').length
+    + (segs.some((el) => String(el.value || '').trim() !== '') ? 1 : 0);
   const out = det.querySelector('.more-count');
   if (out) out.textContent = n ? ` · ${n} đã điền` : '';
 }
@@ -2184,6 +2187,7 @@ function updateDobDerived() {
   else if (ys.length === 4 && (yy < 1900 || yy > nowY)) msg = 'Năm phải 1900–' + nowY + '.';
   $('#dob-box').classList.toggle('invalid', !!msg);
   $('#dob-err').textContent = msg;
+  if (msg) { const det = $('#dob-box').closest('details'); if (det) det.open = true; } // ngày sinh nằm trong "Mở rộng" → mở ra để thấy lỗi
 }
 // Gắn hành vi gõ cho 3 đoạn (gọi 1 lần lúc init).
 function wireDobInput() {
