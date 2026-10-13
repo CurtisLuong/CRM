@@ -550,15 +550,18 @@
     </div>
 
     <!-- ===== THỨ TỰ THẺ TAB TỔNG QUAN (quy tắc cố định — docs/design.md "Hồ sơ khách", chốt lại 2026-10-13):
-         0 Chỉ số trạng thái Tiến độ · Quan tâm · Liên lạc (LUÔN TRÊN CÙNG) · 1 Tốc độ phễu (thu gọn) ·
-         2 Việc tiếp theo · 3 Trợ lý AI · 4 Căn hộ quan tâm · 5 Ghi chú · 6 Tính khoản vay.
-         Thêm thẻ mới → đặt SAU các thẻ này, không chen lên trên. ===== -->
+         0 Chỉ số Tiến độ (gộp Tốc độ phễu: vòng tròn + badge) · Quan tâm · Liên lạc (LUÔN TRÊN CÙNG) ·
+         (dòng Hoàn tác tự chuyển SLA, nếu có) · 1 Việc tiếp theo · 2 Trợ lý AI · 3 Căn hộ quan tâm · 4 Ghi chú ·
+         5 Tính khoản vay. Thêm thẻ mới → đặt SAU các thẻ này, không chen lên trên. ===== -->
     <!-- TỔNG QUAN: 2 thẻ chỉ số (Tiến độ → bấm sang Lịch sử · Quan tâm) + Liên lạc (nếu có). -->
     <div class="detail-badges" data-tabs="overview">
-      <button type="button" class="detail-badge dcard is-link" data-goto-tab="history" aria-label="Tiến độ — xem lịch sử chăm sóc">
+      <!-- Tiến độ = bậc (chấm) + TỐC ĐỘ PHỄU gộp vào (vòng tròn thời gian ở bậc + badge đếm, D-008 — renderStageSla).
+           Bấm → tab Lịch sử (thẻ Tốc độ phễu đầy đủ ở đầu tab). Không có SLA → mũi tên › thay vòng tròn. -->
+      <button type="button" class="detail-badge dcard is-link stage-card" id="detail-stage-card" data-goto-tab="history" aria-label="Tiến độ — xem lịch sử chăm sóc">
         <span class="detail-badge-label">Tiến độ</span>
-        <span class="detail-badge-main"><span id="detail-stage-dots" class="dot-row"></span><span class="dcard-chev" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></span></span>
+        <span class="detail-badge-main"><span id="detail-stage-dots" class="dot-row"></span><span id="detail-stage-ring" class="stage-ring-wrap" hidden></span><span class="dcard-chev" id="detail-stage-chev" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></span></span>
         <span id="detail-stage-text" class="detail-badge-text"></span>
+        <span id="detail-stage-sla" class="call-tag stage-sla-tag" hidden></span>
       </button>
       <div class="detail-badge dcard">
         <span class="detail-badge-label">Quan tâm</span>
@@ -570,11 +573,8 @@
       </div>
     </div>
 
-    <!-- TỐC ĐỘ PHỄU (D-008, js/velocity.js): giai đoạn + thanh thời gian (mục tiêu / hạn mức) + mục tiêu
-         giai đoạn; bậc Booking & Làm hồ sơ có mini-checklist 4 bước + nút "Xác nhận đã Ký HĐMB".
-         Nuôi dài hạn / Đã mua → thẻ trạng thái ngoài phễu. App tự chuyển quá hạn → dòng Hoàn tác. JS: renderDetailSla().
-         Mặc định THU GỌN: chỉ tiêu đề + nhãn đếm + thanh; phần còn lại mở bằng nút ⌄ (#sla-more). -->
-    <section class="detail-section dcard sla-card" id="detail-sla" data-tabs="overview" hidden></section>
+    <!-- App TỰ CHUYỂN bậc vì quá hạn mức SLA → dòng cảnh báo + Hoàn tác (renderDetailSla). -->
+    <div id="detail-sla-alert" class="sla-undo sla-alert" data-tabs="overview" hidden></div>
 
     <div class="detail-call" data-tabs="overview">
       <!-- VIỆC TIẾP THEO = CHECKLIST: lịch "Hẹn gọi" (nếu có) + các việc chưa xong, xếp theo hạn.
@@ -710,6 +710,11 @@
         <div class="docs-hint">Thêm/xoá tài liệu trong trang "Sửa thông tin khách".</div>
       </div>
     </section>
+
+    <!-- TỐC ĐỘ PHỄU đầy đủ (D-008, js/velocity.js) — ĐẦU tab Lịch sử (bấm ô Tiến độ ở Tổng quan để tới đây):
+         giai đoạn + thanh thời gian (mục tiêu / hạn mức) + mục tiêu giai đoạn; bậc Booking & Làm hồ sơ có checklist
+         4 bước + nút "Xác nhận đã Ký HĐMB". Nuôi dài hạn / Đã mua → thẻ trạng thái ngoài phễu. JS: renderDetailSla(). -->
+    <section class="detail-section dcard sla-card" id="detail-sla" data-tabs="history" hidden></section>
 
     <!-- LỊCH SỬ: dòng thời gian chăm sóc theo bậc (renderCareHistory). -->
     <section class="detail-section dcard" id="detail-history-section" data-tabs="history" hidden>

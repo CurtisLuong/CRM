@@ -2640,12 +2640,14 @@ body:has(#detail-screen.is-readonly:not([hidden])) #avatar-remove-btn,
 /* Thẻ Tốc độ phễu ở hồ sơ */
 .sla-card .dcard-head { align-items: center; }
 .sla-head-tag { margin-left: auto; cursor: default; font-weight: 500; }
-.sla-toggle { margin-left: 2px; }
-.sla-toggle svg { transition: transform .18s ease; }
-.sla-toggle[aria-expanded="true"] svg { transform: rotate(180deg); }
-.sla-card .dcard-head:has(.sla-toggle) { margin-bottom: 8px; }
-.sla-more { margin-top: 10px; padding-top: 10px; border-top: 1px solid #F1ECE2; }
-.sla-more > .sla-stage:first-child { margin-top: 0; }
+.sla-undo.sla-alert { margin: 0 0 var(--card-gap); }
+/* Ô Tiến độ gộp Tốc độ phễu: vòng tròn thời gian ở bậc (thay mũi tên ›) + badge đếm dưới tên bậc. */
+.stage-ring-wrap { margin-left: auto; display: inline-flex; flex: none; }
+.detail-badges .detail-badge-main { min-height: 28px; } /* = cao vòng tròn → hàng chấm 2 ô Tiến độ / Quan tâm thẳng nhau */
+.stage-ring { width: 28px; height: 28px; display: block; }
+.stage-ring-ic { display: inline-flex; width: 28px; height: 28px; align-items: center; justify-content: center; border-radius: 50%; background: #F1EEE6; color: var(--teal-light); }
+.stage-ring-ic svg { width: 16px; height: 16px; }
+.detail-badge .stage-sla-tag { cursor: inherit; font-weight: 500; margin-top: -2px; }
 .sla-stage { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 13px; margin-top: 4px; }
 .sla-stage-name { display: inline-flex; align-items: center; gap: 6px; }
 .sla-stage-ic { width: 16px; height: 16px; color: var(--teal-light); }

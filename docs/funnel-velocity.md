@@ -35,7 +35,7 @@ Màu: quá mục tiêu = nhãn **vàng**, quá hạn mức = **đỏ đậm** (c
 
 ## Checklist Booking & Làm hồ sơ
 
-Trên thẻ "Tốc độ phễu" ở hồ sơ, 4 ô tích (mỗi bước có hạn tính từ bước trước):
+Trên thẻ "Tốc độ phễu" (tab Lịch sử của hồ sơ), 4 ô tích (mỗi bước có hạn tính từ bước trước):
 
 1. Xác nhận cư trú — chuẩn 3–5 ngày (tính từ lúc Booking)
 2. Xác nhận điều kiện nhà ở — chuẩn ~15 ngày sau bước 1
@@ -47,7 +47,7 @@ Tích = ghi 1 dòng "Hồ sơ: ✓ …" vào lịch sử chăm sóc; bỏ tích 
 ## Ở đâu trong app
 
 - Thẻ khách / thẻ Khách mới: nhãn SLA khi quá mục tiêu / quá hạn.
-- Hồ sơ: thẻ "Tốc độ phễu" (thanh thời gian, checklist, nút Ký HĐMB / Nuôi dài hạn / Hoàn tác).
+- Hồ sơ: ô **Tiến độ** ở Tổng quan có vòng tròn thời gian + badge đếm (bấm → tab Lịch sử); thẻ "Tốc độ phễu" đầy đủ (thanh thời gian, checklist, nút Ký HĐMB / Nuôi dài hạn) ở đầu tab Lịch sử; dòng Hoàn tác tự chuyển ở Tổng quan.
 - Tổng quan: nhóm "Quá hạn mức SLA phễu"; khách mới quá 4 giờ tô đỏ; chuông thông báo.
 - Phân tích: thẻ "Phễu & tốc độ (SLA)" (số khách, thời gian TB so với mục tiêu / hạn mức, số khách đang quá hạn, % chuyển đổi, nút thắt); Pipeline có ô "★ Đã ký HĐMB".
 - Bộ lọc danh sách: Trong phễu · Nuôi dài hạn · Đã mua · Không chốt · Tất cả.

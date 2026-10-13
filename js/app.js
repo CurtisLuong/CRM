@@ -4170,16 +4170,72 @@ function slaAutoEntry(c) {
   return days <= VELOCITY.config.autoUndoDays ? last : null;
 }
 function slaDateLabel(ms) { const d = new Date(ms); return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`; }
-// Thẻ Tốc độ phễu THU GỌN mặc định: chỉ tiêu đề + nhãn đếm + thanh thời gian; phần giải thích, checklist
-// Booking, nút thao tác nằm trong "chi tiết" (nút ⌄ ở tiêu đề). Trạng thái mở nhớ trên máy (dùng chung mọi khách).
-let slaOpen = (() => { try { return localStorage.getItem('crm_sla_open') === '1'; } catch { return false; } })();
+// Ô "Tiến độ": vòng tròn = thời gian đã ở bậc / HẠN MỨC tối đa (vạch = mốc mục tiêu), màu theo trạng thái
+// (xám → vàng khi qua mục tiêu → đỏ khi quá hạn mức) + badge chữ (không chỉ dựa vào màu). Bậc Booking: badge
+// "Hồ sơ x/4". Ngoài phễu (Nuôi dài hạn / Đã ký): icon trạng thái thay vòng + "từ dd/mm". Không có SLA → mũi tên ›.
+const SLA_RING_COLOR = { ok: '#8E97A3', warn: '#D9A92B', over: '#A1171E' };
+function slaRingSvg(st) {
+  const r = 11, C = 2 * Math.PI * r, f = Math.max(0, Math.min(1, st.elapsed / st.max));
+  const t = Math.max(0, Math.min(1, st.target / st.max)) * 2 * Math.PI - Math.PI / 2; // góc mốc mục tiêu (0h = đỉnh)
+  const p = (rad, k) => (14 + Math.cos(t) * rad * k).toFixed(2) + ' ' + (14 + Math.sin(t) * rad * k).toFixed(2); // điểm trên tia mục tiêu
+  return `<svg class="stage-ring is-${st.state}" viewBox="0 0 28 28" aria-hidden="true">
+      <circle cx="14" cy="14" r="${r}" fill="none" stroke="#E6E2D8" stroke-width="3.2"/>
+      <circle cx="14" cy="14" r="${r}" fill="none" stroke="${SLA_RING_COLOR[st.state]}" stroke-width="3.2" stroke-linecap="round"
+        stroke-dasharray="${(C * f).toFixed(2)} ${C.toFixed(2)}" transform="rotate(-90 14 14)"/>
+      <path d="M${p(r, 0.62)} L${p(r, 1.38)}" stroke="#1A2E29" stroke-opacity=".55" stroke-width="1.6" stroke-linecap="round"/>
+    </svg>`;
+}
+function renderStageSla(c) {
+  const ring = $('#detail-stage-ring'), tag = $('#detail-stage-sla'), chev = $('#detail-stage-chev');
+  const card = $('#detail-stage-card');
+  if (!ring || !tag) return;
+  let ringHtml = '', tagText = '', tagCls = '', title = '';
+  const V = window.VELOCITY;
+  if (V && isQualified(c)) {
+    if (c.care_stage === CARE_STAGE_WON || c.care_stage === CARE_STAGE_NURTURE) {
+      const at = V.stageEnteredAt(c);
+      ringHtml = `<span class="stage-ring-ic">${icon(c.care_stage === CARE_STAGE_WON ? 'contract' : 'nurture')}</span>`;
+      if (!isNaN(at)) { const d = new Date(at); tagText = `từ ${d.getDate()}/${d.getMonth() + 1}`; tagCls = 'call-far'; }
+    } else {
+      const st = V.status(c);
+      if (st) {
+        ringHtml = slaRingSvg(st);
+        title = `Tốc độ phễu: ${st.text}`;
+        if (normStage(c.care_stage) === CARE_STAGE_BOOKING) {
+          const steps = V.bookingSteps(c);
+          const worst = steps.some((r) => r.state === 'over') ? 'call-missed' : steps.some((r) => r.state === 'warn') ? 'call-soon' : 'call-far';
+          tagText = `Hồ sơ ${steps.filter((r) => r.state === 'done').length}/${steps.length}`; tagCls = worst;
+        } else {
+          tagText = st.elapsed < 0 ? st.text : st.state === 'ok' ? 'còn ' + V.fmt(st.target - st.elapsed)
+            : st.state === 'warn' ? 'quá mục tiêu' : 'quá hạn ' + V.fmt(st.elapsed - st.max);
+          tagCls = st.cls;
+        }
+      }
+    }
+  }
+  ring.innerHTML = ringHtml; ring.hidden = !ringHtml;
+  if (chev) chev.hidden = !!ringHtml;
+  tag.textContent = tagText; tag.className = `call-tag stage-sla-tag ${tagCls}`; tag.hidden = !tagText;
+  if (card) card.setAttribute('aria-label', 'Tiến độ' + (title ? ' — ' + title : '') + ' — xem chi tiết ở tab Lịch sử');
+  if (card) card.title = title;
+}
+
+// TỐC ĐỘ PHỄU (D-008) hiển thị 3 chỗ, cùng đọc VELOCITY:
+//   1. Ô "Tiến độ" (Tổng quan): vòng tròn thời gian + badge đếm — renderStageSla().
+//   2. Dòng "App đã tự chuyển… [Hoàn tác]" ngay dưới hàng chỉ số (Tổng quan) — #detail-sla-alert.
+//   3. Thẻ đầy đủ (giai đoạn, mục tiêu/tối đa, checklist Booking, nút thao tác) ở ĐẦU tab Lịch sử — #detail-sla.
 function renderDetailSla(c) {
   const box = $('#detail-sla'); if (!box) return;
-  if (!window.VELOCITY || !isQualified(c)) { box.hidden = true; return; }
+  const alertBox = $('#detail-sla-alert');
+  renderStageSla(c);
+  if (!window.VELOCITY || !isQualified(c)) { box.hidden = true; if (alertBox) alertBox.hidden = true; return; }
   const V = VELOCITY, mine = isMine(c);
   const auto = slaAutoEntry(c);
-  const undo = auto && mine ? `<div class="sla-undo">${icon('alert', 'sla-undo-ic')}<span>App đã tự chuyển sang "${escapeHtml(careLabel(c.care_stage))}" vì quá hạn mức SLA.</span>
-      <button type="button" class="btn-small" data-sla="undo">Hoàn tác</button></div>` : '';
+  if (alertBox) {
+    alertBox.hidden = !(auto && mine);
+    alertBox.innerHTML = auto && mine ? `${icon('alert', 'sla-undo-ic')}<span>App đã tự chuyển sang "${escapeHtml(careLabel(c.care_stage))}" vì quá hạn mức SLA.</span>
+      <button type="button" class="btn-small" data-sla="undo">Hoàn tác</button>` : '';
+  }
   const head = (ic, title, extra) => `<div class="dcard-head"><span class="dcard-ic" aria-hidden="true">${icon(ic)}</span><h3>${title}</h3>${extra || ''}</div>`;
   let html = '';
   if (c.care_stage === CARE_STAGE_WON) {
@@ -4187,7 +4243,7 @@ function renderDetailSla(c) {
     html = head('contract', 'Đã ký HĐMB') + `<p class="sla-note">★ Chốt deal${isNaN(at) ? '' : ' ngày ' + slaDateLabel(at)} — khách nằm trong mục "Đã mua".</p>`;
   } else if (c.care_stage === CARE_STAGE_NURTURE) {
     const at = V.stageEnteredAt(c);
-    html = head('nurture', 'Nuôi dài hạn') + undo
+    html = head('nurture', 'Nuôi dài hạn')
       + `<p class="sla-note">Ngoài phễu chính (không tính tốc độ phễu)${isNaN(at) ? '' : ' từ ' + slaDateLabel(at)}. Liên hệ lại theo lịch hẹn gọi.</p>`
       + (mine ? `<div class="sla-actions"><button type="button" class="btn-small" data-sla="refunnel">${icon('customers', 'btn-ic')}Đưa lại vào phễu</button></div>` : '');
   } else {
@@ -4196,13 +4252,11 @@ function renderDetailSla(c) {
     const cfg = V.config.phases[st.key];
     const pct = (v) => Math.max(0, Math.min(100, v));
     const fill = pct((st.elapsed / st.max) * 100), mark = pct((st.target / st.max) * 100);
-    const toggle = `<button type="button" class="dcard-go sla-toggle" data-sla="toggle" aria-expanded="${slaOpen}" aria-controls="sla-more" title="${slaOpen ? 'Thu gọn' : 'Xem chi tiết'}" aria-label="${slaOpen ? 'Thu gọn tốc độ phễu' : 'Xem chi tiết tốc độ phễu'}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>`;
-    html = head('sla', 'Tốc độ phễu', `<span class="call-tag ${st.cls} sla-head-tag">${escapeHtml(st.text)}</span>${toggle}`)
-      + `<div class="sla-bar is-${st.state}" role="img" aria-label="Đã ${escapeHtml(V.fmt(st.elapsed))} trên hạn mức ${escapeHtml(cfg.maxText)}">
-          <span class="sla-bar-fill" style="width:${fill}%"></span><span class="sla-bar-mark" style="left:${mark}%"></span></div>`
-      + undo + `<div id="sla-more" class="sla-more"${slaOpen ? '' : ' hidden'}>
-        <div class="sla-stage"><span class="sla-stage-name">${stageIcon(c.care_stage, 'sla-stage-ic')}${escapeHtml(careLabel(c.care_stage))}</span>
+    html = head('sla', 'Tốc độ phễu', `<span class="call-tag ${st.cls} sla-head-tag">${escapeHtml(st.text)}</span>`)
+      + `<div class="sla-stage"><span class="sla-stage-name">${stageIcon(c.care_stage, 'sla-stage-ic')}${escapeHtml(careLabel(c.care_stage))}</span>
           <span class="sla-stage-time">đã ${escapeHtml(V.fmt(st.elapsed))}</span></div>
+        <div class="sla-bar is-${st.state}" role="img" aria-label="Đã ${escapeHtml(V.fmt(st.elapsed))} trên hạn mức ${escapeHtml(cfg.maxText)}">
+          <span class="sla-bar-fill" style="width:${fill}%"></span><span class="sla-bar-mark" style="left:${mark}%"></span></div>
         <div class="sla-scale"><span>Mục tiêu ${escapeHtml(cfg.targetText)}</span><span>Tối đa ${escapeHtml(cfg.maxText)}</span></div>
         ${cfg.goal ? `<p class="sla-note">Mục tiêu giai đoạn: ${escapeHtml(cfg.goal)}.</p>` : ''}
         <p class="sla-note sla-rule">${escapeHtml(cfg.rule || '')}</p>`;
@@ -4223,7 +4277,6 @@ function renderDetailSla(c) {
       if (c.care_stage === QUALIFIED_STAGE || c.care_stage === 'Xem dự án') btns.push(`<button type="button" class="btn-small" data-sla="nurture">${icon('nurture', 'btn-ic')}Chuyển Nuôi dài hạn</button>`);
       if (btns.length) html += `<div class="sla-actions">${btns.join('')}</div>`;
     }
-    html += '</div>'; // hết #sla-more
   }
   box.innerHTML = html;
   box.hidden = false;
@@ -4254,17 +4307,9 @@ $('#detail-sla')?.addEventListener('change', async (e) => {
   await refreshList();
   openDetail(c.id);
 });
-$('#detail-sla')?.addEventListener('click', async (e) => {
-  const b = e.target.closest('[data-sla]'); if (!b || !detailId) return;
-  if (b.dataset.sla === 'toggle') { // mở / thu gọn chi tiết — không vẽ lại cả thẻ
-    slaOpen = !slaOpen;
-    try { localStorage.setItem('crm_sla_open', slaOpen ? '1' : '0'); } catch { /* ignore */ }
-    $('#sla-more').hidden = !slaOpen;
-    b.setAttribute('aria-expanded', String(slaOpen));
-    b.title = slaOpen ? 'Thu gọn' : 'Xem chi tiết';
-    b.setAttribute('aria-label', slaOpen ? 'Thu gọn tốc độ phễu' : 'Xem chi tiết tốc độ phễu');
-    return;
-  }
+// Nút thao tác: thẻ Tốc độ phễu (tab Lịch sử) + dòng Hoàn tác (Tổng quan) dùng chung 1 handler.
+document.addEventListener('click', async (e) => {
+  const b = e.target.closest('#detail-sla [data-sla], #detail-sla-alert [data-sla]'); if (!b || !detailId) return;
   const c = allCustomers.find((x) => x.id === detailId); if (!c) return;
   const act = b.dataset.sla;
   if (act === 'won') {

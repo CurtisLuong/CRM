@@ -177,15 +177,18 @@ Giỏ hàng có panel tìm riêng trong dialog hiện có; matching mở từ h�
 
 Thứ tự cố định, từ trên xuống:
 
-0. **Chỉ số trạng thái** Tiến độ · Quan tâm · Liên lạc — LUÔN TRÊN CÙNG để quét nhanh tình trạng khách.
-1. **Tốc độ phễu** (`#detail-sla`, ẩn với khách không có SLA) — THU GỌN mặc định: chỉ tiêu đề + nhãn đếm + thanh thời gian (+ dòng Hoàn tác khi app tự chuyển). Giai đoạn, mốc mục tiêu/tối đa, giải thích, checklist Booking và nút thao tác nằm sau nút ⌄; trạng thái mở nhớ trên máy.
-2. **Việc tiếp theo** — thẻ việc chính, ngay dưới Tốc độ phễu.
-3. Trợ lý AI (`#detail-ai`, chỉ hiện khi có `WORKER_URL`).
-4. Căn hộ quan tâm.
-5. Ghi chú (xem trước; xem hết ở tab Tương tác).
-6. Tính khoản vay.
+0. **Chỉ số trạng thái** Tiến độ · Quan tâm · Liên lạc — LUÔN TRÊN CÙNG. Hai ô Tiến độ / Quan tâm luôn cao bằng nhau (lưới `align-items: stretch`): ô này xuống dòng thì ô kia giãn theo.
+   - **Tiến độ gộp Tốc độ phễu (D-008):** chấm = bậc trong phễu; **vòng tròn** (thay mũi tên ›) = thời gian đã ở bậc / hạn mức tối đa, vạch = mốc mục tiêu, màu xám → vàng (qua mục tiêu) → đỏ (quá hạn mức); **badge chữ** dưới tên bậc ("còn 5 ngày" / "quá mục tiêu" / "quá hạn 2 ngày"; bậc Booking: "Hồ sơ x/4"; Nuôi dài hạn / Đã ký: icon trạng thái + "từ dd/mm"). Bấm ô → tab Lịch sử.
+   - Dòng cảnh báo "App đã tự chuyển… [Hoàn tác]" (nếu có) nằm ngay dưới hàng chỉ số.
+1. **Việc tiếp theo**.
+2. Trợ lý AI (`#detail-ai`, chỉ hiện khi có `WORKER_URL`).
+3. Căn hộ quan tâm.
+4. Ghi chú (xem trước; xem hết ở tab Tương tác).
+5. Tính khoản vay.
 
-Thêm thẻ mới vào Tổng quan → đặt sau các thẻ trên; muốn đổi thứ tự 0–6 → hỏi chủ dự án trước. Thứ tự theo vị trí trong `index.html` (khối `#detail-screen`, có comment đánh dấu).
+Tab **Lịch sử**: thẻ Tốc độ phễu đầy đủ (`#detail-sla`: giai đoạn, thanh mục tiêu / hạn mức, giải thích, checklist Booking, nút Ký HĐMB / Nuôi dài hạn / Đưa lại vào phễu) ở trên cùng, dưới là dòng thời gian chăm sóc.
+
+Thêm thẻ mới vào Tổng quan → đặt sau các thẻ trên; muốn đổi thứ tự → hỏi chủ dự án trước. Thứ tự theo vị trí trong `index.html` (khối `#detail-screen`, có comment đánh dấu).
 
 ## Font và tiếng Việt
 

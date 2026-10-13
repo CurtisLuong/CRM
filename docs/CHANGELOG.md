@@ -6,6 +6,14 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-13 — Gộp Tốc độ phễu vào ô Tiến độ; thẻ chi tiết chuyển sang tab Lịch sử
+
+- Ô Tiến độ (Tổng quan) có vòng tròn thời gian ở bậc (màu xám/vàng/đỏ, vạch mốc mục tiêu) + badge đếm
+  ("còn 5 ngày" / "quá mục tiêu" / "quá hạn …"; Booking: "Hồ sơ x/4"; Nuôi dài hạn / Đã ký: icon + "từ dd/mm").
+- Thẻ Tốc độ phễu đầy đủ (checklist Booking, nút thao tác) chuyển lên đầu tab Lịch sử; bỏ thẻ thu gọn ở Tổng quan.
+  Dòng "App đã tự chuyển… [Hoàn tác]" vẫn ở Tổng quan, dưới hàng chỉ số.
+- File: `index.html`, `js/app.js`, `css/style.css`, `sw.js`, `docs/design.md`
+
 ## 2026-10-13 — Sắp xếp lại tab Tổng quan hồ sơ khách + thu gọn Tốc độ phễu
 
 - Thứ tự mới: Chỉ số (Tiến độ · Quan tâm) → Tốc độ phễu → Việc tiếp theo → Trợ lý AI → Căn hộ → Ghi chú → Tính vay.
