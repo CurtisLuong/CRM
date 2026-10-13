@@ -173,19 +173,19 @@ Dùng bộ lọc sẵn có của từng nhóm Tiềm năng / Khách mới / Khá
 
 Giỏ hàng có panel tìm riêng trong dialog hiện có; matching mở từ hồ sơ hoặc căn. Count có aria-live, kết quả hỗ trợ focus / phím mũi tên / Enter; Cmd/Ctrl+K đưa về ô tìm. Các nút lọc xuống dòng trong panel hiện có ở màn hẹp, không kéo tràn ngang.
 
-## Hồ sơ khách — thứ tự thẻ tab Tổng quan (chốt 2026-10-09)
+## Hồ sơ khách — thứ tự thẻ tab Tổng quan (chốt lại 2026-10-13 theo yêu cầu chủ dự án)
 
 Thứ tự cố định, từ trên xuống:
 
-0. **Chỉ số trạng thái** Tiến độ · Quan tâm · Liên lạc — LUÔN TRÊN CÙNG để quét nhanh tình trạng khách (sửa 2026-10-09).
-1. **Việc tiếp theo** — LUÔN LUÔN là thẻ nội dung đầu tiên, ngay dưới hàng chỉ số. Không thẻ nào khác (thẻ mới, banner…) được chen giữa.
-2. Tốc độ phễu (`#detail-sla`, ẩn với khách không có SLA).
-3. Căn hộ quan tâm.
-4. Ghi chú (xem trước; xem hết ở tab Tương tác).
-5. Tính khoản vay.
-6. Trợ lý AI (`#detail-ai`, chỉ hiện khi có `WORKER_URL`) — thêm 2026-10-13.
+0. **Chỉ số trạng thái** Tiến độ · Quan tâm · Liên lạc — LUÔN TRÊN CÙNG để quét nhanh tình trạng khách.
+1. **Tốc độ phễu** (`#detail-sla`, ẩn với khách không có SLA) — THU GỌN mặc định: chỉ tiêu đề + nhãn đếm + thanh thời gian (+ dòng Hoàn tác khi app tự chuyển). Giai đoạn, mốc mục tiêu/tối đa, giải thích, checklist Booking và nút thao tác nằm sau nút ⌄; trạng thái mở nhớ trên máy.
+2. **Việc tiếp theo** — thẻ việc chính, ngay dưới Tốc độ phễu.
+3. Trợ lý AI (`#detail-ai`, chỉ hiện khi có `WORKER_URL`).
+4. Căn hộ quan tâm.
+5. Ghi chú (xem trước; xem hết ở tab Tương tác).
+6. Tính khoản vay.
 
-Thêm thẻ mới vào Tổng quan → đặt sau các thẻ trên; muốn đổi thứ tự 0–5 → hỏi chủ dự án trước. Thứ tự theo vị trí trong `index.html` (khối `#detail-screen`, có comment đánh dấu).
+Thêm thẻ mới vào Tổng quan → đặt sau các thẻ trên; muốn đổi thứ tự 0–6 → hỏi chủ dự án trước. Thứ tự theo vị trí trong `index.html` (khối `#detail-screen`, có comment đánh dấu).
 
 ## Font và tiếng Việt
 

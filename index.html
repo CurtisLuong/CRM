@@ -549,10 +549,10 @@
       </nav>
     </div>
 
-    <!-- ===== THỨ TỰ THẺ TAB TỔNG QUAN (quy tắc cố định — docs/design.md "Hồ sơ khách"):
-         0 Chỉ số trạng thái Tiến độ · Quan tâm · Liên lạc (LUÔN TRÊN CÙNG — quét nhanh) ·
-         1 Việc tiếp theo (luôn là thẻ nội dung đầu tiên) · 2 Tốc độ phễu · 3 Căn hộ quan tâm · 4 Ghi chú ·
-         5 Tính khoản vay. Thêm thẻ mới → đặt SAU các thẻ này, không chen lên trên. ===== -->
+    <!-- ===== THỨ TỰ THẺ TAB TỔNG QUAN (quy tắc cố định — docs/design.md "Hồ sơ khách", chốt lại 2026-10-13):
+         0 Chỉ số trạng thái Tiến độ · Quan tâm · Liên lạc (LUÔN TRÊN CÙNG) · 1 Tốc độ phễu (thu gọn) ·
+         2 Việc tiếp theo · 3 Trợ lý AI · 4 Căn hộ quan tâm · 5 Ghi chú · 6 Tính khoản vay.
+         Thêm thẻ mới → đặt SAU các thẻ này, không chen lên trên. ===== -->
     <!-- TỔNG QUAN: 2 thẻ chỉ số (Tiến độ → bấm sang Lịch sử · Quan tâm) + Liên lạc (nếu có). -->
     <div class="detail-badges" data-tabs="overview">
       <button type="button" class="detail-badge dcard is-link" data-goto-tab="history" aria-label="Tiến độ — xem lịch sử chăm sóc">
@@ -569,6 +569,12 @@
         <span id="detail-contact-text" class="detail-badge-text"></span>
       </div>
     </div>
+
+    <!-- TỐC ĐỘ PHỄU (D-008, js/velocity.js): giai đoạn + thanh thời gian (mục tiêu / hạn mức) + mục tiêu
+         giai đoạn; bậc Booking & Làm hồ sơ có mini-checklist 4 bước + nút "Xác nhận đã Ký HĐMB".
+         Nuôi dài hạn / Đã mua → thẻ trạng thái ngoài phễu. App tự chuyển quá hạn → dòng Hoàn tác. JS: renderDetailSla().
+         Mặc định THU GỌN: chỉ tiêu đề + nhãn đếm + thanh; phần còn lại mở bằng nút ⌄ (#sla-more). -->
+    <section class="detail-section dcard sla-card" id="detail-sla" data-tabs="overview" hidden></section>
 
     <div class="detail-call" data-tabs="overview">
       <!-- VIỆC TIẾP THEO = CHECKLIST: lịch "Hẹn gọi" (nếu có) + các việc chưa xong, xếp theo hạn.
@@ -599,10 +605,22 @@
       </div>
     </div>
 
-    <!-- TỐC ĐỘ PHỄU (D-008, js/velocity.js): giai đoạn + thanh thời gian (mục tiêu / hạn mức) + mục tiêu
-         giai đoạn; bậc Booking & Làm hồ sơ có mini-checklist 4 bước + nút "Xác nhận đã Ký HĐMB".
-         Nuôi dài hạn / Đã mua → thẻ trạng thái ngoài phễu. App tự chuyển quá hạn → dòng Hoàn tác. JS: renderDetailSla(). -->
-    <section class="detail-section dcard sla-card" id="detail-sla" data-tabs="overview" hidden></section>
+    <!-- TRỢ LÝ AI (js/ai.js → Worker /ai, Workers AI Qwen3): tóm tắt trước khi gọi + soạn tin Zalo.
+         Chỉ hiện khi có WORKER_URL. Kết quả là GỢI Ý, không tự ghi vào dữ liệu khách. -->
+    <section class="detail-section dcard ai-card" id="detail-ai" data-tabs="overview" hidden>
+      <div class="dcard-head">
+        <span class="dcard-ic" aria-hidden="true" data-icon="ai"></span>
+        <h3>Trợ lý AI</h3>
+        <!-- Chọn model (Qwen / GLM) — js/ai.js vẽ từ AI_MODELS; ⚙ = Cài đặt (model + phong cách viết). -->
+        <div id="ai-model-switch" class="ai-model-switch" role="group" aria-label="Chọn model AI"></div>
+        <button type="button" id="ai-settings-open" class="dcard-go" aria-label="Cài đặt Trợ lý AI" title="Cài đặt Trợ lý AI"><span data-icon="settings"></span></button>
+      </div>
+      <div class="dcard-actions">
+        <button type="button" id="ai-brief-btn" class="btn-small"><span class="btn-ic" data-icon="call"></span>Tóm tắt trước khi gọi</button>
+        <button type="button" id="ai-zalo-btn" class="btn-small"><span class="btn-ic" data-icon="message"></span>Soạn tin Zalo</button>
+      </div>
+      <div id="ai-out" class="ai-out" hidden></div>
+    </section>
 
     <section class="detail-section dcard" data-tabs="overview">
       <div class="dcard-head">
@@ -651,23 +669,6 @@
         <button id="detail-loan-btn" class="btn-small" type="button">💰 Tính khoản vay</button>
       </div>
       <div id="detail-loan-panel" hidden></div>
-    </section>
-
-    <!-- TRỢ LÝ AI (js/ai.js → Worker /ai, Workers AI Qwen3): tóm tắt trước khi gọi + soạn tin Zalo.
-         Chỉ hiện khi có WORKER_URL. Kết quả là GỢI Ý, không tự ghi vào dữ liệu khách. -->
-    <section class="detail-section dcard ai-card" id="detail-ai" data-tabs="overview" hidden>
-      <div class="dcard-head">
-        <span class="dcard-ic" aria-hidden="true" data-icon="ai"></span>
-        <h3>Trợ lý AI</h3>
-        <!-- Chọn model (Qwen / GLM) — js/ai.js vẽ từ AI_MODELS; ⚙ = Cài đặt (model + phong cách viết). -->
-        <div id="ai-model-switch" class="ai-model-switch" role="group" aria-label="Chọn model AI"></div>
-        <button type="button" id="ai-settings-open" class="dcard-go" aria-label="Cài đặt Trợ lý AI" title="Cài đặt Trợ lý AI"><span data-icon="settings"></span></button>
-      </div>
-      <div class="dcard-actions">
-        <button type="button" id="ai-brief-btn" class="btn-small"><span class="btn-ic" data-icon="call"></span>Tóm tắt trước khi gọi</button>
-        <button type="button" id="ai-zalo-btn" class="btn-small"><span class="btn-ic" data-icon="message"></span>Soạn tin Zalo</button>
-      </div>
-      <div id="ai-out" class="ai-out" hidden></div>
     </section>
 
     <!-- TƯƠNG TÁC: nhật ký cuộc gọi — cùng dữ liệu call_attempts với tab Khách mới. -->

@@ -4170,6 +4170,9 @@ function slaAutoEntry(c) {
   return days <= VELOCITY.config.autoUndoDays ? last : null;
 }
 function slaDateLabel(ms) { const d = new Date(ms); return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`; }
+// Thẻ Tốc độ phễu THU GỌN mặc định: chỉ tiêu đề + nhãn đếm + thanh thời gian; phần giải thích, checklist
+// Booking, nút thao tác nằm trong "chi tiết" (nút ⌄ ở tiêu đề). Trạng thái mở nhớ trên máy (dùng chung mọi khách).
+let slaOpen = (() => { try { return localStorage.getItem('crm_sla_open') === '1'; } catch { return false; } })();
 function renderDetailSla(c) {
   const box = $('#detail-sla'); if (!box) return;
   if (!window.VELOCITY || !isQualified(c)) { box.hidden = true; return; }
@@ -4193,11 +4196,13 @@ function renderDetailSla(c) {
     const cfg = V.config.phases[st.key];
     const pct = (v) => Math.max(0, Math.min(100, v));
     const fill = pct((st.elapsed / st.max) * 100), mark = pct((st.target / st.max) * 100);
-    html = head('sla', 'Tốc độ phễu', `<span class="call-tag ${st.cls} sla-head-tag">${escapeHtml(st.text)}</span>`) + undo
-      + `<div class="sla-stage"><span class="sla-stage-name">${stageIcon(c.care_stage, 'sla-stage-ic')}${escapeHtml(careLabel(c.care_stage))}</span>
+    const toggle = `<button type="button" class="dcard-go sla-toggle" data-sla="toggle" aria-expanded="${slaOpen}" aria-controls="sla-more" title="${slaOpen ? 'Thu gọn' : 'Xem chi tiết'}" aria-label="${slaOpen ? 'Thu gọn tốc độ phễu' : 'Xem chi tiết tốc độ phễu'}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>`;
+    html = head('sla', 'Tốc độ phễu', `<span class="call-tag ${st.cls} sla-head-tag">${escapeHtml(st.text)}</span>${toggle}`)
+      + `<div class="sla-bar is-${st.state}" role="img" aria-label="Đã ${escapeHtml(V.fmt(st.elapsed))} trên hạn mức ${escapeHtml(cfg.maxText)}">
+          <span class="sla-bar-fill" style="width:${fill}%"></span><span class="sla-bar-mark" style="left:${mark}%"></span></div>`
+      + undo + `<div id="sla-more" class="sla-more"${slaOpen ? '' : ' hidden'}>
+        <div class="sla-stage"><span class="sla-stage-name">${stageIcon(c.care_stage, 'sla-stage-ic')}${escapeHtml(careLabel(c.care_stage))}</span>
           <span class="sla-stage-time">đã ${escapeHtml(V.fmt(st.elapsed))}</span></div>
-        <div class="sla-bar is-${st.state}" role="img" aria-label="Đã ${escapeHtml(V.fmt(st.elapsed))} trên hạn mức ${escapeHtml(cfg.maxText)}">
-          <span class="sla-bar-fill" style="width:${fill}%"></span><span class="sla-bar-mark" style="left:${mark}%"></span></div>
         <div class="sla-scale"><span>Mục tiêu ${escapeHtml(cfg.targetText)}</span><span>Tối đa ${escapeHtml(cfg.maxText)}</span></div>
         ${cfg.goal ? `<p class="sla-note">Mục tiêu giai đoạn: ${escapeHtml(cfg.goal)}.</p>` : ''}
         <p class="sla-note sla-rule">${escapeHtml(cfg.rule || '')}</p>`;
@@ -4218,6 +4223,7 @@ function renderDetailSla(c) {
       if (c.care_stage === QUALIFIED_STAGE || c.care_stage === 'Xem dự án') btns.push(`<button type="button" class="btn-small" data-sla="nurture">${icon('nurture', 'btn-ic')}Chuyển Nuôi dài hạn</button>`);
       if (btns.length) html += `<div class="sla-actions">${btns.join('')}</div>`;
     }
+    html += '</div>'; // hết #sla-more
   }
   box.innerHTML = html;
   box.hidden = false;
@@ -4250,6 +4256,15 @@ $('#detail-sla')?.addEventListener('change', async (e) => {
 });
 $('#detail-sla')?.addEventListener('click', async (e) => {
   const b = e.target.closest('[data-sla]'); if (!b || !detailId) return;
+  if (b.dataset.sla === 'toggle') { // mở / thu gọn chi tiết — không vẽ lại cả thẻ
+    slaOpen = !slaOpen;
+    try { localStorage.setItem('crm_sla_open', slaOpen ? '1' : '0'); } catch { /* ignore */ }
+    $('#sla-more').hidden = !slaOpen;
+    b.setAttribute('aria-expanded', String(slaOpen));
+    b.title = slaOpen ? 'Thu gọn' : 'Xem chi tiết';
+    b.setAttribute('aria-label', slaOpen ? 'Thu gọn tốc độ phễu' : 'Xem chi tiết tốc độ phễu');
+    return;
+  }
   const c = allCustomers.find((x) => x.id === detailId); if (!c) return;
   const act = b.dataset.sla;
   if (act === 'won') {

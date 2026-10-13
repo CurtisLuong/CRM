@@ -2640,6 +2640,12 @@ body:has(#detail-screen.is-readonly:not([hidden])) #avatar-remove-btn,
 /* Thẻ Tốc độ phễu ở hồ sơ */
 .sla-card .dcard-head { align-items: center; }
 .sla-head-tag { margin-left: auto; cursor: default; font-weight: 500; }
+.sla-toggle { margin-left: 2px; }
+.sla-toggle svg { transition: transform .18s ease; }
+.sla-toggle[aria-expanded="true"] svg { transform: rotate(180deg); }
+.sla-card .dcard-head:has(.sla-toggle) { margin-bottom: 8px; }
+.sla-more { margin-top: 10px; padding-top: 10px; border-top: 1px solid #F1ECE2; }
+.sla-more > .sla-stage:first-child { margin-top: 0; }
 .sla-stage { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 13px; margin-top: 4px; }
 .sla-stage-name { display: inline-flex; align-items: center; gap: 6px; }
 .sla-stage-ic { width: 16px; height: 16px; color: var(--teal-light); }

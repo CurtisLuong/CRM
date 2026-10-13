@@ -6,6 +6,13 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-13 — Sắp xếp lại tab Tổng quan hồ sơ khách + thu gọn Tốc độ phễu
+
+- Thứ tự mới: Chỉ số (Tiến độ · Quan tâm) → Tốc độ phễu → Việc tiếp theo → Trợ lý AI → Căn hộ → Ghi chú → Tính vay.
+- Tốc độ phễu mặc định chỉ hiện tiêu đề, nhãn đếm, thanh thời gian; phần chi tiết (giai đoạn, mục tiêu/tối đa,
+  giải thích, checklist Booking, nút thao tác) mở bằng nút ⌄, nhớ trạng thái trên máy.
+- File: `index.html`, `js/app.js`, `css/style.css`, `sw.js`, `docs/design.md`
+
 ## 2026-10-13 — Trợ lý AI: chọn model Qwen / GLM + phong cách viết sửa được
 
 - Thẻ Trợ lý AI có công tắc **Qwen3 ⇄ GLM** (GLM 4.7 Flash, Workers AI) và nút ⚙ Cài đặt (cũng có ở bảng Tiện ích).
