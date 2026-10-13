@@ -6,6 +6,15 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-13 — Đồng bộ tự động giữa các thiết bị (không cần bấm nút đám mây)
+
+- Trước đây app chỉ kéo bản mới khi mở app hoặc bấm nút đám mây → sửa ở máy kia, máy này không thấy.
+- Nay: Supabase Realtime báo ngay khi khách đổi → app tải đúng khách đó, vẽ lại sau ~1-2 giây. Lưới an toàn:
+  kiểm tra nhẹ (số khách + giờ sửa mới nhất) khi mở lại app / quay lại tab / có mạng, và mỗi 15s (kênh rớt) hoặc 60s.
+- Đang gõ trong hồ sơ khách hoặc mở hộp thoại → hoãn vẽ lại màn chi tiết tới khi rảnh (không mất chữ đang nhập).
+- Cần chạy `SQL/add_realtime_customers.sql`; chưa chạy thì app vẫn tự kiểm tra mỗi 15s.
+- File: `js/db.js`, `js/app.js`, `sw.js`, `SQL/add_realtime_customers.sql`, `docs/architecture.md`
+
 ## 2026-10-13 — Khách mới: bộ lọc "Trong phễu" (mặc định); Android 1.4: bấm gọi là gọi thẳng
 
 - Bộ lọc trạng thái Khách mới: Tất cả · **Trong phễu** (mặc định = chưa loại: Chưa gọi + Cần gọi lại) · Chưa gọi ·

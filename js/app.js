@@ -588,7 +588,10 @@ async function onLoggedIn(user) {
   syncZaloTemplates();          // đồng bộ các mẫu tin Zalo khác
   if (window.CRMAI) CRMAI.sync(); // đồng bộ cài đặt Trợ lý AI (model + phong cách)
   syncTeam();                   // danh sách nhóm (giao khách — js/team.js)
+  // Đồng bộ tức thời: thiết bị khác sửa → server báo ngay → vẽ lại trong ~1-2 giây.
+  CRM.startLive({ onChange: onRemoteData, onResync: () => checkRemote() });
   clearInterval(accountSyncTimer);
+  let tick = 0;
   accountSyncTimer = setInterval(async () => {
     if (currentUser?.id !== user.id) return;
     await CRM.flushQueue();
@@ -597,11 +600,74 @@ async function onLoggedIn(user) {
     if (CRM.isOnline() && CRM.lastPullError && CRM.lastPullError()) {
       const r = await CRM.pull();
       if (r && r.ok) await refreshList();
+    } else if (!document.hidden) {
+      // Lưới an toàn: kênh tức thời đang rớt → kiểm tra nhẹ mỗi 15s; đang chạy tốt → mỗi 60s.
+      tick++;
+      if (CRM.liveStatus() !== 'SUBSCRIBED' || tick % 4 === 0) await checkRemote();
     }
+    applyDeferredRemote();
     updateSyncBadge();
   }, 15000);
   updateSyncBadge();
 }
+
+// ─── ĐỒNG BỘ TỰ ĐỘNG GIỮA CÁC THIẾT BỊ ──────────────────────────────────────
+// Kênh chính: Supabase Realtime (CRM.startLive) — có thay đổi là nhận ngay.
+// Lưới an toàn: checkRemote() khi mở lại app / quay lại tab / có mạng / định kỳ:
+// đẩy thay đổi chờ → hỏi nhẹ server "có gì khác không" → khác mới kéo toàn bộ.
+let remoteChecking = null, remoteCheckAt = 0;
+function checkRemote() {
+  if (!currentUser || manualSyncing || !CRM.isOnline()) return Promise.resolve();
+  if (remoteChecking) return remoteChecking;
+  const uid = currentUser.id;
+  remoteChecking = (async () => {
+    try {
+      await CRM.flushQueue();
+      if (uid !== currentUser?.id || !(await CRM.probe())) return;
+      const r = await CRM.pull();
+      if (uid === currentUser?.id && r && r.ok && r.changed) await onRemoteData();
+    } catch (e) { console.warn('Kiểm tra đồng bộ lỗi:', e.message || e); }
+    finally { remoteChecking = null; remoteCheckAt = Date.now(); updateSyncBadge(); }
+  })();
+  return remoteChecking;
+}
+// Quay lại app / tab (điện thoại mở lại, Mac chuyển cửa sổ) → kiểm tra ngay (chống gọi dồn 3s).
+function checkRemoteSoon() {
+  if (document.hidden || Date.now() - remoteCheckAt < 3000) return;
+  checkRemote();
+}
+document.addEventListener('visibilitychange', checkRemoteSoon);
+window.addEventListener('focus', checkRemoteSoon);
+window.addEventListener('crm:resume', checkRemoteSoon); // vỏ Android: app vừa mở lại
+window.addEventListener('online', () => checkRemote());
+
+// Dữ liệu local vừa đổi do thiết bị khác → vẽ lại danh sách/tổng quan ngay. Màn chi tiết
+// khách: chỉ vẽ lại khi người dùng KHÔNG đang gõ / mở hộp thoại (tránh mất chữ đang nhập);
+// nếu đang bận thì hoãn tới khi rảnh (rời ô nhập, đóng hộp thoại, hoặc nhịp 15s).
+let remoteDetailStale = false;
+async function onRemoteData() {
+  if (!currentUser) return;
+  await refreshList();
+  remoteDetailStale = true;
+  applyDeferredRemote();
+}
+function userIsEditing() {
+  if (editingHistoryAt || addingCareNote) return true;
+  if (document.querySelector('dialog[open]')) return true;
+  const el = document.activeElement;
+  return !!(el && el.id !== 'search-input' && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)));
+}
+function applyDeferredRemote() {
+  if (!remoteDetailStale) return;
+  if (!detailId || $('#detail-screen').hidden) { remoteDetailStale = false; return; }
+  if (userIsEditing()) return;
+  remoteDetailStale = false;
+  const c = allCustomers.find((x) => x.id === detailId);
+  if (c && isQualified(c)) openDetail(detailId);
+  else closeDetailToList(); // khách vừa bị xoá / giao đi / trả về lớp Lead ở thiết bị khác
+}
+document.addEventListener('focusout', () => setTimeout(applyDeferredRemote, 0));
+document.addEventListener('close', () => setTimeout(applyDeferredRemote, 0), true); // <dialog> đóng
 
 function showAuthScreen() {
   $('#auth-screen').hidden = false;

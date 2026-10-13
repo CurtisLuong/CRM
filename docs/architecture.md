@@ -23,6 +23,7 @@ Không build step là nguyên tắc của frontend; không có nghĩa mọi thay
 ```text
 Đọc: UI → IndexedDB local → hiển thị
 Ghi: UI → ghi IndexedDB + queue → Supabase khi có mạng
+Nhận: Supabase Realtime báo khách X đổi → tải 1 khách → IndexedDB → vẽ lại
 Xung đột: last-write-wins theo updated_at
 ```
 
@@ -31,6 +32,8 @@ Giữ cơ chế local-first hiện có. File nguồn chấp nhận last-write-wi
 Luồng cụ thể, retry và việc kéo dữ liệu từ server phải được đối chiếu với `js/db.js`; tài liệu nguồn không mô tả đầy đủ các chi tiết đó.
 
 Cache khách và queue được tách theo tài khoản: IndexedDB `crm_khach_hang__<userId>`. Lần đầu dùng bản mới, nhập cache cũ một lần: chỉ record có `owner_id` khớp; queue có owner rõ ràng, hoặc thuộc tài khoản ghi nhớ và không trái với owner của record. Cache gốc được giữ để phục hồi; không tự gán thao tác mơ hồ cho tài khoản khác. Admin kéo lại dữ liệu được RLS cho phép, không giới hạn server vào owner của chính admin.
+
+Đồng bộ giữa thiết bị (2026-10-13): `CRM.startLive()` nghe Realtime `postgres_changes` trên `customers` (cần `SQL/add_realtime_customers.sql`); mỗi tín hiệu tải lại đúng khách đó, bỏ qua nếu khách còn thao tác chờ đẩy trong queue. Lưới an toàn `checkRemote()` (`js/app.js`): khi quay lại app/tab, có mạng, và định kỳ (15s khi kênh rớt, 60s khi kênh chạy) gọi `CRM.probe()` so số khách + `updated_at` mới nhất; lệch mới `pull()` toàn bộ. Màn chi tiết khách chỉ vẽ lại khi người dùng không đang nhập/mở hộp thoại. Giới hạn: sửa note lịch sử chăm sóc (không đổi `updated_at`) lúc kênh rớt chỉ được thấy khi có thay đổi khác hoặc bấm đồng bộ tay.
 
 `js/paged-fetch.js` kéo theo khóa `id` có thứ tự và đếm chính xác, tiếp tục qua giới hạn dòng API. Chỉ thay cache khách bằng transaction sau khi toàn bộ trang thành công, queue rỗng và local không đổi trong lúc kéo. Đây không phải snapshot transaction trên server: các chỉnh sửa server đồng thời có thể cần lần đồng bộ tiếp theo.
 

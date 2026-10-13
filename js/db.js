@@ -27,6 +27,28 @@ let _currentUserId = null;
 let _lastAssignError = null; // lỗi giao khách gần nhất (xem flushQueue)
 let _lastSyncError = null; // lỗi ĐẨY LÊN gần nhất (để hiển thị nếu hàng đợi kẹt)
 let _lastPullError = null; // lỗi KÉO XUỐNG gần nhất (mạng lỗi → dữ liệu đang hiển thị có thể CŨ)
+let _liveChannel = null, _liveStatus = 'off'; // kênh Realtime (đồng bộ tức thời giữa các thiết bị)
+
+// So sánh 2 bản ghi khách: coi là GIỐNG nếu chỉ khác cách viết giờ ("…Z" local vs "…+00:00"
+// server) — tránh vẽ lại thừa mỗi khi chính thiết bị này vừa lưu và nhận lại "tiếng vọng".
+const TS_RE = /^\d{4}-\d\d-\d\dT/;
+function sameValue(a, b) {
+  if (a === b) return true;
+  if (typeof a === 'string' && typeof b === 'string' && TS_RE.test(a) && TS_RE.test(b)) return Date.parse(a) === Date.parse(b);
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+function sameRecord(a, b) {
+  if (!a || !b) return a === b;
+  for (const k of new Set([...Object.keys(a), ...Object.keys(b)])) if (!sameValue(a[k] ?? null, b[k] ?? null)) return false;
+  return true;
+}
+function localGet(id) {
+  return tx(STORE_CUSTOMERS, 'readonly').then((store) => new Promise((resolve, reject) => {
+    const req = store.get(id);
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => reject(req.error);
+  }));
+}
 
 function openNamedDB(name) {
   return new Promise((resolve, reject) => {
@@ -192,6 +214,7 @@ const CRM = {
   },
 
   suspend() {
+    this.stopLive();
     _scopeEpoch++; if (_db) _db.close();
     _db = null; _dbName = null; _currentUserId = null; _supabase = null;
     _lastSyncError = null; _lastPullError = null; _flushFlight = null;
@@ -222,9 +245,14 @@ const CRM = {
       const data = await CRMFetch.all(_supabase, 'customers', '*', () => epoch === _scopeEpoch);
       if (epoch !== _scopeEpoch) return { ok: false, skipped: true };
       if (revision !== _localRevision || (await queueGetAll()).length) return { ok: false, skipped: true };
+      // changed = bản server khác bản đang hiển thị → UI mới cần vẽ lại (đồng bộ tự động).
+      const before = await localGetAll();
+      const byId = new Map(before.map((r) => [r.id, r]));
+      const changed = before.length !== data.length || data.some((r) => !sameRecord(r, byId.get(r.id)));
+      if (revision !== _localRevision) return { ok: false, skipped: true };
       await localReplaceAll(data, epoch, revision);
       _lastPullError = null; // kéo thành công → xoá cờ lỗi cũ
-      return { ok: true };
+      return { ok: true, changed };
     } catch (e) {
       if (epoch !== _scopeEpoch) return { ok: false, skipped: true };
       // Không kéo được bản mới (mạng lỗi dù navigator.onLine=true, hoặc lỗi server).
@@ -834,6 +862,94 @@ const CRM = {
     const { error } = await _supabase.rpc('team_set_my_name', { new_name: name });
     if (error) throw error;
   },
+  // ─── ĐỒNG BỘ TỨC THỜI GIỮA CÁC THIẾT BỊ (kiểu Google Keep) ─────────────────────────
+  // Server ĐẨY tín hiệu "khách X vừa đổi" qua Supabase Realtime (WebSocket, cần
+  // SQL/add_realtime_customers.sql). Nhận tín hiệu → tải ĐÚNG 1 khách đó (nhẹ) → ghi
+  // IndexedDB → báo UI vẽ lại. Không kéo cả bảng mỗi lần sửa.
+  // Lưới an toàn khi socket rớt (điện thoại ngủ, đổi mạng): app gọi probe() lúc mở lại /
+  // định kỳ — so "số khách + giờ sửa mới nhất" với local, lệch mới kéo toàn bộ (pull).
+
+  /** Áp 1 khách từ server vào local. Bỏ qua nếu khách đó còn thay đổi CHỜ ĐẨY (local mới hơn). */
+  async applyRemote(id, deleted = false) {
+    if (!_currentUserId || !_supabase || !id) return false;
+    const epoch = _scopeEpoch;
+    if ((await queueGetAll()).some((op) => op.recordId === id)) return false;
+    let row = null;
+    if (!deleted) {
+      const { data, error } = await _supabase.from('customers').select('*').eq('id', id).maybeSingle();
+      if (error) throw error;
+      row = data; // null = đã xoá hoặc không còn quyền xem (giao cho người khác)
+    }
+    if (epoch !== _scopeEpoch || (await queueGetAll()).some((op) => op.recordId === id)) return false;
+    const local = await localGet(id);
+    if (!row) { if (!local) return false; await localDelete(id); return true; }
+    if (sameRecord(local, row)) return false;
+    await localPut(row);
+    return true;
+  },
+
+  /** Kiểm tra nhanh (vài trăm byte): server có khác local không? true = nên pull(). */
+  async probe() {
+    if (!this.isOnline() || !_supabase || !_currentUserId) return false;
+    const epoch = _scopeEpoch;
+    const { data, error, count } = await _supabase.from('customers')
+      .select('updated_at', { count: 'exact' })
+      .order('updated_at', { ascending: false, nullsFirst: false }).limit(1);
+    if (error) throw error;
+    if (epoch !== _scopeEpoch) return false;
+    const local = await localGetAll();
+    let localMax = 0;
+    for (const r of local) { const t = Date.parse(r.updated_at || '') || 0; if (t > localMax) localMax = t; }
+    const serverMax = Date.parse((data && data[0] && data[0].updated_at) || '') || 0;
+    return count !== local.length || serverMax !== localMax;
+  },
+
+  /**
+   * Mở kênh Realtime. onChange(): local vừa nhận thay đổi từ thiết bị khác → vẽ lại.
+   * onResync(): kênh vừa (kết nối lại) → có thể đã lỡ tín hiệu → app tự kiểm tra lại.
+   */
+  startLive({ onChange, onResync } = {}) {
+    this.stopLive();
+    if (!_supabase || !_currentUserId || typeof _supabase.channel !== 'function') return;
+    const epoch = _scopeEpoch, client = _supabase;
+    const pending = new Map(); let timer = null, joinedOnce = false;
+    const drain = async () => {
+      timer = null;
+      const batch = [...pending]; pending.clear();
+      let changed = false;
+      for (const [id, deleted] of batch) {
+        if (epoch !== _scopeEpoch) return;
+        try { if (await this.applyRemote(id, deleted)) changed = true; }
+        catch (e) { console.warn('Realtime: tải khách lỗi', id, e.message); if (onResync) onResync(); return; }
+      }
+      if (changed && epoch === _scopeEpoch && onChange) onChange();
+    };
+    const channel = client.channel('crm-customers-' + _currentUserId)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'customers' }, (payload) => {
+        if (epoch !== _scopeEpoch) return;
+        const deleted = payload.eventType === 'DELETE';
+        const id = (deleted ? payload.old : payload.new)?.id;
+        if (!id) return;
+        pending.set(id, deleted);
+        clearTimeout(timer); timer = setTimeout(drain, 300); // gom các tín hiệu sát nhau
+      })
+      .subscribe((status) => {
+        if (epoch !== _scopeEpoch) return;
+        _liveStatus = status;
+        // Kết nối lại sau khi rớt → có thể đã lỡ thay đổi → nhờ app kiểm tra lại toàn bộ.
+        if (status === 'SUBSCRIBED') { if (joinedOnce && onResync) onResync(); joinedOnce = true; }
+      });
+    _liveChannel = channel;
+  },
+
+  stopLive() {
+    if (_liveChannel && _supabase) { try { _supabase.removeChannel(_liveChannel); } catch {} }
+    _liveChannel = null; _liveStatus = 'off';
+  },
+
+  /** 'SUBSCRIBED' = đang nhận thay đổi tức thời; khác = đang dùng kiểm tra định kỳ. */
+  liveStatus() { return _liveStatus; },
+
   userId() { return _currentUserId; },
   lastPullError() { return _lastPullError; },
 
@@ -849,4 +965,5 @@ const CRM = {
 
 window.CRM = CRM;
 
-window.addEventListener('online', () => { if (_currentUserId) CRM.flushQueue().then(() => CRM.pull()).catch((e) => console.warn('Đồng bộ khi có mạng:', e.message)); });
+// Có mạng lại → đẩy ngay thay đổi đang chờ. Việc KÉO bản mới + vẽ lại do app.js lo (checkRemote).
+window.addEventListener('online', () => { if (_currentUserId) CRM.flushQueue().catch((e) => console.warn('Đồng bộ khi có mạng:', e.message)); });
