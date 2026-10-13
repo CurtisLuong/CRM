@@ -5,6 +5,8 @@
 //                 app tự điền vào form "Thêm khách" (KHÔNG lưu thẳng — user rà tay).
 //   /fb/*       — Facebook Lead Ads → ghi thẳng khách mới vào Supabase (xem fb-leads.js):
 //                 GET/POST /fb/webhook · POST /fb/manual (Make/Zapier) · POST /fb/poll (quét ngay)
+//   POST /ai    — trợ lý AI trang hồ sơ (Workers AI, Qwen3): tóm tắt trước khi gọi, soạn tin Zalo,
+//                 tách ghi chú → đề xuất cập nhật + việc (xem ai-assist.js). Cần binding [ai] trong wrangler.toml.
 //   cron 5 phút — quét lead Facebook mới (lưới an toàn cho webhook) — [triggers] trong wrangler.toml
 //
 // ─────────────────────────────────────────────────────────────────────────────
@@ -127,6 +129,7 @@ CÁC FIELD (đúng thuộc tính CRM):
   • Không thấy mốc thời gian tin nhắn nào → tất cả 4 field null.`;
 
 import { handleFb, pollLeads } from './fb-leads.js';
+import { handleAi } from './ai-assist.js';
 
 export default {
   async fetch(request, env, ctx) {
@@ -144,6 +147,10 @@ export default {
       // `cf-placement` do Cloudflare tự thêm (vd remote-IAD) — để chẩn đoán lỗi chặn vùng của Gemini.
       res.headers.set('X-Worker-Colo', (request.cf && request.cf.colo) || '');
       return withCors(res, origin);
+    }
+    if (request.method === 'POST' && url.pathname === '/ai') {
+      const denied = await requireUser(request, env); // chặn người lạ dùng quota Workers AI
+      return withCors(denied || await handleAi(request, env, json), origin);
     }
     return withCors(json({ error: 'Not found' }, 404), origin);
   },
@@ -189,14 +196,20 @@ async function callGeminiOnce(endpoint, payload, timeoutMs) {
   }
 }
 
-async function handleOcr(request, env) {
-  // 1) Xác thực: token Supabase phải hợp lệ (chặn người lạ đốt quota Gemini).
+// Xác thực người gọi bằng access_token Supabase. Hợp lệ → null; không → Response 401.
+async function requireUser(request, env) {
   const token = (request.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
   if (!token) return json({ error: 'Thiếu token đăng nhập' }, 401);
   const who = await fetch(`${env.SUPABASE_URL}/auth/v1/user`, {
     headers: { Authorization: `Bearer ${token}`, apikey: env.SUPABASE_ANON_KEY },
   });
-  if (!who.ok) return json({ error: 'Phiên đăng nhập không hợp lệ' }, 401);
+  return who.ok ? null : json({ error: 'Phiên đăng nhập không hợp lệ' }, 401);
+}
+
+async function handleOcr(request, env) {
+  // 1) Xác thực: token Supabase phải hợp lệ (chặn người lạ đốt quota Gemini).
+  const denied = await requireUser(request, env);
+  if (denied) return denied;
 
   // 2) Đọc ảnh từ body { image: <base64 không kèm data:>, mime }
   let body;

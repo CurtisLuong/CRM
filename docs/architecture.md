@@ -49,6 +49,7 @@ Catalog có cache offline theo tài khoản trong `js/catalog.js` (`crm_catalog_
 | `js/search.js`, `js/search-ui.js` | Matching, highlight, phân nhóm loại căn và phím tắt tìm kiếm |
 | `js/property-search.js`, `js/catalog-search-ui.js` | Tìm giỏ hàng và ghép khách ↔ căn có giải thích |
 | `js/app.js` | Đăng nhập, CRUD, filter/sort/search, dashboard |
+| `js/ai.js` | Trợ lý AI hồ sơ khách (gọi Worker `/ai`); xem mục Trợ lý AI |
 | `js/catalog.js` | Dự án → Tòa → Căn; dữ liệu cho form khách/bảng tính vay; cache offline |
 | `js/catalog-ui.js` | Giỏ hàng qua menu avatar, sửa trực tiếp, nhập Excel, file mẫu |
 | `js/loan/` | Engine → store → PDF → UI; `loan-crm.js` tích hợp CRM |
@@ -99,6 +100,16 @@ Quyết định D-002. Dữ liệu ở `customers.call_attempts` (không bảng 
 - Web (mọi nền tảng): nút "Ghi cuộc gọi"; bấm SĐT trong CRM rồi quay lại app → tự mở hộp kèm thời gian rời app (ước lượng).
 - Android (vỏ Capacitor, `android-app/`): vỏ mở `https://crm-cop.pages.dev` + plugin native `CallLog` (`CallLogPlugin.java`). `js/calls.js` tự nhận `window.Capacitor` → `CRMCallSource`; mở app / `crm:resume` (MainActivity.onResume) → `CRMCalls.sync()` đọc nhật ký máy, chỉ giữ cuộc tới SĐT khách, chống trùng theo `device_id`. Web không phụ thuộc vỏ.
 - Khách Tiềm năng: lưu cuộc gọi đồng thời ghi 1 mốc vào `care_stage_history`.
+
+## Trợ lý AI (hồ sơ khách)
+
+Thêm 2026-10-13. Worker `intake-worker` route `POST /ai` (`worker/ai-assist.js`) gọi Cloudflare Workers AI (binding `AI`, model `@cf/qwen/qwen3-30b-a3b-fp8` — đổi model ở hằng `AI_MODEL`). Xác thực bằng access_token Supabase như `/ocr`. Client `js/ai.js`:
+
+- **Tóm tắt trước khi gọi** + **Soạn tin Zalo**: thẻ "Trợ lý AI" cuối tab Tổng quan. Kết quả nhớ trong phiên theo `id` + `updated_at`, không lưu DB.
+- **Ghi chú → đề xuất**: nút "Lưu + AI" ở ô thêm ghi chú. Ghi chú lưu trước như thường; AI trả đề xuất (field khách, việc, lịch gọi) → hộp `#ai-review-modal` để sale tick chọn → ghi qua `CRM.update` / `CRM.addTask`. **AI không bao giờ tự ghi dữ liệu.**
+- Ngữ cảnh gửi đi = `buildAnalysisJSON(c)` (cùng nguồn với "Copy prompt phân tích AI") bỏ SĐT + tử vi, thêm ghi chú có giờ, cuộc gọi gần đây, lịch hẹn, việc đang mở. Worker không đọc DB.
+- Ngày tương đối ("thứ Sáu", "mai") model trả dạng mã (`t6`, `mai`…), Worker quy ra ngày bằng code (`resolveDay`). Lịch gọi map vào khung `FOLLOWUP_CONFIG.callSlots` (D-005). Giá trị chọn-từ-danh-sách được lọc lại theo `APT_TYPES`, `OCCUPATIONS`, danh sách dự án ở client.
+- Cần mạng; offline → báo lỗi, không xếp hàng đợi.
 
 ## Bảng profiles và phân quyền
 

@@ -3130,6 +3130,7 @@ function openDetail(id) {
   if (id !== detailId) { doneOpen = false; setDetailTab('overview'); } // khách khác → về tab Tổng quan, thu gọn "Đã xong"
   detailId = id;
   applyTeamDetail(c); // chỉ xem / nút Giao khách (js/team.js)
+  if (window.CRMAI) CRMAI.onOpenDetail(c); // thẻ Trợ lý AI (js/ai.js)
   editingHistoryAt = null; // mở khách mới → thoát chế độ sửa note cũ
   addingCareNote = false;  // thoát chế độ thêm ghi chú
 

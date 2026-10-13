@@ -1580,10 +1580,10 @@ input[name="apt_type_other"] { margin-top: 8px; }
 .done-undo:hover { color: var(--ink); border-color: #B9B2A2; }
 
 /* Dialog đặt lịch gọi + xác nhận gọi */
-dialog#schedule-modal, dialog#call-action-modal {
+dialog#schedule-modal, dialog#call-action-modal, dialog#ai-review-modal {
   border: none; border-radius: var(--radius); padding: 0; width: min(430px, 92vw);
 }
-dialog#schedule-modal::backdrop, dialog#call-action-modal::backdrop { background: rgba(20, 30, 30, 0.5); }
+dialog#schedule-modal::backdrop, dialog#call-action-modal::backdrop, dialog#ai-review-modal::backdrop { background: rgba(20, 30, 30, 0.5); }
 
 /* ===== Modal CHỌN ẢNH (dùng chung OCR + avatar) ===== */
 dialog#img-picker {
@@ -2785,3 +2785,29 @@ body:has(#detail-screen.is-readonly:not([hidden])) #avatar-remove-btn,
 .apps-row:hover { background: #F7F4EE; color: var(--ink); }
 .apps-row-ic { display: inline-flex; width: 18px; height: 18px; color: #8a8a80; }
 .apps-row-ic svg { width: 100%; height: 100%; }
+
+/* ── TRỢ LÝ AI (js/ai.js) — thẻ ở tab Tổng quan + hộp rà soát đề xuất từ ghi chú ── */
+.ai-card .btn-small.is-on { border-color: var(--teal-light); background: var(--paper); }
+.ai-out { margin-top: 12px; padding: 12px 14px; border-radius: 12px; background: var(--paper); border: 1px solid #EFEAE0; font-size: 14px; line-height: 1.55; color: var(--ink); }
+.ai-summary { margin: 0; }
+.ai-sub { margin: 10px 0 4px; font-size: 12.5px; font-weight: 600; color: #6b6b60; }
+.ai-list { margin: 0; padding-left: 18px; }
+.ai-list li + li { margin-top: 3px; }
+.ai-note { margin-top: 8px; font-size: 13px; color: var(--teal-light); }
+.ai-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 10px; }
+.ai-foot { margin-right: auto; font-size: 12px; color: #9a9a8e; }
+.ai-stale { font-size: 12px; color: var(--seal); }
+.ai-loading { display: flex; align-items: center; gap: 10px; color: #6b6b60; }
+.ai-spin { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--line); border-top-color: var(--teal-light); animation: ai-spin .8s linear infinite; }
+@keyframes ai-spin { to { transform: rotate(360deg); } }
+.ai-error { color: var(--seal); }
+.ai-zalo-text { min-height: 110px; font: inherit; font-size: 14px; background: #fff; }
+.ai-goal { display: block; width: 100%; margin-top: 8px; font: inherit; font-size: 13px; padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+.ai-review-list { display: flex; flex-direction: column; gap: 8px; }
+.ai-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); cursor: pointer; font-size: 14px; line-height: 1.45; }
+.ai-item input { margin-top: 3px; flex: none; }
+.ai-item-body { flex: 1; min-width: 0; }
+.ai-item-body .task-kind-ic { display: inline-flex; vertical-align: -3px; margin-right: 6px; }
+.ai-item-body .task-kind-ic svg { width: 16px; height: 16px; }
+.ai-item-body s { color: #9a9a8e; }
+.ai-when { color: #6b6b60; }

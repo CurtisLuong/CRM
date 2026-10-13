@@ -627,6 +627,7 @@
           <div id="detail-note-add-form" class="cs-note-edit" hidden>
             <input id="detail-note-add-input" class="cs-note-input" type="text" placeholder="Nhập ghi chú của bạn..." />
             <button id="detail-note-add-save" class="btn-small" type="button">Lưu</button>
+            <button id="detail-note-add-ai" class="btn-small" type="button" title="Lưu ghi chú, AI đề xuất cập nhật thông tin + việc cần làm để bạn duyệt" hidden><span class="btn-ic" data-icon="ai"></span>Lưu + AI</button>
             <button id="detail-note-add-cancel" class="btn-small" type="button">Huỷ</button>
           </div>
         </div>
@@ -649,6 +650,20 @@
         <button id="detail-loan-btn" class="btn-small" type="button">💰 Tính khoản vay</button>
       </div>
       <div id="detail-loan-panel" hidden></div>
+    </section>
+
+    <!-- TRỢ LÝ AI (js/ai.js → Worker /ai, Workers AI Qwen3): tóm tắt trước khi gọi + soạn tin Zalo.
+         Chỉ hiện khi có WORKER_URL. Kết quả là GỢI Ý, không tự ghi vào dữ liệu khách. -->
+    <section class="detail-section dcard ai-card" id="detail-ai" data-tabs="overview" hidden>
+      <div class="dcard-head">
+        <span class="dcard-ic" aria-hidden="true" data-icon="ai"></span>
+        <h3>Trợ lý AI</h3>
+      </div>
+      <div class="dcard-actions">
+        <button type="button" id="ai-brief-btn" class="btn-small"><span class="btn-ic" data-icon="call"></span>Tóm tắt trước khi gọi</button>
+        <button type="button" id="ai-zalo-btn" class="btn-small"><span class="btn-ic" data-icon="message"></span>Soạn tin Zalo</button>
+      </div>
+      <div id="ai-out" class="ai-out" hidden></div>
     </section>
 
     <!-- TƯƠNG TÁC: nhật ký cuộc gọi — cùng dữ liệu call_attempts với tab Khách mới. -->
@@ -1060,6 +1075,22 @@
 </dialog>
 
 <!-- ============ THÊM / SỬA VIỆC TIẾP THEO (cùng kiểu Hẹn gọi) ============ -->
+<!-- AI ĐỀ XUẤT TỪ GHI CHÚ (js/ai.js): tick chọn đề xuất rồi Áp dụng — AI không tự ghi. -->
+<dialog id="ai-review-modal">
+  <div class="sched">
+    <h2>AI đề xuất từ ghi chú</h2>
+    <p id="ai-review-sub" class="task-modal-sub"></p>
+    <div class="sched-label">Bỏ tick mục không đúng</div>
+    <div id="ai-review-list" class="ai-review-list"></div>
+    <div id="ai-review-error" class="sched-error"></div>
+    <div class="form-actions">
+      <span class="form-actions-spacer"></span>
+      <button type="button" id="ai-review-cancel" class="btn-ghost">Bỏ qua</button>
+      <button type="button" id="ai-review-apply" class="btn-primary">Áp dụng</button>
+    </div>
+  </div>
+</dialog>
+
 <dialog id="task-modal">
   <div class="sched">
     <h2 id="task-modal-title">Thêm việc</h2>
@@ -1375,6 +1406,7 @@
 <script src="/js/app.js"></script>
 <script src="/js/team.js"></script>
 <script src="/js/calls.js"></script>
+<script src="/js/ai.js"></script>
 <script src="/js/search-ui.js"></script>
 <script src="/js/catalog-ui.js"></script>
 <!-- Module tính khoản vay — thứ tự BẮT BUỘC: engine → store → pdf → ui → crm -->

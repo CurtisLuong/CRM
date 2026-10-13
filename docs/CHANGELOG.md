@@ -6,6 +6,17 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-13 — Trợ lý AI ở hồ sơ khách (Cloudflare Workers AI, Qwen3 30B)
+
+- Thẻ "Trợ lý AI" (cuối tab Tổng quan): **Tóm tắt trước khi gọi** (khách cần gì, đang lo gì, lần trước hẹn gì + 2–3 câu
+  nên hỏi) và **Soạn tin Zalo** (tin theo ngữ cảnh ghi chú, sửa được, Copy & mở Zalo).
+- Nút **Lưu + AI** ở ô thêm ghi chú: lưu ghi chú rồi AI đề xuất cập nhật thông tin / việc cần làm / lịch gọi → hộp
+  rà soát, sale tick chọn mới ghi. AI không tự ghi dữ liệu.
+- Worker thêm route `POST /ai` + binding `[ai]`; tách hàm xác thực dùng chung `requireUser` cho `/ocr` và `/ai`.
+  **Cần `wrangler deploy` lại Worker** trước khi dùng. Không đổi schema.
+- File: `worker/ai-assist.js` (mới), `worker/intake-worker.js`, `worker/wrangler.toml`, `worker/README.md`,
+  `js/ai.js` (mới), `js/app.js`, `js/icons.js`, `index.html`, `css/style.css`, `sw.js`, `docs/architecture.md`, `docs/design.md`
+
 ## 2026-10-09 — Sắp xếp lại tab Tổng quan trong hồ sơ khách
 
 - Thứ tự mới: chỉ số Tiến độ/Quan tâm/Liên lạc (luôn trên cùng, quét nhanh) → Việc tiếp theo (thẻ nội dung đầu tiên)

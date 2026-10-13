@@ -8,6 +8,11 @@ name = "intake-worker"
 main = "intake-worker.js"
 compatibility_date = "2025-01-01"
 
+# WORKERS AI (route POST /ai — ai-assist.js): binding tên AI, không cần API key, tính vào gói
+# Workers AI của tài khoản Cloudflare (miễn phí 10.000 neurons/ngày).
+[ai]
+binding = "AI"
+
 # GHIM VỊ TRÍ CHẠY Worker (Placement Hints). Mặc định Worker chạy ở trạm Cloudflare GẦN NGƯỜI DÙNG
 # nhất — một số mạng (vd FPT) đi qua trạm Hồng Kông, nơi Gemini API KHÔNG hỗ trợ → lỗi
 # "User location is not supported for the API use". Ghim về Mỹ (gần máy chủ Google) để mọi mạng
