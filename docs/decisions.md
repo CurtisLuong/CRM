@@ -84,6 +84,7 @@ Ví dụ và mẫu trong bộ tài liệu không phải sự chấp thuận cho 
 - Chấp thuận: người dùng chọn "Ngoại lệ cục bộ" và đề xuất desktop/iOS web, Android Capacitor (chat 2026-10-07).
 - Tài liệu đã cập nhật: `CLAUDE.md`, `AGENTS.md`, `docs/architecture.md`, `docs/FEATURE_IDEAS.md`, `docs/CHANGELOG.md`
 - Trạng thái: Đang áp dụng (giai đoạn 1 web + vỏ Android đã build 2026-10-07; chưa thử trên máy thật)
+- Bổ sung 2026-10-13 (chủ dự án yêu cầu): vỏ thêm GỌI THẲNG — `CallLogPlugin.dial` + quyền `CALL_PHONE` (APK 1.4). Vẫn trong phạm vi ngoại lệ (chỉ `android-app/` có build); web chỉ gọi plugin khi có `window.Capacitor`, thiếu plugin → dùng link `tel:` như cũ.
 
 ### D-003 — Nhóm sale + giao khách cho đồng nghiệp
 

@@ -1,7 +1,9 @@
 package vn.sokhach.crm;
 
 import android.Manifest;
+import android.content.Intent;
 import android.database.Cursor;
+import android.net.Uri;
 import android.provider.CallLog;
 
 import com.getcapacitor.JSArray;
@@ -22,10 +24,17 @@ import com.getcapacitor.annotation.PermissionCallback;
  * Chỉ trả dữ liệu về trang web; việc lọc "chỉ giữ SĐT có trong danh sách khách" làm ở
  * js/calls.js (ingest) — app không gửi cuộc gọi cá nhân đi đâu.
  * Lần đầu sẽ xin quyền READ_CALL_LOG; từ chối → trả lỗi "permission_denied".
+ *
+ * GỌI THẲNG (2026-10-13): Capacitor.nativePromise('CallLog', 'dial', { number }) → bắt đầu cuộc gọi luôn
+ * (ACTION_CALL, quyền CALL_PHONE — hỏi lần đầu), khỏi bước bấm nút gọi trong trình quay số. Từ chối quyền
+ * → mở trình quay số đã điền sẵn số như trước (ACTION_DIAL). Trả { direct: true|false }.
  */
 @CapacitorPlugin(
     name = "CallLog",
-    permissions = { @Permission(strings = { Manifest.permission.READ_CALL_LOG }, alias = "callLog") }
+    permissions = {
+        @Permission(strings = { Manifest.permission.READ_CALL_LOG }, alias = "callLog"),
+        @Permission(strings = { Manifest.permission.CALL_PHONE }, alias = "phone")
+    }
 )
 public class CallLogPlugin extends Plugin {
 
@@ -78,6 +87,35 @@ public class CallLogPlugin extends Plugin {
         }
         JSObject ret = new JSObject();
         ret.put("calls", calls);
+        call.resolve(ret);
+    }
+
+    @PluginMethod
+    public void dial(PluginCall call) {
+        if (getPermissionState("phone") != PermissionState.GRANTED) {
+            requestPermissionForAlias("phone", call, "phonePermsCallback");
+            return;
+        }
+        startCall(call, true);
+    }
+
+    @PermissionCallback
+    private void phonePermsCallback(PluginCall call) {
+        startCall(call, getPermissionState("phone") == PermissionState.GRANTED);
+    }
+
+    private void startCall(PluginCall call, boolean direct) {
+        String number = call.getString("number", "");
+        if (number == null || !number.matches("\\+?[0-9]{3,15}")) { call.reject("bad_number"); return; }
+        Intent intent = new Intent(direct ? Intent.ACTION_CALL : Intent.ACTION_DIAL, Uri.parse("tel:" + number));
+        try {
+            getActivity().startActivity(intent);
+        } catch (Exception e) { // SecurityException (quyền bị thu hồi giữa chừng) / không có app gọi
+            call.reject("call_failed: " + e.getMessage());
+            return;
+        }
+        JSObject ret = new JSObject();
+        ret.put("direct", direct);
         call.resolve(ret);
     }
 

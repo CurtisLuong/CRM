@@ -477,9 +477,11 @@ const LEAD_DROP_TOP = ['gia_cao', 'pha_campaign', 'khong_du_dieu_kien', 'khong_l
 function dropReasonLabel(code) { return LEAD_DROP_REASONS[code] || code || ''; }
 // Gợi ý loại "Không liên lạc được": ≥3 lần gọi, chưa lần nào nói chuyện được.
 const LEAD_UNREACHABLE_SUGGEST = (window.FOLLOWUP && FOLLOWUP.config.leadMaxAttempts) || 5; // js/followup.js
-// Trạng thái Khách mới (trong panel Bộ lọc): 'all' Tất cả (mặc định — khách đã loại xếp cuối) ·
-// 'new' Chưa gọi (chưa có cuộc gọi đầu) · 'retry' Cần gọi lại (đã gọi ≥1 lần, chưa loại) · 'dropped' Đã loại.
-let leadFilter = 'all';
+// Trạng thái Khách mới (trong panel Bộ lọc): 'all' Tất cả (khách đã loại gom cuối) · 'open' Trong phễu
+// (MẶC ĐỊNH — mọi khách chưa loại = Chưa gọi + Cần gọi lại) · 'new' Chưa gọi (chưa có cuộc gọi đầu) ·
+// 'retry' Cần gọi lại (đã gọi ≥1 lần, chưa loại) · 'dropped' Đã loại.
+const LEAD_FILTER_DEFAULT = 'open';
+let leadFilter = LEAD_FILTER_DEFAULT;
 let leadSrcFilter = '';      // bộ lọc kênh: '' = tất cả, hoặc mã trong SOURCES
 let leadAptTypeFilter = '';
 let leadDatePreset = 'all';  // bộ lọc thời gian đăng ký: 'all' | 'today' | 'week' | 'month'
@@ -1278,7 +1280,7 @@ function clearAccountView() {
   CRM.suspend(); Catalog.scope(null); if (window.CatalogSearchUI) CatalogSearchUI.reset();
   allCustomers = []; resetTeamState(); custGroup = 'care'; _searchWarmGeneration++; _queryContext = null; resetSearchPages();
   progressFilter = 'active'; qualPreset = 'all'; stageFilter = ''; aptTypeFilter = ''; dateFilter = {preset:'all',from:null,to:null};
-  leadFilter = 'all'; leadSrcFilter = ''; leadDatePreset = 'all'; leadAptTypeFilter = '';
+  leadFilter = LEAD_FILTER_DEFAULT; leadSrcFilter = ''; leadDatePreset = 'all'; leadAptTypeFilter = '';
   $('#filter-min-interest').value = 0; $('#filter-interest-val').textContent = '0';
   $('#search-input').value = '';
   for (const id of ['customer-list', 'lead-list', 'dash-search', 'dashboard-content', 'detail-notes', 'detail-history', 'cat-body']) {
@@ -4814,7 +4816,8 @@ function leadMatchesFilter(c, ctx = searchCtx(), range = presetRange(leadDatePre
   if (isQualified(c)) return false;
   if (leadAptTypeFilter && (CRMSearch.apartmentGroup(c.apt_type) || 'missing') !== leadAptTypeFilter) return false;
   const st = leadStatus(c);
-  if (leadFilter !== 'all' && leadFilter !== LEAD_STATUS_GROUP[st]) return false;
+  if (leadFilter === 'open') { if (st === 'dropped') return false; }
+  else if (leadFilter !== 'all' && leadFilter !== LEAD_STATUS_GROUP[st]) return false;
   if (leadSrcFilter && !sourceListOf(c.source).includes(leadSrcFilter)) return false;
   if (range) {
     const t = Date.parse(c.registered_at || c.created_at || '');
@@ -5140,15 +5143,14 @@ function syncLeadFilterUI() {
     `<button type="button" class="date-preset${code === leadSrcFilter ? ' is-sel' : ''}" data-src="${code}">${escapeHtml(label)}</button>`).join('');
   $$('#lead-date-presets .date-preset').forEach((b) => b.classList.toggle('is-sel', b.dataset.preset === leadDatePreset));
   $$('#lead-status-presets .date-preset').forEach((b) => b.classList.toggle('is-sel', b.dataset.leadStatus === leadFilter));
-  // Trạng thái mặc định "Cần gọi" không tính là đang lọc.
-  const active = leadFilter !== 'all' || !!leadSrcFilter || leadDatePreset !== 'all' || !!leadAptTypeFilter;
+  // Trạng thái mặc định "Trong phễu" không tính là đang lọc.
+  const active = leadFilter !== LEAD_FILTER_DEFAULT || !!leadSrcFilter || leadDatePreset !== 'all' || !!leadAptTypeFilter;
   $('#lead-filter-dot').hidden = !active;
   $('#lead-clear-filter').hidden = !active;
   syncHdrFilter();
 }
-// Trạng thái Khách mới (nằm trong panel Bộ lọc): 'open' Cần gọi (mặc định) | 'dropped' Đã loại | 'all'.
 function setLeadFilter(v) { leadFilter = v; resetSearchPages(); renderLeads(); syncLeadFilterUI(); }
-function resetLeadFilters() { leadFilter = 'all'; leadSrcFilter = ''; leadDatePreset = 'all'; leadAptTypeFilter = ''; resetSearchPages(); renderLeads(); syncLeadFilterUI(); }
+function resetLeadFilters() { leadFilter = LEAD_FILTER_DEFAULT; leadSrcFilter = ''; leadDatePreset = 'all'; leadAptTypeFilter = ''; resetSearchPages(); renderLeads(); syncLeadFilterUI(); }
 function renderLeadSortOptions() {
   $('#lead-sort-options').innerHTML = LEAD_SORT_ATTRS.map((a) => {
     const dir = leadSortDraft[a.key];
@@ -5306,8 +5308,9 @@ function renderDashSearch(boxSel = '#dash-search') {
     showListView(); renderList();
     openDetail(c.id);
   } else {
-    // Lead đã loại bị ẩn ở "Cần gọi" → chuyển dropdown sang "Tất cả".
-    if (leadFilter !== 'all' && leadFilter !== LEAD_STATUS_GROUP[leadStatus(c)]) leadFilter = 'all'; // lọc đang ẩn khách này
+    // Bộ lọc trạng thái đang ẩn khách này (vd lead đã loại ở "Trong phễu") → chuyển sang "Tất cả".
+    const lst = LEAD_STATUS_GROUP[leadStatus(c)];
+    if (leadFilter === 'open' ? lst === 'dropped' : (leadFilter !== 'all' && leadFilter !== lst)) leadFilter = 'all';
     showLeadView();
     openLeadSheet(c.id);
   }

@@ -208,6 +208,21 @@
   $('#calllog-close')?.addEventListener('click', () => { $('#call-log-modal').close(); st = null; });
   $('#calllog-delete')?.addEventListener('click', removePending);
 
+  // ---- Vỏ Android: bấm SĐT → GỌI THẲNG (CallLogPlugin.dial, quyền CALL_PHONE), khỏi bước bấm gọi trong
+  //      trình quay số. APK cũ chưa có hàm dial / lỗi → mở link tel: như trước (trình quay số điền sẵn số).
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest('a[href^="tel:"]'); if (!a) return;
+    const cap = window.Capacitor;
+    if (!cap || typeof cap.isNativePlatform !== 'function' || !cap.isNativePlatform() || typeof cap.nativePromise !== 'function') return;
+    const number = decodeURIComponent(a.getAttribute('href').slice(4)).replace(/[^\d+]/g, '');
+    if (!number) return;
+    e.preventDefault();
+    cap.nativePromise('CallLog', 'dial', { number }).catch((err) => {
+      console.warn('Gọi thẳng không được, mở trình quay số:', err && err.message);
+      window.location.href = 'tel:' + number;
+    });
+  });
+
   // ---- Đường 2: bấm SĐT trong CRM → quay lại app → tự mở hộp (ước lượng thời gian) ----
   // Chỉ mở khi app THỰC SỰ bị rời đi (ẩn/mất focus) trong 15s sau khi bấm, để bấm nhầm
   // (không mở được trình gọi) không bật hộp vô cớ.

@@ -1,6 +1,6 @@
 # Vỏ Android "Sổ Khách" (Capacitor)
 
-Chỉ để **đọc nhật ký cuộc gọi** trên Android (quyết định D-002 trong `docs/decisions.md`).
+Để **đọc nhật ký cuộc gọi** và **gọi thẳng** (từ 1.4) trên Android (quyết định D-002 trong `docs/decisions.md`).
 App mở thẳng `https://crm-cop.pages.dev` — sửa giao diện/web → push GitHub là đủ, KHÔNG cần build lại APK.
 
 ## Khi nào phải build lại APK
@@ -21,7 +21,7 @@ npm install        # lần đầu
 - Cách 2: chép `dist/SoKhach.apk` sang điện thoại, mở file để cài (cho phép cài từ nguồn không rõ).
   Nếu Android báo "Cài đặt bị hạn chế" khi cấp quyền Nhật ký cuộc gọi: Cài đặt › Ứng dụng › Sổ Khách › ⋮ › "Cho phép cài đặt bị hạn chế".
 
-Lần đầu mở app sẽ hỏi quyền **Nhật ký cuộc gọi** → chọn Cho phép.
+Lần đầu mở app sẽ hỏi quyền **Nhật ký cuộc gọi** → chọn Cho phép. Lần đầu bấm gọi (từ 1.4) hỏi quyền **Gọi điện thoại** → Cho phép để bấm là gọi luôn (từ chối thì vẫn mở trình quay số như cũ).
 
 ## Khoá ký (QUAN TRỌNG)
 APK được ký bằng khoá chính thức: `android-app/sokhach-release.jks` + mật khẩu trong `android-app/keystore.properties`.

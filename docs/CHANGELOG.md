@@ -6,6 +6,15 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-13 — Khách mới: bộ lọc "Trong phễu" (mặc định); Android 1.4: bấm gọi là gọi thẳng
+
+- Bộ lọc trạng thái Khách mới: Tất cả · **Trong phễu** (mặc định = chưa loại: Chưa gọi + Cần gọi lại) · Chưa gọi ·
+  Cần gọi lại · Đã loại. "Xoá lọc" quay về Trong phễu.
+- App Android 1.4: bấm SĐT trong CRM → gọi luôn (plugin `CallLog.dial`, quyền CALL_PHONE, hỏi lần đầu). Từ chối
+  quyền / APK cũ → mở trình quay số điền sẵn số như trước. Cần cài APK 1.4.
+- File: `index.html`, `js/app.js`, `js/calls.js`, `sw.js`, `android-app/android/app/src/main/java/vn/sokhach/crm/CallLogPlugin.java`,
+  `android-app/android/app/src/main/AndroidManifest.xml`, `android-app/android/app/build.gradle`, `docs/decisions.md`, `android-app/README.md`
+
 ## 2026-10-13 — Gộp Tốc độ phễu vào ô Tiến độ; thẻ chi tiết chuyển sang tab Lịch sử
 
 - Ô Tiến độ (Tổng quan) có vòng tròn thời gian ở bậc (màu xám/vàng/đỏ, vạch mốc mục tiêu) + badge đếm

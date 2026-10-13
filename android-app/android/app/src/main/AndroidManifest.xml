@@ -45,4 +45,6 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Đọc nhật ký cuộc gọi để tự ghi cuộc gọi tới khách (D-002). Hỏi người dùng lúc chạy. -->
     <uses-permission android:name="android.permission.READ_CALL_LOG" />
+    <!-- Bấm nút gọi trong CRM → gọi THẲNG số khách (CallLogPlugin.dial), khỏi bấm thêm trong trình quay số. -->
+    <uses-permission android:name="android.permission.CALL_PHONE" />
 </manifest>
