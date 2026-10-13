@@ -103,13 +103,14 @@ Quyết định D-002. Dữ liệu ở `customers.call_attempts` (không bảng 
 
 ## Trợ lý AI (hồ sơ khách)
 
-Thêm 2026-10-13. Worker `intake-worker` route `POST /ai` (`worker/ai-assist.js`) gọi Cloudflare Workers AI (binding `AI`, model `@cf/qwen/qwen3-30b-a3b-fp8` — đổi model ở hằng `AI_MODEL`). Xác thực bằng access_token Supabase như `/ocr`. Client `js/ai.js`:
+Thêm 2026-10-13. Worker `intake-worker` route `POST /ai` (`worker/ai-assist.js`) gọi Cloudflare Workers AI (binding `AI`). Model chọn được: `qwen` = `@cf/qwen/qwen3-30b-a3b-fp8` (mặc định), `glm` = `@cf/zai-org/glm-4.7-flash` — danh sách ở `MODELS` (Worker) và `AI_MODELS` (`js/ai.js`), thêm model phải sửa cả hai. Xác thực bằng access_token Supabase như `/ocr`. Client `js/ai.js`:
 
 - **Tóm tắt trước khi gọi** + **Soạn tin Zalo**: thẻ "Trợ lý AI" cuối tab Tổng quan. Kết quả nhớ trong phiên theo `id` + `updated_at`, không lưu DB.
 - **Ghi chú → đề xuất**: nút "Lưu + AI" ở ô thêm ghi chú. Ghi chú lưu trước như thường; AI trả đề xuất (field khách, việc, lịch gọi) → hộp `#ai-review-modal` để sale tick chọn → ghi qua `CRM.update` / `CRM.addTask`. **AI không bao giờ tự ghi dữ liệu.**
 - Ngữ cảnh gửi đi = `buildAnalysisJSON(c)` (cùng nguồn với "Copy prompt phân tích AI") bỏ SĐT + tử vi, thêm ghi chú có giờ, cuộc gọi gần đây, lịch hẹn, việc đang mở. Worker không đọc DB.
 - Ngày tương đối ("thứ Sáu", "mai") model trả dạng mã (`t6`, `mai`…), Worker quy ra ngày bằng code (`resolveDay`). Lịch gọi map vào khung `FOLLOWUP_CONFIG.callSlots` (D-005). Giá trị chọn-từ-danh-sách được lọc lại theo `APT_TYPES`, `OCCUPATIONS`, danh sách dự án ở client.
 - Cần mạng; offline → báo lỗi, không xếp hàng đợi.
+- **Cài đặt** (thẻ AI → ⚙, hoặc bảng Tiện ích): model + phong cách viết. Phong cách = phần system instruction sale sửa được, chỉ áp cho Tóm tắt + Tin Zalo (tách ghi chú giữ prompt cố định). Phần cố định (vai trò, không bịa, trả JSON) nằm ở `SYSTEM_BASE` trong Worker. Lưu `localStorage` `crm_ai_settings` + `user_settings.ai_settings` (`SQL/add_ai_settings.sql`).
 
 ## Bảng profiles và phân quyền
 

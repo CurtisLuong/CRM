@@ -7,10 +7,10 @@ của app — nên nó không phá triết lý "no build step" của phần fron
 Hiện có 1 route: `POST /ocr` — nhận ảnh, gọi Gemini vision, trả JSON field khách.
 
 Route `POST /ai` — **Trợ lý AI** ở hồ sơ khách (tóm tắt trước khi gọi, soạn tin Zalo, tách ghi
-chú → đề xuất việc). Chạy bằng **Cloudflare Workers AI** (model `@cf/qwen/qwen3-30b-a3b-fp8`), KHÔNG
+chú → đề xuất việc). Chạy bằng **Cloudflare Workers AI** (chọn trong app: Qwen3 30B hoặc GLM 4.7 Flash), KHÔNG
 cần API key: binding `[ai]` trong `wrangler.toml` đã khai báo sẵn, chỉ cần `wrangler deploy` lại.
-Gói miễn phí: 10.000 neurons/ngày (~vài trăm lượt AI/ngày). Đổi model: hằng `AI_MODEL` trong
-`ai-assist.js`. Xem dung lượng đã dùng: Cloudflare Dashboard → AI → Workers AI.
+Gói miễn phí: 10.000 neurons/ngày (~vài trăm lượt AI/ngày). Thêm/đổi model: `MODELS` trong
+`ai-assist.js` + `AI_MODELS` trong `js/ai.js`. Xem dung lượng đã dùng: Cloudflare Dashboard → AI → Workers AI.
 
 ## 1. Lấy Gemini API key
 1. Vào https://aistudio.google.com/ → **Get API key** → tạo key.

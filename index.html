@@ -95,6 +95,7 @@
               <button id="tool-loan-btn" class="app-tile" type="button" role="menuitem" style="--tc:#3E6A8A"><span class="app-tile-ic" data-icon="loan"></span><span class="app-tile-name">Tính vay</span></button>
               <button id="catalog-btn" class="app-tile" type="button" role="menuitem" style="--tc:#2B7A8C"><span class="app-tile-ic" data-icon="apartment"></span><span class="app-tile-name">Giỏ hàng</span></button>
               <button id="zalo-greeting-btn" class="app-tile" type="button" role="menuitem" style="--tc:#5160A8"><span class="app-tile-ic" data-icon="message"></span><span class="app-tile-name">Mẫu tin nhắn</span></button>
+              <button id="ai-settings-btn" class="app-tile" type="button" role="menuitem" style="--tc:#7A5A44"><span class="app-tile-ic" data-icon="ai"></span><span class="app-tile-name">Trợ lý AI</span></button>
               <button id="team-btn" class="app-tile" type="button" role="menuitem" style="--tc:#6E5F99" hidden><span class="app-tile-ic" data-icon="team"></span><span class="app-tile-name">Đồng nghiệp</span></button>
             </div>
             <div class="apps-foot">
@@ -658,6 +659,9 @@
       <div class="dcard-head">
         <span class="dcard-ic" aria-hidden="true" data-icon="ai"></span>
         <h3>Trợ lý AI</h3>
+        <!-- Chọn model (Qwen / GLM) — js/ai.js vẽ từ AI_MODELS; ⚙ = Cài đặt (model + phong cách viết). -->
+        <div id="ai-model-switch" class="ai-model-switch" role="group" aria-label="Chọn model AI"></div>
+        <button type="button" id="ai-settings-open" class="dcard-go" aria-label="Cài đặt Trợ lý AI" title="Cài đặt Trợ lý AI"><span data-icon="settings"></span></button>
       </div>
       <div class="dcard-actions">
         <button type="button" id="ai-brief-btn" class="btn-small"><span class="btn-ic" data-icon="call"></span>Tóm tắt trước khi gọi</button>
@@ -1075,6 +1079,24 @@
 </dialog>
 
 <!-- ============ THÊM / SỬA VIỆC TIẾP THEO (cùng kiểu Hẹn gọi) ============ -->
+<!-- CÀI ĐẶT TRỢ LÝ AI (js/ai.js): model + phong cách viết (system instruction cho Tóm tắt / Tin Zalo).
+     Lưu user_settings.ai_settings (SQL/add_ai_settings.sql) + máy; "Khôi phục mặc định" = AI_DEFAULT_STYLE. -->
+<dialog id="ai-settings-modal">
+  <div class="sched">
+    <h2>Cài đặt Trợ lý AI</h2>
+    <div class="sched-label">Model</div>
+    <div class="sched-opts" id="ai-set-models"></div>
+    <div class="sched-label">Phong cách viết <span class="sched-optional">(áp dụng cho Tóm tắt + Soạn tin Zalo)</span></div>
+    <textarea id="ai-set-style" class="sched-reason ai-set-style" rows="10" maxlength="2000"></textarea>
+    <div class="form-actions">
+      <button type="button" id="ai-set-reset" class="btn-ghost" title="Khôi phục phong cách mặc định">Mặc định</button>
+      <span class="form-actions-spacer"></span>
+      <button type="button" id="ai-set-cancel" class="btn-ghost">Huỷ</button>
+      <button type="button" id="ai-set-save" class="btn-primary">Lưu</button>
+    </div>
+  </div>
+</dialog>
+
 <!-- AI ĐỀ XUẤT TỪ GHI CHÚ (js/ai.js): tick chọn đề xuất rồi Áp dụng — AI không tự ghi. -->
 <dialog id="ai-review-modal">
   <div class="sched">

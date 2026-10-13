@@ -24,6 +24,52 @@
   const pad = (n) => String(n).padStart(2, '0');
   const cur = () => allCustomers.find((x) => x.id === detailId);
 
+  // ═══════════════ CÀI ĐẶT: MODEL + PHONG CÁCH VIẾT ═══════════════
+  // ✏️ Model chọn được — khoá phải khớp MODELS trong worker/ai-assist.js (thêm model = thêm ở cả 2 nơi).
+  const AI_MODELS = [
+    { key: 'qwen', label: 'Qwen3', name: 'Qwen3 30B' },
+    { key: 'glm',  label: 'GLM',   name: 'GLM 4.7 Flash' },
+  ];
+  // ✏️ PHONG CÁCH VIẾT MẶC ĐỊNH (system instruction cho Tóm tắt + Soạn tin Zalo). Sale sửa trong app
+  //    (thẻ Trợ lý AI → ⚙ Cài đặt); bản sửa lưu ở user_settings.ai_settings, "Khôi phục mặc định" quay về đây.
+  const AI_DEFAULT_STYLE = [
+    'Giọng: chuyên nghiệp, lịch sự, thân thiện — như một sale có kinh nghiệm nói chuyện với khách quen.',
+    '- Đi thẳng vào việc. Câu ngắn, mỗi câu phải có thông tin hoặc mục đích rõ.',
+    '- KHÔNG rào đón, không khen xã giao, không câu sáo như "Chúc anh/chị một ngày tốt lành", "Mong anh/chị phản hồi sớm", "Rất hân hạnh được hỗ trợ".',
+    '- Không lặp lại điều khách đã biết; không giải thích dài.',
+    '- Xưng "em", gọi khách "anh"/"chị" + tên.',
+    '- Tin Zalo: 2–3 câu, tối đa 1 emoji (có thể không dùng). Kết bằng 1 câu hỏi cụ thể, dễ trả lời.',
+    '- Tóm tắt: viết như ghi chú nhanh cho chính sale đọc, không cần câu hoàn chỉnh trang trọng.',
+  ].join('\n');
+  const LS_AI = 'crm_ai_settings';
+  function readLocal() {
+    try { const v = JSON.parse(localStorage.getItem(LS_AI) || 'null'); return v && typeof v === 'object' ? v : {}; } catch { return {}; }
+  }
+  function settings() {
+    const v = readLocal();
+    return {
+      model: AI_MODELS.some((m) => m.key === v.model) ? v.model : AI_MODELS[0].key,
+      style: typeof v.style === 'string' && v.style.trim() ? v.style : null, // null = mặc định
+    };
+  }
+  const styleText = () => settings().style || AI_DEFAULT_STYLE;
+  const modelOf = (k) => AI_MODELS.find((m) => m.key === k) || AI_MODELS[0];
+  function saveSettings(next) {
+    const v = { ...settings(), ...next };
+    try { localStorage.setItem(LS_AI, JSON.stringify(v)); } catch { /* ignore */ }
+    if (window.CRM && CRM.saveAiSettingsRemote) CRM.saveAiSettingsRemote(v); // đồng bộ máy khác (lỗi → vẫn giữ trên máy)
+    syncModelSwitch();
+  }
+  // Sau đăng nhập (app.js): server có → lấy về máy; server trống mà máy có → đẩy lên.
+  async function sync() {
+    try {
+      const remote = await CRM.getAiSettingsRemote();
+      if (remote === undefined) return;
+      if (remote && typeof remote === 'object') { localStorage.setItem(LS_AI, JSON.stringify(remote)); syncModelSwitch(); }
+      else if (localStorage.getItem(LS_AI)) CRM.saveAiSettingsRemote(readLocal());
+    } catch (e) { console.warn('sync cài đặt AI lỗi:', e); }
+  }
+
   // ── Ngữ cảnh gửi AI: dùng lại JSON của "Copy prompt phân tích AI", bỏ SĐT / tử vi, thêm mốc giờ ghi chú,
   //    cuộc gọi gần đây, lịch hẹn + việc đang mở (để AI biết lần trước đã hẹn gì).
   function contextOf(c) {
@@ -62,7 +108,7 @@
       const res = await fetch(`${workerUrl()}/ai`, {
         method: 'POST', signal: ctrl.signal,
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ task, customer: contextOf(c), extra: extra || {} }),
+        body: JSON.stringify({ task, customer: contextOf(c), extra: { ...(extra || {}), model: settings().model, style: styleText() } }),
       });
       const out = await res.json().catch(() => ({}));
       if (!res.ok || out.error) throw new Error(out.error || `Lỗi ${res.status}`);
@@ -75,7 +121,8 @@
 
   // ═══════════════ THẺ "TRỢ LÝ AI" (tab Tổng quan) ═══════════════
   // Kết quả nhớ theo khách + updated_at: mở lại hồ sơ không gọi lại AI, khách đổi dữ liệu thì làm mới.
-  const cache = new Map(); // `${task}:${id}` → { stamp, data }
+  const cache = new Map(); // `${task}:${model}:${id}` → { stamp, data, goal }
+  const keyOf = (task, c) => `${task}:${settings().model}:${c.id}`;
   let mode = null;         // 'brief' | 'zalo' | null — panel đang mở
   let busy = false;
   const stampOf = (c) => c.updated_at || '';
@@ -85,7 +132,13 @@
     if (!card) return;
     card.hidden = !enabled();
     $('#detail-note-add-ai').hidden = !enabled();
+    syncModelSwitch();
     if (card.dataset.cid !== c.id) { card.dataset.cid = c.id; mode = null; renderOut(); }
+  }
+  function syncModelSwitch() {
+    const box = $('#ai-model-switch'); if (!box) return;
+    const k = settings().model;
+    box.innerHTML = AI_MODELS.map((m) => `<button type="button" class="ai-model-opt${m.key === k ? ' is-sel' : ''}" data-ai-model="${m.key}" aria-pressed="${m.key === k}" title="${escapeHtml(m.name)}">${escapeHtml(m.label)}</button>`).join('');
   }
 
   function setLoading(msg) {
@@ -110,7 +163,8 @@
     const c = cur();
     if (!box) return;
     if (!mode || !c) { box.hidden = true; box.innerHTML = ''; return; }
-    const hit = cache.get(`${mode}:${c.id}`);
+    const hit = cache.get(keyOf(mode, c));
+    const by = escapeHtml(modelOf(settings().model).name);
     box.hidden = false;
     if (mode === 'brief') {
       if (!hit) { box.innerHTML = ''; return; }
@@ -118,13 +172,13 @@
       box.innerHTML = `<p class="ai-summary">${escapeHtml(d.tom_tat || 'Chưa đủ dữ liệu để tóm tắt.')}</p>
         ${d.can_hoi && d.can_hoi.length ? `<div class="ai-sub">Nên hỏi</div><ul class="ai-list">${d.can_hoi.map((q) => `<li>${escapeHtml(q)}</li>`).join('')}</ul>` : ''}
         ${d.luu_y ? `<div class="ai-note">${escapeHtml(d.luu_y)}</div>` : ''}
-        <div class="ai-row">${hit.stamp !== stampOf(c) ? '<span class="ai-stale">Khách vừa có cập nhật</span>' : ''}<span class="ai-foot">AI gợi ý — kiểm tra lại trước khi dùng</span><button type="button" class="btn-small" data-ai-retry="brief">Làm mới</button></div>`;
+        <div class="ai-row">${hit.stamp !== stampOf(c) ? '<span class="ai-stale">Khách vừa có cập nhật</span>' : ''}<span class="ai-foot">${by} gợi ý — kiểm tra lại trước khi dùng</span><button type="button" class="btn-small" data-ai-retry="brief">Làm mới</button></div>`;
     } else {
       const msg = hit ? hit.data.tin_nhan || '' : '';
       const goal = hit ? hit.goal || '' : '';
       box.innerHTML = `<textarea id="ai-zalo-text" class="sched-reason ai-zalo-text" rows="5">${escapeHtml(msg)}</textarea>
         <input id="ai-zalo-goal" class="ai-goal" type="text" maxlength="200" placeholder="Mục đích tin (tuỳ chọn) — vd: mời đi xem nhà mẫu Chủ nhật" value="${escapeHtml(goal)}" />
-        <div class="ai-row"><span class="ai-foot">Sửa lại cho đúng giọng mình trước khi gửi</span>
+        <div class="ai-row"><span class="ai-foot">${by} · sửa lại trước khi gửi</span>
           <button type="button" class="btn-small" data-ai-retry="zalo">Viết lại</button>
           <button type="button" class="btn-small btn-primary" id="ai-zalo-send"><span class="btn-ic" data-icon="message"></span>Copy & mở Zalo</button></div>`;
       hydrateIcons(box);
@@ -140,7 +194,7 @@
     setLoading(task === 'brief' ? 'Đang đọc lịch sử khách…' : 'Đang soạn tin…');
     try {
       const data = await callAi(task, c, task === 'zalo' ? { goal } : {});
-      cache.set(`${task}:${c.id}`, { stamp: stampOf(c), data, goal });
+      cache.set(keyOf(task, c), { stamp: stampOf(c), data, goal });
       if (detailId === c.id && mode === task) renderOut();
     } catch (e) {
       if (detailId === c.id && mode === task) setError(e.message || 'Lỗi không rõ', task);
@@ -150,13 +204,27 @@
   function toggle(task) {
     const c = cur(); if (!c) return;
     if (mode === task) { mode = null; renderOut(); return; } // bấm lại = thu gọn
-    const hit = cache.get(`${task}:${c.id}`);
+    show(task);
+  }
+  // Mở panel `task` với model đang chọn: có kết quả cũ hợp lệ → hiện luôn, không thì gọi AI.
+  function show(task) {
+    const c = cur(); if (!c) return;
+    const hit = cache.get(keyOf(task, c));
     // Tóm tắt: có kết quả cũ cùng phiên bản dữ liệu → hiện luôn. Zalo: luôn hiện tin đã soạn (nếu có).
     if (hit && (task === 'zalo' || hit.stamp === stampOf(c))) { mode = task; renderOut(); return; }
     run(task);
   }
 
   document.addEventListener('click', (e) => {
+    const mb = e.target.closest('[data-ai-model]');
+    if (mb) { // đổi model: panel đang mở → hiện kết quả của model mới (để so sánh nhanh)
+      if (mb.dataset.aiModel === settings().model || busy) return;
+      saveSettings({ model: mb.dataset.aiModel });
+      showToast(`Trợ lý AI dùng ${modelOf(mb.dataset.aiModel).name}`);
+      if (mode) show(mode);
+      return;
+    }
+    if (e.target.closest('#ai-settings-open, #ai-settings-btn')) return openSettings();
     if (e.target.closest('#ai-brief-btn')) return toggle('brief');
     if (e.target.closest('#ai-zalo-btn')) return toggle('zalo');
     const r = e.target.closest('[data-ai-retry]');
@@ -164,7 +232,7 @@
     if (e.target.closest('#ai-zalo-send')) {
       const c = cur(); const text = ($('#ai-zalo-text').value || '').trim();
       if (!c || !text) return;
-      const hit = cache.get(`zalo:${c.id}`); if (hit) hit.data.tin_nhan = text; // giữ bản đã sửa
+      const hit = cache.get(keyOf('zalo', c)); if (hit) hit.data.tin_nhan = text; // giữ bản đã sửa
       copyText(text); // copy TRONG cử chỉ click (không await) — giống hộp mẫu Zalo
       showToast('Đã copy tin — dán vào Zalo');
       openZaloFor(c);
@@ -313,5 +381,31 @@
   $('#ai-review-apply')?.addEventListener('click', applyReview);
   $('#ai-review-cancel')?.addEventListener('click', () => { $('#ai-review-modal').close(); review = null; });
 
-  window.CRMAI = { onOpenDetail, enabled };
+  // ── Hộp Cài đặt AI: chọn model + sửa phong cách viết ──
+  let pickModel = null;
+  function openSettings() {
+    $('#topbar-menu')?.classList.remove('open'); // mở từ menu Tiện ích → đóng menu
+    const st = settings();
+    pickModel = st.model;
+    $('#ai-set-models').innerHTML = AI_MODELS.map((m) => `<button type="button" class="sched-opt${m.key === pickModel ? ' is-sel' : ''}" data-set-model="${m.key}">${escapeHtml(m.name)}</button>`).join('');
+    $('#ai-set-style').value = styleText();
+    $('#ai-settings-modal').showModal();
+  }
+  $('#ai-set-models')?.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-set-model]'); if (!b) return;
+    pickModel = b.dataset.setModel;
+    $$('#ai-set-models .sched-opt').forEach((x) => x.classList.toggle('is-sel', x === b));
+  });
+  $('#ai-set-reset')?.addEventListener('click', () => { $('#ai-set-style').value = AI_DEFAULT_STYLE; });
+  $('#ai-set-cancel')?.addEventListener('click', () => $('#ai-settings-modal').close());
+  $('#ai-set-save')?.addEventListener('click', () => {
+    const v = $('#ai-set-style').value.trim();
+    const changed = pickModel !== settings().model || (v || AI_DEFAULT_STYLE) !== styleText();
+    saveSettings({ model: pickModel, style: !v || v === AI_DEFAULT_STYLE ? null : v });
+    $('#ai-settings-modal').close();
+    if (changed) { cache.clear(); if (mode) show(mode); } // phong cách đổi → kết quả cũ không còn đúng giọng
+    showToast('Đã lưu cài đặt Trợ lý AI');
+  });
+
+  window.CRMAI = { onOpenDetail, enabled, sync };
 })();

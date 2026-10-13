@@ -653,6 +653,23 @@ const CRM = {
     return true;
   },
 
+  // Cài đặt Trợ lý AI ({model, style}) — cột user_settings.ai_settings (SQL/add_ai_settings.sql).
+  // Chưa chạy SQL → trả undefined/false, app vẫn dùng cài đặt lưu trên máy.
+  async getAiSettingsRemote() {
+    if (!this.isOnline() || !_supabase || !_currentUserId) return undefined;
+    const { data, error } = await _supabase
+      .from('user_settings').select('ai_settings').eq('id', _currentUserId).maybeSingle();
+    if (error) { console.warn('getAiSettings remote lỗi (đã chạy SQL/add_ai_settings.sql chưa?):', error.message || error); return undefined; }
+    return data ? data.ai_settings : null;
+  },
+  async saveAiSettingsRemote(obj) {
+    if (!this.isOnline() || !_supabase || !_currentUserId) return false;
+    const { error } = await _supabase.from('user_settings')
+      .upsert({ id: _currentUserId, ai_settings: obj, updated_at: new Date().toISOString() });
+    if (error) { console.warn('saveAiSettings remote lỗi (đã chạy SQL/add_ai_settings.sql chưa?):', error.message || error); return false; }
+    return true;
+  },
+
   /**
    * Migrate 1 lần: chuyển file avatar cũ từ bucket private (customer-docs) sang bucket
    * public (customer-avatars), GIỮ NGUYÊN path (nên avatar_path không đổi). Idempotent:

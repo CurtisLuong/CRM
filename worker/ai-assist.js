@@ -10,19 +10,32 @@
 // Cần binding Workers AI tên `AI` (wrangler.toml [ai]). Không cần API key: tính vào tài khoản
 // Cloudflare của Worker (gói miễn phí 10.000 neurons/ngày — đủ vài trăm lượt/ngày).
 
-// ✏️ ĐỔI MODEL Ở ĐÂY (1 chỗ duy nhất). Danh sách: developers.cloudflare.com/workers-ai/models/
-const AI_MODEL = '@cf/qwen/qwen3-30b-a3b-fp8';
+// ✏️ DANH SÁCH MODEL (1 chỗ duy nhất). App gửi extra.model = khoá ở đây ('qwen' | 'glm'); khoá lạ → DEFAULT_MODEL.
+// Thêm model: thêm 1 dòng ở đây + 1 dòng AI_MODELS trong js/ai.js. Danh sách: developers.cloudflare.com/workers-ai/models/
+//   thinking(on): cách bật/tắt chế độ "suy nghĩ" riêng từng model → { suffix nối vào prompt, params thêm vào lệnh gọi }.
+const MODELS = {
+  qwen: { id: '@cf/qwen/qwen3-30b-a3b-fp8', thinking: (on) => ({ suffix: on ? '' : ' /no_think', params: {} }) },
+  glm:  { id: '@cf/zai-org/glm-4.7-flash',  thinking: (on) => ({ suffix: '', params: { chat_template_kwargs: { enable_thinking: on } } }) },
+};
+const DEFAULT_MODEL = 'qwen';
 
-// THINK: bật chế độ "suy nghĩ" của Qwen3 (chậm hơn vài giây, tốn token hơn) — chỉ cho việc tách ghi chú,
+// THINK: bật chế độ "suy nghĩ" của model (chậm hơn vài giây, tốn token hơn) — chỉ cho việc tách ghi chú,
 // nơi cần suy luận chính xác (việc nào thật sự cần làm, lịch gọi ≠ việc). Hai việc kia viết nhanh là đủ.
 const THINK = { brief: false, zalo: false, parse_note: true };
-const MAX_TOKENS = { brief: 700, zalo: 500, parse_note: 3500 };
+const MAX_TOKENS = { brief: 700, zalo: 500, parse_note: 4000 };
 const TEMPERATURE = { brief: 0.3, zalo: 0.6, parse_note: 0.1 };
 
+// Phần CỐ ĐỊNH của system prompt (vai trò + an toàn dữ liệu + định dạng JSON). PHONG CÁCH VIẾT không nằm ở đây:
+// sale tự sửa trong app (Trợ lý AI → Cài đặt), app gửi kèm extra.style → nối vào sau (chỉ cho tóm tắt + tin Zalo).
 const SYSTEM_BASE = `Bạn là trợ lý của một sale bất động sản ở Việt Nam, bán dự án nhà ở xã hội tại Hải Phòng / Hưng Yên.
-Bạn đọc dữ liệu khách từ CRM (JSON) và viết tiếng Việt tự nhiên, ngắn gọn, thực dụng.
+Bạn đọc dữ liệu khách từ CRM (JSON) và viết tiếng Việt tự nhiên.
 NGUYÊN TẮC: chỉ dựa trên dữ liệu được đưa; KHÔNG bịa thông tin, con số, cam kết về lãi suất / pháp lý.
 Thiếu dữ liệu thì nói rõ là chưa rõ. Luôn trả về DUY NHẤT 1 object JSON hợp lệ, không kèm chữ nào khác.`;
+const STYLE_TASKS = ['brief', 'zalo'];
+function systemFor(task, extra) {
+  const style = STYLE_TASKS.includes(task) ? String((extra && extra.style) || '').trim().slice(0, 2000) : '';
+  return style ? `${SYSTEM_BASE}\n\nPHONG CÁCH VIẾT (sale yêu cầu — tuân thủ khi viết nội dung):\n${style}` : SYSTEM_BASE;
+}
 
 function briefPrompt(customer) {
   return `Dữ liệu khách:
@@ -46,9 +59,8 @@ Soạn 1 TIN NHẮN ZALO sale gửi cho khách này.${goal ? `\nMục đích tin
 Yêu cầu:
 - Xưng "em" XUYÊN SUỐT (không đổi sang "cháu"/"mình"), gọi khách "anh"/"chị" + tên (lấy TÊN GỌI = chữ cuối của họ tên). Không rõ giới tính → "anh/chị".
 - KHÔNG tự giới thiệu tên của sale, không ký tên cuối tin (sale tự thêm nếu muốn).
-- 2–4 câu, giọng thân thiện như người thật nhắn, không sáo rỗng kiểu quảng cáo, không dùng hashtag.
 - Bám 1 chi tiết cụ thể trong ghi chú (nếu có). Kết bằng 1 câu hỏi hoặc lời mời dễ trả lời.
-- Tối đa 1 emoji. Không hứa giá / lãi suất / suất mua cụ thể.
+- Không hashtag. Không hứa giá / lãi suất / suất mua cụ thể.
 Trả JSON: { "tin_nhan": "nội dung tin" }`;
 }
 
@@ -118,13 +130,15 @@ function parseJson(text) {
   try { return JSON.parse(s.slice(a, b + 1)); } catch { return null; }
 }
 
-async function runModel(env, task, userPrompt) {
-  const messages = [{ role: 'system', content: SYSTEM_BASE }, { role: 'user', content: userPrompt + (THINK[task] ? '' : ' /no_think') }];
+async function runModel(env, task, userPrompt, extra, modelKey) {
+  const m = MODELS[modelKey];
+  const th = m.thinking(!!THINK[task]);
+  const messages = [{ role: 'system', content: systemFor(task, extra) }, { role: 'user', content: userPrompt + th.suffix }];
   let lastRaw = '';
   for (let attempt = 1; attempt <= 2; attempt++) { // JSON hỏng / lỗi tạm → thử lại 1 lần
     let out;
     try {
-      out = await env.AI.run(AI_MODEL, { messages, max_tokens: MAX_TOKENS[task], temperature: TEMPERATURE[task] });
+      out = await env.AI.run(m.id, { messages, max_tokens: MAX_TOKENS[task], temperature: TEMPERATURE[task], ...th.params });
     } catch (e) {
       lastRaw = (e && e.message) || String(e);
       console.log(`AI attempt ${attempt} lỗi`, lastRaw);
@@ -242,9 +256,10 @@ export async function handleAi(request, env, json) {
     prompt = parseNotePrompt(customer, extra); clean = cleanParse;
   } else return json({ error: 'task không hợp lệ' }, 400);
 
-  const r = await runModel(env, task, prompt);
+  const modelKey = MODELS[extra.model] ? extra.model : DEFAULT_MODEL;
+  const r = await runModel(env, task, prompt, extra, modelKey);
   if (r.error != null) {
     return json({ error: 'AI không trả kết quả hợp lệ — thử lại giúp mình.', code: 'bad_output', detail: String(r.error).slice(0, 300) }, 502);
   }
-  return json({ data: clean(r.data, extra), model: AI_MODEL });
+  return json({ data: clean(r.data, extra), model: modelKey });
 }

@@ -1580,10 +1580,10 @@ input[name="apt_type_other"] { margin-top: 8px; }
 .done-undo:hover { color: var(--ink); border-color: #B9B2A2; }
 
 /* Dialog đặt lịch gọi + xác nhận gọi */
-dialog#schedule-modal, dialog#call-action-modal, dialog#ai-review-modal {
+dialog#schedule-modal, dialog#call-action-modal, dialog#ai-review-modal, dialog#ai-settings-modal {
   border: none; border-radius: var(--radius); padding: 0; width: min(430px, 92vw);
 }
-dialog#schedule-modal::backdrop, dialog#call-action-modal::backdrop, dialog#ai-review-modal::backdrop { background: rgba(20, 30, 30, 0.5); }
+dialog#schedule-modal::backdrop, dialog#call-action-modal::backdrop, dialog#ai-review-modal::backdrop, dialog#ai-settings-modal::backdrop { background: rgba(20, 30, 30, 0.5); }
 
 /* ===== Modal CHỌN ẢNH (dùng chung OCR + avatar) ===== */
 dialog#img-picker {
@@ -2787,6 +2787,10 @@ body:has(#detail-screen.is-readonly:not([hidden])) #avatar-remove-btn,
 .apps-row-ic svg { width: 100%; height: 100%; }
 
 /* ── TRỢ LÝ AI (js/ai.js) — thẻ ở tab Tổng quan + hộp rà soát đề xuất từ ghi chú ── */
+.ai-model-switch { display: inline-flex; padding: 2px; border: 1px solid var(--card-border); border-radius: 999px; background: var(--paper); }
+.ai-model-opt { border: none; background: none; font: inherit; font-size: 12.5px; font-weight: 600; color: #7a7a70; padding: 4px 10px; border-radius: 999px; cursor: pointer; }
+.ai-model-opt.is-sel { background: #fff; color: var(--ink); box-shadow: 0 1px 2px rgba(80, 60, 30, .12); }
+.ai-set-style { min-height: 200px; font: inherit; font-size: 13.5px; line-height: 1.5; }
 .ai-card .btn-small.is-on { border-color: var(--teal-light); background: var(--paper); }
 .ai-out { margin-top: 12px; padding: 12px 14px; border-radius: 12px; background: var(--paper); border: 1px solid #EFEAE0; font-size: 14px; line-height: 1.55; color: var(--ink); }
 .ai-summary { margin: 0; }
@@ -2811,3 +2815,4 @@ body:has(#detail-screen.is-readonly:not([hidden])) #avatar-remove-btn,
 .ai-item-body .task-kind-ic svg { width: 16px; height: 16px; }
 .ai-item-body s { color: #9a9a8e; }
 .ai-when { color: #6b6b60; }
+#ai-settings-open [data-icon] { display: inline-flex; width: 18px; height: 18px; }

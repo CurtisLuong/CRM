@@ -584,6 +584,7 @@ async function onLoggedIn(user) {
   maybeMigrateAvatars(user.id); // chuyển avatar cũ sang bucket public (chạy nền, 1 lần)
   syncZaloGreeting();           // đồng bộ lời chào Zalo từ Supabase (đa thiết bị, chạy nền)
   syncZaloTemplates();          // đồng bộ các mẫu tin Zalo khác
+  if (window.CRMAI) CRMAI.sync(); // đồng bộ cài đặt Trợ lý AI (model + phong cách)
   syncTeam();                   // danh sách nhóm (giao khách — js/team.js)
   clearInterval(accountSyncTimer);
   accountSyncTimer = setInterval(async () => {

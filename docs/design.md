@@ -68,7 +68,8 @@ File nguồn không quy định chính xác mã màu, spacing, breakpoint, font 
 | Loại / không chốt | `drop` | bậc Loại |
 | Đến giờ / quá giờ hẹn | `alarm` | smartlist |
 | Chờ phân loại | `decide` | smartlist |
-| Trợ lý AI | `ai` | thẻ Trợ lý AI ở hồ sơ, nút Lưu + AI |
+| Trợ lý AI | `ai` | thẻ Trợ lý AI ở hồ sơ, nút Lưu + AI, bảng tiện ích |
+| Cài đặt | `settings` | thẻ Trợ lý AI |
 | Khách nóng | `hot` | smartlist, pipeline |
 | Lâu chưa liên hệ · tốc độ gọi | `idle` | smartlist, Hiệu suất |
 | Thiếu việc tiếp theo | `alert` | smartlist |

@@ -6,6 +6,16 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-13 — Trợ lý AI: chọn model Qwen / GLM + phong cách viết sửa được
+
+- Thẻ Trợ lý AI có công tắc **Qwen3 ⇄ GLM** (GLM 4.7 Flash, Workers AI) và nút ⚙ Cài đặt (cũng có ở bảng Tiện ích).
+- **Phong cách viết** (system instruction cho Tóm tắt + Soạn tin Zalo) sửa được trong app; mặc định mới: chuyên nghiệp,
+  lịch sự, thân thiện, đi thẳng vào việc, bỏ câu xã giao. Khai báo mặc định: `AI_DEFAULT_STYLE` trong `js/ai.js`.
+- Cài đặt lưu trên máy + đồng bộ qua `user_settings.ai_settings` — **cần chạy `SQL/add_ai_settings.sql`** (chưa chạy thì
+  chỉ lưu trên từng máy). Worker phải `wrangler deploy` lại.
+- File: `worker/ai-assist.js`, `js/ai.js`, `js/db.js`, `js/app.js`, `js/icons.js`, `index.html`, `css/style.css`, `sw.js`,
+  `SQL/add_ai_settings.sql` (mới), `docs/architecture.md`, `docs/design.md`, `worker/README.md`
+
 ## 2026-10-13 — Trợ lý AI ở hồ sơ khách (Cloudflare Workers AI, Qwen3 30B)
 
 - Thẻ "Trợ lý AI" (cuối tab Tổng quan): **Tóm tắt trước khi gọi** (khách cần gì, đang lo gì, lần trước hẹn gì + 2–3 câu
