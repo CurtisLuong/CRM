@@ -10,7 +10,7 @@ try{
  await page.route('**/*',route=>{const url=new URL(route.request().url());if(url.hostname!=='crm-audit.local')return route.abort();if(url.pathname==='/')return route.fulfill({contentType:'text/html',body:fs.readFileSync(path.join(root,'index.html'),'utf8').replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,'')});const file=path.join(root,url.pathname);return fs.existsSync(file)?route.fulfill({path:file}):route.fulfill({status:404,body:''});});
  await page.goto('http://crm-audit.local/',{waitUntil:'load'});
  await page.evaluate(()=>{window.APP_CONFIG={SUPABASE_URL:'http://crm-audit.local/',SUPABASE_ANON_KEY:'fake'};window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:null}}),onAuthStateChange:()=>{}}})};});
- for(const file of ['paged-fetch','search','lunar','db','notifications','catalog','app','search-ui','catalog-ui','loan/loan-engine','property-search','catalog-search-ui'])await page.addScriptTag({content:fs.readFileSync(path.join(root,'js',file+'.js'),'utf8')});
+ for(const file of ['lunar','paged-fetch','search','db','notifications','icons','followup','velocity','catalog','app','team','calls','ai','search-ui','catalog-ui','loan/loan-engine','property-search','catalog-search-ui','loan/loan-store','loan/loan-pdf','loan/loan-ui','loan/loan-crm'])await page.addScriptTag({content:fs.readFileSync(path.join(root,'js',file+'.js'),'utf8')});
  await page.evaluate(()=>document.dispatchEvent(new Event('DOMContentLoaded')));
  await page.waitForTimeout(30);
  const storage=await page.evaluate(async()=>{
@@ -46,9 +46,9 @@ try{
  assert.equal(await page.locator('#dash-search [data-search-open]').first().getAttribute('data-search-open'),'000000');
  await page.locator('[data-search-more=qualified]').click();assert.equal(await page.locator('#dash-search [data-search-open]').count(),90);
  await page.evaluate(()=>window.scrollTo(0,0));await page.waitForTimeout(350);
- await page.locator('#tab-list').click();assert.equal(await page.locator('#customer-list').evaluate(e=>e.children.length),50);
+ await page.evaluate(() => $('#tab-customers').click());await page.locator('[data-group=care]').click();assert.equal(await page.locator('#customer-list').evaluate(e=>e.children.length),50);
  await page.locator('#list-search-more').click();assert.equal(await page.locator('#customer-list').evaluate(e=>e.children.length),100);
- await page.locator('#view-toggle').click();assert.equal(await page.locator('#customer-list .cust-row').count(),100);await page.locator('#view-toggle').click();
+ await page.evaluate(() => $('#view-toggle').click());assert.equal(await page.locator('#customer-list .cust-row').count(),100);await page.evaluate(() => $('#view-toggle').click());
  // Export still uses the complete filtered list, independent of rendered pages.
  assert.equal(await page.evaluate(()=>visibleCustomers().length),601);
  await page.locator('#search-input').fill('');await page.waitForTimeout(30);
@@ -64,13 +64,13 @@ try{
  await page.locator('#search-input').fill('');await page.waitForTimeout(30);
  for(const [group,id] of [['3N','000004'],['missing','000008'],['Studio','000010'],['4N','000012'],['other','000014']]){await page.locator(`#filter-apt-presets [data-apt-group="${group}"]`).click();assert.deepEqual(await page.evaluate(()=>visibleCustomers().map(c=>c.id)),[id]);}
  await page.locator('#filter-reset-btn').click();assert.equal(await page.evaluate(()=>visibleCustomers().length),601);assert.equal(await page.locator('#filter-active-dot').isVisible(),false);
- await page.locator('#filter-apply-btn').click();await page.locator('#tab-leads').click();
+ await page.locator('#filter-apply-btn').click();await page.locator('[data-group=leads]').click();
  await page.evaluate(()=>{allCustomers=allCustomers.map(c=>c.id==='000001'?{...c,apt_type:'1N+, 1WC',source:['facebook_ads']}:c.id==='000003'?{...c,apt_type:'3N-2WC',source:['referral']}:c);renderLeads();});
  await page.locator('#lead-filter-btn').click();await page.locator('#lead-apt-presets [data-apt-group="1N"]').click();assert.equal(await page.locator('#lead-list .lead-card').count(),1);
  await page.locator('#lead-src-presets [data-src="website"]').click();assert.equal(await page.locator('#lead-list .lead-card').count(),0);
  await page.locator('#lead-filter-reset').click();assert.equal(await page.locator('#lead-list .lead-card').count(),50);assert.equal(await page.locator('#lead-filter-dot').isVisible(),false);
  await page.locator('#lead-apt-presets [data-apt-group="3N"]').click();assert.equal(await page.locator('#lead-list .lead-card').count(),1);
- await page.locator('#lead-filter-apply').click();await page.locator('#lead-clear-filter').click();await page.locator('#tab-list').click();
+ await page.locator('#lead-filter-apply').click();await page.locator('#lead-clear-filter').click();await page.locator('[data-group=care]').click();
  await page.locator('#search-input').fill('huong marquee');await page.waitForTimeout(300);await page.locator('#search-input').press('ArrowDown');assert(await page.evaluate(()=>document.activeElement.classList.contains('customer-card')));
  await page.evaluate(async()=>{CRM.isOnline=()=>false;const old=allCustomers.find(c=>c.id==='000000');if(!customerSearchResult(old,CRMSearch.compile('ghichucu')).match)throw Error('history searchable');await CRM.updateCareHistoryNote('000000','history1','Ghichumoi');await refreshList();const edited=allCustomers.find(c=>c.id==='000000');if(edited.updated_at!==old.updated_at||customerSearchResult(edited,CRMSearch.compile('ghichucu')).match||!customerSearchResult(edited,CRMSearch.compile('ghichumoi')).match)throw Error('note cache invalidation');});
  // Simulate composition without committing an intermediate query.

@@ -69,16 +69,11 @@ const CONTACT_STATUSES = [
   'Phản hồi tốt',
   'Mất liên lạc',
 ];
-const CONTACT_STATUS_COLORS = {
-  // Nhãn → không dùng đỏ / vàng / xanh lá (dành cho cảnh báo cấp bách — docs/design.md).
-  'Chưa gọi được':    '#7A5A44', // nâu — gọi không bắt máy
-  'Hẹn gọi lại':      '#3E6A8A', // xanh thép — có nghe, đang bận
-  'Chờ kết bạn Zalo': '#5160A8', // chàm (= màu "Nhắn tin") — đã gửi lời mời
-  'Phản hồi tốt':     '#2B7A8C', // xanh dầu — tích cực
-  'Mất liên lạc':     '#9a9a90', // xám — không phản hồi >7 ngày
-};
+// Contact outcomes remain distinct by their text; colour is neutral (DESIGN_SYSTEM.md).
+const CONTACT_STATUS_COLORS = Object.fromEntries(CONTACT_STATUSES.map((status) => [status, 'var(--text-secondary)']));
+
 function contactColor(s) {
-  return CONTACT_STATUS_COLORS[s] || '#8b93a0';
+  return CONTACT_STATUS_COLORS[s] || 'var(--text-muted)';
 }
 
 // GỢI Ý "nghi mất liên lạc": contact_status đang tích cực (khác 'Mất liên lạc' và
@@ -186,21 +181,10 @@ function cardUpdatedAt(c) {
   return m || c.updated_at || '';
 }
 
-// Màu từng bậc — NHÃN, nên KHÔNG dùng đỏ / vàng / xanh lá (3 màu đó dành cho badge & cảnh báo mức
-// cấp bách: quá hạn / sắp đến / đã xong — docs/design.md "Màu nhãn & icon"). Bậc có icon trùng loại
-// việc (gọi, tham quan, hồ sơ, kí) dùng đúng màu loại việc đó (.kind-* trong style.css).
-// Bậc 'Loại' = xám (kèm dấu ✕), không đỏ.
-const CARE_STAGE_COLORS = {
-  'Đăng kí mới':    '#9AA3AE', // xám xanh — vừa tạo, chưa tiếp cận
-  'Đang tiếp cận':  '#3E6A8A', // xanh thép (= màu "Gọi")
-  'Đang chăm sóc':  '#5160A8', // chàm
-  'Xem dự án':      '#2B7A8C', // xanh dầu (= màu "Tham quan")
-  [CARE_STAGE_BOOKING]: '#2E3A6E', // xanh than
-  [CARE_STAGE_NURTURE]: '#6B7A8F', // xám thép — ngoài phễu
-  [CARE_STAGE_WON]: '#8A4A78',     // mận (= màu "Kí HĐ") — milestone chốt
-  [CARE_STAGE_DROPPED]: '#9A9A90', // xám — không chốt (kèm dấu ✕)
-  'Hỗ trợ hồ sơ': '#2E3A6E', 'Booking': '#2E3A6E', // tên cũ (lịch sử) = màu bậc đã gộp
-};
+// Stage is a classification, not an urgency signal. SLA supplies warning/danger separately.
+const CARE_STAGE_COLORS = Object.fromEntries(
+  [...CARE_STAGE_OPTIONS, ...Object.keys(CARE_STAGE_LEGACY)].map((stage) => [stage, 'var(--text-secondary)'])
+);
 
 // Khách chưa đặt tiến độ (bỏ trống) coi như bậc 1 'Đăng kí mới' (theo yêu cầu).
 // Đã mua / Loại → vòng đầy; Nuôi dài hạn → giữ mức bậc Đang chăm sóc (bậc nó tách ra).
@@ -258,15 +242,14 @@ function slaTagHtml(c, all) {
 }
 
 // 4 bậc MỨC QUAN TÂM → nhãn + màu + số ngọn lửa (badge trên card / list, slider, chấm hồ sơ).
-// Tông mận nhạt → đậm (nhãn: KHÔNG đỏ / vàng / xanh lá — docs/design.md "Màu nhãn & icon hành động");
-// mận = màu Kí HĐ → khách càng nóng càng "gần chốt". Ngọn lửa = icon('hot') lặp 0–3 lần.
+// Neutral text + flame count identify interest, without borrowing urgency or AI colours.
 // Ngưỡng: Nguội <35, Ấm 35–<60, Nóng 60–<80, Rất nóng >=80. Xếp min giảm dần để
 // find() lấy đúng bậc đầu tiên khách đạt.
 const INTEREST_TIERS = [
-  { key: 'ratnong', label: 'Rất nóng', color: '#5E2A52', min: 80, flames: 3 },
-  { key: 'nong',    label: 'Nóng',     color: '#8A4A78', min: 60, flames: 2 },
-  { key: 'am',      label: 'Ấm',       color: '#B98AA8', min: 35, flames: 1 },
-  { key: 'nguoi',   label: 'Nguội',    color: '#8B93A0', min: 0,  flames: 0 },
+  { key: 'ratnong', label: 'Rất nóng', color: 'var(--text)', min: 80, flames: 3 },
+  { key: 'nong',    label: 'Nóng',     color: 'var(--text-secondary)', min: 60, flames: 2 },
+  { key: 'am',      label: 'Ấm',       color: 'var(--text-secondary)', min: 35, flames: 1 },
+  { key: 'nguoi',   label: 'Nguội',    color: 'var(--text-muted)', min: 0,  flames: 0 },
 ];
 function interestTier(pct) {
   const v = pct || 0;
@@ -287,7 +270,7 @@ function updateInterestUI(pct) {
   const out = $('#interest-output');
   if (out) out.textContent = v + '%';
   const badge = $('#interest-tier-badge');
-  if (badge) { badge.textContent = tier.label; badge.style.background = tier.color; }
+  if (badge) { badge.textContent = tier.label; badge.style.background = 'var(--surface-subtle)'; badge.style.color = tier.color; }
   const sl = $('#customer-form').interest_level;
   if (sl) {
     // Phần đã đạt (0→v%) tô màu bậc, phần còn lại xám nhạt.
@@ -684,12 +667,24 @@ function hideSplash() {
   setTimeout(() => { s.hidden = true; }, 320);
 }
 
+let detailReturnContext = null;
 function showAppScreen() {
+  const returning = !$('#detail-screen').hidden && detailReturnContext;
+
   $('#auth-screen').hidden = true;
   $('#app-screen').hidden = false;
   $('#detail-screen').hidden = true;
   // Nếu đang ở tab Tổng quan thì vẽ lại cho khớp dữ liệu mới nhất.
   if (!$('#dashboard-view').hidden) renderDashboard();
+  if (returning) {
+    detailReturnContext = null;
+    requestAnimationFrame(() => {
+      const focus = returning.focus?.isConnected ? returning.focus
+        : $('#app-screen').querySelector(`[data-open="${CSS.escape(returning.customerId)}"], [data-id="${CSS.escape(returning.customerId)}"][tabindex]`);
+      if (focus) focus.focus({ preventScroll: true });
+      window.scrollTo(0, returning.y);
+    });
+  }
 }
 
 // Đặt sẵn con trỏ ở ô tìm kiếm mỗi lần vào app (reload / mở lại / lần đầu) để gõ tìm
@@ -789,7 +784,9 @@ window.CRMBack = function () {
   const dialogs = [...document.querySelectorAll('dialog[open]')];
   if (dialogs.length) {
     dialogs.sort((a, b) => Number(a.dataset.openedAt || 0) - Number(b.dataset.openedAt || 0));
-    dialogs[dialogs.length - 1].close();
+    const last = dialogs[dialogs.length - 1];
+    if (last.id === 'form-modal') requestCloseForm();
+    else last.close();
     return true;
   }
   const menu = document.querySelector('#topbar-menu.open, #notif-wrap.open, #search-menu.open');
@@ -1942,6 +1939,7 @@ function openForm(id) {
   $$('#customer-form details.form-more').forEach((d) => { d.open = false; updateMoreCount(d); });
   $('#form-modal').showModal();
   $('#customer-form').scrollTop = 0;
+  formInitialSnapshot = customerFormSnapshot();
 }
 
 let formIsLead = false;
@@ -2206,6 +2204,20 @@ function onCareStageChange() {
     updateInterestUI(v);
   }
 }
+
+let formInitialSnapshot = '';
+function customerFormSnapshot() {
+  return JSON.stringify([
+    [...$('#customer-form').elements].filter((el) => /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName) && el.type !== 'file').map((el) => [el.name || el.id, el.value, el.checked]),
+    formNotesDraft, formRegNote,
+  ]);
+}
+function requestCloseForm() {
+  if (formInitialSnapshot && customerFormSnapshot() !== formInitialSnapshot
+      && !confirm('Bạn có thay đổi chưa lưu. Bỏ các thay đổi và đóng form?')) return;
+  closeForm();
+}
+$('#form-modal').addEventListener('cancel', (event) => { event.preventDefault(); requestCloseForm(); });
 
 function closeForm() {
   $('#form-modal').close();
@@ -3037,7 +3049,7 @@ function stageDotsHtml(stage) {
   const color = careColor(stage);
   let out = '';
   for (let i = 1; i <= CARE_STAGES.length; i++) {
-    out += `<span class="dot" style="background:${i <= level ? color : '#dcd9cf'}"></span>`;
+    out += `<span class="dot" style="background:${i <= level ? color : 'var(--border)'}"></span>`;
   }
   return out;
 }
@@ -3049,7 +3061,7 @@ function interestDotsHtml(interest) {
   const color = interestTier(interest).color;
   let out = '';
   for (let i = 1; i <= 5; i++) {
-    out += `<span class="dot" style="background:${i <= filled ? color : '#dcd9cf'}"></span>`;
+    out += `<span class="dot" style="background:${i <= filled ? color : 'var(--border)'}"></span>`;
   }
   return out;
 }
@@ -3196,6 +3208,7 @@ function openDetail(id) {
   if (!c) return;
   // Lead (lớp 1) chưa có trang hồ sơ riêng → mở hộp "Khách mới" (ghi cuộc gọi / Đạt / Loại).
   if (!isQualified(c)) { openLeadSheet(id); return; }
+  if ($('#detail-screen').hidden) detailReturnContext = { y: window.scrollY, focus: document.activeElement, customerId: c.id };
   if (id !== detailId) { doneOpen = false; setDetailTab('overview'); } // khách khác → về tab Tổng quan, thu gọn "Đã xong"
   detailId = id;
   applyTeamDetail(c); // chỉ xem / nút Giao khách (js/team.js)
@@ -3708,8 +3721,8 @@ function lastWordInitial(name) {
   const last = words[words.length - 1] || '';
   return last ? last[0].toUpperCase() : '?';
 }
-// Màu nền cho avatar chữ (theo tên) — giúp phân biệt khách với nhau. Tông đất/rêu/son của app.
-const AVATAR_COLORS = ['#8A4A78', '#3E6A8A', '#7A5A44', '#5B7C99', '#2E3A6E', '#6B5B95', '#2B7A8C']; // không đỏ/vàng/xanh lá
+// Neutral avatar shades; identity stays in the name and image.
+const AVATAR_COLORS = ['var(--text-secondary)', 'var(--text)'];
 function avatarColor(name) {
   let h = 0;
   for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
@@ -4188,17 +4201,12 @@ function callScheduleLabel(c) {
 // Giờ gọi là 1 khung (duration): 'due' kéo dài suốt khung + 30 phút sau khi hết.
 function callReminder(c) {
   if (!c.next_call_at) return null;
-  const start = new Date(c.next_call_at).getTime();
-  const end = c.next_call_end ? new Date(c.next_call_end).getTime() : start;
-  const now = Date.now();
-  const graceEnd = end + 30 * 60000;
-  if (now < start) {
-    const remain = start - now;
-    if (remain > 24 * 3600 * 1000) return null; // >24h: chưa hiện tag
-    return { state: 'soon', text: fmtRemainMs(remain) + ' nữa gọi', sort: start };
-  }
-  if (now <= graceEnd) return { state: 'due', text: 'đến giờ gọi', sort: start };
-  return { state: 'missed', text: 'quên gọi ' + fmtClock(start), sort: start };
+  const start = Date.parse(c.next_call_at);
+  const end = c.next_call_end ? Date.parse(c.next_call_end) : start;
+  const cd = countdownTag(start, end, false);
+  if (!cd || cd.state === 'far') return null;
+  if (cd.state === 'soon') return { state: 'soon', text: fmtRemainMs(start - Date.now()) + ' nữa gọi', sort: start };
+  return { state: cd.state, text: cd.state === 'due' ? 'đến giờ gọi' : 'quên gọi ' + fmtClock(start), sort: start };
 }
 
 // Mục "Cuộc gọi" trong hồ sơ: 5 cuộc gần nhất (mới → cũ), kèm nút ghi chú cho cuộc chưa ghi.
@@ -4241,16 +4249,16 @@ function slaDateLabel(ms) { const d = new Date(ms); return `${d.getDate()}/${d.g
 // Ô "Tiến độ": vòng tròn = thời gian đã ở bậc / HẠN MỨC tối đa (vạch = mốc mục tiêu), màu theo trạng thái
 // (xám → vàng khi qua mục tiêu → đỏ khi quá hạn mức) + badge chữ (không chỉ dựa vào màu). Bậc Booking: badge
 // "Hồ sơ x/4". Ngoài phễu (Nuôi dài hạn / Đã ký): icon trạng thái thay vòng + "từ dd/mm". Không có SLA → mũi tên ›.
-const SLA_RING_COLOR = { ok: '#8E97A3', warn: '#D9A92B', over: '#A1171E' };
+const SLA_RING_COLOR = { ok: 'var(--text-muted)', warn: 'var(--warning)', over: 'var(--danger)' };
 function slaRingSvg(st) {
   const r = 11, C = 2 * Math.PI * r, f = Math.max(0, Math.min(1, st.elapsed / st.max));
   const t = Math.max(0, Math.min(1, st.target / st.max)) * 2 * Math.PI - Math.PI / 2; // góc mốc mục tiêu (0h = đỉnh)
   const p = (rad, k) => (14 + Math.cos(t) * rad * k).toFixed(2) + ' ' + (14 + Math.sin(t) * rad * k).toFixed(2); // điểm trên tia mục tiêu
   return `<svg class="stage-ring is-${st.state}" viewBox="0 0 28 28" aria-hidden="true">
-      <circle cx="14" cy="14" r="${r}" fill="none" stroke="#E6E2D8" stroke-width="3.2"/>
+      <circle cx="14" cy="14" r="${r}" fill="none" stroke="var(--border)" stroke-width="3.2"/>
       <circle cx="14" cy="14" r="${r}" fill="none" stroke="${SLA_RING_COLOR[st.state]}" stroke-width="3.2" stroke-linecap="round"
         stroke-dasharray="${(C * f).toFixed(2)} ${C.toFixed(2)}" transform="rotate(-90 14 14)"/>
-      <path d="M${p(r, 0.62)} L${p(r, 1.38)}" stroke="#1A2E29" stroke-opacity=".55" stroke-width="1.6" stroke-linecap="round"/>
+      <path d="M${p(r, 0.62)} L${p(r, 1.38)}" stroke="var(--text)" stroke-opacity=".55" stroke-width="1.6" stroke-linecap="round"/>
     </svg>`;
 }
 function renderStageSla(c) {
@@ -4419,19 +4427,20 @@ function taskDayLabel(d) {
   if (diff === -1) return 'Hôm qua';
   return `${VI_WD_SHORT[d.getDay()]} ${ddmm(d)}`;
 }
-// Nhãn hạn + trạng thái: 'overdue' (quá hạn) · 'today' (trong hôm nay) · '' (còn xa).
+// Nhãn hạn + trạng thái: overdue / due / today / xa; dùng countdownTag làm nguồn duy nhất.
 // Hạn "cả ngày" chỉ quá hạn khi hết ngày đó.
 function taskDueInfo(t) {
   const ms = taskDueMs(t);
   if (isNaN(ms)) return null;
-  const d = new Date(ms), now = Date.now();
-  const state = ms < now ? 'overdue' : (startOfDayMs(ms) === startOfDayMs(now) ? 'today' : '');
+  const d = new Date(ms), cd = countdownTag(ms, ms, !!t.due_allday);
+  const state = cd.state === 'missed' ? 'overdue' : cd.state === 'due' ? 'due'
+    : (startOfDayMs(ms) === startOfDayMs(Date.now()) ? 'today' : '');
   return { ms, state, label: taskDayLabel(d) + (t.due_allday ? '' : ' · ' + fmtClock(ms)) };
 }
 function taskDueChip(t) {
   const info = taskDueInfo(t);
   if (!info) return '';
-  const txt = (info.state === 'overdue' ? 'Quá hạn · ' : '') + info.label;
+  const txt = (info.state === 'overdue' ? 'Quá hạn · ' : info.state === 'due' ? 'Đến hạn · ' : '') + info.label;
   return `<span class="task-due${info.state ? ' is-' + info.state : ''}">${CLOCK_SVG}${escapeHtml(txt)}</span>`;
 }
 // Việc chưa xong / đã xong (việc cũ không có done_at = chưa xong).
@@ -5477,6 +5486,10 @@ function setActiveView(name) { // 'list' | 'leads' | 'dashboard' | 'tasks' | 'an
     try { localStorage.setItem(LS_CUST_GROUP, custGroup); } catch { /* bỏ qua */ }
     syncCustSubtabs();
   }
+  $$('.tab-nav .tab-btn, #bottom-nav .bn-item').forEach((b) => {
+    if (b.classList.contains('is-active')) b.setAttribute('aria-current', 'page');
+    else b.removeAttribute('aria-current');
+  });
   syncHdrFilter();
 }
 function syncCustSubtabs() {
@@ -5533,7 +5546,7 @@ function hbars(items, opts = {}) {
   if (!items.length) return `<div class="dash-empty">${opts.empty || 'Chưa có dữ liệu'}</div>`;
   const mx = opts.max || Math.max(...items.map((i) => i.value), 1);
   return `<div class="hbars">` + items.map((i) => {
-    const col = i.color || opts.color || '#3E6A8A';
+    const col = i.color || opts.color || 'var(--chart-1)';
     const w = Math.max(pctOf(i.value, mx), 2);
     const fill = i.part != null
       ? `<div class="hbar-fill is-split" style="width:${w}%;--hc:${col}"><span style="width:${i.value ? pctOf(i.part, i.value) : 0}%"></span></div>`
@@ -5560,7 +5573,7 @@ function vbars(values, labels, color) {
 
 // Đường xu hướng (SVG) cho điểm quan tâm TB theo tuần (thang 0–100)
 // Đường xu hướng % (0–100) tối giản: nét mảnh + vùng tô rất nhạt, chỉ chấm điểm cuối, vạch mốc "Nóng" (60%).
-function sparkline(values, labels, color = '#8A4A78') {
+function sparkline(values, labels, color = 'var(--text-secondary)') {
   const pts = values.map((v, i) => ({ x: i, v }));
   const defined = pts.filter((p) => p.v != null);
   if (defined.length < 1) return '<div class="dash-empty">Chưa đủ dữ liệu</div>';
@@ -5601,7 +5614,7 @@ let dashRange = (() => { try { const v = Number(localStorage.getItem(LS_DASH_RAN
 const LS_DASH_PERF_TAB = 'crm_dash_perf_tab';
 let dashPerfTab = (() => { try { return localStorage.getItem(LS_DASH_PERF_TAB) === 'month' ? 'month' : 'week'; } catch { return 'week'; } })();
 let dashAptTab = (() => { try { const v = localStorage.getItem(LS_DASH_APT_TAB); return ['type', 'building', 'budget'].includes(v) ? v : 'type'; } catch { return 'type'; } })();
-const PERF_SERIES = [['Khách mới', '#7A5A44'], ['Đã liên hệ', '#3E6A8A'], ['Chuyển giai đoạn', '#8A4A78']];
+const PERF_SERIES = [['Khách mới', 'var(--chart-1)'], ['Đã liên hệ', 'var(--chart-2)'], ['Chuyển giai đoạn', 'var(--chart-3)']];
 // Thẻ "Hiệu quả bán hàng": 7 ngày → 7 cột theo ngày · 30 ngày → 6 cột × 5 ngày · 90 ngày → 13 cột × 7 ngày.
 function salesPerfHtml(all) {
   const [n, size] = dashRange === 7 ? [7, 1] : dashRange === 30 ? [6, 5] : [13, 7];
@@ -5651,6 +5664,7 @@ const DASH_IDLE_WARM_DAYS = 14;        // Tiềm năng (không nóng) bao lâu c
 const DASH_LEAD_RETRY_H = 24;          // lead chưa nói chuyện được: gọi lại sau N giờ
 const DASH_BIRTHDAY_DAYS = 7;          // nhắc sinh nhật trong N ngày tới
 const dashExpanded = new Set();        // các nhóm việc đang mở "Xem thêm"
+let dashGroupsOpen = false;
 const dashOpenGroups = new Set();      // smartlist "Việc cần làm hôm nay": các nhóm đang xổ danh sách khách
 // Icon nét dùng ở Tổng quan (thẻ chỉ số + smartlist). Nét 1.8, theo vibe thẻ nhóm (docs/design.md).
 const DASH_IC = Object.fromEntries(Object.entries({ // tên ngắn ở Tổng quan → icon dùng chung (js/icons.js — D-006)
@@ -5737,7 +5751,11 @@ function dashActionGroups(all) {
       key: 'due', title: 'Đến giờ / quá giờ hẹn gọi', tone: 'urgent', contact: true,
       items: all.filter((c) => !c.disqualified_at && callStart(c) <= now)
         .sort((a, b) => callStart(a) - callStart(b))
-        .map((c) => ({ c, sub: `Hẹn ${dashWhen(callStart(c))}${c.next_call_reason ? ' · ' + c.next_call_reason : ''}` })),
+        .map((c) => {
+          const cd = countdownTag(callStart(c), c.next_call_end ? Date.parse(c.next_call_end) : callStart(c), false);
+          return { c, deadlineState: cd.state,
+            sub: `${cd.state === 'missed' ? 'Quá hạn gọi' : 'Đến giờ gọi'} · ${dashWhen(callStart(c))}${c.next_call_reason ? ' · ' + c.next_call_reason : ''}` };
+        }),
     },
     {
       // Khách Tiềm năng quá HẠN MỨC SLA giai đoạn (D-008, js/velocity.js) — cần đẩy bậc / xử lý ngay.
@@ -5762,8 +5780,9 @@ function dashActionGroups(all) {
         .map(({ c, due }) => {
           const { t, info } = due[0];
           const when = info.state === 'overdue' ? 'Quá hạn ' + info.label
+            : info.state === 'due' ? 'Đến hạn · ' + info.label
             : (t.due_allday ? 'Trong hôm nay' : fmtClock(info.ms));
-          return { c, tone: info.state === 'overdue' ? 'urgent' : '',
+          return { c, tone: ['overdue', 'due'].includes(info.state) ? 'urgent' : '',
             sub: `${when} · ${t.text || ''}${due.length > 1 ? ` (+${due.length - 1} việc)` : ''}` };
         }),
     },
@@ -5943,8 +5962,8 @@ function renderTasksView() {
       <div><h2 class="tasks-title">Công việc</h2>
         <div class="tasks-sum">${sctx ? `Tìm “${escapeHtml($('#search-input').value.trim())}”: ` : ''}${items.length} việc đang mở${overdueN ? ` · <span class="txt-bad">${overdueN} quá hạn</span>` : ''}${todayN ? ` · ${todayN} hôm nay` : ''}</div></div>
     </div>
-    <div class="wk-chips" role="tablist">${chips.map(([k, label, n]) =>
-      `<button type="button" class="wk-chip${tasksKindFilter === k ? ' is-sel' : ''}${k !== 'all' ? ' kind-' + k : ''}" data-wk-kind="${k}">${k !== 'all' ? kindIconHtml(k, 'wk-chip-ic') : ''}${escapeHtml(label)} <span class="wk-chip-n">${n}</span></button>`).join('')}</div>
+    <div class="wk-chips" role="group" aria-label="Lọc loại công việc">${chips.map(([k, label, n]) =>
+      `<button type="button" class="wk-chip${tasksKindFilter === k ? ' is-sel' : ''}${k !== 'all' ? ' kind-' + k : ''}" data-wk-kind="${k}" aria-pressed="${tasksKindFilter === k}">${k !== 'all' ? kindIconHtml(k, 'wk-chip-ic') : ''}${escapeHtml(label)} <span class="wk-chip-n">${n}</span></button>`).join('')}</div>
     ${items.length ? GROUPS.filter(([g]) => byG[g].length).map(([g, title, ic]) => `
       <section class="dash-card wk-group wk-${g}">
         <div class="wk-group-head"><span class="wk-group-ic" aria-hidden="true">${icon(ic)}</span><h3>${title}</h3><span class="wk-group-n">${byG[g].length}</span></div>
@@ -6008,7 +6027,7 @@ function analyticsInsightsHtml(all) {
   if (fast.n >= INSIGHT_MIN.speedGroup && slow.n >= INSIGHT_MIN.speedGroup) {
     const a = pct(fast.q, fast.n), b = pct(slow.q, slow.n);
     out.push({ ic: 'idle', tone: a > b ? 'good' : 'info', title: `Gọi trong 1 giờ đầu: ${a}% lên Tiềm năng · gọi muộn hơn: ${b}%`,
-      why: `${fast.n} khách được gọi sớm, ${slow.n} khách gọi sau 1 giờ.${a > b ? ' Gọi ngay khi khách vừa đăng ký hiệu quả hơn rõ.' : ''}` });
+      why: `${fast.n} khách được gọi sớm, ${slow.n} khách gọi sau 1 giờ.${a > b ? ' Đây là chênh lệch quan sát, chưa chứng minh nguyên nhân.' : ''}` });
   } else pending.push(`tốc độ gọi (cần ≥ ${INSIGHT_MIN.speedGroup} khách mỗi nhóm gọi trong / sau 1 giờ)`);
   // 3) Kênh ra khách tốt / kém nhất.
   const src = {};
@@ -6016,8 +6035,8 @@ function analyticsInsightsHtml(all) {
   const ch = Object.entries(src).filter(([, m]) => m.n >= INSIGHT_MIN.channelLeads).sort((a, b) => b[1].q / b[1].n - a[1].q / a[1].n);
   if (ch.length >= 2) {
     const [bk, bm] = ch[0], [wk, wm] = ch[ch.length - 1];
-    out.push({ ic: 'chart', tone: 'info', title: `Kênh ${sourceLabel(bk)} ra khách thật tốt nhất: ${pct(bm.q, bm.n)}% Đạt`,
-      why: `${bm.n} khách. ${sourceLabel(wk)} thấp nhất: ${pct(wm.q, wm.n)}% (${wm.n} khách) — cân nhắc chuyển ngân sách / công sức.` });
+    out.push({ ic: 'chart', tone: 'info', title: `Kênh ${sourceLabel(bk)} có tỷ lệ Đạt cao nhất trong mẫu: ${pct(bm.q, bm.n)}% Đạt`,
+      why: `${bm.n} khách. ${sourceLabel(wk)} thấp nhất: ${pct(wm.q, wm.n)}% (${wm.n} khách) — xem lại chất lượng khách và cách chăm sóc trước khi quyết định.` });
   } else pending.push(`kênh khách (cần ≥ ${INSIGHT_MIN.channelLeads} khách ở ít nhất 2 kênh)`);
   // 4) Khách mới quá 24 giờ chưa gọi (việc làm ngay).
   const late = all.filter((c) => !isQualified(c) && !c.disqualified_at && !callAttemptsOf(c).length
@@ -6042,14 +6061,63 @@ function analyticsInsightsHtml(all) {
   const cards = out.map((x) => `<div class="ins-item ins-${x.tone}">
       <span class="ins-ic" aria-hidden="true">${icon(x.ic)}</span>
       <span class="ins-body"><span class="ins-title">${escapeHtml(x.title)}</span><span class="ins-why">${escapeHtml(x.why)}</span></span>
-      ${x.go || x.stage ? `<button type="button" class="ins-act" ${x.stage ? `data-stage="${escapeHtml(x.stage)}"` : `data-go="${x.go}"`}>${escapeHtml(x.act)} ›</button>` : ''}
-    </div>`).join('');
+      ${x.go || x.stage ? `<button type="button" class="ins-act" ${x.stage ? `data-stage="${escapeHtml(x.stage)}"` : `data-go="${x.go}"`}>${escapeHtml(x.act)} ›</button>` : '<button type="button" class="ins-act" data-go="week">Xem hiệu suất ›</button>'}
+    </div>`);
   return `<div class="dash-card ins-card">
       <div class="dash-todo-head"><span class="sl-head-ic ins-head-ic" aria-hidden="true">${icon('insight')}</span><h3>Gợi ý từ dữ liệu</h3></div>
-      <p class="dash-hint">Tính từ chính khách & cuộc gọi của bạn. Gợi ý chỉ hiện khi đủ dữ liệu.</p>
-      ${cards || '<div class="dash-empty">Chưa có gợi ý nào — dữ liệu còn ít hoặc mọi thứ đang ổn.</div>'}
+      <p class="dash-hint">Quan sát từ toàn bộ khách và cuộc gọi hiện có; đây là gợi ý theo quy tắc, không phải AI.</p>
+      ${cards.length ? cards[0] : '<div class="dash-empty">Chưa đủ dữ liệu để đưa ra gợi ý phù hợp.</div>'}
+      ${cards.length > 1 ? `<details><summary class="ins-more">Các quan sát khác (${cards.length - 1})</summary>${cards.slice(1).join('')}</details>` : ''}
       ${pending.length ? `<div class="ins-pending">Cần thêm dữ liệu: ${escapeHtml(pending.join(' · '))}.</div>` : ''}
     </div>`;
+}
+
+function relationshipHealthHtml(all) {
+  const active = all.filter((c) => isQualified(c) && inFunnel(c));
+  const covered = active.filter((c) => c.next_call_at || openTasksOf(c).length).length;
+  const talked = all.filter((c) => callAttemptsOf(c).some((a) => a.result === 'talked')).length;
+  const overdue = collectWorkItems(all).filter((x) => countdownTag(x.t, x.end, x.allDay)?.state === 'missed').length;
+  const times = all.map(speedToLeadMs).filter((n) => n != null);
+  const rate = (n, d) => d ? pctOf(n, d) + '%' : '—';
+  const metric = (value, label, evidence) => `<div class="health-item"><div class="health-value">${escapeHtml(value)}</div><div class="health-label">${escapeHtml(label)}</div><div class="health-source">${escapeHtml(evidence)}</div></div>`;
+  return `<section class="dash-card health-card" aria-labelledby="health-title">
+    <div class="pipe2-head"><h3 id="health-title">Nhịp chăm sóc khách</h3><button type="button" class="up2-all" data-go="tasks">Xem công việc ›</button></div>
+    <p class="dash-hint">Toàn bộ dữ liệu hiện có của khách bạn phụ trách. Chỉ dựa trên kết quả đã ghi nhận; thiếu lịch sử có thể làm số liệu chưa đầy đủ.</p>
+    <div class="health-grid">
+      ${metric(rate(talked, all.length), 'Khách đã trao đổi', `${talked}/${all.length} khách có ít nhất 1 cuộc gọi “Nói chuyện được”`)}
+      ${metric(rate(covered, active.length), 'Có bước tiếp theo', `${covered}/${active.length} khách trong phễu có lịch hẹn hoặc việc đang mở`)}
+      ${metric(String(overdue), 'Cam kết quá hạn', 'Lịch gọi + việc đang mở, theo cùng trạng thái quá hạn của tab Công việc')}
+      ${metric(times.length ? formatDuration(median(times)) : '—', 'Trung vị gọi lần đầu', `${times.length} khách có giờ đăng ký và cuộc gọi đầu hợp lệ`)}
+    </div>
+  </section>`;
+}
+
+// Presentation-only preview of the existing action groups. Ranking stays in dashActionGroups.
+// No stage/deadline/owner changes; quick actions reuse the original call/open handlers.
+function focusWorkPreview(groups) {
+  const seen = new Set(), rows = [];
+  for (const group of groups) for (const item of group.items) {
+    if (seen.has(item.c.id)) continue;
+    seen.add(item.c.id);
+    rows.push({ ...item, group });
+  }
+  const next = rows[0];
+  const nextHtml = next ? `<section class="focus-next" aria-labelledby="focus-next-title">
+      <div class="focus-eyebrow">${icon('task')}<span>Việc tiếp theo · ${escapeHtml(next.group.title)}</span></div>
+      <h2 id="focus-next-title">${escapeHtml(next.c.full_name || '(chưa tên)')}</h2>
+      <p>${escapeHtml(next.sub)}</p>
+      <div class="focus-actions">
+        ${next.group.contact && next.c.phone
+          ? `<a class="btn-primary" href="tel:${normalizePhone(next.c.phone)}" data-call-id="${next.c.id}">${icon('call')}Gọi khách</a><button type="button" class="btn-ghost" data-open="${next.c.id}">Mở hồ sơ</button>`
+          : `<button type="button" class="btn-primary" data-open="${next.c.id}">${next.group.key === 'pending' ? 'Mở cuộc gọi chưa ghi chú' : next.group.key === 'tasks' ? 'Mở việc cần làm' : 'Mở hồ sơ'}</button>`}
+      </div>
+    </section>` : `<section class="focus-next"><div class="focus-eyebrow">${icon('task')}Việc tiếp theo</div><h2>Đã xử lý các việc ưu tiên</h2><p>Xem lịch sắp tới hoặc mở danh sách khách để tiếp tục chăm sóc.</p><div class="focus-actions"><button type="button" class="btn-primary" data-go="tasks">Xem công việc</button></div></section>`;
+  const queue = rows.slice(1, 6);
+  const queueHtml = queue.length ? `<div class="focus-queue">${queue.map((x) => {
+    const row = dashActRow(x.c, x.sub, x.tone ?? x.group.tone, x.group.zalo);
+    return row.replace('<span class="act-name">', `<span class="focus-queue-label">${escapeHtml(x.group.title)}</span><span class="act-name">`);
+  }).join('')}</div>` : '<div class="dash-empty">Không còn khách khác trong hàng đợi ưu tiên.</div>';
+  return { nextHtml, queueHtml };
 }
 
 // mode 'dash' (mặc định) → Tổng quan: chỉ số + Việc cần làm hôm nay + 5 hẹn gần nhất.
@@ -6064,12 +6132,13 @@ function renderDashboard(mode) {
   $(searchBox).hidden = !q; box.hidden = !!q;
   if (q) { renderDashSearch(searchBox); return; }
   if (!all.length) {
-    box.innerHTML = `<div class="dash-card"><div class="dash-empty">Chưa có khách hàng nào. Bấm + để thêm khách đầu tiên.</div></div>`;
+    box.innerHTML = `<section class="focus-next"><h2>${isAna ? 'Chưa có dữ liệu phân tích' : 'Thêm khách đầu tiên'}</h2><p>${isAna ? 'Các chỉ số sẽ xuất hiện khi bạn có khách và lịch sử chăm sóc.' : 'Bắt đầu với tên và số điện thoại; các thông tin khác có thể bổ sung dần.'}</p><div class="focus-actions"><button type="button" class="btn-primary" data-go="add-customer">${icon('new_lead')}Thêm khách</button></div></section>`;
     return;
   }
   const now = Date.now();
   const groups = dashActionGroups(all);
   const byKey = Object.fromEntries(groups.map((g) => [g.key, g]));
+  const overdueCalls = byKey.due.items.filter((x) => x.deadlineState === 'missed').length;
 
   // ---- Mốc tuần / tháng ----
   const wk0 = mondayOf(new Date()).getTime();
@@ -6130,17 +6199,18 @@ function renderDashboard(mode) {
         <div class="dash-date">${VI_WD_FULL[d.getDay()]}, ${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}${lunarTxt}</div>
       </div>
       <div class="dash-head-msg">${todo ? `Hôm nay có <b>${todo}</b> việc cần xử lý` : 'Không còn việc tồn đọng 👍'}</div>
-    </div>
-    <div class="kpi-strip">
-      ${kpi('Việc cần làm', todo, byKey.due.items.length ? `<b class="txt-bad">${byKey.due.items.length} quá giờ hẹn</b>` : 'không có hẹn quá giờ', 'todo', byKey.due.items.length ? 'urgent' : '', 'todo')}
+    </div>`;
+  const kpisHtml = `<section class="dash-overview" aria-label="Tóm tắt hoạt động"><h3>Tóm tắt hoạt động</h3><div class="kpi-strip">
+      ${kpi('Việc cần làm', todo, overdueCalls ? `<b class="txt-bad">${overdueCalls} hẹn gọi quá hạn</b>` : 'không có hẹn gọi quá hạn', 'todo', overdueCalls ? 'urgent' : '', 'todo')}
       ${kpi('Khách mới chờ gọi', byKey.new.items.length, stlMed != null ? `gọi lần đầu sau ~${escapeHtml(formatDuration(stlMed))}` : 'chưa có số liệu phản hồi', 'leads-new', byKey.new.items.length ? 'hot' : '', 'new')}
       ${kpi('Khách tiềm năng tuần này', thisWk.qualified, `tuần trước ${lastWk.qualified} ${delta(thisWk.qualified, lastWk.qualified)}`, 'qualweek', '', 'qual')}
       ${kpi('Chốt tháng này', closedMonth, `${bookingNow} khách đang Booking`, 'pipeline', closedMonth ? 'good' : '', 'deal')}
-    </div>`;
+    </div></section>`;
 
   // ---- 2) VIỆC CẦN LÀM HÔM NAY = SMARTLIST ----
   // Mỗi nhóm việc = 1 dòng gọn: icon · "N" + tên nhóm · tên vài khách đầu (quét nhanh) · ›.
   // Bấm dòng → xổ danh sách khách của nhóm (dashOpenGroups); trong đó vẫn giới hạn 5 + "Xem thêm".
+  const preview = focusWorkPreview(groups);
   const shown = groups.filter((g) => g.items.length);
   const todoHtml = shown.length ? shown.map((g) => {
     const opened = dashOpenGroups.has(g.key);
@@ -6168,11 +6238,12 @@ function renderDashboard(mode) {
   const todoCard = `<div class="dash-card dash-todo" id="dash-todo">
       <div class="dash-todo-head">
         <span class="sl-head-ic" aria-hidden="true">${DASH_IC.bell}</span>
-        <h3>Việc cần làm hôm nay</h3>
+        <h3>Hàng đợi ưu tiên</h3>
         <span class="dash-todo-n">${todo}</span>
       </div>
-      <p class="dash-hint">Xếp theo ưu tiên: hẹn gọi → việc đến hạn → khách mới → gọi lại → chăm lại. Bấm 1 dòng để xem khách; bấm 📞 để gọi — gọi xong app tự gợi ý lịch gọi lại.</p>
-      <div class="sl-list-wrap">${todoHtml}</div>
+      <p class="dash-hint">Chọn khách để xử lý công việc hoặc dùng nút gọi bên cạnh.</p>
+      ${preview.queueHtml}
+      <details class="focus-groups"${dashGroupsOpen ? ' open' : ''}><summary>Xem tất cả nhóm việc (${shown.length})</summary><div class="sl-list-wrap">${todoHtml}</div></details>
     </div>`;
 
   // ---- 3a) Lịch hẹn 7 ngày tới (sau hôm nay): lịch HẸN GỌI + VIỆC CẦN LÀM có hạn của từng khách ----
@@ -6296,11 +6367,11 @@ function renderDashboard(mode) {
       <span class="perf2-val">${a}</span>${perfChip(a, b)}
     </div>`;
   const perfHtml = `<div class="dash-seg" role="tablist">${[['week', 'Tuần'], ['month', 'Tháng']].map(([k, t]) =>
-      `<button type="button" class="dash-seg-btn${dashPerfTab === k ? ' is-active' : ''}" data-perf-tab="${k}" role="tab">${t}</button>`).join('')}</div>
+      `<button type="button" class="dash-seg-btn${dashPerfTab === k ? ' is-active' : ''}" data-perf-tab="${k}" role="tab" aria-selected="${dashPerfTab === k}">${t}</button>`).join('')}</div>
     <div class="perf2-list">
-      ${perfRow('new_lead', '#7A5A44', 'Khách mới vào', cur.leads, prev.leads)}
-      ${perfRow('call', '#3E6A8A', 'Cuộc gọi', cur.calls, prev.calls)}
-      ${perfRow('talked', '#2B7A8C', 'Nói chuyện được', cur.talked, prev.talked)}
+      ${perfRow('new_lead', 'var(--text-secondary)', 'Khách mới vào', cur.leads, prev.leads)}
+      ${perfRow('call', 'var(--chart-1)', 'Cuộc gọi', cur.calls, prev.calls)}
+      ${perfRow('talked', 'var(--chart-1)', 'Nói chuyện được', cur.talked, prev.talked)}
       ${perfRow(STAGE_ICON[QUALIFIED_STAGE], careColor(QUALIFIED_STAGE), 'Chuyển Tiềm năng', cur.qualified, prev.qualified)}
       ${perfRow('contract', careColor(CARE_STAGE_WON), 'Booking / Kí', cur.deals, prev.deals)}
     </div>
@@ -6320,7 +6391,7 @@ function renderDashboard(mode) {
   const analytics = renderDashAnalytics(all);
 
   if (isAna) {
-    box.innerHTML = `${analyticsInsightsHtml(all)}
+    box.innerHTML = `${relationshipHealthHtml(all)}${analyticsInsightsHtml(all)}
       <div class="dash-main ana-main">
         <div class="dash-main-left">${pipeCard}</div>
         <div class="dash-main-right">${perfCard}</div>
@@ -6328,11 +6399,11 @@ function renderDashboard(mode) {
       <div class="dash-ana-grid">${analytics.join('')}</div>`;
     return;
   }
-  box.innerHTML = `${headHtml}
+  box.innerHTML = `${headHtml}${preview.nextHtml}
     <div class="dash-main">
       <div class="dash-main-left">${todoCard}</div>
       <div class="dash-main-right" id="dash-week">${upCard}</div>
-    </div>`;
+    </div>${kpisHtml}`;
 }
 
 // ---- PHỄU & TỐC ĐỘ (D-008) — 5 giai đoạn theo VELOCITY.config.order + milestone Đã ký HĐMB ----
@@ -6389,7 +6460,7 @@ function funnelVelocityHtml(all, nowMs) {
   let html = '<div class="vel">';
   keys.forEach((k, i) => {
     const cfg = P[k];
-    if (i > 0) html += `<div class="funnel2-conv${i === worst ? ' is-bottleneck' : ''}">↓ ${convs[i]}%${i === worst ? ' · nút thắt' : ''}</div>`;
+    if (i > 0) html += `<div class="funnel2-conv${i === worst ? ' is-bottleneck' : ''}">↓ ${reach[keys[i - 1]] ? convs[i] + '%' : '—'}${i === worst ? ' · nút thắt' : ''}</div>`;
     const avg = cnt[k] ? sum[k] / cnt[k] : null;
     const cls = avg == null ? '' : avg >= cfg.max ? 'call-missed' : avg >= cfg.target ? 'call-soon' : 'call-far';
     const color = careColor(cfg.stage || CARE_STAGES[i]);
@@ -6401,7 +6472,7 @@ function funnelVelocityHtml(all, nowMs) {
         ${over[k] ? `<span class="vel-over">${over[k]} đang quá hạn</span>` : ''}</div>
     </div>`;
   });
-  html += `<div class="funnel2-conv">↓ ${pctOf(won, reach[keys[keys.length - 1]])}%</div>
+  html += `<div class="funnel2-conv">↓ ${reach[keys[keys.length - 1]] ? pctOf(won, reach[keys[keys.length - 1]]) + '%' : '—'}</div>
     <div class="vel-won">${icon('contract', 'vel-ic')}<span>★ Đã ký HĐMB: <span class="vel-won-n">${won}</span> căn</span><span class="vel-dim">milestone · không tính giờ</span></div>
     <div class="vel-out">Ngoài phễu: Nuôi dài hạn ${nurture} khách (không tính) · Loại / không chốt ${dropped} khách</div></div>`;
   return html;
@@ -6467,7 +6538,7 @@ function renderDashAnalytics(all) {
   const APT_TABS = [['type', 'Loại căn'], ['building', 'Toà'], ['budget', 'Ngân sách']];
   let aptBody;
   if (dashAptTab === 'building') {
-    aptBody = hbars(withShare(tally(all, 'building_code', 8)), { empty: 'Chưa có dữ liệu mã toà', color: '#2B7A8C' });
+    aptBody = hbars(withShare(tally(all, 'building_code', 8)), { empty: 'Chưa có dữ liệu mã toà', color: 'var(--chart-1)' });
   } else if (dashAptTab === 'budget') {
     // Ngân sách (VNĐ, ô "Ngân sách" trong hồ sơ) gom theo khoảng.
     const BINS = [[0, 5e8, 'Dưới 500 triệu'], [5e8, 1e9, '500 triệu – 1 tỷ'], [1e9, 1.5e9, '1 – 1,5 tỷ'],
@@ -6479,13 +6550,13 @@ function renderDashAnalytics(all) {
       const i = BINS.findIndex(([lo, hi]) => v >= lo && v < hi); if (i >= 0) cnt[i]++;
     });
     const items = withShare(BINS.map(([, , label], i) => ({ label, value: cnt[i] })).filter((x) => x.value));
-    aptBody = hbars(items, { empty: 'Chưa có khách nào nhập ngân sách', color: '#3E6A8A' })
+    aptBody = hbars(items, { empty: 'Chưa có khách nào nhập ngân sách', color: 'var(--chart-1)' })
       + (none && items.length ? `<div class="dash-foot">${none} khách chưa có ngân sách</div>` : '');
   } else {
-    aptBody = hbars(withShare(tally(all, 'apt_type', 0, canonicalAptType)), { empty: 'Chưa có dữ liệu loại căn', color: '#5160A8' });
+    aptBody = hbars(withShare(tally(all, 'apt_type', 0, canonicalAptType)), { empty: 'Chưa có dữ liệu loại căn', color: 'var(--chart-2)' });
   }
   const aptTabsHtml = `<div class="dash-seg" role="tablist">${APT_TABS.map(([k, t]) =>
-    `<button type="button" class="dash-seg-btn${dashAptTab === k ? ' is-active' : ''}" data-apt-tab="${k}" role="tab">${t}</button>`).join('')}</div>`;
+    `<button type="button" class="dash-seg-btn${dashAptTab === k ? ' is-active' : ''}" data-apt-tab="${k}" role="tab" aria-selected="${dashAptTab === k}">${t}</button>`).join('')}</div>`;
   cards.push(dashCard('Căn khách quan tâm', aptTabsHtml + aptBody,
     'Nhu cầu trên TẤT CẢ khách — loại căn / toà / tầm tiền nào đông khách nhất, để tư vấn đúng sản phẩm.'));
 
@@ -6501,9 +6572,9 @@ function renderDashAnalytics(all) {
   const srcItems = Object.entries(srcMap).sort((a, b) => b[1].n - a[1].n)
     .map(([s, m]) => ({ label: s === '?' ? 'Chưa rõ' : sourceLabel(s), value: m.n, part: m.q, sub: `· ${pctOf(m.q, m.n)}% Đạt` }));
   // Thanh = tổng khách của kênh; phần đậm = khách Đạt (lên Tiềm năng).
-  const srcLegend = srcItems.length ? `<div class="int-legend hbar-legend"><span class="int-leg"><span class="int-dot" style="background:#6E5F99"></span>Đạt (lên Tiềm năng)</span>
-    <span class="int-leg"><span class="int-dot" style="background:#DCD7EA"></span>Chưa Đạt / Loại</span></div>` : '';
-  cards.push(dashCard('Nguồn khách', hbars(srcItems, { color: '#6E5F99' }) + srcLegend,
+  const srcLegend = srcItems.length ? `<div class="int-legend hbar-legend"><span class="int-leg"><span class="int-dot" style="background:var(--chart-1)"></span>Đạt (lên Tiềm năng)</span>
+    <span class="int-leg"><span class="int-dot" style="background:var(--border)"></span>Chưa Đạt / Loại</span></div>` : '';
+  cards.push(dashCard('Nguồn khách', hbars(srcItems, { color: 'var(--chart-1)' }) + srcLegend,
     'Số khách theo kênh; phần đậm là khách Đạt (chuyển sang Tiềm năng) — kênh nào ra khách thật.'));
 
   return cards;
@@ -6511,6 +6582,11 @@ function renderDashAnalytics(all) {
 
 // Bàn làm việc: mở khách / xem thêm nhóm / lọc theo bậc / nhảy theo chỉ số nhanh.
 ['#dashboard-content', '#analytics-content'].forEach((sel) => $(sel)?.addEventListener('click', dashCardClick));
+// Native details survives dashboard redraws after expanding a work group.
+$('#dashboard-content').addEventListener('toggle', (event) => {
+  if (event.target.matches('.focus-groups') && event.target.isConnected) dashGroupsOpen = event.target.open;
+}, true);
+
 function dashCardClick(e) {
   const rg = e.target.closest('[data-dash-range]');
   if (rg) { dashRange = Number(rg.dataset.dashRange); try { localStorage.setItem(LS_DASH_RANGE, String(dashRange)); } catch {} rerenderDashViews(); return; }
@@ -6541,6 +6617,7 @@ function dashCardClick(e) {
   }
   const go = e.target.closest('[data-go]');
   if (!go) return;
+  if (go.dataset.go === 'add-customer') { openForm(); return; }
   if (go.dataset.go === 'leads') { showLeadView(); return; }
   if (go.dataset.go === 'pipeline-list') { setProgressFilter('active'); stageFilter = ''; syncStageLabel(); showListView(); window.scrollTo(0, 0); return; }
   if (go.dataset.go === 'won-list') { setProgressFilter('won'); stageFilter = ''; syncStageLabel(); showListView(); window.scrollTo(0, 0); return; }
@@ -7229,9 +7306,14 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   $('#detail-schedule-btn').addEventListener('click', () => { if (detailId) openScheduler(detailId); });
   $('#customer-form').addEventListener('submit', async (e) => {
-    // Lỗi bất kỳ khi lưu → báo rõ (trước đây lỗi im lặng: bấm Lưu không thấy gì).
+    e.preventDefault();
+    const form = e.currentTarget, save = form.querySelector('[type="submit"]');
+    if (form.getAttribute('aria-busy') === 'true') return;
+    form.setAttribute('aria-busy', 'true'); save.disabled = true;
+    const label = save.textContent; save.textContent = 'Đang lưu…';
     try { await handleFormSubmit(e); }
     catch (err) { console.error('Lưu khách lỗi:', err); alert('⚠️ Không lưu được khách: ' + (err && err.message ? err.message : err)); }
+    finally { form.removeAttribute('aria-busy'); save.disabled = false; save.textContent = label; }
   });
   // Ô sai định dạng nằm trong nhóm "Mở rộng" đang gập → trình duyệt không hiện được thông báo
   // (bấm Lưu im lặng). Tự MỞ nhóm chứa ô đó + cuộn tới để thấy thông báo.
@@ -7239,7 +7321,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let el = e.target.parentElement;
     while (el && el.id !== 'customer-form') { if (el.tagName === 'DETAILS') el.open = true; el = el.parentElement; }
   }, true);
-  $('#cancel-form-btn').addEventListener('click', closeForm);
+  $('#cancel-form-btn').addEventListener('click', requestCloseForm);
   $('#delete-customer-btn').addEventListener('click', () => { if (editingId) confirmDelete(editingId); });
   wireDobInput(); // ô ngày sinh dd/MM/YYYY (tự nhảy đoạn + preview Mệnh/Cung)
   $('#customer-form').care_stage.addEventListener('change', onCareStageChange);
@@ -7697,3 +7779,20 @@ document.addEventListener('DOMContentLoaded', () => {
     wheelRetractSoon();
   }, { passive: true });
 })();
+
+// Keyboard navigation for tablists, including tabs redrawn by analytics renderers.
+document.addEventListener('keydown', (event) => {
+  if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+  const current = event.target.closest('button[role="tab"]');
+  const group = current?.closest('[role="tablist"]');
+  if (!group) return;
+  const tabs = [...group.querySelectorAll('button[role="tab"]')].filter((el) => el.checkVisibility() && !el.disabled);
+  const at = tabs.indexOf(current); if (at < 0) return;
+  const index = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1
+    : (at + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+  const next = tabs[index];
+  const key = [...next.attributes].find((attr) => attr.name.startsWith('data-'));
+  event.preventDefault(); next.click();
+  const replacement = key ? [...document.querySelectorAll(`button[${key.name}="${CSS.escape(key.value)}"]`)].find((el) => el.checkVisibility()) : next;
+  replacement?.focus({ preventScroll: true });
+});

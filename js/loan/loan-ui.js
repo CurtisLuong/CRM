@@ -221,7 +221,7 @@
       var t = type === 'money' ? 'text" inputmode="numeric' : type;
       var v = type === 'money' ? (value == null ? '' : money(value)) : (value == null ? '' : value);
       return '<div class="lm-field ' + (extra.cls || '') + '"><label>' + label + '</label>' +
-        '<input type="' + t + '" data-bind="' + bind + '" data-type="' + type + '" value="' + esc(v) + '"' +
+        '<input aria-label="' + esc(label) + '" type="' + t + '" data-bind="' + bind + '" data-type="' + type + '" value="' + esc(v) + '"' +
         (extra.step ? ' step="' + extra.step + '"' : '') + (extra.placeholder ? ' placeholder="' + esc(extra.placeholder) + '"' : '') +
         (extra.inputCls ? ' class="' + extra.inputCls + '"' : '') + (extra.list ? ' list="' + extra.list + '"' : '') + '>' +
         (extra.hint ? '<div class="lm-hint">' + extra.hint + '</div>' : '') + '</div>';
@@ -230,9 +230,9 @@
     // Dropdown + lựa chọn "Khác…" → hiện ô nhập tự do (giống form khách của CRM).
     // options: chuỗi hoặc { v, l } (giá trị / nhãn). Danh sách rỗng → chỉ có ô gõ tự do.
     function selectOther(label, bind, options, value, isOther, ph, blank) {
-      var other = '<input type="text" class="lm-other" data-bind="' + bind + '" data-type="text" data-other="1" value="' + esc(value) + '" placeholder="' + esc(ph) + '">';
+      var other = '<input aria-label="' + esc(label) + '" type="text" class="lm-other" data-bind="' + bind + '" data-type="text" data-other="1" value="' + esc(value) + '" placeholder="' + esc(ph) + '">';
       if (!options.length) return '<div class="lm-field"><label>' + label + '</label>' + other.replace(' class="lm-other"', '') + '</div>';
-      return '<div class="lm-field"><label>' + label + '</label><select data-bind="' + bind + '" data-type="select-other">' +
+      return '<div class="lm-field"><label>' + label + '</label><select aria-label="' + esc(label) + '" data-bind="' + bind + '" data-type="select-other">' +
         (blank ? '<option value=""' + (!isOther && !value ? ' selected' : '') + '>' + blank + '</option>' : '') +
         options.map(function (o) {
           var v = typeof o === 'string' ? o : o.v, l = typeof o === 'string' ? o : o.l;

@@ -6,6 +6,22 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-15 — Chốt tự chuyển SLA và thống nhất thời hạn (D-010)
+
+- Giữ tự chuyển SLA theo D-008 làm nguyên tắc đã duyệt: không hỏi lại từng lần, giữ lịch sử/thông báo/Hoàn tác/Mở lại và phạm vi giai đoạn hiện có. Đồng bộ `AGENTS.md`/`CLAUDE.md`, UX guideline và tài liệu phễu.
+- `taskDueInfo` và `callReminder` dùng chung `countdownTag` của Công việc/hồ sơ: việc có giờ sau mốc +30 phút, hẹn gọi sau cuối khung +30 phút mới quá hạn; việc cả ngày quá hạn từ ngày hôm sau. Tổng quan/KPI phân biệt đúng đang đến hạn và quá hạn; không đổi deadline lưu, cấu hình SLA hay nhịp gọi.
+- Kiểm tra ranh giới thời gian, tự chuyển theo SLA và browser regression bằng dữ liệu giả; cache v96. Chưa deploy.
+- File: `js/app.js`, `sw.js`, `tests/deadlines.test.js`, `tests/ui-design-browser.test.cjs`, `AGENTS.md`, `CLAUDE.md`, `docs/UX_GUIDELINES.md`, `docs/funnel-velocity.md`, `docs/decisions.md`, audit UI/UX.
+
+## 2026-10-15 — UI/UX theo Design System v2, giữ logic nghiệp vụ
+
+- Chuyển token dùng chung sang Cool Porcelain/sans-serif/graphite; nhãn stage, quan tâm, loại việc và tiện ích trung tính; trạng thái thời hạn/kết quả và AI có màu semantic riêng. Đồng bộ theme/manifest, cache app-shell v95.
+- Tổng quan đưa hành động tiếp theo + hàng đợi từ các nhóm việc cũ lên trước KPI; hồ sơ đưa Việc tiếp theo lên sau liên hệ; Công việc mobile đọc được tên/nội dung dài; Phân tích thêm nhịp chăm sóc có nguồn/mẫu số và thu gọn các quan sát phụ.
+- Bổ sung giữ vị trí/focus khi quay lại, xác nhận bỏ bản nháp form, chống bấm Lưu lặp và phản hồi khi lưu lỗi, nhãn Lưu cuộc gọi nói rõ việc hẹn/loại kèm theo, dialog/keyboard/accessibility. Bảng tính vay dùng token chung và nhãn input; không đổi engine hoặc CSS in PDF.
+- Giữ các hàm nghiệp vụ, cấu hình SLA/khung gọi, DB/queue, schema/quyền và native Android. Hai xung đột tự chuyển SLA và định nghĩa quá hạn đã hỏi, chưa đổi cơ chế. Xem `docs/audits/ui-ux-design-system-2026-10-15.md` và D-009.
+- Kiểm chứng local bằng origin riêng/dữ liệu giả; test engine vay, search, intake Facebook và trình duyệt đã chạy. Chưa deploy/kiểm tra Android thật/Supabase production.
+- File: `css/style.css`, `css/loan.css`, `index.html`, `js/app.js`, `js/calls.js`, `js/icons.js`, `js/loan/loan-ui.js`, `manifest.json`, `sw.js`, `tests/*browser.test.cjs`, `docs/README.md`, `docs/pitfalls.md`, `docs/decisions.md`, audit.
+
 ## 2026-10-13 — Đồng bộ tự động giữa các thiết bị (không cần bấm nút đám mây)
 
 - Trước đây app chỉ kéo bản mới khi mở app hoặc bấm nút đám mây → sửa ở máy kia, máy này không thấy.

@@ -22,8 +22,10 @@ Chủ dự án không có background lập trình: ưu tiên giải pháp đơn 
 - Thông tin khách được thu thập dần. Theo đặc tả gốc, `phone`, `full_name`, `owner_id` là bắt buộc; các field thông tin khách khác cho phép trống. Đối chiếu schema khi sửa.
 - Gợi ý hẹn gọi và preset giờ gọi phải thống nhất toàn app (D-005): chỉ khai báo khung giờ ở `FOLLOWUP_CONFIG.callSlots` (`js/followup.js`); mọi chỗ khác đọc từ đó, sửa 1 nơi là đổi tất cả.
 - Bậc phễu và SLA (mục tiêu / hạn mức từng giai đoạn, tự chuyển quá hạn, checklist Booking) phải thống nhất toàn app (D-008): chỉ khai báo ở `VELOCITY_CONFIG` (`js/velocity.js`); mọi chỗ khác đọc từ đó.
+- Ưu tiên tự động hóa theo quy tắc đã duyệt để giảm thao tác (D-008, D-010): khi quá hạn mức SLA ở giai đoạn đã cấu hình tự chuyển, app tự chuyển và tạo lịch kèm theo đúng quy tắc, không hỏi xác nhận lại từng lần; giữ lịch sử, thông báo và cách hoàn tác/mở lại hiện có. Không tự mở rộng automation sang giai đoạn/hành động chưa được duyệt.
+- Trạng thái đến hạn/quá hạn của hẹn gọi và công việc phải thống nhất theo `countdownTag` (`js/app.js`, D-010): việc có giờ quá hạn sau mốc +30 phút; hẹn gọi sau cuối khung +30 phút; việc cả ngày quá hạn từ ngày hôm sau. Tổng quan, danh sách và hồ sơ đọc cùng nguồn.
 - Icon của bậc chăm sóc, hành động / loại việc và khái niệm chính phải thống nhất toàn app (D-006): chỉ khai báo ở `js/icons.js`; mọi chỗ khác dùng `icon()` / `stageIcon()` / `data-icon`, đổi 1 nơi là đổi tất cả.
-- Giữ phong cách báo cáo bất động sản trang trọng, bảng màu be/xanh rêu/cam đất. Theo quy tắc tại `docs/design.md` khi sửa UI.
+- Mọi công việc liên quan đến UI/UX (phân tích, đề xuất, tạo mới hoặc chỉnh sửa) phải đọc và tuân theo cả `docs/DESIGN_SYSTEM.md` (giao diện, token, component) và `docs/UX_GUIDELINES.md` (trải nghiệm, thứ tự thông tin, luồng thao tác) làm context và guideline. Hai tài liệu này thay thế hướng dẫn thiết kế cũ tại `docs/design.md`; triển khai trong đúng phạm vi task, không tự mở rộng sang toàn app.
 - Tái sử dụng cấu trúc, style và module hiện có khi phù hợp; không đổi kiến trúc để giải quyết một chỉnh sửa nhỏ.
 
 ## 3. Khởi động với context tối thiểu
@@ -36,7 +38,7 @@ Chủ dự án không có background lập trình: ưu tiên giải pháp đơn 
 | Khi task liên quan đến | Đọc thêm |
 |---|---|
 | Kiến trúc, luồng dữ liệu, auth, schema, offline | `docs/architecture.md`; schema/migration và code tương ứng |
-| Giao diện, CSS, font, bố cục, icon | `docs/design.md` (gồm bảng icon D-006); `js/icons.js`; phần UI/font trong `docs/pitfalls.md` |
+| UI/UX: giao diện, CSS, font, bố cục, icon, nội dung hiển thị, tương tác hoặc luồng thao tác | Luôn đọc cả `docs/DESIGN_SYSTEM.md` và `docs/UX_GUIDELINES.md` trước khi phân tích, đề xuất hoặc sửa; đọc thêm `js/icons.js` và phần UI/font trong `docs/pitfalls.md` khi liên quan |
 | Supabase/CDN, auth, RLS/GRANT | Phần JavaScript/Supabase trong `docs/pitfalls.md` |
 | PWA, cache hoặc cập nhật app | Phần Service Worker trong `docs/pitfalls.md` |
 | Module vay | `docs/loan-module.md`; code trong `js/loan/` và `css/loan.css` |

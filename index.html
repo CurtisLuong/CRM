@@ -5,7 +5,7 @@
 <!-- viewport-fit=cover: vẽ phủ cả vùng thanh trạng thái (app Android / iOS PWA) — CSS chừa chỗ bằng --sat/--sab. -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>Sổ Khách — Bất động sản</title>
-<meta name="theme-color" content="#E6ECE8" />
+<meta name="theme-color" content="#FFFFFF" />
 <link rel="manifest" href="/manifest.json" />
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
 <link rel="icon" type="image/svg+xml" href="/icons/logo.svg" />
@@ -43,7 +43,7 @@
       <label>Mật khẩu
         <input type="password" id="auth-password" required autocomplete="current-password" />
       </label>
-      <div id="auth-error" class="auth-error"></div>
+      <div id="auth-error" class="auth-error" role="alert"></div>
       <button type="submit" class="btn-primary">Đăng nhập</button>
       <button type="button" id="signup-btn" class="btn-secondary">Tạo tài khoản mới</button>
     </form>
@@ -83,7 +83,7 @@
         <div class="topbar-menu" id="topbar-menu">
           <!-- NÚT TIỆN ÍCH (lưới 9 chấm, thay avatar 2026-10-09): mở bảng tiện ích + tài khoản.
                Thêm tiện ích mới = thêm 1 <button class="app-tile"> vào .apps-grid (icon từ js/icons.js, --tc = màu nhãn
-               trong docs/design.md). KHÔNG thêm tab cho công cụ dùng thỉnh thoảng (D-007). -->
+               trong docs/DESIGN_SYSTEM.md). KHÔNG thêm tab cho công cụ dùng thỉnh thoảng (D-007). -->
           <button id="user-menu-btn" class="apps-btn" type="button" aria-label="Tiện ích và tài khoản" aria-haspopup="true" aria-expanded="false"><span class="apps-btn-ic" data-icon="apps" aria-hidden="true"></span></button>
           <div class="menu-pop apps-pop" role="menu" aria-label="Tiện ích và tài khoản">
             <div class="apps-account">
@@ -92,11 +92,11 @@
             </div>
             <div class="apps-label">Tiện ích</div>
             <div class="apps-grid">
-              <button id="tool-loan-btn" class="app-tile" type="button" role="menuitem" style="--tc:#3E6A8A"><span class="app-tile-ic" data-icon="loan"></span><span class="app-tile-name">Tính vay</span></button>
-              <button id="catalog-btn" class="app-tile" type="button" role="menuitem" style="--tc:#2B7A8C"><span class="app-tile-ic" data-icon="apartment"></span><span class="app-tile-name">Giỏ hàng</span></button>
-              <button id="zalo-greeting-btn" class="app-tile" type="button" role="menuitem" style="--tc:#5160A8"><span class="app-tile-ic" data-icon="message"></span><span class="app-tile-name">Mẫu tin nhắn</span></button>
-              <button id="ai-settings-btn" class="app-tile" type="button" role="menuitem" style="--tc:#7A5A44"><span class="app-tile-ic" data-icon="ai"></span><span class="app-tile-name">Trợ lý AI</span></button>
-              <button id="team-btn" class="app-tile" type="button" role="menuitem" style="--tc:#6E5F99" hidden><span class="app-tile-ic" data-icon="team"></span><span class="app-tile-name">Đồng nghiệp</span></button>
+              <button id="tool-loan-btn" class="app-tile" type="button" role="menuitem"><span class="app-tile-ic" data-icon="loan"></span><span class="app-tile-name">Tính vay</span></button>
+              <button id="catalog-btn" class="app-tile" type="button" role="menuitem"><span class="app-tile-ic" data-icon="apartment"></span><span class="app-tile-name">Giỏ hàng</span></button>
+              <button id="zalo-greeting-btn" class="app-tile" type="button" role="menuitem"><span class="app-tile-ic" data-icon="message"></span><span class="app-tile-name">Mẫu tin nhắn</span></button>
+              <button id="ai-settings-btn" class="app-tile" type="button" role="menuitem"><span class="app-tile-ic" data-icon="ai"></span><span class="app-tile-name">Trợ lý AI</span></button>
+              <button id="team-btn" class="app-tile" type="button" role="menuitem" hidden><span class="app-tile-ic" data-icon="team"></span><span class="app-tile-name">Đồng nghiệp</span></button>
             </div>
             <div class="apps-foot">
               <button id="logout-btn" class="apps-row" type="button" role="menuitem"><span class="apps-row-ic" data-icon="logout"></span>Đăng xuất</button>
@@ -278,7 +278,7 @@
     </div>
     <!-- Số khách + Xoá lọc nhanh (desktop: sau vạch ngăn, mép phải). -->
     <div class="tool-meta">
-      <span id="result-count" role="status" aria-live="polite"></span>
+      <span id="result-count" aria-live="polite" role="status" aria-live="polite"></span>
       <button id="clear-filter-inline" class="clear-filter-inline" type="button" hidden>Xoá lọc ✕</button>
     </div>
   </div>
@@ -356,7 +356,7 @@
     </div>
     <!-- Số khách + Xoá lọc nhanh (desktop: sau vạch ngăn, mép phải). -->
     <div class="tool-meta">
-      <span id="lead-result-count" role="status" aria-live="polite"></span>
+      <span id="lead-result-count" aria-live="polite" role="status" aria-live="polite"></span>
       <button id="lead-clear-filter" class="clear-filter-inline" type="button" hidden>Xoá lọc ✕</button>
     </div>
   </div>
@@ -508,7 +508,7 @@
 
   <div class="detail-body" id="detail-body" data-active-tab="overview">
     <!-- ĐẦU HỒ SƠ (khối trắng nối liền ảnh bìa): avatar + tên · SĐT + Gọi/Zalo/Danh bạ + Giao khách · 4 tab.
-         Bố cục "cân bằng – rõ ràng theo nhóm": quy tắc ở docs/design.md (mục Trang hồ sơ khách). -->
+         Bố cục "cân bằng – rõ ràng theo nhóm": quy tắc ở docs/DESIGN_SYSTEM.md (mục Trang hồ sơ khách). -->
     <div class="detail-hero">
       <div class="detail-id-row">
         <!-- Ảnh đại diện: bấm để xem gốc + đổi ảnh. Nội dung (ảnh / chữ cái) do JS đặt. -->
@@ -550,30 +550,8 @@
       </nav>
     </div>
 
-    <!-- ===== THỨ TỰ THẺ TAB TỔNG QUAN (quy tắc cố định — docs/design.md "Hồ sơ khách", chốt lại 2026-10-13):
-         0 Chỉ số Tiến độ (gộp Tốc độ phễu: vòng tròn + badge) · Quan tâm · Liên lạc (LUÔN TRÊN CÙNG) ·
-         (dòng Hoàn tác tự chuyển SLA, nếu có) · 1 Việc tiếp theo · 2 Trợ lý AI · 3 Căn hộ quan tâm · 4 Ghi chú ·
-         5 Tính khoản vay. Thêm thẻ mới → đặt SAU các thẻ này, không chen lên trên. ===== -->
-    <!-- TỔNG QUAN: 2 thẻ chỉ số (Tiến độ → bấm sang Lịch sử · Quan tâm) + Liên lạc (nếu có). -->
-    <div class="detail-badges" data-tabs="overview">
-      <!-- Tiến độ = bậc (chấm) + TỐC ĐỘ PHỄU gộp vào (vòng tròn thời gian ở bậc + badge đếm, D-008 — renderStageSla).
-           Bấm → tab Lịch sử (thẻ Tốc độ phễu đầy đủ ở đầu tab). Không có SLA → mũi tên › thay vòng tròn. -->
-      <button type="button" class="detail-badge dcard is-link stage-card" id="detail-stage-card" data-goto-tab="history" aria-label="Tiến độ — xem lịch sử chăm sóc">
-        <span class="detail-badge-label">Tiến độ</span>
-        <span class="detail-badge-main"><span id="detail-stage-dots" class="dot-row"></span><span id="detail-stage-ring" class="stage-ring-wrap" hidden></span><span class="dcard-chev" id="detail-stage-chev" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></span></span>
-        <span id="detail-stage-text" class="detail-badge-text"></span>
-        <span id="detail-stage-sla" class="call-tag stage-sla-tag" hidden></span>
-      </button>
-      <div class="detail-badge dcard">
-        <span class="detail-badge-label">Quan tâm</span>
-        <span class="detail-badge-main"><span id="detail-interest-dots" class="dot-row"></span><span id="detail-interest-text" class="detail-badge-num"></span></span>
-      </div>
-      <div class="detail-badge dcard" id="detail-contact-badge" hidden>
-        <span class="detail-badge-label">Liên lạc</span>
-        <span id="detail-contact-text" class="detail-badge-text"></span>
-      </div>
-    </div>
-
+    <!-- Overview: contact/actions (hero) → next work → stage/context → AI → property/notes/loan.
+         Presentation order only; existing handlers and business data remain unchanged. -->
     <!-- App TỰ CHUYỂN bậc vì quá hạn mức SLA → dòng cảnh báo + Hoàn tác (renderDetailSla). -->
     <div id="detail-sla-alert" class="sla-undo sla-alert" data-tabs="overview" hidden></div>
 
@@ -605,6 +583,26 @@
         </div>
       </div>
     </div>
+
+    <div class="detail-badges" data-tabs="overview">
+      <!-- Tiến độ = bậc (chấm) + TỐC ĐỘ PHỄU gộp vào (vòng tròn thời gian ở bậc + badge đếm, D-008 — renderStageSla).
+           Bấm → tab Lịch sử (thẻ Tốc độ phễu đầy đủ ở đầu tab). Không có SLA → mũi tên › thay vòng tròn. -->
+      <button type="button" class="detail-badge dcard is-link stage-card" id="detail-stage-card" data-goto-tab="history" aria-label="Tiến độ — xem lịch sử chăm sóc">
+        <span class="detail-badge-label">Tiến độ</span>
+        <span class="detail-badge-main"><span id="detail-stage-dots" class="dot-row"></span><span id="detail-stage-ring" class="stage-ring-wrap" hidden></span><span class="dcard-chev" id="detail-stage-chev" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></span></span>
+        <span id="detail-stage-text" class="detail-badge-text"></span>
+        <span id="detail-stage-sla" class="call-tag stage-sla-tag" hidden></span>
+      </button>
+      <div class="detail-badge dcard">
+        <span class="detail-badge-label">Quan tâm</span>
+        <span class="detail-badge-main"><span id="detail-interest-dots" class="dot-row"></span><span id="detail-interest-text" class="detail-badge-num"></span></span>
+      </div>
+      <div class="detail-badge dcard" id="detail-contact-badge" hidden>
+        <span class="detail-badge-label">Liên lạc</span>
+        <span id="detail-contact-text" class="detail-badge-text"></span>
+      </div>
+    </div>
+
 
     <!-- TRỢ LÝ AI (js/ai.js → Worker /ai, Workers AI Qwen3): tóm tắt trước khi gọi + soạn tin Zalo.
          Chỉ hiện khi có WORKER_URL. Kết quả là GỢI Ý, không tự ghi vào dữ liệu khách. -->
@@ -730,7 +728,7 @@
 </section>
 
 <!-- ============ FORM THÊM / SỬA KHÁCH (modal) ============ -->
-<dialog id="form-modal">
+<dialog aria-labelledby="form-title" id="form-modal">
   <form id="customer-form">
     <!-- Tiêu đề + thanh nút đáy DÍNH (sticky) trong vùng cuộn của form. -->
     <h2 id="form-title" class="form-sticky-head">Thêm khách mới</h2>
@@ -1013,7 +1011,7 @@
 </dialog>
 
 <!-- ============ TRÌNH XEM ẢNH / PDF (nhẹ, xem trong app) ============ -->
-<dialog id="file-viewer" class="file-viewer">
+<dialog aria-label="Xem tài liệu" id="file-viewer" class="file-viewer">
   <div class="fv-bar">
     <span id="file-viewer-title" class="fv-title"></span>
     <div id="fv-zoom" class="fv-zoom" hidden>
@@ -1022,7 +1020,7 @@
       <button type="button" id="fv-zoom-in" class="fv-zbtn" aria-label="Phóng to">+</button>
     </div>
     <button type="button" id="file-viewer-open" class="btn-small">Mở tab mới</button>
-    <button type="button" id="file-viewer-close" class="btn-small">✕</button>
+    <button type="button" id="file-viewer-close" class="btn-small" aria-label="Đóng tài liệu">✕</button>
   </div>
   <div id="file-viewer-body" class="fv-body"></div>
   <!-- Khu ĐỔI ẢNH ĐẠI DIỆN — chỉ hiện khi mở ở chế độ avatar (openAvatarViewer). -->
@@ -1042,7 +1040,7 @@
 <!-- ============ MODAL CHỌN ẢNH (dùng chung: OCR nhập từ ảnh + đổi avatar) ============
      Mở từ "Nhập từ ảnh" (form khách) hoặc "Sửa ảnh" (avatar). Có ảnh → tự đóng, trả ảnh
      về đúng luồng. -->
-<dialog id="img-picker" class="img-picker">
+<dialog aria-label="Chọn ảnh" id="img-picker" class="img-picker">
   <button type="button" id="imgp-close" class="imgp-close" aria-label="Đóng">✕</button>
   <div class="imgp-title">Chọn ảnh</div>
   <div class="imgp-choices">
@@ -1061,9 +1059,9 @@
 </dialog>
 
 <!-- ============ ĐẶT LỊCH GỌI (dùng chung: trang chi tiết + "hẹn lại") ============ -->
-<dialog id="schedule-modal">
+<dialog aria-labelledby="schedule-modal-heading" id="schedule-modal">
   <div class="sched">
-    <h2>Hẹn gọi</h2>
+    <h2 id="schedule-modal-heading">Hẹn gọi</h2>
     <div class="sched-label">Chọn giờ</div>
     <!-- Nút khung giờ do app.js vẽ từ FOLLOWUP_CONFIG.callSlots (nguồn duy nhất — D-005) + "Tùy chọn giờ". -->
     <div class="sched-opts" id="sched-time"></div>
@@ -1077,7 +1075,7 @@
     <input type="date" id="sched-date-custom" hidden />
     <div class="sched-label">Nội dung gọi <span class="sched-optional">(không bắt buộc)</span></div>
     <textarea id="sched-reason" class="sched-reason" rows="2" placeholder="Vì sao gọi? vd: nhắc hồ sơ, gửi bảng giá, chốt cọc..."></textarea>
-    <div id="sched-error" class="sched-error"></div>
+    <div id="sched-error" class="sched-error" role="alert"></div>
     <div class="form-actions">
       <button type="button" id="sched-cancel" class="btn-ghost">Huỷ</button>
       <button type="button" id="sched-save" class="btn-primary">Lưu hẹn gọi</button>
@@ -1088,9 +1086,9 @@
 <!-- ============ THÊM / SỬA VIỆC TIẾP THEO (cùng kiểu Hẹn gọi) ============ -->
 <!-- CÀI ĐẶT TRỢ LÝ AI (js/ai.js): model + phong cách viết (system instruction cho Tóm tắt / Tin Zalo).
      Lưu user_settings.ai_settings (SQL/add_ai_settings.sql) + máy; "Khôi phục mặc định" = AI_DEFAULT_STYLE. -->
-<dialog id="ai-settings-modal">
+<dialog aria-labelledby="ai-settings-modal-heading" id="ai-settings-modal">
   <div class="sched">
-    <h2>Cài đặt Trợ lý AI</h2>
+    <h2 id="ai-settings-modal-heading">Cài đặt Trợ lý AI</h2>
     <div class="sched-label">Model</div>
     <div class="sched-opts" id="ai-set-models"></div>
     <div class="sched-label">Phong cách viết <span class="sched-optional">(áp dụng cho Tóm tắt + Soạn tin Zalo)</span></div>
@@ -1105,13 +1103,13 @@
 </dialog>
 
 <!-- AI ĐỀ XUẤT TỪ GHI CHÚ (js/ai.js): tick chọn đề xuất rồi Áp dụng — AI không tự ghi. -->
-<dialog id="ai-review-modal">
+<dialog aria-labelledby="ai-review-modal-heading" id="ai-review-modal">
   <div class="sched">
-    <h2>AI đề xuất từ ghi chú</h2>
+    <h2 id="ai-review-modal-heading">AI đề xuất từ ghi chú</h2>
     <p id="ai-review-sub" class="task-modal-sub"></p>
     <div class="sched-label">Bỏ tick mục không đúng</div>
     <div id="ai-review-list" class="ai-review-list"></div>
-    <div id="ai-review-error" class="sched-error"></div>
+    <div id="ai-review-error" class="sched-error" role="alert"></div>
     <div class="form-actions">
       <span class="form-actions-spacer"></span>
       <button type="button" id="ai-review-cancel" class="btn-ghost">Bỏ qua</button>
@@ -1120,7 +1118,7 @@
   </div>
 </dialog>
 
-<dialog id="task-modal">
+<dialog aria-labelledby="task-modal-title" id="task-modal">
   <div class="sched">
     <h2 id="task-modal-title">Thêm việc</h2>
     <p id="task-modal-sub" class="task-modal-sub"></p>
@@ -1145,7 +1143,7 @@
       <input type="time" id="task-time-custom" class="sched-custom" hidden />
     </div>
     <div id="task-due-preview" class="task-due-preview" hidden></div>
-    <div id="task-error" class="sched-error"></div>
+    <div id="task-error" class="sched-error" role="alert"></div>
     <div class="form-actions">
       <button type="button" id="task-delete" class="btn-ghost btn-danger" hidden>Xoá việc</button>
       <span class="form-actions-spacer"></span>
@@ -1158,7 +1156,7 @@
 <!-- ============ XÁC NHẬN GỌI (bấm vào tag nhắc gọi) ============ -->
 <!-- 1 hộp thoại phẳng: thời gian hẹn + ô ghi chú + 3 nút. Mỗi nút đều kèm ghi chú
      (nếu có) → ghi 1 mốc vào care timeline: "[hành động] hh:mm, dd.mm.yyyy. [ghi chú]". -->
-<dialog id="call-action-modal">
+<dialog aria-labelledby="callact-title" id="call-action-modal">
   <div class="callact">
     <button type="button" id="callact-close" class="callact-x" aria-label="Đóng">✕</button>
     <h2 id="callact-title">Gọi khách</h2>
@@ -1174,7 +1172,7 @@
 </dialog>
 
 <!-- ============ KHÁCH MỚI (lớp 1): ghi cuộc gọi · Đạt · Loại ============ -->
-<dialog id="lead-modal">
+<dialog aria-labelledby="lead-name" id="lead-modal">
   <div class="lead-box">
     <!-- Đầu hộp: tên khách + nút Sửa (bút chì) + Đóng. -->
     <div class="lead-head">
@@ -1217,7 +1215,7 @@
       <div class="sched-label">Lý do loại</div>
       <div class="sched-opts" id="lead-reason-opts"></div>
       <input id="lead-drop-note" class="cs-note-input" type="text" placeholder="Mô tả thêm (bắt buộc nếu chọn Khác)" />
-      <div id="lead-drop-error" class="sched-error"></div>
+      <div id="lead-drop-error" class="sched-error" role="alert"></div>
       <div class="lead-row-btns">
         <button type="button" id="lead-drop-cancel" class="btn-ghost btn-small">Huỷ</button>
         <button type="button" id="lead-drop-save" class="btn-primary btn-small">Xác nhận loại</button>
@@ -1241,7 +1239,7 @@
 
 <!-- ============ GHI CUỘC GỌI (dùng chung Khách mới + Tiềm năng, web + Android) ============
      Logic ở js/calls.js. Gợi ý kết quả theo THỜI LƯỢNG (0s / dưới 30s / từ 30s) và lớp khách. -->
-<dialog id="call-log-modal">
+<dialog aria-labelledby="calllog-title" id="call-log-modal">
   <div class="callact">
     <button type="button" id="calllog-close" class="callact-x" aria-label="Đóng">✕</button>
     <h2 id="calllog-title">Cuộc gọi</h2>
@@ -1251,7 +1249,7 @@
     <div id="calllog-next" class="calllog-next" hidden></div>
     <div class="sched-label" id="calllog-note-label">Ghi chú</div>
     <textarea id="calllog-note" class="callnote-input" rows="3"></textarea>
-    <div id="calllog-error" class="sched-error"></div>
+    <div id="calllog-error" class="sched-error" role="alert"></div>
     <div class="callact-btns">
       <button type="button" id="calllog-save" class="btn-primary">Lưu</button>
       <button type="button" id="calllog-later" class="btn-secondary">Để sau</button>
@@ -1261,10 +1259,10 @@
 </dialog>
 
 <!-- ============ XUẤT EXCEL ============ -->
-<dialog id="export-modal" class="io-modal">
+<dialog aria-labelledby="export-modal-heading" id="export-modal" class="io-modal">
   <div class="io-box">
     <div class="io-head">
-      <h2>Xuất Excel</h2>
+      <h2 id="export-modal-heading">Xuất Excel</h2>
       <button id="export-close" class="io-x" type="button" aria-label="Đóng">✕</button>
     </div>
     <p id="export-count" class="io-sub"></p>
@@ -1280,10 +1278,10 @@
 
 <!-- ============ GIỎ HÀNG: Dự án → Toà → Căn ============ -->
 <!-- Logic ở js/catalog-ui.js, dữ liệu ở js/catalog.js. -->
-<dialog id="catalog-modal" class="io-modal cat-modal">
+<dialog aria-labelledby="catalog-modal-heading" id="catalog-modal" class="io-modal cat-modal">
   <div class="io-box">
     <div class="io-head">
-      <h2>Giỏ hàng</h2>
+      <h2 id="catalog-modal-heading">Giỏ hàng</h2>
       <button id="catalog-close" class="io-x" type="button" aria-label="Đóng">✕</button>
     </div>
     <p class="io-sub">Dự án → Toà → Căn: lớp dưới để trống thì dùng giá trị lớp trên. Dùng chung cho form khách và bảng tính vay.</p>
@@ -1300,10 +1298,10 @@
 </dialog>
 
 <!-- ============ NHẬP EXCEL ============ -->
-<dialog id="import-modal" class="io-modal">
+<dialog aria-labelledby="import-modal-heading" id="import-modal" class="io-modal">
   <div class="io-box">
     <div class="io-head">
-      <h2>Nhập Excel</h2>
+      <h2 id="import-modal-heading">Nhập Excel</h2>
       <button id="import-close" class="io-x" type="button" aria-label="Đóng">✕</button>
     </div>
     <div id="import-step-file">
@@ -1328,9 +1326,9 @@
 
 <!-- MẪU TIN ZALO (mở từ menu avatar). Bấm icon Zalo của khách → chọn mẫu → tự copy + mở Zalo.
      Mẫu mặc định + quy tắc gợi ý: js/followup.js. Lưu/đồng bộ: getZaloTemplates/setZaloTemplates (app.js). -->
-<dialog id="greeting-modal" class="greeting-modal">
+<dialog aria-labelledby="greeting-modal-heading" id="greeting-modal" class="greeting-modal">
   <div class="greeting-box">
-    <h2 class="greeting-title">Mẫu tin Zalo</h2>
+    <h2 class="greeting-title" id="greeting-modal-heading">Mẫu tin Zalo</h2>
     <p class="greeting-hint">Bấm icon Zalo của khách → chọn 1 mẫu → app <b>copy</b> nội dung đã điền tên và mở Zalo để bạn <b>dán</b>. Ô tự điền: <code>{ten}</code> tên gọi khách, <code>{hoten}</code> họ tên, <code>{sale}</code> tên bạn (tên hiển thị trong Đồng nghiệp, chưa đặt → "Duy"), <code>{du_an}</code> dự án của khách (chưa có → "nhà ở xã hội"). Chữ <code>anh/chị</code> tự đổi: Nam → anh, Nữ → chị, chưa rõ → anh/chị. Mẫu để trống sẽ bị ẩn. Mẫu "Chào kết bạn" là lời chào cũ.</p>
     <div id="tpl-list" class="tpl-list"></div>
     <button type="button" id="tpl-add" class="btn-ghost btn-small tpl-add">+ Thêm mẫu</button>
@@ -1344,7 +1342,7 @@
 
 <!-- Bấm icon Zalo của khách: nút MỞ ZALO (dùng nhiều nhất) ở trên cùng; bên dưới là các mẫu tin
      (mẫu hợp tình huống lên đầu, có lý do gợi ý) — chọn mẫu = copy nội dung rồi mở Zalo. -->
-<dialog id="zalo-pick-modal" class="greeting-modal">
+<dialog aria-labelledby="zpick-title" id="zalo-pick-modal" class="greeting-modal">
   <div class="greeting-box">
     <button type="button" id="zpick-close" class="callact-x" aria-label="Đóng">✕</button>
     <h2 id="zpick-title" class="greeting-title">Nhắn Zalo</h2>
@@ -1361,7 +1359,7 @@
 </dialog>
 
 <!-- GIAO KHÁCH cho đồng nghiệp (js/team.js). 2 kiểu: vẫn theo dõi (chỉ xem) / giao hẳn. -->
-<dialog id="assign-modal">
+<dialog aria-labelledby="assign-title" id="assign-modal">
   <div class="callact">
     <button type="button" id="assign-cancel-x" class="callact-x" aria-label="Đóng">✕</button>
     <h2 id="assign-title">Giao khách</h2>
@@ -1377,7 +1375,7 @@
     </div>
     <div class="sched-label">Ghi chú cho người nhận <span class="sched-optional">(không bắt buộc)</span></div>
     <textarea id="assign-note" class="sched-reason" rows="2" placeholder="vd: khách hẹn xem nhà mẫu thứ 7, ưu tiên căn 2N"></textarea>
-    <div id="assign-error" class="sched-error"></div>
+    <div id="assign-error" class="sched-error" role="alert"></div>
     <div class="callact-btns">
       <button type="button" id="assign-save" class="btn-primary">Giao</button>
       <button type="button" id="assign-cancel" class="btn-secondary">Huỷ</button>
@@ -1386,10 +1384,10 @@
 </dialog>
 
 <!-- ĐỒNG NGHIỆP (menu avatar). Trưởng nhóm thêm/xoá bằng email; ai cũng đặt được tên hiển thị của mình. -->
-<dialog id="team-modal" class="greeting-modal">
+<dialog aria-labelledby="team-modal-heading" id="team-modal" class="greeting-modal">
   <div class="greeting-box">
     <button type="button" id="team-close" class="callact-x" aria-label="Đóng">✕</button>
-    <h2 class="greeting-title">Đồng nghiệp</h2>
+    <h2 class="greeting-title" id="team-modal-heading">Đồng nghiệp</h2>
     <p id="team-hint" class="greeting-hint"></p>
     <div id="team-list" class="team-list"></div>
     <div id="team-add-row" class="team-add-row" hidden>
@@ -1401,15 +1399,15 @@
       <input id="team-my-name" class="tpl-name" placeholder="vd: Duy" maxlength="40" />
       <button type="button" id="team-name-save" class="btn-ghost btn-small">Lưu tên</button>
     </div>
-    <div id="team-error" class="sched-error"></div>
+    <div id="team-error" class="sched-error" role="alert"></div>
   </div>
 </dialog>
 
 <!-- GỢI Ý LỊCH sau khi đổi bậc / bấm Đạt (nhịp theo bậc: js/followup.js). -->
-<dialog id="followup-modal">
+<dialog aria-labelledby="followup-modal-heading" id="followup-modal">
   <div class="callact">
     <button type="button" id="fu-close" class="callact-x" aria-label="Đóng">✕</button>
-    <h2>Hẹn lần liên hệ tiếp theo?</h2>
+    <h2 id="followup-modal-heading">Hẹn lần liên hệ tiếp theo?</h2>
     <p id="fu-sub" class="callact-sub"></p>
     <div id="fu-when" class="fu-when"></div>
     <div class="sched-label">Nội dung gọi</div>

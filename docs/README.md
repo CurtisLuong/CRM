@@ -11,7 +11,8 @@ Giữ root dễ nhìn và giúp AI chỉ đọc thông tin cần cho task. `CLAU
 | `/CLAUDE.md` | Phạm vi, nguyên tắc, quy trình làm việc, chỉ dẫn context | AI đọc lúc bắt đầu; cập nhật khi đổi nguyên tắc chung |
 | `/README.md` | Hướng dẫn setup và sử dụng cho chủ dự án | Setup/chạy/deploy; giữ nội dung README hiện có |
 | `architecture.md` | Kiến trúc, dữ liệu và bản đồ code | Sửa kiến trúc, DB, auth, offline |
-| `design.md` | Quy tắc thiết kế và kiểm tra UI | Sửa giao diện |
+| `DESIGN_SYSTEM.md` | Visual tokens, typography, component và accessibility | Mọi task UI/UX, đọc cùng `UX_GUIDELINES.md` |
+| `UX_GUIDELINES.md` | Thứ tự thông tin, hành vi và luồng thao tác | Mọi task UI/UX, kể cả phân tích/đề xuất |
 | `pitfalls.md` | Lỗi đã gặp, cách tránh và kiểm tra | Đọc phần liên quan đến khu vực đang sửa |
 | `decisions.md` | Quyết định thay đổi và ngoại lệ đã duyệt | Khi có xung đột nguyên tắc hoặc cần tiền lệ |
 | `project-status.md` | Snapshot và điểm cần xác minh | Handoff hoặc task phụ thuộc trạng thái |
@@ -51,7 +52,8 @@ repo/
 ├── docs/
 │   ├── README.md
 │   ├── architecture.md
-│   ├── design.md
+│   ├── DESIGN_SYSTEM.md
+│   ├── UX_GUIDELINES.md
 │   ├── pitfalls.md
 │   ├── decisions.md
 │   ├── project-status.md

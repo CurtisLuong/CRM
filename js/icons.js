@@ -5,7 +5,7 @@
  * ✏️ Đổi icon 1 khái niệm = sửa 1 dòng trong ICON_PATHS → mọi chỗ đổi theo
  *    (thanh điều hướng, Tổng quan, hồ sơ, hộp Khách mới, checklist, lịch hẹn...).
  *    KHÔNG vẽ SVG riêng cho khái niệm đã có ở đây. Khái niệm mới → thêm 1 dòng ở đây trước.
- *    Bảng khái niệm → icon: docs/design.md (mục "Icon thống nhất").
+ *    Bảng khái niệm → icon: docs/DESIGN_SYSTEM.md (mục "Component contract").
  *
  * Dùng:
  *   JS:   icon('call')                     → chuỗi <svg> nét (stroke = currentColor)
@@ -13,7 +13,7 @@
  *         stageIcon('Booking')            → icon của 1 bậc chăm sóc
  *   HTML: <span class="..." data-icon="call"></span>  → tự điền khi tải trang (hydrateIcons)
  *
- * Icon nét 24×24, stroke 1.8, bo đầu tròn — hợp vibe thẻ nhóm (docs/design.md).
+ * Icon nét 24×24, stroke 1.8, bo đầu tròn — hợp vibe thẻ nhóm (docs/DESIGN_SYSTEM.md).
  */
 const ICON_PATHS = {
   // ── Điều hướng / khái niệm chính ──

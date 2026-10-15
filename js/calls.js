@@ -99,6 +99,7 @@
   }
   function renderNext() {
     const box = $('#calllog-next'); if (!box || !st) return;
+    $('#calllog-save').textContent = 'Lưu kết quả';
     const c = findCustomer(st.customerId);
     const sug = (c && st.result && window.FOLLOWUP) ? FOLLOWUP.afterCall(c, previewAttempts(c)) : null;
     st.sug = sug;
@@ -120,7 +121,11 @@
       opts = [['accept', 'Đặt lịch này'], ['change', 'Chọn giờ khác'], ['none', 'Không hẹn']];
     }
     box.innerHTML = `<div class="fu-head">${head}</div><div class="sched-opts">${opts.map(([m, t]) =>
-      `<button type="button" class="sched-opt${st.nextMode === m ? ' is-sel' : ''}" data-next="${m}">${t}</button>`).join('')}</div>`;
+      `<button type="button" class="sched-opt${st.nextMode === m ? ' is-sel' : ''}" data-next="${m}" aria-pressed="${st.nextMode === m}">${t}</button>`).join('')}</div>`;
+    $('#calllog-save').textContent = st.nextMode === 'accept' ? 'Lưu kết quả + hẹn gọi'
+      : st.nextMode === 'change' ? 'Lưu + chọn giờ gọi'
+      : st.nextMode === 'drop' && sug.auto ? 'Lưu + xác nhận loại khách'
+      : st.nextMode === 'drop' ? 'Lưu + xem lý do loại' : 'Lưu kết quả';
     box.hidden = false;
   }
   $('#calllog-next')?.addEventListener('click', (e) => {
@@ -203,7 +208,13 @@
     syncNoteHint();
     renderNext();
   });
-  $('#calllog-save')?.addEventListener('click', save);
+  $('#calllog-save')?.addEventListener('click', async () => {
+    const btn = $('#calllog-save'); if (btn.disabled) return;
+    btn.disabled = true; btn.setAttribute('aria-busy', 'true');
+    try { await save(); }
+    catch (error) { $('#calllog-error').textContent = 'Chưa lưu được cuộc gọi: ' + (error.message || String(error)); }
+    finally { btn.disabled = false; btn.removeAttribute('aria-busy'); }
+  });
   $('#calllog-later')?.addEventListener('click', () => { $('#call-log-modal').close(); st = null; });
   $('#calllog-close')?.addEventListener('click', () => { $('#call-log-modal').close(); st = null; });
   $('#calllog-delete')?.addEventListener('click', removePending);

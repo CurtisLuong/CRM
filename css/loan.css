@@ -1,17 +1,17 @@
 /* loan.css — mọi class có tiền tố .lm- để không đụng CSS của CRM */
 .lm-root {
-  /* Tông màu khớp CRM (css/style.css): giấy ngà, mực xanh đen, xanh lá trầm */
-  --lm-bg: #F7F4EE;
-  --lm-card: #ffffff;
-  --lm-ink: #1A2E29;
-  --lm-muted: #6b716d;
-  --lm-line: #E4DFD3;
-  --lm-accent: #3D6B4F;
-  --lm-accent-soft: #E8EFE9;
-  --lm-warn: #9a5b00;
-  --lm-warn-soft: #fff3df;
-  --lm-bank: #2f5fb3;
-  --lm-bank-soft: #e7eefb;
+  /* Screen tokens inherit the shared light-first design system. */
+  --lm-bg: var(--bg, #F6F8FA);
+  --lm-card: var(--surface, #FFFFFF);
+  --lm-ink: var(--text, #17212B);
+  --lm-muted: var(--text-secondary, #526170);
+  --lm-line: var(--border, #DDE4EA);
+  --lm-accent: var(--text, #17212B);
+  --lm-accent-soft: var(--surface-subtle, #F1F4F7);
+  --lm-warn: var(--warning, #996100);
+  --lm-warn-soft: var(--warning-bg, #FFF7E7);
+  --lm-bank: var(--text-secondary, #526170);
+  --lm-bank-soft: var(--surface-subtle, #F1F4F7);
   --lm-radius: 10px;
   font-family: inherit; /* dùng font hệ thống của CRM (đã test tiếng Việt có dấu) */
   color: var(--lm-ink);
@@ -24,13 +24,6 @@
   box-sizing: border-box;
 }
 .lm-root *, .lm-root *::before, .lm-root *::after { box-sizing: border-box; }
-@media (prefers-color-scheme: dark) {
-  .lm-root:not([data-theme="light"]) {
-    --lm-bg: #141716; --lm-card: #1d2120; --lm-ink: #e9ece9; --lm-muted: #9aa29d;
-    --lm-line: #2e3431; --lm-accent: #4cc2a0; --lm-accent-soft: #1b3a31;
-    --lm-warn: #f0b45a; --lm-warn-soft: #3a2c15; --lm-bank: #8fb0ef; --lm-bank-soft: #1d2a42;
-  }
-}
 .lm-root[data-theme="dark"] {
   --lm-bg: #141716; --lm-card: #1d2120; --lm-ink: #e9ece9; --lm-muted: #9aa29d;
   --lm-line: #2e3431; --lm-accent: #4cc2a0; --lm-accent-soft: #1b3a31;
@@ -42,8 +35,8 @@
 .lm-head small { color: var(--lm-muted); }
 
 .lm-card { background: var(--lm-card); border: 1px solid var(--lm-line); border-radius: var(--lm-radius); padding: 14px; margin-bottom: 12px; }
-.lm-card h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--lm-muted); margin: 0 0 10px; font-weight: 600; }
-details.lm-card > summary { cursor: pointer; list-style: none; font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--lm-muted); font-weight: 600; }
+.lm-card h3 { font-size: 17px; text-transform: none; letter-spacing: 0; color: var(--lm-muted); margin: 0 0 10px; font-weight: 600; }
+details.lm-card > summary { cursor: pointer; list-style: none; font-size: 17px; text-transform: none; letter-spacing: 0; color: var(--lm-muted); font-weight: 600; }
 details.lm-card > summary::after { content: "＋"; float: right; }
 details.lm-card[open] > summary::after { content: "－"; }
 details.lm-card[open] > summary { margin-bottom: 10px; }
@@ -138,34 +131,34 @@ details.lm-card[open] > summary { margin-bottom: 10px; }
 /* ---- Tích hợp CRM ---- */
 /* Panel trong trang chi tiết khách: bỏ padding/nền riêng để hoà vào detail-section */
 .lm-root.lm-embedded { padding: 8px 0 0; background: transparent; max-width: none; }
-.lm-root.lm-embedded .lm-actions { background: linear-gradient(transparent, var(--paper, #F7F4EE) 30%); }
+.lm-root.lm-embedded .lm-actions { background: linear-gradient(transparent, var(--paper, #F6F8FA) 30%); }
 /* Bảng tính đang mở trong trang khách: tiêu đề thẻ (icon + "Tính khoản vay" + nút Đóng) DÍNH ĐỈNH ngay dưới
    thanh mini, tới khi cuộn qua hết thẻ (sticky trong phạm vi section). --detail-bar-h do loan-crm.js đo. */
 #detail-loan-section.is-loan-open .dcard-head {
   position: sticky; top: var(--detail-bar-h, 0px); z-index: 5;
   margin: -14px -16px 12px; padding: 10px 16px;
-  background: #fff; border-bottom: 1px solid var(--line, #E4DFD3);
+  background: #fff; border-bottom: 1px solid var(--line, #DDE4EA);
   border-radius: var(--card-radius, 16px) var(--card-radius, 16px) 0 0;
 }
 @media (max-width: 560px) { #detail-loan-section.is-loan-open .dcard-head { margin: -13px -14px 12px; padding: 10px 14px; } }
 .loan-head-close {
   flex: none; display: inline-flex; align-items: center; gap: 4px;
-  font: inherit; font-size: 13px; font-weight: 600; color: var(--ink, #1A2E29); cursor: pointer;
-  background: var(--paper, #F7F4EE); border: 1px solid var(--line, #E4DFD3); border-radius: 999px; padding: 5px 12px 5px 9px;
+  font: inherit; font-size: 13px; font-weight: 600; color: var(--ink, #17212B); cursor: pointer;
+  background: var(--paper, #F6F8FA); border: 1px solid var(--line, #DDE4EA); border-radius: 999px; padding: 5px 12px 5px 9px;
 }
-.loan-head-close:hover { background: #efeadf; }
+.loan-head-close:hover { background: var(--surface-subtle); }
 .loan-head-close svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; }
 /* Danh sách phương án đã lưu (trang chi tiết khách) */
 .loan-quotes { display: grid; gap: 6px; margin: 8px 0; }
-.loan-quote { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid var(--line, #E4DFD3); border-radius: 10px; background: #fff; font-size: 13px; }
+.loan-quote { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid var(--line, #DDE4EA); border-radius: 10px; background: #fff; font-size: 13px; }
 .loan-quote .lq-main { flex: 1; min-width: 0; }
-.loan-quote .lq-sub { color: #6b716d; font-size: 12px; }
+.loan-quote .lq-sub { color: var(--text-secondary); font-size: 12px; }
 .loan-quote b { font-variant-numeric: tabular-nums; }
 /* Tab "Tính vay": dòng nhập tên/SĐT tư vấn viên in trên PDF */
 /* Hàng đầu màn Tính vay: [Khách hàng] · [Tư vấn viên] — 1 hàng khi đủ rộng, tự xuống dòng khi hẹp. */
 .loan-topbar { max-width: 860px; margin: 12px auto 0; padding: 0 16px; display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 16px; }
 .loan-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-.loan-field-label { font-size: 12px; color: #8a8a80; }
+.loan-field-label { font-size: 12px; color: var(--text-muted); }
 .loan-cust { flex: 1 1 260px; }
 .loan-consultant { flex: 1 1 280px; }
 .loan-consultant-inputs { display: flex; gap: 8px; }
@@ -173,28 +166,36 @@ details.lm-card[open] > summary { margin-bottom: 10px; }
 .loan-cust-wrap { position: relative; display: flex; align-items: center; }
 .loan-cust-btn {
   flex: 1 1 auto; min-width: 0; height: 38px; display: flex; align-items: center; gap: 8px; padding: 0 34px 0 10px;
-  font: inherit; font-size: 14px; color: #8a8a80; background: #fff; border: 1px solid var(--card-border, #ECE6DA); border-radius: 10px; cursor: pointer; text-align: left;
+  font: inherit; font-size: 14px; color: var(--text-muted); background: #fff; border: 1px solid var(--card-border, #DDE4EA); border-radius: 10px; cursor: pointer; text-align: left;
 }
-.loan-cust-btn:hover { border-color: #D8CFBE; }
+.loan-cust-btn:hover { border-color: var(--border-strong); }
 .loan-cust-btn.is-set { color: var(--ink); }
-.loan-cust-ic { display: inline-flex; width: 16px; height: 16px; color: #8a8a80; flex: none; }
+.loan-cust-ic { display: inline-flex; width: 16px; height: 16px; color: var(--text-muted); flex: none; }
 .loan-cust-ic svg { width: 100%; height: 100%; }
 .loan-cust-text { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.loan-cust-caret { width: 16px; height: 16px; flex: none; fill: none; stroke: #8a8a80; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.loan-cust-caret { width: 16px; height: 16px; flex: none; fill: none; stroke: var(--text-muted); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .loan-cust-btn.is-set .loan-cust-caret { display: none; }
-.loan-cust-clear { position: absolute; right: 6px; width: 26px; height: 26px; border: none; border-radius: 50%; background: transparent; color: #8a8a80; cursor: pointer; font-size: 13px; }
-.loan-cust-clear:hover { background: #F3F0E9; color: var(--ink); }
+.loan-cust-clear { position: absolute; right: 6px; width: 26px; height: 26px; border: none; border-radius: 50%; background: transparent; color: var(--text-muted); cursor: pointer; font-size: 13px; }
+.loan-cust-clear:hover { background: var(--surface-subtle); color: var(--ink); }
 .loan-cust-pop {
   position: absolute; left: 0; right: 0; top: calc(100% + 6px); z-index: 50; min-width: 260px;
-  background: #fff; border: 1px solid var(--card-border, #ECE6DA); border-radius: 14px; padding: 8px;
+  background: #fff; border: 1px solid var(--card-border, #DDE4EA); border-radius: 14px; padding: 8px;
   box-shadow: 0 12px 32px rgba(26, 46, 41, 0.14), 0 2px 6px rgba(26, 46, 41, 0.06);
 }
-.loan-cust-search { width: 100%; height: 36px; padding: 0 12px; border: 1px solid var(--card-border, #ECE6DA); border-radius: 999px; font: inherit; font-size: 14px; background: #F7F4EE; box-sizing: border-box; }
-.loan-cust-search:focus { outline: none; background: #fff; border-color: #CFC7B6; }
+.loan-cust-search { width: 100%; height: 36px; padding: 0 12px; border: 1px solid var(--card-border, #DDE4EA); border-radius: 999px; font: inherit; font-size: 14px; background: #F6F8FA; box-sizing: border-box; }
+.loan-cust-search:focus { outline: none; background: #fff; border-color: var(--border-strong); }
 .loan-cust-list { max-height: 300px; overflow-y: auto; margin-top: 6px; }
 .loan-cust-row { display: flex; flex-direction: column; gap: 1px; width: 100%; padding: 8px 10px; border: none; border-radius: 10px; background: transparent; cursor: pointer; text-align: left; font: inherit; }
-.loan-cust-row:hover, .loan-cust-row.is-sel { background: #F7F4EE; }
+.loan-cust-row:hover, .loan-cust-row.is-sel { background: #F6F8FA; }
 .loan-cust-name { font-size: 14px; color: var(--ink); }
-.loan-cust-meta { font-size: 12px; color: #8a8a80; }
-.loan-cust-empty, .loan-cust-more { font-size: 12.5px; color: #9a9a90; padding: 10px; text-align: center; }
+.loan-cust-meta { font-size: 12px; color: var(--text-muted); }
+.loan-cust-empty, .loan-cust-more { font-size: 12.5px; color: var(--text-muted); padding: 10px; text-align: center; }
 .lm-field input.lm-other { margin-top: 6px; }
+
+/* Screen layout only: PDF output and loan calculations retain their existing contract. */
+.lm-root input:focus-visible, .lm-root select:focus-visible, .lm-root button:focus-visible { outline: 2px solid var(--focus-ring, #365F9B); outline-offset: 2px; }
+.lm-root .lm-field input, .lm-root .lm-field select, .lm-root .lm-btn, .lm-root .lm-chip, .lm-root .lm-seg button { min-height: 44px; }
+.lm-root .lm-actions { bottom: calc(76px + var(--sab, 0px)); background: var(--lm-bg); border-top: 1px solid var(--lm-line); flex-wrap: wrap; }
+.lm-root .lm-actions .lm-btn { flex: 1 1 120px; font-size: 14px; }
+.lm-root .lm-grid > *, .loan-consultant-inputs > * { min-width: 0; }
+@media (min-width: 900px) { .lm-root .lm-actions { bottom: 0; } }

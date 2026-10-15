@@ -166,3 +166,31 @@ Ví dụ và mẫu trong bộ tài liệu không phải sự chấp thuận cho 
 - Phạm vi: `SQL/add_funnel_velocity.sql` (ràng buộc bậc, cột `booking_steps`, `sla_anchor_at`), `SQL/schema.sql`, `js/velocity.js` (mới), `js/app.js`, `js/db.js` (`historyMeta`), `js/notifications.js` (rule `sla_over`), `js/followup.js`, `js/icons.js` (`nurture`, `sla`), `index.html`, `css/style.css`.
 - Tài liệu đã cập nhật: `CLAUDE.md`, `AGENTS.md`, `docs/funnel-velocity.md`, `docs/architecture.md`, `docs/design.md`, `docs/huong-dan-follow-up.md`, `docs/CHANGELOG.md`
 - Trạng thái: Đang áp dụng (chưa chạy SQL, chưa deploy lúc ghi)
+
+
+### D-009 — Design System v2 và UX thống nhất toàn webapp
+
+- Ngày: 2026-10-15
+- Loại: Đổi nguyên tắc thiết kế toàn dự án; giữ logic nghiệp vụ hiện có
+- Quyết định: `docs/DESIGN_SYSTEM.md` và `docs/UX_GUIDELINES.md` là chuẩn UI/UX mới, thay `docs/design.md`: Modern Tech / Cool Porcelain, sans-serif, CTA graphite, màu theo mức độ thời hạn/kết quả, violet dành riêng cho AI. Tổng quan ưu tiên hành động trước chỉ số; hồ sơ ưu tiên liên hệ → việc tiếp theo → ngữ cảnh. Giữ 4 tab và ID/handler hiện có.
+- Phạm vi: toàn webapp, bao gồm CSS vay có namespace `.lm-`; không đổi engine vay, persistence, schema/RLS, owner, nhịp follow-up, native Android hoặc xuất PDF. Thêm logic UI bảo vệ bản nháp/chống bấm Lưu lặp, phục hồi vị trí và số liệu nhịp chăm sóc chỉ đọc.
+- Chấp thuận: người dùng đã thay tài liệu thiết kế, yêu cầu đồng bộ tham chiếu trong AGENTS/CLAUDE, rồi yêu cầu rà soát/sửa UI/UX toàn app, giữ logic cũ và hỏi ngay khi xung đột (chat 2026-10-15).
+- Lịch sử: quy tắc visual và thứ tự KPI/hồ sơ cũ được thay bởi quyết định này; giữ các mục D-001–D-008 làm lịch sử và nguồn quy tắc nghiệp vụ.
+- Hai xung đột về tự chuyển SLA và định nghĩa quá hạn đã được người dùng chốt ngày 2026-10-15; xem D-010. D-009 vẫn chỉ ghi nhận thay đổi UI/UX.
+- Tài liệu: `AGENTS.md`, `CLAUDE.md`, `docs/DESIGN_SYSTEM.md`, `docs/UX_GUIDELINES.md`, `docs/README.md`, `docs/pitfalls.md`, audit `docs/audits/ui-ux-design-system-2026-10-15.md`.
+- Trạng thái: triển khai local; hai điểm nghiệp vụ đã chốt tại D-010; chưa deploy.
+
+
+### D-010 — Tự chuyển SLA và thống nhất thời hạn công việc
+
+- Ngày: 2026-10-15
+- Loại: Xác nhận nguyên tắc tự động hóa toàn dự án và thống nhất trạng thái thời hạn
+- Quyết định:
+  1. Giữ tự chuyển khi quá hạn mức SLA theo D-008/`VELOCITY_CONFIG`, gồm lịch hẹn kèm theo quy tắc; không thêm xác nhận từng lần. Giai đoạn chỉ cảnh báo vẫn giữ nguyên. Có lịch sử, thông báo, Hoàn tác/Mở lại như hiện có. Đây là chủ đích sản phẩm nhằm giảm số lần bấm, không phải automation do AI tự quyết.
+  2. Mọi màn dùng cách tính hiện có của Công việc/hồ sơ (`countdownTag`, `js/app.js`): việc có giờ quá hạn sau mốc +30 phút; hẹn gọi sau cuối khung +30 phút (thiếu cuối khung dùng giờ bắt đầu); đúng ranh giới vẫn đến hạn. Việc cả ngày quá hạn từ đầu ngày hôm sau, không cộng 30 phút.
+  3. Tổng quan và nhãn hạn đọc cùng nguồn. KPI “hẹn gọi quá hạn” chỉ đếm trạng thái quá hạn, không tính các hẹn đang đến hạn. Không đổi hạn lưu trong dữ liệu, thứ tự nhóm, cấu hình SLA, quyền hoặc nhịp follow-up.
+- Phạm vi: hướng dẫn gốc, UX guideline, tài liệu SLA và các chỗ trình bày thời hạn trong `js/app.js`. Giữ nguyên thân hàm `runSlaAutomation`, `VELOCITY_CONFIG` và các handler lưu nghiệp vụ.
+- Lý do/đánh đổi: tự động hóa theo quy tắc đã duyệt giảm thao tác và rối; việc chưa quá cuối khung +30 phút vẫn được nhắc là đến hạn, nhưng không bị đếm là quá hạn sớm trên Tổng quan.
+- Chấp thuận: người dùng xác nhận trực tiếp: “Khi quá SLA thì tự chuyển… tự động đỡ phải bấm nhiều gây rối”; “Thống nhất theo công việc, hồ sơ”.
+- Tài liệu: `AGENTS.md`, `CLAUDE.md`, `docs/UX_GUIDELINES.md`, `docs/funnel-velocity.md`, audit UI/UX và changelog.
+- Trạng thái: áp dụng local; chưa deploy.

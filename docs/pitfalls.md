@@ -86,7 +86,7 @@ Rule `display` có thể làm phần tử vẫn hiện dù JS đặt `el.hidden 
 
 File nguồn ghi `"Iowan Old Style"` trên macOS từng làm vỡ dấu ở các chữ ư/ơ có dấu: “ường”, “ưởng”, “ữ”, “ự”. Lỗi chỉ lộ ở heading/tên khách trong khi body sans vẫn đúng.
 
-**Quy tắc:** tránh đưa lại font này mà chưa kiểm tra. Font heading được ghi là `"Georgia", "Times New Roman", serif`.
+**Quy tắc:** tránh đưa lại font này mà chưa kiểm tra. Theo `docs/DESIGN_SYSTEM.md` v2 (2026-10-15), heading và body dùng sans-serif có hỗ trợ tiếng Việt; quy tắc heading Georgia/Times trước đây đã được thay thế.
 
 **Kiểm tra:** thử tên có ư/ơ và dấu trong h1/h2, không chỉ body. Kiểm tra trình duyệt/thiết bị liên quan khi có môi trường; không suy ra mọi hệ thống đều đúng từ một lần thử trên Mac.
 

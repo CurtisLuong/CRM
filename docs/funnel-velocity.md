@@ -24,9 +24,11 @@ Cấu hình (sửa số ở đây là đổi toàn app): `js/velocity.js` → `V
 
 Đồng hồ: Đăng kí mới = từ lúc đăng ký đến cuộc gọi đầu; Đang tiếp cận = cuộc gọi đầu đến Đạt / Loại; các giai đoạn sau = từ lúc vào giai đoạn (khách cũ ở "Hỗ trợ hồ sơ" tính từ lúc vào bậc đó).
 
-Màu: quá mục tiêu = nhãn **vàng**, quá hạn mức = **đỏ đậm** (cùng màu nhãn đếm ngược, `docs/design.md`).
+Màu: quá mục tiêu = nhãn **vàng**, quá hạn mức = **đỏ đậm** (cùng màu nhãn đếm ngược, `docs/DESIGN_SYSTEM.md`).
 
 ## Tự chuyển + hoàn tác
+
+**Triết lý đã xác nhận 2026-10-15 (D-010):** quá hạn mức ở giai đoạn đã cấu hình tự chuyển thì tự xử lý, không hỏi lại từng lần. Giảm thao tác thủ công nhưng giữ lịch sử, thông báo và Hoàn tác/Mở lại. Các giai đoạn chỉ cảnh báo trong bảng trên vẫn giữ nguyên; không suy ra tự chuyển cho mọi giai đoạn. Hạn mức SLA ở `VELOCITY_CONFIG` độc lập với khoảng đến hạn +30 phút của công việc/hẹn gọi.
 
 - App kiểm tra mỗi lần mở / tải lại danh sách, chỉ khách mình phụ trách, có thông báo nhỏ khi vừa chuyển.
 - Khách mới bị tự loại: mở lại ở hộp Khách mới ("Mở lại") → đồng hồ tính lại từ lúc mở.
