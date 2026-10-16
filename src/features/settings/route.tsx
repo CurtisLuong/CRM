@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { FeatureRoute } from '@/app/routes';
 import { useAppSession } from '@/app/session';
 import { THEME_OPTIONS, type ThemePref, useThemePref } from '@/app/theme';
@@ -24,7 +24,7 @@ type NativeWindow = Window & {
   };
 };
 
-function SettingsPage() {
+export function SettingsPage() {
   const account = useRepositoryAccount();
   const { session } = useAppSession();
   const toast = useToast();
@@ -38,6 +38,12 @@ function SettingsPage() {
   const [apkState, setApkState] = useState('');
   const [apk, setApk] = useState<ApkInfo | null>(null);
   const [online, setOnline] = useState(() => typeof navigator === 'undefined' || navigator.onLine);
+  const pendingSync = useRef(false);
+  const syncBusy = useRef(false);
+  const templatesRef = useRef(templates);
+  const aiRef = useRef(ai);
+  templatesRef.current = templates;
+  aiRef.current = ai;
   const workerUrl = import.meta.env.VITE_WORKER_URL as string | undefined;
   const showAi = aiEnabled(workerUrl, online);
 
@@ -50,6 +56,32 @@ function SettingsPage() {
       window.removeEventListener('offline', update);
     };
   }, []);
+
+  useEffect(() => {
+    if (!online || syncBusy.current || !pendingSync.current || !account || !userId) return;
+    let active = true;
+    syncBusy.current = true;
+    setSaving(true);
+    void Promise.all([
+      account.remote.saveZaloTemplatesRemote(templatesRef.current),
+      account.remote.saveAiSettingsRemote(aiRef.current),
+    ])
+      .then(([zaloOk, aiOk]) => {
+        if (!active) return;
+        pendingSync.current = !(zaloOk && aiOk);
+        if (zaloOk && aiOk) setMessage('Đã đồng bộ cài đặt đã lưu trên thiết bị.');
+      })
+      .catch(() => {
+        pendingSync.current = true;
+      })
+      .finally(() => {
+        syncBusy.current = false;
+        if (active) setSaving(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [online, account, userId]);
 
   useEffect(() => {
     if (!account || !userId) {
@@ -105,6 +137,7 @@ function SettingsPage() {
 
   const save = async () => {
     if (!account || !userId || saving) return;
+    syncBusy.current = true;
     setSaving(true);
     setMessage('');
     try {
@@ -116,6 +149,7 @@ function SettingsPage() {
         account.remote.saveZaloTemplatesRemote(templates),
         account.remote.saveAiSettingsRemote(ai),
       ]);
+      pendingSync.current = !(zaloOk && aiOk);
       setMessage(
         zaloOk && aiOk ? 'Đã lưu và đồng bộ cài đặt.' : 'Đã lưu trên thiết bị; đồng bộ sẽ thử lại khi có mạng.',
       );
@@ -123,6 +157,7 @@ function SettingsPage() {
     } catch {
       setMessage('Đã lưu trên thiết bị; chưa đồng bộ được lên tài khoản.');
     } finally {
+      syncBusy.current = false;
       setSaving(false);
     }
   };

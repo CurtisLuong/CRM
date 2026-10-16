@@ -126,14 +126,21 @@ export function parseImportValue(key: IoKey, raw: unknown): unknown {
   }
 }
 
-export function makeImportRecord(row: readonly unknown[], mapping: readonly ImportColumn[]) {
+export function makeImportRecord(
+  row: readonly unknown[],
+  mapping: readonly ImportColumn[],
+  headers: readonly unknown[] = [],
+) {
   const payload: Record<string, unknown> = {};
   const notes: string[] = [];
   for (const [index, key] of mapping.entries()) {
     const raw = row[index];
     if (key === '__note') {
       const note = text(raw);
-      if (note) notes.push(note);
+      if (note) {
+        const header = text(headers[index]) || `Cột ${index + 1}`;
+        notes.push(`${header}: ${note}`);
+      }
     } else if (key) {
       const value = parseImportValue(key, raw);
       if (value != null) payload[key] = value;

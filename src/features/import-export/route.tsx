@@ -110,7 +110,7 @@ function ImportExportPage() {
     try {
       localStorage.setItem(templateKey(userId), JSON.stringify({ mapping, headerRow }));
       for (const row of data) {
-        const { payload, notes } = makeImportRecord(row, mapping);
+        const { payload, notes } = makeImportRecord(row, mapping, headerRow ? rows[0] : []);
         if (!payload) {
           incomplete++;
           continue;

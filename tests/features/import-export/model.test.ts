@@ -35,6 +35,7 @@ describe('customer Excel fields v1 parity', () => {
     const { payload, notes } = makeImportRecord(
       ['Lan', '+84901234567', 'A, B', 'ghi chú'],
       ['full_name', 'phone', 'projects', '__note'],
+      ['Họ tên', 'Số điện thoại', 'Dự án', 'Kênh giới thiệu'],
     );
     expect(payload).toMatchObject({
       full_name: 'Lan',
@@ -43,7 +44,7 @@ describe('customer Excel fields v1 parity', () => {
       interest_level: 20,
       intake_method: 'import',
     });
-    expect(notes).toEqual(['ghi chú']);
+    expect(notes).toEqual(['Kênh giới thiệu: ghi chú']);
   });
 
   it('parses legacy date and interest formats and serializes projects for Excel', () => {
