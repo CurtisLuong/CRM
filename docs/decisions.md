@@ -25,6 +25,7 @@ Lựa chọn nền tảng ban đầu (Supabase, Cloudflare Pages, local-first) k
 | D-013 | IA/UX v2: Hôm nay · Khách hàng · Công việc · Hiệu quả | Đã duyệt hướng 2026-10-16 | Áp dụng cho v2 |
 | D-014 | Design System v3 "Signal" (sáng + tối) | Đã duyệt hướng 2026-10-16 | Áp dụng cho v2 |
 | D-015 | Bộ máy Tín hiệu là nguồn duy nhất cho ưu tiên/gợi ý/thông báo | Đã duyệt hướng 2026-10-16 | Áp dụng cho v2 |
+| D-016 | T2.B5 dùng thứ tự UX; giữ parity v1 riêng | Ngoại lệ cục bộ đã duyệt 2026-10-16 | Chỉ nghiệm thu T2.B5 |
 
 ## Ba loại kết quả
 
@@ -265,4 +266,17 @@ Ví dụ và mẫu trong bộ tài liệu không phải sự chấp thuận cho 
 - Lý do: v1 có 3 nơi tự tính ưu tiên (`dashActionGroups`, `notifications.js`, `analyticsInsightsHtml`) → dễ lệch nhau; registry cho phép nhiều agent thêm rule song song.
 - Tài liệu: `docs/PRD.md` F-04, `docs/UX_GUIDELINES.md` §6, `docs/architecture.md` §2.
 - Trạng thái: Đã duyệt hướng; áp dụng cho v2.
+
+### D-016 — Ngoại lệ parity thứ tự ưu tiên của T2.B5
+
+- Ngày: 2026-10-16
+- Loại: Ngoại lệ cục bộ
+- Nguyên tắc liên quan: `docs/tasks.md` thẻ T2.B5 yêu cầu thứ tự khớp golden v1; `docs/UX_GUIDELINES.md` §4 yêu cầu P0 → hạn → bậc → lâu chưa tương tác; D-015 và `docs/PRD.md` F-04.
+- Quyết định: API `computeSignals` mặc định dùng thứ tự UX và đầy đủ rule S01–S10. Giữ bộ test parity v1 riêng để chứng minh điều kiện, thành viên và thứ tự của các nhóm việc/thông báo cũ; không sửa golden để hợp thức hoá thứ tự mới.
+- Phạm vi: chỉ nghiệm thu T2.B5 và đầu ra bộ máy signals của task này; không đổi tiêu chí parity của task khác, không sửa v1, không mở rộng automation.
+- Lý do và đánh đổi: trên fixture, việc hồ sơ Booking cần xử lý được đưa lên trước hẹn gọi; cảnh báo vượt mục tiêu SLA có thể thêm khách chưa xuất hiện trong hàng đợi v1. Do đó đầu ra mới có thể khác cả thứ tự lẫn tập khách, nhưng phải có test riêng theo UX và bằng chứng cho từng rule.
+- Chấp thuận: Curtis chọn “Ngoại lệ cục bộ cho B5: dùng thứ tự UX, giữ test parity v1 riêng (đề xuất)” trong phiên tiếp quản nhóm Claude ngày 2026-10-16.
+- Giới hạn: không dùng ngoại lệ này để bỏ kiểm tra dữ liệu/payload hay chấp nhận sai lệch ngoài S01–S10. Mở rộng phạm vi cần quyết định mới.
+- Tài liệu đã cập nhật: `docs/decisions.md`; cổng merge T2.B5 ghi ngoại lệ vào CHANGELOG của task.
+- Trạng thái: Đã duyệt; áp dụng khi nghiệm thu T2.B5.
 
