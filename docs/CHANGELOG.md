@@ -6,6 +6,13 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-16 — T3.9: T3.9 adds the v2 loan calculator, quote store, and legacy-compatible PDF output. The route/helper contract supports T3.5 profile integration per D-019.
+
+- Added DS v3 calculator and loanPath(customerId/apartment) contract without editing the profile.
+- Added scoped loan_quotes persistence and legacy report-content PDF parity.
+- Validation on rebased HEAD: npm run check (416 tests), npm run build, focused loan tests (32/32); independent review confirms the T3.5 caller split. Full Playwright E2E will run in the merge gate.
+- File: `src/features/loan/CONTRACT.md`, `src/features/loan/LoanCalculator.tsx`, `src/features/loan/commands.ts`, `src/features/loan/model.ts`, `src/features/loan/print.css`, `src/features/loan/print.ts`, `src/features/loan/route.tsx`, `src/features/loan/store.ts`, `tests/e2e/loan.config.ts`, `tests/e2e/loan.spec.ts`, `tests/features/loan/model.test.ts`, `tests/features/loan/store.test.ts`
+
 ## 2026-10-16 — T3.1: T3.1 Quick Actions adds the call sheet flow and shared quick action host.
 
 - Added global Quick Actions host and local call outcome save flow.
