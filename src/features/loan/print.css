@@ -1,0 +1,80 @@
+@page {
+  size: A4;
+  margin: 10mm;
+}
+html,
+body {
+  margin: 0;
+  background: white;
+  color: #0e1621;
+}
+.lm-print {
+  font-family: "Be Vietnam Pro", "Segoe UI", Arial, sans-serif;
+  font-size: 10px;
+  line-height: 1.45;
+}
+.lm-print h1 {
+  font-size: 17px;
+  margin: 0;
+  text-align: center;
+}
+.lm-print .sub {
+  text-align: center;
+  margin: 4px 0 14px;
+}
+.lm-print h2 {
+  font-size: 12px;
+  border-bottom: 1px solid #8291a2;
+  padding-bottom: 4px;
+  margin: 16px 0 8px;
+  break-after: avoid;
+}
+.lm-print table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+.lm-print th,
+.lm-print td {
+  border: 1px solid #8291a2;
+  padding: 4px;
+  overflow-wrap: anywhere;
+}
+.lm-print th {
+  background: #eef2f6;
+  text-align: left;
+  font-weight: 600;
+}
+.lm-print .n {
+  text-align: right;
+  white-space: nowrap;
+}
+.lm-print .two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.lm-print .big {
+  font-size: 12px;
+  font-weight: 700;
+}
+.lm-print .foot {
+  margin-top: 14px;
+  font-size: 9px;
+}
+.lm-print .page-break {
+  break-before: page;
+}
+.lm-print tr {
+  break-inside: avoid;
+}
+.lm-print thead {
+  display: table-header-group;
+}
+@media screen {
+  body {
+    max-width: 190mm;
+    padding: 10mm;
+    margin: auto;
+  }
+}
