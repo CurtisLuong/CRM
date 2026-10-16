@@ -6,6 +6,15 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-17 — T4.1: T4.1: ghi tương tác Zalo, gặp và xem dự án
+
+- Xác nhận “Đã gửi” sau khi quay lại từ Zalo mới append tương tác vào customers.interactions qua repository; mở Zalo không tự ghi.
+- Thêm ghi nhận gặp/xem dự án trong Quick Actions; cập nhật timeline, Brief liên hệ cuối và last-touch cho tín hiệu/chỉ số từ interactions.
+- Giữ nguyên dữ liệu interactions cũ và thuộc tính không biết; không thay schema, migration, worker hay legacy v1.
+- Đã chạy npm run check: 54 test files, 503 tests passed; focused E2E quick-actions/profile: 18/18 passed.
+- Chưa kiểm chứng staging, production hoặc thiết bị thật.
+- File: `src/domain/customer/brief.ts`, `src/domain/customer/interactions.ts`, `src/domain/customer/timeline.ts`, `src/domain/signals/shared.ts`, `src/features/quick-actions/QuickActions.test.tsx`, `src/features/quick-actions/QuickActions.tsx`, `src/features/quick-actions/interactions.tsx`, `tests/domain/customer/brief.test.ts`, `tests/domain/customer/interactions.test.ts`, `tests/domain/customer/timeline.test.ts`, `tests/domain/signals/shared.test.ts`, `tests/e2e/profile.spec.ts` … (+1)
+
 ## 2026-10-17 — T3.12: T3.12 ports the v1 AI assistant client into v2 profile and Quick Actions.
 
 - Added AI brief, Zalo draft, and note-parse review using the existing Worker contract and user AI settings; drafts remain in UI until explicit approval/save, and Zalo text is only prefilled.
