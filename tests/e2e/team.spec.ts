@@ -80,7 +80,7 @@ async function installFixture(page: import('@playwright/test').Page) {
   });
 }
 
-test('admin can manage team and assign a customer with follow-along note', async ({ page }) => {
+test('admin can manage team and a server-rejected assignment rolls back in local storage', async ({ page }) => {
   await installFixture(page);
   let addBody = '';
   await page.route('http://127.0.0.1:54321/rest/v1/rpc/team_add', async (route) => {
@@ -132,7 +132,10 @@ test('admin can manage team and assign a customer with follow-along note', async
     db.close();
     return customer;
   });
-  expect(result.owner_id).toBe('t310-recipient');
-  expect(result.followers).toContain('t310-e2e-user');
-  expect((result.care_stage_history as Array<{ note: string }>).at(-1)?.note).toContain('Hẹn xem nhà mẫu thứ 7');
+  expect(result.owner_id).toBe(USER);
+  expect(result).not.toHaveProperty('followers');
+  expect(result).not.toHaveProperty('notes_manual');
+  expect(result.care_stage).toBe('Đang chăm sóc');
+  expect(result.care_stage_updated_at).toBeUndefined();
+  expect(result.care_stage_history).toEqual([{ stage: 'Đang chăm sóc', note: null, at: '2026-10-01T00:00:00.000Z' }]);
 });

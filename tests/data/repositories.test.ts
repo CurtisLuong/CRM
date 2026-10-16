@@ -154,7 +154,13 @@ describe('repository operations match real v1 payloads and local records', () =>
     await p.v1.CRM.create({ id: ID, phone: '0', full_name: 'Ngữ' });
     await p.repo.assign(ID, 'other', [UID]);
     await p.v1.CRM.update(ID, { owner_id: 'other', followers: [UID] }, { assign: true });
-    await p.equal();
+    expect(clean(await p.repo.list({ includeArchived: true }))).toEqual(clean(await p.v1.CRM.list()));
+    const v2Ops = clean(await queueGetAll(p.local)).map(({ assignmentRollback: _rollback, ...op }: any) => op);
+    expect(v2Ops).toEqual(clean(await p.v1.run('queueGetAll()')));
+    expect((await queueGetAll(p.local)).at(-1)?.assignmentRollback).toMatchObject({
+      owner_id: { present: true, value: UID },
+      followers: { present: false },
+    });
     await expect(p.repo.addNote(ID, 'bad')).rejects.toMatchObject({ code: 'READ_ONLY' });
     await p.repo.assign(ID, UID);
     await p.repo.remove(ID);
@@ -166,6 +172,54 @@ describe('repository operations match real v1 payloads and local records', () =>
     });
     await p.repo.restore(ID);
     expect(await p.repo.list()).toHaveLength(1);
+    p.local.close();
+    p.v1.CRM.suspend();
+  });
+
+  it('assignment logs a timeline note without changing stage, SLA history, or unknown customer data', async () => {
+    const p = await pair();
+    const row = {
+      id: ID,
+      phone: '0900000000',
+      full_name: 'Hưởng',
+      owner_id: UID,
+      followers: ['watcher'],
+      care_stage: 'Booking & Làm hồ sơ',
+      care_stage_updated_at: 'sla-original',
+      care_stage_history: [{ stage: 'Booking & Làm hồ sơ', at: 'history-original', x_history: true }],
+      notes_manual: [{ text: 'ghi chú cũ', at: 'note-old', x_note: 9 }],
+      x_future: { preserve: true },
+    };
+    await p.local.put(row);
+    await p.repo.update(
+      ID,
+      { owner_id: 'other', followers: [UID, 'watcher'] },
+      { assign: true, assignmentNote: 'Giao cho đồng nghiệp. Hẹn thứ 7' },
+    );
+    expect(await p.local.get(ID)).toMatchObject({
+      owner_id: 'other',
+      followers: [UID, 'watcher'],
+      care_stage: 'Booking & Làm hồ sơ',
+      care_stage_updated_at: 'sla-original',
+      care_stage_history: row.care_stage_history,
+      notes_manual: [{ text: 'Giao cho đồng nghiệp. Hẹn thứ 7', at: NOW }, ...row.notes_manual],
+      x_future: row.x_future,
+    });
+    const op = (await queueGetAll(p.local)).at(-1);
+    expect(op?.payload).not.toHaveProperty('care_stage');
+    expect(op?.payload).not.toHaveProperty('care_stage_history');
+    expect(op?.payload).toHaveProperty('notes_manual');
+
+    await p.local.put({
+      id: 'missing-stage',
+      phone: '1',
+      full_name: 'Mới',
+      owner_id: UID,
+      x_future: { keep: 1 },
+    } as any);
+    await p.repo.update('missing-stage', { owner_id: 'other', followers: [UID] }, { assign: true });
+    expect(await p.local.get('missing-stage')).not.toHaveProperty('care_stage');
+    expect(await p.local.get('missing-stage')).toHaveProperty('x_future', { keep: 1 });
     p.local.close();
     p.v1.CRM.suspend();
   });

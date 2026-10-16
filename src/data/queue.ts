@@ -17,7 +17,17 @@ export type QueueOp = {
   recordId: string;
   payload?: Record<string, unknown>;
   ts: string;
+  /** Local-only rollback metadata for v2 customer assignment rejections. Never sent to Supabase. */
+  assignmentRollback?: AssignmentRollback;
   [k: string]: unknown;
+};
+
+export type SnapshotField = { present: boolean; value?: unknown };
+export type AssignmentRollback = {
+  owner_id: SnapshotField;
+  followers: SnapshotField;
+  updated_at: SnapshotField;
+  notes_manual: SnapshotField;
 };
 
 /** Lỗi từ Supabase/PostgREST (chỉ dùng code + message). */
@@ -64,6 +74,95 @@ export async function queueCount(ldb: LocalDB): Promise<number> {
 
 export async function queueDelete(ldb: LocalDB, opId: number): Promise<void> {
   await reqResult(ldb.store(STORE_QUEUE, 'readwrite').delete(opId));
+}
+
+function sameValue(left: unknown, right: unknown) {
+  return left === right || JSON.stringify(left) === JSON.stringify(right);
+}
+
+/** Drop a server-rejected assignment and restore only its still-current assignment fields atomically. */
+async function rejectAssignment(ldb: LocalDB, op: QueueOp): Promise<boolean> {
+  ldb.markChanged();
+  return new Promise((resolve, reject) => {
+    const tx = ldb.db.transaction(['customers', STORE_QUEUE], 'readwrite');
+    const customers = tx.objectStore('customers');
+    const queue = tx.objectStore(STORE_QUEUE);
+    const rowRequest = customers.get(op.recordId);
+    const queueRequest = queue.getAll();
+    let changed = false;
+    let failure: unknown;
+    let rowReady = false;
+    let queueReady = false;
+    const apply = () => {
+      if (!rowReady || !queueReady) return;
+      try {
+        const pending = queueRequest.result as QueueOp[];
+        const current = rowRequest.result as Record<string, unknown> | undefined;
+        if (op.opId != null) queue.delete(op.opId);
+        const rollback = op.assignmentRollback;
+        const laterAssignments = pending
+          .filter(
+            (candidate) =>
+              candidate.opId != null &&
+              op.opId != null &&
+              candidate.opId > op.opId &&
+              candidate.recordId === op.recordId &&
+              candidate.type === 'update' &&
+              !!candidate.payload &&
+              Object.hasOwn(candidate.payload, 'owner_id'),
+          )
+          .sort((a, b) => (a.opId || 0) - (b.opId || 0));
+
+        if (laterAssignments.length && rollback) {
+          // Carry the earliest baseline forward so consecutive rejected handoffs restore the server state.
+          queue.put({ ...laterAssignments[0], assignmentRollback: rollback });
+        } else if (current && rollback && op.payload) {
+          const ownerMatches = sameValue(current.owner_id, op.payload.owner_id);
+          const followersMatch =
+            !Object.hasOwn(op.payload, 'followers') || sameValue(current.followers, op.payload.followers);
+          if (ownerMatches && followersMatch) {
+            const restored = { ...current };
+            for (const key of ['owner_id', 'followers'] as const) {
+              const snapshot = rollback[key];
+              if (snapshot.present) restored[key] = snapshot.value;
+              else delete restored[key];
+            }
+            // Restore the timestamp and timeline notes only if no later local edit touched the row.
+            if (current.updated_at === op.ts) {
+              const timestamp = rollback.updated_at;
+              if (timestamp.present) restored.updated_at = timestamp.value;
+              else delete restored.updated_at;
+              const notes = rollback.notes_manual;
+              if (notes.present) restored.notes_manual = notes.value;
+              else delete restored.notes_manual;
+            }
+            customers.put(restored);
+            changed = true;
+          }
+        }
+      } catch (error) {
+        failure = error;
+        tx.abort();
+      }
+    };
+    rowRequest.onsuccess = () => {
+      rowReady = true;
+      apply();
+    };
+    queueRequest.onsuccess = () => {
+      queueReady = true;
+      apply();
+    };
+    rowRequest.onerror = queueRequest.onerror = () => {
+      failure = rowRequest.error || queueRequest.error;
+      tx.abort();
+    };
+    tx.oncomplete = () => resolve(changed);
+    tx.onabort = () => reject(failure || tx.error);
+    tx.onerror = () => {
+      failure ||= tx.error;
+    };
+  });
 }
 
 /** Escape hatch khi 1 op kẹt vĩnh viễn: bỏ mọi op chờ (dữ liệu local vẫn còn). Trả số op đã bỏ. */
@@ -120,7 +219,7 @@ export function flushQueue(ldb: LocalDB, remote: CustomerRemote): Promise<FlushR
           continue;
         }
         if (op.type === 'update' && op.payload && 'owner_id' in op.payload && (isDuplicate(e) || e.code === '42501')) {
-          if (op.opId != null) await queueDelete(ldb, op.opId);
+          await rejectAssignment(ldb, op);
           assignError =
             e.code === '42501'
               ? e.message || 'Không có quyền giao khách này'

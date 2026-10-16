@@ -18,7 +18,15 @@ import {
   SCOPE_CHANGED,
   sameRecord,
 } from '@/data/localdb';
-import { type CustomerRemote, clearQueue, flushQueue, type QueueOp, queueAdd, queueGetAll } from '@/data/queue';
+import {
+  type AssignmentRollback,
+  type CustomerRemote,
+  clearQueue,
+  flushQueue,
+  type QueueOp,
+  queueAdd,
+  queueGetAll,
+} from '@/data/queue';
 import type { Customer } from '@/domain/customer';
 import { type Call, fakeSupabase, loadV1Db, rawAll, rawPut } from './v1db';
 
@@ -228,6 +236,97 @@ describe('xử lý lỗi khi flush = v1', () => {
     const res = await flushQueue(ldb, remote);
     expect(res.assignError).toBe('Không giao được: người nhận đã có khách trùng số điện thoại trong danh sách của họ');
     expect(res.pending).toBe(0);
+    ldb.close();
+  });
+
+  it.each([
+    { code: '23505', label: 'trùng SĐT' },
+    { code: '42501', label: 'server từ chối quyền' },
+  ])('assignment bị $label thì rollback field cũ nguyên tử và giữ stage/field lạ', async ({ code }) => {
+    const ldb = await openUserDB(A, { idb: new IDBFactory() });
+    const opAt = '2026-10-16T12:00:00.000Z';
+    const old = {
+      id: 'assign-rejected',
+      phone: '0900000001',
+      full_name: 'Khách cũ',
+      owner_id: A,
+      followers: ['watcher'],
+      updated_at: 'before-assignment',
+      care_stage: 'Booking & Làm hồ sơ',
+      care_stage_updated_at: 'sla-original',
+      care_stage_history: [{ stage: 'Booking & Làm hồ sơ', at: 'history-original', x_history: true }],
+      notes_manual: [{ text: 'ghi chú cũ', at: 'note-old', x_note: 9 }],
+      x_future: { preserve: true },
+    } as Customer;
+    const assignmentNote = { text: 'Giao cho người nhận', at: opAt };
+    await ldb.put({
+      ...old,
+      owner_id: B,
+      followers: [A],
+      updated_at: opAt,
+      notes_manual: [assignmentNote, ...(old.notes_manual ?? [])],
+    });
+    const rollback: AssignmentRollback = {
+      owner_id: { present: true, value: A },
+      followers: { present: true, value: ['watcher'] },
+      updated_at: { present: true, value: 'before-assignment' },
+      notes_manual: { present: true, value: old.notes_manual },
+    };
+    await queueAdd(ldb, {
+      type: 'update',
+      recordId: old.id,
+      payload: { owner_id: B, followers: [A], updated_at: opAt },
+      ts: opAt,
+      assignmentRollback: rollback,
+    });
+    const { remote } = fakeRemote(() => ({ code, message: 'server refused assignment' }));
+    const result = await flushQueue(ldb, remote);
+    expect(result.pending).toBe(0);
+    expect(await queueGetAll(ldb)).toEqual([]);
+    expect(await ldb.get(old.id)).toEqual(old);
+    expect(result.assignError).toBe(
+      code === '23505'
+        ? 'Không giao được: người nhận đã có khách trùng số điện thoại trong danh sách của họ'
+        : 'server refused assignment',
+    );
+    ldb.close();
+  });
+
+  it('assignment rollback preserves a later local edit, timestamp, note, and extension fields', async () => {
+    const ldb = await openUserDB(A, { idb: new IDBFactory() });
+    const assignmentAt = '2026-10-16T12:00:00.000Z';
+    const editedAt = '2026-10-16T12:01:00.000Z';
+    const assignmentNote = { text: 'Giao cho người nhận', at: assignmentAt };
+    const edited = {
+      id: 'assign-later-edit',
+      phone: '0900000002',
+      full_name: 'Khách đã sửa',
+      owner_id: B,
+      followers: [A],
+      updated_at: editedAt,
+      notes_manual: [assignmentNote, { text: 'ghi chú sau giao', at: editedAt, x_kept: true }],
+      x_future: { preserve: true },
+    } as Customer;
+    await ldb.put(edited);
+    await queueAdd(ldb, {
+      type: 'update',
+      recordId: edited.id,
+      payload: { owner_id: B, followers: [A], updated_at: assignmentAt },
+      ts: assignmentAt,
+      assignmentRollback: {
+        owner_id: { present: true, value: A },
+        followers: { present: true, value: ['watcher'] },
+        updated_at: { present: true, value: 'before-assignment' },
+        notes_manual: { present: true, value: [] },
+      },
+    });
+    const { remote } = fakeRemote(() => ({ code: '23505', message: 'duplicate key' }));
+    await flushQueue(ldb, remote);
+    expect(await ldb.get(edited.id)).toEqual({
+      ...edited,
+      owner_id: A,
+      followers: ['watcher'],
+    });
     ldb.close();
   });
 

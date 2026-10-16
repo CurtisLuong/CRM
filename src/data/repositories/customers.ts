@@ -2,12 +2,13 @@
 // biome-ignore-all lint/suspicious/noExplicitAny: Preserve unknown legacy and future JSON fields without projecting the aggregate.
 import type { Customer } from '@/domain/customer';
 import { ReadOnlyError, STORE_CUSTOMERS, STORE_QUEUE, sameRecord } from '../localdb';
-import { type QueueOp, queueCount } from '../queue';
+import { type AssignmentRollback, type QueueOp, queueCount } from '../queue';
 import type { CustomerSync } from '../sync';
 export type Data = Record<string, any>;
 export type UpdateOptions = {
   assign?: boolean;
   forceLog?: boolean;
+  assignmentNote?: string;
   rewind?: boolean;
   keepStages?: string[];
   careStageNote?: string | null;
@@ -76,6 +77,14 @@ export class CustomerRepository {
       await this.refresh();
       if (!local.isClosed) {
         this.sync.status.set({ pending: await queueCount(local) });
+        let stopRollbackRefresh: (() => void) | undefined;
+        if (assign) {
+          stopRollbackRefresh = this.sync.status.subscribe(() => {
+            const status = this.sync.status.getSnapshot();
+            if (status.assignError) void this.refresh().catch(() => {});
+            if (status.assignError || (!status.pending && !status.syncing)) stopRollbackRefresh?.();
+          });
+        }
         void this.sync.flushQueue().catch(() => {});
       }
     }
@@ -115,13 +124,34 @@ export class CustomerRepository {
       (existing) => {
         existing = existing || { id };
         const now = new Date().toISOString();
+        const updatePayload: Data = { ...payload };
+        let assignmentRollback: AssignmentRollback | undefined;
+        if (opts.assign && 'owner_id' in payload) {
+          const snapshot = (key: string) => ({
+            present: Object.hasOwn(existing, key),
+            ...(Object.hasOwn(existing, key) ? { value: existing[key] } : {}),
+          });
+          assignmentRollback = {
+            owner_id: snapshot('owner_id'),
+            followers: snapshot('followers'),
+            updated_at: snapshot('updated_at'),
+            notes_manual: snapshot('notes_manual'),
+          };
+          const assignmentNote = opts.assignmentNote?.trim();
+          if (assignmentNote) {
+            const note = { text: assignmentNote, at: now };
+            const notes = Array.isArray(existing.notes_manual) ? existing.notes_manual.slice() : [];
+            notes.unshift(note);
+            updatePayload.notes_manual = notes;
+          }
+        }
         // care_stage_updated_at + lịch sử ghi thêm 1 mốc khi:
         //  - careChanged: care_stage đổi sang bậc khác (đi tới hoặc lùi), HOẶC
         //  - opts.forceLog: ghi thêm 1 lần liên hệ CÙNG bậc (vd gọi lại lần 2) — dù
         //    care_stage không đổi. Sửa các field khác (không kèm 2 cờ này) → không đụng.
-        const careChanged = 'care_stage' in payload && payload.care_stage !== existing.care_stage;
+        const careChanged = 'care_stage' in updatePayload && updatePayload.care_stage !== existing.care_stage;
         const logStage = careChanged || opts.forceLog || opts.rewind;
-        const record: Data = { ...existing, ...payload, id, updated_at: now };
+        const record: Data = { ...existing, ...updatePayload, id, updated_at: now };
         if (logStage) {
           record.care_stage_updated_at = now;
           let history = Array.isArray(existing.care_stage_history) ? existing.care_stage_history.slice() : [];
@@ -133,13 +163,13 @@ export class CustomerRepository {
             history = history.filter((h: Data) => opts.keepStages?.includes(h.stage));
             const last = history[history.length - 1];
             if (!last || last.stage !== payload.care_stage) {
-              history.push({ stage: payload.care_stage || null, note: opts.careStageNote || null, at: now });
+              history.push({ stage: updatePayload.care_stage || null, note: opts.careStageNote || null, at: now });
             }
           } else {
             // Append 1 mốc mới (đổi bậc thường, hoặc ghi thêm lần cùng bậc).
             // opts.historyMeta: field gắn thêm vào mốc (vd {auto:'sla'} = app tự chuyển vì quá SLA — D-008).
             history.push({
-              stage: payload.care_stage || null,
+              stage: updatePayload.care_stage || null,
               note: opts.careStageNote || null,
               at: now,
               ...(opts.historyMeta || {}),
@@ -149,12 +179,21 @@ export class CustomerRepository {
         }
         // Gửi kèm updated_at lên server để sort/xung đột chính xác sau khi đồng bộ
         // (Supabase không tự cập nhật updated_at khi UPDATE — không có trigger).
-        const queuedPayload: Data = { ...payload, updated_at: now };
+        const queuedPayload: Data = { ...updatePayload, updated_at: now };
         if (logStage) {
           queuedPayload.care_stage_updated_at = now;
           queuedPayload.care_stage_history = record.care_stage_history;
         }
-        return { record, op: { type: 'update', recordId: id, payload: queuedPayload, ts: now } };
+        return {
+          record,
+          op: {
+            type: 'update',
+            recordId: id,
+            payload: queuedPayload,
+            ts: now,
+            ...(assignmentRollback ? { assignmentRollback } : {}),
+          },
+        };
       },
       opts.assign === true,
     );

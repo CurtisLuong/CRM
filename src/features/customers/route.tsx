@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router';
 import type { FeatureRoute } from '@/app/routes';
 import { APT_TYPES } from '@/config/aptTypes';
 import { SOURCES } from '@/config/sources';
-import { CARE_STAGE_DEFAULT, CARE_STAGE_DISPLAY, CARE_STAGE_OPTIONS } from '@/config/stages';
+import { CARE_STAGE_DISPLAY, CARE_STAGE_OPTIONS } from '@/config/stages';
 import { useCustomers, useRepositoryAccount, useSyncStatus } from '@/data/hooks';
 import type { Customer } from '@/domain/customer';
 import { callAttemptsOf, isQualified, normStage, sourceListOf } from '@/domain/customer/normalize';
@@ -241,8 +241,8 @@ function Customers() {
     try {
       await account.customers.update(
         selected.id,
-        { owner_id: assignTo, followers, care_stage: selected.care_stage || CARE_STAGE_DEFAULT },
-        { assign: true, forceLog: true, careStageNote: note },
+        { owner_id: assignTo, followers },
+        { assign: true, assignmentNote: note },
       );
       setAssignOpen(false);
       toast({
