@@ -6,6 +6,16 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-16 — T2.B3: T2.B3 — Port tìm kiếm, ghép căn, âm lịch, chuẩn hoá SĐT sang TypeScript
+
+- src/domain/search: port 1:1 CRMSearch (legacy/js/search.js) — bỏ dấu, AND nhiều từ, "cụm", gần đúng 1 lỗi cho tên (không gần đúng SĐT), điểm xếp hạng, highlight giữ chữ gốc + escape HTML, range, apartmentGroup.
+- src/domain/matching: port 1:1 CRMPropertySearch (typeCompatible, price, match); giá tính bằng engine vay TS (@/domain/loan). Thêm customersForUnit (1 căn → khách hợp, điểm cao trước; chưa có UI).
+- src/domain/lunar: port 1:1 lunar.js (âm lịch, can chi, mệnh nạp âm, cung, cầm tinh); parseDob dùng chung bản của domain khách (T2.A1, giống hệt v1).
+- src/domain/customer/phone.ts: normalizePhone, phoneDigits, normalizePhoneVN port 1:1 từ legacy/js/app.js.
+- Test: chuyển phần tìm kiếm + ghép căn của tests/search.test.js sang Vitest (tests/domain/search, tests/domain/matching); phát lại golden search / property-match / lunar / phone bằng bản TS → khớp; parity với code v1 nạp từ legacy/ (hàng nghìn chuỗi ngẫu nhiên có seed, mọi ngày 1900–2100 cho âm lịch).
+- Đã kiểm tra: npm run check (194 test) + npm run build xanh; tests/legacy-harness/run.js --check 0 khác; node tests/search.test.js vẫn pass (giữ nguyên vì còn kiểm paged-fetch v1, chưa port — không thuộc T2.B3); thử cố ý sửa sai bản TS → test báo đỏ.
+- File: `src/domain/customer/phone.ts`, `src/domain/lunar/index.ts`, `src/domain/lunar/lunar.ts`, `src/domain/matching/index.ts`, `src/domain/matching/property.ts`, `src/domain/search/index.ts`, `src/domain/search/search.ts`, `tests/domain/customer/phone.test.ts`, `tests/domain/lunar/lunar.test.ts`, `tests/domain/matching/property.test.ts`, `tests/domain/search/legacy.ts`, `tests/domain/search/parity.test.ts` … (+1)
+
 ## 2026-10-16 — T2.C3: T2.C3 — AppShell, nav 4 tab + ＋, Bảng lệnh (Cmd/Ctrl+K), Back Android
 
 - src/ui/AppShell.tsx: header (tiêu đề · ô tìm ⌘K · SyncIndicator · menu), bottom nav 4 tab + ＋ (mobile), rail trái 72↔240px (desktop, nhớ lựa chọn), vùng chính ≤760px, panel phải 360px khi có nội dung
