@@ -90,7 +90,13 @@ export class LocalDB {
     return new LocalDB(await openNamedDB(dbNameFor(userId), idb), userId);
   }
 
-  /** Số lần local đổi (put/delete/replaceAll) — pull dùng để bỏ kết quả khi local đổi trong lúc kéo. */
+  /** Invalidate in-flight remote reads before an atomic repository transaction. */
+  markChanged(): void {
+    this.assertOpen();
+    this.rev++;
+  }
+
+  /** Số lần local đổi — pull dùng để bỏ kết quả khi local đổi trong lúc kéo. */
   get revision(): number {
     return this.rev;
   }

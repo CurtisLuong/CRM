@@ -45,10 +45,18 @@ export class CustomerSync {
   }
 
   async pull() {
-    if (this.local.isClosed || !this.isOnline() || (await queueCount(this.local))) return { ok: false, skipped: true };
+    if (this.local.isClosed || !this.isOnline()) return { ok: false, skipped: true };
     const revision = this.local.revision;
     const archiveRevision = this.archiveRevision;
     try {
+      const pending = await queueCount(this.local);
+      if (
+        this.local.isClosed ||
+        revision !== this.local.revision ||
+        archiveRevision !== this.archiveRevision ||
+        pending
+      )
+        return { ok: false, skipped: true };
       const data = await pagedFetch<Customer>(this.client, 'customers', '*', () => !this.local.isClosed);
       if (
         this.local.isClosed ||
@@ -77,9 +85,16 @@ export class CustomerSync {
 
   async applyRemote(id: string, deleted = false): Promise<boolean> {
     if (!id || this.local.isClosed) return false;
-    if ((await queueGetAll(this.local)).some((op) => op.recordId === id)) return false;
     const revision = this.local.revision;
     const archiveRevision = this.archiveRevision;
+    const pending = await queueGetAll(this.local);
+    if (
+      this.local.isClosed ||
+      revision !== this.local.revision ||
+      archiveRevision !== this.archiveRevision ||
+      pending.some((op) => op.recordId === id)
+    )
+      return false;
     let row: Customer | null = null;
     if (!deleted) {
       const { data, error } = await this.client.from('customers').select('*').eq('id', id).maybeSingle();
