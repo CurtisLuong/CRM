@@ -97,7 +97,7 @@ Ký hiệu: ☐ chưa · ◐ đang làm (ghi nhánh) · ☑ xong (ghi ngày) · 
 | T1.2 | Config registry (nguồn duy nhất) | Khung | M | T1.1 | Agent | ☑ 2026-10-16 (tự merge 3f7ccf9) |
 | T2.A1 | Types + Zod + normalize legacy | A | M | T1.2 | Agent | ☑ 2026-10-16 (tự merge b99eb93) |
 | T2.A2 | LocalDB + queue tương thích v1 | A | L | T2.A1 | Agent | ☑ 2026-10-16 (tự merge 995d021) |
-| T2.A3 | Sync, Realtime, probe, Auth | A | L | T2.A2 | Agent | ☐ |
+| T2.A3 | Sync, Realtime, probe, Auth | A | L | T2.A2 | Agent | ☑ 2026-10-16 (tự merge 6c11a03) |
 | T2.A4 | Repository + React hooks | A | M | T2.A3 | Agent | ☐ |
 | T2.A5 | SQL v2: cột/bảng mới (chỉ thêm) | A | M | T2.A1 | Agent viết, chủ dự án chạy | ☑ 2026-10-16 (tự merge 4aa151d) |
 | T2.B1 | Port deadlines + followup | B | M | T1.2, T2.A1 | Agent | ☑ 2026-10-16 (tự merge 381cb6f) |

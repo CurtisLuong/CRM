@@ -6,6 +6,17 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-16 — T2.A3: T2.A3 — Sync, Realtime, probe và vòng đời tài khoản
+
+- Port paged pull đầy đủ theo id/count; không thay cache khi queue đang chờ, revision đổi hoặc tài khoản đóng. Adapter Supabase dùng insert=upsert, update=patch và flush delete v1 cũ qua queue A2.
+- Realtime gom tín hiệu 300ms rồi tải đúng một khách, bỏ echo tương đương thời gian; probe 15s/60s, focus/online/visibility, lỗi và trạng thái đồng bộ theo phiên.
+- AccountAuth local-first: nhớ tài khoản v1 khi offline, đóng phiên cũ và huỷ tác vụ trễ, đăng xuất local ngay; latest-wins cho auth events. API callback cho repository/hooks A4.
+- Xoá UI qua archiveCustomer: transaction customers+queue, đọc bản mới nhất và kiểm owner trong transaction, patch archived_at/updated_at, giữ trường lạ; rollback nếu queue ghi lỗi. Legacy delete adapter chỉ để tương thích op v1.
+- Kiểm tra local: npm run check 347 tests pass; build chạy thành công khi Playwright khởi động; cmp AGENTS.md CLAUDE.md đồng bộ. Cổng merge sẽ chạy lại check/build/golden.
+- B.3 audit: không migration/schema thay đổi; update remote chỉ nhận payload patch; full record chỉ cache local/upsert insert v1; JSONB và mã đã lưu giữ nguyên; queue/DB format giữ nguyên, A2 v1 round-trip suite chạy trong check. Không phát hiện vi phạm D-012.
+- Chưa chứng minh staging/máy thật: không có thông tin đăng nhập staging; tests/e2e/auth-staging.spec.ts là kiểm tra API opt-in chỉ cho mksjmpcsfawsiabfhoxe, không phải bằng chứng UI đăng nhập. Auth UI chưa thuộc task này. Không chạy SQL hoặc gọi production.
+- File: `src/data/auth.ts`, `src/data/pagedFetch.ts`, `src/data/probe.ts`, `src/data/realtime.ts`, `src/data/supabase.ts`, `src/data/sync.ts`, `src/data/syncStatus.ts`, `tests/data/sync.test.ts`, `tests/e2e/auth-staging.spec.ts`
+
 ## 2026-10-16 — T2.B2: T2.B2: velocity + kế hoạch tự chuyển SLA (src/domain/velocity)
 
 - Port `legacy/js/velocity.js`: `phaseOf`, `status(c, now)`, `stageEnteredAt`, `newLeadStart`, `bookingSteps`, `autoAction`, `fmt` — hàm thuần nhận `now`, đọc `src/config/velocity.ts`.
