@@ -84,6 +84,14 @@ function checkDeps() {
 // ── Phạm vi file + luật bảo toàn ─────────────────────────────────────────
 const SQL_FORBIDDEN = /\b(drop\s+(table|column|schema)|rename\s+(to|column)\b|alter\s+column\s+\w+\s+(set\s+data\s+)?type|truncate\b|delete\s+from\s+public\.customers|update\s+public\.customers\s+set)/i;
 const SECRET = /(eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}|sb_secret_[A-Za-z0-9_-]{10,}|postgres(ql)?:\/\/[^\s'"]*:[^\s'"@[\]]+@)/;
+// File v1 chuyển vào legacy/ nhưng chỗ cũ có file v2 mới cùng tên (vd. index.html) → git không thấy rename,
+// báo "A legacy/<p>". Vẫn hợp lệ nếu nội dung giống hệt byte (cùng blob) với <p> trên v2.
+const blob = (ref) => { const r = gitTry('rev-parse', '--verify', '-q', ref); return r.status === 0 ? r.stdout.trim() : null; };
+function sameAsV1(st, p, base) {
+  if (st !== 'A' || !p.startsWith('legacy/')) return false;
+  const v1 = blob(`${base}:${p.slice('legacy/'.length)}`);
+  return !!v1 && v1 === blob(`HEAD:${p}`);
+}
 function checkScope() {
   const base = `${REMOTE}/${BASE}`;
   const lines = git('diff', '--name-status', '-M', `${base}...HEAD`).split('\n').filter(Boolean);
@@ -100,7 +108,7 @@ function checkScope() {
     const isLegacy = paths.some((p) => p.startsWith('legacy/'));
     if (isLegacy) {
       if (!own.legacyMove) bad.push(`${l}: chỉ T1.1 được đụng legacy/ (code v1 giữ nguyên để đối chiếu)`);
-      else if (!(st === 'R100' && b && b.startsWith('legacy/'))) bad.push(`${l}: legacy/ chỉ nhận file v1 chuyển nguyên vẹn (rename 100%)`);
+      else if (!(st === 'R100' && b && b.startsWith('legacy/')) && !sameAsV1(st, a, base)) bad.push(`${l}: legacy/ chỉ nhận file v1 chuyển nguyên vẹn (rename 100%)`);
     }
     if (a.startsWith('SQL/') && !(st === 'A' && a.startsWith('SQL/v2/')) && a !== 'SQL/schema.sql') bad.push(`${l}: không sửa/xoá migration đã có — chỉ thêm file mới trong SQL/v2/`);
     if (st === 'D' && (a.startsWith('SQL/') || a.startsWith('tests/golden/') || a.startsWith('tests/fixtures/'))) bad.push(`${a}: không xoá SQL / golden / fixture`);
