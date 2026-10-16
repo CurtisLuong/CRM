@@ -1,0 +1,991 @@
+{
+  "_golden": {
+    "case": "deadlines",
+    "desc": "countdownTag / taskDueInfo / callReminder (D-010) ở 2 thời điểm",
+    "fixture": "tests/fixtures/legacy-customers.json",
+    "now": "2026-12-01T10:00:00+07:00",
+    "tz": "Asia/Ho_Chi_Minh"
+  },
+  "result": {
+    "clocks": {
+      "2026-12-01T10:00:00+07:00": {
+        "invalid": {
+          "callReminderInvalid": null,
+          "taskDueInfoEmpty": null,
+          "taskDueInfoInvalid": null
+        },
+        "matrix": [
+          {
+            "allDay": false,
+            "endPlusMin": 0,
+            "startOffsetMin": -2880,
+            "tag": {
+              "state": "missed",
+              "text": "quá hạn"
+            }
+          },
+          {
+            "allDay": true,
+            "endPlusMin": 0,
+            "startOffsetMin": -2880,
+            "tag": {
+              "state": "missed",
+              "text": "quá hạn"
+            }
+          },
+          {
+            "allDay": false,
+            "endPlusMin": 60,
+            "startOffsetMin": -2880,
+            "tag": {
+              "state": "missed",
+              "text": "quá hạn"
+            }
+          },
+          {
+            "allDay": false,
+            "endPlusMin": 0,
+            "startOffsetMin": -1440,
+            "tag": {
+              "state": "missed",
+              "text": "quá hạn"
+            }
+          },
+          {
+            "allDay": true,
+            "endPlusMin": 0,
+            "startOffsetMin": -1440,
+            "tag": {
+              "state": "missed",
+              "text": "quá hạn"
+            }
+          },
+          {
+            "allDay": false,
+            "endPlusMin": 60,
+            "startOffsetMin": -1440,
+            "tag": {
+              "state": "missed",
+              "text": "quá hạn"
+            }
+          },
+          {
+            "allDay": false,
+            "endPlusMin": 0,
+            "startOffsetMin": -61,
+            "tag": {
+              "state": "missed",
+              "text": "quá hạn"
+            }
+          },
+          {
+            "allDay": true,
+            "endPlusMin": 0,
+            "startOffsetMin": -61,
+            "tag": {
+              "state": "due",
+              "text": "đến hạn"
+            }
+          },
+          {
+            "allDay": false,
+            "endPlusMin": 60,
+            "startOffsetMin": -61,
+            "tag": {
+              "state": "due",
+              "text": "đến hạn"
+            }
+          },
+          {
+            "allDay": false,
+            "endPlusMin": 0,
+            "startOffsetMin": -31,
+            "tag": {
+              "state": "missed",
+              "text": "quá hạn"
+            }
+          },
+          {
+            "allDay": true,
+            "endPlusMin": 0,
+            "startOffsetMin": -31,
+            "tag": {
+              "state": "due",
+              "text": "đến hạn"
+            }
+          },
+          {
+            "allDay": false,
+            "endPlusMin": 60,
+            "startOffsetMin": -31,
+            "tag": {
+              "state": "due",
+              "text": "đến hạn"
+            }
+          },
+          {
+            "allDay": false,
+            "endPlusMin": 0,
+            "startOffsetMin": -30,
+            "tag": {
+              "state": "due",
+              "text": "đến hạn"
+            }
+          },
+          {
+            "allDay": true,
+            "endPlusMin": 0,
+            "startOffsetMin": -30,
+            "tag": {
+              "state": "due",
+              "text": "đến hạn"
+            }
+          },
+          {
+            "allDay": false,
+            "endPlusMin": 60,
+            "startOffsetMin": -30,
+            "tag": {
+              "state": "due",
+              "text": "đến hạn"
+            }
+          },
+          {
+            "allDay": false,
+            "endPlusMin": 0,
+            "startOffsetMin": -1,
+            "tag": {
+              "state": "due",
+              "text": "đến hạn"
+            }
+          },
+          {
+            "allDay": true,
+            "endPlusMin": 0,
+            "startOffsetMin": -1,
+            "tag": {
+              "state": "due",
+              "text": "đến hạn"
+            }
+          },
+          {
+            "allDay": false,
+            "endPlusMin": 60,
+            "startOffsetMin": -1,
+            "tag": {
+              "state": "due",
+              "text": "đến hạn"
+            }
+          },
+          {
+            "allDay": false,
+            "endPlusMin": 0,
+            "startOffsetMin": 0,
+            "tag": {
+              "state": "due",
+              "text": "đến hạn"
+            }
+          },
+          {
+            "allDay": true,
+            "endPlusMin": 0,
+            "startOffsetMin": 0,
+            "tag": {
+              "state": "due",
+              "text": "đến hạn"
+            }
+          },
+          {
+            "allDay": false,
+            "endPlusMin": 60,
+            "startOffsetMin": 0,
+            "tag": {
+              "state": "due",
+              "text": "đến hạn"
+            }
+          },
+          {
+            "allDay": false,
+            "endPlusMin": 0,
+            "startOffsetMin": 1,
+            "tag": {
+              "state": "soon",
+              "text": "còn 1p"
+            }
+          },
+          {
+            "allDay": true,
+            "endPlusMin": 0,
+            "startOffsetMin": 1,
+            "tag": {
+              "state": "due",
+              "text": "đến hạn"
+            }
+          },
+          {
+            "allDay": false,
+            "endPlusMin": 60,
+            "startOffsetMin": 1,
+            "tag": {
+              "state": "soon",
+              "text": "còn 1p"
+            }
+          },
+          {
+            "allDay": false,
+            "endPlusMin": 0,
+            "startOffsetMin": 59,
+            "tag": {
+              "state": "soon",
+              "text": "còn 59p"
+            }
+          },
+          {
+            "allDay": true,
+            "endPlusMin": 0,
+            "startOffsetMin": 59,
+            "tag": {
+              "state": "due",
+              "text": "đến hạn"
+            }
+          },
+          {
+            "allDay": false,
+            "endPlusMin": 60,
+            "startOffsetMin": 59,
+            "tag": {
+              "state": "soon",
+              "text": "còn 59p"
+            }
+          },
+          {
+            "allDay": false,
+            "endPlusMin": 0,
+            "startOffsetMin": 1380,
+            "tag": {
+              "state": "soon",
+              "text": "còn 23:00"
+            }
+          },
+          {
+            "allDay": true,
+            "endPlusMin": 0,
+            "startOffsetMin": 1380,
+            "tag": {
+              "state": "soon",
+              "text": "còn 1 ngày"
+            }
+          },
+          {
+            "allDay": false,
+            "endPlusMin": 60,
+            "startOffsetMin": 1380,
+            "tag": {
+              "state": "soon",
+              "text": "còn 23:00"
+            }
+          },
+          {
+            "allDay": false,
+            "endPlusMin": 0,
+            "startOffsetMin": 1500,
+            "tag": {
+              "state": "far",
+              "text": "còn 1 ngày"
+            }
+          },
+          {
+            "allDay": true,
+            "endPlusMin": 0,
+            "startOffsetMin": 1500,
+            "tag": {
+              "state": "soon",
+              "text": "còn 1 ngày"
+            }
+          },
+          {
+            "allDay": false,
+            "endPlusMin": 60,
+            "startOffsetMin": 1500,
+            "tag": {
+              "state": "far",
+              "text": "còn 1 ngày"
+            }
+          },
+          {
+            "allDay": false,
+            "endPlusMin": 0,
+            "startOffsetMin": 4320,
+            "tag": {
+              "state": "far",
+              "text": "còn 3 ngày"
+            }
+          },
+          {
+            "allDay": true,
+            "endPlusMin": 0,
+            "startOffsetMin": 4320,
+            "tag": {
+              "state": "far",
+              "text": "còn 3 ngày"
+            }
+          },
+          {
+            "allDay": false,
+            "endPlusMin": 60,
+            "startOffsetMin": 4320,
+            "tag": {
+              "state": "far",
+              "text": "còn 3 ngày"
+            }
+          },
+          {
+            "case": "NaN start",
+            "tag": null
+          }
+        ],
+        "perCustomer": {
+          "f0000000-0000-4000-8000-000000000001": {
+            "callReminder": null,
+            "openTasks": 0,
+            "tasks": []
+          },
+          "f0000000-0000-4000-8000-000000000002": {
+            "callReminder": null,
+            "openTasks": 0,
+            "tasks": []
+          },
+          "f0000000-0000-4000-8000-000000000003": {
+            "callReminder": null,
+            "openTasks": 0,
+            "tasks": []
+          },
+          "f0000000-0000-4000-8000-000000000004": {
+            "callReminder": null,
+            "openTasks": 0,
+            "tasks": []
+          },
+          "f0000000-0000-4000-8000-000000000005": {
+            "callReminder": null,
+            "openTasks": 0,
+            "tasks": []
+          },
+          "f0000000-0000-4000-8000-000000000006": {
+            "callReminder": {
+              "sort": 1796176800000,
+              "state": "soon",
+              "text": "23:00 nữa gọi"
+            },
+            "openTasks": 0,
+            "tasks": []
+          },
+          "f0000000-0000-4000-8000-000000000007": {
+            "callReminder": null,
+            "openTasks": 0,
+            "tasks": []
+          },
+          "f0000000-0000-4000-8000-000000000008": {
+            "callReminder": null,
+            "openTasks": 3,
+            "tasks": [
+              {
+                "info": {
+                  "label": "Hôm nay",
+                  "ms": 1796144340000,
+                  "state": "due"
+                },
+                "text": "Gửi pháp lý dự án qua Zalo"
+              },
+              {
+                "info": {
+                  "label": "Hôm nay · 08:00",
+                  "ms": 1796086800000,
+                  "state": "overdue"
+                },
+                "text": "Hẹn cafe tư vấn vay"
+              },
+              {
+                "info": null,
+                "text": "Gửi bảng giá"
+              },
+              {
+                "info": null,
+                "text": "Bổ sung CCCD"
+              }
+            ]
+          },
+          "f0000000-0000-4000-8000-000000000009": {
+            "callReminder": null,
+            "openTasks": 0,
+            "tasks": []
+          },
+          "f0000000-0000-4000-8000-000000000010": {
+            "callReminder": null,
+            "openTasks": 0,
+            "tasks": []
+          },
+          "f0000000-0000-4000-8000-000000000011": {
+            "callReminder": {
+              "sort": 1796092200000,
+              "state": "due",
+              "text": "đến giờ gọi"
+            },
+            "openTasks": 0,
+            "tasks": []
+          },
+          "f0000000-0000-4000-8000-000000000012": {
+            "callReminder": null,
+            "openTasks": 0,
+            "tasks": []
+          },
+          "f0000000-0000-4000-8000-000000000013": {
+            "callReminder": null,
+            "openTasks": 0,
+            "tasks": []
+          },
+          "f0000000-0000-4000-8000-000000000014": {
+            "callReminder": null,
+            "openTasks": 0,
+            "tasks": []
+          },
+          "f0000000-0000-4000-8000-000000000015": {
+            "callReminder": {
+              "sort": 1796004000000,
+              "state": "missed",
+              "text": "quên gọi 09:00"
+            },
+            "openTasks": 0,
+            "tasks": []
+          },
+          "f0000000-0000-4000-8000-000000000016": {
+            "callReminder": null,
+            "openTasks": 0,
+            "tasks": []
+          },
+          "f0000000-0000-4000-8000-000000000017": {
+            "callReminder": null,
+            "openTasks": 1,
+            "tasks": [
+              {
+                "info": {
+                  "label": "T5 3/12 · 09:00",
+                  "ms": 1796263200000,
+                  "state": ""
+                },
+                "text": "Gửi mẫu hợp đồng"
+              }
+            ]
+          },
+          "f0000000-0000-4000-8000-000000000018": {
+            "callReminder": null,
+            "openTasks": 0,
+            "tasks": []
+          },
+          "f0000000-0000-4000-8000-000000000019": {
+            "callReminder": {
+              "sort": 1796022000000,
+              "state": "missed",
+              "text": "quên gọi 14:00"
+            },
+            "openTasks": 0,
+            "tasks": []
+          },
+          "f0000000-0000-4000-8000-000000000020": {
+            "callReminder": null,
+            "openTasks": 0,
+            "tasks": []
+          }
+        }
+      },
+      "2026-12-01T23:50:00+07:00": {
+        "invalid": {
+          "callReminderInvalid": null,
+          "taskDueInfoEmpty": null,
+          "taskDueInfoInvalid": null
+        },
+        "matrix": [
+          {
+            "allDay": false,
+            "endPlusMin": 0,
+            "startOffsetMin": -2880,
+            "tag": {
+              "state": "missed",
+              "text": "quá hạn"
+            }
+          },
+          {
+            "allDay": true,
+            "endPlusMin": 0,
+            "startOffsetMin": -2880,
+            "tag": {
+              "state": "missed",
+              "text": "quá hạn"
+            }
+          },
+          {
+            "allDay": false,
+            "endPlusMin": 60,
+            "startOffsetMin": -2880,
+            "tag": {
+              "state": "missed",
+              "text": "quá hạn"
+            }
+          },
+          {
+            "allDay": false,
+            "endPlusMin": 0,
+            "startOffsetMin": -1440,
+            "tag": {
+              "state": "missed",
+              "text": "quá hạn"
+            }
+          },
+          {
+            "allDay": true,
+            "endPlusMin": 0,
+            "startOffsetMin": -1440,
+            "tag": {
+              "state": "missed",
+              "text": "quá hạn"
+            }
+          },
+          {
+            "allDay": false,
+            "endPlusMin": 60,
+            "startOffsetMin": -1440,
+            "tag": {
+              "state": "missed",
+              "text": "quá hạn"
+            }
+          },
+          {
+            "allDay": false,
+            "endPlusMin": 0,
+            "startOffsetMin": -61,
+            "tag": {
+              "state": "missed",
+              "text": "quá hạn"
+            }
+          },
+          {
+            "allDay": true,
+            "endPlusMin": 0,
+            "startOffsetMin": -61,
+            "tag": {
+              "state": "due",
+              "text": "đến hạn"
+            }
+          },
+          {
+            "allDay": false,
+            "endPlusMin": 60,
+            "startOffsetMin": -61,
+            "tag": {
+              "state": "due",
+              "text": "đến hạn"
+            }
+          },
+          {
+            "allDay": false,
+            "endPlusMin": 0,
+            "startOffsetMin": -31,
+            "tag": {
+              "state": "missed",
+              "text": "quá hạn"
+            }
+          },
+          {
+            "allDay": true,
+            "endPlusMin": 0,
+            "startOffsetMin": -31,
+            "tag": {
+              "state": "due",
+              "text": "đến hạn"
+            }
+          },
+          {
+            "allDay": false,
+            "endPlusMin": 60,
+            "startOffsetMin": -31,
+            "tag": {
+              "state": "due",
+              "text": "đến hạn"
+            }
+          },
+          {
+            "allDay": false,
+            "endPlusMin": 0,
+            "startOffsetMin": -30,
+            "tag": {
+              "state": "due",
+              "text": "đến hạn"
+            }
+          },
+          {
+            "allDay": true,
+            "endPlusMin": 0,
+            "startOffsetMin": -30,
+            "tag": {
+              "state": "due",
+              "text": "đến hạn"
+            }
+          },
+          {
+            "allDay": false,
+            "endPlusMin": 60,
+            "startOffsetMin": -30,
+            "tag": {
+              "state": "due",
+              "text": "đến hạn"
+            }
+          },
+          {
+            "allDay": false,
+            "endPlusMin": 0,
+            "startOffsetMin": -1,
+            "tag": {
+              "state": "due",
+              "text": "đến hạn"
+            }
+          },
+          {
+            "allDay": true,
+            "endPlusMin": 0,
+            "startOffsetMin": -1,
+            "tag": {
+              "state": "due",
+              "text": "đến hạn"
+            }
+          },
+          {
+            "allDay": false,
+            "endPlusMin": 60,
+            "startOffsetMin": -1,
+            "tag": {
+              "state": "due",
+              "text": "đến hạn"
+            }
+          },
+          {
+            "allDay": false,
+            "endPlusMin": 0,
+            "startOffsetMin": 0,
+            "tag": {
+              "state": "due",
+              "text": "đến hạn"
+            }
+          },
+          {
+            "allDay": true,
+            "endPlusMin": 0,
+            "startOffsetMin": 0,
+            "tag": {
+              "state": "due",
+              "text": "đến hạn"
+            }
+          },
+          {
+            "allDay": false,
+            "endPlusMin": 60,
+            "startOffsetMin": 0,
+            "tag": {
+              "state": "due",
+              "text": "đến hạn"
+            }
+          },
+          {
+            "allDay": false,
+            "endPlusMin": 0,
+            "startOffsetMin": 1,
+            "tag": {
+              "state": "soon",
+              "text": "còn 1p"
+            }
+          },
+          {
+            "allDay": true,
+            "endPlusMin": 0,
+            "startOffsetMin": 1,
+            "tag": {
+              "state": "due",
+              "text": "đến hạn"
+            }
+          },
+          {
+            "allDay": false,
+            "endPlusMin": 60,
+            "startOffsetMin": 1,
+            "tag": {
+              "state": "soon",
+              "text": "còn 1p"
+            }
+          },
+          {
+            "allDay": false,
+            "endPlusMin": 0,
+            "startOffsetMin": 59,
+            "tag": {
+              "state": "soon",
+              "text": "còn 59p"
+            }
+          },
+          {
+            "allDay": true,
+            "endPlusMin": 0,
+            "startOffsetMin": 59,
+            "tag": {
+              "state": "soon",
+              "text": "còn 1 ngày"
+            }
+          },
+          {
+            "allDay": false,
+            "endPlusMin": 60,
+            "startOffsetMin": 59,
+            "tag": {
+              "state": "soon",
+              "text": "còn 59p"
+            }
+          },
+          {
+            "allDay": false,
+            "endPlusMin": 0,
+            "startOffsetMin": 1380,
+            "tag": {
+              "state": "soon",
+              "text": "còn 23:00"
+            }
+          },
+          {
+            "allDay": true,
+            "endPlusMin": 0,
+            "startOffsetMin": 1380,
+            "tag": {
+              "state": "soon",
+              "text": "còn 1 ngày"
+            }
+          },
+          {
+            "allDay": false,
+            "endPlusMin": 60,
+            "startOffsetMin": 1380,
+            "tag": {
+              "state": "soon",
+              "text": "còn 23:00"
+            }
+          },
+          {
+            "allDay": false,
+            "endPlusMin": 0,
+            "startOffsetMin": 1500,
+            "tag": {
+              "state": "far",
+              "text": "còn 2 ngày"
+            }
+          },
+          {
+            "allDay": true,
+            "endPlusMin": 0,
+            "startOffsetMin": 1500,
+            "tag": {
+              "state": "far",
+              "text": "còn 2 ngày"
+            }
+          },
+          {
+            "allDay": false,
+            "endPlusMin": 60,
+            "startOffsetMin": 1500,
+            "tag": {
+              "state": "far",
+              "text": "còn 2 ngày"
+            }
+          },
+          {
+            "allDay": false,
+            "endPlusMin": 0,
+            "startOffsetMin": 4320,
+            "tag": {
+              "state": "far",
+              "text": "còn 3 ngày"
+            }
+          },
+          {
+            "allDay": true,
+            "endPlusMin": 0,
+            "startOffsetMin": 4320,
+            "tag": {
+              "state": "far",
+              "text": "còn 3 ngày"
+            }
+          },
+          {
+            "allDay": false,
+            "endPlusMin": 60,
+            "startOffsetMin": 4320,
+            "tag": {
+              "state": "far",
+              "text": "còn 3 ngày"
+            }
+          },
+          {
+            "case": "NaN start",
+            "tag": null
+          }
+        ],
+        "perCustomer": {
+          "f0000000-0000-4000-8000-000000000001": {
+            "callReminder": null,
+            "openTasks": 0,
+            "tasks": []
+          },
+          "f0000000-0000-4000-8000-000000000002": {
+            "callReminder": null,
+            "openTasks": 0,
+            "tasks": []
+          },
+          "f0000000-0000-4000-8000-000000000003": {
+            "callReminder": null,
+            "openTasks": 0,
+            "tasks": []
+          },
+          "f0000000-0000-4000-8000-000000000004": {
+            "callReminder": null,
+            "openTasks": 0,
+            "tasks": []
+          },
+          "f0000000-0000-4000-8000-000000000005": {
+            "callReminder": null,
+            "openTasks": 0,
+            "tasks": []
+          },
+          "f0000000-0000-4000-8000-000000000006": {
+            "callReminder": {
+              "sort": 1796176800000,
+              "state": "soon",
+              "text": "9:10 nữa gọi"
+            },
+            "openTasks": 0,
+            "tasks": []
+          },
+          "f0000000-0000-4000-8000-000000000007": {
+            "callReminder": null,
+            "openTasks": 0,
+            "tasks": []
+          },
+          "f0000000-0000-4000-8000-000000000008": {
+            "callReminder": null,
+            "openTasks": 3,
+            "tasks": [
+              {
+                "info": {
+                  "label": "Hôm nay",
+                  "ms": 1796144340000,
+                  "state": "due"
+                },
+                "text": "Gửi pháp lý dự án qua Zalo"
+              },
+              {
+                "info": {
+                  "label": "Hôm nay · 08:00",
+                  "ms": 1796086800000,
+                  "state": "overdue"
+                },
+                "text": "Hẹn cafe tư vấn vay"
+              },
+              {
+                "info": null,
+                "text": "Gửi bảng giá"
+              },
+              {
+                "info": null,
+                "text": "Bổ sung CCCD"
+              }
+            ]
+          },
+          "f0000000-0000-4000-8000-000000000009": {
+            "callReminder": null,
+            "openTasks": 0,
+            "tasks": []
+          },
+          "f0000000-0000-4000-8000-000000000010": {
+            "callReminder": null,
+            "openTasks": 0,
+            "tasks": []
+          },
+          "f0000000-0000-4000-8000-000000000011": {
+            "callReminder": {
+              "sort": 1796092200000,
+              "state": "missed",
+              "text": "quên gọi 09:30"
+            },
+            "openTasks": 0,
+            "tasks": []
+          },
+          "f0000000-0000-4000-8000-000000000012": {
+            "callReminder": null,
+            "openTasks": 0,
+            "tasks": []
+          },
+          "f0000000-0000-4000-8000-000000000013": {
+            "callReminder": null,
+            "openTasks": 0,
+            "tasks": []
+          },
+          "f0000000-0000-4000-8000-000000000014": {
+            "callReminder": null,
+            "openTasks": 0,
+            "tasks": []
+          },
+          "f0000000-0000-4000-8000-000000000015": {
+            "callReminder": {
+              "sort": 1796004000000,
+              "state": "missed",
+              "text": "quên gọi 09:00"
+            },
+            "openTasks": 0,
+            "tasks": []
+          },
+          "f0000000-0000-4000-8000-000000000016": {
+            "callReminder": null,
+            "openTasks": 0,
+            "tasks": []
+          },
+          "f0000000-0000-4000-8000-000000000017": {
+            "callReminder": null,
+            "openTasks": 1,
+            "tasks": [
+              {
+                "info": {
+                  "label": "T5 3/12 · 09:00",
+                  "ms": 1796263200000,
+                  "state": ""
+                },
+                "text": "Gửi mẫu hợp đồng"
+              }
+            ]
+          },
+          "f0000000-0000-4000-8000-000000000018": {
+            "callReminder": null,
+            "openTasks": 0,
+            "tasks": []
+          },
+          "f0000000-0000-4000-8000-000000000019": {
+            "callReminder": {
+              "sort": 1796022000000,
+              "state": "missed",
+              "text": "quên gọi 14:00"
+            },
+            "openTasks": 0,
+            "tasks": []
+          },
+          "f0000000-0000-4000-8000-000000000020": {
+            "callReminder": null,
+            "openTasks": 0,
+            "tasks": []
+          }
+        }
+      }
+    }
+  }
+}

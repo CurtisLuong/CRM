@@ -1,0 +1,443 @@
+{
+  "_readme": "Dữ liệu TỔNG HỢP cho golden test v1 (T0.4). KHÔNG chứa dữ liệu khách thật: tên, SĐT, ngày sinh đều bịa. Đồng hồ giả của harness: now = 2026-12-01T10:00:00+07:00 (thứ Ba). Thuộc tính bắt đầu bằng x_ là thuộc tính 'lạ' để kiểm tra v1 không làm rơi trường. Thêm ca: xem tests/legacy-harness/README.md.",
+  "now": "2026-12-01T10:00:00+07:00",
+  "users": {
+    "me": "11111111-1111-4111-8111-111111111111",
+    "colleague": "22222222-2222-4222-8222-222222222222"
+  },
+  "customers": [
+    {
+      "_case": "Lớp 1 · Đăng kí mới 2 giờ trước, chưa gọi · source mảng chuẩn",
+      "id": "f0000000-0000-4000-8000-000000000001",
+      "owner_id": "11111111-1111-4111-8111-111111111111",
+      "full_name": "Nguyễn Thị Thử Một",
+      "phone": "0900000001",
+      "care_stage": "Đăng kí mới",
+      "source": ["facebook_ads"],
+      "intake_method": "api",
+      "campaign": "NOXH-T12",
+      "registered_at": "2026-12-01T01:00:00.000Z",
+      "created_at": "2026-12-01T01:00:05.000Z",
+      "updated_at": "2026-12-01T01:00:05.000Z",
+      "interest_level": 20,
+      "call_attempts": [],
+      "next_tasks": [],
+      "notes_manual": [],
+      "care_stage_history": [{ "stage": "Đăng kí mới", "note": null, "at": "2026-12-01T01:00:05.000Z" }]
+    },
+    {
+      "_case": "Lớp 1 · đăng ký 23:30 đêm qua (SLA dời 7h sáng) · source dạng CHUỖI mã cũ 'landing'",
+      "id": "f0000000-0000-4000-8000-000000000002",
+      "owner_id": "11111111-1111-4111-8111-111111111111",
+      "full_name": "Trần Văn Thử Hai",
+      "phone": "0900000002",
+      "care_stage": "Đăng kí mới",
+      "source": "landing",
+      "notes": "Đăng ký từ landing: quan tâm căn 2PN, vốn khoảng 300 triệu",
+      "web_utm_source": "zalo",
+      "registered_at": "2026-11-30T16:30:00+00:00",
+      "created_at": "2026-11-30T16:30:02+00:00",
+      "updated_at": "2026-11-30T16:30:02+00:00",
+      "interest_level": 20
+    },
+    {
+      "_case": "Lớp 1 · Đang tiếp cận: 2 cuộc no_answer + 1 cuộc thiết bị result null (chưa ghi) · source mã cũ ['manual']",
+      "id": "f0000000-0000-4000-8000-000000000003",
+      "owner_id": "11111111-1111-4111-8111-111111111111",
+      "full_name": "Lê Thị Thử Ba",
+      "phone": "0900000003",
+      "care_stage": "Đang tiếp cận",
+      "source": ["manual"],
+      "intake_method": "manual",
+      "registered_at": "2026-11-29T02:00:00.000Z",
+      "created_at": "2026-11-29T02:00:00.000Z",
+      "updated_at": "2026-12-01T02:40:00.000Z",
+      "call_attempts": [
+        { "at": "2026-11-29T02:10:00.000Z", "result": "no_answer", "note": null, "duration": 0, "origin": "manual" },
+        { "at": "2026-11-30T07:05:00.000Z", "result": "no_answer", "note": null, "duration": 0, "origin": "manual" },
+        { "at": "2026-12-01T02:30:00.000Z", "result": null, "note": null, "duration": 42, "origin": "device", "device_id": "dev-3-1", "direction": "out" }
+      ]
+    },
+    {
+      "_case": "Lớp 1 · Đang tiếp cận quá 7 ngày, chưa nói chuyện được → tự Loại (SLA approach) · source mã cũ 'ocr'",
+      "id": "f0000000-0000-4000-8000-000000000004",
+      "owner_id": "11111111-1111-4111-8111-111111111111",
+      "full_name": "Phạm Văn Thử Bốn",
+      "phone": "0900000004",
+      "care_stage": "Đang tiếp cận",
+      "source": ["ocr"],
+      "registered_at": "2026-11-19T03:00:00.000Z",
+      "created_at": "2026-11-19T03:00:00.000Z",
+      "updated_at": "2026-11-22T09:00:00.000Z",
+      "call_attempts": [
+        { "at": "2026-11-20T02:00:00.000Z", "result": "no_answer", "note": null },
+        { "at": "2026-11-22T09:00:00.000Z", "result": "unreachable", "note": "Thuê bao" }
+      ],
+      "next_call_at": null
+    },
+    {
+      "_case": "Lớp 1 · 5 lần không liên lạc được liên tiếp → afterCall gợi ý tự Loại",
+      "id": "f0000000-0000-4000-8000-000000000005",
+      "owner_id": "11111111-1111-4111-8111-111111111111",
+      "full_name": "Hoàng Thị Thử Năm",
+      "phone": "0900000005",
+      "care_stage": "Đang tiếp cận",
+      "source": ["tiktok_ads"],
+      "registered_at": "2026-11-28T01:00:00.000Z",
+      "created_at": "2026-11-28T01:00:00.000Z",
+      "updated_at": "2026-12-01T01:30:00.000Z",
+      "call_attempts": [
+        { "at": "2026-11-28T01:10:00.000Z", "result": "no_answer", "note": null, "duration": 0 },
+        { "at": "2026-11-28T05:30:00.000Z", "result": "line_busy", "note": null, "duration": 0 },
+        { "at": "2026-11-29T11:30:00.000Z", "result": "hung_up", "note": null, "duration": 5 },
+        { "at": "2026-11-30T02:00:00.000Z", "result": "unreachable", "note": null, "duration": 0 },
+        { "at": "2026-12-01T01:30:00.000Z", "result": "no_answer", "note": null, "duration": 0 }
+      ]
+    },
+    {
+      "_case": "Lớp 1 · đã nói chuyện được nhưng chưa Đạt (≥30s không tự Đạt) · có lịch hẹn ngày mai",
+      "id": "f0000000-0000-4000-8000-000000000006",
+      "owner_id": "11111111-1111-4111-8111-111111111111",
+      "full_name": "Vũ Văn Thử Sáu",
+      "phone": "0900000006",
+      "care_stage": "Đang tiếp cận",
+      "source": ["facebook_ads", "zalo"],
+      "registered_at": "2026-11-30T03:00:00.000Z",
+      "created_at": "2026-11-30T03:00:00.000Z",
+      "updated_at": "2026-11-30T03:20:00.000Z",
+      "call_attempts": [
+        { "at": "2026-11-30T03:15:00.000Z", "result": "talked", "note": "Hỏi giá căn 2N, hẹn gửi bảng giá", "duration": 185, "origin": "device", "device_id": "dev-6-1", "direction": "out" }
+      ],
+      "next_call_at": "2026-12-02T02:00:00.000Z",
+      "next_call_end": "2026-12-02T04:00:00.000Z",
+      "next_call_reason": "Gửi bảng giá xong gọi lại"
+    },
+    {
+      "_case": "Lớp 1 · đã Loại (khong_du_dieu_kien) có ghi chú",
+      "id": "f0000000-0000-4000-8000-000000000007",
+      "owner_id": "11111111-1111-4111-8111-111111111111",
+      "full_name": "Đặng Thị Thử Bảy",
+      "phone": "0900000007",
+      "care_stage": "Đang tiếp cận",
+      "source": ["website"],
+      "registered_at": "2026-11-10T03:00:00.000Z",
+      "created_at": "2026-11-10T03:00:00.000Z",
+      "updated_at": "2026-11-12T03:00:00.000Z",
+      "disqualified_at": "2026-11-12T03:00:00.000Z",
+      "disqualify_reason": "khong_du_dieu_kien",
+      "disqualify_note": "Đã có nhà đứng tên",
+      "call_attempts": [
+        { "at": "2026-11-12T02:50:00.000Z", "result": "talked", "note": "Đã có sổ hồng", "duration": 95 }
+      ]
+    },
+    {
+      "_case": "Lớp 2 · Đang chăm sóc 25 ngày (quá 20) → tự chuyển Nuôi dài hạn · việc cả ngày/có giờ/đã xong + thuộc tính lạ",
+      "id": "f0000000-0000-4000-8000-000000000008",
+      "owner_id": "11111111-1111-4111-8111-111111111111",
+      "full_name": "Bùi Văn Thử Tám",
+      "phone": "0900000008",
+      "care_stage": "Đang chăm sóc",
+      "care_stage_updated_at": "2026-11-06T03:00:00.000Z",
+      "qualified_at": "2026-11-06T03:00:00.000Z",
+      "interest_level": 60,
+      "contact_status": "Phản hồi tốt",
+      "source": ["facebook_ads"],
+      "registered_at": "2026-11-05T03:00:00.000Z",
+      "created_at": "2026-11-05T03:00:00.000Z",
+      "updated_at": "2026-11-28T03:00:00.000Z",
+      "projects": ["Marquee Homes"],
+      "apt_type": "2N-2WC",
+      "apt_area": 53,
+      "finance": 250000000,
+      "call_attempts": [
+        { "at": "2026-11-05T03:20:00.000Z", "result": "talked", "note": "Quan tâm Marquee", "duration": 240 }
+      ],
+      "care_stage_history": [
+        { "stage": "Đăng kí mới", "note": null, "at": "2026-11-05T03:00:00.000Z" },
+        { "stage": "Đang chăm sóc", "note": "Đạt", "at": "2026-11-06T03:00:00.000Z" },
+        { "stage": "Đang chăm sóc", "note": "Xong việc: Gửi bảng giá", "at": "2026-11-20T03:00:00.000Z" }
+      ],
+      "next_tasks": [
+        { "text": "Gửi pháp lý dự án qua Zalo", "at": "2026-11-28T03:00:00.000Z", "kind": "message", "due": "2026-12-01T16:59:00.000Z", "due_allday": true },
+        { "text": "Hẹn cafe tư vấn vay", "at": "2026-11-28T03:01:00.000Z", "kind": "cafe", "due": "2026-12-01T01:00:00.000Z", "x_side": "me", "x_v2_key": "task-v2-unknown" },
+        { "text": "Gửi bảng giá", "at": "2026-11-10T03:00:00.000Z", "done_at": "2026-11-20T03:00:00.000Z", "log_at": "2026-11-20T03:00:00.000Z" },
+        { "text": "Bổ sung CCCD", "at": "2026-11-27T03:00:00.000Z" }
+      ]
+    },
+    {
+      "_case": "Lớp 2 · bậc cũ 'Hỗ trợ hồ sơ' + lịch sử 'Booking' (đọc qua normStage) · booking_steps bước 1 xong",
+      "id": "f0000000-0000-4000-8000-000000000009",
+      "owner_id": "11111111-1111-4111-8111-111111111111",
+      "full_name": "Đỗ Thị Thử Chín",
+      "phone": "0900000009",
+      "care_stage": "Hỗ trợ hồ sơ",
+      "qualified_at": "2026-10-01T03:00:00.000Z",
+      "care_stage_updated_at": "2026-11-11T03:00:00.000Z",
+      "interest_level": 90,
+      "source": ["referral"],
+      "registered_at": "2026-09-30T03:00:00.000Z",
+      "created_at": "2026-09-30T03:00:00.000Z",
+      "updated_at": "2026-11-20T03:00:00.000Z",
+      "projects": ["Marquee Homes"],
+      "apt_type": "2N+, 2WC",
+      "apt_area": 55,
+      "apt_direction": "Đông Nam",
+      "apt_floor": 12,
+      "finance": 400000000,
+      "booking_steps": { "cu_tru": "2026-11-15T03:00:00.000Z" },
+      "care_stage_history": [
+        { "stage": "Đang chăm sóc", "note": "Đạt", "at": "2026-10-01T03:00:00.000Z" },
+        { "stage": "Xem dự án", "note": "Đi nhà mẫu", "at": "2026-10-20T03:00:00.000Z" },
+        { "stage": "Booking", "note": "Đặt chỗ", "at": "2026-11-10T03:00:00.000Z" },
+        { "stage": "Hỗ trợ hồ sơ", "note": null, "at": "2026-11-11T03:00:00.000Z" }
+      ],
+      "call_attempts": [
+        { "at": "2026-10-01T02:00:00.000Z", "result": "talked", "note": "Ok", "duration": 300 }
+      ]
+    },
+    {
+      "_case": "Lớp 2 · bậc cũ 'Booking', vào bậc 50 ngày trước (quá mục tiêu 45) · booking_steps rỗng",
+      "id": "f0000000-0000-4000-8000-000000000010",
+      "owner_id": "11111111-1111-4111-8111-111111111111",
+      "full_name": "Ngô Văn Thử Mười",
+      "phone": "0900000010",
+      "care_stage": "Booking",
+      "qualified_at": "2026-09-01T03:00:00.000Z",
+      "care_stage_updated_at": "2026-10-12T03:00:00.000Z",
+      "interest_level": 90,
+      "source": ["facebook_ads"],
+      "registered_at": "2026-08-31T03:00:00.000Z",
+      "created_at": "2026-08-31T03:00:00.000Z",
+      "updated_at": "2026-10-12T03:00:00.000Z",
+      "booking_steps": {},
+      "care_stage_history": [
+        { "stage": "Booking", "note": "Đặt cọc", "at": "2026-10-12T03:00:00.000Z" }
+      ]
+    },
+    {
+      "_case": "Lớp 2 · Xem dự án · lịch gọi đang trong khung (đến giờ) · khách nóng 80% · dob thiếu năm '--05-12'",
+      "id": "f0000000-0000-4000-8000-000000000011",
+      "owner_id": "11111111-1111-4111-8111-111111111111",
+      "full_name": "Dương Thị Mười Một",
+      "phone": "0900000011",
+      "dob": "--05-12",
+      "care_stage": "Xem dự án",
+      "qualified_at": "2026-11-01T03:00:00.000Z",
+      "care_stage_updated_at": "2026-11-25T03:00:00.000Z",
+      "interest_level": 80,
+      "source": ["zalo"],
+      "registered_at": "2026-10-31T03:00:00.000Z",
+      "created_at": "2026-10-31T03:00:00.000Z",
+      "updated_at": "2026-11-25T03:00:00.000Z",
+      "projects": ["Vinhomes Thử"],
+      "apt_type": "2PN",
+      "finance": 300000000,
+      "next_call_at": "2026-12-01T02:30:00.000Z",
+      "next_call_end": "2026-12-01T03:30:00.000Z",
+      "next_call_reason": "Chốt lịch đi nhà mẫu",
+      "care_stage_history": [
+        { "stage": "Đang chăm sóc", "note": "Đạt", "at": "2026-11-01T03:00:00.000Z" },
+        { "stage": "Xem dự án", "note": null, "at": "2026-11-25T03:00:00.000Z" }
+      ],
+      "call_attempts": [
+        { "at": "2026-11-01T02:00:00.000Z", "result": "talked", "note": "Muốn xem nhà mẫu", "duration": 210 }
+      ]
+    },
+    {
+      "_case": "Nuôi dài hạn do app tự chuyển 2 ngày trước ({auto:'sla'}, còn Hoàn tác) · hẹn gọi lại 3 tháng",
+      "id": "f0000000-0000-4000-8000-000000000012",
+      "owner_id": "11111111-1111-4111-8111-111111111111",
+      "full_name": "Lý Văn Mười Hai",
+      "phone": "0900000012",
+      "care_stage": "Nuôi dài hạn",
+      "qualified_at": "2026-10-20T03:00:00.000Z",
+      "care_stage_updated_at": "2026-11-29T03:00:00.000Z",
+      "interest_level": 40,
+      "source": ["facebook_ads"],
+      "registered_at": "2026-10-19T03:00:00.000Z",
+      "created_at": "2026-10-19T03:00:00.000Z",
+      "updated_at": "2026-11-29T03:00:00.000Z",
+      "next_call_at": "2027-03-01T02:00:00.000Z",
+      "next_call_end": "2027-03-01T04:00:00.000Z",
+      "next_call_reason": "Hỏi lại tình hình tài chính",
+      "care_stage_history": [
+        { "stage": "Đang chăm sóc", "note": "Đạt", "at": "2026-10-20T03:00:00.000Z" },
+        { "stage": "Nuôi dài hạn", "note": "Tự động: quá 20 ngày ở \"Đang chăm sóc\" (SLA) → Nuôi dài hạn", "at": "2026-11-29T03:00:00.000Z", "auto": "sla" }
+      ]
+    },
+    {
+      "_case": "Kí HĐMB (đã mua)",
+      "id": "f0000000-0000-4000-8000-000000000013",
+      "owner_id": "11111111-1111-4111-8111-111111111111",
+      "full_name": "Mai Thị Mười Ba",
+      "phone": "0900000013",
+      "care_stage": "Kí HĐMB",
+      "qualified_at": "2026-07-01T03:00:00.000Z",
+      "care_stage_updated_at": "2026-11-15T03:00:00.000Z",
+      "interest_level": 100,
+      "source": ["referral"],
+      "registered_at": "2026-06-30T03:00:00.000Z",
+      "created_at": "2026-06-30T03:00:00.000Z",
+      "updated_at": "2026-11-15T03:00:00.000Z",
+      "booking_steps": { "cu_tru": "2026-09-01T03:00:00.000Z", "dk_nha_o": "2026-09-15T03:00:00.000Z", "tham_dinh": "2026-10-01T03:00:00.000Z", "tb_ky": "2026-11-10T03:00:00.000Z" },
+      "care_stage_history": [{ "stage": "Kí HĐMB", "note": "Ký", "at": "2026-11-15T03:00:00.000Z" }]
+    },
+    {
+      "_case": "Lớp 2 · Loại (Không chốt)",
+      "id": "f0000000-0000-4000-8000-000000000014",
+      "owner_id": "11111111-1111-4111-8111-111111111111",
+      "full_name": "Trịnh Văn Mười Bốn",
+      "phone": "0900000014",
+      "care_stage": "Loại",
+      "qualified_at": "2026-10-01T03:00:00.000Z",
+      "care_stage_updated_at": "2026-11-01T03:00:00.000Z",
+      "interest_level": 0,
+      "source": ["facebook_ads"],
+      "registered_at": "2026-09-30T03:00:00.000Z",
+      "created_at": "2026-09-30T03:00:00.000Z",
+      "updated_at": "2026-11-01T03:00:00.000Z",
+      "care_stage_history": [{ "stage": "Loại", "note": "Mua dự án khác", "at": "2026-11-01T03:00:00.000Z" }]
+    },
+    {
+      "_case": "Khách ĐỒNG NGHIỆP phụ trách, mình là follower · Đang chăm sóc quá hạn (không được tự chuyển, không vào việc của mình)",
+      "id": "f0000000-0000-4000-8000-000000000015",
+      "owner_id": "22222222-2222-4222-8222-222222222222",
+      "followers": ["11111111-1111-4111-8111-111111111111"],
+      "full_name": "Cao Thị Mười Lăm",
+      "phone": "0900000015",
+      "care_stage": "Đang chăm sóc",
+      "qualified_at": "2026-10-20T03:00:00.000Z",
+      "care_stage_updated_at": "2026-10-20T03:00:00.000Z",
+      "interest_level": 60,
+      "source": ["facebook_ads"],
+      "registered_at": "2026-10-19T03:00:00.000Z",
+      "created_at": "2026-10-19T03:00:00.000Z",
+      "updated_at": "2026-10-20T03:00:00.000Z",
+      "next_call_at": "2026-11-30T02:00:00.000Z"
+    },
+    {
+      "_case": "Lớp 2 · Đang chăm sóc · sinh nhật sau 2 ngày · 3 cuộc gọi hỏng liên tiếp → mẫu sinh_nhat + goi_nho",
+      "id": "f0000000-0000-4000-8000-000000000016",
+      "owner_id": "11111111-1111-4111-8111-111111111111",
+      "full_name": "Hồ Văn Mười Sáu",
+      "phone": "0900000016",
+      "dob": "1990-12-03",
+      "gender": "nam",
+      "care_stage": "Đang chăm sóc",
+      "qualified_at": "2026-11-20T03:00:00.000Z",
+      "care_stage_updated_at": "2026-11-20T03:00:00.000Z",
+      "interest_level": 70,
+      "source": ["facebook_ads"],
+      "registered_at": "2026-11-19T03:00:00.000Z",
+      "created_at": "2026-11-19T03:00:00.000Z",
+      "updated_at": "2026-11-30T09:00:00.000Z",
+      "call_attempts": [
+        { "at": "2026-11-19T03:10:00.000Z", "result": "talked", "note": "Ok", "duration": 120 },
+        { "at": "2026-11-27T02:00:00.000Z", "result": "no_answer", "note": null, "duration": 0 },
+        { "at": "2026-11-28T09:00:00.000Z", "result": "hung_up", "note": null, "duration": 3 },
+        { "at": "2026-11-30T09:00:00.000Z", "result": "no_answer", "note": null, "duration": 0 }
+      ]
+    },
+    {
+      "_case": "Bản ghi 'bẩn': thuộc tính lạ ở gốc + trong mọi mảng JSONB, phần tử call_attempts thiếu 'at', SĐT có +84 và dấu cách, source null, advanced object",
+      "id": "f0000000-0000-4000-8000-000000000017",
+      "owner_id": "11111111-1111-4111-8111-111111111111",
+      "full_name": "  Khách   Thử Bẩn  ",
+      "phone": "+84 900 000 017",
+      "dob": "1985-02-29",
+      "care_stage": "Đang chăm sóc",
+      "qualified_at": "2026-11-25T03:00:00.000Z",
+      "care_stage_updated_at": "2026-11-25T03:00:00.000Z",
+      "interest_level": 55,
+      "source": null,
+      "registered_at": null,
+      "created_at": "2026-11-24T03:00:00.000Z",
+      "updated_at": "2026-11-25T03:00:00.000Z",
+      "advanced": { "nghe_nghiep_chi_tiet": "Kỹ sư", "x_unknown_group": { "a": 1 } },
+      "x_future_field": { "kept": true, "list": [1, 2, 3] },
+      "notes_manual": [
+        { "text": "Thích tầng cao", "at": "2026-11-25T04:00:00.000Z", "x_by": "ai", "x_confirmed": false }
+      ],
+      "care_stage_history": [
+        { "stage": "Đang chăm sóc", "note": "Đạt", "at": "2026-11-25T03:00:00.000Z", "edited_at": "2026-11-25T05:00:00.000Z", "x_source": "import" }
+      ],
+      "call_attempts": [
+        { "at": "2026-11-25T02:00:00.000Z", "result": "talked", "note": "Ok", "duration": 61, "x_channel_meta": { "sim": 2 } },
+        { "result": "no_answer", "note": "phần tử hỏng: thiếu at" },
+        null
+      ],
+      "next_tasks": [
+        { "text": "Gửi mẫu hợp đồng", "at": "2026-11-25T06:00:00.000Z", "kind": "docs", "due": "2026-12-03T02:00:00.000Z", "x_side": "customer", "x_due_original": "2026-12-02T02:00:00.000Z" }
+      ]
+    },
+    {
+      "_case": "Lớp 1 · mở lại sau khi bị tự Loại (sla_anchor_at 1 ngày trước đặt lại đồng hồ)",
+      "id": "f0000000-0000-4000-8000-000000000018",
+      "owner_id": "11111111-1111-4111-8111-111111111111",
+      "full_name": "Kiều Thị Mười Tám",
+      "phone": "0900000018",
+      "care_stage": "Đang tiếp cận",
+      "source": ["facebook_ads"],
+      "registered_at": "2026-11-01T03:00:00.000Z",
+      "created_at": "2026-11-01T03:00:00.000Z",
+      "updated_at": "2026-11-30T03:00:00.000Z",
+      "sla_anchor_at": "2026-11-30T03:00:00.000Z",
+      "disqualified_at": null,
+      "disqualify_reason": null,
+      "call_attempts": [
+        { "at": "2026-11-01T03:30:00.000Z", "result": "no_answer", "note": null },
+        { "at": "2026-11-03T03:30:00.000Z", "result": "no_answer", "note": null }
+      ]
+    },
+    {
+      "_case": "Lớp 2 · Đang chăm sóc · lỡ lịch gọi hôm qua (quá hạn) · contact_status",
+      "id": "f0000000-0000-4000-8000-000000000019",
+      "owner_id": "11111111-1111-4111-8111-111111111111",
+      "full_name": "Tạ Văn Mười Chín",
+      "phone": "0900000019",
+      "care_stage": "Đang chăm sóc",
+      "contact_status": "Chưa gọi được",
+      "qualified_at": "2026-11-26T03:00:00.000Z",
+      "care_stage_updated_at": "2026-11-26T03:00:00.000Z",
+      "interest_level": 65,
+      "source": ["facebook_ads"],
+      "registered_at": "2026-11-25T03:00:00.000Z",
+      "created_at": "2026-11-25T03:00:00.000Z",
+      "updated_at": "2026-11-26T03:00:00.000Z",
+      "next_call_at": "2026-11-30T07:00:00.000Z",
+      "next_call_end": "2026-11-30T08:00:00.000Z",
+      "next_call_reason": "Hỏi lại về vốn",
+      "call_attempts": [
+        { "at": "2026-11-25T03:40:00.000Z", "result": "talked", "note": "Ok", "duration": 90 }
+      ]
+    },
+    {
+      "_case": "Lớp 1 · đăng ký 30 giờ trước chưa gọi (gợi ý 'quá 24 giờ chưa gọi', SLA quá hạn)",
+      "id": "f0000000-0000-4000-8000-000000000020",
+      "owner_id": "11111111-1111-4111-8111-111111111111",
+      "full_name": "Võ Thị Hai Mươi",
+      "phone": "0900000020",
+      "care_stage": "Đăng kí mới",
+      "source": ["facebook_ads"],
+      "campaign": "NOXH-T11",
+      "registered_at": "2026-11-29T21:00:00.000Z",
+      "created_at": "2026-11-29T21:00:00.000Z",
+      "updated_at": "2026-11-29T21:00:00.000Z"
+    }
+  ],
+  "catalog": {
+    "projects": [
+      { "id": "p-marquee", "name": "Marquee Homes", "vat_rate": 5, "kpbt_rate": 2 },
+      { "id": "p-vin", "name": "Vinhomes Thử", "vat_rate": null, "kpbt_rate": null }
+    ],
+    "unitPricePerM2": { "p-marquee": 20000000, "p-vin": 18000000 },
+    "units": [
+      { "id": "u1", "project_id": "p-marquee", "apt_type": "2N-2WC", "area_m2": 53, "direction": "Đông Nam", "floor": 12, "status": "available" },
+      { "id": "u2", "project_id": "p-marquee", "apt_type": "2N+, 2WC", "area_m2": 56, "direction": "Tây", "floor": 5, "status": "available" },
+      { "id": "u3", "project_id": "p-marquee", "apt_type": "2N+, 2WC", "area_m2": null, "direction": null, "floor": null, "status": "available" },
+      { "id": "u4", "project_id": "p-marquee", "apt_type": "2N-2WC", "area_m2": 50, "direction": "Nam", "floor": 7, "status": "sold" },
+      { "id": "u5", "project_id": "p-vin", "apt_type": "2N-2WC-G", "area_m2": 60, "direction": "Bắc", "floor": 20, "status": "available", "net_price_override": 1500000000 },
+      { "id": "u6", "project_id": "p-vin", "apt_type": "1N-1WC", "area_m2": 40, "direction": "Nam", "floor": 3, "status": "holding" }
+    ]
+  }
+}

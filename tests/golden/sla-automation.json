@@ -1,0 +1,50 @@
+{
+  "_golden": {
+    "case": "sla-automation",
+    "desc": "runSlaAutomation: payload gửi CRM.update, chỉ khách mình phụ trách, chạy lại lần 2 không làm gì",
+    "fixture": "tests/fixtures/legacy-customers.json",
+    "now": "2026-12-01T10:00:00+07:00",
+    "tz": "Asia/Ho_Chi_Minh"
+  },
+  "result": {
+    "first": {
+      "calls": [
+        {
+          "id": "f0000000-0000-4000-8000-000000000004",
+          "opts": null,
+          "payload": {
+            "disqualified_at": "2026-12-01T03:00:00.000Z",
+            "disqualify_note": "Tự động: quá 7 ngày ở \"Đang tiếp cận\" chưa liên lạc được (SLA)",
+            "disqualify_reason": "khong_lien_lac_duoc",
+            "next_call_at": null,
+            "next_call_end": null,
+            "next_call_reason": null
+          }
+        },
+        {
+          "id": "f0000000-0000-4000-8000-000000000008",
+          "opts": {
+            "careStageNote": "Tự động: quá 20 ngày ở \"Đang chăm sóc\" (SLA) → Nuôi dài hạn",
+            "historyMeta": {
+              "auto": "sla"
+            }
+          },
+          "payload": {
+            "care_stage": "Nuôi dài hạn",
+            "next_call_at": "2027-03-01T02:00:00.000Z",
+            "next_call_end": "2027-03-01T03:00:00.000Z",
+            "next_call_reason": "Liên hệ lại khách nuôi dài hạn"
+          }
+        }
+      ],
+      "changed": true,
+      "toasts": [
+        "Tự chuyển theo SLA: 1 khách mới → Loại (quá hạn tiếp cận) · 1 khách → Nuôi dài hạn (quá hạn chăm sóc)"
+      ]
+    },
+    "secondRun": {
+      "calls": [],
+      "changed": false
+    }
+  }
+}

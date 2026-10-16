@@ -1,0 +1,6 @@
+# Cấu hình backup / staging chứa mật khẩu database + service role key (T0.1) — KHÔNG commit.
+.env.backup
+.env.staging
+# Bản backup chứa dữ liệu khách thật — luôn lưu ngoài repo (~/CRM-backups); chặn thêm nếu lỡ đặt trong repo.
+/backups/
+*.dump

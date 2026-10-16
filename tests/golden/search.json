@@ -1,0 +1,2326 @@
+{
+  "_golden": {
+    "case": "search",
+    "desc": "CRMSearch.compile/match trên tài liệu tìm kiếm của từng khách (customerSearchDoc)",
+    "fixture": "tests/fixtures/legacy-customers.json",
+    "now": "2026-12-01T10:00:00+07:00",
+    "tz": "Asia/Ho_Chi_Minh"
+  },
+  "result": {
+    "fields": {
+      "f0000000-0000-4000-8000-000000000001": [
+        [
+          "Tên",
+          "Nguyễn Thị Thử Một"
+        ],
+        [
+          "SĐT",
+          "0900000001"
+        ],
+        [
+          "Tiến độ",
+          "Đăng kí mới"
+        ],
+        [
+          "Tiến độ",
+          "Đăng kí mới"
+        ],
+        [
+          "Kênh",
+          "Facebook Ads"
+        ],
+        [
+          "Chiến dịch",
+          "NOXH-T12"
+        ]
+      ],
+      "f0000000-0000-4000-8000-000000000002": [
+        [
+          "Tên",
+          "Trần Văn Thử Hai"
+        ],
+        [
+          "SĐT",
+          "0900000002"
+        ],
+        [
+          "Tiến độ",
+          "Đăng kí mới"
+        ],
+        [
+          "Tiến độ",
+          "Đăng kí mới"
+        ],
+        [
+          "Kênh",
+          "Landing page"
+        ],
+        [
+          "Thông tin đăng ký",
+          "Đăng ký từ landing: quan tâm căn 2PN, vốn khoảng 300 triệu"
+        ]
+      ],
+      "f0000000-0000-4000-8000-000000000003": [
+        [
+          "Tên",
+          "Lê Thị Thử Ba"
+        ],
+        [
+          "SĐT",
+          "0900000003"
+        ],
+        [
+          "Tiến độ",
+          "Đang tiếp cận"
+        ],
+        [
+          "Tiến độ",
+          "Đang tiếp cận"
+        ],
+        [
+          "Kênh",
+          "Facebook Ads"
+        ]
+      ],
+      "f0000000-0000-4000-8000-000000000004": [
+        [
+          "Tên",
+          "Phạm Văn Thử Bốn"
+        ],
+        [
+          "SĐT",
+          "0900000004"
+        ],
+        [
+          "Tiến độ",
+          "Đang tiếp cận"
+        ],
+        [
+          "Tiến độ",
+          "Đang tiếp cận"
+        ],
+        [
+          "Kênh",
+          "Facebook Ads"
+        ],
+        [
+          "Cuộc gọi",
+          "Thuê bao"
+        ]
+      ],
+      "f0000000-0000-4000-8000-000000000005": [
+        [
+          "Tên",
+          "Hoàng Thị Thử Năm"
+        ],
+        [
+          "SĐT",
+          "0900000005"
+        ],
+        [
+          "Tiến độ",
+          "Đang tiếp cận"
+        ],
+        [
+          "Tiến độ",
+          "Đang tiếp cận"
+        ],
+        [
+          "Kênh",
+          "Khác (tiktok_ads)"
+        ]
+      ],
+      "f0000000-0000-4000-8000-000000000006": [
+        [
+          "Tên",
+          "Vũ Văn Thử Sáu"
+        ],
+        [
+          "SĐT",
+          "0900000006"
+        ],
+        [
+          "Tiến độ",
+          "Đang tiếp cận"
+        ],
+        [
+          "Tiến độ",
+          "Đang tiếp cận"
+        ],
+        [
+          "Kênh",
+          "Facebook Ads + Khác (zalo)"
+        ],
+        [
+          "Cuộc gọi",
+          "Hỏi giá căn 2N, hẹn gửi bảng giá"
+        ]
+      ],
+      "f0000000-0000-4000-8000-000000000007": [
+        [
+          "Tên",
+          "Đặng Thị Thử Bảy"
+        ],
+        [
+          "SĐT",
+          "0900000007"
+        ],
+        [
+          "Tiến độ",
+          "Đang tiếp cận"
+        ],
+        [
+          "Tiến độ",
+          "Đang tiếp cận"
+        ],
+        [
+          "Kênh",
+          "Landing page"
+        ],
+        [
+          "Lý do loại",
+          "Không đủ điều kiện — Đã có nhà đứng tên"
+        ],
+        [
+          "Cuộc gọi",
+          "Đã có sổ hồng"
+        ]
+      ],
+      "f0000000-0000-4000-8000-000000000008": [
+        [
+          "Tên",
+          "Bùi Văn Thử Tám"
+        ],
+        [
+          "SĐT",
+          "0900000008"
+        ],
+        [
+          "Dự án",
+          "Marquee Homes"
+        ],
+        [
+          "Loại căn",
+          "2N-2WC"
+        ],
+        [
+          "Diện tích",
+          "53 m²"
+        ],
+        [
+          "Vốn sẵn có",
+          "250000000"
+        ],
+        [
+          "Tiến độ",
+          "Đang chăm sóc"
+        ],
+        [
+          "Tiến độ",
+          "Đang chăm sóc"
+        ],
+        [
+          "Liên lạc",
+          "Phản hồi tốt"
+        ],
+        [
+          "Quan tâm",
+          "60%"
+        ],
+        [
+          "Kênh",
+          "Facebook Ads"
+        ],
+        [
+          "Lịch sử chăm sóc",
+          "Đạt"
+        ],
+        [
+          "Lịch sử chăm sóc",
+          "Xong việc: Gửi bảng giá"
+        ],
+        [
+          "Cuộc gọi",
+          "Quan tâm Marquee"
+        ],
+        [
+          "Việc tiếp theo",
+          "Gửi pháp lý dự án qua Zalo"
+        ],
+        [
+          "Việc tiếp theo",
+          "Hẹn cafe tư vấn vay"
+        ],
+        [
+          "Việc tiếp theo",
+          "Bổ sung CCCD"
+        ]
+      ],
+      "f0000000-0000-4000-8000-000000000009": [
+        [
+          "Tên",
+          "Đỗ Thị Thử Chín"
+        ],
+        [
+          "SĐT",
+          "0900000009"
+        ],
+        [
+          "Dự án",
+          "Marquee Homes"
+        ],
+        [
+          "Loại căn",
+          "2N+, 2WC"
+        ],
+        [
+          "Diện tích",
+          "55 m²"
+        ],
+        [
+          "Hướng",
+          "Đông Nam"
+        ],
+        [
+          "Tầng",
+          "12"
+        ],
+        [
+          "Vốn sẵn có",
+          "400000000"
+        ],
+        [
+          "Tiến độ",
+          "Booking & Làm hồ sơ"
+        ],
+        [
+          "Tiến độ",
+          "Booking & Làm hồ sơ"
+        ],
+        [
+          "Quan tâm",
+          "90%"
+        ],
+        [
+          "Kênh",
+          "Khách quen / giới thiệu"
+        ],
+        [
+          "Lịch sử chăm sóc",
+          "Đạt"
+        ],
+        [
+          "Lịch sử chăm sóc",
+          "Đi nhà mẫu"
+        ],
+        [
+          "Lịch sử chăm sóc",
+          "Đặt chỗ"
+        ],
+        [
+          "Cuộc gọi",
+          "Ok"
+        ]
+      ],
+      "f0000000-0000-4000-8000-000000000010": [
+        [
+          "Tên",
+          "Ngô Văn Thử Mười"
+        ],
+        [
+          "SĐT",
+          "0900000010"
+        ],
+        [
+          "Tiến độ",
+          "Booking & Làm hồ sơ"
+        ],
+        [
+          "Tiến độ",
+          "Booking & Làm hồ sơ"
+        ],
+        [
+          "Quan tâm",
+          "90%"
+        ],
+        [
+          "Kênh",
+          "Facebook Ads"
+        ],
+        [
+          "Lịch sử chăm sóc",
+          "Đặt cọc"
+        ]
+      ],
+      "f0000000-0000-4000-8000-000000000011": [
+        [
+          "Tên",
+          "Dương Thị Mười Một"
+        ],
+        [
+          "SĐT",
+          "0900000011"
+        ],
+        [
+          "Ngày sinh",
+          "12/05"
+        ],
+        [
+          "Ngày sinh",
+          "--05-12"
+        ],
+        [
+          "Dự án",
+          "Vinhomes Thử"
+        ],
+        [
+          "Loại căn",
+          "2PN"
+        ],
+        [
+          "Vốn sẵn có",
+          "300000000"
+        ],
+        [
+          "Tiến độ",
+          "Xem dự án"
+        ],
+        [
+          "Tiến độ",
+          "Xem dự án"
+        ],
+        [
+          "Quan tâm",
+          "80%"
+        ],
+        [
+          "Kênh",
+          "Khác (zalo)"
+        ],
+        [
+          "Lịch sử chăm sóc",
+          "Đạt"
+        ],
+        [
+          "Cuộc gọi",
+          "Muốn xem nhà mẫu"
+        ]
+      ],
+      "f0000000-0000-4000-8000-000000000012": [
+        [
+          "Tên",
+          "Lý Văn Mười Hai"
+        ],
+        [
+          "SĐT",
+          "0900000012"
+        ],
+        [
+          "Tiến độ",
+          "Nuôi dài hạn"
+        ],
+        [
+          "Tiến độ",
+          "Nuôi dài hạn"
+        ],
+        [
+          "Quan tâm",
+          "40%"
+        ],
+        [
+          "Kênh",
+          "Facebook Ads"
+        ],
+        [
+          "Lịch sử chăm sóc",
+          "Đạt"
+        ],
+        [
+          "Lịch sử chăm sóc",
+          "Tự động: quá 20 ngày ở \"Đang chăm sóc\" (SLA) → Nuôi dài hạn"
+        ]
+      ],
+      "f0000000-0000-4000-8000-000000000013": [
+        [
+          "Tên",
+          "Mai Thị Mười Ba"
+        ],
+        [
+          "SĐT",
+          "0900000013"
+        ],
+        [
+          "Tiến độ",
+          "Đã ký HĐMB"
+        ],
+        [
+          "Tiến độ",
+          "Kí HĐMB"
+        ],
+        [
+          "Quan tâm",
+          "100%"
+        ],
+        [
+          "Kênh",
+          "Khách quen / giới thiệu"
+        ],
+        [
+          "Lịch sử chăm sóc",
+          "Ký"
+        ]
+      ],
+      "f0000000-0000-4000-8000-000000000014": [
+        [
+          "Tên",
+          "Trịnh Văn Mười Bốn"
+        ],
+        [
+          "SĐT",
+          "0900000014"
+        ],
+        [
+          "Tiến độ",
+          "Không chốt"
+        ],
+        [
+          "Tiến độ",
+          "Loại"
+        ],
+        [
+          "Quan tâm",
+          "0%"
+        ],
+        [
+          "Kênh",
+          "Facebook Ads"
+        ],
+        [
+          "Lịch sử chăm sóc",
+          "Mua dự án khác"
+        ]
+      ],
+      "f0000000-0000-4000-8000-000000000015": [
+        [
+          "Tên",
+          "Cao Thị Mười Lăm"
+        ],
+        [
+          "SĐT",
+          "0900000015"
+        ],
+        [
+          "Tiến độ",
+          "Đang chăm sóc"
+        ],
+        [
+          "Tiến độ",
+          "Đang chăm sóc"
+        ],
+        [
+          "Quan tâm",
+          "60%"
+        ],
+        [
+          "Kênh",
+          "Facebook Ads"
+        ]
+      ],
+      "f0000000-0000-4000-8000-000000000016": [
+        [
+          "Tên",
+          "Hồ Văn Mười Sáu"
+        ],
+        [
+          "SĐT",
+          "0900000016"
+        ],
+        [
+          "Giới tính",
+          "nam"
+        ],
+        [
+          "Ngày sinh",
+          "03/12/1990"
+        ],
+        [
+          "Ngày sinh",
+          "1990-12-03"
+        ],
+        [
+          "Tiến độ",
+          "Đang chăm sóc"
+        ],
+        [
+          "Tiến độ",
+          "Đang chăm sóc"
+        ],
+        [
+          "Quan tâm",
+          "70%"
+        ],
+        [
+          "Kênh",
+          "Facebook Ads"
+        ],
+        [
+          "Cuộc gọi",
+          "Ok"
+        ]
+      ],
+      "f0000000-0000-4000-8000-000000000017": [
+        [
+          "Tên",
+          "  Khách   Thử Bẩn  "
+        ],
+        [
+          "SĐT",
+          "+84 900 000 017"
+        ],
+        [
+          "Ngày sinh",
+          "29/02/1985"
+        ],
+        [
+          "Ngày sinh",
+          "1985-02-29"
+        ],
+        [
+          "Tiến độ",
+          "Đang chăm sóc"
+        ],
+        [
+          "Tiến độ",
+          "Đang chăm sóc"
+        ],
+        [
+          "Quan tâm",
+          "55%"
+        ],
+        [
+          "Kênh",
+          "Chưa rõ"
+        ],
+        [
+          "Ghi chú",
+          "Thích tầng cao"
+        ],
+        [
+          "Lịch sử chăm sóc",
+          "Đạt"
+        ],
+        [
+          "Cuộc gọi",
+          "Ok"
+        ],
+        [
+          "Cuộc gọi",
+          "phần tử hỏng: thiếu at"
+        ],
+        [
+          "Việc tiếp theo",
+          "Gửi mẫu hợp đồng"
+        ]
+      ],
+      "f0000000-0000-4000-8000-000000000018": [
+        [
+          "Tên",
+          "Kiều Thị Mười Tám"
+        ],
+        [
+          "SĐT",
+          "0900000018"
+        ],
+        [
+          "Tiến độ",
+          "Đang tiếp cận"
+        ],
+        [
+          "Tiến độ",
+          "Đang tiếp cận"
+        ],
+        [
+          "Kênh",
+          "Facebook Ads"
+        ]
+      ],
+      "f0000000-0000-4000-8000-000000000019": [
+        [
+          "Tên",
+          "Tạ Văn Mười Chín"
+        ],
+        [
+          "SĐT",
+          "0900000019"
+        ],
+        [
+          "Tiến độ",
+          "Đang chăm sóc"
+        ],
+        [
+          "Tiến độ",
+          "Đang chăm sóc"
+        ],
+        [
+          "Liên lạc",
+          "Chưa gọi được"
+        ],
+        [
+          "Quan tâm",
+          "65%"
+        ],
+        [
+          "Kênh",
+          "Facebook Ads"
+        ],
+        [
+          "Cuộc gọi",
+          "Ok"
+        ]
+      ],
+      "f0000000-0000-4000-8000-000000000020": [
+        [
+          "Tên",
+          "Võ Thị Hai Mươi"
+        ],
+        [
+          "SĐT",
+          "0900000020"
+        ],
+        [
+          "Tiến độ",
+          "Đăng kí mới"
+        ],
+        [
+          "Tiến độ",
+          "Đăng kí mới"
+        ],
+        [
+          "Kênh",
+          "Facebook Ads"
+        ],
+        [
+          "Chiến dịch",
+          "NOXH-T11"
+        ]
+      ]
+    },
+    "results": [
+      {
+        "hits": [
+          {
+            "fuzzy": false,
+            "highlights": [
+              "thu"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000001",
+            "score": 300
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "thu"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000002",
+            "score": 300
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "thu"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000003",
+            "score": 300
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "thu"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000004",
+            "score": 300
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "thu"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000005",
+            "score": 300
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "thu"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000006",
+            "score": 300
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "thu"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000007",
+            "score": 300
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "thu"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000008",
+            "score": 300
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "thu"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000009",
+            "score": 300
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "thu"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000010",
+            "score": 300
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "thu"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000017",
+            "score": 300
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "thu"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000011",
+            "score": 45
+          }
+        ],
+        "numeric": false,
+        "phoneOnly": false,
+        "q": "thu",
+        "scope": "all",
+        "terms": [
+          {
+            "phrase": false,
+            "text": "thu"
+          }
+        ]
+      },
+      {
+        "hits": [
+          {
+            "fuzzy": false,
+            "highlights": [
+              "thu"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000001",
+            "score": 300
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "thu"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000002",
+            "score": 300
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "thu"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000003",
+            "score": 300
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "thu"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000004",
+            "score": 300
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "thu"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000005",
+            "score": 300
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "thu"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000006",
+            "score": 300
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "thu"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000007",
+            "score": 300
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "thu"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000008",
+            "score": 300
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "thu"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000009",
+            "score": 300
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "thu"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000010",
+            "score": 300
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "thu"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000017",
+            "score": 300
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "thu"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000011",
+            "score": 45
+          }
+        ],
+        "numeric": false,
+        "phoneOnly": false,
+        "q": "thử",
+        "scope": "all",
+        "terms": [
+          {
+            "phrase": false,
+            "text": "thu"
+          }
+        ]
+      },
+      {
+        "hits": [
+          {
+            "fuzzy": false,
+            "highlights": [
+              "nguyen"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000001",
+            "score": 310
+          }
+        ],
+        "numeric": false,
+        "phoneOnly": false,
+        "q": "nguyen",
+        "scope": "all",
+        "terms": [
+          {
+            "phrase": false,
+            "text": "nguyen"
+          }
+        ]
+      },
+      {
+        "hits": [
+          {
+            "fuzzy": false,
+            "highlights": [
+              "nguyen",
+              "thi"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000001",
+            "score": 410
+          }
+        ],
+        "numeric": false,
+        "phoneOnly": false,
+        "q": "nguyễn thị",
+        "scope": "all",
+        "terms": [
+          {
+            "phrase": false,
+            "text": "nguyen"
+          },
+          {
+            "phrase": false,
+            "text": "thi"
+          }
+        ]
+      },
+      {
+        "hits": [
+          {
+            "fuzzy": false,
+            "highlights": [
+              "thu",
+              "bay"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000007",
+            "score": 400
+          }
+        ],
+        "numeric": false,
+        "phoneOnly": false,
+        "q": "thu bay",
+        "scope": "all",
+        "terms": [
+          {
+            "phrase": false,
+            "text": "thu"
+          },
+          {
+            "phrase": false,
+            "text": "bay"
+          }
+        ]
+      },
+      {
+        "hits": [
+          {
+            "fuzzy": false,
+            "highlights": [
+              "thu ban"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000017",
+            "score": 300
+          }
+        ],
+        "numeric": false,
+        "phoneOnly": false,
+        "q": "\"thử bẩn\"",
+        "scope": "all",
+        "terms": [
+          {
+            "phrase": true,
+            "text": "thu ban"
+          }
+        ]
+      },
+      {
+        "hits": [
+          {
+            "fuzzy": false,
+            "highlights": [
+              "khach",
+              "thu",
+              "ban"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000017",
+            "score": 1310
+          }
+        ],
+        "numeric": false,
+        "phoneOnly": false,
+        "q": "khách thử bẩn",
+        "scope": "name",
+        "terms": [
+          {
+            "phrase": false,
+            "text": "khach"
+          },
+          {
+            "phrase": false,
+            "text": "thu"
+          },
+          {
+            "phrase": false,
+            "text": "ban"
+          }
+        ]
+      },
+      {
+        "hits": [
+          {
+            "fuzzy": false,
+            "highlights": [
+              "muoi"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000010",
+            "score": 300
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "muoi"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000011",
+            "score": 300
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "muoi"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000012",
+            "score": 300
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "muoi"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000013",
+            "score": 300
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "muoi"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000014",
+            "score": 300
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "muoi"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000015",
+            "score": 300
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "muoi"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000016",
+            "score": 300
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "muoi"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000018",
+            "score": 300
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "muoi"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000019",
+            "score": 300
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "muoi"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000020",
+            "score": 300
+          }
+        ],
+        "numeric": false,
+        "phoneOnly": false,
+        "q": "muoi",
+        "scope": "name",
+        "terms": [
+          {
+            "phrase": false,
+            "text": "muoi"
+          }
+        ]
+      },
+      {
+        "hits": [
+          {
+            "fuzzy": true,
+            "highlights": [
+              "muoi"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000010",
+            "score": 5
+          },
+          {
+            "fuzzy": true,
+            "highlights": [
+              "muoi"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000011",
+            "score": 5
+          },
+          {
+            "fuzzy": true,
+            "highlights": [
+              "muoi"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000012",
+            "score": 5
+          },
+          {
+            "fuzzy": true,
+            "highlights": [
+              "muoi"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000013",
+            "score": 5
+          },
+          {
+            "fuzzy": true,
+            "highlights": [
+              "muoi"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000014",
+            "score": 5
+          },
+          {
+            "fuzzy": true,
+            "highlights": [
+              "muoi"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000015",
+            "score": 5
+          },
+          {
+            "fuzzy": true,
+            "highlights": [
+              "muoi"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000016",
+            "score": 5
+          },
+          {
+            "fuzzy": true,
+            "highlights": [
+              "muoi"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000018",
+            "score": 5
+          },
+          {
+            "fuzzy": true,
+            "highlights": [
+              "muoi"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000019",
+            "score": 5
+          },
+          {
+            "fuzzy": true,
+            "highlights": [
+              "muoi"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000020",
+            "score": 5
+          }
+        ],
+        "numeric": false,
+        "phoneOnly": false,
+        "q": "muoj",
+        "scope": "name",
+        "terms": [
+          {
+            "phrase": false,
+            "text": "muoj"
+          }
+        ]
+      },
+      {
+        "hits": [
+          {
+            "fuzzy": true,
+            "highlights": [
+              "thu"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000001",
+            "score": 5
+          },
+          {
+            "fuzzy": true,
+            "highlights": [
+              "thu"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000002",
+            "score": 5
+          },
+          {
+            "fuzzy": true,
+            "highlights": [
+              "thu"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000003",
+            "score": 5
+          },
+          {
+            "fuzzy": true,
+            "highlights": [
+              "thu"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000004",
+            "score": 5
+          },
+          {
+            "fuzzy": true,
+            "highlights": [
+              "thu"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000005",
+            "score": 5
+          },
+          {
+            "fuzzy": true,
+            "highlights": [
+              "thu"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000006",
+            "score": 5
+          },
+          {
+            "fuzzy": true,
+            "highlights": [
+              "thu"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000007",
+            "score": 5
+          },
+          {
+            "fuzzy": true,
+            "highlights": [
+              "thu"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000008",
+            "score": 5
+          },
+          {
+            "fuzzy": true,
+            "highlights": [
+              "thu"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000009",
+            "score": 5
+          },
+          {
+            "fuzzy": true,
+            "highlights": [
+              "thu"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000010",
+            "score": 5
+          },
+          {
+            "fuzzy": true,
+            "highlights": [
+              "thu"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000017",
+            "score": 5
+          }
+        ],
+        "numeric": false,
+        "phoneOnly": false,
+        "q": "thuw",
+        "scope": "all",
+        "terms": [
+          {
+            "phrase": false,
+            "text": "thuw"
+          }
+        ]
+      },
+      {
+        "hits": [
+          {
+            "fuzzy": false,
+            "highlights": [
+              "0900000003"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000003",
+            "score": 2000
+          }
+        ],
+        "numeric": true,
+        "phoneOnly": true,
+        "q": "0900000003",
+        "scope": "all",
+        "terms": [
+          {
+            "phrase": false,
+            "text": "0900000003"
+          }
+        ]
+      },
+      {
+        "hits": [
+          {
+            "fuzzy": false,
+            "highlights": [
+              "0900000017"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000017",
+            "score": 2000
+          }
+        ],
+        "numeric": true,
+        "phoneOnly": true,
+        "q": "+84 900 000 017",
+        "scope": "all",
+        "terms": [
+          {
+            "phrase": false,
+            "text": "+84"
+          },
+          {
+            "phrase": false,
+            "text": "900"
+          },
+          {
+            "phrase": false,
+            "text": "000"
+          },
+          {
+            "phrase": false,
+            "text": "017"
+          }
+        ]
+      },
+      {
+        "hits": [
+          {
+            "fuzzy": false,
+            "highlights": [
+              "0900000017"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000017",
+            "score": 2000
+          }
+        ],
+        "numeric": true,
+        "phoneOnly": true,
+        "q": "84900000017",
+        "scope": "all",
+        "terms": [
+          {
+            "phrase": false,
+            "text": "84900000017"
+          }
+        ]
+      },
+      {
+        "hits": [],
+        "numeric": true,
+        "phoneOnly": false,
+        "q": "000017",
+        "scope": "all",
+        "terms": [
+          {
+            "phrase": false,
+            "text": "000017"
+          }
+        ]
+      },
+      {
+        "hits": [
+          {
+            "fuzzy": false,
+            "highlights": [
+              "0900"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000001",
+            "score": 800
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "0900"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000002",
+            "score": 800
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "0900"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000003",
+            "score": 800
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "0900"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000004",
+            "score": 800
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "0900"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000005",
+            "score": 800
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "0900"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000006",
+            "score": 800
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "0900"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000007",
+            "score": 800
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "0900"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000008",
+            "score": 800
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "0900"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000009",
+            "score": 800
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "0900"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000010",
+            "score": 800
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "0900"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000011",
+            "score": 800
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "0900"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000012",
+            "score": 800
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "0900"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000013",
+            "score": 800
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "0900"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000014",
+            "score": 800
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "0900"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000015",
+            "score": 800
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "0900"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000016",
+            "score": 800
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "0900"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000017",
+            "score": 800
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "0900"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000018",
+            "score": 800
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "0900"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000019",
+            "score": 800
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "0900"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000020",
+            "score": 800
+          }
+        ],
+        "numeric": true,
+        "phoneOnly": true,
+        "q": "0900",
+        "scope": "phone",
+        "terms": [
+          {
+            "phrase": false,
+            "text": "0900"
+          }
+        ]
+      },
+      {
+        "hits": [],
+        "numeric": true,
+        "phoneOnly": true,
+        "q": "12",
+        "scope": "all",
+        "terms": [
+          {
+            "phrase": false,
+            "text": "12"
+          }
+        ]
+      },
+      {
+        "hits": [
+          {
+            "fuzzy": false,
+            "highlights": [
+              "marquee"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000008",
+            "score": 55
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "marquee"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000009",
+            "score": 55
+          }
+        ],
+        "numeric": false,
+        "phoneOnly": false,
+        "q": "marquee",
+        "scope": "all",
+        "terms": [
+          {
+            "phrase": false,
+            "text": "marquee"
+          }
+        ]
+      },
+      {
+        "hits": [
+          {
+            "fuzzy": false,
+            "highlights": [
+              "marquee"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000008",
+            "score": 55
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "marquee"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000009",
+            "score": 55
+          }
+        ],
+        "numeric": false,
+        "phoneOnly": false,
+        "q": "marquee",
+        "scope": "property",
+        "terms": [
+          {
+            "phrase": false,
+            "text": "marquee"
+          }
+        ]
+      },
+      {
+        "hits": [
+          {
+            "fuzzy": false,
+            "highlights": [
+              "2n"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000011",
+            "score": 75
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "2n"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000008",
+            "score": 55
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "2n"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000009",
+            "score": 55
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "2n"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000002",
+            "score": 10
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "2n"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000006",
+            "score": 10
+          }
+        ],
+        "numeric": false,
+        "phoneOnly": false,
+        "q": "2PN",
+        "scope": "all",
+        "terms": [
+          {
+            "phrase": false,
+            "text": "2n"
+          }
+        ]
+      },
+      {
+        "hits": [
+          {
+            "fuzzy": false,
+            "highlights": [
+              "2n"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000011",
+            "score": 75
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "2n"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000008",
+            "score": 55
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "2n"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000009",
+            "score": 55
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "2n"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000002",
+            "score": 10
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "2n"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000006",
+            "score": 10
+          }
+        ],
+        "numeric": false,
+        "phoneOnly": false,
+        "q": "2n",
+        "scope": "all",
+        "terms": [
+          {
+            "phrase": false,
+            "text": "2n"
+          }
+        ]
+      },
+      {
+        "hits": [
+          {
+            "fuzzy": false,
+            "highlights": [
+              "2n"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000011",
+            "score": 75
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "2n"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000008",
+            "score": 55
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "2n"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000009",
+            "score": 55
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "2n"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000002",
+            "score": 10
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "2n"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000006",
+            "score": 10
+          }
+        ],
+        "numeric": false,
+        "phoneOnly": false,
+        "q": "2 phòng ngủ",
+        "scope": "all",
+        "terms": [
+          {
+            "phrase": false,
+            "text": "2n"
+          }
+        ]
+      },
+      {
+        "hits": [
+          {
+            "fuzzy": false,
+            "highlights": [
+              "dong",
+              "nam"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000009",
+            "score": 100
+          }
+        ],
+        "numeric": false,
+        "phoneOnly": false,
+        "q": "đông nam",
+        "scope": "all",
+        "terms": [
+          {
+            "phrase": false,
+            "text": "dong"
+          },
+          {
+            "phrase": false,
+            "text": "nam"
+          }
+        ]
+      },
+      {
+        "hits": [
+          {
+            "fuzzy": false,
+            "highlights": [
+              "bang",
+              "gia"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000006",
+            "score": 20
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "bang",
+              "gia"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000008",
+            "score": 20
+          }
+        ],
+        "numeric": false,
+        "phoneOnly": false,
+        "q": "bảng giá",
+        "scope": "all",
+        "terms": [
+          {
+            "phrase": false,
+            "text": "bang"
+          },
+          {
+            "phrase": false,
+            "text": "gia"
+          }
+        ]
+      },
+      {
+        "hits": [
+          {
+            "fuzzy": false,
+            "highlights": [
+              "bang",
+              "gia"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000006",
+            "score": 20
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "bang",
+              "gia"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000008",
+            "score": 20
+          }
+        ],
+        "numeric": false,
+        "phoneOnly": false,
+        "q": "bảng giá",
+        "scope": "notes",
+        "terms": [
+          {
+            "phrase": false,
+            "text": "bang"
+          },
+          {
+            "phrase": false,
+            "text": "gia"
+          }
+        ]
+      },
+      {
+        "hits": [
+          {
+            "fuzzy": false,
+            "highlights": [
+              "nha",
+              "mau"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000009",
+            "score": 20
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "nha",
+              "mau"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000011",
+            "score": 20
+          }
+        ],
+        "numeric": false,
+        "phoneOnly": false,
+        "q": "nhà mẫu",
+        "scope": "all",
+        "terms": [
+          {
+            "phrase": false,
+            "text": "nha"
+          },
+          {
+            "phrase": false,
+            "text": "mau"
+          }
+        ]
+      },
+      {
+        "hits": [
+          {
+            "fuzzy": false,
+            "highlights": [
+              "so",
+              "hong"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000017",
+            "score": 30
+          },
+          {
+            "fuzzy": false,
+            "highlights": [
+              "so",
+              "hong"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000007",
+            "score": 20
+          }
+        ],
+        "numeric": false,
+        "phoneOnly": false,
+        "q": "sổ hồng",
+        "scope": "all",
+        "terms": [
+          {
+            "phrase": false,
+            "text": "so"
+          },
+          {
+            "phrase": false,
+            "text": "hong"
+          }
+        ]
+      },
+      {
+        "hits": [
+          {
+            "fuzzy": false,
+            "highlights": [
+              "da",
+              "co",
+              "nha"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000007",
+            "score": 130
+          }
+        ],
+        "numeric": false,
+        "phoneOnly": false,
+        "q": "đã có nhà",
+        "scope": "all",
+        "terms": [
+          {
+            "phrase": false,
+            "text": "da"
+          },
+          {
+            "phrase": false,
+            "text": "co"
+          },
+          {
+            "phrase": false,
+            "text": "nha"
+          }
+        ]
+      },
+      {
+        "hits": [
+          {
+            "fuzzy": false,
+            "highlights": [
+              "tang",
+              "cao"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000017",
+            "score": 20
+          }
+        ],
+        "numeric": false,
+        "phoneOnly": false,
+        "q": "tầng cao",
+        "scope": "all",
+        "terms": [
+          {
+            "phrase": false,
+            "text": "tang"
+          },
+          {
+            "phrase": false,
+            "text": "cao"
+          }
+        ]
+      },
+      {
+        "hits": [
+          {
+            "fuzzy": false,
+            "highlights": [
+              "1990"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000016",
+            "score": 30
+          }
+        ],
+        "numeric": true,
+        "phoneOnly": false,
+        "q": "1990",
+        "scope": "year",
+        "terms": [
+          {
+            "phrase": false,
+            "text": "1990"
+          }
+        ]
+      },
+      {
+        "hits": [
+          {
+            "fuzzy": false,
+            "highlights": [
+              "noxh-t12"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000001",
+            "score": 50
+          }
+        ],
+        "numeric": false,
+        "phoneOnly": false,
+        "q": "noxh-t12",
+        "scope": "all",
+        "terms": [
+          {
+            "phrase": false,
+            "text": "noxh-t12"
+          }
+        ]
+      },
+      {
+        "hits": [],
+        "numeric": false,
+        "phoneOnly": false,
+        "q": "website",
+        "scope": "all",
+        "terms": [
+          {
+            "phrase": false,
+            "text": "website"
+          }
+        ]
+      },
+      {
+        "hits": [
+          {
+            "fuzzy": false,
+            "highlights": [
+              "khong",
+              "chot"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000014",
+            "score": 50
+          }
+        ],
+        "numeric": false,
+        "phoneOnly": false,
+        "q": "không chốt",
+        "scope": "all",
+        "terms": [
+          {
+            "phrase": false,
+            "text": "khong"
+          },
+          {
+            "phrase": false,
+            "text": "chot"
+          }
+        ]
+      },
+      {
+        "hits": [
+          {
+            "fuzzy": false,
+            "highlights": [
+              "nuoi",
+              "dai",
+              "han"
+            ],
+            "id": "f0000000-0000-4000-8000-000000000012",
+            "score": 70
+          }
+        ],
+        "numeric": false,
+        "phoneOnly": false,
+        "q": "nuôi dài hạn",
+        "scope": "all",
+        "terms": [
+          {
+            "phrase": false,
+            "text": "nuoi"
+          },
+          {
+            "phrase": false,
+            "text": "dai"
+          },
+          {
+            "phrase": false,
+            "text": "han"
+          }
+        ]
+      },
+      {
+        "hits": [
+          {
+            "fuzzy": false,
+            "highlights": [],
+            "id": "f0000000-0000-4000-8000-000000000001",
+            "score": 0
+          },
+          {
+            "fuzzy": false,
+            "highlights": [],
+            "id": "f0000000-0000-4000-8000-000000000002",
+            "score": 0
+          },
+          {
+            "fuzzy": false,
+            "highlights": [],
+            "id": "f0000000-0000-4000-8000-000000000003",
+            "score": 0
+          },
+          {
+            "fuzzy": false,
+            "highlights": [],
+            "id": "f0000000-0000-4000-8000-000000000004",
+            "score": 0
+          },
+          {
+            "fuzzy": false,
+            "highlights": [],
+            "id": "f0000000-0000-4000-8000-000000000005",
+            "score": 0
+          },
+          {
+            "fuzzy": false,
+            "highlights": [],
+            "id": "f0000000-0000-4000-8000-000000000006",
+            "score": 0
+          },
+          {
+            "fuzzy": false,
+            "highlights": [],
+            "id": "f0000000-0000-4000-8000-000000000007",
+            "score": 0
+          },
+          {
+            "fuzzy": false,
+            "highlights": [],
+            "id": "f0000000-0000-4000-8000-000000000008",
+            "score": 0
+          },
+          {
+            "fuzzy": false,
+            "highlights": [],
+            "id": "f0000000-0000-4000-8000-000000000009",
+            "score": 0
+          },
+          {
+            "fuzzy": false,
+            "highlights": [],
+            "id": "f0000000-0000-4000-8000-000000000010",
+            "score": 0
+          },
+          {
+            "fuzzy": false,
+            "highlights": [],
+            "id": "f0000000-0000-4000-8000-000000000011",
+            "score": 0
+          },
+          {
+            "fuzzy": false,
+            "highlights": [],
+            "id": "f0000000-0000-4000-8000-000000000012",
+            "score": 0
+          },
+          {
+            "fuzzy": false,
+            "highlights": [],
+            "id": "f0000000-0000-4000-8000-000000000013",
+            "score": 0
+          },
+          {
+            "fuzzy": false,
+            "highlights": [],
+            "id": "f0000000-0000-4000-8000-000000000014",
+            "score": 0
+          },
+          {
+            "fuzzy": false,
+            "highlights": [],
+            "id": "f0000000-0000-4000-8000-000000000015",
+            "score": 0
+          },
+          {
+            "fuzzy": false,
+            "highlights": [],
+            "id": "f0000000-0000-4000-8000-000000000016",
+            "score": 0
+          },
+          {
+            "fuzzy": false,
+            "highlights": [],
+            "id": "f0000000-0000-4000-8000-000000000017",
+            "score": 0
+          },
+          {
+            "fuzzy": false,
+            "highlights": [],
+            "id": "f0000000-0000-4000-8000-000000000018",
+            "score": 0
+          },
+          {
+            "fuzzy": false,
+            "highlights": [],
+            "id": "f0000000-0000-4000-8000-000000000019",
+            "score": 0
+          },
+          {
+            "fuzzy": false,
+            "highlights": [],
+            "id": "f0000000-0000-4000-8000-000000000020",
+            "score": 0
+          }
+        ],
+        "numeric": false,
+        "phoneOnly": false,
+        "q": "",
+        "scope": "all",
+        "terms": []
+      }
+    ]
+  }
+}

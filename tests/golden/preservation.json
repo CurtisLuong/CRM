@@ -1,0 +1,279 @@
+{
+  "_golden": {
+    "case": "preservation",
+    "desc": "db.js ghi lại next_tasks / notes_manual / care_stage_history / call_attempts KHÔNG làm rơi thuộc tính lạ (x_*)",
+    "fixture": "tests/fixtures/legacy-customers.json",
+    "now": "2026-12-01T10:00:00+07:00",
+    "tz": "Asia/Ho_Chi_Minh"
+  },
+  "result": {
+    "finalUnknownPaths": {
+      "f0000000-0000-4000-8000-000000000008": [
+        "next_tasks[1].x_side=\"me\"",
+        "next_tasks[1].x_v2_key=\"task-v2-unknown\""
+      ],
+      "f0000000-0000-4000-8000-000000000017": [
+        "advanced.x_unknown_group={\"a\":1}",
+        "x_future_field={\"kept\":true,\"list\":[1,2,3]}",
+        "notes_manual[1].x_by=\"ai\"",
+        "notes_manual[1].x_confirmed=false",
+        "care_stage_history[0].x_source=\"import\"",
+        "call_attempts[0].x_channel_meta={\"sim\":2}",
+        "next_tasks[0].x_side=\"customer\"",
+        "next_tasks[0].x_due_original=\"2026-12-02T02:00:00.000Z\""
+      ]
+    },
+    "knownV1Behavior": {
+      "callAttemptsMalformedDroppedOnRewrite": {
+        "after": 2,
+        "afterHasEntryWithoutAt": false,
+        "before": 3,
+        "note": "Ingest ghi lại call_attempts = callAttemptsOf(c).concat(mới) → phần tử null / thiếu at bị bỏ. Thuộc tính lạ của phần tử hợp lệ vẫn giữ."
+      }
+    },
+    "steps": [
+      {
+        "arrays": {
+          "call_attempts": 3,
+          "care_stage_history": 1,
+          "next_tasks": 2,
+          "notes_manual": 1
+        },
+        "id": "f0000000-0000-4000-8000-000000000017",
+        "lostUnknown": [],
+        "name": "addTask",
+        "queuedOps": [
+          {
+            "payloadKeys": [
+              "next_tasks",
+              "updated_at"
+            ],
+            "type": "update"
+          }
+        ]
+      },
+      {
+        "arrays": {
+          "call_attempts": 3,
+          "care_stage_history": 1,
+          "next_tasks": 2,
+          "notes_manual": 1
+        },
+        "id": "f0000000-0000-4000-8000-000000000017",
+        "lostUnknown": [],
+        "name": "updateTask (việc có x_side, x_due_original)",
+        "queuedOps": [
+          {
+            "payloadKeys": [
+              "next_tasks"
+            ],
+            "type": "update"
+          }
+        ]
+      },
+      {
+        "arrays": {
+          "call_attempts": 3,
+          "care_stage_history": 2,
+          "next_tasks": 2,
+          "notes_manual": 1
+        },
+        "id": "f0000000-0000-4000-8000-000000000017",
+        "lostUnknown": [],
+        "name": "completeTask",
+        "queuedOps": [
+          {
+            "payloadKeys": [
+              "care_stage_history",
+              "care_stage_updated_at",
+              "next_tasks",
+              "updated_at"
+            ],
+            "type": "update"
+          }
+        ]
+      },
+      {
+        "arrays": {
+          "call_attempts": 3,
+          "care_stage_history": 1,
+          "next_tasks": 2,
+          "notes_manual": 1
+        },
+        "id": "f0000000-0000-4000-8000-000000000017",
+        "lostUnknown": [],
+        "name": "reopenTask",
+        "queuedOps": [
+          {
+            "payloadKeys": [
+              "care_stage_history",
+              "care_stage_updated_at",
+              "next_tasks",
+              "updated_at"
+            ],
+            "type": "update"
+          }
+        ]
+      },
+      {
+        "arrays": {
+          "call_attempts": 3,
+          "care_stage_history": 1,
+          "next_tasks": 2,
+          "notes_manual": 2
+        },
+        "id": "f0000000-0000-4000-8000-000000000017",
+        "lostUnknown": [],
+        "name": "addNote",
+        "queuedOps": [
+          {
+            "payloadKeys": [
+              "notes_manual",
+              "updated_at"
+            ],
+            "type": "update"
+          }
+        ]
+      },
+      {
+        "arrays": {
+          "call_attempts": 3,
+          "care_stage_history": 1,
+          "next_tasks": 2,
+          "notes_manual": 2
+        },
+        "id": "f0000000-0000-4000-8000-000000000017",
+        "lostUnknown": [],
+        "name": "updateNote (ghi chú có x_by)",
+        "queuedOps": [
+          {
+            "payloadKeys": [
+              "notes_manual"
+            ],
+            "type": "update"
+          }
+        ]
+      },
+      {
+        "arrays": {
+          "call_attempts": 3,
+          "care_stage_history": 1,
+          "next_tasks": 2,
+          "notes_manual": 2
+        },
+        "id": "f0000000-0000-4000-8000-000000000017",
+        "lostUnknown": [],
+        "name": "updateCareHistoryNote (mốc có x_source)",
+        "queuedOps": [
+          {
+            "payloadKeys": [
+              "care_stage_history"
+            ],
+            "type": "update"
+          }
+        ]
+      },
+      {
+        "arrays": {
+          "call_attempts": 3,
+          "care_stage_history": 2,
+          "next_tasks": 2,
+          "notes_manual": 2
+        },
+        "id": "f0000000-0000-4000-8000-000000000017",
+        "lostUnknown": [],
+        "name": "update đổi bậc (đẩy mốc lịch sử)",
+        "queuedOps": [
+          {
+            "payloadKeys": [
+              "care_stage",
+              "care_stage_history",
+              "care_stage_updated_at",
+              "interest_level",
+              "updated_at"
+            ],
+            "type": "update"
+          }
+        ]
+      },
+      {
+        "arrays": {
+          "call_attempts": 3,
+          "care_stage_history": 2,
+          "next_tasks": 2,
+          "notes_manual": 2
+        },
+        "id": "f0000000-0000-4000-8000-000000000017",
+        "lostUnknown": [],
+        "name": "update trường thường (patch)",
+        "queuedOps": [
+          {
+            "payloadKeys": [
+              "apt_floor",
+              "updated_at"
+            ],
+            "type": "update"
+          }
+        ]
+      },
+      {
+        "arrays": {
+          "call_attempts": 2,
+          "care_stage_history": 2,
+          "next_tasks": 2,
+          "notes_manual": 2
+        },
+        "id": "f0000000-0000-4000-8000-000000000017",
+        "lostUnknown": [],
+        "name": "CRMCalls.ingest (nhật ký máy, ghi lại call_attempts)",
+        "queuedOps": [
+          {
+            "payloadKeys": [
+              "call_attempts",
+              "updated_at"
+            ],
+            "type": "update"
+          }
+        ]
+      },
+      {
+        "arrays": {
+          "call_attempts": 1,
+          "care_stage_history": 3,
+          "next_tasks": 4,
+          "notes_manual": 0
+        },
+        "id": "f0000000-0000-4000-8000-000000000008",
+        "lostUnknown": [],
+        "name": "updateTask trên khách #8 (việc có x_v2_key)",
+        "queuedOps": [
+          {
+            "payloadKeys": [
+              "next_tasks"
+            ],
+            "type": "update"
+          }
+        ]
+      },
+      {
+        "arrays": {
+          "call_attempts": 1,
+          "care_stage_history": 3,
+          "next_tasks": 3,
+          "notes_manual": 0
+        },
+        "id": "f0000000-0000-4000-8000-000000000008",
+        "lostUnknown": [],
+        "name": "deleteTask (xoá việc khác, giữ việc có x_*)",
+        "queuedOps": [
+          {
+            "payloadKeys": [
+              "next_tasks"
+            ],
+            "type": "update"
+          }
+        ]
+      }
+    ]
+  }
+}

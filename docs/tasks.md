@@ -84,12 +84,12 @@ Ký hiệu: ☐ chưa · ◐ đang làm (ghi nhánh) · ☑ xong (ghi ngày) · 
 
 | ID | Tên | Làn | Cỡ | Phụ thuộc | Người làm | Trạng thái |
 |---|---|---|---|---|---|---|
-| T0.1 | Backup + diễn tập khôi phục | Dữ liệu | M | — | Chủ dự án + agent | ☐ |
-| T0.2 | Audit trigger `customer_changes` | Dữ liệu | S | T0.1 | Agent viết, chủ dự án chạy | ☐ |
-| T0.3 | Đối soát schema/migration production | Dữ liệu | S | — | Agent + chủ dự án | ☐ |
-| T0.4 | Fixture + golden test logic v1 | Test | M | — | Agent | ☐ |
-| T0.5 | Hạ tầng v2: nhánh, Cloudflare `crm-v2`, Supabase staging | Hạ tầng | S | — | Chủ dự án (agent hướng dẫn) | ☐ |
-| T0.6 | Baseline đo thao tác trên v1 | Sản phẩm | S | — | Chủ dự án | ☐ |
+| T0.1 | Backup + diễn tập khôi phục | Dữ liệu | M | — | Chủ dự án + agent | ☑ 2026-10-16 (diễn tập: 22/22 bảng khớp số dòng + md5; bucket APK `app-releases` cố ý không backup) |
+| T0.2 | Audit trigger `customer_changes` | Dữ liệu | S | T0.1 | Agent viết, chủ dự án chạy | ☑ 2026-10-16 (staging test 12/12; production đã chạy, app v1 ghi nhật ký đúng) |
+| T0.3 | Đối soát schema/migration production | Dữ liệu | S | — | Agent + chủ dự án | ☑ 2026-10-16 (mọi migration v1 đã chạy) |
+| T0.4 | Fixture + golden test logic v1 | Test | M | — | Agent | ☑ 2026-10-16 |
+| T0.5 | Hạ tầng v2: nhánh, Cloudflare `crm-v2`, Supabase staging | Hạ tầng | S | — | Chủ dự án (agent hướng dẫn) | ◐ runbook `v2-infra.md` xong 2026-10-16 · chờ chủ dự án |
+| T0.6 | Baseline đo thao tác trên v1 | Sản phẩm | S | — | Chủ dự án | ◐ mẫu `baseline.md` xong 2026-10-16 · chờ 1 tuần đo |
 | T1.1 | Scaffold v2 + chuyển v1 vào `legacy/` | Khung | M | T0.1, T0.2, T0.4, T0.5 | Agent | ☐ |
 | T1.2 | Config registry (nguồn duy nhất) | Khung | M | T1.1 | Agent | ☐ |
 | T2.A1 | Types + Zod + normalize legacy | A | M | T1.2 | Agent | ☐ |
@@ -145,6 +145,7 @@ Ký hiệu: ☐ chưa · ◐ đang làm (ghi nhánh) · ☑ xong (ghi ngày) · 
 - **Làm:** (1) script `scripts/backup/dump.sh` dùng `pg_dump` với chuỗi kết nối trong `.env.backup` (không commit; thêm vào `.gitignore`) → file `.sql` + `customers.json` (đủ JSONB); (2) script tải danh sách + file Storage (`customer-docs`, `customer-avatars`); (3) runbook từng bước cho chủ dự án (lấy connection string ở Supabase Dashboard); (4) khôi phục thử vào project **staging** (T0.5) và so số dòng từng bảng.
 - **Xong khi:** runbook chạy được; staging có đủ số dòng như production (bảng so sánh trong báo cáo); file backup lưu ngoài repo.
 - **Dữ liệu:** chỉ đọc production. Không đưa dữ liệu thật vào repo/log.
+- **Đã làm (2026-10-16):** `scripts/backup/{dump,storage,restore-staging}.sh` + `lib.sh`, `row-counts.sql` (số dòng + md5 nội dung từng bảng), `env.backup.example`, `.gitignore` chặn `.env.backup`; runbook `docs/runbooks/backup.md`. Diễn tập 2026-10-16 (backup `20261016-120548` → staging `mksjmpcsfawsiabfhoxe`): 88 khách, 59 tài liệu, 76 file Storage, 2 tài khoản — mọi bảng ✓ (số dòng + md5). Sau đó sửa script: bucket ngoài `BACKUP_BUCKETS` báo "bỏ qua" thay vì ✗, tắt NOTICE, tự bật realtime staging theo production.
 
 #### T0.2 — Audit trigger `customer_changes`
 - **Đọc:** `architecture.md` §3.1–3.4, `pitfalls.md` (RLS/GRANT).
@@ -152,16 +153,19 @@ Ký hiệu: ☐ chưa · ◐ đang làm (ghi nhánh) · ☑ xong (ghi ngày) · 
 - **Làm:** bảng append-only `customer_changes(id bigserial, customer_id uuid, changed_at, changed_by uuid default auth.uid(), op text, old jsonb, new_keys text[])`; trigger `after update or delete on customers` ghi giá trị cũ của **các cột thay đổi** (update) hoặc cả hàng (delete). RLS: select cho owner của khách/admin; **không** grant update/delete; insert chỉ qua trigger (security definer). Index `(customer_id, changed_at desc)`. Ghi chú dung lượng + truy vấn khôi phục mẫu trong runbook.
 - **Xong khi:** chạy trên staging: sửa 1 khách bằng app v1 → có dòng audit đúng; xoá khách → có bản sao; user sale không xoá được audit. Chủ dự án chạy production sau backup.
 - **Dữ liệu:** không đổi bảng `customers`; trigger không được làm hỏng update (test lỗi trigger → update vẫn fail an toàn, báo rõ).
+- **Đã làm (2026-10-16):** `SQL/v2/001_customer_audit.sql` (thêm cột `owner_id`, `changed_role` để RLS còn đúng sau khi xoá/giao khách; trigger chặn update/delete/truncate nhật ký), `tests/sql/001_customer_audit.test.sql` (12 kiểm tra, tự rollback), runbook `docs/runbooks/audit.md` (cách chạy, dung lượng, truy vấn khôi phục). Đã chạy trên PGlite + lớp giả lập Supabase: migration chạy 2 lần được, test 12/12, câu khôi phục mẫu đúng. Staging (`mksjmpcsfawsiabfhoxe`): migration + test 12/12. Production (`nrqccwamwctihivpxjww`) 2026-10-16: migration chạy, `trigger_count = 3`, `rls = true`; thêm ghi chú bằng app v1 → 1 dòng `UPDATE`, `new_keys` có `notes_manual`, `changed_role = authenticated`.
 
 #### T0.3 — Đối soát schema/migration production
 - **Sở hữu:** `docs/architecture.md` §3.2 (cập nhật kết quả), `scripts/sql/inspect.sql`.
 - **Làm:** câu SQL liệt kê cột/kiểu/default/constraint, policy, trigger, function, bucket của production (chủ dự án chạy ở SQL Editor, dán kết quả). So với `SQL/` → xác định migration nào **chưa chạy** (ghi nhớ hiện ghi: `add_zalo_templates`, `add_team_assign`, `add_ai_settings`, `add_realtime_customers` có thể chưa chạy). Đề xuất thứ tự chạy cần thiết trước v2.
 - **Xong khi:** bảng "đã chạy / chưa chạy / lệch" trong architecture §3.2; chủ dự án quyết định chạy gì (không tự chạy).
+- **Đã làm (2026-10-16):** `scripts/sql/inspect.sql` (mục `0 migration` tự kết luận từng file; không trả dữ liệu khách; đọc khách qua `to_jsonb` nên chạy được cả khi production thiếu cột); khung bảng + thứ tự đề xuất + lệch trong repo ở architecture §3.2. Kết quả production 2026-10-16 đã ghi vào architecture §3.2: mọi migration v1 đã chạy, chỉ còn `v2/001_customer_audit.sql`.
 
 #### T0.4 — Fixture + golden test cho logic v1
 - **Sở hữu:** `tests/fixtures/legacy-customers.json`, `tests/golden/*`, `tests/legacy-harness/*`.
 - **Làm:** (1) fixture **tổng hợp** (không dữ liệu thật) phủ biến thể cũ: bậc `Hỗ trợ hồ sơ`/`Booking`, `source` dạng chuỗi/mã cũ `manual`/`ocr`/`landing`, `dob` `--MM-DD`, cuộc gọi `result` null, việc cả ngày/có giờ/xong, followers, lead đã loại, Nuôi dài hạn tự chuyển, `booking_steps`, thuộc tính JSONB lạ; (2) harness Node nạp `js/*.js` v1 trong `vm` (stub DOM tối thiểu) và ghi đầu ra golden của: `countdownTag`/`taskDueInfo`/`callReminder`, `FOLLOWUP.afterCall/forStage/suggestTemplate`, `VELOCITY.status` + tự chuyển, `dashActionGroups` (khoá thời gian giả), `CRMSearch`, `CRMPropertySearch.match`, `lunar`, `normalizePhone`, chỉ số `relationshipHealthHtml`/`analyticsInsightsHtml` (dạng số); (3) test xác nhận v1 **giữ thuộc tính lạ** khi ghi lại `next_tasks`/`call_attempts`.
 - **Xong khi:** `node tests/legacy-harness/run.js` sinh golden ổn định (chạy 2 lần không đổi); README ngắn cách thêm ca.
+- **Đã làm (2026-10-16):** 20 khách tổng hợp, 10 ca golden (`deadlines`, `followup`, `velocity`, `sla-automation`, `dashboard`, `search`, `property-match`, `lunar`, `phone`, `preservation`). `--check` chạy lại 0 khác (cả khi đổi TZ máy). Hành vi v1 đã biết: `CRMCalls.ingest` ghi lại `call_attempts` bỏ phần tử `null`/thiếu `at` (thuộc tính lạ vẫn giữ). Các hàm `updateTask`/`updateNote`/`deleteTask`/`deleteNote`/`updateCareHistoryNote` của v1 không gửi `updated_at` (server trigger tự đặt).
 
 #### T0.5 — Hạ tầng v2
 - **Người làm:** chủ dự án theo hướng dẫn agent (agent viết `docs/runbooks/v2-infra.md`).

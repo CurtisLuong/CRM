@@ -1,0 +1,425 @@
+{
+  "_golden": {
+    "case": "property-match",
+    "desc": "CRMPropertySearch.typeCompatible / price / match (finance = vốn sẵn có, không phải giá tối đa)",
+    "fixture": "tests/fixtures/legacy-customers.json",
+    "now": "2026-12-01T10:00:00+07:00",
+    "tz": "Asia/Ho_Chi_Minh"
+  },
+  "result": {
+    "apartmentGroup": {
+      "": "",
+      "1N+, 1WC": "1N",
+      "1N-1WC": "1N",
+      "2N": "2N",
+      "2N+": "2N",
+      "2N+, 2WC": "2N",
+      "2N-2WC": "2N",
+      "2N-2WC-G": "2N",
+      "2PN": "2N",
+      "3BR": "3N",
+      "3N-2WC": "3N",
+      "Loft": "other",
+      "Studio": "Studio",
+      "null": ""
+    },
+    "matches": {
+      "f0000000-0000-4000-8000-000000000008": {
+        "u1": {
+          "max1_2ty": {
+            "missing": [],
+            "reasons": [
+              "Đúng dự án",
+              "Đúng loại căn",
+              "Trong giá tối đa đã chọn",
+              "Diện tích gần hồ sơ (±5 m²)"
+            ],
+            "score": 100,
+            "total": 1134200000
+          },
+          "max2ty": {
+            "missing": [],
+            "reasons": [
+              "Đúng dự án",
+              "Đúng loại căn",
+              "Trong giá tối đa đã chọn",
+              "Diện tích gần hồ sơ (±5 m²)"
+            ],
+            "score": 100,
+            "total": 1134200000
+          },
+          "noMax": {
+            "missing": [],
+            "reasons": [
+              "Đúng dự án",
+              "Đúng loại căn",
+              "Diện tích gần hồ sơ (±5 m²)"
+            ],
+            "score": 100,
+            "total": 1134200000
+          }
+        },
+        "u2": {
+          "max1_2ty": null,
+          "max2ty": null,
+          "noMax": null
+        },
+        "u3": {
+          "max1_2ty": null,
+          "max2ty": null,
+          "noMax": null
+        },
+        "u4": {
+          "max1_2ty": null,
+          "max2ty": null,
+          "noMax": null
+        },
+        "u5": {
+          "max1_2ty": null,
+          "max2ty": null,
+          "noMax": null
+        },
+        "u6": {
+          "max1_2ty": null,
+          "max2ty": null,
+          "noMax": null
+        }
+      },
+      "f0000000-0000-4000-8000-000000000009": {
+        "u1": {
+          "max1_2ty": null,
+          "max2ty": null,
+          "noMax": null
+        },
+        "u2": {
+          "max1_2ty": {
+            "missing": [],
+            "reasons": [
+              "Đúng dự án",
+              "Đúng loại căn",
+              "Trong giá tối đa đã chọn",
+              "Hướng khác hồ sơ",
+              "Tầng khác hồ sơ",
+              "Diện tích gần hồ sơ (±5 m²)"
+            ],
+            "score": 100,
+            "total": 1198400000
+          },
+          "max2ty": {
+            "missing": [],
+            "reasons": [
+              "Đúng dự án",
+              "Đúng loại căn",
+              "Trong giá tối đa đã chọn",
+              "Hướng khác hồ sơ",
+              "Tầng khác hồ sơ",
+              "Diện tích gần hồ sơ (±5 m²)"
+            ],
+            "score": 100,
+            "total": 1198400000
+          },
+          "noMax": {
+            "missing": [],
+            "reasons": [
+              "Đúng dự án",
+              "Đúng loại căn",
+              "Hướng khác hồ sơ",
+              "Tầng khác hồ sơ",
+              "Diện tích gần hồ sơ (±5 m²)"
+            ],
+            "score": 100,
+            "total": 1198400000
+          }
+        },
+        "u3": {
+          "max1_2ty": null,
+          "max2ty": null,
+          "noMax": {
+            "missing": [
+              "giá",
+              "hướng",
+              "tầng",
+              "diện tích"
+            ],
+            "reasons": [
+              "Đúng dự án",
+              "Đúng loại căn"
+            ],
+            "score": 90,
+            "total": null
+          }
+        },
+        "u4": {
+          "max1_2ty": null,
+          "max2ty": null,
+          "noMax": null
+        },
+        "u5": {
+          "max1_2ty": null,
+          "max2ty": null,
+          "noMax": null
+        },
+        "u6": {
+          "max1_2ty": null,
+          "max2ty": null,
+          "noMax": null
+        }
+      },
+      "f0000000-0000-4000-8000-000000000011": {
+        "u1": {
+          "max1_2ty": null,
+          "max2ty": null,
+          "noMax": null
+        },
+        "u2": {
+          "max1_2ty": null,
+          "max2ty": null,
+          "noMax": null
+        },
+        "u3": {
+          "max1_2ty": null,
+          "max2ty": null,
+          "noMax": null
+        },
+        "u4": {
+          "max1_2ty": null,
+          "max2ty": null,
+          "noMax": null
+        },
+        "u5": {
+          "max1_2ty": null,
+          "max2ty": {
+            "missing": [],
+            "reasons": [
+              "Đúng dự án",
+              "Đúng loại căn",
+              "Trong giá tối đa đã chọn"
+            ],
+            "score": 90,
+            "total": 1605000000
+          },
+          "noMax": {
+            "missing": [],
+            "reasons": [
+              "Đúng dự án",
+              "Đúng loại căn"
+            ],
+            "score": 90,
+            "total": 1605000000
+          }
+        },
+        "u6": {
+          "max1_2ty": null,
+          "max2ty": null,
+          "noMax": null
+        }
+      }
+    },
+    "prices": {
+      "u1": 1134200000,
+      "u2": 1198400000,
+      "u3": null,
+      "u4": 1070000000,
+      "u5": 1605000000,
+      "u6": 770400000
+    },
+    "typeCompatible": {
+      " | ": false,
+      " | 1N+, 1WC": false,
+      " | 1N-1WC": false,
+      " | 2N": false,
+      " | 2N+": false,
+      " | 2N+, 2WC": false,
+      " | 2N-2WC": false,
+      " | 2N-2WC-G": false,
+      " | 2PN": false,
+      " | 3BR": false,
+      " | 3N-2WC": false,
+      " | Loft": false,
+      " | Studio": false,
+      " | null": false,
+      "1N+, 1WC | ": false,
+      "1N+, 1WC | 1N+, 1WC": true,
+      "1N+, 1WC | 1N-1WC": false,
+      "1N+, 1WC | 2N": false,
+      "1N+, 1WC | 2N+": false,
+      "1N+, 1WC | 2N+, 2WC": false,
+      "1N+, 1WC | 2N-2WC": false,
+      "1N+, 1WC | 2N-2WC-G": false,
+      "1N+, 1WC | 2PN": false,
+      "1N+, 1WC | 3BR": false,
+      "1N+, 1WC | 3N-2WC": false,
+      "1N+, 1WC | Loft": false,
+      "1N+, 1WC | Studio": false,
+      "1N+, 1WC | null": false,
+      "1N-1WC | ": false,
+      "1N-1WC | 1N+, 1WC": false,
+      "1N-1WC | 1N-1WC": true,
+      "1N-1WC | 2N": false,
+      "1N-1WC | 2N+": false,
+      "1N-1WC | 2N+, 2WC": false,
+      "1N-1WC | 2N-2WC": false,
+      "1N-1WC | 2N-2WC-G": false,
+      "1N-1WC | 2PN": false,
+      "1N-1WC | 3BR": false,
+      "1N-1WC | 3N-2WC": false,
+      "1N-1WC | Loft": false,
+      "1N-1WC | Studio": false,
+      "1N-1WC | null": false,
+      "2N | ": false,
+      "2N | 1N+, 1WC": false,
+      "2N | 1N-1WC": false,
+      "2N | 2N": true,
+      "2N | 2N+": true,
+      "2N | 2N+, 2WC": true,
+      "2N | 2N-2WC": true,
+      "2N | 2N-2WC-G": true,
+      "2N | 2PN": true,
+      "2N | 3BR": false,
+      "2N | 3N-2WC": false,
+      "2N | Loft": false,
+      "2N | Studio": false,
+      "2N | null": false,
+      "2N+ | ": false,
+      "2N+ | 1N+, 1WC": false,
+      "2N+ | 1N-1WC": false,
+      "2N+ | 2N": false,
+      "2N+ | 2N+": true,
+      "2N+ | 2N+, 2WC": true,
+      "2N+ | 2N-2WC": false,
+      "2N+ | 2N-2WC-G": false,
+      "2N+ | 2PN": false,
+      "2N+ | 3BR": false,
+      "2N+ | 3N-2WC": false,
+      "2N+ | Loft": false,
+      "2N+ | Studio": false,
+      "2N+ | null": false,
+      "2N+, 2WC | ": false,
+      "2N+, 2WC | 1N+, 1WC": false,
+      "2N+, 2WC | 1N-1WC": false,
+      "2N+, 2WC | 2N": false,
+      "2N+, 2WC | 2N+": false,
+      "2N+, 2WC | 2N+, 2WC": true,
+      "2N+, 2WC | 2N-2WC": false,
+      "2N+, 2WC | 2N-2WC-G": false,
+      "2N+, 2WC | 2PN": false,
+      "2N+, 2WC | 3BR": false,
+      "2N+, 2WC | 3N-2WC": false,
+      "2N+, 2WC | Loft": false,
+      "2N+, 2WC | Studio": false,
+      "2N+, 2WC | null": false,
+      "2N-2WC | ": false,
+      "2N-2WC | 1N+, 1WC": false,
+      "2N-2WC | 1N-1WC": false,
+      "2N-2WC | 2N": false,
+      "2N-2WC | 2N+": false,
+      "2N-2WC | 2N+, 2WC": false,
+      "2N-2WC | 2N-2WC": true,
+      "2N-2WC | 2N-2WC-G": false,
+      "2N-2WC | 2PN": false,
+      "2N-2WC | 3BR": false,
+      "2N-2WC | 3N-2WC": false,
+      "2N-2WC | Loft": false,
+      "2N-2WC | Studio": false,
+      "2N-2WC | null": false,
+      "2N-2WC-G | ": false,
+      "2N-2WC-G | 1N+, 1WC": false,
+      "2N-2WC-G | 1N-1WC": false,
+      "2N-2WC-G | 2N": false,
+      "2N-2WC-G | 2N+": false,
+      "2N-2WC-G | 2N+, 2WC": false,
+      "2N-2WC-G | 2N-2WC": false,
+      "2N-2WC-G | 2N-2WC-G": true,
+      "2N-2WC-G | 2PN": false,
+      "2N-2WC-G | 3BR": false,
+      "2N-2WC-G | 3N-2WC": false,
+      "2N-2WC-G | Loft": false,
+      "2N-2WC-G | Studio": false,
+      "2N-2WC-G | null": false,
+      "2PN | ": false,
+      "2PN | 1N+, 1WC": false,
+      "2PN | 1N-1WC": false,
+      "2PN | 2N": true,
+      "2PN | 2N+": true,
+      "2PN | 2N+, 2WC": true,
+      "2PN | 2N-2WC": true,
+      "2PN | 2N-2WC-G": true,
+      "2PN | 2PN": true,
+      "2PN | 3BR": false,
+      "2PN | 3N-2WC": false,
+      "2PN | Loft": false,
+      "2PN | Studio": false,
+      "2PN | null": false,
+      "3BR | ": false,
+      "3BR | 1N+, 1WC": false,
+      "3BR | 1N-1WC": false,
+      "3BR | 2N": false,
+      "3BR | 2N+": false,
+      "3BR | 2N+, 2WC": false,
+      "3BR | 2N-2WC": false,
+      "3BR | 2N-2WC-G": false,
+      "3BR | 2PN": false,
+      "3BR | 3BR": true,
+      "3BR | 3N-2WC": true,
+      "3BR | Loft": false,
+      "3BR | Studio": false,
+      "3BR | null": false,
+      "3N-2WC | ": false,
+      "3N-2WC | 1N+, 1WC": false,
+      "3N-2WC | 1N-1WC": false,
+      "3N-2WC | 2N": false,
+      "3N-2WC | 2N+": false,
+      "3N-2WC | 2N+, 2WC": false,
+      "3N-2WC | 2N-2WC": false,
+      "3N-2WC | 2N-2WC-G": false,
+      "3N-2WC | 2PN": false,
+      "3N-2WC | 3BR": false,
+      "3N-2WC | 3N-2WC": true,
+      "3N-2WC | Loft": false,
+      "3N-2WC | Studio": false,
+      "3N-2WC | null": false,
+      "Loft | ": false,
+      "Loft | 1N+, 1WC": false,
+      "Loft | 1N-1WC": false,
+      "Loft | 2N": false,
+      "Loft | 2N+": false,
+      "Loft | 2N+, 2WC": false,
+      "Loft | 2N-2WC": false,
+      "Loft | 2N-2WC-G": false,
+      "Loft | 2PN": false,
+      "Loft | 3BR": false,
+      "Loft | 3N-2WC": false,
+      "Loft | Loft": true,
+      "Loft | Studio": false,
+      "Loft | null": false,
+      "Studio | ": false,
+      "Studio | 1N+, 1WC": false,
+      "Studio | 1N-1WC": false,
+      "Studio | 2N": false,
+      "Studio | 2N+": false,
+      "Studio | 2N+, 2WC": false,
+      "Studio | 2N-2WC": false,
+      "Studio | 2N-2WC-G": false,
+      "Studio | 2PN": false,
+      "Studio | 3BR": false,
+      "Studio | 3N-2WC": false,
+      "Studio | Loft": false,
+      "Studio | Studio": true,
+      "Studio | null": false,
+      "null | ": false,
+      "null | 1N+, 1WC": false,
+      "null | 1N-1WC": false,
+      "null | 2N": false,
+      "null | 2N+": false,
+      "null | 2N+, 2WC": false,
+      "null | 2N-2WC": false,
+      "null | 2N-2WC-G": false,
+      "null | 2PN": false,
+      "null | 3BR": false,
+      "null | 3N-2WC": false,
+      "null | Loft": false,
+      "null | Studio": false,
+      "null | null": false
+    }
+  }
+}

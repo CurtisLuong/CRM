@@ -1,0 +1,107 @@
+{
+  "_golden": {
+    "case": "phone",
+    "desc": "normalizePhone (tel:) / normalizePhoneVN (lưu khách, OCR) / phoneDigits / CRMSearch.phone",
+    "fixture": "tests/fixtures/legacy-customers.json",
+    "now": "2026-12-01T10:00:00+07:00",
+    "tz": "Asia/Ho_Chi_Minh"
+  },
+  "result": {
+    "123": {
+      "normalizePhone": "123",
+      "normalizePhoneVN": "0123",
+      "phoneDigits": "123",
+      "searchPhone": "123"
+    },
+    "900000001": {
+      "normalizePhone": "900000001",
+      "normalizePhoneVN": "0900000001",
+      "phoneDigits": "900000001",
+      "searchPhone": "900000001"
+    },
+    "": {
+      "normalizePhone": "",
+      "normalizePhoneVN": "0",
+      "phoneDigits": "",
+      "searchPhone": ""
+    },
+    " 0 9 0 0 0 0 0 0 0 1 ": {
+      "normalizePhone": "0900000001",
+      "normalizePhoneVN": "0900000001",
+      "phoneDigits": "0900000001",
+      "searchPhone": "0900000001"
+    },
+    "(+84) 90-000-0017": {
+      "normalizePhone": "+84900000017",
+      "normalizePhoneVN": "0900000017",
+      "phoneDigits": "0900000017",
+      "searchPhone": "0900000017"
+    },
+    "+1 415 555 0100": {
+      "normalizePhone": "+14155550100",
+      "normalizePhoneVN": "14155550100",
+      "phoneDigits": "14155550100",
+      "searchPhone": "14155550100"
+    },
+    "+84 900 000 017": {
+      "normalizePhone": "+84900000017",
+      "normalizePhoneVN": "0900000017",
+      "phoneDigits": "0900000017",
+      "searchPhone": "0900000017"
+    },
+    "+84900000017": {
+      "normalizePhone": "+84900000017",
+      "normalizePhoneVN": "0900000017",
+      "phoneDigits": "0900000017",
+      "searchPhone": "0900000017"
+    },
+    "0084900000017": {
+      "normalizePhone": "0084900000017",
+      "normalizePhoneVN": "0084900000017",
+      "phoneDigits": "0084900000017",
+      "searchPhone": "0900000017"
+    },
+    "02253 123 456": {
+      "normalizePhone": "02253123456",
+      "normalizePhoneVN": "02253123456",
+      "phoneDigits": "02253123456",
+      "searchPhone": "02253123456"
+    },
+    "090.000.0001": {
+      "normalizePhone": "0900000001",
+      "normalizePhoneVN": "0900000001",
+      "phoneDigits": "0900000001",
+      "searchPhone": "0900000001"
+    },
+    "0900 000 001": {
+      "normalizePhone": "0900000001",
+      "normalizePhoneVN": "0900000001",
+      "phoneDigits": "0900000001",
+      "searchPhone": "0900000001"
+    },
+    "0900000001": {
+      "normalizePhone": "0900000001",
+      "normalizePhoneVN": "0900000001",
+      "phoneDigits": "0900000001",
+      "searchPhone": "0900000001"
+    },
+    "84 90 000 0017": {
+      "normalizePhone": "84900000017",
+      "normalizePhoneVN": "0900000017",
+      "phoneDigits": "0900000017",
+      "searchPhone": "0900000017"
+    },
+    "84900000017": {
+      "normalizePhone": "84900000017",
+      "normalizePhoneVN": "0900000017",
+      "phoneDigits": "0900000017",
+      "searchPhone": "0900000017"
+    },
+    "null": {
+      "normalizePhone": "",
+      "normalizePhoneVN": "0",
+      "phoneDigits": "",
+      "searchPhone": ""
+    }
+  }
+}

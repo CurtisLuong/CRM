@@ -6,7 +6,7 @@
 
 - CRM nội bộ cho một sale bất động sản (chủ yếu nhà ở xã hội Hải Phòng/Hưng Yên), mở rộng được cho vài đồng nghiệp. Dùng trên Android (web + vỏ Capacitor) và MacBook; nhập liệu được khi mất mạng.
 - Không làm: app native (ngoài vỏ Android D-002), multi-tenant SaaS, thanh toán, auto-send tin nhắn.
-- Chủ dự án **không có nền lập trình**: trả lời ngắn, nêu kết quả và lựa chọn thực tế; việc họ phải tự làm (chạy SQL, cấu hình Cloudflare, thử trên điện thoại) ghi thành từng bước.
+- Chủ dự án **không có nền lập trình**: trả lời ngắn, nêu kết quả và lựa chọn thực tế; việc họ phải tự làm (chạy SQL, cấu hình Cloudflare, thử trên điện thoại) ghi thành từng bước; mỗi câu SQL/bước Supabase ghi rõ chạy trên **production** (`nrqccwamwctihivpxjww`, DB cũ app đang dùng) hay **staging** (`mksjmpcsfawsiabfhoxe`).
 - **Đang đại tu v1 → v2** (bắt đầu 2026-10-16). Mục tiêu và phạm vi: `docs/PRD.md`. Thứ tự làm và phân công: `docs/tasks.md`.
 - 5 ưu tiên sản phẩm (mục trên thắng khi xung đột): (1) làm gì tiếp · (2) chất lượng chăm sóc · (3) gợi ý ready-to-action · (4) trí nhớ khách để retarget · (5) hiệu quả marketing. Hành động Gọi/Zalo/Ghi chú/Hẹn phải ít chạm nhất (`docs/UX_GUIDELINES.md` §3).
 

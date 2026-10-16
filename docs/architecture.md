@@ -86,9 +86,41 @@ Giai đoạn chuyển đổi: v1 vẫn chạy ở `main`. v2 phát triển trên
 | `projects`, `buildings`, `project_unit_types`, `building_apt_types`, `project_apt_types`, `units` | Giỏ hàng dự án → toà → căn | `units.status` available/holding/sold; xem `gio-hang.md` |
 | `bank_presets`, `loan_settings`, `loan_quotes` | Module vay | Xem `loan-module.md`; báo giá theo người tạo |
 | `user_settings` | `zalo_greeting`, `zalo_templates`, `ai_settings` | Một dòng/người |
+| `testimonials` + RPC `submit_testimonial` | Đánh giá khách trên landing page | **Không thuộc CRM** — v2 không đọc/ghi |
 | `team_members` | Đồng nghiệp (D-003) | RPC `team_list/add/remove/set_my_name` |
 | `fb_leads` | Nhật ký + chống trùng lead Facebook | `status` created/merged/error |
 | bucket `app-releases` | APK Android | `android-app-version.json` |
+
+#### Đối soát production (T0.3)
+
+**Cách đối soát:** chủ dự án chạy `scripts/sql/inspect.sql` (chỉ đọc, không trả dữ liệu khách) ở SQL Editor production → Export CSV → gửi agent. Mục `0 migration` tự kết luận từng file `SQL/*.sql` (ĐÃ CHẠY / CHƯA CHẠY / — = lịch sử hoặc chỉ dữ liệu); các mục còn lại liệt kê cột, ràng buộc, policy, trigger, hàm, GRANT, bucket, realtime, số dòng và **tên khoá/mã trong JSONB** (đầu vào cho schema Zod `.passthrough()` ở T2.A1).
+
+**Kết quả production 2026-10-16** (CSV `inspect.sql` do chủ dự án chạy + backup `20261016-120548`):
+
+| Hạng mục | Kết quả | Hệ quả cho v2 |
+|---|---|---|
+| Migration v1 trong `SQL/` | **Tất cả đã chạy** (gồm `add_zalo_templates`, `add_team_assign`, `add_ai_settings`, `add_realtime_customers`); file lịch sử/chỉ dữ liệu không đánh giá | Không còn file v1 nào phải chạy trước v2 |
+| `v2/001_customer_audit.sql` (T0.2) | **Đã chạy production 2026-10-16** (staging test 12/12; app v1 ghi nhật ký đúng) | Không còn migration nào phải chạy trước T1.1 |
+| Bảng | 17 bảng `public` + 3 view `v_buildings`, `v_units`, `v_building_apt_types` (repo tạo với `security_invoker = true`; `inspect.sql` mục `5 view` xác nhận ở lần chạy sau) | RLS bật trên mọi bảng |
+| Bảng ngoài tài liệu | `testimonials` (50 dòng: tên, SĐT, đánh giá) + hàm `submit_testimonial` — của **landing page** (anon chỉ đọc bản đã duyệt; ghi qua RPC) | Không thuộc CRM: v2 **không đọc/ghi**; không đưa vào audit |
+| Trigger `customers` | `customers_set_updated` (BEFORE UPDATE), `customers_guard_assignment` (BEFORE UPDATE) | Audit T0.2 là AFTER → thấy giá trị sau 2 trigger này |
+| Event trigger | `rls_auto_enable` tự bật RLS cho bảng mới trong `public` | Bảng mới vẫn phải tự viết policy + GRANT |
+| GRANT | `anon`/`authenticated`/`service_role` có mọi quyền bảng (mặc định Supabase), RLS chặn theo `auth.uid()` | `TRUNCATE` không bị RLS chặn và không bị audit (trigger theo dòng) — chỉ chạy được bằng kết nối SQL trực tiếp (cần mật khẩu DB), API không có lệnh này; đề xuất riêng nếu muốn khoá |
+| Số dòng | 88 khách, 59 tài liệu, 76 file (15 avatar, 61 tài liệu), 2 tài khoản (1 admin + 1 thành viên nhóm), 50 testimonials | Dữ liệu nhỏ → aggregate JSONB theo hàng vẫn hợp lý (D-012) |
+| `care_stage` hiện tại | Đăng kí mới 28 · Đang tiếp cận 27 · Loại 21 · Nuôi dài hạn 7 · Booking & Làm hồ sơ 3 · Đang chăm sóc 2 — **không còn** tên bậc cũ trong cột | Lịch sử vẫn có 6 mốc `Hỗ trợ hồ sơ` → v2 vẫn phải `normStage` cho `care_stage_history` |
+| `source` | Luôn là mảng; mã: `facebook_ads` (88), `referral` (1); **không còn** mã cũ `manual`/`ocr`/`landing` | Vẫn giữ `SOURCE_LEGACY` (hàng đợi offline cũ / dữ liệu import) |
+| `intake_method` | `ocr` 60, `manual` 28 | — |
+| `disqualify_reason` | `khong_lien_lac_duoc` 27, `khac` 20, `do_gia` 2, `pha_campaign` 1, `khong_du_dieu_kien` 1, `to_mo` 1 — đều có trong `LEAD_DROP_REASONS` | — |
+| `dob` | 13 đủ năm, 2 dạng `--MM-DD` | Bắt buộc hỗ trợ `--MM-DD` |
+| `phone` | 86 dạng `0` + 9 số, **2 khách dạng khác** | v2 hiển thị/gọi được số không chuẩn; không tự sửa dữ liệu |
+| Khoá JSONB | `call_attempts[]`: `at, result, note, duration, origin, device_id, direction` (1 cuộc `result` null; không có phần tử hỏng) · `next_tasks[]`: `at, text, kind, due, done_at, log_at` · `care_stage_history[]`: `at, stage, note, edited_at` · `notes_manual[]`: `at, text` · `advanced`: `life_stage, pain_points` | Khớp tài liệu; **không có** thuộc tính lạ trong production → schema Zod T2.A1 vẫn `.passthrough()` |
+| Cột khác tài liệu | `customers.web_*` (12 cột UTM landing, hiện đều trống), `loan_quotes.customer_id` kiểu **text** (không phải uuid) | Đọc như hiện tại; không đổi kiểu |
+
+**Việc tiếp theo:** không còn migration chờ. Không chạy lại các file lịch sử đổi/xoá dữ liệu (`source_multi_value`, `drop_evaluation`, `rename_care_stage_khong_chot`, `normalize_apt_type`, `merge_project_trang_cat`, `add_care_stage_ket_thuc`).
+
+**Lệch đã thấy trong repo (không cần production):**
+- `SQL/schema.sql` (baseline cài mới) thiếu nhiều cột đã có qua migration (`next_tasks`, `next_call_reason`, `advanced`, `apt_area`, `apt_direction`, `apt_floor`, `finance`, `purpose`, `cover_path`, `followers`…) và còn policy `profiles` tự tham chiếu (production đã sửa bằng `fix_rls_recursion.sql`, file không còn trong repo). → Cài mới chỉ từ `schema.sql` **không** ra schema production; staging phải khôi phục từ backup (T0.1). Cập nhật baseline: T5.5.
+- `customers.owner_id` tham chiếu `auth.users` **không** `on delete cascade` (xoá tài khoản bị chặn khi còn khách — tốt cho bảo toàn); `profiles`, `project_options`, `team_members` thì cascade.
 
 ### 3.3 `customers` — aggregate theo khách
 

@@ -1,0 +1,1457 @@
+{
+  "_golden": {
+    "case": "followup",
+    "desc": "FOLLOWUP.firstCall / afterCall / forStage / suggestTemplates trên fixture + chuỗi cuộc gọi tổng hợp",
+    "fixture": "tests/fixtures/legacy-customers.json",
+    "now": "2026-12-01T10:00:00+07:00",
+    "tz": "Asia/Ho_Chi_Minh"
+  },
+  "result": {
+    "callSlots": [
+      {
+        "key": "A",
+        "name": "Sáng",
+        "range": [
+          9,
+          0,
+          10,
+          0
+        ],
+        "text": "09:00–10:00"
+      },
+      {
+        "key": "B",
+        "name": "Trưa",
+        "range": [
+          11,
+          30,
+          12,
+          15
+        ],
+        "text": "11:30–12:15"
+      },
+      {
+        "key": "C",
+        "name": "Chiều",
+        "range": [
+          14,
+          30,
+          15,
+          30
+        ],
+        "text": "14:30–15:30"
+      },
+      {
+        "key": "D",
+        "name": "Tối",
+        "range": [
+          20,
+          0,
+          20,
+          45
+        ],
+        "text": "20:00–20:45"
+      }
+    ],
+    "cases": {
+      "f0000000-0000-4000-8000-000000000001": "Lớp 1 · Đăng kí mới 2 giờ trước, chưa gọi · source mảng chuẩn",
+      "f0000000-0000-4000-8000-000000000002": "Lớp 1 · đăng ký 23:30 đêm qua (SLA dời 7h sáng) · source dạng CHUỖI mã cũ 'landing'",
+      "f0000000-0000-4000-8000-000000000003": "Lớp 1 · Đang tiếp cận: 2 cuộc no_answer + 1 cuộc thiết bị result null (chưa ghi) · source mã cũ ['manual']",
+      "f0000000-0000-4000-8000-000000000004": "Lớp 1 · Đang tiếp cận quá 7 ngày, chưa nói chuyện được → tự Loại (SLA approach) · source mã cũ 'ocr'",
+      "f0000000-0000-4000-8000-000000000005": "Lớp 1 · 5 lần không liên lạc được liên tiếp → afterCall gợi ý tự Loại",
+      "f0000000-0000-4000-8000-000000000006": "Lớp 1 · đã nói chuyện được nhưng chưa Đạt (≥30s không tự Đạt) · có lịch hẹn ngày mai",
+      "f0000000-0000-4000-8000-000000000007": "Lớp 1 · đã Loại (khong_du_dieu_kien) có ghi chú",
+      "f0000000-0000-4000-8000-000000000008": "Lớp 2 · Đang chăm sóc 25 ngày (quá 20) → tự chuyển Nuôi dài hạn · việc cả ngày/có giờ/đã xong + thuộc tính lạ",
+      "f0000000-0000-4000-8000-000000000009": "Lớp 2 · bậc cũ 'Hỗ trợ hồ sơ' + lịch sử 'Booking' (đọc qua normStage) · booking_steps bước 1 xong",
+      "f0000000-0000-4000-8000-000000000010": "Lớp 2 · bậc cũ 'Booking', vào bậc 50 ngày trước (quá mục tiêu 45) · booking_steps rỗng",
+      "f0000000-0000-4000-8000-000000000011": "Lớp 2 · Xem dự án · lịch gọi đang trong khung (đến giờ) · khách nóng 80% · dob thiếu năm '--05-12'",
+      "f0000000-0000-4000-8000-000000000012": "Nuôi dài hạn do app tự chuyển 2 ngày trước ({auto:'sla'}, còn Hoàn tác) · hẹn gọi lại 3 tháng",
+      "f0000000-0000-4000-8000-000000000013": "Kí HĐMB (đã mua)",
+      "f0000000-0000-4000-8000-000000000014": "Lớp 2 · Loại (Không chốt)",
+      "f0000000-0000-4000-8000-000000000015": "Khách ĐỒNG NGHIỆP phụ trách, mình là follower · Đang chăm sóc quá hạn (không được tự chuyển, không vào việc của mình)",
+      "f0000000-0000-4000-8000-000000000016": "Lớp 2 · Đang chăm sóc · sinh nhật sau 2 ngày · 3 cuộc gọi hỏng liên tiếp → mẫu sinh_nhat + goi_nho",
+      "f0000000-0000-4000-8000-000000000017": "Bản ghi 'bẩn': thuộc tính lạ ở gốc + trong mọi mảng JSONB, phần tử call_attempts thiếu 'at', SĐT có +84 và dấu cách, source null, advanced object",
+      "f0000000-0000-4000-8000-000000000018": "Lớp 1 · mở lại sau khi bị tự Loại (sla_anchor_at 1 ngày trước đặt lại đồng hồ)",
+      "f0000000-0000-4000-8000-000000000019": "Lớp 2 · Đang chăm sóc · lỡ lịch gọi hôm qua (quá hạn) · contact_status",
+      "f0000000-0000-4000-8000-000000000020": "Lớp 1 · đăng ký 30 giờ trước chưa gọi (gợi ý 'quá 24 giờ chưa gọi', SLA quá hạn)"
+    },
+    "perCustomer": {
+      "f0000000-0000-4000-8000-000000000001": {
+        "afterCall": null,
+        "firstCall": {
+          "end": "2026-12-01T05:15:00.000Z",
+          "kind": "schedule",
+          "label": "Thứ Ba 1/12, 11:30–12:15",
+          "reason": "Gọi lần 1 · khung trưa · khung gần nhất sau đăng ký",
+          "slot": "B",
+          "start": "2026-12-01T04:30:00.000Z"
+        },
+        "forStage": {
+          "Booking & Làm hồ sơ": {
+            "end": "2026-12-04T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Sáu 4/12, 09:00–10:00",
+            "reason": "Nhắc giấy tờ / tiến độ hồ sơ",
+            "start": "2026-12-04T02:00:00.000Z"
+          },
+          "Kí HĐMB": {
+            "end": "2026-12-31T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Năm 31/12, 09:00–10:00",
+            "reason": "Chăm sóc sau bán, xin giới thiệu",
+            "start": "2026-12-31T02:00:00.000Z"
+          },
+          "Loại": null,
+          "Nuôi dài hạn": {
+            "end": "2027-03-01T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Hai 1/3, 09:00–10:00",
+            "reason": "Liên hệ lại khách nuôi dài hạn",
+            "start": "2027-03-01T02:00:00.000Z"
+          },
+          "Xem dự án": {
+            "end": "2026-12-03T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Năm 3/12, 09:00–10:00",
+            "reason": "Hỏi cảm nhận sau khi xem dự án",
+            "start": "2026-12-03T02:00:00.000Z"
+          },
+          "Đang chăm sóc": {
+            "end": "2026-12-04T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Sáu 4/12, 09:00–10:00",
+            "reason": "Gửi thêm thông tin dự án",
+            "start": "2026-12-04T02:00:00.000Z"
+          },
+          "Đang tiếp cận": null,
+          "Đăng kí mới": null
+        },
+        "suggestTemplates": [
+          {
+            "id": "chao",
+            "why": "Khách mới chưa liên hệ"
+          }
+        ]
+      },
+      "f0000000-0000-4000-8000-000000000002": {
+        "afterCall": null,
+        "firstCall": {
+          "end": "2026-12-01T05:15:00.000Z",
+          "kind": "schedule",
+          "label": "Thứ Ba 1/12, 11:30–12:15",
+          "reason": "Gọi lần 1 · khung trưa · khung gần nhất sau đăng ký",
+          "slot": "B",
+          "start": "2026-12-01T04:30:00.000Z"
+        },
+        "forStage": {
+          "Booking & Làm hồ sơ": {
+            "end": "2026-12-04T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Sáu 4/12, 09:00–10:00",
+            "reason": "Nhắc giấy tờ / tiến độ hồ sơ",
+            "start": "2026-12-04T02:00:00.000Z"
+          },
+          "Kí HĐMB": {
+            "end": "2026-12-31T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Năm 31/12, 09:00–10:00",
+            "reason": "Chăm sóc sau bán, xin giới thiệu",
+            "start": "2026-12-31T02:00:00.000Z"
+          },
+          "Loại": null,
+          "Nuôi dài hạn": {
+            "end": "2027-03-01T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Hai 1/3, 09:00–10:00",
+            "reason": "Liên hệ lại khách nuôi dài hạn",
+            "start": "2027-03-01T02:00:00.000Z"
+          },
+          "Xem dự án": {
+            "end": "2026-12-03T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Năm 3/12, 09:00–10:00",
+            "reason": "Hỏi cảm nhận sau khi xem dự án",
+            "start": "2026-12-03T02:00:00.000Z"
+          },
+          "Đang chăm sóc": {
+            "end": "2026-12-04T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Sáu 4/12, 09:00–10:00",
+            "reason": "Gửi thêm thông tin dự án",
+            "start": "2026-12-04T02:00:00.000Z"
+          },
+          "Đang tiếp cận": null,
+          "Đăng kí mới": null
+        },
+        "suggestTemplates": [
+          {
+            "id": "chao",
+            "why": "Khách mới chưa liên hệ"
+          }
+        ]
+      },
+      "f0000000-0000-4000-8000-000000000003": {
+        "afterCall": null,
+        "forStage": {
+          "Booking & Làm hồ sơ": {
+            "end": "2026-12-04T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Sáu 4/12, 09:00–10:00",
+            "reason": "Nhắc giấy tờ / tiến độ hồ sơ",
+            "start": "2026-12-04T02:00:00.000Z"
+          },
+          "Kí HĐMB": {
+            "end": "2026-12-31T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Năm 31/12, 09:00–10:00",
+            "reason": "Chăm sóc sau bán, xin giới thiệu",
+            "start": "2026-12-31T02:00:00.000Z"
+          },
+          "Loại": null,
+          "Nuôi dài hạn": {
+            "end": "2027-03-01T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Hai 1/3, 09:00–10:00",
+            "reason": "Liên hệ lại khách nuôi dài hạn",
+            "start": "2027-03-01T02:00:00.000Z"
+          },
+          "Xem dự án": {
+            "end": "2026-12-03T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Năm 3/12, 09:00–10:00",
+            "reason": "Hỏi cảm nhận sau khi xem dự án",
+            "start": "2026-12-03T02:00:00.000Z"
+          },
+          "Đang chăm sóc": {
+            "end": "2026-12-04T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Sáu 4/12, 09:00–10:00",
+            "reason": "Gửi thêm thông tin dự án",
+            "start": "2026-12-04T02:00:00.000Z"
+          },
+          "Đang tiếp cận": null,
+          "Đăng kí mới": null
+        },
+        "suggestTemplates": [
+          {
+            "id": "chao",
+            "why": "Khách mới, gọi 3 lần chưa nói chuyện được"
+          }
+        ]
+      },
+      "f0000000-0000-4000-8000-000000000004": {
+        "afterCall": {
+          "end": "2026-12-01T13:45:00.000Z",
+          "kind": "schedule",
+          "label": "Thứ Ba 1/12, 20:00–20:45",
+          "reason": "Gọi lần 3 · khung tối",
+          "slot": "D",
+          "start": "2026-12-01T13:00:00.000Z"
+        },
+        "forStage": {
+          "Booking & Làm hồ sơ": {
+            "end": "2026-12-04T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Sáu 4/12, 09:00–10:00",
+            "reason": "Nhắc giấy tờ / tiến độ hồ sơ",
+            "start": "2026-12-04T02:00:00.000Z"
+          },
+          "Kí HĐMB": {
+            "end": "2026-12-31T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Năm 31/12, 09:00–10:00",
+            "reason": "Chăm sóc sau bán, xin giới thiệu",
+            "start": "2026-12-31T02:00:00.000Z"
+          },
+          "Loại": null,
+          "Nuôi dài hạn": {
+            "end": "2027-03-01T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Hai 1/3, 09:00–10:00",
+            "reason": "Liên hệ lại khách nuôi dài hạn",
+            "start": "2027-03-01T02:00:00.000Z"
+          },
+          "Xem dự án": {
+            "end": "2026-12-03T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Năm 3/12, 09:00–10:00",
+            "reason": "Hỏi cảm nhận sau khi xem dự án",
+            "start": "2026-12-03T02:00:00.000Z"
+          },
+          "Đang chăm sóc": {
+            "end": "2026-12-04T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Sáu 4/12, 09:00–10:00",
+            "reason": "Gửi thêm thông tin dự án",
+            "start": "2026-12-04T02:00:00.000Z"
+          },
+          "Đang tiếp cận": null,
+          "Đăng kí mới": null
+        },
+        "suggestTemplates": [
+          {
+            "id": "chao",
+            "why": "Khách mới, gọi 2 lần chưa nói chuyện được"
+          }
+        ]
+      },
+      "f0000000-0000-4000-8000-000000000005": {
+        "afterCall": {
+          "auto": true,
+          "code": "khong_lien_lac_duoc",
+          "fallback": null,
+          "kind": "drop",
+          "text": "Hết 5 lần gọi theo nhịp vẫn không liên lạc được → chuyển Loại \"Không liên lạc được\" và nhắn Zalo."
+        },
+        "forStage": {
+          "Booking & Làm hồ sơ": {
+            "end": "2026-12-04T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Sáu 4/12, 09:00–10:00",
+            "reason": "Nhắc giấy tờ / tiến độ hồ sơ",
+            "start": "2026-12-04T02:00:00.000Z"
+          },
+          "Kí HĐMB": {
+            "end": "2026-12-31T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Năm 31/12, 09:00–10:00",
+            "reason": "Chăm sóc sau bán, xin giới thiệu",
+            "start": "2026-12-31T02:00:00.000Z"
+          },
+          "Loại": null,
+          "Nuôi dài hạn": {
+            "end": "2027-03-01T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Hai 1/3, 09:00–10:00",
+            "reason": "Liên hệ lại khách nuôi dài hạn",
+            "start": "2027-03-01T02:00:00.000Z"
+          },
+          "Xem dự án": {
+            "end": "2026-12-03T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Năm 3/12, 09:00–10:00",
+            "reason": "Hỏi cảm nhận sau khi xem dự án",
+            "start": "2026-12-03T02:00:00.000Z"
+          },
+          "Đang chăm sóc": {
+            "end": "2026-12-04T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Sáu 4/12, 09:00–10:00",
+            "reason": "Gửi thêm thông tin dự án",
+            "start": "2026-12-04T02:00:00.000Z"
+          },
+          "Đang tiếp cận": null,
+          "Đăng kí mới": null
+        },
+        "suggestTemplates": [
+          {
+            "id": "goi_nho",
+            "why": "Đã gọi 5 lần chưa liên lạc được"
+          }
+        ]
+      },
+      "f0000000-0000-4000-8000-000000000006": {
+        "afterCall": {
+          "end": "2026-12-02T03:00:00.000Z",
+          "kind": "schedule",
+          "label": "Thứ Tư 2/12, 09:00–10:00",
+          "reason": "Chốt phân loại: Đạt hay Loại",
+          "start": "2026-12-02T02:00:00.000Z"
+        },
+        "forStage": {
+          "Booking & Làm hồ sơ": {
+            "end": "2026-12-04T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Sáu 4/12, 09:00–10:00",
+            "reason": "Nhắc giấy tờ / tiến độ hồ sơ",
+            "start": "2026-12-04T02:00:00.000Z"
+          },
+          "Kí HĐMB": {
+            "end": "2026-12-31T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Năm 31/12, 09:00–10:00",
+            "reason": "Chăm sóc sau bán, xin giới thiệu",
+            "start": "2026-12-31T02:00:00.000Z"
+          },
+          "Loại": null,
+          "Nuôi dài hạn": {
+            "end": "2027-03-01T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Hai 1/3, 09:00–10:00",
+            "reason": "Liên hệ lại khách nuôi dài hạn",
+            "start": "2027-03-01T02:00:00.000Z"
+          },
+          "Xem dự án": {
+            "end": "2026-12-03T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Năm 3/12, 09:00–10:00",
+            "reason": "Hỏi cảm nhận sau khi xem dự án",
+            "start": "2026-12-03T02:00:00.000Z"
+          },
+          "Đang chăm sóc": {
+            "end": "2026-12-04T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Sáu 4/12, 09:00–10:00",
+            "reason": "Gửi thêm thông tin dự án",
+            "start": "2026-12-04T02:00:00.000Z"
+          },
+          "Đang tiếp cận": null,
+          "Đăng kí mới": null
+        },
+        "suggestTemplates": [
+          {
+            "id": "thong_tin",
+            "why": "Khách mới đã nói chuyện được"
+          }
+        ]
+      },
+      "f0000000-0000-4000-8000-000000000007": {
+        "afterCall": {
+          "end": "2026-12-02T03:00:00.000Z",
+          "kind": "schedule",
+          "label": "Thứ Tư 2/12, 09:00–10:00",
+          "reason": "Chốt phân loại: Đạt hay Loại",
+          "start": "2026-12-02T02:00:00.000Z"
+        },
+        "forStage": {
+          "Booking & Làm hồ sơ": {
+            "end": "2026-12-04T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Sáu 4/12, 09:00–10:00",
+            "reason": "Nhắc giấy tờ / tiến độ hồ sơ",
+            "start": "2026-12-04T02:00:00.000Z"
+          },
+          "Kí HĐMB": {
+            "end": "2026-12-31T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Năm 31/12, 09:00–10:00",
+            "reason": "Chăm sóc sau bán, xin giới thiệu",
+            "start": "2026-12-31T02:00:00.000Z"
+          },
+          "Loại": null,
+          "Nuôi dài hạn": {
+            "end": "2027-03-01T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Hai 1/3, 09:00–10:00",
+            "reason": "Liên hệ lại khách nuôi dài hạn",
+            "start": "2027-03-01T02:00:00.000Z"
+          },
+          "Xem dự án": {
+            "end": "2026-12-03T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Năm 3/12, 09:00–10:00",
+            "reason": "Hỏi cảm nhận sau khi xem dự án",
+            "start": "2026-12-03T02:00:00.000Z"
+          },
+          "Đang chăm sóc": {
+            "end": "2026-12-04T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Sáu 4/12, 09:00–10:00",
+            "reason": "Gửi thêm thông tin dự án",
+            "start": "2026-12-04T02:00:00.000Z"
+          },
+          "Đang tiếp cận": null,
+          "Đăng kí mới": null
+        },
+        "suggestTemplates": [
+          {
+            "id": "thong_tin",
+            "why": "Khách mới đã nói chuyện được"
+          }
+        ]
+      },
+      "f0000000-0000-4000-8000-000000000008": {
+        "afterCall": {
+          "end": "2026-12-04T03:00:00.000Z",
+          "kind": "schedule",
+          "label": "Thứ Sáu 4/12, 09:00–10:00",
+          "reason": "Gửi thêm thông tin dự án",
+          "start": "2026-12-04T02:00:00.000Z"
+        },
+        "forStage": {
+          "Booking & Làm hồ sơ": {
+            "end": "2026-12-04T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Sáu 4/12, 09:00–10:00",
+            "reason": "Nhắc giấy tờ / tiến độ hồ sơ",
+            "start": "2026-12-04T02:00:00.000Z"
+          },
+          "Kí HĐMB": {
+            "end": "2026-12-31T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Năm 31/12, 09:00–10:00",
+            "reason": "Chăm sóc sau bán, xin giới thiệu",
+            "start": "2026-12-31T02:00:00.000Z"
+          },
+          "Loại": null,
+          "Nuôi dài hạn": {
+            "end": "2027-03-01T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Hai 1/3, 09:00–10:00",
+            "reason": "Liên hệ lại khách nuôi dài hạn",
+            "start": "2027-03-01T02:00:00.000Z"
+          },
+          "Xem dự án": {
+            "end": "2026-12-03T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Năm 3/12, 09:00–10:00",
+            "reason": "Hỏi cảm nhận sau khi xem dự án",
+            "start": "2026-12-03T02:00:00.000Z"
+          },
+          "Đang chăm sóc": {
+            "end": "2026-12-04T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Sáu 4/12, 09:00–10:00",
+            "reason": "Gửi thêm thông tin dự án",
+            "start": "2026-12-04T02:00:00.000Z"
+          },
+          "Đang tiếp cận": null,
+          "Đăng kí mới": null
+        },
+        "suggestTemplates": [
+          {
+            "id": "thong_tin",
+            "why": "Đang ở bậc \"Đang chăm sóc\""
+          }
+        ]
+      },
+      "f0000000-0000-4000-8000-000000000009": {
+        "afterCall": {
+          "end": "2026-12-04T03:00:00.000Z",
+          "kind": "schedule",
+          "label": "Thứ Sáu 4/12, 09:00–10:00",
+          "reason": "Nhắc giấy tờ / tiến độ hồ sơ",
+          "start": "2026-12-04T02:00:00.000Z"
+        },
+        "forStage": {
+          "Booking & Làm hồ sơ": {
+            "end": "2026-12-04T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Sáu 4/12, 09:00–10:00",
+            "reason": "Nhắc giấy tờ / tiến độ hồ sơ",
+            "start": "2026-12-04T02:00:00.000Z"
+          },
+          "Kí HĐMB": {
+            "end": "2026-12-31T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Năm 31/12, 09:00–10:00",
+            "reason": "Chăm sóc sau bán, xin giới thiệu",
+            "start": "2026-12-31T02:00:00.000Z"
+          },
+          "Loại": null,
+          "Nuôi dài hạn": {
+            "end": "2027-03-01T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Hai 1/3, 09:00–10:00",
+            "reason": "Liên hệ lại khách nuôi dài hạn",
+            "start": "2027-03-01T02:00:00.000Z"
+          },
+          "Xem dự án": {
+            "end": "2026-12-03T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Năm 3/12, 09:00–10:00",
+            "reason": "Hỏi cảm nhận sau khi xem dự án",
+            "start": "2026-12-03T02:00:00.000Z"
+          },
+          "Đang chăm sóc": {
+            "end": "2026-12-04T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Sáu 4/12, 09:00–10:00",
+            "reason": "Gửi thêm thông tin dự án",
+            "start": "2026-12-04T02:00:00.000Z"
+          },
+          "Đang tiếp cận": null,
+          "Đăng kí mới": null
+        },
+        "suggestTemplates": [
+          {
+            "id": "nhac_ho_so",
+            "why": "Đang ở bậc \"Booking & Làm hồ sơ\""
+          }
+        ]
+      },
+      "f0000000-0000-4000-8000-000000000010": {
+        "afterCall": null,
+        "forStage": {
+          "Booking & Làm hồ sơ": {
+            "end": "2026-12-04T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Sáu 4/12, 09:00–10:00",
+            "reason": "Nhắc giấy tờ / tiến độ hồ sơ",
+            "start": "2026-12-04T02:00:00.000Z"
+          },
+          "Kí HĐMB": {
+            "end": "2026-12-31T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Năm 31/12, 09:00–10:00",
+            "reason": "Chăm sóc sau bán, xin giới thiệu",
+            "start": "2026-12-31T02:00:00.000Z"
+          },
+          "Loại": null,
+          "Nuôi dài hạn": {
+            "end": "2027-03-01T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Hai 1/3, 09:00–10:00",
+            "reason": "Liên hệ lại khách nuôi dài hạn",
+            "start": "2027-03-01T02:00:00.000Z"
+          },
+          "Xem dự án": {
+            "end": "2026-12-03T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Năm 3/12, 09:00–10:00",
+            "reason": "Hỏi cảm nhận sau khi xem dự án",
+            "start": "2026-12-03T02:00:00.000Z"
+          },
+          "Đang chăm sóc": {
+            "end": "2026-12-04T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Sáu 4/12, 09:00–10:00",
+            "reason": "Gửi thêm thông tin dự án",
+            "start": "2026-12-04T02:00:00.000Z"
+          },
+          "Đang tiếp cận": null,
+          "Đăng kí mới": null
+        },
+        "suggestTemplates": [
+          {
+            "id": "nhac_ho_so",
+            "why": "Đang ở bậc \"Booking & Làm hồ sơ\""
+          }
+        ]
+      },
+      "f0000000-0000-4000-8000-000000000011": {
+        "afterCall": {
+          "end": "2026-12-03T03:00:00.000Z",
+          "kind": "schedule",
+          "label": "Thứ Năm 3/12, 09:00–10:00",
+          "reason": "Hỏi cảm nhận sau khi xem dự án",
+          "start": "2026-12-03T02:00:00.000Z"
+        },
+        "forStage": {
+          "Booking & Làm hồ sơ": {
+            "end": "2026-12-04T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Sáu 4/12, 09:00–10:00",
+            "reason": "Nhắc giấy tờ / tiến độ hồ sơ",
+            "start": "2026-12-04T02:00:00.000Z"
+          },
+          "Kí HĐMB": {
+            "end": "2026-12-31T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Năm 31/12, 09:00–10:00",
+            "reason": "Chăm sóc sau bán, xin giới thiệu",
+            "start": "2026-12-31T02:00:00.000Z"
+          },
+          "Loại": null,
+          "Nuôi dài hạn": {
+            "end": "2027-03-01T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Hai 1/3, 09:00–10:00",
+            "reason": "Liên hệ lại khách nuôi dài hạn",
+            "start": "2027-03-01T02:00:00.000Z"
+          },
+          "Xem dự án": {
+            "end": "2026-12-03T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Năm 3/12, 09:00–10:00",
+            "reason": "Hỏi cảm nhận sau khi xem dự án",
+            "start": "2026-12-03T02:00:00.000Z"
+          },
+          "Đang chăm sóc": {
+            "end": "2026-12-04T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Sáu 4/12, 09:00–10:00",
+            "reason": "Gửi thêm thông tin dự án",
+            "start": "2026-12-04T02:00:00.000Z"
+          },
+          "Đang tiếp cận": null,
+          "Đăng kí mới": null
+        },
+        "suggestTemplates": [
+          {
+            "id": "sau_xem",
+            "why": "Đang ở bậc \"Xem dự án\""
+          }
+        ]
+      },
+      "f0000000-0000-4000-8000-000000000012": {
+        "afterCall": null,
+        "forStage": {
+          "Booking & Làm hồ sơ": {
+            "end": "2026-12-04T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Sáu 4/12, 09:00–10:00",
+            "reason": "Nhắc giấy tờ / tiến độ hồ sơ",
+            "start": "2026-12-04T02:00:00.000Z"
+          },
+          "Kí HĐMB": {
+            "end": "2026-12-31T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Năm 31/12, 09:00–10:00",
+            "reason": "Chăm sóc sau bán, xin giới thiệu",
+            "start": "2026-12-31T02:00:00.000Z"
+          },
+          "Loại": null,
+          "Nuôi dài hạn": {
+            "end": "2027-03-01T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Hai 1/3, 09:00–10:00",
+            "reason": "Liên hệ lại khách nuôi dài hạn",
+            "start": "2027-03-01T02:00:00.000Z"
+          },
+          "Xem dự án": {
+            "end": "2026-12-03T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Năm 3/12, 09:00–10:00",
+            "reason": "Hỏi cảm nhận sau khi xem dự án",
+            "start": "2026-12-03T02:00:00.000Z"
+          },
+          "Đang chăm sóc": {
+            "end": "2026-12-04T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Sáu 4/12, 09:00–10:00",
+            "reason": "Gửi thêm thông tin dự án",
+            "start": "2026-12-04T02:00:00.000Z"
+          },
+          "Đang tiếp cận": null,
+          "Đăng kí mới": null
+        },
+        "suggestTemplates": [
+          {
+            "id": "thong_tin",
+            "why": "Đang ở bậc \"Nuôi dài hạn\""
+          }
+        ]
+      },
+      "f0000000-0000-4000-8000-000000000013": {
+        "afterCall": null,
+        "forStage": {
+          "Booking & Làm hồ sơ": {
+            "end": "2026-12-04T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Sáu 4/12, 09:00–10:00",
+            "reason": "Nhắc giấy tờ / tiến độ hồ sơ",
+            "start": "2026-12-04T02:00:00.000Z"
+          },
+          "Kí HĐMB": {
+            "end": "2026-12-31T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Năm 31/12, 09:00–10:00",
+            "reason": "Chăm sóc sau bán, xin giới thiệu",
+            "start": "2026-12-31T02:00:00.000Z"
+          },
+          "Loại": null,
+          "Nuôi dài hạn": {
+            "end": "2027-03-01T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Hai 1/3, 09:00–10:00",
+            "reason": "Liên hệ lại khách nuôi dài hạn",
+            "start": "2027-03-01T02:00:00.000Z"
+          },
+          "Xem dự án": {
+            "end": "2026-12-03T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Năm 3/12, 09:00–10:00",
+            "reason": "Hỏi cảm nhận sau khi xem dự án",
+            "start": "2026-12-03T02:00:00.000Z"
+          },
+          "Đang chăm sóc": {
+            "end": "2026-12-04T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Sáu 4/12, 09:00–10:00",
+            "reason": "Gửi thêm thông tin dự án",
+            "start": "2026-12-04T02:00:00.000Z"
+          },
+          "Đang tiếp cận": null,
+          "Đăng kí mới": null
+        },
+        "suggestTemplates": [
+          {
+            "id": "chuc_mung",
+            "why": "Đang ở bậc \"Kí HĐMB\""
+          }
+        ]
+      },
+      "f0000000-0000-4000-8000-000000000014": {
+        "afterCall": null,
+        "forStage": {
+          "Booking & Làm hồ sơ": {
+            "end": "2026-12-04T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Sáu 4/12, 09:00–10:00",
+            "reason": "Nhắc giấy tờ / tiến độ hồ sơ",
+            "start": "2026-12-04T02:00:00.000Z"
+          },
+          "Kí HĐMB": {
+            "end": "2026-12-31T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Năm 31/12, 09:00–10:00",
+            "reason": "Chăm sóc sau bán, xin giới thiệu",
+            "start": "2026-12-31T02:00:00.000Z"
+          },
+          "Loại": null,
+          "Nuôi dài hạn": {
+            "end": "2027-03-01T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Hai 1/3, 09:00–10:00",
+            "reason": "Liên hệ lại khách nuôi dài hạn",
+            "start": "2027-03-01T02:00:00.000Z"
+          },
+          "Xem dự án": {
+            "end": "2026-12-03T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Năm 3/12, 09:00–10:00",
+            "reason": "Hỏi cảm nhận sau khi xem dự án",
+            "start": "2026-12-03T02:00:00.000Z"
+          },
+          "Đang chăm sóc": {
+            "end": "2026-12-04T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Sáu 4/12, 09:00–10:00",
+            "reason": "Gửi thêm thông tin dự án",
+            "start": "2026-12-04T02:00:00.000Z"
+          },
+          "Đang tiếp cận": null,
+          "Đăng kí mới": null
+        },
+        "suggestTemplates": [
+          {
+            "id": "thong_tin",
+            "why": "Đang ở bậc \"Không chốt\""
+          }
+        ]
+      },
+      "f0000000-0000-4000-8000-000000000015": {
+        "afterCall": null,
+        "forStage": {
+          "Booking & Làm hồ sơ": {
+            "end": "2026-12-04T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Sáu 4/12, 09:00–10:00",
+            "reason": "Nhắc giấy tờ / tiến độ hồ sơ",
+            "start": "2026-12-04T02:00:00.000Z"
+          },
+          "Kí HĐMB": {
+            "end": "2026-12-31T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Năm 31/12, 09:00–10:00",
+            "reason": "Chăm sóc sau bán, xin giới thiệu",
+            "start": "2026-12-31T02:00:00.000Z"
+          },
+          "Loại": null,
+          "Nuôi dài hạn": {
+            "end": "2027-03-01T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Hai 1/3, 09:00–10:00",
+            "reason": "Liên hệ lại khách nuôi dài hạn",
+            "start": "2027-03-01T02:00:00.000Z"
+          },
+          "Xem dự án": {
+            "end": "2026-12-03T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Năm 3/12, 09:00–10:00",
+            "reason": "Hỏi cảm nhận sau khi xem dự án",
+            "start": "2026-12-03T02:00:00.000Z"
+          },
+          "Đang chăm sóc": {
+            "end": "2026-12-04T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Sáu 4/12, 09:00–10:00",
+            "reason": "Gửi thêm thông tin dự án",
+            "start": "2026-12-04T02:00:00.000Z"
+          },
+          "Đang tiếp cận": null,
+          "Đăng kí mới": null
+        },
+        "suggestTemplates": [
+          {
+            "id": "thong_tin",
+            "why": "Đang ở bậc \"Đang chăm sóc\""
+          }
+        ]
+      },
+      "f0000000-0000-4000-8000-000000000016": {
+        "afterCall": {
+          "end": "2026-12-05T13:45:00.000Z",
+          "kind": "schedule",
+          "label": "Thứ Bảy 5/12, 20:00–20:45",
+          "reason": "Gọi lại (lần 4)",
+          "start": "2026-12-05T13:00:00.000Z"
+        },
+        "forStage": {
+          "Booking & Làm hồ sơ": {
+            "end": "2026-12-04T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Sáu 4/12, 09:00–10:00",
+            "reason": "Nhắc giấy tờ / tiến độ hồ sơ",
+            "start": "2026-12-04T02:00:00.000Z"
+          },
+          "Kí HĐMB": {
+            "end": "2026-12-31T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Năm 31/12, 09:00–10:00",
+            "reason": "Chăm sóc sau bán, xin giới thiệu",
+            "start": "2026-12-31T02:00:00.000Z"
+          },
+          "Loại": null,
+          "Nuôi dài hạn": {
+            "end": "2027-03-01T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Hai 1/3, 09:00–10:00",
+            "reason": "Liên hệ lại khách nuôi dài hạn",
+            "start": "2027-03-01T02:00:00.000Z"
+          },
+          "Xem dự án": {
+            "end": "2026-12-03T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Năm 3/12, 09:00–10:00",
+            "reason": "Hỏi cảm nhận sau khi xem dự án",
+            "start": "2026-12-03T02:00:00.000Z"
+          },
+          "Đang chăm sóc": {
+            "end": "2026-12-04T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Sáu 4/12, 09:00–10:00",
+            "reason": "Gửi thêm thông tin dự án",
+            "start": "2026-12-04T02:00:00.000Z"
+          },
+          "Đang tiếp cận": null,
+          "Đăng kí mới": null
+        },
+        "suggestTemplates": [
+          {
+            "id": "thong_tin",
+            "why": "Đang ở bậc \"Đang chăm sóc\""
+          },
+          {
+            "id": "goi_nho",
+            "why": "Đã gọi 3 lần chưa liên lạc được"
+          }
+        ]
+      },
+      "f0000000-0000-4000-8000-000000000017": {
+        "afterCall": {
+          "end": "2026-12-04T03:00:00.000Z",
+          "kind": "schedule",
+          "label": "Thứ Sáu 4/12, 09:00–10:00",
+          "reason": "Gửi thêm thông tin dự án",
+          "start": "2026-12-04T02:00:00.000Z"
+        },
+        "forStage": {
+          "Booking & Làm hồ sơ": {
+            "end": "2026-12-04T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Sáu 4/12, 09:00–10:00",
+            "reason": "Nhắc giấy tờ / tiến độ hồ sơ",
+            "start": "2026-12-04T02:00:00.000Z"
+          },
+          "Kí HĐMB": {
+            "end": "2026-12-31T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Năm 31/12, 09:00–10:00",
+            "reason": "Chăm sóc sau bán, xin giới thiệu",
+            "start": "2026-12-31T02:00:00.000Z"
+          },
+          "Loại": null,
+          "Nuôi dài hạn": {
+            "end": "2027-03-01T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Hai 1/3, 09:00–10:00",
+            "reason": "Liên hệ lại khách nuôi dài hạn",
+            "start": "2027-03-01T02:00:00.000Z"
+          },
+          "Xem dự án": {
+            "end": "2026-12-03T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Năm 3/12, 09:00–10:00",
+            "reason": "Hỏi cảm nhận sau khi xem dự án",
+            "start": "2026-12-03T02:00:00.000Z"
+          },
+          "Đang chăm sóc": {
+            "end": "2026-12-04T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Sáu 4/12, 09:00–10:00",
+            "reason": "Gửi thêm thông tin dự án",
+            "start": "2026-12-04T02:00:00.000Z"
+          },
+          "Đang tiếp cận": null,
+          "Đăng kí mới": null
+        },
+        "suggestTemplates": [
+          {
+            "id": "thong_tin",
+            "why": "Đang ở bậc \"Đang chăm sóc\""
+          }
+        ]
+      },
+      "f0000000-0000-4000-8000-000000000018": {
+        "afterCall": {
+          "end": "2026-12-01T13:45:00.000Z",
+          "kind": "schedule",
+          "label": "Thứ Ba 1/12, 20:00–20:45",
+          "reason": "Gọi lần 3 · khung tối",
+          "slot": "D",
+          "start": "2026-12-01T13:00:00.000Z"
+        },
+        "forStage": {
+          "Booking & Làm hồ sơ": {
+            "end": "2026-12-04T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Sáu 4/12, 09:00–10:00",
+            "reason": "Nhắc giấy tờ / tiến độ hồ sơ",
+            "start": "2026-12-04T02:00:00.000Z"
+          },
+          "Kí HĐMB": {
+            "end": "2026-12-31T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Năm 31/12, 09:00–10:00",
+            "reason": "Chăm sóc sau bán, xin giới thiệu",
+            "start": "2026-12-31T02:00:00.000Z"
+          },
+          "Loại": null,
+          "Nuôi dài hạn": {
+            "end": "2027-03-01T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Hai 1/3, 09:00–10:00",
+            "reason": "Liên hệ lại khách nuôi dài hạn",
+            "start": "2027-03-01T02:00:00.000Z"
+          },
+          "Xem dự án": {
+            "end": "2026-12-03T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Năm 3/12, 09:00–10:00",
+            "reason": "Hỏi cảm nhận sau khi xem dự án",
+            "start": "2026-12-03T02:00:00.000Z"
+          },
+          "Đang chăm sóc": {
+            "end": "2026-12-04T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Sáu 4/12, 09:00–10:00",
+            "reason": "Gửi thêm thông tin dự án",
+            "start": "2026-12-04T02:00:00.000Z"
+          },
+          "Đang tiếp cận": null,
+          "Đăng kí mới": null
+        },
+        "suggestTemplates": [
+          {
+            "id": "chao",
+            "why": "Khách mới, gọi 2 lần chưa nói chuyện được"
+          }
+        ]
+      },
+      "f0000000-0000-4000-8000-000000000019": {
+        "afterCall": {
+          "end": "2026-12-04T03:00:00.000Z",
+          "kind": "schedule",
+          "label": "Thứ Sáu 4/12, 09:00–10:00",
+          "reason": "Gửi thêm thông tin dự án",
+          "start": "2026-12-04T02:00:00.000Z"
+        },
+        "forStage": {
+          "Booking & Làm hồ sơ": {
+            "end": "2026-12-04T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Sáu 4/12, 09:00–10:00",
+            "reason": "Nhắc giấy tờ / tiến độ hồ sơ",
+            "start": "2026-12-04T02:00:00.000Z"
+          },
+          "Kí HĐMB": {
+            "end": "2026-12-31T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Năm 31/12, 09:00–10:00",
+            "reason": "Chăm sóc sau bán, xin giới thiệu",
+            "start": "2026-12-31T02:00:00.000Z"
+          },
+          "Loại": null,
+          "Nuôi dài hạn": {
+            "end": "2027-03-01T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Hai 1/3, 09:00–10:00",
+            "reason": "Liên hệ lại khách nuôi dài hạn",
+            "start": "2027-03-01T02:00:00.000Z"
+          },
+          "Xem dự án": {
+            "end": "2026-12-03T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Năm 3/12, 09:00–10:00",
+            "reason": "Hỏi cảm nhận sau khi xem dự án",
+            "start": "2026-12-03T02:00:00.000Z"
+          },
+          "Đang chăm sóc": {
+            "end": "2026-12-04T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Sáu 4/12, 09:00–10:00",
+            "reason": "Gửi thêm thông tin dự án",
+            "start": "2026-12-04T02:00:00.000Z"
+          },
+          "Đang tiếp cận": null,
+          "Đăng kí mới": null
+        },
+        "suggestTemplates": [
+          {
+            "id": "thong_tin",
+            "why": "Đang ở bậc \"Đang chăm sóc\""
+          }
+        ]
+      },
+      "f0000000-0000-4000-8000-000000000020": {
+        "afterCall": null,
+        "firstCall": {
+          "end": "2026-12-01T05:15:00.000Z",
+          "kind": "schedule",
+          "label": "Thứ Ba 1/12, 11:30–12:15",
+          "reason": "Gọi lần 1 · khung trưa · khung gần nhất sau đăng ký",
+          "slot": "B",
+          "start": "2026-12-01T04:30:00.000Z"
+        },
+        "forStage": {
+          "Booking & Làm hồ sơ": {
+            "end": "2026-12-04T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Sáu 4/12, 09:00–10:00",
+            "reason": "Nhắc giấy tờ / tiến độ hồ sơ",
+            "start": "2026-12-04T02:00:00.000Z"
+          },
+          "Kí HĐMB": {
+            "end": "2026-12-31T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Năm 31/12, 09:00–10:00",
+            "reason": "Chăm sóc sau bán, xin giới thiệu",
+            "start": "2026-12-31T02:00:00.000Z"
+          },
+          "Loại": null,
+          "Nuôi dài hạn": {
+            "end": "2027-03-01T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Hai 1/3, 09:00–10:00",
+            "reason": "Liên hệ lại khách nuôi dài hạn",
+            "start": "2027-03-01T02:00:00.000Z"
+          },
+          "Xem dự án": {
+            "end": "2026-12-03T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Năm 3/12, 09:00–10:00",
+            "reason": "Hỏi cảm nhận sau khi xem dự án",
+            "start": "2026-12-03T02:00:00.000Z"
+          },
+          "Đang chăm sóc": {
+            "end": "2026-12-04T03:00:00.000Z",
+            "kind": "schedule",
+            "label": "Thứ Sáu 4/12, 09:00–10:00",
+            "reason": "Gửi thêm thông tin dự án",
+            "start": "2026-12-04T02:00:00.000Z"
+          },
+          "Đang tiếp cận": null,
+          "Đăng kí mới": null
+        },
+        "suggestTemplates": [
+          {
+            "id": "chao",
+            "why": "Khách mới chưa liên hệ"
+          }
+        ]
+      }
+    },
+    "sequences": {
+      "lead-1-misses": {
+        "afterCall": {
+          "end": "2026-12-01T13:45:00.000Z",
+          "kind": "schedule",
+          "label": "Thứ Ba 1/12, 20:00–20:45",
+          "reason": "Gọi lần 2 · khung tối",
+          "slot": "D",
+          "start": "2026-12-01T13:00:00.000Z"
+        },
+        "suggestTemplates": [
+          {
+            "id": "chao",
+            "why": "Khách mới, gọi 1 lần chưa nói chuyện được"
+          }
+        ]
+      },
+      "lead-2-misses": {
+        "afterCall": {
+          "end": "2026-12-01T13:45:00.000Z",
+          "kind": "schedule",
+          "label": "Thứ Ba 1/12, 20:00–20:45",
+          "reason": "Gọi lần 3 · khung tối",
+          "slot": "D",
+          "start": "2026-12-01T13:00:00.000Z"
+        },
+        "suggestTemplates": [
+          {
+            "id": "chao",
+            "why": "Khách mới, gọi 2 lần chưa nói chuyện được"
+          }
+        ]
+      },
+      "lead-3-misses": {
+        "afterCall": {
+          "end": "2026-12-01T13:45:00.000Z",
+          "kind": "schedule",
+          "label": "Thứ Ba 1/12, 20:00–20:45",
+          "reason": "Gọi lần 4 · khung tối",
+          "slot": "D",
+          "start": "2026-12-01T13:00:00.000Z"
+        },
+        "suggestTemplates": [
+          {
+            "id": "goi_nho",
+            "why": "Đã gọi 3 lần chưa liên lạc được"
+          }
+        ]
+      },
+      "lead-4-misses": {
+        "afterCall": {
+          "end": "2026-12-02T13:45:00.000Z",
+          "kind": "schedule",
+          "label": "Thứ Tư 2/12, 20:00–20:45",
+          "reason": "Gọi lần 5 · khung tối · khung phản hồi tốt nhất",
+          "slot": "D",
+          "start": "2026-12-02T13:00:00.000Z"
+        },
+        "suggestTemplates": [
+          {
+            "id": "goi_nho",
+            "why": "Đã gọi 4 lần chưa liên lạc được"
+          }
+        ]
+      },
+      "lead-5-misses": {
+        "afterCall": {
+          "auto": true,
+          "code": "khong_lien_lac_duoc",
+          "fallback": null,
+          "kind": "drop",
+          "text": "Hết 5 lần gọi theo nhịp vẫn không liên lạc được → chuyển Loại \"Không liên lạc được\" và nhắn Zalo."
+        },
+        "suggestTemplates": [
+          {
+            "id": "goi_nho",
+            "why": "Đã gọi 5 lần chưa liên lạc được"
+          }
+        ]
+      },
+      "lead-6-misses": {
+        "afterCall": {
+          "auto": true,
+          "code": "khong_lien_lac_duoc",
+          "fallback": null,
+          "kind": "drop",
+          "text": "Hết 6 lần gọi theo nhịp vẫn không liên lạc được → chuyển Loại \"Không liên lạc được\" và nhắn Zalo."
+        },
+        "suggestTemplates": [
+          {
+            "id": "goi_nho",
+            "why": "Đã gọi 6 lần chưa liên lạc được"
+          }
+        ]
+      },
+      "lead-7-misses": {
+        "afterCall": {
+          "auto": true,
+          "code": "khong_lien_lac_duoc",
+          "fallback": null,
+          "kind": "drop",
+          "text": "Hết 7 lần gọi theo nhịp vẫn không liên lạc được → chuyển Loại \"Không liên lạc được\" và nhắn Zalo."
+        },
+        "suggestTemplates": [
+          {
+            "id": "goi_nho",
+            "why": "Đã gọi 7 lần chưa liên lạc được"
+          }
+        ]
+      },
+      "lead-one-busy": {
+        "kind": "ask",
+        "reason": "Khách hẹn gọi lại"
+      },
+      "lead-one-hung_up": {
+        "end": "2026-12-01T13:45:00.000Z",
+        "kind": "schedule",
+        "label": "Thứ Ba 1/12, 20:00–20:45",
+        "reason": "Gọi lần 2 · khung tối · trong 24h sau đăng ký",
+        "slot": "D",
+        "start": "2026-12-01T13:00:00.000Z"
+      },
+      "lead-one-null": null,
+      "lead-one-talked": {
+        "end": "2026-12-02T03:00:00.000Z",
+        "kind": "schedule",
+        "label": "Thứ Tư 2/12, 09:00–10:00",
+        "reason": "Chốt phân loại: Đạt hay Loại",
+        "start": "2026-12-02T02:00:00.000Z"
+      },
+      "lead-one-wrong_number": {
+        "code": "so_sai",
+        "fallback": null,
+        "kind": "drop",
+        "text": "Sai số → gợi ý loại khách (Số sai)."
+      },
+      "qualified-1-misses": {
+        "afterCall": {
+          "end": "2026-12-02T13:45:00.000Z",
+          "kind": "schedule",
+          "label": "Thứ Tư 2/12, 20:00–20:45",
+          "reason": "Gọi lại (lần 2)",
+          "start": "2026-12-02T13:00:00.000Z"
+        },
+        "suggestTemplates": [
+          {
+            "id": "thong_tin",
+            "why": "Đang ở bậc \"Đang chăm sóc\""
+          }
+        ]
+      },
+      "qualified-2-misses": {
+        "afterCall": {
+          "end": "2026-12-03T03:00:00.000Z",
+          "kind": "schedule",
+          "label": "Thứ Năm 3/12, 09:00–10:00",
+          "reason": "Gọi lại (lần 3)",
+          "start": "2026-12-03T02:00:00.000Z"
+        },
+        "suggestTemplates": [
+          {
+            "id": "thong_tin",
+            "why": "Đang ở bậc \"Đang chăm sóc\""
+          }
+        ]
+      },
+      "qualified-3-misses": {
+        "afterCall": {
+          "end": "2026-12-05T03:00:00.000Z",
+          "kind": "schedule",
+          "label": "Thứ Bảy 5/12, 09:00–10:00",
+          "reason": "Gọi lại (lần 4)",
+          "start": "2026-12-05T02:00:00.000Z"
+        },
+        "suggestTemplates": [
+          {
+            "id": "thong_tin",
+            "why": "Đang ở bậc \"Đang chăm sóc\""
+          },
+          {
+            "id": "goi_nho",
+            "why": "Đã gọi 3 lần chưa liên lạc được"
+          }
+        ]
+      },
+      "qualified-4-misses": {
+        "afterCall": {
+          "end": "2026-12-08T03:00:00.000Z",
+          "kind": "schedule",
+          "label": "Thứ Ba 8/12, 09:00–10:00",
+          "reason": "Gọi lại (lần 5)",
+          "start": "2026-12-08T02:00:00.000Z"
+        },
+        "suggestTemplates": [
+          {
+            "id": "thong_tin",
+            "why": "Đang ở bậc \"Đang chăm sóc\""
+          },
+          {
+            "id": "goi_nho",
+            "why": "Đã gọi 4 lần chưa liên lạc được"
+          }
+        ]
+      },
+      "qualified-5-misses": {
+        "afterCall": {
+          "end": "2026-12-08T13:45:00.000Z",
+          "kind": "schedule",
+          "label": "Thứ Ba 8/12, 20:00–20:45",
+          "reason": "Gọi lại (lần 6) · khách khó liên lạc, thử nhắn Zalo",
+          "start": "2026-12-08T13:00:00.000Z"
+        },
+        "suggestTemplates": [
+          {
+            "id": "thong_tin",
+            "why": "Đang ở bậc \"Đang chăm sóc\""
+          },
+          {
+            "id": "goi_nho",
+            "why": "Đã gọi 5 lần chưa liên lạc được"
+          }
+        ]
+      },
+      "qualified-6-misses": {
+        "afterCall": {
+          "end": "2026-12-08T03:00:00.000Z",
+          "kind": "schedule",
+          "label": "Thứ Ba 8/12, 09:00–10:00",
+          "reason": "Gọi lại (lần 7) · khách khó liên lạc, thử nhắn Zalo",
+          "start": "2026-12-08T02:00:00.000Z"
+        },
+        "suggestTemplates": [
+          {
+            "id": "thong_tin",
+            "why": "Đang ở bậc \"Đang chăm sóc\""
+          },
+          {
+            "id": "goi_nho",
+            "why": "Đã gọi 6 lần chưa liên lạc được"
+          }
+        ]
+      },
+      "qualified-7-misses": {
+        "afterCall": {
+          "end": "2026-12-08T13:45:00.000Z",
+          "kind": "schedule",
+          "label": "Thứ Ba 8/12, 20:00–20:45",
+          "reason": "Gọi lại (lần 8) · khách khó liên lạc, thử nhắn Zalo",
+          "start": "2026-12-08T13:00:00.000Z"
+        },
+        "suggestTemplates": [
+          {
+            "id": "thong_tin",
+            "why": "Đang ở bậc \"Đang chăm sóc\""
+          },
+          {
+            "id": "goi_nho",
+            "why": "Đã gọi 7 lần chưa liên lạc được"
+          }
+        ]
+      },
+      "qualified-one-busy": {
+        "kind": "ask",
+        "reason": "Khách hẹn gọi lại"
+      },
+      "qualified-one-hung_up": {
+        "end": "2026-12-02T03:00:00.000Z",
+        "kind": "schedule",
+        "label": "Thứ Tư 2/12, 09:00–10:00",
+        "reason": "Gọi lại (lần 2)",
+        "start": "2026-12-02T02:00:00.000Z"
+      },
+      "qualified-one-null": null,
+      "qualified-one-talked": {
+        "end": "2026-12-03T03:00:00.000Z",
+        "kind": "schedule",
+        "label": "Thứ Năm 3/12, 09:00–10:00",
+        "reason": "Hỏi cảm nhận sau khi xem dự án",
+        "start": "2026-12-03T02:00:00.000Z"
+      },
+      "qualified-one-wrong_number": null
+    },
+    "slotOfTime": {
+      "0": "A",
+      "6": "A",
+      "7": "A",
+      "8": "A",
+      "9": "A",
+      "11": "B",
+      "12": "B",
+      "13": "C",
+      "14": "C",
+      "17": "C",
+      "18": "D",
+      "19": "D",
+      "20": "D",
+      "21": "D",
+      "22": "D",
+      "23": "D"
+    }
+  }
+}

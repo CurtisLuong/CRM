@@ -6,6 +6,16 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-16 — Sóng 0: lưới an toàn dữ liệu (script, SQL, golden test — chưa chạy trên Supabase)
+
+- T0.1: script backup chỉ-đọc production (`pg_dump` schema `public` + tài khoản + `customers.json` + file Storage + số dòng/md5 từng bảng + SHA256SUMS, lưu ngoài repo) và diễn tập khôi phục vào staging (chặn trỏ nhầm production, bảng so sánh ✓/✗). `.gitignore` chặn `.env.backup`.
+- T0.2: migration chỉ-thêm `customer_changes` + trigger `customers_audit` (giá trị cũ của cột đổi / cả hàng khi xoá; RLS theo người phụ trách; không ai sửa/xoá được nhật ký; lỗi ghi nhật ký → thao tác bị huỷ, báo rõ) + file test 12 kiểm tra tự rollback. Đã thử trên PGlite (Postgres giả lập), chưa chạy staging/production.
+- T0.3: `scripts/sql/inspect.sql` đối soát production (tự kết luận migration đã/chưa chạy, không trả dữ liệu khách); khung kết quả + thứ tự đề xuất ở architecture §3.2.
+- T0.4: harness chạy code v1 thật trong `node:vm` trên 20 khách tổng hợp → 10 file golden; kiểm tra v1 giữ thuộc tính JSONB lạ khi ghi lại mảng.
+- Runbook cho chủ dự án: backup, audit, hạ tầng v2 (T0.5), baseline đo (T0.6).
+- Không đổi runtime v1 (`index.html`, `js/`, `css/`), không đổi dữ liệu/deploy.
+- File: `.gitignore`, `scripts/backup/*`, `scripts/sql/inspect.sql`, `SQL/v2/001_customer_audit.sql`, `SQL/schema.sql`, `tests/sql/001_customer_audit.test.sql`, `tests/fixtures/legacy-customers.json`, `tests/legacy-harness/*`, `tests/golden/*`, `docs/runbooks/{backup,audit,v2-infra,baseline}.md`, `docs/architecture.md`, `docs/tasks.md`.
+
 ## 2026-10-16 — Kế hoạch đại tu v2 (chỉ tài liệu, chưa code)
 
 - Bộ quy định mới cho đại tu: PRD (5 ưu tiên, đối chiếu v1 → v2, tính năng F-01…F-14), kế hoạch task theo sóng + nhóm song song, kiến trúc v2 với hợp đồng bảo toàn dữ liệu, Design System v3 "Signal" (sáng/tối), UX Guidelines v2 (IA mới + ngân sách số chạm), prompts (AI trong app + mẫu cho agent).

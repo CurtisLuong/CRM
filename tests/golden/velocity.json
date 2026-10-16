@@ -1,0 +1,1219 @@
+{
+  "_golden": {
+    "case": "velocity",
+    "desc": "VELOCITY.phaseOf / status / autoAction / bookingSteps / stageEnteredAt trên dữ liệu thô",
+    "fixture": "tests/fixtures/legacy-customers.json",
+    "now": "2026-12-01T10:00:00+07:00",
+    "tz": "Asia/Ho_Chi_Minh"
+  },
+  "result": {
+    "cases": {
+      "f0000000-0000-4000-8000-000000000001": "Lớp 1 · Đăng kí mới 2 giờ trước, chưa gọi · source mảng chuẩn",
+      "f0000000-0000-4000-8000-000000000002": "Lớp 1 · đăng ký 23:30 đêm qua (SLA dời 7h sáng) · source dạng CHUỖI mã cũ 'landing'",
+      "f0000000-0000-4000-8000-000000000003": "Lớp 1 · Đang tiếp cận: 2 cuộc no_answer + 1 cuộc thiết bị result null (chưa ghi) · source mã cũ ['manual']",
+      "f0000000-0000-4000-8000-000000000004": "Lớp 1 · Đang tiếp cận quá 7 ngày, chưa nói chuyện được → tự Loại (SLA approach) · source mã cũ 'ocr'",
+      "f0000000-0000-4000-8000-000000000005": "Lớp 1 · 5 lần không liên lạc được liên tiếp → afterCall gợi ý tự Loại",
+      "f0000000-0000-4000-8000-000000000006": "Lớp 1 · đã nói chuyện được nhưng chưa Đạt (≥30s không tự Đạt) · có lịch hẹn ngày mai",
+      "f0000000-0000-4000-8000-000000000007": "Lớp 1 · đã Loại (khong_du_dieu_kien) có ghi chú",
+      "f0000000-0000-4000-8000-000000000008": "Lớp 2 · Đang chăm sóc 25 ngày (quá 20) → tự chuyển Nuôi dài hạn · việc cả ngày/có giờ/đã xong + thuộc tính lạ",
+      "f0000000-0000-4000-8000-000000000009": "Lớp 2 · bậc cũ 'Hỗ trợ hồ sơ' + lịch sử 'Booking' (đọc qua normStage) · booking_steps bước 1 xong",
+      "f0000000-0000-4000-8000-000000000010": "Lớp 2 · bậc cũ 'Booking', vào bậc 50 ngày trước (quá mục tiêu 45) · booking_steps rỗng",
+      "f0000000-0000-4000-8000-000000000011": "Lớp 2 · Xem dự án · lịch gọi đang trong khung (đến giờ) · khách nóng 80% · dob thiếu năm '--05-12'",
+      "f0000000-0000-4000-8000-000000000012": "Nuôi dài hạn do app tự chuyển 2 ngày trước ({auto:'sla'}, còn Hoàn tác) · hẹn gọi lại 3 tháng",
+      "f0000000-0000-4000-8000-000000000013": "Kí HĐMB (đã mua)",
+      "f0000000-0000-4000-8000-000000000014": "Lớp 2 · Loại (Không chốt)",
+      "f0000000-0000-4000-8000-000000000015": "Khách ĐỒNG NGHIỆP phụ trách, mình là follower · Đang chăm sóc quá hạn (không được tự chuyển, không vào việc của mình)",
+      "f0000000-0000-4000-8000-000000000016": "Lớp 2 · Đang chăm sóc · sinh nhật sau 2 ngày · 3 cuộc gọi hỏng liên tiếp → mẫu sinh_nhat + goi_nho",
+      "f0000000-0000-4000-8000-000000000017": "Bản ghi 'bẩn': thuộc tính lạ ở gốc + trong mọi mảng JSONB, phần tử call_attempts thiếu 'at', SĐT có +84 và dấu cách, source null, advanced object",
+      "f0000000-0000-4000-8000-000000000018": "Lớp 1 · mở lại sau khi bị tự Loại (sla_anchor_at 1 ngày trước đặt lại đồng hồ)",
+      "f0000000-0000-4000-8000-000000000019": "Lớp 2 · Đang chăm sóc · lỡ lịch gọi hôm qua (quá hạn) · contact_status",
+      "f0000000-0000-4000-8000-000000000020": "Lớp 1 · đăng ký 30 giờ trước chưa gọi (gợi ý 'quá 24 giờ chưa gọi', SLA quá hạn)"
+    },
+    "config": {
+      "autoSince": "2026-10-10T00:00:00+07:00",
+      "autoUndoDays": 3,
+      "bookingSteps": [
+        {
+          "days": [
+            3,
+            5
+          ],
+          "key": "cu_tru",
+          "label": "Xác nhận cư trú",
+          "text": "3–5 ngày"
+        },
+        {
+          "days": [
+            12,
+            15
+          ],
+          "key": "dk_nha_o",
+          "label": "Xác nhận điều kiện nhà ở",
+          "text": "~15 ngày sau bước 1"
+        },
+        {
+          "days": [
+            5,
+            7
+          ],
+          "key": "tham_dinh",
+          "label": "CĐT/Sở thẩm định đạt",
+          "text": "5–7 ngày"
+        },
+        {
+          "key": "tb_ky",
+          "label": "Thông báo ký HĐMB"
+        }
+      ],
+      "dropReason": "khong_lien_lac_duoc",
+      "legacyStages": {
+        "Booking": "Booking & Làm hồ sơ",
+        "Hỗ trợ hồ sơ": "Booking & Làm hồ sơ"
+      },
+      "nurtureRecallMonths": 3,
+      "order": [
+        "new_lead",
+        "approach",
+        "care",
+        "visit",
+        "booking"
+      ],
+      "phases": {
+        "approach": {
+          "auto": "drop",
+          "label": "Đang tiếp cận",
+          "max": 604800000,
+          "maxText": "7 ngày",
+          "rule": "Tối đa gọi 5 lần; quá 7 ngày chưa liên lạc được → tự chuyển Loại \"Không liên lạc được\".",
+          "target": 172800000,
+          "targetText": "1–2 ngày"
+        },
+        "booking": {
+          "goal": "Hoàn tất hồ sơ → Ký HĐMB",
+          "label": "Booking & Làm hồ sơ",
+          "max": 6480000000,
+          "maxText": "2,5 tháng",
+          "rule": "Theo dõi 4 bước hồ sơ bên dưới.",
+          "stage": "Booking & Làm hồ sơ",
+          "target": 3888000000,
+          "targetText": "45 ngày"
+        },
+        "care": {
+          "auto": "nurture",
+          "goal": "Chốt lịch xem sa bàn / nhà mẫu / dự án / văn phòng bán hàng",
+          "label": "Đang chăm sóc",
+          "max": 1728000000,
+          "maxText": "20 ngày",
+          "rule": "Quá 20 ngày → tự chuyển Nuôi dài hạn, rút khỏi phễu chính.",
+          "stage": "Đang chăm sóc",
+          "target": 864000000,
+          "targetText": "7–10 ngày"
+        },
+        "new_lead": {
+          "label": "Đăng kí mới",
+          "max": 14400000,
+          "maxText": "4 giờ",
+          "rule": "Cảnh báo. Khách đăng ký sau 22h → tính từ 7h sáng hôm sau.",
+          "target": 1800000,
+          "targetText": "< 30 phút"
+        },
+        "visit": {
+          "goal": "Chốt Booking",
+          "label": "Xem dự án",
+          "max": 1209600000,
+          "maxText": "14 ngày",
+          "rule": "Cảnh báo.",
+          "stage": "Xem dự án",
+          "target": 604800000,
+          "targetText": "7 ngày"
+        }
+      },
+      "stageBooking": "Booking & Làm hồ sơ",
+      "stageNurture": "Nuôi dài hạn",
+      "stageWon": "Kí HĐMB",
+      "workHours": {
+        "end": 22,
+        "resumeAt": 7,
+        "start": 6
+      }
+    },
+    "fmt": {
+      "0": "1 phút",
+      "30000": "1 phút",
+      "1740000": "29 phút",
+      "3660000": "1 giờ",
+      "18000000": "5 giờ",
+      "82800000": "23 giờ",
+      "172800000": "2 ngày",
+      "34560000000": "13,3 tháng",
+      "5097600000": "59 ngày",
+      "5184000000": "2 tháng",
+      "6480000000": "2,5 tháng"
+    },
+    "newLeadStart": {
+      "0": "2026-12-01T00:00:00.000Z",
+      "1": "2026-12-01T00:00:00.000Z",
+      "2": "2026-12-01T00:00:00.000Z",
+      "3": "2026-12-01T00:00:00.000Z",
+      "4": "2026-12-01T00:00:00.000Z",
+      "5": "2026-12-01T00:00:00.000Z",
+      "6": "2026-11-30T23:15:00.000Z",
+      "7": "2026-12-01T00:15:00.000Z",
+      "8": "2026-12-01T01:15:00.000Z",
+      "9": "2026-12-01T02:15:00.000Z",
+      "10": "2026-12-01T03:15:00.000Z",
+      "11": "2026-12-01T04:15:00.000Z",
+      "12": "2026-12-01T05:15:00.000Z",
+      "13": "2026-12-01T06:15:00.000Z",
+      "14": "2026-12-01T07:15:00.000Z",
+      "15": "2026-12-01T08:15:00.000Z",
+      "16": "2026-12-01T09:15:00.000Z",
+      "17": "2026-12-01T10:15:00.000Z",
+      "18": "2026-12-01T11:15:00.000Z",
+      "19": "2026-12-01T12:15:00.000Z",
+      "20": "2026-12-01T13:15:00.000Z",
+      "21": "2026-12-01T14:15:00.000Z",
+      "22": "2026-12-02T00:00:00.000Z",
+      "23": "2026-12-02T00:00:00.000Z"
+    },
+    "perCustomer": {
+      "f0000000-0000-4000-8000-000000000001": {
+        "autoAction": null,
+        "bookingSteps": [
+          {
+            "doneAt": null,
+            "due": 1796518805000,
+            "key": "cu_tru",
+            "label": "Xác nhận cư trú",
+            "state": "ok",
+            "text": "3–5 ngày"
+          },
+          {
+            "doneAt": null,
+            "due": null,
+            "key": "dk_nha_o",
+            "label": "Xác nhận điều kiện nhà ở",
+            "state": "wait",
+            "text": "~15 ngày sau bước 1"
+          },
+          {
+            "doneAt": null,
+            "due": null,
+            "key": "tham_dinh",
+            "label": "CĐT/Sở thẩm định đạt",
+            "state": "wait",
+            "text": "5–7 ngày"
+          },
+          {
+            "doneAt": null,
+            "due": null,
+            "key": "tb_ky",
+            "label": "Thông báo ký HĐMB",
+            "state": "wait",
+            "text": ""
+          }
+        ],
+        "normStage": "Đăng kí mới",
+        "phaseOf": {
+          "key": "new_lead",
+          "start": 1796086800000
+        },
+        "stageEnteredAt": 1796086805000,
+        "status": {
+          "cls": "call-soon",
+          "elapsed": 7200000,
+          "key": "new_lead",
+          "label": "Đăng kí mới",
+          "max": 14400000,
+          "start": 1796086800000,
+          "state": "warn",
+          "target": 1800000,
+          "text": "quá mục tiêu · còn 2 giờ"
+        }
+      },
+      "f0000000-0000-4000-8000-000000000002": {
+        "autoAction": null,
+        "bookingSteps": [
+          {
+            "doneAt": null,
+            "due": 1796488202000,
+            "key": "cu_tru",
+            "label": "Xác nhận cư trú",
+            "state": "ok",
+            "text": "3–5 ngày"
+          },
+          {
+            "doneAt": null,
+            "due": null,
+            "key": "dk_nha_o",
+            "label": "Xác nhận điều kiện nhà ở",
+            "state": "wait",
+            "text": "~15 ngày sau bước 1"
+          },
+          {
+            "doneAt": null,
+            "due": null,
+            "key": "tham_dinh",
+            "label": "CĐT/Sở thẩm định đạt",
+            "state": "wait",
+            "text": "5–7 ngày"
+          },
+          {
+            "doneAt": null,
+            "due": null,
+            "key": "tb_ky",
+            "label": "Thông báo ký HĐMB",
+            "state": "wait",
+            "text": ""
+          }
+        ],
+        "normStage": "Đăng kí mới",
+        "phaseOf": {
+          "key": "new_lead",
+          "start": 1796083200000
+        },
+        "stageEnteredAt": 1796056202000,
+        "status": {
+          "cls": "call-soon",
+          "elapsed": 10800000,
+          "key": "new_lead",
+          "label": "Đăng kí mới",
+          "max": 14400000,
+          "start": 1796083200000,
+          "state": "warn",
+          "target": 1800000,
+          "text": "quá mục tiêu · còn 1 giờ"
+        }
+      },
+      "f0000000-0000-4000-8000-000000000003": {
+        "autoAction": null,
+        "bookingSteps": [
+          {
+            "doneAt": null,
+            "due": 1796349600000,
+            "key": "cu_tru",
+            "label": "Xác nhận cư trú",
+            "state": "ok",
+            "text": "3–5 ngày"
+          },
+          {
+            "doneAt": null,
+            "due": null,
+            "key": "dk_nha_o",
+            "label": "Xác nhận điều kiện nhà ở",
+            "state": "wait",
+            "text": "~15 ngày sau bước 1"
+          },
+          {
+            "doneAt": null,
+            "due": null,
+            "key": "tham_dinh",
+            "label": "CĐT/Sở thẩm định đạt",
+            "state": "wait",
+            "text": "5–7 ngày"
+          },
+          {
+            "doneAt": null,
+            "due": null,
+            "key": "tb_ky",
+            "label": "Thông báo ký HĐMB",
+            "state": "wait",
+            "text": ""
+          }
+        ],
+        "normStage": "Đang tiếp cận",
+        "phaseOf": {
+          "key": "approach",
+          "start": 1795918200000
+        },
+        "stageEnteredAt": 1795917600000,
+        "status": {
+          "cls": "call-soon",
+          "elapsed": 175800000,
+          "key": "approach",
+          "label": "Đang tiếp cận",
+          "max": 604800000,
+          "start": 1795918200000,
+          "state": "warn",
+          "target": 172800000,
+          "text": "quá mục tiêu · còn 5 ngày"
+        }
+      },
+      "f0000000-0000-4000-8000-000000000004": {
+        "autoAction": {
+          "phase": "approach",
+          "type": "drop"
+        },
+        "bookingSteps": [
+          {
+            "doneAt": null,
+            "due": 1795489200000,
+            "key": "cu_tru",
+            "label": "Xác nhận cư trú",
+            "state": "over",
+            "text": "3–5 ngày"
+          },
+          {
+            "doneAt": null,
+            "due": null,
+            "key": "dk_nha_o",
+            "label": "Xác nhận điều kiện nhà ở",
+            "state": "wait",
+            "text": "~15 ngày sau bước 1"
+          },
+          {
+            "doneAt": null,
+            "due": null,
+            "key": "tham_dinh",
+            "label": "CĐT/Sở thẩm định đạt",
+            "state": "wait",
+            "text": "5–7 ngày"
+          },
+          {
+            "doneAt": null,
+            "due": null,
+            "key": "tb_ky",
+            "label": "Thông báo ký HĐMB",
+            "state": "wait",
+            "text": ""
+          }
+        ],
+        "normStage": "Đang tiếp cận",
+        "phaseOf": {
+          "key": "approach",
+          "start": 1795140000000
+        },
+        "stageEnteredAt": 1795057200000,
+        "status": {
+          "cls": "call-missed",
+          "elapsed": 954000000,
+          "key": "approach",
+          "label": "Đang tiếp cận",
+          "max": 604800000,
+          "start": 1795140000000,
+          "state": "over",
+          "target": 172800000,
+          "text": "quá hạn 4 ngày"
+        }
+      },
+      "f0000000-0000-4000-8000-000000000005": {
+        "autoAction": null,
+        "bookingSteps": [
+          {
+            "doneAt": null,
+            "due": 1796259600000,
+            "key": "cu_tru",
+            "label": "Xác nhận cư trú",
+            "state": "warn",
+            "text": "3–5 ngày"
+          },
+          {
+            "doneAt": null,
+            "due": null,
+            "key": "dk_nha_o",
+            "label": "Xác nhận điều kiện nhà ở",
+            "state": "wait",
+            "text": "~15 ngày sau bước 1"
+          },
+          {
+            "doneAt": null,
+            "due": null,
+            "key": "tham_dinh",
+            "label": "CĐT/Sở thẩm định đạt",
+            "state": "wait",
+            "text": "5–7 ngày"
+          },
+          {
+            "doneAt": null,
+            "due": null,
+            "key": "tb_ky",
+            "label": "Thông báo ký HĐMB",
+            "state": "wait",
+            "text": ""
+          }
+        ],
+        "normStage": "Đang tiếp cận",
+        "phaseOf": {
+          "key": "approach",
+          "start": 1795828200000
+        },
+        "stageEnteredAt": 1795827600000,
+        "status": {
+          "cls": "call-soon",
+          "elapsed": 265800000,
+          "key": "approach",
+          "label": "Đang tiếp cận",
+          "max": 604800000,
+          "start": 1795828200000,
+          "state": "warn",
+          "target": 172800000,
+          "text": "quá mục tiêu · còn 4 ngày"
+        }
+      },
+      "f0000000-0000-4000-8000-000000000006": {
+        "autoAction": null,
+        "bookingSteps": [
+          {
+            "doneAt": null,
+            "due": 1796439600000,
+            "key": "cu_tru",
+            "label": "Xác nhận cư trú",
+            "state": "ok",
+            "text": "3–5 ngày"
+          },
+          {
+            "doneAt": null,
+            "due": null,
+            "key": "dk_nha_o",
+            "label": "Xác nhận điều kiện nhà ở",
+            "state": "wait",
+            "text": "~15 ngày sau bước 1"
+          },
+          {
+            "doneAt": null,
+            "due": null,
+            "key": "tham_dinh",
+            "label": "CĐT/Sở thẩm định đạt",
+            "state": "wait",
+            "text": "5–7 ngày"
+          },
+          {
+            "doneAt": null,
+            "due": null,
+            "key": "tb_ky",
+            "label": "Thông báo ký HĐMB",
+            "state": "wait",
+            "text": ""
+          }
+        ],
+        "normStage": "Đang tiếp cận",
+        "phaseOf": {
+          "key": "approach",
+          "start": 1796008500000
+        },
+        "stageEnteredAt": 1796007600000,
+        "status": {
+          "cls": "call-far",
+          "elapsed": 85500000,
+          "key": "approach",
+          "label": "Đang tiếp cận",
+          "max": 604800000,
+          "start": 1796008500000,
+          "state": "ok",
+          "target": 172800000,
+          "text": "mục tiêu còn 1 ngày"
+        }
+      },
+      "f0000000-0000-4000-8000-000000000007": {
+        "autoAction": null,
+        "bookingSteps": [
+          {
+            "doneAt": null,
+            "due": 1794711600000,
+            "key": "cu_tru",
+            "label": "Xác nhận cư trú",
+            "state": "over",
+            "text": "3–5 ngày"
+          },
+          {
+            "doneAt": null,
+            "due": null,
+            "key": "dk_nha_o",
+            "label": "Xác nhận điều kiện nhà ở",
+            "state": "wait",
+            "text": "~15 ngày sau bước 1"
+          },
+          {
+            "doneAt": null,
+            "due": null,
+            "key": "tham_dinh",
+            "label": "CĐT/Sở thẩm định đạt",
+            "state": "wait",
+            "text": "5–7 ngày"
+          },
+          {
+            "doneAt": null,
+            "due": null,
+            "key": "tb_ky",
+            "label": "Thông báo ký HĐMB",
+            "state": "wait",
+            "text": ""
+          }
+        ],
+        "normStage": "Đang tiếp cận",
+        "phaseOf": null,
+        "stageEnteredAt": 1794279600000,
+        "status": null
+      },
+      "f0000000-0000-4000-8000-000000000008": {
+        "autoAction": {
+          "phase": "care",
+          "type": "nurture"
+        },
+        "bookingSteps": [
+          {
+            "doneAt": null,
+            "due": 1794366000000,
+            "key": "cu_tru",
+            "label": "Xác nhận cư trú",
+            "state": "over",
+            "text": "3–5 ngày"
+          },
+          {
+            "doneAt": null,
+            "due": null,
+            "key": "dk_nha_o",
+            "label": "Xác nhận điều kiện nhà ở",
+            "state": "wait",
+            "text": "~15 ngày sau bước 1"
+          },
+          {
+            "doneAt": null,
+            "due": null,
+            "key": "tham_dinh",
+            "label": "CĐT/Sở thẩm định đạt",
+            "state": "wait",
+            "text": "5–7 ngày"
+          },
+          {
+            "doneAt": null,
+            "due": null,
+            "key": "tb_ky",
+            "label": "Thông báo ký HĐMB",
+            "state": "wait",
+            "text": ""
+          }
+        ],
+        "normStage": "Đang chăm sóc",
+        "phaseOf": {
+          "key": "care",
+          "start": 1793934000000
+        },
+        "stageEnteredAt": 1793934000000,
+        "status": {
+          "cls": "call-missed",
+          "elapsed": 2160000000,
+          "key": "care",
+          "label": "Đang chăm sóc",
+          "max": 1728000000,
+          "start": 1793934000000,
+          "state": "over",
+          "target": 864000000,
+          "text": "quá hạn 5 ngày"
+        }
+      },
+      "f0000000-0000-4000-8000-000000000009": {
+        "autoAction": null,
+        "bookingSteps": [
+          {
+            "doneAt": 1794711600000,
+            "due": null,
+            "key": "cu_tru",
+            "label": "Xác nhận cư trú",
+            "state": "done",
+            "text": "3–5 ngày"
+          },
+          {
+            "doneAt": null,
+            "due": 1796007600000,
+            "key": "dk_nha_o",
+            "label": "Xác nhận điều kiện nhà ở",
+            "state": "over",
+            "text": "~15 ngày sau bước 1"
+          },
+          {
+            "doneAt": null,
+            "due": null,
+            "key": "tham_dinh",
+            "label": "CĐT/Sở thẩm định đạt",
+            "state": "wait",
+            "text": "5–7 ngày"
+          },
+          {
+            "doneAt": null,
+            "due": null,
+            "key": "tb_ky",
+            "label": "Thông báo ký HĐMB",
+            "state": "wait",
+            "text": ""
+          }
+        ],
+        "normStage": "Booking & Làm hồ sơ",
+        "phaseOf": {
+          "key": "booking",
+          "start": 1794279600000
+        },
+        "stageEnteredAt": 1794279600000,
+        "status": {
+          "cls": "call-far",
+          "elapsed": 1814400000,
+          "key": "booking",
+          "label": "Booking & Làm hồ sơ",
+          "max": 6480000000,
+          "start": 1794279600000,
+          "state": "ok",
+          "target": 3888000000,
+          "text": "mục tiêu còn 24 ngày"
+        }
+      },
+      "f0000000-0000-4000-8000-000000000010": {
+        "autoAction": null,
+        "bookingSteps": [
+          {
+            "doneAt": null,
+            "due": 1792206000000,
+            "key": "cu_tru",
+            "label": "Xác nhận cư trú",
+            "state": "over",
+            "text": "3–5 ngày"
+          },
+          {
+            "doneAt": null,
+            "due": null,
+            "key": "dk_nha_o",
+            "label": "Xác nhận điều kiện nhà ở",
+            "state": "wait",
+            "text": "~15 ngày sau bước 1"
+          },
+          {
+            "doneAt": null,
+            "due": null,
+            "key": "tham_dinh",
+            "label": "CĐT/Sở thẩm định đạt",
+            "state": "wait",
+            "text": "5–7 ngày"
+          },
+          {
+            "doneAt": null,
+            "due": null,
+            "key": "tb_ky",
+            "label": "Thông báo ký HĐMB",
+            "state": "wait",
+            "text": ""
+          }
+        ],
+        "normStage": "Booking & Làm hồ sơ",
+        "phaseOf": {
+          "key": "booking",
+          "start": 1791774000000
+        },
+        "stageEnteredAt": 1791774000000,
+        "status": {
+          "cls": "call-soon",
+          "elapsed": 4320000000,
+          "key": "booking",
+          "label": "Booking & Làm hồ sơ",
+          "max": 6480000000,
+          "start": 1791774000000,
+          "state": "warn",
+          "target": 3888000000,
+          "text": "quá mục tiêu · còn 25 ngày"
+        }
+      },
+      "f0000000-0000-4000-8000-000000000011": {
+        "autoAction": null,
+        "bookingSteps": [
+          {
+            "doneAt": null,
+            "due": 1796007600000,
+            "key": "cu_tru",
+            "label": "Xác nhận cư trú",
+            "state": "over",
+            "text": "3–5 ngày"
+          },
+          {
+            "doneAt": null,
+            "due": null,
+            "key": "dk_nha_o",
+            "label": "Xác nhận điều kiện nhà ở",
+            "state": "wait",
+            "text": "~15 ngày sau bước 1"
+          },
+          {
+            "doneAt": null,
+            "due": null,
+            "key": "tham_dinh",
+            "label": "CĐT/Sở thẩm định đạt",
+            "state": "wait",
+            "text": "5–7 ngày"
+          },
+          {
+            "doneAt": null,
+            "due": null,
+            "key": "tb_ky",
+            "label": "Thông báo ký HĐMB",
+            "state": "wait",
+            "text": ""
+          }
+        ],
+        "normStage": "Xem dự án",
+        "phaseOf": {
+          "key": "visit",
+          "start": 1795575600000
+        },
+        "stageEnteredAt": 1795575600000,
+        "status": {
+          "cls": "call-far",
+          "elapsed": 518400000,
+          "key": "visit",
+          "label": "Xem dự án",
+          "max": 1209600000,
+          "start": 1795575600000,
+          "state": "ok",
+          "target": 604800000,
+          "text": "mục tiêu còn 1 ngày"
+        }
+      },
+      "f0000000-0000-4000-8000-000000000012": {
+        "autoAction": null,
+        "bookingSteps": [
+          {
+            "doneAt": null,
+            "due": 1796353200000,
+            "key": "cu_tru",
+            "label": "Xác nhận cư trú",
+            "state": "ok",
+            "text": "3–5 ngày"
+          },
+          {
+            "doneAt": null,
+            "due": null,
+            "key": "dk_nha_o",
+            "label": "Xác nhận điều kiện nhà ở",
+            "state": "wait",
+            "text": "~15 ngày sau bước 1"
+          },
+          {
+            "doneAt": null,
+            "due": null,
+            "key": "tham_dinh",
+            "label": "CĐT/Sở thẩm định đạt",
+            "state": "wait",
+            "text": "5–7 ngày"
+          },
+          {
+            "doneAt": null,
+            "due": null,
+            "key": "tb_ky",
+            "label": "Thông báo ký HĐMB",
+            "state": "wait",
+            "text": ""
+          }
+        ],
+        "normStage": "Nuôi dài hạn",
+        "phaseOf": null,
+        "stageEnteredAt": 1795921200000,
+        "status": null
+      },
+      "f0000000-0000-4000-8000-000000000013": {
+        "autoAction": null,
+        "bookingSteps": [
+          {
+            "doneAt": 1788231600000,
+            "due": null,
+            "key": "cu_tru",
+            "label": "Xác nhận cư trú",
+            "state": "done",
+            "text": "3–5 ngày"
+          },
+          {
+            "doneAt": 1789441200000,
+            "due": null,
+            "key": "dk_nha_o",
+            "label": "Xác nhận điều kiện nhà ở",
+            "state": "done",
+            "text": "~15 ngày sau bước 1"
+          },
+          {
+            "doneAt": 1790823600000,
+            "due": null,
+            "key": "tham_dinh",
+            "label": "CĐT/Sở thẩm định đạt",
+            "state": "done",
+            "text": "5–7 ngày"
+          },
+          {
+            "doneAt": 1794279600000,
+            "due": null,
+            "key": "tb_ky",
+            "label": "Thông báo ký HĐMB",
+            "state": "done",
+            "text": ""
+          }
+        ],
+        "normStage": "Kí HĐMB",
+        "phaseOf": null,
+        "stageEnteredAt": 1794711600000,
+        "status": null
+      },
+      "f0000000-0000-4000-8000-000000000014": {
+        "autoAction": null,
+        "bookingSteps": [
+          {
+            "doneAt": null,
+            "due": 1793934000000,
+            "key": "cu_tru",
+            "label": "Xác nhận cư trú",
+            "state": "over",
+            "text": "3–5 ngày"
+          },
+          {
+            "doneAt": null,
+            "due": null,
+            "key": "dk_nha_o",
+            "label": "Xác nhận điều kiện nhà ở",
+            "state": "wait",
+            "text": "~15 ngày sau bước 1"
+          },
+          {
+            "doneAt": null,
+            "due": null,
+            "key": "tham_dinh",
+            "label": "CĐT/Sở thẩm định đạt",
+            "state": "wait",
+            "text": "5–7 ngày"
+          },
+          {
+            "doneAt": null,
+            "due": null,
+            "key": "tb_ky",
+            "label": "Thông báo ký HĐMB",
+            "state": "wait",
+            "text": ""
+          }
+        ],
+        "normStage": "Loại",
+        "phaseOf": null,
+        "stageEnteredAt": 1793502000000,
+        "status": null
+      },
+      "f0000000-0000-4000-8000-000000000015": {
+        "autoAction": {
+          "phase": "care",
+          "type": "nurture"
+        },
+        "bookingSteps": [
+          {
+            "doneAt": null,
+            "due": 1792897200000,
+            "key": "cu_tru",
+            "label": "Xác nhận cư trú",
+            "state": "over",
+            "text": "3–5 ngày"
+          },
+          {
+            "doneAt": null,
+            "due": null,
+            "key": "dk_nha_o",
+            "label": "Xác nhận điều kiện nhà ở",
+            "state": "wait",
+            "text": "~15 ngày sau bước 1"
+          },
+          {
+            "doneAt": null,
+            "due": null,
+            "key": "tham_dinh",
+            "label": "CĐT/Sở thẩm định đạt",
+            "state": "wait",
+            "text": "5–7 ngày"
+          },
+          {
+            "doneAt": null,
+            "due": null,
+            "key": "tb_ky",
+            "label": "Thông báo ký HĐMB",
+            "state": "wait",
+            "text": ""
+          }
+        ],
+        "normStage": "Đang chăm sóc",
+        "phaseOf": {
+          "key": "care",
+          "start": 1792465200000
+        },
+        "stageEnteredAt": 1792465200000,
+        "status": {
+          "cls": "call-missed",
+          "elapsed": 3628800000,
+          "key": "care",
+          "label": "Đang chăm sóc",
+          "max": 1728000000,
+          "start": 1792465200000,
+          "state": "over",
+          "target": 864000000,
+          "text": "quá hạn 22 ngày"
+        }
+      },
+      "f0000000-0000-4000-8000-000000000016": {
+        "autoAction": null,
+        "bookingSteps": [
+          {
+            "doneAt": null,
+            "due": 1795575600000,
+            "key": "cu_tru",
+            "label": "Xác nhận cư trú",
+            "state": "over",
+            "text": "3–5 ngày"
+          },
+          {
+            "doneAt": null,
+            "due": null,
+            "key": "dk_nha_o",
+            "label": "Xác nhận điều kiện nhà ở",
+            "state": "wait",
+            "text": "~15 ngày sau bước 1"
+          },
+          {
+            "doneAt": null,
+            "due": null,
+            "key": "tham_dinh",
+            "label": "CĐT/Sở thẩm định đạt",
+            "state": "wait",
+            "text": "5–7 ngày"
+          },
+          {
+            "doneAt": null,
+            "due": null,
+            "key": "tb_ky",
+            "label": "Thông báo ký HĐMB",
+            "state": "wait",
+            "text": ""
+          }
+        ],
+        "normStage": "Đang chăm sóc",
+        "phaseOf": {
+          "key": "care",
+          "start": 1795143600000
+        },
+        "stageEnteredAt": 1795143600000,
+        "status": {
+          "cls": "call-soon",
+          "elapsed": 950400000,
+          "key": "care",
+          "label": "Đang chăm sóc",
+          "max": 1728000000,
+          "start": 1795143600000,
+          "state": "warn",
+          "target": 864000000,
+          "text": "quá mục tiêu · còn 9 ngày"
+        }
+      },
+      "f0000000-0000-4000-8000-000000000017": {
+        "autoAction": null,
+        "bookingSteps": [
+          {
+            "doneAt": null,
+            "due": 1796007600000,
+            "key": "cu_tru",
+            "label": "Xác nhận cư trú",
+            "state": "over",
+            "text": "3–5 ngày"
+          },
+          {
+            "doneAt": null,
+            "due": null,
+            "key": "dk_nha_o",
+            "label": "Xác nhận điều kiện nhà ở",
+            "state": "wait",
+            "text": "~15 ngày sau bước 1"
+          },
+          {
+            "doneAt": null,
+            "due": null,
+            "key": "tham_dinh",
+            "label": "CĐT/Sở thẩm định đạt",
+            "state": "wait",
+            "text": "5–7 ngày"
+          },
+          {
+            "doneAt": null,
+            "due": null,
+            "key": "tb_ky",
+            "label": "Thông báo ký HĐMB",
+            "state": "wait",
+            "text": ""
+          }
+        ],
+        "normStage": "Đang chăm sóc",
+        "phaseOf": {
+          "key": "care",
+          "start": 1795575600000
+        },
+        "stageEnteredAt": 1795575600000,
+        "status": {
+          "cls": "call-far",
+          "elapsed": 518400000,
+          "key": "care",
+          "label": "Đang chăm sóc",
+          "max": 1728000000,
+          "start": 1795575600000,
+          "state": "ok",
+          "target": 864000000,
+          "text": "mục tiêu còn 4 ngày"
+        }
+      },
+      "f0000000-0000-4000-8000-000000000018": {
+        "autoAction": null,
+        "bookingSteps": [
+          {
+            "doneAt": null,
+            "due": 1793934000000,
+            "key": "cu_tru",
+            "label": "Xác nhận cư trú",
+            "state": "over",
+            "text": "3–5 ngày"
+          },
+          {
+            "doneAt": null,
+            "due": null,
+            "key": "dk_nha_o",
+            "label": "Xác nhận điều kiện nhà ở",
+            "state": "wait",
+            "text": "~15 ngày sau bước 1"
+          },
+          {
+            "doneAt": null,
+            "due": null,
+            "key": "tham_dinh",
+            "label": "CĐT/Sở thẩm định đạt",
+            "state": "wait",
+            "text": "5–7 ngày"
+          },
+          {
+            "doneAt": null,
+            "due": null,
+            "key": "tb_ky",
+            "label": "Thông báo ký HĐMB",
+            "state": "wait",
+            "text": ""
+          }
+        ],
+        "normStage": "Đang tiếp cận",
+        "phaseOf": {
+          "key": "approach",
+          "start": 1796007600000
+        },
+        "stageEnteredAt": 1793502000000,
+        "status": {
+          "cls": "call-far",
+          "elapsed": 86400000,
+          "key": "approach",
+          "label": "Đang tiếp cận",
+          "max": 604800000,
+          "start": 1796007600000,
+          "state": "ok",
+          "target": 172800000,
+          "text": "mục tiêu còn 1 ngày"
+        }
+      },
+      "f0000000-0000-4000-8000-000000000019": {
+        "autoAction": null,
+        "bookingSteps": [
+          {
+            "doneAt": null,
+            "due": 1796094000000,
+            "key": "cu_tru",
+            "label": "Xác nhận cư trú",
+            "state": "over",
+            "text": "3–5 ngày"
+          },
+          {
+            "doneAt": null,
+            "due": null,
+            "key": "dk_nha_o",
+            "label": "Xác nhận điều kiện nhà ở",
+            "state": "wait",
+            "text": "~15 ngày sau bước 1"
+          },
+          {
+            "doneAt": null,
+            "due": null,
+            "key": "tham_dinh",
+            "label": "CĐT/Sở thẩm định đạt",
+            "state": "wait",
+            "text": "5–7 ngày"
+          },
+          {
+            "doneAt": null,
+            "due": null,
+            "key": "tb_ky",
+            "label": "Thông báo ký HĐMB",
+            "state": "wait",
+            "text": ""
+          }
+        ],
+        "normStage": "Đang chăm sóc",
+        "phaseOf": {
+          "key": "care",
+          "start": 1795662000000
+        },
+        "stageEnteredAt": 1795662000000,
+        "status": {
+          "cls": "call-far",
+          "elapsed": 432000000,
+          "key": "care",
+          "label": "Đang chăm sóc",
+          "max": 1728000000,
+          "start": 1795662000000,
+          "state": "ok",
+          "target": 864000000,
+          "text": "mục tiêu còn 5 ngày"
+        }
+      },
+      "f0000000-0000-4000-8000-000000000020": {
+        "autoAction": null,
+        "bookingSteps": [
+          {
+            "doneAt": null,
+            "due": 1796418000000,
+            "key": "cu_tru",
+            "label": "Xác nhận cư trú",
+            "state": "ok",
+            "text": "3–5 ngày"
+          },
+          {
+            "doneAt": null,
+            "due": null,
+            "key": "dk_nha_o",
+            "label": "Xác nhận điều kiện nhà ở",
+            "state": "wait",
+            "text": "~15 ngày sau bước 1"
+          },
+          {
+            "doneAt": null,
+            "due": null,
+            "key": "tham_dinh",
+            "label": "CĐT/Sở thẩm định đạt",
+            "state": "wait",
+            "text": "5–7 ngày"
+          },
+          {
+            "doneAt": null,
+            "due": null,
+            "key": "tb_ky",
+            "label": "Thông báo ký HĐMB",
+            "state": "wait",
+            "text": ""
+          }
+        ],
+        "normStage": "Đăng kí mới",
+        "phaseOf": {
+          "key": "new_lead",
+          "start": 1795996800000
+        },
+        "stageEnteredAt": 1795986000000,
+        "status": {
+          "cls": "call-missed",
+          "elapsed": 97200000,
+          "key": "new_lead",
+          "label": "Đăng kí mới",
+          "max": 14400000,
+          "start": 1795996800000,
+          "state": "over",
+          "target": 1800000,
+          "text": "quá hạn 23 giờ"
+        }
+      }
+    }
+  }
+}

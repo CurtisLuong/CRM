@@ -197,3 +197,9 @@ on conflict (name, owner_id) do nothing;
 -- - Muốn nâng 1 tài khoản lên admin: chạy
 --     update public.profiles set role = 'admin' where id = '<user_uuid>';
 --   (lấy user_uuid trong Authentication > Users trên Supabase Dashboard)
+
+-- 5) v2 — Nhật ký thay đổi khách (T0.2, D-012): bảng append-only public.customer_changes + trigger
+--    customers_audit (after update or delete on customers). Định nghĩa đầy đủ ở MỘT nơi duy nhất:
+--      SQL/v2/001_customer_audit.sql  → cài mới: chạy file đó NGAY SAU file này.
+--    Lưu ý: baseline này chưa gồm mọi migration v1 (xem docs/architecture.md §3.2 "Đối soát production");
+--    staging dựng bằng khôi phục backup (docs/runbooks/backup.md), không dựng từ file này.

@@ -1,0 +1,318 @@
+{
+  "_golden": {
+    "case": "dashboard",
+    "desc": "dashActionGroups + NOTIF.compute + chỉ số relationshipHealthHtml/analyticsInsightsHtml (khách mình phụ trách)",
+    "fixture": "tests/fixtures/legacy-customers.json",
+    "now": "2026-12-01T10:00:00+07:00",
+    "tz": "Asia/Ho_Chi_Minh"
+  },
+  "result": {
+    "analyticsInsights": {
+      "pending": [
+        "Cần thêm dữ liệu: khung giờ gọi (cần ≥ 10 cuộc có kết quả ở ít nhất 2 khung) · tốc độ gọi (cần ≥ 8 khách mỗi nhóm gọi trong / sau 1 giờ) · kênh khách (cần ≥ 10 khách ở ít nhất 2 kênh)."
+      ],
+      "titles": [
+        "1 khách mới đăng ký hơn 24 giờ vẫn chưa được gọi",
+        "3 khách nóng (≥ 60%) hơn 7 ngày chưa liên hệ",
+        "1 khách đứng yên ở bậc \"Đang chăm sóc\" quá 3 tuần"
+      ],
+      "why": [
+        "Khách gọi càng muộn càng khó nghe máy.",
+        "Bùi Văn Thử Tám, Đỗ Thị Thử Chín, Ngô Văn Thử Mười",
+        "Xem lại từng khách: cần thêm thông tin, hẹn gặp, hay nên chuyển Loại?"
+      ]
+    },
+    "groups": [
+      {
+        "contact": true,
+        "items": [
+          {
+            "deadlineState": "missed",
+            "id": "f0000000-0000-4000-8000-000000000019",
+            "sub": "Quá hạn gọi · Hôm qua 14:00 · Hỏi lại về vốn"
+          },
+          {
+            "deadlineState": "due",
+            "id": "f0000000-0000-4000-8000-000000000011",
+            "sub": "Đến giờ gọi · Hôm nay 09:30 · Chốt lịch đi nhà mẫu"
+          }
+        ],
+        "key": "due",
+        "title": "Đến giờ / quá giờ hẹn gọi",
+        "tone": "urgent"
+      },
+      {
+        "contact": true,
+        "items": [
+          {
+            "id": "f0000000-0000-4000-8000-000000000008",
+            "sub": "Đang chăm sóc · quá hạn 5 ngày (tối đa 20 ngày)"
+          }
+        ],
+        "key": "sla",
+        "title": "Quá hạn mức SLA phễu",
+        "tone": "urgent"
+      },
+      {
+        "contact": false,
+        "items": [
+          {
+            "id": "f0000000-0000-4000-8000-000000000008",
+            "sub": "Quá hạn Hôm nay · 08:00 · Hẹn cafe tư vấn vay (+1 việc)",
+            "tone": "urgent"
+          }
+        ],
+        "key": "tasks",
+        "title": "Việc đến hạn hôm nay",
+        "tone": "urgent"
+      },
+      {
+        "contact": true,
+        "items": [],
+        "key": "today",
+        "title": "Hẹn gọi còn lại hôm nay"
+      },
+      {
+        "contact": true,
+        "items": [
+          {
+            "id": "f0000000-0000-4000-8000-000000000001",
+            "sub": "Chờ 2 giờ · SLA quá mục tiêu · còn 2 giờ · Facebook Ads"
+          },
+          {
+            "id": "f0000000-0000-4000-8000-000000000002",
+            "sub": "Chờ 10 giờ 30 phút · SLA quá mục tiêu · còn 1 giờ · Landing page"
+          },
+          {
+            "id": "f0000000-0000-4000-8000-000000000020",
+            "sub": "Chờ 1 ngày 6 giờ · SLA quá hạn 23 giờ · Facebook Ads",
+            "tone": "urgent"
+          }
+        ],
+        "key": "new",
+        "title": "Khách mới chưa gọi",
+        "tone": "hot"
+      },
+      {
+        "contact": true,
+        "items": [
+          {
+            "id": "f0000000-0000-4000-8000-000000000018",
+            "sub": "Đã gọi 2 lần · lần cuối 27 ngày 23 giờ trước · Không nghe máy"
+          },
+          {
+            "id": "f0000000-0000-4000-8000-000000000004",
+            "sub": "Đã gọi 2 lần · lần cuối 8 ngày 18 giờ trước · Thuê bao / tắt máy"
+          }
+        ],
+        "key": "retry",
+        "title": "Gọi lại khách chưa liên lạc được"
+      },
+      {
+        "contact": true,
+        "items": [],
+        "key": "decide",
+        "title": "Đã nói chuyện — chờ phân loại"
+      },
+      {
+        "contact": false,
+        "items": [
+          {
+            "id": "f0000000-0000-4000-8000-000000000003",
+            "sub": "1 cuộc · gần nhất Hôm nay 09:30"
+          }
+        ],
+        "key": "pending",
+        "title": "Cuộc gọi chưa ghi chú"
+      },
+      {
+        "contact": true,
+        "items": [
+          {
+            "id": "f0000000-0000-4000-8000-000000000010",
+            "sub": "Quan tâm 90% · 50 ngày chưa liên hệ"
+          },
+          {
+            "id": "f0000000-0000-4000-8000-000000000009",
+            "sub": "Quan tâm 90% · 20 ngày chưa liên hệ"
+          }
+        ],
+        "key": "hot",
+        "title": "Khách nóng đang nguội",
+        "tone": "hot"
+      },
+      {
+        "contact": true,
+        "items": [],
+        "key": "warm",
+        "title": "Khách đang chăm lâu chưa liên hệ"
+      },
+      {
+        "contact": true,
+        "items": [
+          {
+            "id": "f0000000-0000-4000-8000-000000000016",
+            "sub": "Quan tâm 70% · liên hệ cuối 0 ngày trước"
+          }
+        ],
+        "key": "nonext",
+        "title": "Chưa có việc tiếp theo"
+      },
+      {
+        "contact": false,
+        "items": [
+          {
+            "id": "f0000000-0000-4000-8000-000000000016",
+            "sub": "Sinh nhật 03/12 · còn 2 ngày"
+          }
+        ],
+        "key": "bday",
+        "title": "Sinh nhật sắp tới",
+        "tone": "info"
+      }
+    ],
+    "notifications": [
+      {
+        "body": "Tối đa 4 giờ · quá hạn 23 giờ",
+        "customerId": "f0000000-0000-4000-8000-000000000020",
+        "customerName": "Võ Thị Hai Mươi",
+        "id": "sla_over:f0000000-0000-4000-8000-000000000020",
+        "level": "urgent",
+        "ruleKey": "sla_over",
+        "sortAt": 1795996800000,
+        "title": "Khách mới quá 4 giờ chưa gọi"
+      },
+      {
+        "body": "Hôm qua 14:00–15:00",
+        "customerId": "f0000000-0000-4000-8000-000000000019",
+        "customerName": "Tạ Văn Mười Chín",
+        "id": "call_due:f0000000-0000-4000-8000-000000000019",
+        "level": "urgent",
+        "ruleKey": "call_due",
+        "sortAt": 1796022000000,
+        "title": "Quên gọi"
+      },
+      {
+        "body": "Hôm nay 09:30–10:30",
+        "customerId": "f0000000-0000-4000-8000-000000000011",
+        "customerName": "Dương Thị Mười Một",
+        "id": "call_due:f0000000-0000-4000-8000-000000000011",
+        "level": "urgent",
+        "ruleKey": "call_due",
+        "sortAt": 1796092200000,
+        "title": "Đến giờ gọi"
+      },
+      {
+        "body": "Quan tâm 90% · 50 ngày chưa liên hệ",
+        "customerId": "f0000000-0000-4000-8000-000000000010",
+        "customerName": "Ngô Văn Thử Mười",
+        "id": "hot_idle:f0000000-0000-4000-8000-000000000010",
+        "level": "warn",
+        "ruleKey": "hot_idle",
+        "sortAt": 1791774000000,
+        "title": "Khách nóng cần liên hệ lại"
+      },
+      {
+        "body": "Tối đa 20 ngày · quá hạn 5 ngày",
+        "customerId": "f0000000-0000-4000-8000-000000000008",
+        "customerName": "Bùi Văn Thử Tám",
+        "id": "sla_over:f0000000-0000-4000-8000-000000000008",
+        "level": "warn",
+        "ruleKey": "sla_over",
+        "sortAt": 1793934000000,
+        "title": "Quá hạn mức: Đang chăm sóc"
+      },
+      {
+        "body": "Quan tâm 90% · 20 ngày chưa liên hệ",
+        "customerId": "f0000000-0000-4000-8000-000000000009",
+        "customerName": "Đỗ Thị Thử Chín",
+        "id": "hot_idle:f0000000-0000-4000-8000-000000000009",
+        "level": "warn",
+        "ruleKey": "hot_idle",
+        "sortAt": 1794366000000,
+        "title": "Khách nóng cần liên hệ lại"
+      },
+      {
+        "body": "Tối đa 7 ngày · quá hạn 4 ngày",
+        "customerId": "f0000000-0000-4000-8000-000000000004",
+        "customerName": "Phạm Văn Thử Bốn",
+        "id": "sla_over:f0000000-0000-4000-8000-000000000004",
+        "level": "warn",
+        "ruleKey": "sla_over",
+        "sortAt": 1795140000000,
+        "title": "Quá hạn mức: Đang tiếp cận"
+      },
+      {
+        "body": "Quan tâm 60% · 11 ngày chưa liên hệ",
+        "customerId": "f0000000-0000-4000-8000-000000000008",
+        "customerName": "Bùi Văn Thử Tám",
+        "id": "hot_idle:f0000000-0000-4000-8000-000000000008",
+        "level": "warn",
+        "ruleKey": "hot_idle",
+        "sortAt": 1795143600000,
+        "title": "Khách nóng cần liên hệ lại"
+      },
+      {
+        "body": "Quan tâm 70% · 11 ngày chưa liên hệ",
+        "customerId": "f0000000-0000-4000-8000-000000000016",
+        "customerName": "Hồ Văn Mười Sáu",
+        "id": "hot_idle:f0000000-0000-4000-8000-000000000016",
+        "level": "warn",
+        "ruleKey": "hot_idle",
+        "sortAt": 1795143600000,
+        "title": "Khách nóng cần liên hệ lại"
+      },
+      {
+        "body": "gần nhất lúc 09:30",
+        "customerId": "f0000000-0000-4000-8000-000000000003",
+        "customerName": "Lê Thị Thử Ba",
+        "id": "call_pending:f0000000-0000-4000-8000-000000000003",
+        "level": "warn",
+        "ruleKey": "call_pending",
+        "sortAt": 1796092200000,
+        "title": "Cuộc gọi chưa ghi chú"
+      }
+    ],
+    "ownedIds": [
+      "f0000000-0000-4000-8000-000000000001",
+      "f0000000-0000-4000-8000-000000000002",
+      "f0000000-0000-4000-8000-000000000003",
+      "f0000000-0000-4000-8000-000000000004",
+      "f0000000-0000-4000-8000-000000000005",
+      "f0000000-0000-4000-8000-000000000006",
+      "f0000000-0000-4000-8000-000000000007",
+      "f0000000-0000-4000-8000-000000000008",
+      "f0000000-0000-4000-8000-000000000009",
+      "f0000000-0000-4000-8000-000000000010",
+      "f0000000-0000-4000-8000-000000000011",
+      "f0000000-0000-4000-8000-000000000012",
+      "f0000000-0000-4000-8000-000000000013",
+      "f0000000-0000-4000-8000-000000000014",
+      "f0000000-0000-4000-8000-000000000016",
+      "f0000000-0000-4000-8000-000000000017",
+      "f0000000-0000-4000-8000-000000000018",
+      "f0000000-0000-4000-8000-000000000019",
+      "f0000000-0000-4000-8000-000000000020"
+    ],
+    "relationshipHealth": {
+      "labels": [
+        "Khách đã trao đổi",
+        "Có bước tiếp theo",
+        "Cam kết quá hạn",
+        "Trung vị gọi lần đầu"
+      ],
+      "sources": [
+        "8/19 khách có ít nhất 1 cuộc gọi “Nói chuyện được”",
+        "4/7 khách trong phễu có lịch hẹn hoặc việc đang mở",
+        "Lịch gọi + việc đang mở, theo cùng trạng thái quá hạn của tab Công việc",
+        "12 khách có giờ đăng ký và cuộc gọi đầu hợp lệ"
+      ],
+      "values": [
+        "42%",
+        "57%",
+        "2",
+        "35 phút"
+      ]
+    }
+  }
+}
