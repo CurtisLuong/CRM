@@ -3,11 +3,18 @@ import { useNavigate, useParams } from 'react-router';
 import type { FeatureRoute } from '@/app/routes';
 import { APT_TYPES } from '@/config/aptTypes';
 import { SOURCES } from '@/config/sources';
-import { CARE_STAGE_DISPLAY, CARE_STAGE_OPTIONS } from '@/config/stages';
-import { useCustomers, useRepositoryAccount } from '@/data/hooks';
+import { CARE_STAGE_DEFAULT, CARE_STAGE_DISPLAY, CARE_STAGE_OPTIONS } from '@/config/stages';
+import { useCustomers, useRepositoryAccount, useSyncStatus } from '@/data/hooks';
 import type { Customer } from '@/domain/customer';
 import { callAttemptsOf, isQualified, normStage, sourceListOf } from '@/domain/customer/normalize';
 import { apartmentGroup } from '@/domain/search/search';
+import {
+  type AssignmentMode,
+  assignmentFollowers,
+  assignmentNote,
+  canAssignCustomer,
+  type TeamMember,
+} from '@/features/team/model';
 import { Avatar, Badge, Button, ListRow, RowList, SegmentedControl, Sheet, useToast } from '@/ui';
 import {
   type CustomerFilters,
@@ -56,6 +63,7 @@ function Customers() {
   const navigate = useNavigate();
   const account = useRepositoryAccount();
   const rows = useCustomers();
+  const syncStatus = useSyncStatus();
   const toast = useToast();
   const userId = account?.sync.local.userId || '';
   const [group, setGroup] = useState<CustomerGroup>('potential');
@@ -66,6 +74,11 @@ function Customers() {
   const [activeSaved, setActiveSaved] = useState('');
   const [team, setTeam] = useState<TeamPerson[]>([]);
   const [selectedLocal, setSelectedLocal] = useState<Customer | null>(null);
+  const [assignOpen, setAssignOpen] = useState(false);
+  const [assignTo, setAssignTo] = useState('');
+  const [assignMode, setAssignMode] = useState<AssignmentMode>('keep');
+  const [assignNote, setAssignNote] = useState('');
+  const [assignBusy, setAssignBusy] = useState(false);
   const selected = params.id ? (rows.find((c) => c.id === params.id) ?? null) : selectedLocal;
   const [saving, setSaving] = useState(false);
   const [segmentName, setSegmentName] = useState('');
@@ -109,6 +122,13 @@ function Customers() {
       alive = false;
     };
   }, [account, userId]);
+
+  useEffect(() => {
+    const message = syncStatus.assignError;
+    if (!message || !account) return;
+    toast({ title: message, tone: 'error' });
+    account.sync.status.set({ assignError: null });
+  }, [account, syncStatus.assignError, toast]);
 
   const visible = useMemo(
     () => sortCustomers(v1FilterCustomers(rows, group, filters, userId), sort),
@@ -192,6 +212,56 @@ function Customers() {
   const leadsCount = ownRows.filter((c) => !isQualified(c)).length;
   const potentialCount = ownRows.filter((c) => isQualified(c)).length;
   const teamCount = rows.filter((c) => c.owner_id && c.owner_id !== userId).length;
+  const teamMembers = team
+    .map((person) => ({
+      user_id: person.user_id || person.id || '',
+      full_name: person.full_name || person.name,
+      email: person.email,
+      is_admin: person.is_admin,
+      is_me: person.is_me,
+    }))
+    .filter((person) => person.user_id) as TeamMember[];
+  const canAssign = !!selected && canAssignCustomer(selected, userId, teamMembers) && teamMembers.length > 1;
+  const assignableMembers = selected ? teamMembers.filter((person) => person.user_id !== selected.owner_id) : [];
+  const openAssignment = () => {
+    if (!selected || !canAssign) return;
+    setAssignTo('');
+    setAssignMode('keep');
+    setAssignNote('');
+    setAssignOpen(true);
+  };
+  const saveAssignment = async () => {
+    if (!selected || !account || !assignTo || assignBusy) return;
+    const recipient = teamMembers.find((person) => person.user_id === assignTo);
+    if (!recipient || !canAssignCustomer(selected, userId, teamMembers)) return;
+    const keep = assignMode === 'keep' && assignTo !== userId;
+    const followers = assignmentFollowers(selected.followers, userId, assignTo, keep ? 'keep' : 'handoff');
+    const note = assignmentNote(recipient, assignTo, userId, keep ? 'keep' : 'handoff', assignNote);
+    setAssignBusy(true);
+    try {
+      await account.customers.update(
+        selected.id,
+        { owner_id: assignTo, followers, care_stage: selected.care_stage || CARE_STAGE_DEFAULT },
+        { assign: true, forceLog: true, careStageNote: note },
+      );
+      setAssignOpen(false);
+      toast({
+        title:
+          assignTo === userId
+            ? 'Đã lấy khách về'
+            : `Đã giao cho ${recipient.full_name || recipient.email || 'đồng nghiệp'}`,
+        description: account.sync.isOnline() ? 'Đang đồng bộ.' : 'Ngoại tuyến · thay đổi đã xếp hàng đồng bộ.',
+      });
+    } catch (error) {
+      toast({
+        title: 'Chưa giao được khách',
+        description: error instanceof Error ? error.message : 'Thử lại.',
+        tone: 'error',
+      });
+    } finally {
+      setAssignBusy(false);
+    }
+  };
 
   const controls = (
     <div className="space-y-3">
@@ -388,6 +458,9 @@ function Customers() {
           <h2 className="text-title">Danh sách khách</h2>
         </div>
         <div className="flex gap-2">
+          <Button onClick={() => navigate('/dong-nghiep')} icon="team">
+            Đồng nghiệp
+          </Button>
           <Button
             onClick={() => setView(view === 'list' ? 'cards' : 'list')}
             icon={view === 'list' ? 'customers' : 'task'}
@@ -510,6 +583,98 @@ function Customers() {
             <Button className="w-full" onClick={() => navigate(`/ho-so/${selected.id}`)}>
               Mở hồ sơ đầy đủ
             </Button>
+            {canAssign && (
+              <Button className="w-full" onClick={openAssignment} icon="assign">
+                Giao khách
+              </Button>
+            )}
+          </div>
+        )}
+      </Sheet>
+      <Sheet
+        open={assignOpen}
+        onOpenChange={(open) => {
+          if (!assignBusy) setAssignOpen(open);
+        }}
+        title={`Giao khách${selected ? `: ${selected.full_name || ''}` : ''}`}
+        description="Giao khách đi qua hàng đợi đồng bộ; quyền ghi vẫn thuộc người phụ trách."
+        footer={
+          <>
+            <Button className="flex-1" onClick={() => setAssignOpen(false)} disabled={assignBusy}>
+              Huỷ
+            </Button>
+            <Button
+              variant="primary"
+              className="flex-1"
+              onClick={() => void saveAssignment()}
+              loading={assignBusy}
+              disabled={!assignTo}
+            >
+              Xác nhận giao
+            </Button>
+          </>
+        }
+      >
+        {selected && (
+          <div className="space-y-4">
+            <label className="block space-y-1 text-small text-text-2">
+              <span>Người nhận</span>
+              <select
+                aria-label="Người nhận khách"
+                value={assignTo}
+                onChange={(event) => setAssignTo(event.target.value)}
+                className="min-h-11 w-full rounded-control border border-border-strong bg-surface px-3 text-body text-text"
+              >
+                <option value="">Chọn người nhận</option>
+                {assignableMembers.map((person) => (
+                  <option key={person.user_id} value={person.user_id}>
+                    {person.user_id === userId ? 'Tôi (lấy lại)' : person.full_name || person.email || 'Đồng nghiệp'}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {assignTo !== userId && (
+              <fieldset className="space-y-2">
+                <legend className="text-small text-text-2">Sau khi giao</legend>
+                <label className="flex min-h-11 items-center gap-3 rounded-control border border-border p-3 text-body">
+                  <input
+                    type="radio"
+                    name="assign-mode"
+                    value="keep"
+                    checked={assignMode === 'keep'}
+                    onChange={() => setAssignMode('keep')}
+                  />
+                  <span>
+                    Tôi vẫn theo dõi{' '}
+                    <span className="block text-small text-text-2">Tôi chỉ xem; người nhận là người phụ trách.</span>
+                  </span>
+                </label>
+                <label className="flex min-h-11 items-center gap-3 rounded-control border border-border p-3 text-body">
+                  <input
+                    type="radio"
+                    name="assign-mode"
+                    value="handoff"
+                    checked={assignMode === 'handoff'}
+                    onChange={() => setAssignMode('handoff')}
+                  />
+                  <span>
+                    Giao hẳn <span className="block text-small text-text-2">Khách rời danh sách của tôi.</span>
+                  </span>
+                </label>
+              </fieldset>
+            )}
+            <label className="block space-y-1 text-small text-text-2">
+              <span>Ghi chú cho người nhận (tuỳ chọn)</span>
+              <textarea
+                aria-label="Ghi chú giao khách"
+                value={assignNote}
+                onChange={(event) => setAssignNote(event.target.value)}
+                rows={3}
+                maxLength={500}
+                className="w-full rounded-control border border-border-strong bg-surface p-3 text-body text-text"
+                placeholder="Ví dụ: khách hẹn xem nhà mẫu thứ 7"
+              />
+            </label>
           </div>
         )}
       </Sheet>
