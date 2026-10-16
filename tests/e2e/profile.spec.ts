@@ -46,16 +46,22 @@ for (const theme of ['light', 'dark'] as const) {
             owner_id: userId,
             full_name: 'Nguyễn Thị Hưởng',
             phone: '0901234567',
-            care_stage: 'Đang chăm sóc',
+            care_stage: 'Booking & Làm hồ sơ',
             apt_code: 'B1201',
             apt_area: 54,
             qualified_at: '2026-10-10T00:00:00.000Z',
             care_stage_updated_at: '2026-10-15T00:00:00.000Z',
+            care_stage_history: [
+              { stage: 'Đang chăm sóc', at: '2026-10-10T00:00:00.000Z' },
+              { stage: 'Booking & Làm hồ sơ', at: '2026-10-15T00:00:00.000Z', x_source: 'import' },
+            ],
             created_at: '2026-10-10T00:00:00.000Z',
             updated_at: '2026-10-15T00:00:00.000Z',
             projects: [],
             next_tasks: [],
             call_attempts: [],
+            booking_steps: { x_future_step: 'keep' },
+            contact_prefs: { channel: 'Zalo', slot: 'Tối', x_extension: { keep: true } },
             advanced: { x_future: { keep: true } },
             x_future: { keep: true },
           });
@@ -75,7 +81,16 @@ for (const theme of ['light', 'dark'] as const) {
     await page.getByRole('tab', { name: 'Trí nhớ' }).click();
     await page.getByLabel('Nghề nghiệp').fill('Giáo viên');
     await page.getByLabel('Nghề nghiệp').press('Tab');
-    await expect(page.getByText('Đã lưu trên thiết bị', { exact: true })).toBeVisible();
+    await expect(page.getByText('Đã lưu trên thiết bị', { exact: true }).first()).toBeVisible();
+    await page.waitForTimeout(300);
+    await page.getByLabel('Kênh liên hệ ưu tiên').fill('Điện thoại');
+    await page.getByLabel('Kênh liên hệ ưu tiên').press('Tab');
+    await expect(page.getByText('Đã lưu trên thiết bị', { exact: true }).first()).toBeVisible();
+    await page.waitForTimeout(300);
+    await page.getByLabel('Khung giờ liên hệ').fill('Sáng');
+    await page.getByLabel('Khung giờ liên hệ').press('Tab');
+    await expect(page.getByText('Đã lưu trên thiết bị', { exact: true }).first()).toBeVisible();
+    await page.waitForTimeout(300);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     const saved = await page.evaluate(
       async ({ userId, customerId }) => {
@@ -96,10 +111,34 @@ for (const theme of ['light', 'dark'] as const) {
     );
     expect(saved).toMatchObject({
       occupation: 'Giáo viên',
+      contact_prefs: { channel: 'Điện thoại', slot: 'Sáng', x_extension: { keep: true } },
       x_future: { keep: true },
       advanced: { x_future: { keep: true } },
     });
     await page.getByRole('tab', { name: 'Nhu cầu & căn' }).click();
+    await page.getByRole('checkbox', { name: 'Xác nhận cư trú' }).click();
+    await expect(page.getByText('Đã cập nhật checklist hồ sơ', { exact: true })).toBeVisible();
+    await page.waitForTimeout(300);
+    const afterBookingStep = await page.evaluate(
+      async ({ userId, customerId }) => {
+        const request = indexedDB.open(`crm_khach_hang__${encodeURIComponent(userId)}`, 2);
+        const db = await new Promise<IDBDatabase>((resolve, reject) => {
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+        const row = await new Promise<Record<string, unknown>>((resolve, reject) => {
+          const get = db.transaction('customers').objectStore('customers').get(customerId);
+          get.onsuccess = () => resolve(get.result);
+          get.onerror = () => reject(get.error);
+        });
+        db.close();
+        return row;
+      },
+      { userId, customerId },
+    );
+    expect(afterBookingStep.care_stage_updated_at).toBe('2026-10-15T00:00:00.000Z');
+    expect(afterBookingStep.care_stage_history).toHaveLength(2);
+    expect(afterBookingStep.booking_steps).toMatchObject({ x_future_step: 'keep' });
     await page.getByRole('button', { name: 'Tính vay cho khách này' }).click();
     await expect(page).toHaveURL(new RegExp(`customerId=${customerId}`));
     await expect(page.getByLabel('Mã căn', { exact: true })).toHaveValue('B1201');

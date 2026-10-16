@@ -15,6 +15,7 @@ import { bookingSteps, status as slaStatus } from '@/domain/velocity/engine';
 import { customerUnit, loanPath } from '@/features/loan/model';
 import { openQuickAction } from '@/features/quick-actions/store';
 import { ActionBar, Avatar, Badge, Button, DeadlineTag, HealthDot, SlaRing, StageChip, Tabs, useToast } from '@/ui';
+import { bookingStepPatch, contactPrefsPatch } from './model';
 
 const FIELD =
   'min-h-11 w-full rounded-control border border-border-strong bg-surface px-3 text-body text-text focus-visible:outline-2 focus-visible:outline-focus disabled:opacity-60';
@@ -143,20 +144,7 @@ function Profile() {
     }
   };
   const toggleBooking = async (key: string, checked: boolean) => {
-    const steps = { ...(c.booking_steps || {}) };
-    if (checked) steps[key] = new Date().toISOString();
-    else delete steps[key];
-    const history = Array.isArray(c.care_stage_history) ? c.care_stage_history.slice() : [];
-    const config = VELOCITY_CONFIG.bookingSteps.find((item) => item.key === key);
-    history.push({
-      stage: c.care_stage,
-      note: `${checked ? '✓' : 'Bỏ'} hồ sơ: ${config?.label || key}`,
-      at: new Date().toISOString(),
-    });
-    await save(
-      { booking_steps: steps, care_stage_history: history, care_stage_updated_at: new Date().toISOString() },
-      'Đã cập nhật checklist hồ sơ',
-    );
+    await save(bookingStepPatch(c, key, checked, new Date().toISOString()), 'Đã cập nhật checklist hồ sơ');
   };
   const addPromise = async () => {
     const text = window.prompt('Việc tiếp theo / lời hứa');
@@ -279,10 +267,16 @@ function Profile() {
           onSave={(value) => setField('residence', value)}
         />
         <Field
-          label="Kênh / khung giờ liên hệ"
-          value={`${c.contact_prefs?.channel || ''}${c.contact_prefs?.slot ? ` · ${c.contact_prefs.slot}` : ''}`}
+          label="Kênh liên hệ ưu tiên"
+          value={c.contact_prefs?.channel}
           disabled={!writable}
-          onSave={(value) => setField('contact_prefs', { ...(c.contact_prefs || {}), channel: value })}
+          onSave={(value) => void save(contactPrefsPatch(c, 'channel', value))}
+        />
+        <Field
+          label="Khung giờ liên hệ"
+          value={c.contact_prefs?.slot}
+          disabled={!writable}
+          onSave={(value) => void save(contactPrefsPatch(c, 'slot', value))}
         />
         <label className="flex min-h-11 items-center gap-2 text-body">
           <input
