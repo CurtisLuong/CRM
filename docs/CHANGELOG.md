@@ -6,6 +6,16 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-16 — T2.A4: T2.A4 — Repository tương thích v1 và React hooks
+
+- Port API khách, ghi chú, việc, lịch sử bậc/rewind/historyMeta, cuộc gọi và giao khách; giữ nguyên payload queue v1, thuộc tính JSONB lạ và timestamp có chủ ý của v1. Xoá thường dùng archived_at.
+- Ghi local + queue trong một transaction đọc bản mới nhất; rollback nguyên tử, không mất cập nhật khi ghi đồng thời. Thêm LocalDB.markChanged và sửa capture/recheck revision quanh queue read của Sync theo phạm vi coordinator đã mở trước.
+- Port tài liệu/avatar/cover, cài đặt, team và catalog cache theo tài khoản; chặn request/response của phiên cũ, serialize ui_state patches. API save cũ giữ ngữ nghĩa full snapshot; ui_state dùng deep patch.
+- Thêm composition root AccountAuth và hooks useSyncExternalStore, nối slot đồng bộ C3; không sửa app registry hay luồng giao diện.
+- Đã kiểm tra local: TypeScript, Biome, Vitest (370 test trước rebase, gate chạy lại cùng B5 mới), build; parity chạy code v1 thật cho customer queue/CRMCalls/storage/settings/team/catalog, fixture unknown fields, rollback, concurrent writes, account switch và sync races.
+- Đã rà prompts.md B.3: không SQL/schema/codes đổi nghĩa, queue/IndexedDB tương thích v1, update là patch. Không chạy SQL hay xác minh staging/production/máy thật; cột catalog v2 chỉ dùng sau khi migration A5 được chạy và kiểm chứng.
+- File: `src/data/hooks/index.ts`, `src/data/localdb.ts`, `src/data/repositories/catalog.ts`, `src/data/repositories/customers.ts`, `src/data/repositories/remote.ts`, `src/data/repositories/session.ts`, `src/data/sync.ts`, `tests/data/remote-repositories.test.ts`, `tests/data/repositories.test.ts`, `tests/data/repository-hooks.test.tsx`, `tests/data/repository-sync-races.test.ts`
+
 ## 2026-10-16 — T2.B5: Bộ máy tín hiệu S01–S10 với thứ tự UX đã duyệt (D-016)
 
 - Tự nạp registry rules/*.ts; tín hiệu có bằng chứng, hạn, CTA, một tín hiệu chính mỗi khách và các lý do phụ; đọc ẩn/hoãn từ ui_state, không ghi dữ liệu.
