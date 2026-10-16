@@ -1,7 +1,7 @@
 # Runbook — Hạ tầng v2: nhánh, Supabase staging, Cloudflare `crm-v2` (T0.5)
 
 > **Ai làm:** chủ dự án, theo từng bước; agent hỗ trợ khi có lỗi. Không đụng project production (`crm-cop`, Supabase production).
-> **Xong khi:** `https://crm-v2.pages.dev` mở được trang trống; staging đăng nhập được bằng tài khoản thử.
+> **Xong khi:** `https://crm-v2-9hf.pages.dev` mở được trang trống; staging đăng nhập được bằng tài khoản thử.
 > Kiến trúc: `architecture.md` §8–9 · Quyết định D-011.
 
 **Thứ tự:** Bước 1 (staging) → `backup.md` Phần C (khôi phục vào staging) → Bước 2–3 → Bước 4–6.
@@ -25,14 +25,14 @@
 
 Staging → **Authentication → URL Configuration**:
 
-- **Site URL:** `https://crm-v2.pages.dev`
-- **Redirect URLs** → *Add URL* lần lượt: `https://crm-v2.pages.dev/**` · `https://*.crm-v2.pages.dev/**` (bản xem trước của từng nhánh/PR) · `http://localhost:5173/**` (máy dev).
+- **Site URL:** `https://crm-v2-9hf.pages.dev`
+- **Redirect URLs** → *Add URL* lần lượt: `https://crm-v2-9hf.pages.dev/**` · `https://*.crm-v2-9hf.pages.dev/**` (bản xem trước của từng nhánh/PR) · `http://localhost:5173/**` (máy dev).
 - Lưu.
 
 ## Bước 3. Thử đăng nhập staging
 
 Tài khoản được khôi phục nguyên từ production → **email + mật khẩu giống production**.
-Thử nhanh (chưa có app v2): Staging → Authentication → Users → thấy đủ tài khoản. Sau Bước 6 (khi T1.1 xong) đăng nhập thật tại `https://crm-v2.pages.dev`.
+Thử nhanh (chưa có app v2): Staging → Authentication → Users → thấy đủ tài khoản. Sau Bước 6 (khi T1.1 xong) đăng nhập thật tại `https://crm-v2-9hf.pages.dev`.
 Muốn có **tài khoản thử riêng** (không dùng tài khoản thật): Authentication → Users → *Add user* → *Create new user* → email dạng `test-sale@…`, đặt mật khẩu, tích *Auto Confirm User*. Tài khoản mới mặc định role `sale`, không thấy khách của người khác.
 
 ## Bước 4. Tạo nhánh `v2`
@@ -48,20 +48,23 @@ Mong đợi: dòng cuối có `branch 'v2' set up to track 'origin/v2'`. Từ đ
 ## Bước 5. Cloudflare Pages project `crm-v2`
 
 1. dash.cloudflare.com → **Workers & Pages** → **Create** → tab **Pages** → **Connect to Git** → chọn repo CRM → *Begin setup*.
-2. **Project name:** `crm-v2` (tạo ra URL `crm-v2.pages.dev`). **Production branch:** `v2`.
-3. **Build settings** — giai đoạn trang trống (trước T1.1, nhánh `v2` chưa có `package.json`):
+2. **Project name:** `crm-v2`. **Production branch:** `v2`.
+   > ⚠ Tên `*.pages.dev` là chung toàn Cloudflare: `crm-v2.pages.dev` **đã thuộc người khác** (2026-10-16). Cloudflare tự cấp địa chỉ có hậu tố — project của mình là **`crm-v2-9hf.pages.dev`** — xem ở trang project → **Deployments** / **Custom domains**. Dùng **địa chỉ thật đó** cho mọi bước dưới (Supabase redirect, kiểm tra). Không bao giờ thêm domain không phải của mình vào Supabase.
+3. **Build settings** — dán đúng 1 lệnh dùng được mãi, không phải sửa lại sau T1.1:
    - Framework preset: *None*
-   - Build command: `mkdir -p dist && printf '<!doctype html><meta charset="utf-8"><title>Sổ Khách v2</title><p>Sổ Khách v2 — đang dựng</p>' > dist/index.html`
+   - Build command:
+     `if [ -f package.json ]; then npm ci && npm run build; else mkdir -p dist && printf '<!doctype html><meta charset="utf-8"><title>Sổ Khách v2</title><p>Sổ Khách v2 — đang dựng</p>' > dist/index.html; fi`
    - Build output directory: `dist`
+   > Nghĩa của lệnh: nhánh `v2` **chưa có** code v2 (trước T1.1) → tạo trang trống "đang dựng"; **đã có** code v2 (sau T1.1, có file `package.json`) → cài thư viện (`npm ci`) và dựng app (`npm run build`) ra thư mục `dist`. Cloudflare tự chạy lệnh này mỗi lần nhánh `v2` có thay đổi.
    > **Không** để trống build command với output `/`: như vậy `crm-v2` sẽ phục vụ code v1 trỏ **Supabase production**.
 4. **Environment variables** (Production **và** Preview, kiểu *Text*):
    - `VITE_SUPABASE_URL` = Project URL của **staging**
    - `VITE_SUPABASE_ANON_KEY` = anon / publishable key của **staging** (Project Settings → API Keys)
    - `VITE_WORKER_URL` = **để trống** (xem Bước 6)
    - `NODE_VERSION` = `22`
-5. **Save and Deploy**. Mong đợi: build xanh, mở `https://crm-v2.pages.dev` thấy dòng "Sổ Khách v2 — đang dựng".
+5. **Save and Deploy**. Mong đợi: build xanh, mở `https://crm-v2-9hf.pages.dev` thấy dòng "Sổ Khách v2 — đang dựng".
 6. Settings → **Builds & deployments** → *Preview branch deployments*: **All non-Production branches** (mỗi PR `v2/…` có URL xem trước).
-7. Khi T1.1 xong (agent báo): Settings → Build → đổi **Build command** thành `npm ci && npm run build` (output vẫn `dist`) → *Retry deployment*.
+7. Khi T1.1 xong: không cần sửa gì ở Cloudflare — lần đẩy code kế tiếp vào `v2` tự dựng app thật. Agent báo khi đó; anh chỉ cần mở `https://crm-v2-9hf.pages.dev` xem trang đăng nhập v2.
 
 Project `crm-cop` (v1, production) **giữ nguyên** — không đổi gì ở đó cho tới T5.4.
 
@@ -79,5 +82,5 @@ Worker hiện tại (`worker/intake-worker.js`) chỉ cho **một** origin (`ALL
 | `backup.md` Phần C: bảng so sánh toàn ✓ | ☐ |
 | Staging → Authentication → Users có đủ tài khoản | ☐ |
 | Nhánh `v2` có trên GitHub | ☐ |
-| `https://crm-v2.pages.dev` hiện "Sổ Khách v2 — đang dựng" | ☐ |
+| `https://crm-v2-9hf.pages.dev` hiện "Sổ Khách v2 — đang dựng" | ☐ |
 | Env `VITE_SUPABASE_URL` của `crm-v2` là URL **staging** (khác URL trong `js/config.js`) | ☐ |

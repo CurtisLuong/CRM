@@ -88,7 +88,7 @@ Ký hiệu: ☐ chưa · ◐ đang làm (ghi nhánh) · ☑ xong (ghi ngày) · 
 | T0.2 | Audit trigger `customer_changes` | Dữ liệu | S | T0.1 | Agent viết, chủ dự án chạy | ☑ 2026-10-16 (staging test 12/12; production đã chạy, app v1 ghi nhật ký đúng) |
 | T0.3 | Đối soát schema/migration production | Dữ liệu | S | — | Agent + chủ dự án | ☑ 2026-10-16 (mọi migration v1 đã chạy) |
 | T0.4 | Fixture + golden test logic v1 | Test | M | — | Agent | ☑ 2026-10-16 |
-| T0.5 | Hạ tầng v2: nhánh, Cloudflare `crm-v2`, Supabase staging | Hạ tầng | S | — | Chủ dự án (agent hướng dẫn) | ◐ runbook `v2-infra.md` xong 2026-10-16 · chờ chủ dự án |
+| T0.5 | Hạ tầng v2: nhánh, Cloudflare `crm-v2`, Supabase staging | Hạ tầng | S | — | Chủ dự án (agent hướng dẫn) | ☑ 2026-10-16 (nhánh `v2`; `crm-v2-9hf.pages.dev` trang trống; staging `mksjmpcsfawsiabfhoxe` + Auth URL theo chủ dự án báo) |
 | T0.6 | Baseline đo thao tác trên v1 | Sản phẩm | S | — | Chủ dự án | ◐ mẫu `baseline.md` xong 2026-10-16 · chờ 1 tuần đo |
 | T1.1 | Scaffold v2 + chuyển v1 vào `legacy/` | Khung | M | T0.1, T0.2, T0.4, T0.5 | Agent | ☐ |
 | T1.2 | Config registry (nguồn duy nhất) | Khung | M | T1.1 | Agent | ☐ |
@@ -170,7 +170,7 @@ Ký hiệu: ☐ chưa · ◐ đang làm (ghi nhánh) · ☑ xong (ghi ngày) · 
 #### T0.5 — Hạ tầng v2
 - **Người làm:** chủ dự án theo hướng dẫn agent (agent viết `docs/runbooks/v2-infra.md`).
 - **Làm:** tạo nhánh `v2` từ `main`; Cloudflare Pages project mới `crm-v2` nối repo, production branch `v2`, build `npm ci && npm run build`, output `dist`, env `VITE_*` trỏ **staging**; Supabase project **staging** (khôi phục từ T0.1), Auth URL cho domain `crm-v2`; Worker: thêm origin `crm-v2` vào CORS (nếu Worker kiểm origin).
-- **Xong khi:** URL `crm-v2.pages.dev` deploy được trang trống; staging đăng nhập được bằng tài khoản thử.
+- **Xong khi:** URL `crm-v2-9hf.pages.dev` deploy được trang trống; staging đăng nhập được bằng tài khoản thử.
 
 #### T0.6 — Baseline đo thao tác (v1)
 - **Người làm:** chủ dự án, 1 tuần, song song mọi việc. Agent tạo mẫu ghi `docs/runbooks/baseline.md`.
