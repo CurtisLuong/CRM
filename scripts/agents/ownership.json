@@ -15,7 +15,7 @@
     "T2.A1": { "allow": ["src/domain/customer/types.ts", "src/domain/customer/schema.ts", "src/domain/customer/normalize.ts", "src/domain/customer/index.ts", "tests/domain/customer/**"], "deny": ["tests/domain/customer/phone*"] },
     "T2.A2": { "allow": ["src/data/localdb.ts", "src/data/queue.ts", "src/data/legacyImport.ts", "tests/data/**"] },
     "T2.A3": { "allow": ["src/data/supabase.ts", "src/data/sync.ts", "src/data/pagedFetch.ts", "src/data/realtime.ts", "src/data/probe.ts", "src/data/auth.ts", "src/data/syncStatus.ts", "tests/data/**", "tests/e2e/auth*"] },
-    "T2.A4": { "allow": ["src/data/repositories/**", "src/data/hooks/**", "src/data/localdb.ts", "tests/data/**"], "_coordination": "2026-10-16: localdb.ts chỉ thêm markChanged() tăng revision trước transaction atomic của repository, để pull/Realtime không ghi đè thay đổi local; không đổi DB/store/queue hay API hiện có." },
+    "T2.A4": { "allow": ["src/data/repositories/**", "src/data/hooks/**", "src/data/localdb.ts", "src/data/sync.ts", "tests/data/**"], "_coordination": "2026-10-16: localdb.ts chỉ thêm markChanged() tăng revision trước transaction atomic; sync.ts chỉ chụp/recheck revision trước và sau lần đọc queue đầu tiên của pull/applyRemote để không bỏ sót mutation xen giữa. Không đổi DB/store/queue hay API hiện có." },
     "T2.A5": { "allow": ["SQL/v2/002_*.sql", "SQL/v2/003_*.sql", "SQL/v2/004_*.sql", "SQL/v2/005_*.sql", "SQL/schema.sql", "src/domain/customer/types.ts", "tests/sql/00[2-5]_*"] },
     "T2.B1": { "allow": ["src/domain/deadlines/**", "src/domain/followup/**", "tests/domain/deadlines/**", "tests/domain/followup/**"] },
     "T2.B2": { "allow": ["src/domain/velocity/**", "tests/domain/velocity/**"] },
