@@ -27,6 +27,17 @@ async function installTaskFixture(page: import('@playwright/test').Page) {
         user,
       }),
     );
+    (window as Window & { Capacitor?: unknown }).Capacitor = {
+      isNativePlatform: () => true,
+      Plugins: {
+        CallLog: {
+          dial: async () => {
+            const current = window as Window & { __dialCalls?: number };
+            current.__dialCalls = (current.__dialCalls ?? 0) + 1;
+          },
+        },
+      },
+    };
   });
   await page.goto('/');
   await page.evaluate(async () => {
@@ -65,6 +76,9 @@ async function installTaskFixture(page: import('@playwright/test').Page) {
         care_stage_history: [{ stage: 'Đang chăm sóc', note: null, at: '2026-10-01T00:00:00.000Z' }],
         registered_at: '2026-10-01T00:00:00.000Z',
         call_attempts: [],
+        next_call_at: plusDays(3),
+        next_call_end: new Date(Date.parse(plusDays(3)) + 60 * 60 * 1000).toISOString(),
+        next_call_reason: 'Khách xin gọi lại',
         next_tasks: [
           { at: 'late', text: 'Gọi khách quá hạn', kind: 'call', due: yesterday.toISOString(), due_allday: true },
           { at: 'today', text: 'Gửi bảng giá', kind: 'docs', due: today.toISOString(), due_allday: true },
@@ -73,6 +87,15 @@ async function installTaskFixture(page: import('@playwright/test').Page) {
           { at: 'none', text: 'Nhắn tin hỏi thăm', kind: 'message' },
           { at: 'done', text: 'Đã gọi trước đây', kind: 'call', done_at: '2026-10-15T10:00:00.000Z' },
         ],
+      });
+      tx.objectStore('customers').put({
+        id: 't37-e2e-disqualified',
+        owner_id: userId,
+        full_name: 'Khách đã loại',
+        phone: '0901234568',
+        disqualified_at: new Date().toISOString(),
+        next_call_at: plusDays(1),
+        next_tasks: [{ at: 'excluded', text: 'Không hiện', kind: 'docs', due: plusDays(1) }],
       });
       tx.objectStore('meta').put({ key: 'legacy-imported', at: new Date().toISOString() });
       tx.oncomplete = () => resolve();
@@ -96,12 +119,37 @@ for (const scheme of ['light', 'dark'] as const) {
       }
       await expect(page.locator('#main li').getByText('Em hứa', { exact: true }).first()).toBeVisible();
       await expect(page.locator('#main li').getByText('Khách hẹn', { exact: true })).toBeVisible();
+      await expect(page.getByText('Hẹn gọi · Khách xin gọi lại')).toBeVisible();
+      await expect(page.getByText('Khách đã loại')).toHaveCount(0);
 
       await page.getByLabel('Lọc theo loại việc').selectOption('docs');
       await expect(page.getByText('Gửi bảng giá')).toBeVisible();
       await expect(page.getByText('Chuẩn bị hồ sơ')).toBeVisible();
       await expect(page.getByText('Hẹn xem căn')).toHaveCount(0);
 
+      await page.getByLabel('Lọc theo loại việc').selectOption('call');
+      await expect(page.getByText('Hẹn gọi · Khách xin gọi lại')).toBeVisible();
+      await expect(page.getByText('Gửi bảng giá')).toHaveCount(0);
+      await page.getByRole('button', { name: 'Gọi: Khách E2E T3.7' }).click();
+      await page.waitForFunction(() => (window as Window & { __dialCalls?: number }).__dialCalls === 1);
+      const appointmentState = await page.evaluate(async () => {
+        const request = indexedDB.open('crm_khach_hang__t37-e2e-user', 2);
+        const db = await new Promise<IDBDatabase>((resolve, reject) => {
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+        const row = await new Promise<Record<string, unknown>>((resolve, reject) => {
+          const get = db.transaction('customers').objectStore('customers').get('t37-e2e-customer');
+          get.onsuccess = () => resolve(get.result);
+          get.onerror = () => reject(get.error);
+        });
+        db.close();
+        return row;
+      });
+      expect(appointmentState.next_call_at).toBeTruthy();
+      expect(appointmentState.next_tasks).toHaveLength(6);
+
+      await page.getByLabel('Lọc theo loại việc').selectOption('docs');
       await page.getByRole('button', { name: 'Hoàn tất: Gửi bảng giá' }).click();
       await expect(page.getByRole('heading', { name: 'Đã xong', exact: true })).toBeVisible();
       await expect(page.getByText(/^Đã xong · /)).toBeVisible();

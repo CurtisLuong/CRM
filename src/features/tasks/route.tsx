@@ -4,56 +4,75 @@ import type { FeatureRoute } from '@/app/routes';
 import { useAppSession } from '@/app/session';
 import { TASK_KINDS } from '@/config/taskKinds';
 import { useCustomers, useRepositoryAccount, useSyncStatus } from '@/data/hooks';
-import type { Task } from '@/domain/customer';
 import { countdownTag } from '@/domain/deadlines';
+import { openQuickAction } from '@/features/quick-actions/store';
 import { Badge, Button, EmptyState, Loading, Skeleton, type Tone, useToast } from '@/ui';
-import { TASK_GROUPS, type TaskGroupId, type TaskSideFilter, taskRows } from './model';
+import { TASK_GROUPS, type TaskGroupId, type TaskRow, type TaskSideFilter, taskRows } from './model';
 
 const FIELD = 'min-h-11 rounded-control border border-border-strong bg-surface px-3 text-body text-text';
 
-function deadlineLabel(task: Task, now: number) {
-  const dueMs = task.due ? Date.parse(task.due) : Number.NaN;
-  const tag = countdownTag(dueMs, dueMs, !!task.due_allday, now);
+function deadlineLabel(row: TaskRow, now: number) {
+  const startMs =
+    row.type === 'call' ? Date.parse(row.appointment.start) : row.task.due ? Date.parse(row.task.due) : Number.NaN;
+  const endMs = row.type === 'call' && row.appointment.end ? Date.parse(row.appointment.end) : startMs;
+  const allDay = row.type === 'task' && !!row.task.due_allday;
+  const tag = countdownTag(startMs, endMs, allDay, now);
   if (!tag) return null;
   const tone: Tone = tag.state === 'missed' ? 'danger' : tag.state === 'due' ? 'warning' : 'neutral';
-  const date = new Date(dueMs).toLocaleString('vi-VN', {
+  const date = new Date(startMs).toLocaleString('vi-VN', {
     day: '2-digit',
     month: '2-digit',
-    ...(task.due_allday ? {} : { hour: '2-digit', minute: '2-digit' }),
+    ...(allDay ? {} : { hour: '2-digit', minute: '2-digit' }),
   });
   return { tone, label: `${tag.text} · ${date}` };
 }
 
 function TaskCard({
   customer,
-  task,
+  row,
   group,
   now,
   onComplete,
   onReopen,
+  onCall,
   busy,
 }: {
   customer: ReturnType<typeof useCustomers>[number];
-  task: Task;
+  row: TaskRow;
   group: TaskGroupId;
   now: number;
   onComplete: () => void;
   onReopen: () => void;
+  onCall: () => void;
   busy: boolean;
 }) {
-  const ownPromise = (task.side || 'me') === 'me';
-  const deadline = group === 'done' ? null : deadlineLabel(task, now);
-  const kind = task.kind && task.kind in TASK_KINDS ? TASK_KINDS[task.kind as keyof typeof TASK_KINDS].label : 'Việc';
+  const task = row.type === 'task' ? row.task : null;
+  const ownPromise = task ? (task.side || 'me') === 'me' : null;
+  const deadline = group === 'done' ? null : deadlineLabel(row, now);
+  const kind =
+    row.type === 'call'
+      ? TASK_KINDS.call.label
+      : task?.kind && task.kind in TASK_KINDS
+        ? TASK_KINDS[task.kind as keyof typeof TASK_KINDS].label
+        : 'Việc';
+  const text =
+    row.type === 'call'
+      ? `Hẹn gọi${row.appointment.reason ? ` · ${row.appointment.reason}` : ''}`
+      : task?.text || 'Việc chưa có nội dung';
   return (
     <li className="flex items-start gap-3 p-3 sm:p-4">
-      {group === 'done' ? (
-        <Button aria-label={`Mở lại: ${task.text}`} disabled={busy} onClick={onReopen}>
+      {row.type === 'call' ? (
+        <Button aria-label={`Gọi: ${customer.full_name}`} disabled={busy} onClick={onCall} icon="call">
+          Gọi
+        </Button>
+      ) : group === 'done' ? (
+        <Button aria-label={`Mở lại: ${row.task.text}`} disabled={busy} onClick={onReopen}>
           Mở lại
         </Button>
       ) : (
         <button
           type="button"
-          aria-label={`Hoàn tất: ${task.text}`}
+          aria-label={`Hoàn tất: ${row.task.text}`}
           title="Hoàn tất việc"
           disabled={busy}
           onClick={onComplete}
@@ -64,25 +83,30 @@ function TaskCard({
       )}
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <p className={`text-body-strong ${group === 'done' ? 'text-text-2 line-through' : ''}`}>
-            {task.text || 'Việc chưa có nội dung'}
-          </p>
+          <p className={`text-body-strong ${group === 'done' ? 'text-text-2 line-through' : ''}`}>{text}</p>
           <Badge>{kind}</Badge>
-          <Badge
-            variant="status"
-            tone={ownPromise ? 'neutral' : 'warning'}
-            icon={ownPromise ? 'promise_me' : 'promise_customer'}
-          >
-            {ownPromise ? 'Em hứa' : 'Khách hẹn'}
-          </Badge>
+          {ownPromise !== null && (
+            <Badge
+              variant="status"
+              tone={ownPromise ? 'neutral' : 'warning'}
+              icon={ownPromise ? 'promise_me' : 'promise_customer'}
+            >
+              {ownPromise ? 'Em hứa' : 'Khách hẹn'}
+            </Badge>
+          )}
+          {row.type === 'call' && (
+            <Badge variant="status" icon="call_sched">
+              Lịch hẹn
+            </Badge>
+          )}
           {deadline && (
             <Badge variant="status" tone={deadline.tone}>
               {deadline.label}
             </Badge>
           )}
-          {group === 'done' && (
+          {group === 'done' && row.type === 'task' && (
             <Badge variant="status" tone="success">
-              Đã xong{task.done_at ? ` · ${new Date(task.done_at).toLocaleDateString('vi-VN')}` : ''}
+              Đã xong{row.task.done_at ? ` · ${new Date(row.task.done_at).toLocaleDateString('vi-VN')}` : ''}
             </Badge>
           )}
         </div>
@@ -196,13 +220,11 @@ function TasksPage() {
             onChange={(event) => setKind(event.target.value)}
           >
             <option value="all">Tất cả loại</option>
-            {Object.entries(TASK_KINDS)
-              .filter(([key]) => key !== 'call')
-              .map(([key, value]) => (
-                <option key={key} value={key}>
-                  {value.label}
-                </option>
-              ))}
+            {Object.entries(TASK_KINDS).map(([key, value]) => (
+              <option key={key} value={key}>
+                {value.label}
+              </option>
+            ))}
           </select>
         </label>
         <label className="flex flex-col gap-1 text-small text-text-2">
@@ -246,20 +268,26 @@ function TasksPage() {
                   <Badge variant="count">{grouped.length}</Badge>
                 </header>
                 <ul className="divide-y divide-border">
-                  {grouped.map(({ customer, task, group: id }) => {
-                    const key = `${customer.id}:${task.at || task.text}`;
-                    const taskAt = task.at;
-                    const editable = customer.owner_id === account.sync.local.userId && !!taskAt;
+                  {grouped.map((row) => {
+                    const { customer, group: id } = row;
+                    const task = row.type === 'task' ? row.task : null;
+                    const key =
+                      row.type === 'call'
+                        ? `${customer.id}:call:${row.appointment.start}`
+                        : `${customer.id}:${task?.at || task?.text}`;
+                    const taskAt = task?.at;
+                    const canOwn = customer.owner_id === account.sync.local.userId;
+                    const editable = canOwn && !!taskAt;
                     return (
                       <TaskCard
                         key={key}
                         customer={customer}
-                        task={task}
+                        row={row}
                         group={id}
                         now={now}
-                        busy={busyKey === key || !editable}
+                        busy={busyKey === key || (row.type === 'call' ? !canOwn : !editable)}
                         onComplete={() => {
-                          if (!editable || busyKey || !taskAt) return;
+                          if (row.type !== 'task' || !editable || busyKey || !taskAt) return;
                           setBusyKey(key);
                           void account.customers
                             .completeTask(customer.id, taskAt)
@@ -288,7 +316,7 @@ function TasksPage() {
                             .finally(() => setBusyKey(''));
                         }}
                         onReopen={() => {
-                          if (!editable || busyKey || !taskAt) return;
+                          if (row.type !== 'task' || !editable || busyKey || !taskAt) return;
                           setBusyKey(key);
                           void account.customers
                             .reopenTask(customer.id, taskAt)
@@ -300,6 +328,10 @@ function TasksPage() {
                               }),
                             )
                             .finally(() => setBusyKey(''));
+                        }}
+                        onCall={() => {
+                          if (row.type !== 'call' || !canOwn) return;
+                          openQuickAction(customer.id, 'call');
                         }}
                       />
                     );

@@ -11,7 +11,14 @@ export const TASK_GROUPS = [
 ] as const;
 export type TaskGroupId = (typeof TASK_GROUPS)[number]['id'];
 export type TaskSideFilter = 'all' | 'me' | 'customer';
-export type TaskRow = { customer: Customer; task: Task; group: TaskGroupId };
+export type TaskRow =
+  | { type: 'task'; customer: Customer; task: Task; group: TaskGroupId }
+  | {
+      type: 'call';
+      customer: Customer;
+      appointment: { start: string; end?: string | null; reason?: string | null };
+      group: TaskGroupId;
+    };
 
 function calendarDayDiff(dueMs: number, now: number) {
   const due = new Date(startOfDayMs(dueMs));
@@ -37,22 +44,53 @@ export function groupTask(task: Task, now: number): TaskGroupId {
   return days <= 7 ? 'week' : 'later';
 }
 
+/** A scheduled call is a commitment row, not a synthetic next_tasks entry. */
+export function groupCall(start: string, end: string | null | undefined, now: number): TaskGroupId {
+  const startMs = Date.parse(start);
+  const endMs = end ? Date.parse(end) : startMs;
+  const countdown = countdownTag(startMs, endMs, false, now);
+  if (!countdown) return 'no_due';
+  if (countdown.state === 'missed') return 'overdue';
+  if (countdown.state === 'due') return 'today';
+  const days = calendarDayDiff(startMs, now);
+  if (days <= 0) return 'today';
+  return days <= 7 ? 'week' : 'later';
+}
+
 export function taskRows(customers: Customer[], now: number, kind = 'all', side: TaskSideFilter = 'all'): TaskRow[] {
   const rows: TaskRow[] = [];
   for (const customer of customers) {
+    if (customer.disqualified_at) continue;
+    const callStart = customer.next_call_at;
+    if (callStart && (kind === 'all' || kind === 'call') && side === 'all') {
+      rows.push({
+        type: 'call',
+        customer,
+        appointment: {
+          start: callStart,
+          end: customer.next_call_end,
+          reason: customer.next_call_reason,
+        },
+        group: groupCall(callStart, customer.next_call_end, now),
+      });
+    }
     for (const task of Array.isArray(customer.next_tasks) ? customer.next_tasks : []) {
       if (!task) continue;
+      if (kind === 'call') continue;
       if (kind !== 'all' && task.kind !== kind) continue;
       if (side !== 'all' && (task.side || 'me') !== side) continue;
-      rows.push({ customer, task, group: groupTask(task, now) });
+      rows.push({ type: 'task', customer, task, group: groupTask(task, now) });
     }
   }
   const rank = new Map(TASK_GROUPS.map((group, index) => [group.id, index]));
   return rows.sort((a, b) => {
     const section = (rank.get(a.group) ?? 0) - (rank.get(b.group) ?? 0);
     if (section) return section;
-    const aDue = a.task.due ? Date.parse(a.task.due) : Number.POSITIVE_INFINITY;
-    const bDue = b.task.due ? Date.parse(b.task.due) : Number.POSITIVE_INFINITY;
-    return aDue - bDue || (a.task.at || '').localeCompare(b.task.at || '');
+    const due = (row: TaskRow) => {
+      if (row.type === 'call') return Date.parse(row.appointment.start);
+      return row.task.due ? Date.parse(row.task.due) : Number.POSITIVE_INFINITY;
+    };
+    const identity = (row: TaskRow) => (row.type === 'call' ? row.appointment.start : row.task.at || '');
+    return due(a) - due(b) || identity(a).localeCompare(identity(b));
   });
 }
