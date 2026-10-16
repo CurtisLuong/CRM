@@ -332,7 +332,7 @@ Ký hiệu: ☐ chưa · ◐ đang làm (ghi nhánh) · ☑ xong (ghi ngày) · 
 ### Sóng 4 — Mới P0
 
 #### T4.1 — Ghi tương tác
-- **Sở hữu:** `src/features/quick-actions/interactions*` (phối hợp T3.1 đã xong), `src/domain/customer/interactions.ts`.
+- **Sở hữu:** `src/features/quick-actions/interactions*` (phối hợp T3.1 đã xong), `src/features/quick-actions/QuickActions.tsx`, `src/domain/customer/{interactions.ts,timeline.ts,brief.ts}`, `src/domain/signals/shared.ts`; test tương ứng và E2E quick-actions/profile/insights.
 - **Xong khi:** "Đã gửi Zalo?" 1 chạm ghi `interactions`; ghi gặp/xem dự án; timeline + "liên hệ cuối" + chỉ số dùng cả `interactions`; v1 bỏ qua cột mới không lỗi.
 
 #### T4.2 — Lời hứa 2 chiều
