@@ -117,11 +117,10 @@ export function Header({
         <button
           type="button"
           onClick={onSearch}
-          aria-label="Tìm khách hoặc lệnh"
           className="inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-control text-text-2 hover:bg-surface-2 lg:min-w-56 lg:justify-start lg:border lg:border-border lg:bg-surface lg:px-3"
         >
           <Search size={20} strokeWidth={1.75} aria-hidden />
-          <span className="hidden flex-1 text-left text-small lg:inline">Tìm khách, lệnh…</span>
+          <span className="sr-only flex-1 text-left text-small lg:not-sr-only">Tìm khách, lệnh…</span>
           <Kbd keys={['⌘', 'K']} />
         </button>
       )}
@@ -159,7 +158,7 @@ export function BottomNav({
         onClick={() => onSelect(t.value)}
         aria-current={on ? 'page' : undefined}
         className={cn(
-          'relative flex min-h-16 flex-col items-center justify-center gap-0.5 text-label',
+          'relative flex min-h-16 flex-col items-center justify-center gap-0.5 whitespace-nowrap text-label',
           on ? 'text-accent' : 'text-text-2 hover:text-text',
         )}
       >

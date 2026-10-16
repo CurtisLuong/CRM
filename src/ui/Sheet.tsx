@@ -49,7 +49,7 @@ export function Sheet({
       }}
     >
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-40 bg-text/40 data-[state=open]:animate-[sheet-fade_var(--dur-slow)_var(--ease-standard)]" />
+        <Dialog.Overlay className="fixed inset-0 z-40 bg-text/40 dark:bg-bg/75 data-[state=open]:animate-[sheet-fade_var(--dur-slow)_var(--ease-standard)]" />
         <Dialog.Content
           onPointerDownOutside={guard}
           onEscapeKeyDown={guard}

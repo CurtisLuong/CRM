@@ -27,7 +27,9 @@ export function MetricTile({
   return (
     <div className={cn('flex flex-col gap-1 rounded-card border border-border bg-surface p-4 shadow-e1', className)}>
       <span className="text-label text-text-2">{label}</span>
-      <span className={cn('font-data text-display tabular-nums', value === null && 'text-text-3')}>{value ?? '—'}</span>
+      <span className={cn('min-w-0 font-data text-display break-words tabular-nums', value === null && 'text-text-3')}>
+        {value ?? '—'}
+      </span>
       {value === null ? (
         <span className="text-small text-text-3">Chưa đủ dữ liệu</span>
       ) : (

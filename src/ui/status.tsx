@@ -38,6 +38,7 @@ export function DeadlineTag({ tag, time, className }: { tag: Countdown | null; t
       {d.prefix && <span>{d.prefix}</span>}
       {d.prefix && (showText || time) && <span aria-hidden>·</span>}
       {showText && <span>{text}</span>}
+      {showText && time && <span aria-hidden>·</span>}
       {time && <span className="font-data">{time}</span>}
     </span>
   );

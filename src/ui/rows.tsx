@@ -44,6 +44,12 @@ function RowActions({ name, onCall, onZalo }: QuickActions & { name: string }) {
 
 const SWIPE_PX = 72;
 
+/** Chỉ có giờ, chưa có trạng thái → tag trung tính chỉ hiện giờ. Trên mobile tag nằm dưới tên để tên đủ chỗ. */
+function rowTag(deadline: Countdown | null | undefined, time: string | undefined): Countdown | null {
+  if (deadline) return deadline;
+  return time ? { state: 'far', text: '' } : null;
+}
+
 /**
  * Vuốt ngang trên dòng: trái = `onSwipeLeft` (Xong/Dời), phải = `onSwipeRight` (Gọi).
  * Chỉ là lối tắt — hành động luôn có nút tương đương (truy cập bằng bàn phím/screen reader).
@@ -168,6 +174,7 @@ export function QueueRow({
   onSwipeLeft?: () => void;
   swipeLeftLabel?: string;
 } & QuickActions) {
+  const tag = rowTag(deadline, time);
   return (
     <RowShell
       onOpen={onOpen}
@@ -181,12 +188,23 @@ export function QueueRow({
         <span className="truncate text-body-strong" title={name}>
           {name}
         </span>
-        <span className="truncate text-small text-text-2">
-          {action}
-          {reason && <span className="text-text-3"> · {reason}</span>}
+        <span className="flex min-w-0 items-center gap-2">
+          {tag && (
+            <span className="flex shrink-0 sm:hidden">
+              <DeadlineTag tag={tag} time={time} />
+            </span>
+          )}
+          <span className="truncate text-small text-text-2">
+            {action}
+            {reason && <span className="text-text-3"> · {reason}</span>}
+          </span>
         </span>
       </span>
-      {(deadline || time) && <DeadlineTag tag={deadline ?? { state: 'far', text: '' }} time={time} />}
+      {tag && (
+        <span className="hidden shrink-0 sm:flex">
+          <DeadlineTag tag={tag} time={time} />
+        </span>
+      )}
     </RowShell>
   );
 }
@@ -214,6 +232,7 @@ export function ListRow({
   time?: string;
   onOpen?: () => void;
 } & QuickActions) {
+  const tag = rowTag(deadline, time);
   return (
     <RowShell
       onOpen={onOpen}
@@ -229,11 +248,20 @@ export function ListRow({
           </span>
         </span>
         <span className="flex min-w-0 items-center gap-2">
+          {tag && (
+            <span className="flex shrink-0 sm:hidden">
+              <DeadlineTag tag={tag} time={time} />
+            </span>
+          )}
           {stage && <StageChip stage={stage} label={stageLabel} />}
           {meta && <span className="truncate text-small text-text-2">{meta}</span>}
         </span>
       </span>
-      {(deadline || time) && <DeadlineTag tag={deadline ?? { state: 'far', text: '' }} time={time} />}
+      {tag && (
+        <span className="hidden shrink-0 sm:flex">
+          <DeadlineTag tag={tag} time={time} />
+        </span>
+      )}
     </RowShell>
   );
 }
