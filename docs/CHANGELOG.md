@@ -6,6 +6,15 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-16 — T2.A5: T2.A5 — SQL v2 chỉ thêm: cột mới customers/user_settings/units + bảng campaign_costs
+
+- SQL/v2/002_customer_memory.sql: 10 cột nullable trên customers (archived_at, contact_prefs, interests, household, interactions, close_reason, close_note, retarget_hint, field_meta, referred_by)
+- SQL/v2/003_campaign_costs.sql: bảng chi phí chiến dịch, RLS + GRANT (người tạo đọc/ghi, admin chỉ đọc, không xoá cứng, anon không quyền)
+- SQL/v2/004_user_settings_ui_state.sql, 005_units_verified_at.sql: mỗi file 1 cột
+- SQL/schema.sql: mục 6 trỏ tới 002–005; types.ts không cần đổi (T2.A1 đã có đủ trường)
+- Kiểm tra: test tĩnh Vitest 33 ca; chạy thử Postgres cục bộ (giả lập auth Supabase): 2 lần không lỗi, tests/sql/002_005_v2.test.sql 8/8. CHƯA chạy staging/production.
+- File: `SQL/schema.sql`, `SQL/v2/002_customer_memory.sql`, `SQL/v2/003_campaign_costs.sql`, `SQL/v2/004_user_settings_ui_state.sql`, `SQL/v2/005_units_verified_at.sql`, `tests/sql/002_005_v2.test.sql`, `tests/sql/002_005_v2_static.test.ts`
+
 ## 2026-10-16 — T2.A2: T2.A2 — LocalDB + hàng đợi đồng bộ v2 dùng chung IndexedDB với v1 (src/data)
 
 - Thêm localdb.ts: mở DB theo tài khoản (giữ nguyên tên crm_khach_hang__<userId>, version 2, store customers/queue/meta, keyPath), đọc/ghi local không biến đổi bản ghi, replaceAll an toàn (từ chối khi còn op chờ / local đổi), assertWritable (D-003), sameRecord; mỗi phiên tài khoản là 1 instance, đóng phiên thì mọi thao tác bị từ chối.
