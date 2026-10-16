@@ -507,6 +507,9 @@ function Customers() {
             >
               Gọi {selected.full_name}
             </a>
+            <Button className="w-full" onClick={() => navigate(`/ho-so/${selected.id}`)}>
+              Mở hồ sơ đầy đủ
+            </Button>
           </div>
         )}
       </Sheet>
