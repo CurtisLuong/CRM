@@ -273,7 +273,7 @@ Ký hiệu: ☐ chưa · ◐ đang làm (ghi nhánh) · ☑ xong (ghi ngày) · 
 - **Xong khi:** đạt ngân sách chạm §3 (e2e đếm chạm); payload ghi khớp v1 (golden); thử trên vỏ Android APK 1.4 với `crm-v2` (cấu hình tạm URL hoặc Chrome Android).
 
 #### T3.2 — Hôm nay
-- **Sở hữu:** `src/features/today/*`, `src/config/capacity.ts`.
+- **Sở hữu:** `src/features/today/*`, `src/features/home/route.tsx` (đưa Today vào route `/` mặc định), `src/config/capacity.ts`.
 - **Làm:** NBA, hàng đợi lọc, chip lý do phụ, sức làm khung hiện tại + đề xuất dời (giữ `due_original` khi có T4.2; trước đó chỉ hiển thị), phiên gọi, Tổng kết ngày, empty state; chạy `applySlaPlan` khi nạp (như v1).
 - **Xong khi:** nghiệm thu F-01 (khách hẹn 18:30 giữ chỗ, không trùng); mở app → Gọi trong 1 chạm.
 
