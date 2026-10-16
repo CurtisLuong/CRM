@@ -17,7 +17,7 @@
 | Nhánh | `main` | `v2` (task: `v2/<T-ID>-<slug>` → PR vào `v2`) |
 | Code | `index.html`, `js/`, `css/`, `sw.js` (trên nhánh v2 nằm ở `legacy/`) | `src/` — Vite + React + TypeScript + Tailwind + Radix (D-011) |
 | Build | Không build (HTML/JS thuần) | `npm run build` → `dist/`; Cloudflare tự build khi push |
-| Deploy | `crm-cop.pages.dev` (vỏ Android trỏ vào đây) | `crm-v2.pages.dev`, dữ liệu Supabase **staging** |
+| Deploy | `crm-cop.pages.dev` (vỏ Android trỏ vào đây) | `crm-v2-9hf.pages.dev`, dữ liệu Supabase **staging** |
 | Được sửa khi | Chỉ lỗi nghiêm trọng hoặc task Sóng 0; giữ giao diện hiện tại | Theo `docs/tasks.md` |
 
 Ngoại lệ build cục bộ D-002 vẫn áp dụng cho vỏ `android-app/` (Gradle/APK). Web luôn phải chạy đủ khi không có vỏ.

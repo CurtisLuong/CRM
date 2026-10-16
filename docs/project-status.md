@@ -11,13 +11,13 @@ Chỉ đọc file này khi cần tiếp nối công việc hoặc task phụ thu
 ## Đại tu v2 (cập nhật 2026-10-16)
 
 - Đã có bộ quy định: `PRD.md`, `tasks.md`, `architecture.md` v2, `DESIGN_SYSTEM.md` v3, `UX_GUIDELINES.md` v2, `prompts.md`, D-011…D-015. **Chưa code v2.**
-- Sóng 0: T0.1 ☑ (backup `~/CRM-backups/20261016-120548`, diễn tập khôi phục vào staging khớp 22/22 bảng) · T0.2 ☑ · T0.3 ☑ · T0.4 ☑ · T0.5, T0.6 đang chờ chủ dự án.
+- Sóng 0: T0.1 ☑ (backup `~/CRM-backups/20261016-120548`, diễn tập khôi phục vào staging khớp 22/22 bảng) · T0.2 ☑ · T0.3 ☑ · T0.4 ☑ · T0.5 ☑ (`crm-v2-9hf.pages.dev`, nhánh `v2`, staging) · T0.6 đang đo.
 - Chờ chủ dự án xác nhận stack D-011 trước T1.1.
 
 | Supabase | Mã project | Vai trò |
 |---|---|---|
 | production | `nrqccwamwctihivpxjww` | DB cũ, app v1 (`crm-cop.pages.dev`, APK) đang dùng |
-| staging | `mksjmpcsfawsiabfhoxe` | Khôi phục từ backup 2026-10-16; realtime cần bật bằng `SQL/add_realtime_customers.sql` nếu chưa |
+| staging | `mksjmpcsfawsiabfhoxe` | Khôi phục từ backup 2026-10-16; app v2 `crm-v2-9hf.pages.dev` (Cloudflare project `crm-v2`, nhánh `v2`) trỏ vào đây |
 
 ## Migration production (xác minh 2026-10-16 bằng `scripts/sql/inspect.sql`)
 
