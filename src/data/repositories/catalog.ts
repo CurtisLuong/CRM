@@ -424,7 +424,8 @@ export function createCatalogRepository(sync: CustomerSync, storage: Storage = l
       if (!p || !r.building) return;
       const key = `${p.id}|${norm(r.building)}`;
       const cur: Data = bMap.get(key) || { project_id: p.id, code: String(r.building).trim() };
-      if (cols.buildingPrice && r.buildingPrice != null) cur.approved_price_per_m2 = r.buildingPrice;
+      if (cols.buildingPrice)
+        cur.approved_price_per_m2 = r.buildingPrice == null || r.buildingPrice === '' ? null : r.buildingPrice;
       bMap.set(key, cur);
     });
     const bRows = [...bMap.values()];
@@ -475,7 +476,13 @@ export function createCatalogRepository(sync: CustomerSync, storage: Storage = l
     load,
     scope,
     units: () => data.units,
-    onChange: (fn: any) => listeners.push(fn),
+    onChange: (fn: any) => {
+      listeners.push(fn);
+      return () => {
+        const index = listeners.indexOf(fn);
+        if (index >= 0) listeners.splice(index, 1);
+      };
+    },
     projects,
     project,
     projectByName,
