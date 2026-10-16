@@ -6,6 +6,18 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-16 — T2.C3: T2.C3 — AppShell, nav 4 tab + ＋, Bảng lệnh (Cmd/Ctrl+K), Back Android
+
+- src/ui/AppShell.tsx: header (tiêu đề · ô tìm ⌘K · SyncIndicator · menu), bottom nav 4 tab + ＋ (mobile), rail trái 72↔240px (desktop, nhớ lựa chọn), vùng chính ≤760px, panel phải 360px khi có nội dung
+- src/ui/CommandPalette.tsx: Radix Dialog; tìm không dấu; khách (nguồn `search`) → lệnh → màn; mũi tên/Enter/Esc; mobile toàn màn
+- src/app/layout.tsx: nối AppShell + Bảng lệnh + ＋ Ghi nhanh + menu Tiện ích (Giao diện) + Toast; tiêu đề lấy từ route handle.title hoặc tab
+- src/app/layout.nav.ts: 4 khu vực + path (/, /khach-hang, /cong-viec, /hieu-qua); deep link con → đúng tab
+- src/app/layout.back.ts: window.CRMBack() — đóng lớp nổi trên cùng (qua Escape, giữ chặn bản nháp của Sheet) → lùi lịch sử → về Hôm nay → false
+- src/app/layout.slots.tsx: cổng cắm setShellSync (T2.A4), setCustomerSearch (T2.B3), <ContextPanel> (panel phải) — không cần sửa layout
+- src/app/commands: AppCommand + tự đăng ký src/features/*/commands.ts (quickAdd → sheet ＋, tools → menu Tiện ích), lệnh sẵn: 4 màn + 3 giao diện
+- Kiểm tra: npm run check (tests/ui/AppShell.test.tsx, tests/ui/CommandPalette.test.tsx); npm run build; e2e tests/e2e/shell.spec.ts 360/390/1280 sáng+tối: 4 tab + deep link, Ctrl+K, Back đóng sheet/palette trước, menu giao diện, rail desktop, axe khung không lỗi serious/critical; xem trình duyệt thật 360 sáng + 1280 tối
+- File: `src/app/commands/index.ts`, `src/app/commands/registry.ts`, `src/app/layout.back.ts`, `src/app/layout.menus.tsx`, `src/app/layout.nav.ts`, `src/app/layout.slots.tsx`, `src/app/layout.tsx`, `src/ui/AppShell.tsx`, `src/ui/CommandPalette.tsx`, `tests/e2e/shell.spec.ts`, `tests/ui/AppShell.test.tsx`, `tests/ui/CommandPalette.test.tsx`
+
 ## 2026-10-16 — T2.B1: T2.B1 — Port hạn/đến hạn/quá hạn (D-010) + nhịp follow-up (D-005) sang v2
 
 - src/domain/deadlines: countdownTag, taskDueInfo, callReminder, taskDueMs, startOfDayMs, nhãn ngày (taskDayLabel, relDayLabel, dashWhen, callScheduleLabel), fmtClock/fmtRemainMs/fmtCountdown; hằng DUE_GRACE_MS = 30 phút. Hàm thuần nhận `now`.
