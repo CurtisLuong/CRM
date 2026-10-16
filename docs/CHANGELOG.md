@@ -6,6 +6,13 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-16 — T1.2: T1.2 — Config registry: src/config là nguồn duy nhất (port nguyên giá trị v1)
+
+- Thêm src/config/: followup.ts (FOLLOWUP_CONFIG, ZALO_TEMPLATES_DEFAULT/PREVIOUS, ZALO_SENDER_NAME — D-005), velocity.ts (VELOCITY_CONFIG + MIN/HOUR/DAY — D-008), stages.ts, sources.ts, callResults.ts (+ CALL_RESULT_SETS, SHORT_CALL_SEC, CALL_RESULT_MISS), reasons.ts (+ CLOSE_REASONS rỗng cho T6.1), taskKinds.ts, aptTypes.ts (+ alias), occupations.ts, advanced.ts, docKinds.ts, icons.ts (khái niệm → glyph lucide-react, STAGE_ICON — D-006, kèm khái niệm mới v2 theo DESIGN_SYSTEM §2.5). Mỗi file có comment "NGUỒN DUY NHẤT — Dxxx".
+- Thêm tests/config/: nạp code v1 thật từ legacy/ qua tests/legacy-harness/load-v1.js, so deep equal từng hằng số (52 test); icon: đủ khái niệm v1, glyph lucide có thật, không trùng glyph, fallback như v1; loại việc: icon khớp chuỗi SVG v1.
+- Đã kiểm tra: npm run check + npm run build xanh; đổi thử 1 giá trị → test báo đỏ đúng chỗ.
+- File: `src/config/advanced.ts`, `src/config/aptTypes.ts`, `src/config/callResults.ts`, `src/config/docKinds.ts`, `src/config/followup.ts`, `src/config/icons.ts`, `src/config/occupations.ts`, `src/config/reasons.ts`, `src/config/sources.ts`, `src/config/stages.ts`, `src/config/taskKinds.ts`, `src/config/velocity.ts` … (+2)
+
 ## 2026-10-16 — T1.1: Scaffold v2 (Vite + React 19 + TypeScript strict + Tailwind v4 + PWA) và chuyển v1 vào legacy/
 
 - Chuyển nguyên vẹn (git mv) index.html, css/, js/, sw.js, manifest.json, icons/, android-app-version.json vào legacy/; không đổi nội dung.

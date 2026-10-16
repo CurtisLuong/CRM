@@ -94,7 +94,7 @@ Ký hiệu: ☐ chưa · ◐ đang làm (ghi nhánh) · ☑ xong (ghi ngày) · 
 | T0.5 | Hạ tầng v2: nhánh, Cloudflare `crm-v2`, Supabase staging | Hạ tầng | S | — | Chủ dự án (agent hướng dẫn) | ☑ 2026-10-16 (nhánh `v2`; `crm-v2-9hf.pages.dev` trang trống; staging `mksjmpcsfawsiabfhoxe` + Auth URL theo chủ dự án báo) |
 | T0.6 | Baseline đo thao tác trên v1 | Sản phẩm | S | — | Chủ dự án | ◐ mẫu `baseline.md` xong 2026-10-16 · chờ 1 tuần đo |
 | T1.1 | Scaffold v2 + chuyển v1 vào `legacy/` | Khung | M | T0.1, T0.2, T0.4, T0.5 | Agent | ☑ 2026-10-16 (tự merge 42f253e) |
-| T1.2 | Config registry (nguồn duy nhất) | Khung | M | T1.1 | Agent | ☐ |
+| T1.2 | Config registry (nguồn duy nhất) | Khung | M | T1.1 | Agent | ☑ 2026-10-16 (tự merge 3f7ccf9) |
 | T2.A1 | Types + Zod + normalize legacy | A | M | T1.2 | Agent | ☐ |
 | T2.A2 | LocalDB + queue tương thích v1 | A | L | T2.A1 | Agent | ☐ |
 | T2.A3 | Sync, Realtime, probe, Auth | A | L | T2.A2 | Agent | ☐ |
