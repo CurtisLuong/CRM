@@ -22,7 +22,7 @@
     "T2.B3": { "allow": ["src/domain/search/**", "src/domain/matching/**", "src/domain/lunar/**", "src/domain/customer/phone.ts", "tests/domain/search/**", "tests/domain/matching/**", "tests/domain/lunar/**", "tests/domain/customer/phone*", "tests/search.test.js"] },
     "T2.B4": { "allow": ["src/domain/loan/**", "tests/domain/loan/**", "tests/loan-engine.test.js"] },
     "T2.B5": { "allow": ["src/domain/signals/**", "src/config/signals.ts", "tests/domain/signals/**"] },
-    "T2.C1": { "allow": ["src/styles/**", "src/app/theme.ts", "src/features/dev-type/**", "tests/e2e/theme*"] },
+    "T2.C1": { "allow": ["src/styles/**", "src/app/theme.ts", "src/app/index.css", "src/main.tsx", "src/features/dev-type/**", "tests/e2e/theme*"] },
     "T2.C2": { "allow": ["src/ui/**", "src/features/dev-ui/**", "tests/ui/**", "tests/e2e/ui*"], "deny": ["src/ui/AppShell*", "src/ui/CommandPalette*"] },
     "T2.C3": { "allow": ["src/ui/AppShell*", "src/ui/CommandPalette*", "src/app/layout*", "src/app/commands/**", "tests/ui/AppShell*", "tests/ui/CommandPalette*", "tests/e2e/shell*"] }
   }
