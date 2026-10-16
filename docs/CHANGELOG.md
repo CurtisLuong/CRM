@@ -6,6 +6,14 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-16 — T3.8: T3.8 adds the v2 catalog, spreadsheet import, and customer-to-unit matching with D-012-safe archive behavior.
+
+- Added account-scoped catalog CRUD/cache, filters, import preview, and customer/unit matching.
+- Added approved SheetJS dependency (D-018) and additive archived_at migration/baseline test for catalog rows and type associations; no SQL was executed.
+- Partial imports preserve absent fields; explicit blank cells clear only their field. Archived matches are previewed and restored explicitly.
+- Validation: npm run check (442 tests), npm run build, import/parity/migration tests (20), catalog E2E (15/15); independent re-review found no remaining issue.
+- File: `SQL/schema.sql`, `SQL/v2/006_catalog_archives.sql`, `package-lock.json`, `package.json`, `src/data/repositories/catalog.ts`, `src/features/catalog/commands.ts`, `src/features/catalog/model.ts`, `src/features/catalog/route.tsx`, `tests/data/catalog-import.test.ts`, `tests/data/remote-repositories.test.ts`, `tests/e2e/catalog.spec.ts`, `tests/features/catalog/model.test.ts` … (+1)
+
 ## 2026-10-16 — T3.9: T3.9 adds the v2 loan calculator, quote store, and legacy-compatible PDF output. The route/helper contract supports T3.5 profile integration per D-019.
 
 - Added DS v3 calculator and loanPath(customerId/apartment) contract without editing the profile.
