@@ -34,7 +34,8 @@ export function QuickActionButtons({ customer }: { customer: Customer }) {
   const account = useRepositoryAccount();
   const writable = !!account && customer.owner_id === account.sync.local.userId && !customer.archived_at;
   return (
-    <div role="group" className="flex flex-wrap gap-2" aria-label={`Hành động cho ${customer.full_name}`}>
+    <fieldset className="flex flex-wrap gap-2" aria-label={`Hành động cho ${customer.full_name}`}>
+      <legend className="sr-only">Hành động cho {customer.full_name}</legend>
       {(
         [
           ['call', 'call', 'Gọi'],
@@ -51,7 +52,7 @@ export function QuickActionButtons({ customer }: { customer: Customer }) {
           onClick={() => openQuickAction(customer.id, kind)}
         />
       ))}
-    </div>
+    </fieldset>
   );
 }
 type Active = {
@@ -297,11 +298,15 @@ function ActionSheet({
   const [templateId, setTemplateId] = useState(templates[0]?.id ?? '');
   const [text, setText] = useState(templates[0]?.text ?? '');
   const textEdited = useRef(false);
+  const noteInput = useRef<HTMLTextAreaElement>(null);
   const [launched, setLaunched] = useState(false);
   const [editSchedule, setEditSchedule] = useState(kind === 'schedule');
   const suggestion = callSuggestion(c, draft, result, now, account.customers.getSnapshot());
   const suggested =
     suggestion?.kind === 'schedule' ? suggestion : suggestion?.kind === 'drop' ? suggestion.fallback : null;
+  useEffect(() => {
+    if (kind === 'outcome' && result === 'talked') noteInput.current?.focus();
+  }, [kind, result]);
   useEffect(() => {
     if (kind !== 'zalo') return;
     let alive = true;
@@ -441,6 +446,7 @@ function ActionSheet({
             <label className="flex flex-col gap-1 text-small">
               Ghi chú cuộc gọi
               <textarea
+                ref={noteInput}
                 className={FIELD}
                 aria-label="Ghi chú cuộc gọi"
                 rows={3}
