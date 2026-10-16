@@ -288,7 +288,7 @@ Ký hiệu: ☐ chưa · ◐ đang làm (ghi nhánh) · ☑ xong (ghi ngày) · 
 - **Xong khi:** quy tắc D-001 giữ nguyên (test); payload Đạt/Loại khớp v1.
 
 #### T3.5 — Hồ sơ khách v2
-- **Sở hữu:** `src/features/profile/*`, `src/domain/customer/brief.ts`, `timeline.ts`.
+- **Sở hữu:** `src/features/profile/*`, `src/features/customers/route.tsx` (nút mở hồ sơ đầy đủ từ sheet ngữ cảnh hiện có), `src/domain/customer/brief.ts`, `src/domain/customer/timeline.ts`.
 - **Làm:** layout `UX_GUIDELINES` §5; Brief rule-based; timeline hợp nhất; Trí nhớ (field hiện có + `advanced`) sửa inline; SLA ring + checklist Booking + Hoàn tác tự chuyển; đổi bậc + gợi ý lịch; Ký HĐMB; tài liệu, avatar/cover, chế độ chỉ xem; ActionBar; nút Tính vay gọi contract T3.9 với khách và căn đang xem.
 - **Xong khi:** mọi thông tin v1 hiển thị được; thao tác ghi khớp payload v1; Brief hiện "Chưa biết" đúng.
 
