@@ -61,7 +61,7 @@ async function installInsightsFixture(page: Page) {
       qualified_at: at(-20),
       care_stage_updated_at: at(-10),
       care_stage_history: [{ stage: 'Đang chăm sóc', at: at(-20), note: null }],
-      registered_at: at(-30),
+      registered_at: at(-30, 8, 0),
       call_attempts: [
         { at: at(-30, 9, 0), result: 'talked' },
         { at: at(-1, 14, 0), result: 'no_answer' },
@@ -127,6 +127,7 @@ for (const scheme of ['light', 'dark'] as const) {
       await expect(main.getByText('Có bước tiếp theo', { exact: true })).toBeVisible();
       await expect(main.getByText('Cam kết quá hạn', { exact: true })).toBeVisible();
       await expect(main.getByText('Trung vị gọi lần đầu', { exact: true })).toBeVisible();
+      await expect(main.getByText('2/4 khách có mốc hợp lệ')).toBeVisible();
       await expect(main.getByRole('heading', { name: 'Phễu và tốc độ' })).toBeVisible();
       await expect(main.getByRole('rowheader', { name: 'Booking & Làm hồ sơ' })).toBeVisible();
       await expect(main.getByRole('heading', { name: 'Hiệu suất tuần' })).toBeVisible();

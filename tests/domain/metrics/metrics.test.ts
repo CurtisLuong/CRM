@@ -117,6 +117,29 @@ describe('T3.13 metrics', () => {
     expect(rows.every((x) => x.reached >= 0 && x.overdue >= 0)).toBe(true);
   });
 
+  it('labels current stage duration as an average when durations are skewed', () => {
+    const durations = [1, 1, 10];
+    const rows = durations.map((days, index) => {
+      const entered = at(-days);
+      return {
+        id: `duration-${index}`,
+        owner_id: fixture.users.me,
+        full_name: `Khách ${index}`,
+        phone: `090000000${index}`,
+        care_stage: 'Đang chăm sóc',
+        qualified_at: entered,
+        registered_at: at(-30),
+        care_stage_history: [{ stage: 'Đang chăm sóc', at: entered, note: null }],
+      } as unknown as Customer;
+    });
+
+    const care = funnelMetrics(rows, now).find((stage) => stage.key === 'care');
+    const expectedMean = durations.reduce((sum, days) => sum + now - Date.parse(at(-days)), 0) / durations.length;
+    const median = now - Date.parse(at(-1));
+    expect(care?.averageDurationMs).toBe(expectedMean);
+    expect(care?.averageDurationMs).not.toBe(median);
+  });
+
   it('uses calendar weeks and the existing call/stage-history records', () => {
     const result = weeklyPerformance(owned(), now);
     expect(result.start).toBeLessThan(now);

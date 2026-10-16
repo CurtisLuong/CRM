@@ -79,7 +79,7 @@ export function InsightsPage() {
           <MetricTile
             label="Trung vị gọi lần đầu"
             value={report.care.firstCallMedianMs == null ? null : formatDuration(report.care.firstCallMedianMs)}
-            ratio={`${report.care.firstCallMedian.numerator} khách có mốc hợp lệ`}
+            ratio={`${report.care.firstCallMedian.numerator}/${report.care.firstCallMedian.denominator} khách có mốc hợp lệ`}
             period="Đăng ký → cuộc gọi đầu"
           />
         </div>
@@ -136,7 +136,7 @@ export function InsightsPage() {
                 {i > 0
                   ? ` · chuyển tiếp ${stage.conversion?.numerator}/${stage.conversion?.denominator} (${pct(stage.conversion?.percent ?? null)})`
                   : ''}{' '}
-                · trung vị hiện tại{' '}
+                · trung bình hiện tại{' '}
                 {stage.averageDurationMs === null ? 'chưa đủ dữ liệu' : formatDuration(stage.averageDurationMs)} ·{' '}
                 {stage.overdue} quá hạn SLA
               </span>
