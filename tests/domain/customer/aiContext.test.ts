@@ -63,4 +63,33 @@ describe('buildAiContext', () => {
     expect(context.cuoc_goi).toHaveLength(8);
     expect(context.viec_dang_mo).toHaveLength(1);
   });
+
+  it('redacts email and 12-digit identifiers from every free-text context field while retaining the approved name', () => {
+    const withIdentifiers = {
+      ...customer,
+      full_name: 'Nguyễn An',
+      notes_manual: [{ at: '2026-10-14', text: 'Mail note@example.test, CCCD 012345678901' }],
+      call_attempts: [{ at: '2026-10-15', result: 'talked', note: 'mail call@example.vn, mã 123456789012' }],
+      next_tasks: [{ at: '2026-10-15', text: 'Gọi mail task@example.test, CCCD 234567890123', done_at: null }],
+      advanced: { life_stage: 'Mã 345678901234; email memory@example.org' },
+    } as unknown as Customer;
+    const context = buildAiContext(withIdentifiers);
+    const json = JSON.stringify(context);
+
+    for (const identifier of [
+      'note@example.test',
+      '012345678901',
+      'call@example.vn',
+      '123456789012',
+      'task@example.test',
+      '234567890123',
+      'memory@example.org',
+      '345678901234',
+    ]) {
+      expect(json).not.toContain(identifier);
+    }
+    expect(json).toContain('[đã ẩn email]');
+    expect(json).toContain('[đã ẩn mã định danh]');
+    expect(context.full_name).toBe('Nguyễn An');
+  });
 });

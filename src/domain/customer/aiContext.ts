@@ -3,8 +3,6 @@ import type { Customer } from './types';
 const PHONE = /(?:\+?84|0)(?:[\s().-]*\d){8,10}/g;
 const EMAIL = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi;
 const CCCD_LIKE = /(?<!\d)\d{12}(?!\d)/g;
-const cleanText = (value: unknown, limit = 500) =>
-  typeof value === 'string' ? value.replace(PHONE, '[đã ẩn số điện thoại]').trim().slice(0, limit) : '';
 export const redactAiText = (value: unknown, limit = 1500) =>
   typeof value === 'string'
     ? value
@@ -14,6 +12,7 @@ export const redactAiText = (value: unknown, limit = 1500) =>
         .trim()
         .slice(0, limit)
     : '';
+const cleanText = (value: unknown, limit = 500) => redactAiText(value, limit);
 
 /** Build the narrow, allowlisted client payload for the existing Worker POST /ai contract. */
 export function buildAiContext(customer: Customer) {
