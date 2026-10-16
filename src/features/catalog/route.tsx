@@ -479,7 +479,7 @@ function CatalogPage() {
         </p>
       )}
       <p className="rounded-control border border-border bg-surface-2 p-3 text-small text-text-2">
-        Lưu trữ dự án, toà, căn và loại căn sẽ mở sau khi schema hỗ trợ xoá mềm; hiện dữ liệu danh mục được giữ nguyên.
+        Lưu trữ sẽ ẩn mục khỏi danh sách thường; dữ liệu danh mục vẫn được giữ nguyên trong hệ thống.
       </p>
       {pendingImport && (
         <section className="rounded-card border border-border bg-surface p-4" aria-live="polite">
@@ -532,6 +532,16 @@ function CatalogPage() {
                       }
                     >
                       Sửa
+                    </button>
+                    <button
+                      type="button"
+                      className="min-h-10 text-small text-danger"
+                      onClick={() => {
+                        if (window.confirm(`Lưu trữ loại căn “${type.apt_type}”? Dữ liệu cũ vẫn được giữ.`))
+                          void run(() => catalog.archiveProjectType(type.id), 'Đã lưu trữ loại căn');
+                      }}
+                    >
+                      Lưu trữ
                     </button>
                   </span>
                 </div>
@@ -621,6 +631,21 @@ function CatalogPage() {
                   onClick={() => editProject(p.id)}
                 >
                   Sửa
+                </button>
+                <button
+                  type="button"
+                  className="min-h-10 px-2 text-small text-danger"
+                  onClick={() => {
+                    if (window.confirm(`Lưu trữ dự án “${p.name}”? Toà và căn vẫn được giữ nguyên.`)) {
+                      void run(() => catalog.archiveProject(p.id), 'Đã lưu trữ dự án');
+                      if (projectId === p.id) {
+                        setProjectId('');
+                        setBuildingId('');
+                      }
+                    }
+                  }}
+                >
+                  Lưu trữ
                 </button>
               </div>
             ))}
@@ -781,6 +806,19 @@ function CatalogPage() {
                     onClick={() => editBuilding(b.id)}
                   >
                     Sửa
+                  </button>
+                  <button
+                    type="button"
+                    className="min-h-10 px-2 text-small text-danger"
+                    onClick={() => {
+                      const count = catalog.unitsOf(b.id).length;
+                      if (window.confirm(`Lưu trữ toà ${b.code}? ${count} căn vẫn được giữ nguyên.`)) {
+                        void run(() => catalog.archiveBuilding(b.id), 'Đã lưu trữ toà');
+                        if (buildingId === b.id) setBuildingId('');
+                      }
+                    }}
+                  >
+                    Lưu trữ
                   </button>
                 </div>
               ))}
@@ -1168,6 +1206,15 @@ function CatalogPage() {
                   </Button>
                   <Button variant="ghost" onClick={() => setUnitClient(unitClient === unit.id ? '' : unit.id)}>
                     Tìm khách phù hợp
+                  </Button>
+                  <Button
+                    variant="danger"
+                    onClick={() => {
+                      if (window.confirm(`Lưu trữ căn ${unit.code}? Dữ liệu vẫn được giữ.`))
+                        void run(() => catalog.archiveUnit(unit.id), 'Đã lưu trữ căn');
+                    }}
+                  >
+                    Lưu trữ
                   </Button>
                 </div>
                 {unitClient === unit.id && (

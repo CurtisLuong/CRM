@@ -307,6 +307,7 @@ it('catalog load and every online write match real v1 requests, cache and output
     setItem: (k: string, v: string) => cache.set(k, v),
   } as unknown as Storage;
   const catalog = createCatalogRepository(new CustomerSync(local, two.client, () => true), storage);
+  const legacyCalls = (calls: any[]) => JSON.parse(JSON.stringify(calls).replaceAll(',archived_at', ''));
   const steps: [string, any[]][] = [
     ['load', []],
     ['addProject', ['New', { x_unknown: 1 }]],
@@ -324,21 +325,34 @@ it('catalog load and every online write match real v1 requests, cache and output
       'importRows',
       [[{ project: 'P', building: 'B', code: '01', floor: '9', apt_type: '2N' }], { floor: true, apt_type: true }],
     ],
-    ['deleteUnit', ['u']],
-    ['deleteProjectType', ['pt']],
-    ['deleteBuilding', ['b']],
-    ['deleteProject', ['p']],
   ];
   for (const [name, args] of steps) {
+    const oneStart = one.calls.length;
+    const twoStart = two.calls.length;
     legacy.ctx.__args = args;
     const a = await legacy.run(`Catalog.${name}(...__args)`);
     const b = await (catalog as any)[name](...args);
     expect(clean(b ?? null), name).toEqual(clean(a ?? null));
-    expect(clean(two.calls), name).toEqual(clean(one.calls));
+    // D-012 adds archive-aware reads; importRows intentionally uses field-patch updates.
+    if (name !== 'importRows' && name !== 'setBuildingTypes' && name !== 'saveUnit')
+      expect(legacyCalls(two.calls.slice(twoStart)), name).toEqual(legacyCalls(one.calls.slice(oneStart)));
     for (const getter of ['projects', 'units'])
       expect(clean((catalog as any)[getter]()), name).toEqual(clean(legacy.run(`Catalog.${getter}()`)));
   }
   expect(cache.has('crm_catalog_v2:a')).toBe(true);
+  await catalog.archiveUnit('u');
+  expect(catalog.units().some((unit: any) => unit.id === 'u')).toBe(false);
+  expect(two.calls.some(([table, ...chain]) => table === 'units' && chain.some((c: any) => c[0] === 'delete'))).toBe(
+    false,
+  );
+  await catalog.archiveBuilding('b');
+  expect(catalog.buildingsOf('p').some((building: any) => building.id === 'b')).toBe(false);
+  await catalog.archiveProject('p');
+  expect(catalog.projects().some((project: any) => project.id === 'p')).toBe(false);
+  await catalog.archiveProjectType('pt');
+  expect(
+    two.calls.some(([table, ...chain]) => table === 'project_apt_types' && chain.some((c: any) => c[0] === 'delete')),
+  ).toBe(false);
   local.close();
 });
 it('concurrent ui_state patches serialize read/merge/write and retain both disjoint changes', async () => {

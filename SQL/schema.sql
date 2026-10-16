@@ -211,3 +211,4 @@ on conflict (name, owner_id) do nothing;
 --      SQL/v2/003_campaign_costs.sql         → bảng campaign_costs (RLS theo người tạo, admin chỉ đọc)
 --      SQL/v2/004_user_settings_ui_state.sql → user_settings.ui_state (cần SQL/add_zalo_greeting_settings.sql)
 --      SQL/v2/005_units_verified_at.sql      → units.verified_at (cần SQL/add_loan_module.sql)
+--      SQL/v2/006_catalog_archives.sql       → catalog: archived_at (projects/buildings/units/project_apt_types/building_apt_types; cần migration catalog v1)

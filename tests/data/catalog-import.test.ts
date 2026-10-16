@@ -8,8 +8,14 @@ import { CustomerSync } from '@/data/sync';
 
 function setupCatalog() {
   const tables: Record<string, any[]> = {
-    projects: [{ id: 'p', name: 'Project' }],
-    buildings: [{ id: 'b', project_id: 'p', code: 'B1' }],
+    projects: [
+      { id: 'p', name: 'Project' },
+      { id: 'pa', name: 'Archived Project', archived_at: '2026-10-01' },
+    ],
+    buildings: [
+      { id: 'b', project_id: 'p', code: 'B1' },
+      { id: 'ba', project_id: 'pa', code: 'Archived Building' },
+    ],
     units: [
       {
         id: 'u',
@@ -25,9 +31,13 @@ function setupCatalog() {
         status: 'holding',
         note: 'Ghi chú cần giữ',
       },
+      { id: 'ua', project_id: 'pa', building_id: 'ba', code: 'Archived Unit', archived_at: '2026-10-01' },
     ],
-    project_apt_types: [],
-    building_apt_types: [],
+    project_apt_types: [
+      { id: 'pt', project_id: 'p', apt_type: '2N', typical_area_m2: 62 },
+      { id: 'pta', project_id: 'pa', apt_type: 'Old', archived_at: '2026-10-01' },
+    ],
+    building_apt_types: [{ id: 'bt', building_id: 'b', project_id: 'p', apt_type: '2N', area_m2: 62 }],
   };
   const calls: any[] = [];
   const client: any = {
@@ -83,8 +93,8 @@ function setupCatalog() {
         projects: tables.projects,
         buildings: tables.buildings,
         units: tables.units,
-        projectTypes: [],
-        buildingTypes: [],
+        projectTypes: tables.project_apt_types,
+        buildingTypes: tables.building_apt_types,
       }),
     ],
   ]);
@@ -99,8 +109,11 @@ function setupCatalog() {
   })();
 }
 
-it('keeps existing unit fields when those columns are absent in the import file', async () => {
+it('hides archived cache rows and keeps unit fields absent from an import file', async () => {
   const { catalog, local, tables, calls } = await setupCatalog();
+  expect(catalog.projects().map((project: any) => project.id)).toEqual(['p']);
+  expect(catalog.buildingsOf('pa')).toEqual([]);
+  expect(catalog.units().some((unit: any) => unit.id === 'ua')).toBe(false);
   await catalog.importRows([{ project: 'Project', building: 'B1', code: '01' }], {
     project: true,
     building: true,
@@ -122,7 +135,7 @@ it('keeps existing unit fields when those columns are absent in the import file'
   local.close();
 });
 
-it('lets a blank present column clear only that field and blocks catalog hard deletes', async () => {
+it('lets a blank present column clear only that field and archives catalog rows without deleting them', async () => {
   const { catalog, local, tables, calls } = await setupCatalog();
   await catalog.importRows([{ project: 'Project', building: 'B1', code: '01', floor: '' }], {
     project: true,
@@ -132,12 +145,31 @@ it('lets a blank present column clear only that field and blocks catalog hard de
   });
   expect(tables.units?.[0].floor).toBeNull();
   expect(tables.units?.[0].area_m2).toBe(62);
-  await expect(catalog.deleteProject('p')).rejects.toThrow('schema catalog chưa có archived_at');
-  await expect(catalog.deleteBuilding('b')).rejects.toThrow('schema catalog chưa có archived_at');
-  await expect(catalog.deleteUnit('u')).rejects.toThrow('schema catalog chưa có archived_at');
+  await catalog.archiveUnit('u');
+  expect(catalog.units()).toEqual([]);
+  await catalog.archiveBuilding('b');
+  expect(catalog.buildingsOf('p')).toEqual([]);
+  await catalog.archiveProjectType('pt');
+  expect(catalog.projectTypes('p')).toEqual([]);
+  await catalog.archiveProject('p');
+  expect(catalog.projects()).toEqual([]);
   expect(calls.some(([, ...chain]) => chain.some((op: any) => op[0] === 'delete'))).toBe(false);
-  expect(tables.projects).toHaveLength(1);
-  expect(tables.buildings).toHaveLength(1);
-  expect(tables.units).toHaveLength(1);
+  expect(tables.projects).toHaveLength(2);
+  expect(tables.buildings).toHaveLength(2);
+  expect(tables.units).toHaveLength(2);
+  expect(tables.projects?.find((project: any) => project.id === 'p')?.archived_at).toBeTruthy();
+  local.close();
+});
+
+it('archives removed building type associations and reuses the archived row on restore', async () => {
+  const { catalog, local, tables, calls } = await setupCatalog();
+  await catalog.setBuildingTypes('b', []);
+  expect(catalog.buildingTypeRows('b')).toEqual([]);
+  expect(tables.building_apt_types?.[0].archived_at).toBeTruthy();
+  await catalog.setBuildingTypes('b', [{ apt_type: '2N', area_m2: 64 }]);
+  expect(catalog.buildingTypeRows('b')).toMatchObject([{ apt_type: '2N', area_m2: 64 }]);
+  expect(tables.building_apt_types).toHaveLength(1);
+  expect(tables.building_apt_types?.[0].archived_at).toBeNull();
+  expect(calls.some(([, ...chain]) => chain.some((op: any) => op[0] === 'delete'))).toBe(false);
   local.close();
 });

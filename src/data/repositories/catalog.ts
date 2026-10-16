@@ -28,6 +28,28 @@ export function createCatalogRepository(sync: CustomerSync, storage: Storage = l
   let data: CatalogData = { projects: [], buildings: [], units: [], projectTypes: [], buildingTypes: [] };
   const listeners: (() => void)[] = [];
 
+  function visibleCatalog(rows: CatalogData): CatalogData {
+    const projects = rows.projects.filter((row: any) => !row.archived_at);
+    const projectIds = new Set(projects.map((row: any) => row.id));
+    const buildings = rows.buildings.filter((row: any) => !row.archived_at && projectIds.has(row.project_id));
+    const buildingIds = new Set(buildings.map((row: any) => row.id));
+    const projectTypes = rows.projectTypes.filter((row: any) => !row.archived_at && projectIds.has(row.project_id));
+    const activeTypes = new Set(projectTypes.map((row: any) => `${row.project_id}|${row.apt_type}`));
+    return {
+      ...rows,
+      projects,
+      buildings,
+      units: rows.units.filter(
+        (row: any) => !row.archived_at && projectIds.has(row.project_id) && buildingIds.has(row.building_id),
+      ),
+      projectTypes,
+      buildingTypes: rows.buildingTypes.filter(
+        (row: any) =>
+          !row.archived_at && buildingIds.has(row.building_id) && activeTypes.has(`${row.project_id}|${row.apt_type}`),
+      ),
+    };
+  }
+
   function scope(userId: any) {
     sync.local.assertOpen();
     if (userId && userId !== sync.local.userId) throw new Error('Phiên dữ liệu đã thay đổi.');
@@ -36,7 +58,7 @@ export function createCatalogRepository(sync: CustomerSync, storage: Storage = l
     data = empty();
     try {
       const c = cacheKey && JSON.parse(storage.getItem(cacheKey) ?? 'null');
-      if (c?.projects) data = { ...empty(), ...c };
+      if (c?.projects) data = visibleCatalog({ ...empty(), ...c });
     } catch {}
     reindex();
   }
@@ -108,24 +130,25 @@ export function createCatalogRepository(sync: CustomerSync, storage: Storage = l
       const [p, b, u, pt, bt] = await Promise.all([
         read(
           'projects',
-          'id,name,typical_price_per_m2,vat_rate,kpbt_rate,handover_date,title_after_months,payment_schedule,sort_order,created_at',
+          'id,name,typical_price_per_m2,vat_rate,kpbt_rate,handover_date,title_after_months,payment_schedule,sort_order,created_at,archived_at',
         ),
-        read('buildings', 'id,project_id,code,approved_price_per_m2,handover_date,note,sort_order,created_at'),
+        read(
+          'buildings',
+          'id,project_id,code,approved_price_per_m2,handover_date,note,sort_order,created_at,archived_at',
+        ),
         read(
           'units',
-          'id,project_id,building_id,code,area_m2,floor,direction,apt_type,price_per_m2_override,net_price_override,status,note',
+          'id,project_id,building_id,code,area_m2,floor,direction,apt_type,price_per_m2_override,net_price_override,status,note,archived_at',
         ),
-        read('project_apt_types', 'id,project_id,apt_type,typical_area_m2,sort_order'),
-        read('building_apt_types', 'id,building_id,project_id,apt_type,area_m2'),
+        read('project_apt_types', 'id,project_id,apt_type,typical_area_m2,sort_order,archived_at'),
+        read('building_apt_types', 'id,building_id,project_id,apt_type,area_m2,archived_at'),
       ]);
       if (epoch !== scopeEpoch || sync.local.isClosed) return false;
-      data = {
-        projects: p.sort(byOrder),
-        buildings: b.sort(byOrder),
-        units: u.sort(byCode),
-        projectTypes: pt.sort(byTypeOrder),
-        buildingTypes: bt,
-      };
+      data = visibleCatalog({ projects: p, buildings: b, units: u, projectTypes: pt, buildingTypes: bt });
+      data.projects.sort(byOrder);
+      data.buildings.sort(byOrder);
+      data.units.sort(byCode);
+      data.projectTypes.sort(byTypeOrder);
       emit();
       return true;
     } catch (raw) {
@@ -248,9 +271,16 @@ export function createCatalogRepository(sync: CustomerSync, storage: Storage = l
     emit();
     return row;
   }
-  async function deleteProject(id: any) {
-    void id;
-    throw new Error('Chưa thể lưu trữ dự án: schema catalog chưa có archived_at. Dữ liệu được giữ nguyên.');
+  async function archiveProject(id: any) {
+    needOnline();
+    check(await sb.from('projects').update({ archived_at: new Date().toISOString() }).eq('id', id));
+    const bIds = new Set(data.buildings.filter((b: any) => b.project_id === id).map((b: any) => b.id));
+    data.projects = data.projects.filter((p: any) => p.id !== id);
+    data.buildings = data.buildings.filter((b: any) => b.project_id !== id);
+    data.units = data.units.filter((u: any) => u.project_id !== id && !bIds.has(u.building_id));
+    data.projectTypes = data.projectTypes.filter((t: any) => t.project_id !== id);
+    data.buildingTypes = data.buildingTypes.filter((t: any) => t.project_id !== id);
+    emit();
   }
   async function saveBuilding(b: any) {
     // có id → sửa, không → thêm
@@ -277,9 +307,13 @@ export function createCatalogRepository(sync: CustomerSync, storage: Storage = l
     emit();
     return row;
   }
-  async function deleteBuilding(id: any) {
-    void id;
-    throw new Error('Chưa thể lưu trữ toà: schema catalog chưa có archived_at. Dữ liệu được giữ nguyên.');
+  async function archiveBuilding(id: any) {
+    needOnline();
+    check(await sb.from('buildings').update({ archived_at: new Date().toISOString() }).eq('id', id));
+    data.buildings = data.buildings.filter((b: any) => b.id !== id);
+    data.units = data.units.filter((u: any) => u.building_id !== id);
+    data.buildingTypes = data.buildingTypes.filter((t: any) => t.building_id !== id);
+    emit();
   }
   async function saveUnit(u: any) {
     needOnline();
@@ -308,9 +342,11 @@ export function createCatalogRepository(sync: CustomerSync, storage: Storage = l
     data.units.sort(byCode);
     emit();
   }
-  async function deleteUnit(id: any) {
-    void id;
-    throw new Error('Chưa thể lưu trữ căn: schema catalog chưa có archived_at. Dữ liệu được giữ nguyên.');
+  async function archiveUnit(id: any) {
+    needOnline();
+    check(await sb.from('units').update({ archived_at: new Date().toISOString() }).eq('id', id));
+    data.units = data.units.filter((u: any) => u.id !== id);
+    emit();
   }
 
   // Căn mang loại căn chưa khai báo → tự thêm vào dự án (và vào toà nếu toà đã có danh sách riêng)
@@ -331,22 +367,36 @@ export function createCatalogRepository(sync: CustomerSync, storage: Storage = l
         });
       }
     });
-    if (pNeed.size)
-      check(
+    for (const row of pNeed.values() as any) {
+      const matches = check(
         await sb
           .from('project_apt_types')
-          .upsert([...pNeed.values()], { onConflict: 'project_id,apt_type', ignoreDuplicates: true }),
+          .select('id,archived_at')
+          .eq('project_id', row.project_id)
+          .eq('apt_type', row.apt_type),
       );
-    if (bNeed.size)
-      check(
+      const archived = matches?.[0];
+      if (archived?.archived_at)
+        check(await sb.from('project_apt_types').update({ archived_at: null }).eq('id', archived.id));
+      else if (!archived) check(await sb.from('project_apt_types').insert(row));
+    }
+    for (const row of bNeed.values() as any) {
+      const matches = check(
         await sb
           .from('building_apt_types')
-          .upsert([...bNeed.values()], { onConflict: 'building_id,apt_type', ignoreDuplicates: true }),
+          .select('id,archived_at')
+          .eq('building_id', row.building_id)
+          .eq('apt_type', row.apt_type),
       );
+      const archived = matches?.[0];
+      if (archived?.archived_at)
+        check(await sb.from('building_apt_types').update({ archived_at: null }).eq('id', archived.id));
+      else if (!archived) check(await sb.from('building_apt_types').insert(row));
+    }
     return pNeed.size + bNeed.size > 0;
   }
 
-  // Loại căn của dự án: thêm / sửa (đổi tên → DB tự đổi theo ở toà + căn), xoá (toà mất theo)
+  // Loại căn của dự án: thêm / sửa (đổi tên → DB tự đổi theo ở toà + căn), lưu trữ mềm.
   async function saveProjectType(t: any) {
     needOnline();
     const payload: Data = {
@@ -359,23 +409,50 @@ export function createCatalogRepository(sync: CustomerSync, storage: Storage = l
     else check(await sb.from('project_apt_types').insert(payload));
     await load();
   }
-  async function deleteProjectType(id: any) {
-    void id;
-    throw new Error('Chưa thể lưu trữ loại căn: schema catalog chưa có archived_at. Dữ liệu được giữ nguyên.');
+  async function archiveProjectType(id: any) {
+    needOnline();
+    const archived = data.projectTypes.find((t: any) => t.id === id);
+    check(await sb.from('project_apt_types').update({ archived_at: new Date().toISOString() }).eq('id', id));
+    data.projectTypes = data.projectTypes.filter((t: any) => t.id !== id);
+    if (archived)
+      data.buildingTypes = data.buildingTypes.filter(
+        (t: any) => t.project_id !== archived.project_id || t.apt_type !== archived.apt_type,
+      );
+    emit();
   }
   // Ghi lại toàn bộ loại căn của 1 toà: rows = [{ apt_type, area_m2 }] (rỗng = dùng mọi loại của dự án)
   async function setBuildingTypes(buildingId: any, rows: any) {
     needOnline();
     const b = building(buildingId);
-    check(await sb.from('building_apt_types').delete().eq('building_id', buildingId));
-    if (rows.length) {
+    if (!b) throw new Error('Không tìm thấy toà.');
+    const current = check(
+      await sb
+        .from('building_apt_types')
+        .select('id,building_id,project_id,apt_type,area_m2,archived_at')
+        .eq('building_id', buildingId),
+    ) as Data[];
+    const desired = new Map(rows.map((row: any) => [row.apt_type, row]));
+    for (const existing of current as any[]) {
+      const next: any = desired.get(existing.apt_type);
+      if (next) {
+        const area = next.area_m2 || null;
+        if (existing.archived_at || existing.area_m2 !== area)
+          check(await sb.from('building_apt_types').update({ archived_at: null, area_m2: area }).eq('id', existing.id));
+        desired.delete(existing.apt_type);
+      } else if (!existing.archived_at) {
+        check(
+          await sb.from('building_apt_types').update({ archived_at: new Date().toISOString() }).eq('id', existing.id),
+        );
+      }
+    }
+    if (desired.size) {
       check(
         await sb.from('building_apt_types').insert(
-          rows.map((r: any) => ({
+          [...desired.values()].map((row: any) => ({
             building_id: buildingId,
             project_id: b.project_id,
-            apt_type: r.apt_type,
-            area_m2: r.area_m2 || null,
+            apt_type: row.apt_type,
+            area_m2: row.area_m2 || null,
           })),
         ),
       );
@@ -453,7 +530,7 @@ export function createCatalogRepository(sync: CustomerSync, storage: Storage = l
       const existing = await pagedFetch<Data & { id: string }>(
         sb,
         'units',
-        'id,project_id,building_id,code,area_m2,floor,direction,apt_type,price_per_m2_override,net_price_override,status,note',
+        'id,project_id,building_id,code,area_m2,floor,direction,apt_type,price_per_m2_override,net_price_override,status,note,archived_at',
         () => !sync.local.isClosed,
       );
       const byKey = new Map(existing.map((unit: any) => [`${unit.building_id}|${norm(unit.code)}`, unit]));
@@ -465,7 +542,13 @@ export function createCatalogRepository(sync: CustomerSync, storage: Storage = l
           check(
             await sb
               .from('units')
-              .update({ project_id, building_id, code, ...fields })
+              .update({
+                project_id,
+                building_id,
+                code,
+                ...(current.archived_at ? { archived_at: null } : {}),
+                ...fields,
+              })
               .eq('id', current.id),
           );
         } else inserts.push(unit);
@@ -517,15 +600,15 @@ export function createCatalogRepository(sync: CustomerSync, storage: Storage = l
     buildingHandoverSource,
     addProject,
     updateProject,
-    deleteProject,
+    archiveProject,
     saveBuilding,
     updateBuilding,
-    deleteBuilding,
+    archiveBuilding,
     saveUnit,
-    deleteUnit,
+    archiveUnit,
     importRows,
     saveProjectType,
-    deleteProjectType,
+    archiveProjectType,
     setBuildingTypes,
   };
 }
