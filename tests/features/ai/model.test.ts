@@ -34,7 +34,10 @@ describe('AI client model', () => {
       account,
       'zalo',
       { full_name: 'An' },
-      { goal: 'Hỏi thăm 0901234567' },
+      {
+        goal: 'Hỏi thăm 0901234567, gửi mail an.nguyen@example.test, CCCD 012345678901',
+        note: 'Khách cần gọi lại, email khach@example.vn và mã 123456789012',
+      },
       { model: 'glm', style: 'Ngắn 0901234567' },
     );
     const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
@@ -44,11 +47,17 @@ describe('AI client model', () => {
       task: 'zalo',
       customer: { full_name: 'An' },
       extra: {
-        goal: 'Hỏi thăm [đã ẩn số điện thoại]',
+        goal: 'Hỏi thăm [đã ẩn số điện thoại], gửi mail [đã ẩn email], CCCD [đã ẩn mã định danh]',
+        note: 'Khách cần gọi lại, email [đã ẩn email] và mã [đã ẩn mã định danh]',
         model: 'glm',
         style: 'Ngắn [đã ẩn số điện thoại]',
       },
     });
+    expect(JSON.stringify(body)).not.toContain('0901234567');
+    expect(JSON.stringify(body)).not.toContain('an.nguyen@example.test');
+    expect(JSON.stringify(body)).not.toContain('khach@example.vn');
+    expect(JSON.stringify(body)).not.toContain('012345678901');
+    expect(JSON.stringify(body)).not.toContain('123456789012');
     expect(body.customer).not.toHaveProperty('phone');
     expect(init.headers).toMatchObject({ Authorization: 'Bearer token' });
   });
