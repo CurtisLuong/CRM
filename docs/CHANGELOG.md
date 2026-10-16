@@ -6,6 +6,15 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-16 — T2.B4: T2.B4 — Port engine vay sang TypeScript (src/domain/loan)
+
+- Thêm src/domain/loan/engine.ts (+ index.ts): port 1:1 legacy/js/loan/loan-engine.js sang TS strict thuần (không React/IndexedDB); giữ nguyên công thức, thứ tự làm tròn, cách ép kiểu chuỗi→số, nội dung cảnh báo; thêm kiểu dữ liệu cho đầu vào/đầu ra.
+- tests/domain/loan/engine.test.ts: chuyển toàn bộ ca của tests/loan-engine.test.js (phiếu CĐT R30413, ân hạn, đơn giá m2, nhận sổ 1,5 tháng, tiến độ 10 đợt, bàn giao giữa, validate) sang Vitest; các giá trị v1 chỉ in ra (lãi tháng 1, tổng lãi, tất toán) nay được chốt bằng số v1.
+- tests/domain/loan/parity.test.ts: so từng đồng bản TS với bản v1 nạp từ legacy/ — hằng số, util ngày, calcPrice/calcMilestones/validateSchedule/vatPercents, compute mọi tổ hợp gói vay × tiến độ × căn × ngày, simulate/payoff riêng, + 500 ca ngẫu nhiên có seed.
+- Đã kiểm tra: npm run check + npm run build xanh; tests/legacy-harness/run.js --check 0 khác; node tests/loan-engine.test.js vẫn "Tất cả khớp"; thử cố ý sửa sai engine TS (365→366 ngày, đổi làm tròn phí) → test parity báo đỏ.
+- Giữ nguyên tests/loan-engine.test.js (test v1 chạy bằng node trên legacy/).
+- File: `src/domain/loan/engine.ts`, `src/domain/loan/index.ts`, `tests/domain/loan/engine.test.ts`, `tests/domain/loan/parity.test.ts`
+
 ## 2026-10-16 — T1.2: T1.2 — Config registry: src/config là nguồn duy nhất (port nguyên giá trị v1)
 
 - Thêm src/config/: followup.ts (FOLLOWUP_CONFIG, ZALO_TEMPLATES_DEFAULT/PREVIOUS, ZALO_SENDER_NAME — D-005), velocity.ts (VELOCITY_CONFIG + MIN/HOUR/DAY — D-008), stages.ts, sources.ts, callResults.ts (+ CALL_RESULT_SETS, SHORT_CALL_SEC, CALL_RESULT_MISS), reasons.ts (+ CLOSE_REASONS rỗng cho T6.1), taskKinds.ts, aptTypes.ts (+ alias), occupations.ts, advanced.ts, docKinds.ts, icons.ts (khái niệm → glyph lucide-react, STAGE_ICON — D-006, kèm khái niệm mới v2 theo DESIGN_SYSTEM §2.5). Mỗi file có comment "NGUỒN DUY NHẤT — Dxxx".
