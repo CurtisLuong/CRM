@@ -118,7 +118,7 @@ Ký hiệu: ☐ chưa · ◐ đang làm (ghi nhánh) · ☑ xong (ghi ngày) · 
 | T3.8 | Giỏ hàng + Excel + ghép căn | Tính năng | L | T2.A4, T2.B3, T2.C3 | Agent | ☑ 2026-10-16 (tự merge f4713ed) |
 | T3.9 | Tính vay + PDF + báo giá | Tính năng | M | T2.B4, T2.C3 | Agent | ☑ 2026-10-16 (tự merge 1be5481) |
 | T3.10 | Nhóm + giao khách | Tính năng | M | T2.A4, T2.C3 | Agent | ☐ |
-| T3.11 | Cài đặt, mẫu Zalo, nhập/xuất, cập nhật APK, chuông | Tính năng | M | T2.A4, T2.C3 | Agent | ☐ |
+| T3.11 | Cài đặt, mẫu Zalo, nhập/xuất, cập nhật APK, chuông | Tính năng | M | T2.A4, T2.C3 | Agent | ☑ 2026-10-16 (tự merge e078572) |
 | T3.12 | Port Trợ lý AI | Tính năng | M | T3.5 | Agent | ☐ |
 | T3.13 | Hiệu quả: parity Phân tích v1 | Tính năng | M | T2.A4, T2.B1, T2.B2, T2.C3 | Agent | ☐ |
 | T4.1 | Ghi tương tác Zalo/gặp/xem dự án | Mới P0 | M | T3.1, T2.A5 | Agent | ☐ |

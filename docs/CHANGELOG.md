@@ -6,6 +6,13 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-16 — T3.11: T3.11 adds settings, import/export, and notifications routes to v2.
+
+- Added theme, Zalo/AI settings, logout and APK update check; settings saved offline retry when the device comes online.
+- Added lazy XLSX import/export using the v1 14-field contract; import is add-only, skips duplicate phones, and preserves unknown column names in notes.
+- Notifications read the existing computeSignals registry. Validation: npm run check (475 tests), build, focused Playwright (9/9 before fix; settings/import-export 6/6 after fix), and independent review with no remaining findings. No staging or physical Android proof.
+- File: `src/features/import-export/commands.ts`, `src/features/import-export/model.ts`, `src/features/import-export/route.tsx`, `src/features/notifications/commands.ts`, `src/features/notifications/route.tsx`, `src/features/settings/commands.ts`, `src/features/settings/model.ts`, `src/features/settings/route.tsx`, `tests/e2e/import-export.spec.ts`, `tests/e2e/notifications.spec.ts`, `tests/e2e/settings.spec.ts`, `tests/features/import-export/model.test.ts` … (+3)
+
 ## 2026-10-16 — T3.5: T3.5 adds the v2 customer profile and preserves booking SLA and contact preferences.
 
 - Added profile tabs for overview, customer memory, needs/property, timeline, and documents, with owner/read-only handling and a link from the existing customer context sheet.
