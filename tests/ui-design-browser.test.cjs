@@ -3,7 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const assert = require('node:assert/strict');
 const { chromium } = require('playwright');
-const root = path.resolve(__dirname, '..');
+const root = path.resolve(__dirname, '..', 'legacy');
 const out = process.env.CRM_UI_OUTPUT || '/private/tmp/crm-ui-audit';
 fs.mkdirSync(out, { recursive: true });
 (async () => {

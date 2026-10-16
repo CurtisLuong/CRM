@@ -9,7 +9,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 
-const ROOT = path.join(__dirname, '..', '..');
+const ROOT = path.join(__dirname, '..', '..', 'legacy');
 // Thứ tự = các thẻ <script> trong index.html (trừ loan-ui/loan-pdf/catalog-ui… chỉ dựng giao diện).
 const SCRIPTS = [
   'js/config.js', 'js/lunar.js', 'js/paged-fetch.js', 'js/search.js', 'js/db.js', 'js/notifications.js',
