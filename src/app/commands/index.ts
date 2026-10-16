@@ -25,7 +25,7 @@ const builtin: AppCommand[] = [
       icon: 'settings',
       group: 'Cài đặt',
       keywords: 'theme giao dien sang toi dark light',
-      order: i,
+      order: 900 + i, // cuối Bảng lệnh, sau màn và lệnh tính năng
       run: () => setThemePref(o.value),
     }),
   ),

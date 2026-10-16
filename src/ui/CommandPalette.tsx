@@ -109,7 +109,7 @@ export function CommandPalette({
       if (!results.length) return;
       const next = (active + (e.key === 'ArrowDown' ? 1 : -1) + results.length) % results.length;
       setActive(next);
-      listRef.current?.querySelector(`[data-index="${next}"]`)?.scrollIntoView({ block: 'nearest' });
+      listRef.current?.querySelector(`[data-index="${next}"]`)?.scrollIntoView?.({ block: 'nearest' });
     } else if (e.key === 'Enter') {
       e.preventDefault();
       run(results[active]);
