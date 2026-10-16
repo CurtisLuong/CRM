@@ -6,6 +6,14 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-16 — T2.A2: T2.A2 — LocalDB + hàng đợi đồng bộ v2 dùng chung IndexedDB với v1 (src/data)
+
+- Thêm localdb.ts: mở DB theo tài khoản (giữ nguyên tên crm_khach_hang__<userId>, version 2, store customers/queue/meta, keyPath), đọc/ghi local không biến đổi bản ghi, replaceAll an toàn (từ chối khi còn op chờ / local đổi), assertWritable (D-003), sameRecord; mỗi phiên tài khoản là 1 instance, đóng phiên thì mọi thao tác bị từ chối.
+- Thêm queue.ts: định dạng op y v1 {opId, type, recordId, payload, ts}; flushQueue với adapter server tiêm vào (A3 nối Supabase), port đủ luật lỗi v1 (insert trùng bỏ, giao khách lỗi bỏ + thông báo, lỗi khác dừng giữ thứ tự); clearQueue.
+- Thêm legacyImport.ts: nhập 1 lần từ DB gốc crm_khach_hang (dùng chung cờ legacy-imported với v1), không gán op không rõ chủ cho tài khoản khác.
+- Đã kiểm tra (fake-indexeddb, chạy legacy/js/db.js thật): DB do v1 tạo mở bằng v2 nguyên vẹn; op v1 được v2 flush đúng và v1/v2 flush cùng hàng đợi ra cùng chuỗi lời gọi; op v2 được v1 đọc + flush; luật lỗi cho kết quả giống v1; đổi tài khoản không lẫn dữ liệu (kể cả đổi giữa lúc flush); nhập DB gốc giống v1 với 3 trường hợp người dùng trước. Bỏ thử 1 luật → test đỏ. Rà B.3 không vi phạm. npm run check + build xanh.
+- File: `src/data/legacyImport.ts`, `src/data/localdb.ts`, `src/data/queue.ts`, `tests/data/localdb.test.ts`, `tests/data/v1db.ts`
+
 ## 2026-10-16 — T2.C2: T2.C2 — Component src/ui + gallery /dev/ui
 
 - src/ui: Button (primary/secondary/ghost/danger/ai, loading, disabled), IconButton (44×44, nhãn bắt buộc), Badge, Kbd, Icon (khái niệm → lucide theo src/config/icons.ts, import từng glyph)
