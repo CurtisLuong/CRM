@@ -119,7 +119,7 @@ Ký hiệu: ☐ chưa · ◐ đang làm (ghi nhánh) · ☑ xong (ghi ngày) · 
 | T3.9 | Tính vay + PDF + báo giá | Tính năng | M | T2.B4, T2.C3 | Agent | ☑ 2026-10-16 (tự merge 1be5481) |
 | T3.10 | Nhóm + giao khách | Tính năng | M | T2.A4, T2.C3 | Agent | ☑ 2026-10-16 (tự merge f632d52) |
 | T3.11 | Cài đặt, mẫu Zalo, nhập/xuất, cập nhật APK, chuông | Tính năng | M | T2.A4, T2.C3 | Agent | ☑ 2026-10-16 (tự merge e078572) |
-| T3.12 | Port Trợ lý AI | Tính năng | M | T3.5 | Agent | ☐ |
+| T3.12 | Port Trợ lý AI | Tính năng | M | T3.5 | Agent | ☑ 2026-10-17 (tự merge a7f324e) |
 | T3.13 | Hiệu quả: parity Phân tích v1 | Tính năng | M | T2.A4, T2.B1, T2.B2, T2.C3 | Agent | ☑ 2026-10-16 (tự merge 9f46b0a) |
 | T4.1 | Ghi tương tác Zalo/gặp/xem dự án | Mới P0 | M | T3.1, T2.A5 | Agent | ☐ |
 | T4.2 | Lời hứa 2 chiều + hạn gốc + dời có lý do | Mới P0 | M | T3.7, T2.A5 | Agent | ☐ |

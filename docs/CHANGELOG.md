@@ -6,6 +6,13 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-17 — T3.12: T3.12 ports the v1 AI assistant client into v2 profile and Quick Actions.
+
+- Added AI brief, Zalo draft, and note-parse review using the existing Worker contract and user AI settings; drafts remain in UI until explicit approval/save, and Zalo text is only prefilled.
+- Added allowlisted customer context with phone, email, CCCD-like 12-digit IDs, DOB, fortune, household phone, documents, and unknown fields excluded/redacted; source provenance remains usable. Worker/API/model unchanged.
+- Validation: npm run check (497 tests), build, focused Playwright profile/Quick Actions (6/6 before final sanitizer-only fixes), request/context privacy tests, and independent review with no remaining findings. Full E2E gate will verify final commit; no real Worker, staging, production, or physical Android proof.
+- File: `src/domain/customer/aiContext.ts`, `src/features/ai/AiBrief.tsx`, `src/features/ai/AiNoteReview.tsx`, `src/features/ai/AiZaloDraft.tsx`, `src/features/ai/model.ts`, `src/features/profile/route.tsx`, `src/features/quick-actions/QuickActions.tsx`, `tests/domain/customer/aiContext.test.ts`, `tests/e2e/profile.spec.ts`, `tests/e2e/quick-actions.spec.ts`, `tests/features/ai/model.test.ts`
+
 ## 2026-10-16 — T3.13: T3.13 adds v2 Insights with parity against the existing T0.4 dashboard golden.
 
 - Added funnel/velocity, care-rhythm metrics, thresholded observations, weekly performance, and lead-source views; displayed metrics include numerator/denominator.
