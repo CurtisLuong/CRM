@@ -6,6 +6,18 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-16 — T1.1: Scaffold v2 (Vite + React 19 + TypeScript strict + Tailwind v4 + PWA) và chuyển v1 vào legacy/
+
+- Chuyển nguyên vẹn (git mv) index.html, css/, js/, sw.js, manifest.json, icons/, android-app-version.json vào legacy/; không đổi nội dung.
+- public/: copy icons + android-app-version.json (vỏ Android đọc), _redirects (SPA), sw-cleanup.js — SW v2 xoá cache v1 "crm-khach-hang-v*" khi kích hoạt (không đụng IndexedDB).
+- Cài một lần đủ thư viện Sóng 1–2 (danh sách trong Lưu ý T1.1) + gói kiểu đi kèm (@types/react, @types/react-dom, @types/node, @testing-library/dom).
+- Router react-router v7 (data router) tự gom src/features/*/route.tsx (export const route); trùng path → báo lỗi. Trang chủ "Sổ Khách v2". Thông báo "Có bản mới" khi SW cập nhật.
+- Scripts: dev, build, preview, check (tsc + biome + vitest), e2e (Playwright 360/390/1280, chạy trên bản build).
+- Test v1 (search, loan-engine, deadlines, *browser.cjs) và tests/legacy-harness trỏ sang legacy/.
+- Đã kiểm tra: npm run check (4 test) + npm run build xanh; npm run e2e 9/9 (Chrome); golden v1 --check 10 giống · 0 khác; node tests/search|loan-engine|deadlines.test.js pass; legacy/ = 40 file R100 + index.html giống hệt byte (cmp).
+- package.json không đặt "type": "module" để test v1 (CommonJS: legacy-harness, search, loan-engine, deadlines) chạy nguyên trạng.
+- File: `.gitignore`, `biome.json`, `index.html`, `legacy/android-app-version.json`, `legacy/css/loan.css`, `legacy/css/style.css`, `legacy/icons/.DS_Store`, `legacy/icons/app-icon-192.png`, `legacy/icons/app-icon-512.png`, `legacy/icons/apple-touch-icon.png`, `legacy/icons/backup icons/Net_Icon.png`, `legacy/icons/backup icons/Zalo-icon.png` … (+70)
+
 ## 2026-10-16 — Sóng 0: lưới an toàn dữ liệu (script, SQL, golden test — chưa chạy trên Supabase)
 
 - T0.1: script backup chỉ-đọc production (`pg_dump` schema `public` + tài khoản + `customers.json` + file Storage + số dòng/md5 từng bảng + SHA256SUMS, lưu ngoài repo) và diễn tập khôi phục vào staging (chặn trỏ nhầm production, bảng so sánh ✓/✗). `.gitignore` chặn `.env.backup`.
