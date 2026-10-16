@@ -27,6 +27,8 @@
     "T2.C3": { "allow": ["src/ui/AppShell*", "src/ui/CommandPalette*", "src/app/layout*", "src/app/commands/**", "tests/ui/AppShell*", "tests/ui/CommandPalette*", "tests/e2e/shell*"] },
     "T3.1": { "allow": ["src/features/quick-actions/**", "src/data/callSource.ts", "src/app/App.tsx", "src/app/session.tsx", "src/app/layout.tsx", "tests/features/quick-actions/**", "tests/data/callSource*", "tests/e2e/quick-actions*"], "deny": ["src/features/quick-actions/interactions*"], "_coordination": "2026-10-16: ba file app chỉ nối RepositorySession/Auth hiện có và QuickActionsHost toàn cục trong ToastProvider; đăng nhập tại route quick-actions, không sửa registry chung hay triển khai task Sóng 3 khác." },
     "T3.3": { "allow": ["src/features/customers/**", "tests/features/customers/**", "tests/e2e/customers*"] },
-    "T3.6": { "allow": ["src/features/intake/**", "tests/features/intake/**", "tests/e2e/intake*", "package.json", "package-lock.json"], "_coordination": "2026-10-16: ngoại lệ D-017, chỉ T3.6 được thêm react-hook-form; không đổi stack D-011 toàn dự án." }
+    "T3.6": { "allow": ["src/features/intake/**", "tests/features/intake/**", "tests/e2e/intake*", "package.json", "package-lock.json"], "_coordination": "2026-10-16: ngoại lệ D-017, chỉ T3.6 được thêm react-hook-form; không đổi stack D-011 toàn dự án." },
+    "T3.8": { "allow": ["src/features/catalog/**", "src/data/repositories/catalog.ts", "tests/features/catalog/**", "tests/data/catalog*", "tests/e2e/catalog*"] },
+    "T3.9": { "allow": ["src/features/loan/**", "tests/features/loan/**", "tests/data/loan*", "tests/e2e/loan*"] }
   }
 }
