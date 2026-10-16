@@ -6,6 +6,14 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-16 — T2.B2: T2.B2: velocity + kế hoạch tự chuyển SLA (src/domain/velocity)
+
+- Port `legacy/js/velocity.js`: `phaseOf`, `status(c, now)`, `stageEnteredAt`, `newLeadStart`, `bookingSteps`, `autoAction`, `fmt` — hàm thuần nhận `now`, đọc `src/config/velocity.ts`.
+- `planSlaAutomation(customers, now, me, forStage)` trả danh sách thay đổi (không ghi): Loại "Không liên lạc được" / Nuôi dài hạn + lịch gọi lại kèm theo + mốc `{auto:'sla'}`; `slaPlanMessage`; `applySlaPlan(plan, writer)` ghi patch qua interface truyền vào (repository T2.A4 sẽ cấp); `slaAutoEntry` + `planSlaUndo` hoàn tác trong `autoUndoDays`.
+- `forStage` (gợi ý lịch Nuôi dài hạn) nhận từ ngoài — nối với `src/domain/followup` của T2.B1 khi có.
+- Đã kiểm tra: khớp golden `velocity.json` + `sla-automation.json`; so trực tiếp với v1 thật ở 6 thời điểm; khách cũ trước `autoSince` không bị chuyển; chỉ khách mình; Xem dự án/Booking/khách mới chưa gọi không bị tự chuyển; `npm run check`, `npm run build`, golden --check 0 khác.
+- File: `src/domain/velocity/automation.ts`, `src/domain/velocity/engine.ts`, `src/domain/velocity/index.ts`, `tests/domain/velocity/automation.test.ts`, `tests/domain/velocity/parity.test.ts`
+
 ## 2026-10-16 — T2.B3: T2.B3 — Port tìm kiếm, ghép căn, âm lịch, chuẩn hoá SĐT sang TypeScript
 
 - src/domain/search: port 1:1 CRMSearch (legacy/js/search.js) — bỏ dấu, AND nhiều từ, "cụm", gần đúng 1 lỗi cho tên (không gần đúng SĐT), điểm xếp hạng, highlight giữ chữ gốc + escape HTML, range, apartmentGroup.
