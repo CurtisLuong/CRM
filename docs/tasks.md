@@ -108,7 +108,7 @@ Ký hiệu: ☐ chưa · ◐ đang làm (ghi nhánh) · ☑ xong (ghi ngày) · 
 | T2.C1 | Tokens sáng/tối + fonts + Tailwind theme | C | S | T1.1 | Agent | ☑ 2026-10-16 (tự merge 6474249) |
 | T2.C2 | Component `src/ui` + gallery | C | L | T2.C1 | Agent | ☑ 2026-10-16 (tự merge 2742d86) |
 | T2.C3 | AppShell, nav, Command palette, SyncIndicator | C | M | T2.C2 | Agent | ☑ 2026-10-16 (tự merge c6a9586) |
-| T3.1 | Quick actions + Sheet sau gọi + cầu Android | Tính năng | L | T2.A4, T2.B1, T2.C3 | Agent | ☐ |
+| T3.1 | Quick actions + Sheet sau gọi + cầu Android | Tính năng | L | T2.A4, T2.B1, T2.C3 | Agent | ☑ 2026-10-16 (tự merge 832005a) |
 | T3.2 | Hôm nay (NBA, hàng đợi, sức làm, phiên gọi) | Tính năng | L | T3.1, T2.B5 | Agent | ☐ |
 | T3.3 | Danh sách khách + lọc + tệp đã lưu | Tính năng | L | T2.A4, T2.B3, T2.C3 | Agent | ☑ 2026-10-16 (tự merge 2c2240f) |
 | T3.4 | Khách mới (lớp 1) | Tính năng | M | T3.1 | Agent | ☐ |

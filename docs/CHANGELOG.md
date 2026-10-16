@@ -6,6 +6,13 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-16 — T3.1: T3.1 Quick Actions adds the call sheet flow and shared quick action host.
+
+- Added global Quick Actions host and local call outcome save flow.
+- Added payload/touch-budget coverage and Playwright mobile touch coverage.
+- Validation: npm run check (418 tests); focused Playwright E2E (12/12 across mobile/desktop viewports and light/dark); independent review found no remaining issues.
+- File: `playwright.config.ts`, `src/app/App.tsx`, `src/app/layout.tsx`, `src/app/session.tsx`, `src/data/callSource.ts`, `src/features/quick-actions/QuickActions.test.tsx`, `src/features/quick-actions/QuickActions.tsx`, `src/features/quick-actions/commands.ts`, `src/features/quick-actions/model.test.ts`, `src/features/quick-actions/model.ts`, `src/features/quick-actions/route.tsx`, `src/features/quick-actions/store.ts` … (+3)
+
 ## 2026-10-16 — T3.6: Form nhập khách hàng đầy đủ với OCR và bảo vệ bản nháp
 
 - Thêm form tạo/sửa khách theo payload v1, giữ dữ liệu JSON chưa biết, gợi ý dự án/loại căn/mã căn và mệnh/cung.
