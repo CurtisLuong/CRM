@@ -2,7 +2,6 @@
   "name": "so-khach-crm",
   "private": true,
   "version": "2.0.0",
-  "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
