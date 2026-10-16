@@ -112,11 +112,11 @@ Ký hiệu: ☐ chưa · ◐ đang làm (ghi nhánh) · ☑ xong (ghi ngày) · 
 | T3.2 | Hôm nay (NBA, hàng đợi, sức làm, phiên gọi) | Tính năng | L | T3.1, T2.B5 | Agent | ☐ |
 | T3.3 | Danh sách khách + lọc + tệp đã lưu | Tính năng | L | T2.A4, T2.B3, T2.C3 | Agent | ☑ 2026-10-16 (tự merge 2c2240f) |
 | T3.4 | Khách mới (lớp 1) | Tính năng | M | T3.1 | Agent | ☐ |
-| T3.5 | Hồ sơ khách v2 | Tính năng | L | T3.1, T2.B2 | Agent | ☐ |
+| T3.5 | Hồ sơ khách v2 | Tính năng | L | T3.1, T2.B2, T3.9 | Agent | ☐ |
 | T3.6 | Form tạo/sửa + OCR + cảnh báo trùng | Tính năng | M | T2.A4, T2.C3 | Agent | ☑ 2026-10-16 (tự merge 4ce1773) |
 | T3.7 | Công việc (tab) | Tính năng | M | T3.1 | Agent | ☐ |
 | T3.8 | Giỏ hàng + Excel + ghép căn | Tính năng | L | T2.A4, T2.B3, T2.C3 | Agent | ☐ |
-| T3.9 | Tính vay + PDF + báo giá | Tính năng | M | T2.B4, T2.C3, T3.5 | Agent | ☐ |
+| T3.9 | Tính vay + PDF + báo giá | Tính năng | M | T2.B4, T2.C3 | Agent | ☐ |
 | T3.10 | Nhóm + giao khách | Tính năng | M | T2.A4, T2.C3 | Agent | ☐ |
 | T3.11 | Cài đặt, mẫu Zalo, nhập/xuất, cập nhật APK, chuông | Tính năng | M | T2.A4, T2.C3 | Agent | ☐ |
 | T3.12 | Port Trợ lý AI | Tính năng | M | T3.5 | Agent | ☐ |
@@ -289,7 +289,7 @@ Ký hiệu: ☐ chưa · ◐ đang làm (ghi nhánh) · ☑ xong (ghi ngày) · 
 
 #### T3.5 — Hồ sơ khách v2
 - **Sở hữu:** `src/features/profile/*`, `src/domain/customer/brief.ts`, `timeline.ts`.
-- **Làm:** layout `UX_GUIDELINES` §5; Brief rule-based; timeline hợp nhất; Trí nhớ (field hiện có + `advanced`) sửa inline; SLA ring + checklist Booking + Hoàn tác tự chuyển; đổi bậc + gợi ý lịch; Ký HĐMB; tài liệu, avatar/cover, chế độ chỉ xem; ActionBar.
+- **Làm:** layout `UX_GUIDELINES` §5; Brief rule-based; timeline hợp nhất; Trí nhớ (field hiện có + `advanced`) sửa inline; SLA ring + checklist Booking + Hoàn tác tự chuyển; đổi bậc + gợi ý lịch; Ký HĐMB; tài liệu, avatar/cover, chế độ chỉ xem; ActionBar; nút Tính vay gọi contract T3.9 với khách và căn đang xem.
 - **Xong khi:** mọi thông tin v1 hiển thị được; thao tác ghi khớp payload v1; Brief hiện "Chưa biết" đúng.
 
 #### T3.6 — Form tạo/sửa + OCR + cảnh báo trùng
@@ -309,7 +309,7 @@ Ký hiệu: ☐ chưa · ◐ đang làm (ghi nhánh) · ☑ xong (ghi ngày) · 
 #### T3.9 — Tính vay
 - **Đọc:** `loan-module.md`.
 - **Sở hữu:** `src/features/loan/*`.
-- **Xong khi:** UI theo DS v3, PDF giống v1 về nội dung, lưu/đọc `loan_quotes`, mở từ hồ sơ có điền sẵn căn.
+- **Xong khi:** UI theo DS v3, PDF giống v1 về nội dung, lưu/đọc `loan_quotes`; cung cấp route/helper để T3.5 mở từ hồ sơ với căn điền sẵn.
 
 #### T3.10 — Nhóm
 - **Đọc:** D-003, `huong-dan-nhom.md`.

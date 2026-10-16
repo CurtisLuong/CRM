@@ -28,7 +28,7 @@ Lựa chọn nền tảng ban đầu (Supabase, Cloudflare Pages, local-first) k
 | D-016 | T2.B5 dùng thứ tự UX; giữ parity v1 riêng | Ngoại lệ cục bộ đã duyệt 2026-10-16 | Chỉ nghiệm thu T2.B5 |
 | D-017 | T3.6 được dùng react-hook-form cùng Zod | Ngoại lệ cục bộ đã duyệt 2026-10-16 | Chỉ T3.6 |
 | D-018 | T3.8 được thêm thư viện XLSX để nhập Excel | Ngoại lệ cục bộ đã duyệt 2026-10-16 | Chỉ T3.8 |
-| D-019 | T3.9 nối máy tính vay từ hồ sơ sau T3.5 | Đã duyệt 2026-10-16 | Chỉ tích hợp T3.9 ↔ T3.5 |
+| D-019 | T3.5 tích hợp hồ sơ với contract máy tính vay của T3.9 | Đã duyệt 2026-10-16 | Chỉ tích hợp T3.9 ↔ T3.5 |
 
 ## Ba loại kết quả
 
@@ -307,15 +307,14 @@ Ví dụ và mẫu trong bộ tài liệu không phải sự chấp thuận cho 
 - Tài liệu đã cập nhật: `docs/decisions.md`, `scripts/agents/ownership.json`.
 - Trạng thái: Đã duyệt; áp dụng khi nghiệm thu T3.8.
 
-### D-019 — Hoãn liên kết máy tính vay đến tích hợp T3.5
+### D-019 — Phân chia máy tính vay và liên kết hồ sơ
 
 - Ngày: 2026-10-16
 - Loại: Điều chỉnh phụ thuộc task
-- Nguyên tắc liên quan: T3.9 yêu cầu mở máy tính vay từ hồ sơ có sẵn căn; hồ sơ khách thuộc phạm vi T3.5.
-- Quyết định: T3.9 cung cấp route và `loanPath()` nhận `customerId`/thông tin căn; T3.5 sẽ thêm nút từ hồ sơ sau khi màn hồ sơ tồn tại. Chưa đánh dấu T3.9 hoàn tất cho đến khi caller được nối và kiểm chứng.
-- Phạm vi: Chỉ liên kết T3.9 ↔ T3.5; không mở rộng T3.9 sang sửa màn hồ sơ.
-- Lý do và đánh đổi: tránh tạo màn hồ sơ tạm hoặc sửa file ngoài ownership; đổi lại T3.9 cần chờ T3.5 mới đạt đủ tiêu chí nghiệm thu.
+- Nguyên tắc liên quan: route máy tính vay thuộc T3.9; hồ sơ khách thuộc T3.5; task chỉ sửa file trong phạm vi ownership.
+- Quyết định: T3.9 cung cấp route và `loanPath()` nhận `customerId`/thông tin căn. T3.5 phụ thuộc T3.9 và thêm nút từ hồ sơ với dữ liệu khách/căn đang xem. T3.9 được nghiệm thu theo contract route; T3.5 kiểm chứng caller.
+- Phạm vi: Chỉ phân chia tích hợp T3.9 ↔ T3.5; T3.9 không sửa file hồ sơ.
+- Lý do và đánh đổi: giữ ranh giới ownership và tránh vòng phụ thuộc; luồng đầy đủ từ hồ sơ chỉ có sau khi T3.5 hoàn thành.
 - Chấp thuận: Curtis chọn “Chờ T3.5 rồi nối từ hồ sơ (đề xuất)” trong phiên điều phối ngày 2026-10-16.
 - Tài liệu đã cập nhật: `docs/decisions.md`, `docs/tasks.md`.
-- Trạng thái: Đã duyệt; nghiệm thu sau khi T3.5 tích hợp.
-
+- Trạng thái: Đã duyệt; áp dụng cho nghiệm thu T3.9 và tích hợp T3.5.
