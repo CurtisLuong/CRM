@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, type Locator, test } from '@playwright/test';
 
 for (const scheme of ['light', 'dark'] as const) {
   test.describe(`quick actions ${scheme}`, () => {
@@ -20,7 +20,9 @@ for (const scheme of ['light', 'dark'] as const) {
       expect(await page.getByRole('button', { name: 'Gọi' }).count()).toBe(0);
     });
 
-    test('Gọi → kết quả → lưu dùng ba lần chạm và ghi local', async ({ page }) => {
+    test('Gọi → kết quả → lưu dùng ba lần tương tác và ghi local', async ({ page }, testInfo) => {
+      const interact = (locator: Locator) =>
+        testInfo.project.name.startsWith('phone-') ? locator.tap() : locator.click();
       await page.route('http://127.0.0.1:54321/**', (route) =>
         route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }),
       );
@@ -106,16 +108,16 @@ for (const scheme of ['light', 'dark'] as const) {
           w.__taps = (w.__taps ?? 0) + 1;
         });
       });
-      await page.getByRole('button', { name: 'Gọi' }).click();
+      await interact(page.getByRole('button', { name: 'Gọi' }));
       await page.waitForFunction(() => (window as Window & { __dialCalls?: number }).__dialCalls === 1);
       await page.evaluate(() => window.dispatchEvent(new Event('blur')));
       await page.waitForTimeout(3_500);
       await page.evaluate(() => window.dispatchEvent(new Event('crm:resume')));
       await expect(page.getByRole('heading', { name: /Kết quả cuộc gọi/ })).toBeVisible();
-      await page.getByRole('radio', { name: 'Nói chuyện được' }).click();
+      await interact(page.getByRole('radio', { name: 'Nói chuyện được' }));
       await expect(page.getByRole('textbox', { name: 'Ghi chú cuộc gọi' })).toBeFocused();
       await page.getByRole('textbox', { name: 'Ghi chú cuộc gọi' }).fill('Hẹn gửi bảng giá');
-      await page.getByRole('button', { name: 'Lưu' }).click();
+      await interact(page.getByRole('button', { name: 'Lưu' }));
       await expect(page.getByRole('heading', { name: /Kết quả cuộc gọi/ })).toHaveCount(0);
       expect(await page.evaluate(() => (window as Window & { __taps?: number }).__taps)).toBe(3);
       const saved = await page.evaluate(async () => {
