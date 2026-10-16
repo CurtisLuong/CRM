@@ -100,7 +100,7 @@ Ký hiệu: ☐ chưa · ◐ đang làm (ghi nhánh) · ☑ xong (ghi ngày) · 
 | T2.A3 | Sync, Realtime, probe, Auth | A | L | T2.A2 | Agent | ☐ |
 | T2.A4 | Repository + React hooks | A | M | T2.A3 | Agent | ☐ |
 | T2.A5 | SQL v2: cột/bảng mới (chỉ thêm) | A | M | T2.A1 | Agent viết, chủ dự án chạy | ☑ 2026-10-16 (tự merge 4aa151d) |
-| T2.B1 | Port deadlines + followup | B | M | T1.2, T2.A1 | Agent | ☐ |
+| T2.B1 | Port deadlines + followup | B | M | T1.2, T2.A1 | Agent | ☑ 2026-10-16 (tự merge 381cb6f) |
 | T2.B2 | Port velocity + kế hoạch tự chuyển SLA | B | M | T1.2, T2.A1 | Agent | ☐ |
 | T2.B3 | Port search + matching + lunar + phone | B | M | T1.2, T2.A1 | Agent | ☐ |
 | T2.B4 | Port loan engine | B | S | T1.1 | Agent | ☑ 2026-10-16 (tự merge 8b045b9) |

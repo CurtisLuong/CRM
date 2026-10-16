@@ -6,6 +6,13 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-16 — T2.B1: T2.B1 — Port hạn/đến hạn/quá hạn (D-010) + nhịp follow-up (D-005) sang v2
+
+- src/domain/deadlines: countdownTag, taskDueInfo, callReminder, taskDueMs, startOfDayMs, nhãn ngày (taskDayLabel, relDayLabel, dashWhen, callScheduleLabel), fmtClock/fmtRemainMs/fmtCountdown; hằng DUE_GRACE_MS = 30 phút. Hàm thuần nhận `now`.
+- src/domain/followup: afterCall, forStage, firstCall (nhịp khách mới 5 lần A/B/C/D), suggestTemplates/suggestTemplate, slotOfTime, callSlots, windowAfter, scheduleLabel, trailingMisses; greeting.ts: fillGreeting (myName tuỳ chọn thay `team`), upgradeTplText. Khung "phản hồi tốt nhất" nhận statsCustomers qua tham số (v1: statsSource). Cấu hình đọc từ src/config/followup.ts.
+- Đã kiểm tra: khớp 100% golden T0.4 (deadlines.json 2 mốc giờ, followup.json); ranh giới D-010 (mốc +30', cuối khung +30', cả ngày quá hạn từ hôm sau, vắt qua nửa đêm); parity trực tiếp với v1 nạp từ legacy/ (400 mốc giờ ngẫu nhiên cho hạn/nhãn ngày, 600 ca afterCall/firstCall/suggestTemplates, 300 ca windowAfter/forStage, fillGreeting mọi mẫu mặc định). Đã thử phá code → test bắt lỗi.
+- File: `src/domain/deadlines/index.ts`, `src/domain/followup/greeting.ts`, `src/domain/followup/index.ts`, `tests/domain/deadlines/deadlines.test.ts`, `tests/domain/deadlines/golden.ts`, `tests/domain/followup/followup.test.ts`
+
 ## 2026-10-16 — T2.A5: T2.A5 — SQL v2 chỉ thêm: cột mới customers/user_settings/units + bảng campaign_costs
 
 - SQL/v2/002_customer_memory.sql: 10 cột nullable trên customers (archived_at, contact_prefs, interests, household, interactions, close_reason, close_note, retarget_hint, field_meta, referred_by)
