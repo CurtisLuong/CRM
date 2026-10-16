@@ -6,6 +6,13 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-16 — T3.3: feat(T3.3): add customer lists, filters, saved segments and virtual scrolling
+
+- Added Potential, New Customer and Team views with v1-compatible status, stage, registration date, apartment, source, owner and multi-key sorting filters; fixture golden counts cover each group.
+- Added list/card presentation, local-first saved segments with remote ui_state sync, filtered CSV export, customer preview deep links at /khach-hang/:id, and a bounded virtual list for large customer sets.
+- Validation: npm run check (396 tests), npm run build, Playwright suite (76 passed, 5 staging-auth skips), focused deep-link check (3 passed), and virtual-window coverage for 2,000 records. Android mid-range device proof not available.
+- File: `src/features/customers/model.ts`, `src/features/customers/route.tsx`, `tests/features/customers/model.test.ts`
+
 ## 2026-10-16 — T2.A4: T2.A4 — Repository tương thích v1 và React hooks
 
 - Port API khách, ghi chú, việc, lịch sử bậc/rewind/historyMeta, cuộc gọi và giao khách; giữ nguyên payload queue v1, thuộc tính JSONB lạ và timestamp có chủ ý của v1. Xoá thường dùng archived_at.
