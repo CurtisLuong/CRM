@@ -6,6 +6,13 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-16 — T3.13: T3.13 adds v2 Insights with parity against the existing T0.4 dashboard golden.
+
+- Added funnel/velocity, care-rhythm metrics, thresholded observations, weekly performance, and lead-source views; displayed metrics include numerator/denominator.
+- Duration labels match the computed mean; owner scoping is applied. Golden baseline is unchanged.
+- Validation: npm run check (490 tests), build, focused Playwright (6/6 across themes and 360/390/1280), golden T0.4 parity, and independent review with no remaining findings. No staging or physical Android proof.
+- File: `src/domain/metrics/index.ts`, `src/features/insights/model.ts`, `src/features/insights/route.tsx`, `tests/domain/metrics/metrics.test.ts`, `tests/e2e/insights.spec.ts`
+
 ## 2026-10-16 — T3.10: T3.10 adds v2 team management and customer assignment.
 
 - Added teammate management and display names, plus follow/read-only, full handoff, and reclaim flows with timeline notes.
