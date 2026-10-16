@@ -6,6 +6,13 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-16 — T3.10: T3.10 adds v2 team management and customer assignment.
+
+- Added teammate management and display names, plus follow/read-only, full handoff, and reclaim flows with timeline notes.
+- Assignment rejection (duplicate phone or permission) atomically removes the failed queue op and conditionally restores local ownership without overwriting later edits; assignment preserves missing stage and does not reset SLA.
+- Validation: npm run check (473 tests), build, focused Playwright (3/3 across 360/390/1280), diff check, and independent review with no remaining findings. No staging/Supabase or physical Android proof.
+- File: `src/data/queue.ts`, `src/data/repositories/customers.ts`, `src/features/customers/route.tsx`, `src/features/team/model.ts`, `src/features/team/route.tsx`, `tests/data/localdb.test.ts`, `tests/data/repositories.test.ts`, `tests/e2e/team.spec.ts`, `tests/features/team/model.test.ts`
+
 ## 2026-10-16 — T3.11: T3.11 adds settings, import/export, and notifications routes to v2.
 
 - Added theme, Zalo/AI settings, logout and APK update check; settings saved offline retry when the device comes online.
