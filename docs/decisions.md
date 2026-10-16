@@ -27,6 +27,7 @@ Lựa chọn nền tảng ban đầu (Supabase, Cloudflare Pages, local-first) k
 | D-015 | Bộ máy Tín hiệu là nguồn duy nhất cho ưu tiên/gợi ý/thông báo | Đã duyệt hướng 2026-10-16 | Áp dụng cho v2 |
 | D-016 | T2.B5 dùng thứ tự UX; giữ parity v1 riêng | Ngoại lệ cục bộ đã duyệt 2026-10-16 | Chỉ nghiệm thu T2.B5 |
 | D-017 | T3.6 được dùng react-hook-form cùng Zod | Ngoại lệ cục bộ đã duyệt 2026-10-16 | Chỉ T3.6 |
+| D-018 | T3.8 được thêm thư viện XLSX để nhập Excel | Ngoại lệ cục bộ đã duyệt 2026-10-16 | Chỉ T3.8 |
 
 ## Ba loại kết quả
 
@@ -292,4 +293,16 @@ Ví dụ và mẫu trong bộ tài liệu không phải sự chấp thuận cho 
 - Chấp thuận: Curtis chọn “Ngoại lệ T3.6: thêm react-hook-form” trong phiên điều phối ngày 2026-10-16.
 - Tài liệu đã cập nhật: `docs/decisions.md`, `scripts/agents/ownership.json`.
 - Trạng thái: Đã duyệt; áp dụng khi nghiệm thu T3.6.
+
+### D-018 — Ngoại lệ thư viện XLSX cho T3.8
+
+- Ngày: 2026-10-16
+- Loại: Ngoại lệ cục bộ
+- Nguyên tắc liên quan: D-011 và AGENTS.md §3.10 yêu cầu duyệt trước khi thêm thư viện ngoài stack; thẻ T3.8 yêu cầu nhập Excel và cung cấp file mẫu.
+- Quyết định: Cho phép T3.8 thêm một thư viện XLSX cần thiết để nhập dữ liệu Excel.
+- Phạm vi: Chỉ T3.8 và dependency phục vụ trực tiếp việc nhập XLSX; không thay đổi stack D-011 hoặc cấp phép cho task khác.
+- Lý do và đánh đổi: đáp ứng yêu cầu nhập Excel; thêm một dependency cần bảo trì và kiểm tra bảo mật.
+- Chấp thuận: Curtis chọn “Ngoại lệ T3.8: thêm thư viện XLSX” trong phiên điều phối ngày 2026-10-16.
+- Tài liệu đã cập nhật: `docs/decisions.md`, `scripts/agents/ownership.json`.
+- Trạng thái: Đã duyệt; áp dụng khi nghiệm thu T3.8.
 
