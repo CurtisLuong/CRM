@@ -6,6 +6,13 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-16 — T3.4: T3.4 adds the class-one “Khách mới” lead workflow on the existing customers model.
+
+- Added registered lead route and quick-add command, default funnel filter, registration badge, and lead call sheet using the T3.1 quick-action bridge.
+- Qualification requires a recorded `talked` call and explicit salesperson action; disqualification uses D-001 reasons and requires a note for Other; reopen preserves call history.
+- Validation: npm run check (446 tests), npm run build, focused E2E (3/3 at 360/390/1280px); independent review found no remaining issues.
+- File: `src/features/leads/commands.ts`, `src/features/leads/model.ts`, `src/features/leads/route.tsx`, `tests/e2e/leads.spec.ts`, `tests/features/leads/model.test.ts`
+
 ## 2026-10-16 — T3.8: T3.8 adds the v2 catalog, spreadsheet import, and customer-to-unit matching with D-012-safe archive behavior.
 
 - Added account-scoped catalog CRUD/cache, filters, import preview, and customer/unit matching.
