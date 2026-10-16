@@ -37,6 +37,19 @@ describe('T3.2 today queue and capacity', () => {
     expect(plan.suggested.map((item) => item.customer.id)).toContain('flex');
   });
 
+  it('does not suggest moving a customer with an open timed task appointment', () => {
+    const scheduled = row('task-booked', 'P2', { minutes: 20 });
+    scheduled.customer.next_tasks = [
+      { at: '2026-10-16T09:00:00+07:00', text: 'Gọi theo hẹn', due: '2026-10-16T10:00:00+07:00' },
+    ];
+    const plan = capacityPlan(
+      [scheduled, row('flex-task', 'P2', { minutes: 20 })],
+      new Date('2026-10-16T09:55:00+07:00').getTime(),
+    );
+    expect(plan.suggested.map((item) => item.customer.id)).not.toContain('task-booked');
+    expect(plan.suggested.map((item) => item.customer.id)).toContain('flex-task');
+  });
+
   it('returns no call capacity outside a configured slot', () => {
     expect(currentCallSlot(new Date('2026-10-16T10:30:00+07:00').getTime())).toBeNull();
   });

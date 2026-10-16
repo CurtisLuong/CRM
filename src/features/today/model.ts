@@ -65,7 +65,15 @@ export function capacityPlan(rows: readonly QueueRow[], now: number) {
   const slot = currentCallSlot(now);
   const minutes = rows.reduce((sum, row) => sum + row.minutes, 0);
   const overflow = slot ? Math.max(0, minutes - slot.remaining) : 0;
-  const movable = rows.filter((row) => row.signal.priority === 'P2' && !row.customer.next_call_at);
+  const movable = rows.filter(
+    (row) =>
+      row.signal.priority === 'P2' &&
+      !row.customer.next_call_at &&
+      !(
+        Array.isArray(row.customer.next_tasks) &&
+        row.customer.next_tasks.some((task) => task && !task.done_at && !!task.due && !task.due_allday)
+      ),
+  );
   const suggested: QueueRow[] = [];
   let recovered = 0;
   for (const row of movable) {
