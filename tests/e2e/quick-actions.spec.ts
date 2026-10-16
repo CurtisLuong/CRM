@@ -26,6 +26,17 @@ for (const scheme of ['light', 'dark'] as const) {
       await page.route('http://127.0.0.1:54321/**', (route) =>
         route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }),
       );
+      await page.route('https://worker.test/ai', async (route) => {
+        const body = JSON.parse(route.request().postData() || '{}');
+        expect(body.task).toBe('parse_note');
+        expect(body.customer).not.toHaveProperty('phone');
+        expect(JSON.stringify(body)).not.toContain('0901234567');
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ data: { cap_nhat: { finance: 500000000 }, viec: [], hen_goi: null }, model: 'qwen' }),
+        });
+      });
       await page.addInitScript(() => {
         const userId = 't31-e2e-user';
         const user = {
@@ -117,9 +128,40 @@ for (const scheme of ['light', 'dark'] as const) {
       await interact(page.getByRole('radio', { name: 'Nói chuyện được' }));
       await expect(page.getByRole('textbox', { name: 'Ghi chú cuộc gọi' })).toBeFocused();
       await page.getByRole('textbox', { name: 'Ghi chú cuộc gọi' }).fill('Hẹn gửi bảng giá');
-      await interact(page.getByRole('button', { name: 'Lưu' }));
+      let expectedTaps = 3;
+      const aiButton = page.getByRole('button', { name: 'Lưu + AI · xem đề xuất' });
+      if (await aiButton.count()) {
+        await aiButton.click();
+        const aiReview = page.getByTestId('ai-note-review');
+        await expect(aiReview).toBeVisible();
+        const financeChoice = aiReview.getByRole('checkbox').first();
+        await expect(financeChoice).not.toBeChecked();
+        const beforeApproval = await page.evaluate(async () => {
+          const req = indexedDB.open('crm_khach_hang__t31-e2e-user', 2);
+          const db = await new Promise<IDBDatabase>((resolve, reject) => {
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => reject(req.error);
+          });
+          const row = await new Promise<Record<string, unknown>>((resolve, reject) => {
+            const get = db.transaction('customers').objectStore('customers').get('t31-e2e-customer');
+            get.onsuccess = () => resolve(get.result);
+            get.onerror = () => reject(get.error);
+          });
+          db.close();
+          return row;
+        });
+        expect(beforeApproval.finance).toBeUndefined();
+        await interact(financeChoice);
+        await interact(aiReview.getByRole('button', { name: 'Duyệt và lưu các mục đã chọn' }));
+        await expect(aiReview.getByRole('status')).toHaveText('Đã lưu các mục bạn duyệt trên thiết bị.');
+        await page.evaluate(() => {
+          (window as Window & { __taps?: number }).__taps = 0;
+        });
+        expectedTaps = 1;
+      }
+      await interact(page.getByRole('button', { name: 'Lưu', exact: true }));
       await expect(page.getByRole('heading', { name: /Kết quả cuộc gọi/ })).toHaveCount(0);
-      expect(await page.evaluate(() => (window as Window & { __taps?: number }).__taps)).toBe(3);
+      expect(await page.evaluate(() => (window as Window & { __taps?: number }).__taps)).toBe(expectedTaps);
       const saved = await page.evaluate(async () => {
         const req = indexedDB.open('crm_khach_hang__t31-e2e-user', 2);
         const db = await new Promise<IDBDatabase>((resolve, reject) => {
@@ -135,6 +177,10 @@ for (const scheme of ['light', 'dark'] as const) {
         return row;
       });
       expect(saved.call_attempts).toMatchObject([{ result: 'talked', note: 'Hẹn gửi bảng giá' }]);
+      if (expectedTaps === 1) {
+        expect(saved.finance).toBe(500000000);
+        expect(saved.field_meta).toMatchObject({ finance: { by: 'ai', confirmed: true } });
+      }
     });
   });
 }

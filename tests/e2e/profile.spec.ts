@@ -8,6 +8,20 @@ for (const theme of ['light', 'dark'] as const) {
     await page.route('http://127.0.0.1:54321/**', (route) =>
       route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }),
     );
+    await page.route('https://worker.test/ai', async (route) => {
+      const body = JSON.parse(route.request().postData() || '{}');
+      expect(body.customer).not.toHaveProperty('phone');
+      expect(JSON.stringify(body.customer)).not.toContain('0901234567');
+      const data =
+        body.task === 'brief'
+          ? { tom_tat: 'Tóm tắt AI kiểm thử.', can_hoi: ['Khách cần gì?'], luu_y: '' }
+          : { tin_nhan: 'Em chào anh Hưởng, mình trao đổi thêm về hồ sơ nhé?' };
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ data, model: 'qwen' }),
+      });
+    });
     await page.addInitScript((userId) => {
       const user = {
         id: userId,
@@ -76,6 +90,18 @@ for (const theme of ['light', 'dark'] as const) {
     );
     await page.goto(`/ho-so/${customerId}`);
     await expect(page.getByRole('heading', { name: 'Nguyễn Thị Hưởng' })).toBeVisible();
+    const briefButton = page.getByRole('button', { name: 'Tạo tóm tắt AI' });
+    if (await briefButton.count()) {
+      await briefButton.click();
+      await expect(page.getByText('Tóm tắt AI kiểm thử.')).toBeVisible();
+      await page.getByRole('button', { name: 'Zalo', exact: true }).click();
+      await expect(page.getByRole('heading', { name: /Nhắn Zalo/ })).toBeVisible();
+      await page.getByRole('button', { name: 'Soạn bằng AI' }).click();
+      await expect(page.getByRole('textbox', { name: 'Nội dung tin nhắn' })).toHaveValue(/Em chào anh Hưởng/);
+      await expect(page.getByRole('button', { name: 'Sao chép & mở Zalo' })).toBeVisible();
+      await page.getByRole('button', { name: 'Đóng' }).click();
+      await page.getByRole('button', { name: 'Bỏ nháp' }).click();
+    }
     await expect(page.getByText('Chưa biết').first()).toBeVisible();
     await expect(page.getByRole('navigation', { name: 'Hành động nhanh' })).toBeVisible();
     await page.getByRole('tab', { name: 'Trí nhớ' }).click();

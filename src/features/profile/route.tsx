@@ -12,6 +12,7 @@ import { customerTimeline } from '@/domain/customer/timeline';
 import { forStage } from '@/domain/followup';
 import { planSlaUndo } from '@/domain/velocity/automation';
 import { bookingSteps, status as slaStatus } from '@/domain/velocity/engine';
+import { AiBrief } from '@/features/ai/AiBrief';
 import { customerUnit, loanPath } from '@/features/loan/model';
 import { openQuickAction } from '@/features/quick-actions/store';
 import { ActionBar, Avatar, Badge, Button, DeadlineTag, HealthDot, SlaRing, StageChip, Tabs, useToast } from '@/ui';
@@ -696,6 +697,7 @@ function Profile() {
           ))}
         </div>
       </section>
+      <AiBrief customer={c} />
       <Tabs items={tabs} label="Nội dung hồ sơ khách" sticky />
       <section className="space-y-2">
         <h2 className="text-section">Thông tin thêm</h2>

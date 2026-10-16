@@ -6,6 +6,8 @@ import { useRepositoryAccount } from '@/data/hooks';
 import type { RepositoryAccount } from '@/data/repositories/session';
 import { type CallAttempt, type Customer, callAttemptsOf } from '@/domain/customer';
 import type { ScheduleSuggestion } from '@/domain/followup';
+import { AiNoteReview } from '@/features/ai/AiNoteReview';
+import { AiZaloDraft } from '@/features/ai/AiZaloDraft';
 import { Button, IconButton, OutcomePicker, Sheet, SlotPicker, useToast } from '@/ui';
 import {
   type CallDraft,
@@ -454,6 +456,7 @@ function ActionSheet({
                 onChange={(e) => setNote(e.target.value)}
               />
             </label>
+            {result && note.trim() && <AiNoteReview account={account} customer={c} note={note} />}
             {result && (
               <section className="flex flex-col gap-2">
                 <h3 className="text-body-strong">Bước tiếp theo</h3>
@@ -547,6 +550,14 @@ function ActionSheet({
         {kind === 'zalo' && (
           <>
             <p className="text-small text-text-2">{phone} · Dán nội dung vào Zalo rồi tự bấm gửi.</p>
+            <AiZaloDraft
+              account={account}
+              customer={c}
+              onDraft={(draftText) => {
+                setText(draftText);
+                textEdited.current = true;
+              }}
+            />
             <label className="flex flex-col gap-1 text-small">
               Mẫu tin
               <select
