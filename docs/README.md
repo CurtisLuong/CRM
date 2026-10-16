@@ -1,115 +1,47 @@
-# Tài liệu CRM và cách tổ chức repo
+# Bản đồ tài liệu và cách tổ chức repo
 
-## Mục đích
+> Cập nhật 2026-10-16 cho đại tu v2. `CLAUDE.md` = `AGENTS.md` (nguyên tắc cốt lõi + chỉ dẫn đọc). Tài liệu chuyên đề chứa chi tiết; đọc theo task, không đọc tuần tự toàn bộ.
 
-Giữ root dễ nhìn và giúp AI chỉ đọc thông tin cần cho task. `CLAUDE.md` chứa nguyên tắc cốt lõi; tài liệu chuyên đề chứa chi tiết. Không cần đọc tuần tự toàn bộ bộ tài liệu.
+## Bộ quy định v2 (nguồn chuẩn)
 
-## Danh mục
-
-| File | Nội dung | Khi nào đọc/cập nhật |
+| File | Nội dung | Đọc khi |
 |---|---|---|
-| `/CLAUDE.md` | Phạm vi, nguyên tắc, quy trình làm việc, chỉ dẫn context | AI đọc lúc bắt đầu; cập nhật khi đổi nguyên tắc chung |
-| `/README.md` | Hướng dẫn setup và sử dụng cho chủ dự án | Setup/chạy/deploy; giữ nội dung README hiện có |
-| `architecture.md` | Kiến trúc, dữ liệu và bản đồ code | Sửa kiến trúc, DB, auth, offline |
-| `DESIGN_SYSTEM.md` | Visual tokens, typography, component và accessibility | Mọi task UI/UX, đọc cùng `UX_GUIDELINES.md` |
-| `UX_GUIDELINES.md` | Thứ tự thông tin, hành vi và luồng thao tác | Mọi task UI/UX, kể cả phân tích/đề xuất |
-| `pitfalls.md` | Lỗi đã gặp, cách tránh và kiểm tra | Đọc phần liên quan đến khu vực đang sửa |
-| `decisions.md` | Quyết định thay đổi và ngoại lệ đã duyệt | Khi có xung đột nguyên tắc hoặc cần tiền lệ |
-| `project-status.md` | Snapshot và điểm cần xác minh | Handoff hoặc task phụ thuộc trạng thái |
-| `loan-module.md` | Quy tắc tính vay, cập nhật lãi suất, gỡ lỗi | Sửa module vay; tài liệu hiện có, không được tái tạo trong bộ này |
-| `gio-hang.md` | Giỏ hàng, chỉnh sửa và nhập Excel | Sửa catalog; tài liệu hiện có, không được tái tạo trong bộ này |
-| `funnel-velocity.md` | Phễu 5 giai đoạn, SLA (mục tiêu / hạn mức), tự chuyển quá hạn, checklist Booking — cấu hình ở `js/velocity.js` | Sửa bậc phễu / SLA; trả lời chủ dự án cách chỉnh |
-| `huong-dan-follow-up.md` | Hướng dẫn dùng nhịp follow-up + mẫu tin Zalo, và cách chỉnh thông số trong `js/followup.js` | Sửa nhịp gọi / khung giờ / mẫu Zalo; trả lời chủ dự án cách chỉnh |
-| `huong-dan-nhom.md` | Hướng dẫn cài đặt nhóm và giao khách cho đồng nghiệp (cho chủ dự án) | Khi thêm đồng nghiệp / hỏi cách giao khách |
-| `zalo-android-issue.md` | Lỗi tồn đọng: nút Zalo trong app APK Android — hiện tượng, cách đã thử, phương án tiếp | Trước khi sửa cách mở Zalo / link ra ngoài trên vỏ Android |
-| `sale-focus-roadmap.md` | Tham chiếu CRM (FUB, Salesforce, LionDesk, Meey), lộ trình đề xuất và thông tin nên thu thập thêm | Khi chọn tính năng tiếp theo; là đề xuất, chưa phải yêu cầu đã duyệt |
+| `PRD.md` | Mục tiêu, 5 ưu tiên, đối chiếu v1 → v2, tính năng F-01…F-14 + nghiệm thu, ngoài phạm vi, chỉ số | Chọn/thiết kế/nghiệm thu tính năng |
+| `tasks.md` | Sóng, phụ thuộc, nhóm song song, thẻ task (Đọc/Sở hữu/Xong khi), bảng trạng thái, việc của chủ dự án | Mỗi phiên làm việc v2 |
+| `architecture.md` | Stack, cấu trúc `src/`, **hợp đồng dữ liệu (§3)**, đồng bộ, AI/Worker, cầu nối Android, build/PWA, chuyển đổi, bảng ánh xạ v1 → v2 | Chạm dữ liệu, sync, schema, build, deploy |
+| `DESIGN_SYSTEM.md` | DS v3 "Signal": token sáng/tối, chữ, khoảng cách, chuyển động, icon, component, bố cục | Mọi việc giao diện v2 |
+| `UX_GUIDELINES.md` | IA 4 tab, ngân sách số chạm, chuẩn Hôm nay/Hồ sơ, tín hiệu & gợi ý, luồng chuẩn, Hiệu quả, checklist | Mọi việc trải nghiệm v2 (đọc cùng DS) |
+| `prompts.md` | Prompt AI trong app (Worker `/ai`) + mẫu prompt cho coding agent | Sửa AI; giao việc cho agent |
+| `decisions.md` | Chỉ mục + sổ quyết định D-001…D-015, quy trình khi xung đột | Xung đột nguyên tắc, cần tiền lệ |
 
-## Cấu trúc đề xuất
+## Tài liệu nghiệp vụ chuyên đề (vẫn hiệu lực ở v2; đường dẫn code là của v1 tới khi T5.5 cập nhật)
 
-```text
-repo/
-├── CLAUDE.md
-├── README.md
-├── index.html
-├── manifest.json
-├── sw.js
-├── css/
-│   ├── style.css
-│   └── loan.css
-├── js/
-│   ├── config.js
-│   ├── lunar.js
-│   ├── db.js
-│   ├── app.js
-│   ├── catalog.js
-│   ├── catalog-ui.js
-│   └── loan/
-├── icons/
-├── SQL/
-│   ├── schema.sql
-│   └── migrations/
-│       └── ...các migration hiện có...
-├── docs/
-│   ├── README.md
-│   ├── architecture.md
-│   ├── DESIGN_SYSTEM.md
-│   ├── UX_GUIDELINES.md
-│   ├── pitfalls.md
-│   ├── decisions.md
-│   ├── project-status.md
-│   ├── loan-module.md
-│   ├── gio-hang.md
-│   ├── CHANGELOG.md
-│   └── FEATURE_IDEAS.md
-├── tests/
-│   └── loan-engine.test.js
-└── dev/
-    └── loan-demo.html
-```
-
-Đây là cấu trúc đích đề xuất, không phải mô tả repo đã được sắp xếp. Bộ tài liệu được soạn từ CLAUDE.md người dùng cung cấp; chưa kiểm tra checkout thực tế.
-
-## Chuyển đổi theo hai bước
-
-### Bước 1 — Chỉ tách tài liệu
-
-- Đặt `CLAUDE.md` mới ở root; đặt sáu file tài liệu đi kèm trong `docs/`.
-- Giữ README, code, SQL, changelog và feature ideas ở vị trí hiện tại.
-- Giữ `docs/loan-module.md` và `docs/gio-hang.md` hiện có; bộ này không chứa nội dung thay thế cho chúng.
-- Trong bước này, đường dẫn `schema.sql`, `CHANGELOG.md`, `FEATURE_IDEAS.md` vẫn là đường dẫn root như file nguồn.
-- Kiểm tra `docs/decisions.md` hiện có trước khi thay thế. Nếu đã có quyết định, hợp nhất nội dung, không xóa lịch sử.
-
-### Bước 2 — Dọn root khi đã kiểm tra tham chiếu
-
-| Hiện tại theo file nguồn | Vị trí đề xuất |
+| File | Nội dung |
 |---|---|
-| `schema.sql` | `SQL/schema.sql` |
-| `fix_rls_recursion.sql` | `SQL/migrations/fix_rls_recursion.sql` |
-| `fix_table_grants.sql` | `SQL/migrations/fix_table_grants.sql` |
-| Migration lẻ khác trong `SQL/` | `SQL/migrations/`, sau khi kiểm tra phụ thuộc |
-| `CHANGELOG.md` | `docs/CHANGELOG.md` |
-| `FEATURE_IDEAS.md` | `docs/FEATURE_IDEAS.md` |
+| `funnel-velocity.md` | Phễu 5 giai đoạn, SLA, tự chuyển, checklist Booking (D-008) |
+| `huong-dan-follow-up.md` | Nhịp follow-up, khung giờ gọi, mẫu Zalo (D-005) |
+| `huong-dan-nhom.md` | Nhóm, giao khách (D-003) — hướng dẫn cho chủ dự án |
+| `gio-hang.md` | Giỏ hàng, nhập Excel |
+| `loan-module.md` | Engine vay, cập nhật lãi suất |
+| `pitfalls.md` | Lỗi kỹ thuật đã gặp + cách tránh |
+| `zalo-android-issue.md` | Lỗi nút Zalo trong APK (chưa giải quyết) |
+| `project-status.md` | Snapshot trạng thái triển khai — luôn xác minh lại |
+| `CHANGELOG.md` | Lịch sử thay đổi đáng kể (mới nhất trên cùng) |
 
-1. Kiểm tra file thực tế và thay đổi chưa commit.
-2. Tìm tham chiếu đến từng đường dẫn trong code, tài liệu, script và workflow.
-3. Di chuyển theo nhóm nhỏ; giữ nguyên nội dung và tên migration hiện có.
-4. Cập nhật đường dẫn trong README, CLAUDE.md và tài liệu liên quan. Ví dụ: đổi `schema.sql` thành `SQL/schema.sql` sau khi file thực sự được chuyển.
-5. Kiểm tra link và các lệnh bị ảnh hưởng. Nếu không đổi asset/code runtime, không cần mở rộng kiểm tra thành một đợt test toàn app.
+## Tham chiếu (không phải yêu cầu đã duyệt)
 
-Di chuyển file migration không có nghĩa là phải chạy lại migration trên Supabase. Không suy ra thứ tự chạy từ tên file cũ; dùng lịch sử áp dụng và quan hệ phụ thuộc.
+| File | Nội dung |
+|---|---|
+| `CRM bất động sản 2026.md` | Nghiên cứu 11 CRM + năng lực đáng xây (nền của PRD) |
+| `sale-focus-roadmap.md`, `FEATURE_IDEAS.md` | Ý tưởng/lộ trình cũ; phần còn giá trị đã đưa vào PRD |
+| `audits/` | Báo cáo nghiệm thu/rà soát theo đợt |
+| `runbooks/` (tạo ở Sóng 0) | Hướng dẫn từng bước cho chủ dự án: backup, hạ tầng v2, baseline, cutover |
 
-## Những file nên giữ ở root
+## Quy ước
 
-Giữ `index.html`, `manifest.json`, `sw.js` ở root để tránh đổi đường dẫn runtime và phạm vi Service Worker khi chỉ đang dọn tài liệu. Không tạo thư mục `src/` hoặc `public/` chỉ để root đẹp hơn: việc đó có thể thay đổi cách hosting phục vụ app.
-
-Các file cấu hình thật sự của Git, hosting hoặc AI có thể vẫn cần ở root. Nếu đã có `AGENTS.md`, tránh sao chép toàn bộ hướng dẫn vào đó: giữ nội dung đặc thù của công cụ và tham chiếu nguồn hướng dẫn chung. Kiểm tra cách công cụ đọc file trước khi rút gọn.
-
-Không cần tạo thêm file chỉ để phân loại vài dòng. Nếu một tài liệu hết hữu ích, hợp nhất hoặc bỏ chỉ dẫn đến nó; giữ bộ hướng dẫn ngắn và nhất quán.
-
-## Quy ước duy trì
-
-- File Markdown mới dùng tên chữ thường, dấu gạch nối; giữ `CLAUDE.md` và `README.md` theo tên thông dụng. Dùng tên thống nhất, tránh `claud.md` và nhiều biến thể cùng nội dung.
-- Mỗi nguyên tắc chi tiết có một nơi chính; file khác chỉ tóm tắt hoặc trỏ đến.
-- Không chuyển mọi entry changelog thành quyết định. Chỉ ghi quyết định đáng kể và ngoại lệ được duyệt.
-- Không lặp lại lịch sử trong project-status. Chỉ giữ trạng thái có ích cho handoff và điểm chưa xác minh.
-- Tài liệu dài được đọc theo tiêu đề/chủ đề, không mặc định nạp toàn bộ.
+- Mỗi quy tắc có **một nơi chính**; file khác chỉ tóm tắt + trỏ tới. Khi đổi quy tắc, sửa nơi chính trước.
+- File Markdown mới: chữ thường, gạch nối (trừ các file quy định viết hoa đã có: `PRD.md`, `DESIGN_SYSTEM.md`, `UX_GUIDELINES.md`, `CLAUDE.md`, `AGENTS.md`, `README.md`).
+- Changelog không thay cho quyết định; quyết định chỉ ghi điều ảnh hưởng nguyên tắc/phạm vi.
+- `project-status.md` chỉ giữ trạng thái hữu ích cho bàn giao + điểm chưa xác minh, ghi ngày và môi trường kiểm tra.
+- Giữ `index.html`, `manifest.json`, `sw.js` ở root trên `main` tới cutover (đổi vị trí làm đổi phạm vi Service Worker). Trên nhánh `v2`, code v1 nằm trong `legacy/` (T1.1).
+- Di chuyển file migration không có nghĩa phải chạy lại trên Supabase.

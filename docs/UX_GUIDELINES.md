@@ -1,176 +1,157 @@
-# Sổ Khách — UX Guidelines
+# Sổ Khách — UX Guidelines v2
 
-> **Version:** 1.1 · 2026-10-15 · **Audience:** AI coding agents & product developers
-> **Scope:** Quy tắc UX nhất quán cho CRM của **solo real estate agent / tiny team**.
-> **Companion:** `DESIGN_SYSTEM.md` quy định visual tokens/components. **File này quy định trải nghiệm và logic hiển thị; không tự định nghĩa màu.**
+> **Version:** 2.0 · 2026-10-16 · **Quyết định:** D-013 (IA), D-015 (tín hiệu), D-010 (thời hạn), D-008 (tự chuyển SLA).
+> **Companion:** `DESIGN_SYSTEM.md` (giao diện). File này quy định **trải nghiệm, thứ tự thông tin, luồng và số chạm**; không định nghĩa màu. Phạm vi tính năng: `PRD.md`.
 
-## 0. North Star & thứ tự ưu tiên
+## 0. North Star
 
-**CRM = Action Workspace, không phải Reporting Dashboard.** Mỗi màn giúp trả lời: **Làm gì tiếp? Vì sao? Làm thế nào? Làm xong thì sao?**
+**CRM = bàn làm việc hành động, không phải dashboard báo cáo.** Mỗi màn trả lời: *Làm gì tiếp? Vì sao? Làm bằng 1–2 chạm thế nào? Xong rồi hệ thống nhớ gì và đề xuất gì?*
 
-Giữ thứ tự ưu tiên sản phẩm:
+Thứ tự ưu tiên (mục trên thắng khi xung đột):
 
-1. **What to do next?** Đưa ra hành động cụ thể, dễ thực hiện ngay.
-2. **Relationship quality.** Sale có đang chăm đúng nhịp, đúng nhu cầu, đúng cách không?
-3. **Smart, ready-to-action suggestions.** Insight phải giải thích được và dẫn tới hành động.
-4. **Customer memory.** Lưu thông tin bền vững để chăm sóc/giới thiệu sản phẩm phù hợp về sau.
-5. **Marketing effectiveness.** Đánh giá nguồn và chất lượng khách qua toàn phễu, không chỉ số lead.
+1. **What to do next** — hành động cụ thể, làm được ngay.
+2. **Chất lượng chăm sóc** — đúng nhịp, đúng lời hứa, học từ dữ liệu.
+3. **Gợi ý ready-to-action** — có lý do + bằng chứng + nút làm luôn.
+4. **Trí nhớ khách** — lưu bền để chăm và retarget sản phẩm khác.
+5. **Hiệu quả marketing** — chất lượng nguồn qua cả phễu.
 
-**Nguyên tắc cốt lõi:** Action > Context > Evidence > Analytics. Ít bước, ít nhập lại, ít quyết định thừa. Không đánh đổi tính đúng đắn dữ liệu lấy automation.
+Nguyên tắc cốt lõi: **Action > Context > Evidence > Analytics.** Ít chạm, ít nhập lại, ít quyết định thừa. Không đánh đổi tính đúng dữ liệu lấy tự động hoá.
 
-## 1. Universal interaction rules
+## 1. Luật tương tác chung
 
-- **Action-first:** nội dung hành động xuất hiện trước KPI/báo cáo trên Focus và đầu tab Tổng quan hồ sơ; báo cáo chi tiết để trong Insights.
-- **One obvious next step:** vùng tác vụ có 1 primary CTA; các lựa chọn khác secondary/overflow. Không ép người dùng xử lý mọi cảnh báo cùng lúc.
-- **Show why:** mọi ưu tiên/gợi ý có lý do ngắn dựa trên dữ liệu: lịch hẹn, lần liên hệ, stage, ghi chú, v.v.; có đường mở chi tiết.
-- **Make action reversible:** thao tác cập nhật trạng thái/giao việc/hoãn phải có review hoặc Undo khi khả thi; hành động không thể hoàn tác yêu cầu xác nhận.
-- **Automation theo quy tắc đã duyệt (D-008, D-010):** ưu tiên tự động hóa để giảm bấm và giảm rối. Khi quá hạn mức SLA ở giai đoạn có cấu hình tự chuyển, app **tự chuyển và tạo lịch kèm theo đúng quy tắc**, không hỏi xác nhận lại từng lần; giữ thông báo, lịch sử và Hoàn tác/Mở lại hiện có. Chỉ những chuyển đổi đã được duyệt trong `VELOCITY_CONFIG` mới tự chạy; không tự mở rộng sang mọi giai đoạn.
-- **Không suy diễn cam kết/kết quả:** bấm Gọi không có nghĩa là đã trao đổi thành công. Gửi Zalo/SMS, gắn nhãn nhạy cảm và automation mới chưa được duyệt vẫn cần xác nhận; AI chỉ đề xuất, không thay quyền của rule engine đã được duyệt.
-- **Progressive disclosure:** màn đầu hiển thị đủ để hành động; chi tiết mở khi cần. Tránh lặp lại cùng KPI trên nhiều khối.
-- **Preserve context:** trở về danh sách giữ vị trí scroll/filter/tab; mở hồ sơ từ Focus có đường về Focus; hoàn thành việc thì tiến tới việc tiếp theo.
-- **Consistent outcomes:** cùng loại action có cùng nhãn/icon, bước xác nhận, kết quả, thông báo, cách lỗi trên mọi màn.
-- **No fabricated intelligence:** chỉ số/%, đề xuất thời điểm gọi, lead score, insight AI phải có dữ liệu và phương pháp; thiếu dữ liệu → nêu “Chưa đủ dữ liệu”, không dựng kết luận.
+- **Một bước rõ ràng:** mỗi vùng 1 CTA chính; lựa chọn khác ở secondary/overflow.
+- **Show why:** mọi ưu tiên/gợi ý có lý do ngắn từ dữ liệu (hạn, lần liên hệ, bậc, ghi chú) và đường mở chi tiết.
+- **Hành động ở nơi đang nhìn:** Gọi/Zalo/Ghi chú/Hẹn có mặt trên dòng hàng đợi, dòng danh sách, hồ sơ (thanh dính), command palette — không bắt mở hồ sơ để gọi.
+- **Không suy diễn kết quả:** bấm Gọi ≠ đã nói chuyện; mở Zalo ≠ đã gửi. Kết quả do sale xác nhận (1 chạm) hoặc nhật ký máy Android.
+- **Có thể hoàn tác:** thao tác không phá huỷ → Toast Hoàn tác 5 giây; phá huỷ (xoá, loại hàng loạt) → xác nhận rõ.
+- **Tự động hoá theo quy tắc đã duyệt (D-008, D-010):** quá hạn mức SLA ở giai đoạn có cấu hình tự chuyển → app tự chuyển + tạo lịch theo quy tắc, không hỏi lại từng lần; luôn có lịch sử, thông báo, Hoàn tác/Mở lại. Không tự mở rộng automation sang giai đoạn/hành động chưa duyệt.
+- **AI chỉ đề xuất:** không tự gửi tin, gọi, ghi đè hồ sơ, đổi bậc, giao khách, đặt lịch. Đề xuất được điền sẵn, sale duyệt 1 lần.
+- **Giữ ngữ cảnh:** quay lại giữ cuộn/lọc/tab; xong việc → tự tiến tới việc kế; mở hồ sơ từ Hôm nay có đường về Hôm nay.
+- **Không trí tuệ giả:** chỉ số, %, giờ gọi tốt, gợi ý phải có dữ liệu + phương pháp; thiếu → "Chưa đủ dữ liệu".
+- **Offline là bình thường:** mọi ghi đều lưu local ngay, hiện "Chờ đồng bộ"; không chặn thao tác vì mất mạng (trừ AI, tải tài liệu).
 
-## 2. Navigation & information architecture
+## 2. Kiến trúc thông tin (D-013)
 
-**Giữ cấu trúc hiện hữu khi triển khai theo từng bước:** 4 tab nghiệp vụ `Tổng quan` (đề xuất nhãn hiển thị **Focus**) · `Khách hàng` · `Công việc` · `Phân tích` (đề xuất nhãn **Insights**). Nút `+` ở giữa là **Quick Add**, không phải tab thứ năm. Chỉ đổi tên/route/menu khi task phê duyệt; không đổi ngầm handler/ID.
-
-| Khu vực | Câu hỏi được trả lời | Nội dung chính |
+| Khu vực | Câu hỏi | Nội dung |
 |---|---|---|
-| **Focus** | Tôi nên làm gì ngay? | Next Best Action → urgent queue → actionable insight → phần việc còn lại |
-| **Customers** | Tôi biết gì về khách? | Search/filter, memory, stage, relationship, hồ sơ |
-| **Tasks** | Toàn bộ cam kết cần quản lý? | Quá hạn, hôm nay, sắp tới, đã xong, theo loại |
-| **Insights** | Tôi chăm sóc/bán hàng/marketing tốt chứ? | Relationship health → pipeline/conversion → marketing ROI/quality |
-| **Quick Add (`+`)** | Tôi cần ghi lại điều gì nhanh? | Thêm khách, công việc, ghi chú, hẹn gọi (theo ngữ cảnh) |
-| **Utilities / Account** | Công cụ ít dùng? | Tính vay, giỏ hàng, mẫu tin, thành viên, cài đặt... |
+| **Hôm nay** (tab 1, mặc định) | Tôi làm gì ngay? | NBA → sức làm khung hiện tại → hàng đợi (Ưu tiên · Khách mới · Lời hứa · Cơ hội) → 1 tín hiệu cơ hội → Phiên gọi; tối: Tổng kết ngày |
+| **Khách hàng** (tab 2) | Tôi biết gì về khách? | Tiềm năng · Khách mới · Tệp & Retarget · Khách nhóm (chỉ khi có nhóm); lọc, sắp xếp, tệp đã lưu |
+| **＋ Ghi nhanh** (giữa) | Ghi lại điều gì? | Khách mới (SĐT + tên) · Ghi chú/giọng nói · Việc/lời hứa · Chụp phiếu (OCR); theo ngữ cảnh đang xem |
+| **Công việc** (tab 3) | Toàn bộ cam kết? | Quá hạn · Hôm nay · 7 ngày · Sau đó · Chưa có hạn · Đã xong; lọc loại việc và **Em hứa / Khách hẹn** |
+| **Hiệu quả** (tab 4) | Tôi chăm/bán/marketing tốt chứ? | Chăm sóc · Phễu · Marketing |
+| **Hồ sơ khách** | Khách này cần gì, bước tiếp? | Xem §5 |
+| **Command palette** (Cmd/Ctrl+K, ô tìm header) | Đi đâu/làm gì nhanh? | Tìm khách, lệnh, màn — **nơi tìm kiếm duy nhất** |
+| **Tiện ích** (menu avatar) | Công cụ ít dùng | Giỏ hàng, Tính vay, Mẫu tin Zalo, Nhóm, Nhập/Xuất, Cài đặt AI, Chi phí campaign, Giao diện |
 
-Mobile: nav cố định dưới; **giữ 1 nơi tìm kiếm thống nhất**, Cmd/Ctrl+K nếu hỗ trợ; các search/filter không được tạo panel thứ hai trùng chức năng. Desktop có thể mở rộng layout nhưng không thay đổi ý nghĩa tab.
+Desktop ≥1024px: rail trái thay bottom nav, chọn dòng mở hồ sơ ở panel phải (không rời danh sách).
 
-## 3. Focus — chuẩn dashboard
+## 3. Ngân sách số chạm (bắt buộc nghiệm thu)
 
-**Không bắt đầu bằng 4 KPI card lớn.** Thứ tự từ trên xuống:
+Tính từ màn đang đứng tới khi dữ liệu đã lưu local. "Gõ" không tính chạm.
 
-1. **Compact header:** ngày/lời chào + tóm tắt 1 dòng (số việc, quá hạn nếu có), không chiếm nhiều viewport.
-2. **Next Best Action (NBA):** 1 việc ưu tiên, kèm *hành động / khách / lý do / deadline / CTA / mở hồ sơ*. Nếu không có việc → trạng thái “Đã xử lý các việc ưu tiên” + đề xuất bước hữu ích khác, không tạo việc giả.
-3. **Focus Queue:** 3–5 item hiển thị trước, có quick action. Bộ lọc `Ưu tiên | Hôm nay | Khách mới | Tất cả` tùy dữ liệu; tổng số không đồng nghĩa mức nguy cấp.
-4. **Smart suggestion:** tối đa 1 insight nổi bật, không chen trước việc gấp. Có CTA hoặc chỉ rõ điều cần kiểm tra.
-5. **Overview nhỏ:** các chỉ số phụ, hoạt động gần đây hoặc shortcut. Phân tích sâu chuyển Insights.
-
-**NBA không phải quảng cáo AI.** Ưu tiên trước hết dùng rule-based logic kiểm tra được; AI có thể giúp giải thích/tóm tắt, không tự quyền ghi đè mức độ ưu tiên.
-
-### Thứ tự ưu tiên công việc (policy có thể cấu hình)
-
-- **P0:** Hẹn/việc quá hạn, các cam kết với khách tới hạn, tác vụ có rủi ro rõ. Dựa trên deadline đáng tin cậy và tính trọng yếu.
-- **P1:** Đến hạn hôm nay; khách mới cần liên hệ trong khung SLA hợp lệ; follow-up đã cam kết.
-- **P2:** Tác vụ chưa đến hạn / nuôi dưỡng / bổ sung thông tin.
-- Trong cùng mức, xét `due_at`, stage/opportunity có căn cứ, lần tương tác gần nhất; **không suy ra “khách nóng” chỉ từ AI hoặc cảm giác**.
-- Có ngoại lệ rõ ràng (vd hồ sơ Booking cần xác nhận gấp) nhưng cần nguồn/điều kiện; tránh double count cùng một khách/việc trong queue.
-- **Hạn giờ là nguồn sự thật.** Không gắn đỏ chỉ vì một task đứng đầu hàng đợi. Nếu thiếu deadline → neutral, trừ khi có quy tắc khẩn cấp khác được xác minh.
-- **Một định nghĩa đến hạn/quá hạn (D-010):** mọi màn đọc `countdownTag` trong `js/app.js`. Việc có giờ: từ mốc đến hết mốc +30 phút là “đến hạn”, sau đó mới “quá hạn”. Hẹn gọi: tính đến hết khung +30 phút (không có giờ kết thúc thì dùng giờ bắt đầu). Đúng mốc +30 phút vẫn là đến hạn. Việc cả ngày: đến hạn suốt ngày đó, quá hạn từ 00:00 ngày hôm sau; không cộng thêm 30 phút. Đây là thời hạn công việc, không phải hạn mức SLA của phễu.
-
-**Row contract:** tên khách + action verb + deadline/trạng thái + nút thao tác; chạm row mở ngữ cảnh/hồ sơ, nút call thực hiện cuộc gọi; tránh vô tình gọi khi chạm dòng. Sau action thành công: xác nhận → cập nhật queue → giữ scroll / đưa next item hợp lý.
-
-## 4. After-action workflow (quan trọng nhất sau Focus)
-
-**Trigger:** người dùng bấm Gọi/Zalo/hoàn thành nhiệm vụ. **Không đánh đồng click với kết quả thực tế.**
-
-**Call workflow mẫu:**
-
-`Mở khách → Gọi → Quay lại app → Chọn kết quả → (ghi chú ngắn) → Gợi ý bước tiếp theo → Người dùng xác nhận → Lưu timeline/task → Item tiếp theo`
-
-Kết quả tối thiểu: `Đã trao đổi` · `Khách bận/hẹn lại` · `Không liên hệ được` · `Không phù hợp` · `Bỏ qua, chưa ghi nhận`. Từng kết quả mở form liên quan, tránh bắt điền thông tin không cần thiết.
-
-- Đã trao đổi: ghi nhu cầu/trở ngại, thay đổi quan tâm **chỉ khi xác nhận**, có thể tạo next step.
-- Hẹn lại: chọn thời gian cụ thể + xác nhận; không tự đặt lịch âm thầm.
-- Không liên hệ được: lưu attempt, gợi ý follow-up hợp lý dựa `js/followup.js`; tránh spam hoặc gợi ý thời điểm “tối ưu” khi thiếu dữ liệu.
-- Không phù hợp: cập nhật lý do/sản phẩm quan tâm, giữ dữ liệu phục vụ đúng mục đích; cho phép đưa vào nuôi dài hạn nếu phù hợp.
-- Lưu timeline/event với nguồn (`manual`, `system`, `ai_suggestion_accepted` nếu được hỗ trợ), người thực hiện, thời gian; chống lưu trùng từ double tap/retry.
-
-**Quick Add:** từ ngữ cảnh khách → mặc định gắn khách hiện tại; từ Focus → cho chọn khách. Sau lưu đưa user về đúng ngữ cảnh, feedback rõ.
-
-## 5. Hồ sơ khách — relationship + memory
-
-**Tab Tổng quan:** thông tin liên hệ + hành động nhanh → **Việc tiếp theo** → stage/relationship snapshot → AI suggestion khi có căn cứ → sản phẩm quan tâm → ghi chú gần đây. Hồ sơ chi tiết/tài liệu/timeline ở tab liên quan; không nhồi vào overview.
-
-> **Migration note:** Code cũ quy định hàng `Tiến độ · Quan tâm · Liên lạc` luôn trên cùng, rồi `Việc tiếp theo`, `Trợ lý AI`, `Căn hộ`, `Ghi chú`, `Tính vay`. Giữ thứ tự cũ **cho đến khi task cải tổ hồ sơ được yêu cầu**; UX đích đưa hành động và thông tin liên hệ rõ hơn lên đầu. Không âm thầm reorder trong task đổi màu.
-
-**Customer Memory tối thiểu** (thu thập dần, không bắt nhập đủ khi tạo lead):
-
-- Identity/contact: tên, kênh liên hệ, owner, nguồn, consent/preferences liên hệ.
-- Intent: an cư/đầu tư/cho người thân; loại sản phẩm/dự án quan tâm, khu vực, loại căn.
-- Fit: khoảng ngân sách, khả năng vay nếu khách chia sẻ, thời điểm mua, tiêu chí/rào cản.
-- Engagement: lịch sử cuộc gọi/tin nhắn/ghi chú/hẹn, lần liên hệ cuối, lịch tiếp theo, outcome.
-- Lifecycle: stage, lý do thay đổi, booking/hợp đồng nếu có, lý do không phù hợp, mức quan tâm kèm căn cứ.
-
-Mỗi thông tin quan trọng cần nhận biết **nguồn** và **độ mới**; dữ liệu cũ/không chắc phải cho phép sửa, không dùng như fact để tự động phân loại khách. Không nhân đôi thông tin ở nhiều trường và free-text nếu đã có structured fields phù hợp.
-
-**Retargeting:** lọc nhóm dựa trên tiêu chí rõ (`2PN`, ngân sách, khu vực, khung thời gian, đã cho phép liên hệ). Hiển thị lý do match, thời điểm cập nhật, danh sách khách đủ điều kiện; cho sale **review trước khi gửi liên hệ**. Không tái sử dụng dữ liệu ngoài mục đích/consent hợp lệ, tránh tiết lộ dữ liệu riêng tư trong team.
-
-## 6. Relationship Health — đo cách chăm sóc khách
-
-**Đừng đồng nhất “gọi nhiều” với “chăm sóc tốt”.** Nên đo (chỉ khi có đủ sự kiện):
-
-| Chỉ báo | Ý nghĩa UX | Action gợi ý |
+| Hành động | Tối đa | Luồng chuẩn |
 |---|---|---|
-| First response time | Tốc độ liên hệ lead mới | Mở nhóm chưa liên hệ đúng SLA |
-| Contact rate | % lead thực sự liên hệ được | Xem nhóm chưa liên hệ và lịch sử attempts |
-| Next-step coverage | % khách đang chăm có bước tiếp theo rõ ràng | Tạo/điều chỉnh follow-up |
-| Overdue commitments | Lịch hẹn đã cam kết bị trễ | Xử lý Focus Queue |
-| Stage aging / SLA | Khách ở một stage quá lâu | Xem lý do kẹt và cập nhật kế hoạch |
-| Outcome by attempt | Kết quả theo số lần tiếp cận | Điều chỉnh nhịp chăm sóc, tránh spam |
+| Gọi khách đang ở Hôm nay / danh sách | **1** | Nút Gọi trên dòng (Android vỏ: gọi thẳng) |
+| Ghi kết quả "không nghe máy" + lịch gọi lại | **2** | Sheet sau gọi tự mở → chọn kết quả (lịch gợi ý đã chọn sẵn) → Lưu |
+| Ghi "nói chuyện được" + ghi chú + bước tiếp | **3** + gõ/nói | Kết quả → ghi chú → Lưu (bước tiếp điền sẵn; AI diff tick tuỳ chọn) |
+| Nhắn Zalo theo mẫu + ghi lại | **3** | Zalo → (mẫu gợi ý chọn sẵn) Sao chép & mở → quay lại: Đã gửi |
+| Thêm ghi chú cho khách đang xem | **2** + gõ | Ghi chú → Lưu |
+| Ghi chú từ bất kỳ đâu | **3** + gõ | ＋ → Ghi chú → chọn khách (gợi ý khách vừa xem/gọi) → Lưu |
+| Hẹn gọi lại | **2** | Hẹn → (ngày + khung gợi ý sẵn) Lưu; đổi khung = +1 |
+| Hoàn tất việc | **1** | Tích/vuốt → Toast Hoàn tác |
+| Thêm khách nhanh | **2** + gõ | ＋ → Khách mới (SĐT, tên; nguồn = lần trước) → Lưu |
 
-Mọi metric phải định nghĩa **tử số, mẫu số, khoảng thời gian, nguồn**, điều kiện dữ liệu; chia cho 0 → `—`, không hiện 0% sai nghĩa. Khi cỡ mẫu nhỏ, dùng cảnh báo hạn chế hoặc “Chưa đủ dữ liệu”. Insight không quy lỗi/đánh giá cá nhân chỉ từ metric rời rạc.
+Ưu tiên giảm chạm bằng: **điền sẵn theo quy tắc** (`FOLLOWUP`, mẫu Zalo gợi ý, khách ngữ cảnh), **gộp bước** (kết quả + ghi chú + lịch trong 1 sheet), **cử chỉ** (vuốt), **nhớ lựa chọn gần nhất**. Không giảm chạm bằng cách bỏ xác nhận ở thao tác có hậu quả (gửi, xoá, giao).
 
-## 7. Suggestions / AI — ready to action
+## 4. Hôm nay — chuẩn màn
 
-Dùng 1 pattern **Insight → Evidence → Suggested action → Confirm/Ignore** tại Focus, hồ sơ và Insights.
+1. **Header gọn:** lời chào + 1 dòng tóm tắt ("12 việc · ~95 phút · 2 quá hạn"). Không 4 KPI lớn.
+2. **Next Best Action:** việc đứng đầu registry tín hiệu (D-015): *khách · hành động · lý do + bằng chứng · hạn · Brief 20 giây · Gọi/Zalo/Xong/Dời*. Hết việc → "Đã xử lý các việc ưu tiên" + gợi ý hữu ích (tệp retarget, khách nguội), không tạo việc giả.
+3. **Sức làm:** khung `callSlots` hiện tại còn X phút; việc trong hàng ước Y phút (phút/loại việc ở `config/capacity.ts`). Y > X → đề xuất "Dời N việc P2 sang khung kế" (1 chạm, giữ `due_original`, có Hoàn tác). Hẹn có giờ cụ thể với khách không bao giờ bị dời tự động.
+4. **Hàng đợi:** 3–7 dòng, mỗi khách 1 dòng (lý do chính + chip lý do phụ), lọc `Ưu tiên · Khách mới · Lời hứa · Cơ hội`. Tổng số ≠ mức khẩn.
+5. **Phiên gọi:** "Bắt đầu phiên gọi (N khách · ~M phút)" → lần lượt Brief → Gọi → Sheet sau gọi → Tiếp; có Bỏ qua (chọn lý do) và Dừng.
+6. **Một tín hiệu cơ hội** (S12/S13/S14…) dạng SignalCard, không chen trên việc gấp.
+7. **Tối (sau khung cuối):** Tổng kết ngày — lời hứa giữ/trễ, cuộc gọi chưa ghi, ghi chú chưa đồng bộ, việc mai.
 
-- `Rule-based insight`: suy từ deadline, activity và stage; **không gắn nhãn AI** nếu không sử dụng AI.
-- `AI suggestion`: luôn có nhận diện AI nhất quán theo `DESIGN_SYSTEM.md`; phân biệt dữ liệu thật, suy luận, giả thuyết; không giả số liệu/% tăng hiệu quả.
-- Ví dụ hợp lệ: “5 khách chưa liên hệ được sau ≥3 ngày” → **Xem 5 khách**; chỉ gợi ý gọi khung 15–17h nếu có dữ liệu lịch sử tương ứng và đủ mẫu, nếu không nói “Thử lịch gọi khác”.
-- Hiển thị vì sao gợi ý xuất hiện, thời điểm dữ liệu cập nhật và CTA (`Xem khách`, `Tạo lịch`, `Soạn tin`); không chỉ đưa lời khuyên chung chung.
-- **AI không tự gửi tin, gọi, ghi đè profile, giao khách, đặt lịch, hoặc đổi stage**. Action có thể prefill nhưng người dùng review & confirm; Undo nếu phù hợp.
-- Chống nhiễu: 1 insight nổi bật mỗi khu vực; cho Dismiss/Snooze, tránh lặp lại gợi ý đã bỏ qua nếu chưa có dữ liệu mới.
-- API/worker thiếu (`WORKER_URL`...) → ẩn AI action không dùng được, không để card giả hoạt động; rule-based insight vẫn có thể hiển thị ở vùng riêng.
+**Mức ưu tiên tín hiệu:** P0 = quá hạn/đến hạn cam kết, khách mới trong SLA, hồ sơ Booking quá hạn; P1 = đến hạn hôm nay, follow-up đã cam kết, cơ hội có bằng chứng mới; P2 = nuôi dưỡng, bổ sung thông tin. Trong cùng mức: hạn sớm hơn → bậc sâu hơn → liên hệ cuối lâu hơn. Không suy "khách nóng" từ AI.
 
-## 8. Marketing Intelligence — đo chất lượng, không chỉ số lượng
+**Thời hạn (D-010) — một định nghĩa:** mọi màn đọc `countdownTag`. Việc có giờ: từ mốc tới mốc +30 phút là "đến hạn", sau đó "quá hạn". Hẹn gọi: tới hết khung +30 phút (không có giờ kết thúc dùng giờ bắt đầu). Việc cả ngày: đến hạn suốt ngày, quá hạn từ 00:00 hôm sau. Đây là thời hạn công việc, khác hạn mức SLA phễu.
 
-Luồng phân tích chuẩn (nếu có attribution):
+**Row contract:** chạm dòng = mở ngữ cảnh (sheet Brief/hồ sơ); nút Gọi = gọi; tránh gọi nhầm khi chạm dòng. Sau thao tác: phản hồi → cập nhật hàng → giữ vị trí cuộn.
 
-`Nguồn / Campaign → Lead → Liên hệ được → Qualified → Xem dự án → Booking → Ký HĐMB`
+## 5. Hồ sơ khách — quan hệ + trí nhớ
 
-- Báo cáo tối thiểu: lead volume, contact rate, qualified rate, stage conversion, booking, signed; nếu có chi phí chuẩn mới hiển thị CPL / cost per qualified / CAC.
-- Chọn `7/30/90 ngày`, campaign/product và attribution model nếu đủ dữ liệu. Không coi lead đến từ Facebook là doanh số do campaign tạo nếu chưa có quy tắc attribution.
-- Mỗi insight chỉ ra **sự thay đổi + cỡ mẫu + giai đoạn phễu + action** (vd kiểm tra chất lượng lead từ campaign), không kết luận từ một vài leads.
-- So sánh campaign trên **chất lượng khách** và kết quả; không lấy số việc/số lượt gọi làm KPI marketing chính.
+Thứ tự trên mobile: **Header** (tên, bậc + vòng SLA, sức khoẻ, nguồn) → **Bước tiếp theo/lời hứa** → **Brief** → tab dính `Dòng thời gian · Trí nhớ · Nhu cầu & căn · Tài liệu · Tính vay` → **ActionBar dính đáy** (Gọi · Zalo · Ghi chú · Hẹn).
 
-## 9. Tiny team, permissions & data trust
+- **Brief 20 giây** (rule-based, offline): mua để · cần gì · tài chính (vốn/vay) · người quyết định · phản đối gần nhất · lời hứa mở · lần liên hệ cuối. Thiếu → "Chưa biết" + câu nên hỏi (tối đa 2). AI Brief là lớp diễn đạt có nguồn, không thay rule Brief.
+- **Trí nhớ** (thu thập dần, không bắt nhập đủ): Định danh & liên hệ (kênh/khung ưa thích, không liên hệ) · Ý định (mục đích, dự án, loại căn, khu vực) · Khả năng (vốn, vay, trả hàng tháng, thời điểm mua) · Hộ gia đình/người quyết định · Hồ sơ nâng cao v1 · Vòng đời (bậc, lý do, booking, lý do kết thúc, điều kiện retarget). Mỗi fact hiện nguồn + độ mới; > 90 ngày → "Cần xác nhận"; dữ liệu cũ không được dùng làm fact để tự phân loại.
+- **Nhu cầu theo đợt:** mỗi đợt quan tâm 1 dòng (dự án, loại căn, ngân sách, trạng thái); căn khớp hiện ngay dưới với lý do "khớp/vướng".
+- **Dòng thời gian hợp nhất:** cuộc gọi, Zalo/gặp, ghi chú, đổi bậc (kể cả tự động — có nhãn), việc xong, AI đã duyệt; lọc theo loại.
+- **Khách mới (lớp 1):** sheet gọn — nhịp gọi 5 lần (`FOLLOWUP`), nút Đạt (cần ≥1 "nói chuyện được") / Loại (lý do mã D-001).
+- **Kết thúc (Loại/Nuôi dài hạn ở lớp 2):** chọn lý do (1 chạm) + điều kiện retarget tuỳ chọn (ngày, giá, loại căn) — để tệp retarget và tín hiệu S13 dùng lại.
 
-- Mỗi khách/việc có owner rõ. Với `Khách nhóm`, xem/sửa/giao phụ thuộc quyền; **read-only phải khóa nút sửa và endpoint**, không chỉ ẩn UI.
-- Hành động giao khách ghi lại ai giao, ai nhận, thời điểm; không tự thông báo/giao hàng loạt khi chưa xác nhận.
-- Trùng khách theo SĐT và trùng tác vụ phải có cảnh báo/merge có kiểm soát; không tự gộp ghi chú và quyền sở hữu.
-- Bảo vệ PII: chỉ hiện thông tin cần dùng, tránh log số điện thoại/ghi chú nhạy cảm vào analytics, tôn trọng xóa/opt-out/không liên hệ và phân quyền truy cập.
-- Offline/sync lỗi: hiển thị trạng thái rõ, tránh tuyên bố đã lưu khi chưa đồng bộ; chống double-submit và có retry an toàn.
+## 6. Tín hiệu & gợi ý — ready to action (D-015)
 
-## 10. UX states & acceptance tests
+Một pattern ở mọi nơi: **Tín hiệu → Bằng chứng → Hành động đề xuất → Làm / Hoãn / Ẩn.**
 
-Mỗi flow mới phải có: **idle → loading → success → error → empty/no data**; hỗ trợ back/cancel, không mất dữ liệu khi đóng sheet ngoài ý muốn. Icon-only action có accessible name; kiểm tra thao tác một tay, vùng chạm, focus/keyboard và mobile 320–430px.
+- **Rule (SignalCard):** suy từ hạn, hoạt động, bậc, giỏ hàng. Không gắn nhãn AI.
+- **AI (AIBlock):** chỉ diễn giải/soạn nháp cho một tín hiệu hoặc khách cụ thể; nêu nguồn ("3 ghi chú gần nhất"); phân biệt dữ liệu thật / suy luận.
+- Mỗi tín hiệu: lý do ngắn, số liệu có cỡ mẫu, thời điểm dữ liệu, CTA cụ thể (`Gọi`, `Soạn tin`, `Hẹn`, `Xem 5 khách`). Không lời khuyên chung chung.
+- Chống nhiễu: tối đa 1 tín hiệu cơ hội nổi bật mỗi khu vực; Ẩn/Hoãn được nhớ (`user_settings.ui_state`); tín hiệu đã ẩn chỉ quay lại khi có dữ liệu mới.
+- Worker/AI không có (`VITE_WORKER_URL` trống, offline) → ẩn hành động AI; tín hiệu rule vẫn chạy.
 
-### Acceptance checklist cho mỗi task
+## 7. Luồng chuẩn
 
-- [ ] Màn/flow trả lời đúng 1 câu hỏi chính của khu vực; thứ tự **Action → Context → Evidence**.
-- [ ] Action chính thấy rõ trong viewport; click row và quick-action không xung đột.
-- [ ] Nếu có suggestion: có lý do, dữ liệu đủ, hành động cụ thể; AI/automation chưa được duyệt cần confirm trước write/send. Quy tắc tự chuyển SLA đã duyệt chạy tự động, có lịch sử/thông báo/Hoàn tác hoặc Mở lại thay cho xác nhận lặp.
-- [ ] Sau thao tác: phản hồi kết quả, lưu timeline/next step đúng, UI refresh và trở về đúng ngữ cảnh.
-- [ ] Không làm mất/đổi logic stage, deadline, owner, permission, consent; không tự tạo business rules chưa duyệt.
-- [ ] Đủ empty/loading/error/offline nếu liên quan; accessibility & responsive; visual đúng `DESIGN_SYSTEM.md`.
+**Sau cuộc gọi** (tự mở khi quay lại app, hoặc từ "cuộc gọi chưa ghi"):
+`Kết quả (1 chạm) → [ghi chú gõ/giọng nói] → [AI trích trường: diff tick] → Bước tiếp theo (điền sẵn từ FOLLOWUP, đổi được) → Lưu → khách kế (trong phiên gọi)`
 
-## 11. Hướng dẫn sử dụng 2 file khi giao việc cho coding agent
+| Kết quả | Mở thêm | Bước tiếp theo mặc định |
+|---|---|---|
+| Nói chuyện được | Ghi chú, AI trích, đổi bậc/quan tâm (chỉ khi sale chọn) | `FOLLOWUP.forStage` theo bậc |
+| Không nghe / thuê bao / máy bận / cúp máy | — | `FOLLOWUP.afterCall` (lead: nhịp 5 lần; tiềm năng: 1→2→4→7 ngày, xoay khung) |
+| Bận, hẹn gọi lại | Chọn giờ khách hẹn (bắt buộc xác nhận) | Hẹn đúng giờ khách nói |
+| Sai số / không phù hợp | Lý do | Lead: gợi ý Loại; tiềm năng: gợi ý kết thúc + điều kiện retarget |
 
-1. Đính kèm/đặt cố định **cả hai tài liệu**; nêu rõ **màn, user goal, dữ liệu sẵn có, scope, trạng thái cần test**.
-2. Agent kiểm tra code thực tế và xác nhận component/handler có sẵn trước khi chỉnh; không tưởng tượng DB schema, API hoặc feature đang tồn tại.
-3. Triển khai **incremental**: (a) visual token migration → (b) Focus/NBA → (c) after-call → (d) customer memory/relationship → (e) Insights/marketing → (f) AI nâng cao.
-4. Khi business rule thiếu (SLA, ranking, quyền, consent, attribution), **đưa thành câu hỏi/đề xuất cấu hình**, không tự quyết định như fact.
-5. Trước khi bàn giao: mô tả **files changed / UX behavior changed / tests / outstanding assumptions**; mọi ngoại lệ so với 2 file phải được ghi rõ.
+**Zalo:** Zalo → mẫu gợi ý (`FOLLOWUP.suggestTemplate`) đã điền biến → sửa nếu cần → Sao chép & mở Zalo → quay lại: "Đã gửi?" Có/Không → ghi `interactions`. Khách "không liên hệ" → chặn, hiện lý do.
 
-**Rule of thumb:** Không thêm một thành phần chỉ vì nó làm dashboard “đầy đủ hơn”. Chỉ thêm khi nó giúp sale **quyết định, thực hiện hoặc học được cách chăm khách tốt hơn**.
+**Ghi chú / giọng nói:** nhập → Lưu ngay (local) → AI (nếu bật, có mạng) trả đề xuất → hộp duyệt. Ghi chú không bao giờ mất vì AI lỗi.
+
+**Lời hứa:** khi tạo việc chọn `Em hứa` / `Khách hẹn` (mặc định theo câu: AI/rule gợi ý). Dời hạn → chọn lý do nhanh, giữ hạn gốc.
+
+**Đổi bậc:** chọn bậc → ghi chú tuỳ chọn → gợi ý lịch theo bậc (1 chạm nhận). Ký HĐMB = nút xác nhận riêng.
+
+**Retarget:** Tệp (lọc hoặc chọn sản phẩm) → danh sách có lý do khớp → chọn khách → mẫu tin có biến sản phẩm → lần lượt Sao chép & mở Zalo → Đã gửi → tự tạo follow-up. Không gửi hàng loạt tự động.
+
+**Giao khách (D-003):** chọn người nhận → theo dõi hay giao hẳn → xác nhận; ghi ai giao/ai nhận/lúc nào.
+
+## 8. Hiệu quả — đo để cải thiện
+
+- **Chăm sóc:** tốc độ gọi lần đầu, tỉ lệ liên lạc được, nghe máy theo khung, phủ bước tiếp theo, giữ lời hứa, cam kết quá hạn, tuổi giai đoạn vs SLA, nhịp chạm, chuyển đổi theo số lần chạm (định nghĩa: `PRD.md` F-07). Mỗi chỉ số dẫn tới danh sách khách cần xử lý.
+- **Phễu:** 5 giai đoạn + milestone, tốc độ vs SLA, chuyển đổi có mẫu số, lý do kết thúc, cohort.
+- **Marketing:** `Nguồn/Campaign/Form → Lead → Hợp lệ → Liên lạc được → Đạt → Xem dự án → Booking → Ký HĐMB`; chi phí → CPL/chi phí mỗi Đạt/Booking chỉ khi đã nhập chi phí; tình trạng đường thu lead.
+- Mọi số: **tử / mẫu / kỳ / nguồn**; chia 0 → "—"; mẫu nhỏ → cảnh báo; kỳ 7/30/90 ngày; cohort phải đủ thời gian theo dõi. Không quy lỗi cá nhân từ một chỉ số; không kết luận nhân quả.
+- **Bài học tuần:** ≤3 phát hiện (rule, đủ ngưỡng mẫu) + hành động; AI chỉ diễn giải số đã tính.
+
+## 9. Nhóm, quyền, tin cậy dữ liệu
+
+- Mỗi khách/việc có người phụ trách rõ. Khách nhóm chỉ xem → nút sửa bị khoá **và** repository chặn (`assertWritable`), không chỉ ẩn UI.
+- Trùng khách (SĐT chuẩn hoá) → cảnh báo trước khi lưu + gộp có duyệt (giữ mọi lịch sử, nguồn, xoá mềm bản thừa). Không tự gộp.
+- PII: chỉ hiện thông tin cần; không gửi SĐT cho AI; tôn trọng "không liên hệ"; xuất dữ liệu chỉ cho người có quyền.
+- Đồng bộ: trạng thái rõ (chờ/đã/lỗi + thử lại); không nói "đã lưu lên máy chủ" khi mới lưu local; chống bấm lặp.
+
+## 10. Trạng thái & nội dung chữ
+
+- Mỗi luồng có: idle → loading → success → error → empty/no data; back/cancel; không mất dữ liệu khi đóng sheet ngoài ý muốn (bảo vệ bản nháp).
+- Giọng chữ: ngắn, động từ trước ("Gọi chị Lan", "Dời sang 20:00"), xưng hô trung tính; số/giờ theo định dạng Việt (14:30, 12/10, 2,8 tỷ).
+- Thuật ngữ thống nhất: *Khách mới* (lớp 1) · *Tiềm năng* (lớp 2) · *Bước tiếp theo* · *Lời hứa* (Em hứa / Khách hẹn) · *Hẹn gọi* · *Phiên gọi* · *Tín hiệu* · *Gợi ý AI* · *Tệp khách* · *Nuôi dài hạn* · *Đã mua* · *Không chốt*.
+
+## 11. Checklist nghiệm thu UX (mỗi task)
+
+- [ ] Màn trả lời đúng 1 câu hỏi chính; thứ tự Action → Context → Evidence.
+- [ ] Đạt ngân sách chạm §3 cho hành động liên quan (đếm trên mobile).
+- [ ] Gợi ý có lý do + bằng chứng + CTA; AI/automation chưa duyệt phải qua duyệt trước khi ghi/gửi.
+- [ ] Sau thao tác: phản hồi, lưu đúng timeline/bước tiếp, cập nhật UI, về đúng ngữ cảnh, có Hoàn tác khi phù hợp.
+- [ ] Không đổi logic bậc/hạn/owner/quyền/consent; không tạo business rule chưa duyệt.
+- [ ] Đủ empty/loading/error/offline; truy cập & responsive; giao diện đúng `DESIGN_SYSTEM.md`.
+
+**Rule of thumb:** chỉ thêm thành phần khi nó giúp sale **quyết định, thực hiện hoặc học cách chăm khách tốt hơn**.

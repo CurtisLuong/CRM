@@ -8,6 +8,21 @@ Bộ tài liệu được biên soạn ngày 06/10/2026; đây không phải ng�
 
 Chỉ đọc file này khi cần tiếp nối công việc hoặc task phụ thuộc trạng thái triển khai/test.
 
+## Đại tu v2 (cập nhật 2026-10-16)
+
+- Đã có bộ quy định: `PRD.md`, `tasks.md`, `architecture.md` v2, `DESIGN_SYSTEM.md` v3, `UX_GUIDELINES.md` v2, `prompts.md`, D-011…D-015. **Chưa code v2.** Bước kế: Sóng 0 trong `tasks.md` (backup, audit trigger, đối soát schema, fixture/golden, hạ tầng `crm-v2` + staging, baseline).
+- Chờ chủ dự án xác nhận stack D-011 trước T1.1.
+
+## Migration production cần đối soát ở T0.3 (theo ghi chú phiên trước, chưa xác minh)
+
+Ghi chú các phiên trước không đầy đủ và có chỗ không thống nhất → T0.3 xác định bằng truy vấn trên production, không dựa vào bảng này.
+
+| File | Ghi chú phiên trước |
+|---|---|
+| `add_lead_layer.sql`, `add_loan_module.sql`, `add_funnel_velocity.sql` | Ghi là đã chạy |
+| `add_zalo_templates.sql`, `add_team_assign.sql` (+ đặt admin), `add_ai_settings.sql`, `add_realtime_customers.sql` | Ghi là **chưa chạy** |
+| `add_fb_leads.sql`, chuỗi catalog (`add_catalog_buildings` → `merge_project_trang_cat` → `add_apt_types_by_project` → `catalog_layers_v2`), `add_source.sql`, `add_cover_photo.sql` | Chưa rõ |
+
 ## Trạng thái được ghi trong nguồn
 
 | Hạng mục | Nội dung nguồn ghi | Cần xác minh khi nào |

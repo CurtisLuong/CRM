@@ -6,6 +6,14 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-16 — Kế hoạch đại tu v2 (chỉ tài liệu, chưa code)
+
+- Bộ quy định mới cho đại tu: PRD (5 ưu tiên, đối chiếu v1 → v2, tính năng F-01…F-14), kế hoạch task theo sóng + nhóm song song, kiến trúc v2 với hợp đồng bảo toàn dữ liệu, Design System v3 "Signal" (sáng/tối), UX Guidelines v2 (IA mới + ngân sách số chạm), prompts (AI trong app + mẫu cho agent).
+- Quyết định mới: D-011 (v2 dùng build: Vite + React + TS + Tailwind + Radix), D-012 (bảo toàn dữ liệu, migration chỉ thêm), D-013 (IA Hôm nay · Khách hàng · Công việc · Hiệu quả), D-014 (DS v3), D-015 (bộ máy Tín hiệu). Thêm chỉ mục quyết định.
+- Viết lại `CLAUDE.md`/`AGENTS.md` gọn hơn, có bảng v1/v2 và bản đồ đọc tài liệu theo task.
+- Không đổi code, schema, dữ liệu hay deploy.
+- File: `CLAUDE.md`, `AGENTS.md`, `docs/PRD.md`, `docs/tasks.md`, `docs/architecture.md`, `docs/DESIGN_SYSTEM.md`, `docs/UX_GUIDELINES.md`, `docs/prompts.md`, `docs/decisions.md`, `docs/README.md`, `docs/project-status.md`.
+
 ## 2026-10-15 — Chốt tự chuyển SLA và thống nhất thời hạn (D-010)
 
 - Giữ tự chuyển SLA theo D-008 làm nguyên tắc đã duyệt: không hỏi lại từng lần, giữ lịch sử/thông báo/Hoàn tác/Mở lại và phạm vi giai đoạn hiện có. Đồng bộ `AGENTS.md`/`CLAUDE.md`, UX guideline và tài liệu phễu.

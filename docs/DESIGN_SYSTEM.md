@@ -1,107 +1,154 @@
-# Sổ Khách — Design System
+# Sổ Khách — Design System v3 "Signal"
 
-> **Version:** 2.0 · 2026-10-15 · **Direction:** Modern Tech / Cool Porcelain (light-first)
-> **Purpose:** Single source of truth cho giao diện CRM của solo agent / tiny team.
-> **Companion:** `UX_GUIDELINES.md` quy định **hành vi, thứ tự thông tin và luồng thao tác**.
+> **Version:** 3.0 · 2026-10-16 · **Quyết định:** D-014 (thay phần visual của D-009). **Áp dụng:** web v2 (React + Tailwind). v1 giữ DS v2 tới cutover.
+> **Companion:** `UX_GUIDELINES.md` (hành vi, thứ tự thông tin, số chạm). File này chỉ quy định **giao diện**.
 
-## 0. Quy tắc cho AI coding agent
+## 0. Luật cho AI coding agent
 
-- **MUST:** Khi tạo/sửa UI, đọc tài liệu này và `UX_GUIDELINES.md`; tái sử dụng token, icon, component, hành vi hiện có. Không tự chế design language riêng cho một màn.
-- **MUST:** Ưu tiên khả năng đọc, sự rõ ràng và hiệu quả thao tác hơn hiệu ứng thị giác.
-- **MUST:** Đỏ / vàng / xanh lá **chỉ** thể hiện mức độ khẩn cấp hoặc kết quả/độ ổn định; **violet + sparkle** chỉ dành cho AI. Hành động chính là **graphite**, không phải xanh lá/đỏ.
-- **MUST:** Một màn có 1 điểm tập trung hành động rõ ràng. Không tạo hierarchy bằng cách tô màu mọi card.
-- **SHOULD:** Sửa token/component gốc thay vì override cục bộ; bảo toàn luồng dữ liệu/logic hiện có.
-- **NEVER:** Dùng serif cho heading, palette be/rêu/cam đất kiểu cũ, neon glow, glassmorphism làm nền chính, card lồng card, biểu đồ nhiều màu chỉ để trang trí.
-- Nếu code hiện tại khác đặc tả mới: **coi tài liệu này là chuẩn thiết kế đích**, nhưng triển khai thay đổi trong đúng phạm vi task; không tự ý refactor toàn ứng dụng hoặc đổi nghiệp vụ. Khi tài liệu này xung đột quy tắc **thiết kế cũ** trong `CLAUDE.md`/`docs/decisions.md`, báo xung đột để đồng bộ tài liệu; không xóa lịch sử quyết định.
+- **MUST** dùng token (`src/styles/tokens.css` → Tailwind theme) và component `src/ui/*`. Không hardcode màu/khoảng cách/bóng; không tạo component trùng chức năng.
+- **MUST** giữ ngữ nghĩa màu: đỏ/vàng/xanh lá **chỉ** cho thời hạn/kết quả; violet + sparkle **chỉ** cho AI; accent (Signal Blue) cho hành động chính, trạng thái chọn, focus. Không bao giờ dùng màu là tín hiệu duy nhất (luôn kèm chữ/icon).
+- **MUST** mỗi vùng tác vụ 1 CTA chính; phân cấp bằng cỡ chữ, độ đậm, khoảng trắng, độ cao bề mặt — không bằng tô màu mọi card.
+- **MUST** test cả **sáng và tối**, mobile 360/390/430px và desktop ≥1024px, dấu tiếng Việt.
+- **NEVER:** neon/glow, gradient nền trang trí, glassmorphism làm nền nội dung, card lồng card, chữ viết hoa toàn bộ, serif, biểu đồ nhiều màu trang trí, animation lặp vô hạn.
+- Khi cần token/component mới: thêm vào nguồn chung trong task sở hữu `src/ui` (xem `tasks.md`), ghi vào file này.
 
 ## 1. Ngôn ngữ thị giác
 
-**Modern Tech / Cool Porcelain:** sáng, lạnh nhẹ, sắc nét, có chiều sâu rất tiết chế; futuristic từ tương tác và cấu trúc thông tin, không từ glow/gradient. Mặc định light mode; dark mode chỉ xây khi có task riêng và phải dùng semantic tokens tương đương.
+**"Signal" = bảng điều khiển của một người làm nghề**: sạch, chính xác, dày thông tin vừa đủ, phản hồi tức thì. Cảm giác "tương lai" đến từ:
 
-### 1.1 Design tokens — bảng chuẩn đề xuất
+1. **Cấu trúc rõ:** lưới 4px, cột thẳng, nhãn dữ liệu nhỏ đều nhau, số liệu dùng chữ số đơn cách.
+2. **Bề mặt phân tầng:** nền → bề mặt → bề mặt nổi; tối dùng độ sáng bề mặt thay cho bóng.
+3. **Tín hiệu sống:** trạng thái đồng bộ, đếm ngược thời hạn, vòng SLA, chấm "đang trực tuyến" — chuyển động ngắn, có mục đích.
+4. **Điều khiển bằng bàn phím/lệnh:** Command palette, phím tắt hiển thị bằng `Kbd`.
+5. **Một màu nhấn duy nhất** (Signal Blue) trên nền trung tính lạnh; AI có màu riêng (violet).
 
-> Token dưới đây là **chuẩn đích mới** (không khẳng định đã có trong code). Tạo/mapping thành CSS variables tại một nơi; tránh hardcode rải rác.
+## 2. Token
 
-| Token | Hex | Vai trò |
+Định nghĩa một lần ở `src/styles/tokens.css` (`:root` = sáng, `[data-theme="dark"]` = tối; mặc định theo `prefers-color-scheme`, người dùng chọn được Sáng/Tối/Tự động). Tương phản đã kiểm (WCAG AA): chữ thường ≥ 4.5:1, viền điều khiển ≥ 3:1.
+
+### 2.1 Màu
+
+| Token | Sáng | Tối | Vai trò |
+|---|---|---|---|
+| `--bg` | `#F4F6F9` | `#0A0E13` | Nền app |
+| `--surface` | `#FFFFFF` | `#10161D` | Card, sheet, input |
+| `--surface-2` | `#EEF2F6` | `#161E27` | Hàng hover/chọn, header phụ, thanh dính |
+| `--surface-3` | `#E4E9EF` | `#1D2732` | Popover, menu, phần tử nổi trên surface-2 |
+| `--text` | `#0E1621` (18:1) | `#E7ECF2` (15:1) | Nội dung chính |
+| `--text-2` | `#475467` (7.7:1) | `#A7B2BF` (8.5:1) | Nội dung phụ, metadata |
+| `--text-3` | `#5F6B7A` (5.4:1) | `#8794A3` (5.9:1) | Chú thích ít ưu tiên — không nhỏ hơn 12px |
+| `--border` | `#DCE3EA` | `#253141` | Divider, viền card |
+| `--border-strong` | `#8291A2` (3.2:1) | `#5B6E86` (3.5:1) | Viền input, control chưa chọn |
+| `--accent` | `#2251E5` | `#7C9DFF` | CTA chính, tab/chọn đang active, link, focus |
+| `--accent-fg` | `#FFFFFF` (6.2:1) | `#0A1433` (7:1) | Chữ trên nền accent |
+| `--accent-soft` | `#EAF0FF` | `#17254A` | Nền chip/ô đang chọn |
+| `--danger` / `--danger-bg` | `#B42318` / `#FEF0EF` | `#FF7A70` / `#2A1416` | Quá hạn, lỗi, nguy cơ |
+| `--warning` / `--warning-bg` | `#8A5300` / `#FFF5E0` | `#F2B34B` / `#2A1F0C` | Đến hạn, quá mục tiêu, cần chú ý |
+| `--success` / `--success-bg` | `#126B3E` / `#E9F7EF` | `#4CCB8A` / `#0F2219` | Xong, đã xác nhận, đúng nhịp |
+| `--ai` / `--ai-bg` | `#6B3FD4` / `#F3EEFF` | `#B596FF` / `#1E1636` | **Chỉ AI** |
+| `--focus` | `= --accent` | `= --accent` | Vòng focus 2px + offset 2px |
+
+**Quy tắc trạng thái thời hạn (D-010):** `chưa đến hạn` trung tính · `sắp đến hạn` (trong 60 phút / hôm nay) `--warning` · `đến hạn` `--warning` đậm + chữ "Đến hạn" · `quá hạn` `--danger` + chữ "Quá hạn" · `xong` `--success`. Nguồn trạng thái: `countdownTag` — UI không tự tính.
+
+**Màu trung tính cho thực thể:** bậc phễu, loại việc, nguồn, loại căn, mức quan tâm, avatar dùng `--surface-2` + `--text-2` + icon. Không gán màu riêng cho từng bậc.
+
+**Biểu đồ:** chuỗi chính `--accent`, chuỗi so sánh `--text-3`, tối đa thêm 2 sắc độ của accent; màu semantic chỉ khi dữ liệu là trạng thái (quá hạn/đúng hạn).
+
+### 2.2 Typography
+
+- **Sans:** `Be Vietnam Pro` (tự host qua `@fontsource/be-vietnam-pro`, weight 400/500/600/700; fallback `system-ui, -apple-system, "Segoe UI", Roboto, sans-serif`). Thiết kế cho tiếng Việt — dấu chồng không vỡ.
+- **Mono (dữ liệu):** `JetBrains Mono` 500 cho giờ, đếm ngược, số tiền, mã căn, SĐT trong bảng, phím tắt. Không dùng mono cho câu văn.
+- `font-variant-numeric: tabular-nums` cho mọi con số trong danh sách/KPI.
+
+| Vai trò | Cỡ / dòng / weight | Dùng cho |
 |---|---|---|
-| `--bg` | `#F6F8FA` | Nền app, Cool Porcelain |
-| `--surface` | `#FFFFFF` | Card, input, sheet |
-| `--surface-subtle` | `#F1F4F7` | Header phụ, hover/selected trung tính |
-| `--text` | `#17212B` | Nội dung chính / primary button |
-| `--text-secondary` | `#526170` | Nội dung phụ, metadata |
-| `--text-muted` | `#667085` | Chú thích ít ưu tiên; không dùng quá nhỏ |
-| `--border` | `#DDE4EA` | Divider, card/input border |
-| `--border-strong` | `#B8C5D0` | Input focus-neutral / selected border |
-| `--danger` / `--danger-bg` | `#B4232E` / `#FFF1F2` | Quá hạn, nguy cơ cần xử lý ngay |
-| `--warning` / `--warning-bg` | `#996100` / `#FFF7E7` | Sắp tới hạn, cảnh báo cần chú ý |
-| `--success` / `--success-bg` | `#166534` / `#ECFDF3` | Hoàn thành, tạm ổn, đã xác nhận |
-| `--ai` / `--ai-bg` | `#6539C6` / `#F5F1FF` | AI-only: icon, label, insight |
-| `--focus-ring` | `#365F9B` | Focus bàn phím; **không** phải màu mức độ ưu tiên |
+| `display` | 28/34 · 600 | Số KPI chủ đạo, tiêu đề NBA |
+| `title` | 20/28 · 600 | Tiêu đề màn |
+| `section` | 16/24 · 600 | Tiêu đề khối |
+| `body-strong` | 15/22 · 600 | Tên khách, nhãn hành động |
+| `body` | 15/22 · 400 | Nội dung |
+| `small` | 13/18 · 400 | Metadata, lý do |
+| `label` | 12/16 · 500 · tracking 0.02em | Nhãn dữ liệu, eyebrow (không viết hoa toàn bộ) |
+| `mono-data` | 13/18 · 500 mono | Giờ, số tiền, mã |
 
-**Ý nghĩa màu là semantic, không theo thực thể:** loại công việc, stage, avatar, loại căn, kênh liên hệ và chart series mặc định dùng graphite/blue-grey trung tính; không chiếm đỏ/vàng/xanh lá hoặc violet-AI. Mức quan tâm khách (nguội → nóng) dùng **text + icon/độ đậm trung tính**, không mượn màu cảnh báo. `Đến hạn` và `quá hạn` cùng họ đỏ nhưng ghi rõ nhãn chữ; `sắp đến hạn` vàng; `chưa đến hạn` trung tính; `đã xử lý` xanh lá. **Không bao giờ dựa vào màu làm tín hiệu duy nhất.**
+Mỗi màn tối đa **3 cấp chữ nổi bật** (ví dụ title → section → body-strong). Không bôi đậm cả đoạn. Tên dài ellipsis + xem đủ khi chạm/hover; không cắt giờ hẹn.
 
-**Contrast:** văn bản thường ≥ 4.5:1; văn bản lớn và thành phần UI không phải chữ ≥ 3:1 (WCAG AA). Các màu chữ trên nền trạng thái đã được chọn để đạt ≥ 4.5:1; kiểm tra lại khi đổi màu/opacity. Không dùng chữ `--text-muted` với opacity giảm trên nền sáng.
+### 2.3 Khoảng cách, bo góc, độ cao
 
-### 1.2 Typography
+- Lưới 4px; scale `4 · 8 · 12 · 16 · 20 · 24 · 32 · 40`. Lề trang mobile 16px (12px khi < 360px). Giữa các section 24px; trong section 12–16px.
+- Bo góc: control 10px · card 14px · sheet 20px (góc trên) · chip/pill 999px.
+- Độ cao: `e0` phẳng (trên nền) · `e1` card = viền 1px `--border` (sáng có thể thêm `0 1px 2px rgb(16 24 40 / .04)`) · `e2` sticky bar/FAB = `0 4px 16px rgb(16 24 40 / .08)` · `e3` sheet/popover = `0 12px 32px rgb(16 24 40 / .14)`. Tối: dùng `--surface-2/3` thay bóng, viền 1px `--border`.
+- Thanh dính (header, bottom nav, action bar) được dùng `backdrop-filter: blur(12px)` với nền `--surface` 85% — **chỉ** ở 3 vị trí này, có fallback nền đặc.
 
-- Dùng **sans-serif**, ưu tiên `Inter` (hoặc font sans hiện có hỗ trợ tiếng Việt tốt); fallback hệ thống. Font heading serif `Georgia/Times` cũ **được thay thế**.
-- Phân cấp: Page title `24–28px / 600–700`; Section title `17–18px / 600`; card title / tên khách `15–16px / 600`; body `14–15px / 400`; secondary `13–14px / 400`; meta `12–13px / 400`. Số KPI chủ đạo có thể `22–28px / 600`.
-- Dùng `font-variant-numeric: tabular-nums` cho KPI, thời gian, số tiền; dòng body line-height `1.45–1.6`. Chỉ bôi đậm cho tiêu đề, thực thể cần quét nhanh, con số chủ đạo — **không bôi đậm cả đoạn**.
-- Không viết hoa toàn bộ nhãn; tránh italic trang trí. Tên khách dài phải ellipsis nhưng xem được đầy đủ; không cắt nội dung quan trọng như giờ hẹn.
-- Kiểm tra hiển thị tiếng Việt: “Trường”, “Hưởng”, “Ngữ”, “Tự”, “Đường”.
+### 2.4 Chuyển động
 
-### 1.3 Spacing, shape, elevation
+- Thời lượng: `fast 120ms` (hover, nhấn) · `base 200ms` (mở menu, đổi tab) · `slow 280ms` (sheet, chuyển màn). Easing chuẩn `cubic-bezier(.2,.8,.2,1)`; thoát `cubic-bezier(.4,0,1,1)`.
+- Hoàn tất việc: dòng thu gọn + chuyển xanh 200ms rồi rời hàng đợi; hiện Toast có Hoàn tác.
+- Đếm ngược/trạng thái đồng bộ đổi giá trị không nhấp nháy; skeleton shimmer tối đa 1,2s/chu kỳ, dừng khi có dữ liệu.
+- `prefers-reduced-motion`: tắt trượt/thu gọn, chỉ đổi opacity.
 
-- Scale spacing: `4 / 8 / 12 / 16 / 20 / 24 / 32px`; khoảng cách 2 section thường `20–24px`.
-- Mobile page gutter `16px` (ở 320–359px cho phép `12px`); bố cục mobile-first; thử `320 / 375 / 390 / 430px`, desktop ≥ `900px`.
-- Radius: controls `10–12px`, card `14–16px`, pill `999px`; icon container `10–12px`.
-- Card: nền trắng, viền 1px `--border`, shadow cực nhẹ hoặc không; dùng divider để nhóm dòng. **Không** lồng 2–3 lớp card chỉ nhằm phân cấp.
-- Desktop: max-width vùng đọc tập trung khoảng `720px` khi phù hợp; danh sách/bảng/analytics có thể rộng hơn có chủ đích.
+### 2.5 Icon
 
-## 2. Component contract
+- Registry duy nhất `src/config/icons.ts` (D-006): **khái niệm → icon** (dùng glyph `lucide-react`, stroke 1.75, `currentColor`). Component `<Icon name="call" />`; không import icon trực tiếp trong feature.
+- Kích thước: 16 (inline chữ nhỏ) · 20 (dòng danh sách, nút) · 24 (nav, tiêu đề).
+- Khái niệm giữ từ v1: `call`, `call_sched`, `call_again`, `message` (Zalo), `task`, `alarm`, `customers`, `new_lead`, `booking`, `contract`, `nurture`, `sla`, `ai`, `chart`, `insight`, `home`, `idle`, `hot`, các icon bậc (`STAGE_ICON`). Thêm: `note`, `voice`, `promise_me`, `promise_customer`, `segment`, `retarget`, `health`, `capacity`, `session` (phiên gọi), `command`, `sync`, `offline`.
 
-| Component | Quy tắc bắt buộc |
+## 3. Component contract (`src/ui`)
+
+| Component | Quy tắc |
 |---|---|
-| `AppShell` | Header/safe area/bottom nav dùng màu surface nhất quán, đường phân cách mảnh; không đổi màu nền theo từng tab. |
-| `Section` | Title 17–18px semibold; metadata/CTA nhỏ hơn, không cạnh tranh với title. |
-| `Card` | Chỉ dùng khi cần nhóm nội dung/hành động; list rows có thể nằm trực tiếp trên surface, không cần 1 card mỗi dòng. |
-| `PrimaryButton` | Graphite background + chữ trắng; 1 CTA chính trong một vùng tác vụ; disabled có trạng thái riêng. |
-| `SecondaryButton` | Surface + border + chữ graphite; không tô status color cho nút Gọi/Zalo/Thêm. |
-| `StatusBadge` | Nhãn + icon (nếu cần) + 1 trong 3 semantic colors, chỉ khi có ý nghĩa deadline/kết quả thực. |
-| `NeutralBadge` | Stage, loại việc, phân loại khách, nguồn, product: xám/blue-grey + chữ dễ đọc. |
-| `AIInsight` | Violet + biểu tượng `ai`/sparkle + nhãn `Gợi ý AI`; nêu phát hiện, căn cứ và CTA; không dùng màu AI cho cảnh báo. |
-| `NextAction` | 1 nhiệm vụ ưu tiên, tên khách, lý do, hạn (nếu có), CTA và truy cập hồ sơ; nổi bằng hierarchy/spacing, **không mặc định dùng đỏ**. |
-| `ListRow` | Tên/thao tác rõ; metadata nhỏ; trạng thái độc lập; ưu tiên dạng dòng gọn thay card cao. |
-| `Tabs / Filters` | Active dùng graphite hoặc underline; badge đếm trung tính trừ khi đếm thật sự là alert. Có trạng thái focus. |
-| `Dialog / Sheet` | Mobile ưu tiên bottom sheet cho lựa chọn nhanh; tác vụ dài dùng full-screen view; luôn có Close/Cancel. |
-| `Empty / Loading / Error` | Hiển thị trạng thái và việc tiếp theo; skeleton không gây dịch chuyển bố cục, error không che hành động khôi phục. |
+| `AppShell` | Mobile: header 56px + bottom nav 64px + safe-area. Desktop ≥1024: rail trái 72px (mở rộng 240px), vùng chính tối đa 760px cho màn đọc, panel ngữ cảnh phải 360px. Không đổi màu nền theo tab. |
+| `BottomNav` | 4 tab + nút ＋ giữa (56px, accent). Tab active: icon + chữ `--accent`, chỉ báo 2px. Badge số chỉ khi là cảnh báo thật. |
+| `Header` | Tiêu đề màn · ô tìm/lệnh (`Cmd K`) · `SyncIndicator` · avatar. Thu gọn khi cuộn. |
+| `CommandPalette` | Radix Dialog; tìm khách (tên/SĐT/dự án/ghi chú), lệnh (Gọi X, Ghi chú cho X, Thêm khách…), màn. Điều khiển bằng phím; mobile mở full-screen. |
+| `Button` | `primary` (accent) · `secondary` (surface + viền) · `ghost` · `danger` (chỉ hành động phá huỷ) · `ai` (viền/chữ violet). Cao 44px (mobile) / 36px (desktop compact). Có `loading`, `disabled`. |
+| `IconButton` | 44×44 vùng chạm, `aria-label` bắt buộc. Gọi/Zalo/Ghi chú dùng `secondary`, không tô màu trạng thái. |
+| `ActionBar` | Thanh dính đáy hồ sơ/sheet: Gọi · Zalo · Ghi chú · Hẹn (4 ô đều, icon + nhãn). |
+| `NextActionCard` (NBA) | Eyebrow lý do (label) → tên khách (display/title) → hành động + hạn (`DeadlineTag`) → bằng chứng (chips) → Brief rút gọn → CTA chính + 2 phụ. Một card duy nhất mỗi màn. Không mặc định đỏ; chỉ `DeadlineTag` mang màu. |
+| `QueueRow` | Avatar 36 · tên (body-strong) · hành động + lý do (small) · `DeadlineTag` phải · IconButton Gọi/Zalo. Chạm dòng = mở ngữ cảnh; vuốt trái = Xong/Dời; vuốt phải = Gọi. |
+| `ListRow` | Như QueueRow, không bắt buộc deadline; có `HealthDot` + `StageChip`. Không bọc mỗi dòng 1 card. |
+| `DeadlineTag` | Nhận kết quả `countdownTag` → chữ + màu semantic + mono cho giờ ("Quá hạn 2 giờ", "Đến hạn", "14:30"). |
+| `StageChip` | Trung tính + icon bậc + vòng SLA mini tuỳ chọn. |
+| `SlaRing` | Vòng tiến độ thời gian ở bậc: trung tính → `--warning` (quá mục tiêu) → `--danger` (quá hạn mức); vạch mốc mục tiêu. |
+| `HealthDot` | 8px + chữ ẩn cho screen reader: Đúng nhịp (success) / Đang trễ (warning) / Nguy cơ (danger) / Chưa đủ dữ liệu (viền trung tính). |
+| `SignalCard` | Tín hiệu rule: icon khái niệm + tiêu đề + "Vì sao" (bằng chứng, số liệu có n) + CTA + Ẩn/Hoãn. **Không** dùng màu AI. |
+| `AIBlock` | Viền trái 2px `--ai`, nhãn "Gợi ý AI" + sparkle, nội dung, nguồn ("dựa trên 3 ghi chú gần nhất"), nút Dùng/Sửa/Bỏ. Trạng thái đang tạo: skeleton violet nhạt. |
+| `BriefCard` | Lưới 2 cột label/giá trị (mua để · cần · tài chính · người quyết định · phản đối · lời hứa mở · liên hệ cuối). Giá trị thiếu: chữ `--text-3` "Chưa biết" + gợi ý câu hỏi. |
+| `FactRow` | Nhãn · giá trị · nguồn/độ mới (label, `--text-3`: "Sale · 12/10", "AI đã duyệt · 3 ngày") · sửa inline. Dữ liệu cũ > 90 ngày: icon đồng hồ + "Cần xác nhận". |
+| `Timeline` | Dòng thời gian hợp nhất; icon khái niệm theo loại; nhóm theo ngày; mốc tự động (SLA, AI) có nhãn nguồn. |
+| `OutcomePicker` | 4 nút lớn (Nói chuyện được · Không nghe/không liên lạc · Bận, hẹn lại · Sai số/không phù hợp) + "Khác" mở đủ `CALL_RESULTS`. |
+| `SlotPicker` | Chip ngày (Hôm nay/Mai/T2…) + chip khung `callSlots` (A/B/C/D, tên + giờ mono); khung gợi ý được chọn sẵn và có nhãn "Gợi ý". |
+| `Sheet` | Radix Dialog dạng bottom sheet (mobile) / side sheet (desktop). Có tay nắm, Đóng, bảo vệ bản nháp khi đóng ngoài ý muốn. |
+| `MetricTile` | Giá trị (display, mono số) · nhãn · tử/mẫu ("12/18 khách") · kỳ · xu hướng (▲▼ + chữ) · cảnh báo cỡ mẫu. Không có dữ liệu → "—" + "Chưa đủ dữ liệu". |
+| `MiniChart` | Sparkline/bar/funnel SVG tự vẽ, trục tối giản, nhãn trực tiếp, không legend nếu ≤2 chuỗi; có bảng dữ liệu thay thế cho screen reader. |
+| `Tabs`, `SegmentedControl` | Active = accent (chữ + gạch dưới 2px hoặc nền `--accent-soft`). |
+| `Badge` | `neutral` · `status` (semantic) · `ai` · `count`. |
+| `Toast` | Đáy màn trên bottom nav; có Hoàn tác khi phù hợp; lỗi có "Thử lại". |
+| `SyncIndicator` | Chấm + chữ ngắn: Đã đồng bộ 14:02 · Chờ 3 thay đổi · Ngoại tuyến · Lỗi đồng bộ (nhấn xem chi tiết). |
+| `EmptyState`, `Skeleton`, `ErrorState` | Mỗi danh sách/khối đều có; empty nói việc tiếp theo hữu ích; skeleton giữ đúng kích thước. |
+| `Kbd` | Hiển thị phím tắt (desktop). |
 
-Icon: **một khái niệm = một icon trên toàn app**. Tái sử dụng `js/icons.js` (`ICON_PATHS`, `STAGE_ICON`, `icon()`, `stageIcon()`, `data-icon`); mặc định `24×24`, stroke ~`1.8`, `currentColor`; kích thước trong list `18–20px`. Các icon khái niệm hiện có (`call`, `call_sched`, `call_again`, `message`, `task`, `alarm`, `customers`, `new_lead`, `booking`, `contract`, `ai`...) **giữ mapping**; thêm concept mới vào registry, không duplicate SVG. Icon UI thuần (back/close/more/filter) có thể dùng bộ chung.
+## 4. Bố cục mẫu
 
-## 3. Responsive & accessibility
+- **Hôm nay (mobile):** header gọn (lời chào + "12 việc · ~95 phút · 2 quá hạn") → NBA → thanh sức làm khung hiện tại → hàng đợi (lọc) → 1 SignalCard → lối tắt.
+- **Hồ sơ (mobile):** header (avatar, tên, StageChip + SlaRing, HealthDot) → Bước tiếp theo → Brief → Timeline/Trí nhớ/Nhu cầu/Tài liệu (tab dính) → ActionBar dính đáy.
+- **Desktop ≥1024:** rail trái · danh sách/hàng đợi giữa · hồ sơ hoặc Brief ở panel phải (chọn dòng không đổi màn).
+- **Hiệu quả:** MetricTile 2 cột (mobile) / 4 cột (desktop) → biểu đồ nhỏ → danh sách "Cần cải thiện" có CTA.
 
-- Mobile-first; bottom navigation, search, filter, sheet có vùng chạm **≥44×44px** khi khả thi (tối thiểu 24×24 CSS px theo WCAG 2.2 AA, tránh mục tiêu sát nhau). Respect `env(safe-area-inset-*)`.
-- Header không che nội dung; bottom nav/sticky CTA không che dòng cuối, bàn phím hoặc form. Chỉ dùng 1 CTA nổi chính ở một thời điểm.
-- Trạng thái: default / hover / focus-visible / active / disabled / loading / success / error. Không dùng hover làm cách duy nhất truy cập action (mobile không có hover).
-- Đảm bảo tab, dialog, input, menu hoạt động qua keyboard, focus rõ, `aria-label` cho icon-only buttons, `aria-live` ở số đếm kết quả/validation phù hợp.
-- Motion 120–220ms cho phản hồi ngắn; hỗ trợ `prefers-reduced-motion`; **không** glow/pulse liên tục hoặc animation trang trí chặn thao tác.
+## 5. Responsive & truy cập
 
-## 4. Mapping với code hiện tại (kiểm tra trước khi sửa)
+- Breakpoint: `sm` < 640 · `md` 640–1023 · `lg` ≥ 1024. Kiểm tra 320/360/390/430/768/1280.
+- Vùng chạm ≥ 44×44 (tối thiểu 24×24 + khoảng cách theo WCAG 2.2); thao tác chính trong tầm ngón cái (nửa dưới màn).
+- Bàn phím: mọi dialog/sheet bẫy focus và trả focus; `aria-live="polite"` cho đếm kết quả, Toast, trạng thái đồng bộ; icon-only có nhãn.
+- Bottom nav / ActionBar / bàn phím ảo không che input đang nhập hoặc dòng cuối.
 
-- CSS chủ yếu tại `css/style.css`; module vay `css/loan.css`, **giữ namespace `.lm-`**. Không tạo style module vay làm ảnh hưởng global.
-- Các class cũ `.dcard`, `.dcard-head`, `.dcard-go`, `--card-*`, `.call-soon/.call-due/.call-missed`, `.kind-*` có thể **mapping** sang tokens mới trước khi đổi markup; tránh phá screen đang hoạt động.
-- Các nguồn semantic cũ: `CARE_STAGE_COLORS`, `CONTACT_STATUS_COLORS`, `INTEREST_TIERS`, `TASK_KINDS` (`js/app.js`) và `js/icons.js`. **Di chuyển màu trạng thái thời hạn về quy tắc semantic này**, còn stage/kind/interest chuyển thành neutral; giữ nguyên dữ liệu nghiệp vụ.
-- Nếu dùng `[hidden]` từ JS, giữ `[hidden] { display: none !important; }` và test cả hiện/ẩn.
-- Header, bottom nav, tab và customer detail hiện tồn tại: **giữ route/ID/handler cũ trong bước đổi theme**, chỉ thay cấu trúc khi task UX tương ứng yêu cầu.
+## 6. Definition of Done — UI
 
-## 5. Definition of done — UI task
+- [ ] Chỉ dùng token + component `src/ui`; không màu/khoảng cách tự chế.
+- [ ] Đúng ngữ nghĩa màu (semantic, accent, AI); không phụ thuộc màu đơn thuần.
+- [ ] Phân cấp ≤ 3 cấp nổi bật; 1 CTA chính mỗi vùng.
+- [ ] Sáng + tối; 360–430px + ≥1024px; dấu tiếng Việt đúng ở tiêu đề và tên.
+- [ ] Đủ trạng thái loading/empty/error/offline/disabled; focus/keyboard; reduced-motion.
+- [ ] Không đổi logic/dữ liệu ngoài phạm vi task; đối chiếu `UX_GUIDELINES.md`.
 
-- [ ] Dùng token chung; không hardcode palette riêng, không đưa thêm màu mới.
-- [ ] Semantic đỏ-vàng-xanh chỉ dùng cho mức ưu tiên/kết quả; violet chỉ dùng cho AI.
-- [ ] Heading/body/metadata phân cấp đúng, không chữ phụ quá nhạt; test contrast.
-- [ ] Một CTA trọng tâm; list/card gọn; không lồng khung không cần thiết.
-- [ ] Icon/mapping nhất quán; mobile 320–430px không tràn, không bị nav che.
-- [ ] Đủ loading/empty/error/keyboard/focus/reduced-motion khi liên quan.
-- [ ] Không thay đổi logic/data/điều hướng ngoài scope; kiểm tra liên kết với `UX_GUIDELINES.md`.
-
-**Nguyên tắc ưu tiên khi xung đột:** correctness & privacy → accessibility → UX rules → semantic colors → visual details. Ghi rõ đề xuất ngoại lệ, không tự áp dụng toàn app.
+**Thứ tự ưu tiên khi xung đột:** đúng dữ liệu & riêng tư → truy cập → luật UX → ngữ nghĩa màu → chi tiết thị giác.

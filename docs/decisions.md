@@ -4,9 +4,27 @@
 
 Git lưu thay đổi code; file này lưu quyết định có tác động đến nguyên tắc, lý do và phạm vi áp dụng. Không phải bản sao changelog hoặc danh sách mọi ý tưởng thảo luận.
 
-Các lựa chọn nền tảng được mô tả trong CLAUDE.md nguồn đã được giữ ở `CLAUDE.md`, `architecture.md` và `design.md`. Không tự tạo ngày duyệt hoặc người duyệt cho chúng.
+Lựa chọn nền tảng ban đầu (Supabase, Cloudflare Pages, local-first) không có ngày duyệt riêng; không tự tạo ngày/người duyệt cho chúng.
 
-Hiện chưa có ngoại lệ đã duyệt được xác định từ file nguồn.
+## Chỉ mục nhanh (đọc bảng này trước, mở chi tiết khi cần)
+
+| Mã | Chủ đề | Trạng thái | Còn hiệu lực ở v2? |
+|---|---|---|---|
+| D-001 | 2 lớp khách (`qualified_at`) + nguồn 3 trục | Đang áp dụng | ✅ giữ nguyên |
+| D-002 | Vỏ Android Capacitor đọc nhật ký gọi, gọi thẳng | Đang áp dụng | ✅ giữ vỏ; phần "web không build" thay bởi D-011 |
+| D-003 | Nhóm sale, giao khách, followers chỉ xem | Đã code, SQL chưa chạy | ✅ giữ nguyên |
+| D-004 | Điều hướng Tổng quan · Khách hàng (3 nhóm khách) | Lịch sử | Nhóm khách giữ; tab thay bởi D-013 |
+| D-005 | Khung giờ gọi 1 nguồn (`callSlots`) | Đang áp dụng | ✅ nguồn chuyển sang `src/config/followup.ts` |
+| D-006 | Icon 1 nguồn | Đang áp dụng | ✅ nguồn chuyển sang `src/config/icons.ts` |
+| D-007 | 4 tab chính | Lịch sử | Thay bởi D-013 (vẫn 4 tab) |
+| D-008 | Phễu 5 giai đoạn + SLA + tự chuyển | Đang áp dụng | ✅ nguồn chuyển sang `src/config/velocity.ts` |
+| D-009 | Design System v2 Cool Porcelain | Lịch sử | Thay bởi D-014 (giữ quy tắc màu semantic) |
+| D-010 | Tự chuyển SLA + định nghĩa đến hạn/quá hạn (`countdownTag`) | Đang áp dụng | ✅ giữ nguyên |
+| D-011 | v2 dùng build step: Vite + React + TS + Tailwind + Radix | Đã duyệt hướng 2026-10-16 | Áp dụng từ T1.1 |
+| D-012 | Hợp đồng bảo toàn dữ liệu, migration chỉ thêm | Đã duyệt hướng 2026-10-16 | Áp dụng ngay (cả v1) |
+| D-013 | IA/UX v2: Hôm nay · Khách hàng · Công việc · Hiệu quả | Đã duyệt hướng 2026-10-16 | Áp dụng cho v2 |
+| D-014 | Design System v3 "Signal" (sáng + tối) | Đã duyệt hướng 2026-10-16 | Áp dụng cho v2 |
+| D-015 | Bộ máy Tín hiệu là nguồn duy nhất cho ưu tiên/gợi ý/thông báo | Đã duyệt hướng 2026-10-16 | Áp dụng cho v2 |
 
 ## Ba loại kết quả
 
@@ -194,3 +212,57 @@ Ví dụ và mẫu trong bộ tài liệu không phải sự chấp thuận cho 
 - Chấp thuận: người dùng xác nhận trực tiếp: “Khi quá SLA thì tự chuyển… tự động đỡ phải bấm nhiều gây rối”; “Thống nhất theo công việc, hồ sơ”.
 - Tài liệu: `AGENTS.md`, `CLAUDE.md`, `docs/UX_GUIDELINES.md`, `docs/funnel-velocity.md`, audit UI/UX và changelog.
 - Trạng thái: áp dụng local; chưa deploy.
+
+
+### D-011 — v2 chuyển frontend sang có build step
+
+- Ngày: 2026-10-16
+- Loại: Đổi nguyên tắc toàn dự án
+- Nguyên tắc liên quan: `CLAUDE.md` §2 cũ ("Frontend HTML/CSS/JavaScript thuần, không build step"); D-002 (phạm vi build chỉ ở `android-app/`)
+- Quyết định: v2 dùng **Vite + React 19 + TypeScript (strict) + Tailwind CSS v4 + Radix UI primitives**, Zod cho schema dữ liệu, Vitest + Playwright cho kiểm thử, Biome cho lint/format, `vite-plugin-pwa` cho PWA. Cloudflare Pages build `npm ci && npm run build` → `dist/`. v1 giữ nguyên không build cho tới cutover (T5.4); sửa v1 trong giai đoạn chuyển đổi chỉ cho lỗi nghiêm trọng.
+- Lý do: `js/app.js` 7.800 dòng dạng chuỗi HTML + biến toàn cục khiến đại tu UI và nhiều agent làm song song rất dễ xung đột; TypeScript + schema bắt lỗi dữ liệu sớm (quan trọng cho bảo toàn dữ liệu); Radix cho sheet/dialog/tab truy cập được; Tailwind + token giúp agent giữ đúng Design System; hệ sinh thái React là thứ agent AI viết đúng nhất. Chủ dự án không phải thao tác build: Cloudflare tự build khi push.
+- Đánh đổi: thêm `package.json`/`node_modules`, cần Node khi chạy local, đổi build settings Cloudflare một lần lúc cutover; viết lại UI (logic nghiệp vụ được port có golden test).
+- Phương án đã cân nhắc: giữ không build + tách ES modules (rẻ nhưng không có kiểu dữ liệu/component, khó làm UI mới); Svelte/Vue (gọn nhưng agent kém quen hơn, ít component truy cập sẵn).
+- Phạm vi: toàn bộ web app v2. Không đổi Supabase, Worker, vỏ Android (D-002 vẫn hiệu lực cho `android-app/`).
+- Chấp thuận: người dùng cho phép "có thể đổi luôn nguyên tắc no build thành build nếu các thư viện nền tảng sẵn có tối ưu hơn" (chat 2026-10-16); agent đánh giá là tối ưu hơn và chọn stack trên. Chủ dự án có thể đổi stack trước khi bắt đầu T1.1.
+- Tài liệu: `CLAUDE.md`, `AGENTS.md`, `docs/architecture.md`, `docs/tasks.md`.
+- Trạng thái: Đã duyệt hướng; chưa triển khai.
+
+### D-012 — Hợp đồng bảo toàn dữ liệu cho đại tu
+
+- Ngày: 2026-10-16
+- Loại: Nguyên tắc toàn dự án (áp dụng ngay, cả v1)
+- Quyết định: (1) migration chỉ **thêm**, cấm drop/rename/đổi kiểu/đổi nghĩa mã đã lưu; (2) giữ mô hình `customers` aggregate (mảng JSONB trên hàng) cho v2; (3) ghi theo trường (patch), không làm rơi trường/thuộc tính lạ; (4) audit trigger append-only `customer_changes` trước mọi việc khác; (5) xoá mềm `archived_at`; (6) backup + diễn tập khôi phục trước migration production và trước cutover; (7) v2 đọc/ghi được DB IndexedDB và queue của v1. Chi tiết: `architecture.md` §3.
+- Lý do: người dùng yêu cầu "mọi dữ liệu phải được bảo toàn"; chuẩn hoá bảng (interactions/opportunities riêng) đem lại ít lợi ích ở quy mô hiện tại nhưng rủi ro chuyển dữ liệu và đồng bộ offline lớn.
+- Đánh đổi: phân tích nặng chạy ở client; mảng JSONB có thể mất phần tử nếu 2 máy sửa cùng mảng cùng lúc (rủi ro đã chấp nhận từ v1, giảm nhờ audit).
+- Chấp thuận: yêu cầu trực tiếp của người dùng (chat 2026-10-16).
+- Tài liệu: `docs/architecture.md`, `CLAUDE.md`, `AGENTS.md`.
+- Trạng thái: Đã duyệt hướng; audit/backup làm ở Phase 0.
+
+### D-013 — Kiến trúc thông tin và UX v2
+
+- Ngày: 2026-10-16
+- Loại: Đổi cách tổ chức UI (thay D-007 về tên/nội dung tab; vẫn 4 tab + nút ＋)
+- Quyết định: 4 tab **Hôm nay** (thay Tổng quan: Next Best Action, hàng đợi, sức làm, phiên gọi) · **Khách hàng** (Tiềm năng · Khách mới · Tệp & Retarget · Khách nhóm) · **Công việc** · **Hiệu quả** (thay Phân tích: Chăm sóc · Phễu · Marketing). Nút ＋ = Ghi nhanh (khách/ghi chú/việc). Tìm kiếm + lệnh toàn cục Cmd/Ctrl+K. Ngân sách số chạm cho Gọi/Zalo/Ghi chú/Hẹn theo `UX_GUIDELINES.md` §3. Desktop ≥1024px: thanh điều hướng trái + vùng chính + panel ngữ cảnh.
+- Lý do: 5 ưu tiên sản phẩm của người dùng (chat 2026-10-16) và nghiên cứu `docs/CRM bất động sản 2026.md`.
+- Tài liệu: `docs/PRD.md`, `docs/UX_GUIDELINES.md`.
+- Trạng thái: Đã duyệt hướng; áp dụng cho v2.
+
+### D-014 — Design System v3 "Signal"
+
+- Ngày: 2026-10-16
+- Loại: Đổi nguyên tắc thiết kế toàn dự án (thay phần visual của D-009)
+- Quyết định: phong cách hiện đại / công nghệ / tương lai bằng cấu trúc và chuyển động chứ không bằng trang trí: nền lạnh, bề mặt phân tầng, chữ số đơn cách cho dữ liệu, chế độ **sáng + tối** ngang hàng (mặc định theo hệ thống), font **Be Vietnam Pro**, CTA chính dùng **accent Signal Blue** (thay graphite). Giữ từ D-009: đỏ/vàng/xanh lá chỉ cho thời hạn/kết quả, violet chỉ cho AI, không neon/glow, không card lồng card, một CTA chính mỗi vùng.
+- Lý do: người dùng yêu cầu giao diện "hiện đại, công nghệ, tương lai" và phân cấp thị giác tốt (chat 2026-10-16).
+- Tài liệu: `docs/DESIGN_SYSTEM.md` (v3).
+- Trạng thái: Đã duyệt hướng; áp dụng cho v2 (v1 giữ D-009 đến cutover).
+
+### D-015 — Bộ máy Tín hiệu (signals) là nguồn duy nhất cho ưu tiên việc và gợi ý
+
+- Ngày: 2026-10-16
+- Loại: Nguyên tắc toàn dự án (v2)
+- Quyết định: mọi "việc nên làm", gợi ý, thông báo trong app và gợi ý ở Hiệu quả sinh từ registry rule `src/domain/signals/rules/*` (mỗi rule 1 file: điều kiện, bằng chứng, mức P0–P2, hành động, điều kiện dừng, ngưỡng dữ liệu). Ngưỡng/tham số ở `src/config/signals.ts`. Hôm nay, chuông, hồ sơ, Hiệu quả chỉ đọc kết quả registry; không tự viết logic ưu tiên riêng. AI chỉ giải thích/soạn nháp cho tín hiệu, không đổi mức ưu tiên. Thời hạn theo D-010; tự chuyển SLA theo D-008/D-010 không đổi.
+- Lý do: v1 có 3 nơi tự tính ưu tiên (`dashActionGroups`, `notifications.js`, `analyticsInsightsHtml`) → dễ lệch nhau; registry cho phép nhiều agent thêm rule song song.
+- Tài liệu: `docs/PRD.md` F-04, `docs/UX_GUIDELINES.md` §6, `docs/architecture.md` §2.
+- Trạng thái: Đã duyệt hướng; áp dụng cho v2.
+
