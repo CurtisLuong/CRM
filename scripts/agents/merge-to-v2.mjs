@@ -186,6 +186,9 @@ for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
   if (p.status === 0) {
     gitTry('push', '-q', '--force-with-lease', REMOTE, `HEAD:refs/heads/${branch}`); // lưu nhánh task (lịch sử)
     console.log(`\n✓ ĐÃ MERGE ${TID} vào ${BASE} (${git('rev-parse', '--short', 'HEAD')}).`);
+    // Dọn worktree của các task KHÁC đã merge (worktree này giữ lại — agent còn đang đứng trong đó).
+    // Lỗi khi dọn không ảnh hưởng kết quả merge.
+    if (fs.existsSync('scripts/agents/cleanup-worktrees.mjs')) spawnSync('node', ['scripts/agents/cleanup-worktrees.mjs'], { stdio: 'inherit' });
     process.exit(0);
   }
   if (!/rejected|non-fast-forward|fetch first/i.test(p.stderr)) die(7, `Push lỗi: ${p.stderr.trim()}`);
