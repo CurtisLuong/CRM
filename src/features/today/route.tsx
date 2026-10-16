@@ -1,0 +1,370 @@
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type { FeatureRoute } from '@/app/routes';
+import { useAppSession } from '@/app/session';
+import { useCustomers, useRepositoryAccount, useSyncStatus } from '@/data/hooks';
+import type { Customer, Task } from '@/domain/customer';
+import { forStage } from '@/domain/followup';
+import type { Signal } from '@/domain/signals';
+import { applySlaPlan, planSlaAutomation, slaPlanMessage } from '@/domain/velocity/automation';
+import { QuickActionButtons } from '@/features/quick-actions/QuickActions';
+import { Badge, Button, EmptyState, Loading, Skeleton } from '@/ui';
+import { capacityPlan, endOfDaySummary, type QueueFilter, queueRows, visibleQueue } from './model';
+
+const FILTERS: { key: QueueFilter; label: string }[] = [
+  { key: 'priority', label: 'Ưu tiên' },
+  { key: 'new', label: 'Khách mới' },
+  { key: 'promise', label: 'Lời hứa' },
+  { key: 'opportunity', label: 'Cơ hội' },
+];
+const formatDue = (due?: number) =>
+  due == null ? 'Chưa có hạn' : new Date(due).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' });
+
+function SignalActions({ signal, customer }: { signal: Signal; customer: Customer }) {
+  const account = useRepositoryAccount();
+  const [failure, setFailure] = useState('');
+  const taskEvidence = signal.evidence.find((entry) => entry.field === 'task')?.value as Partial<Task> | undefined;
+  const task = (Array.isArray(customer.next_tasks) ? customer.next_tasks : []).find(
+    (entry) =>
+      entry &&
+      !entry.done_at &&
+      ((!!taskEvidence?.key && entry.key === taskEvidence.key) ||
+        (!!taskEvidence?.at && entry.at === taskEvidence.at) ||
+        (!taskEvidence?.key &&
+          !taskEvidence?.at &&
+          entry.due === taskEvidence?.due &&
+          entry.text === taskEvidence?.text)),
+  );
+  const taskAt = task?.at;
+  const canComplete = !!account && account.sync.local.userId === customer.owner_id && !!taskAt;
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <QuickActionButtons customer={customer} />
+      {signal.actions.includes('complete') && canComplete && (
+        <Button
+          onClick={() => {
+            if (!account || !taskAt) return;
+            void account.customers
+              .completeTask(customer.id, taskAt)
+              .catch((error) => setFailure(error instanceof Error ? error.message : 'Chưa hoàn tất được việc.'));
+          }}
+        >
+          Xong
+        </Button>
+      )}
+      {failure && (
+        <p role="alert" className="text-small text-danger">
+          {failure}
+        </p>
+      )}
+    </div>
+  );
+}
+
+export function TodayPage() {
+  const { session, booting, error } = useAppSession();
+  const account = useRepositoryAccount();
+  const customers = useCustomers();
+  const sync = useSyncStatus();
+  const [notice, setNotice] = useState('');
+  const [now, setNow] = useState(() => Date.now());
+  const [filter, setFilter] = useState<QueueFilter>('priority');
+  const [sessionIndex, setSessionIndex] = useState<number | null>(null);
+  const [showSummary, setShowSummary] = useState(false);
+  const [email, setEmail] = useState(''),
+    [password, setPassword] = useState(''),
+    [loginError, setLoginError] = useState('');
+  const processedSla = useRef(new WeakSet<object>());
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
+  useEffect(() => {
+    if (!account || !customers.length || processedSla.current.has(account)) return;
+    processedSla.current.add(account);
+    const plan = planSlaAutomation(customers, now, account.sync.local.userId, (customer, stage) => {
+      const schedule = forStage(customer, stage, now);
+      return schedule ? { start: schedule.start, end: schedule.end, reason: schedule.reason } : null;
+    });
+    if (plan.changes.length)
+      void applySlaPlan(plan, account.customers).then((result) => {
+        const message = slaPlanMessage({
+          changes: result.applied,
+          counts: {
+            drop: result.applied.filter((change) => change.type === 'drop').length,
+            nurture: result.applied.filter((change) => change.type === 'nurture').length,
+          },
+        });
+        setNotice(
+          [message, result.failed.length ? `${result.failed.length} khách chưa tự chuyển được` : '']
+            .filter(Boolean)
+            .join(' · '),
+        );
+      });
+  }, [account, customers, now]);
+
+  const rows = useMemo(
+    () => (account ? queueRows(customers, now, account.sync.local.userId) : []),
+    [account, customers, now],
+  );
+  const shown = visibleQueue(rows, filter);
+  const plan = capacityPlan(rows, now);
+  const summary = endOfDaySummary(customers, now);
+  const lateCount = rows.filter((row) => row.signal.due != null && row.signal.due < now).length;
+  const sessionRows = rows.filter((row) => row.signal.actions.includes('call'));
+  const activeCall = sessionIndex == null ? null : (sessionRows[sessionIndex] ?? null);
+  const afterEvening = new Date(now).getHours() >= 20 && new Date(now).getMinutes() >= 45;
+
+  if (!account) {
+    return (
+      <main className="mx-auto flex max-w-3xl flex-col gap-4 p-4">
+        <h1 className="text-title">Hôm nay</h1>
+        {booting ? (
+          <Loading label="Đang mở dữ liệu trên máy">
+            <Skeleton className="h-28 w-full" />
+          </Loading>
+        ) : !session ? (
+          <EmptyState title="Chưa cấu hình kết nối" hint={error || 'Cần cấu hình Supabase để đăng nhập.'} />
+        ) : (
+          <form
+            className="flex max-w-md flex-col gap-3"
+            onSubmit={async (event) => {
+              event.preventDefault();
+              setLoginError('');
+              try {
+                await session.auth.signIn(email, password);
+                setPassword('');
+              } catch (cause) {
+                setLoginError(cause instanceof Error ? cause.message : 'Đăng nhập chưa thành công.');
+              }
+            }}
+          >
+            <p className="text-small text-text-2">Đăng nhập để mở hàng đợi khách của bạn.</p>
+            <label className="flex flex-col gap-1 text-small">
+              Email
+              <input
+                className="min-h-11 rounded-control border border-border-strong bg-surface px-3"
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-small">
+              Mật khẩu
+              <input
+                className="min-h-11 rounded-control border border-border-strong bg-surface px-3"
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </label>
+            <Button type="submit" variant="primary">
+              Đăng nhập
+            </Button>
+            {(loginError || error) && (
+              <p role="alert" className="text-danger text-small">
+                {loginError || error}
+              </p>
+            )}
+          </form>
+        )}
+      </main>
+    );
+  }
+
+  return (
+    <main className="mx-auto flex max-w-3xl flex-col gap-4 p-4 pb-24">
+      <header className="flex flex-wrap items-end justify-between gap-2">
+        <div>
+          <h1 className="text-title">Hôm nay</h1>
+          <p className="text-small text-text-2">
+            {rows.length} việc · ~{plan.minutes} phút · {lateCount} quá hạn
+          </p>
+        </div>
+        <p className="text-small text-text-2">{sync.pending ? `${sync.pending} thay đổi chờ đồng bộ` : 'Đã đồng bộ'}</p>
+      </header>
+      {notice && (
+        <p role="status" className="rounded-control bg-surface-2 p-3 text-small">
+          {notice}
+        </p>
+      )}
+      {rows[0] ? (
+        <section aria-labelledby="nba-title" className="rounded-card border border-border bg-surface p-4 shadow-card">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="status" tone={rows[0].signal.priority === 'P0' ? 'danger' : 'warning'}>
+              {rows[0].signal.priority}
+            </Badge>
+            <span className="text-label text-text-2">Next Best Action</span>
+          </div>
+          <h2 id="nba-title" className="mt-2 text-heading">
+            {rows[0].customer.full_name} · {rows[0].signal.title}
+          </h2>
+          <p className="mt-1 text-small">{rows[0].signal.reason}</p>
+          {rows[0].signal.evidence.length > 0 && (
+            <p className="mt-1 text-small text-text-2">
+              Bằng chứng: {rows[0].signal.evidence.map((e) => `${e.field}: ${String(e.value ?? '—')}`).join(' · ')}
+            </p>
+          )}
+          <p className="mt-1 text-small text-text-2">
+            Hạn: {formatDue(rows[0].signal.due)} · Brief: {rows[0].customer.notes || rows[0].signal.reason}
+          </p>
+          <div className="mt-3">
+            <SignalActions signal={rows[0].signal} customer={rows[0].customer} />
+          </div>
+        </section>
+      ) : (
+        <EmptyState
+          icon="task"
+          title="Đã xử lý các việc ưu tiên"
+          hint="Chưa có tín hiệu cần hành động. Không tạo việc giả."
+        />
+      )}
+
+      <section className="rounded-card border border-border bg-surface p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 className="text-heading">Sức làm</h2>
+            <p className="text-small text-text-2">
+              {plan.slot
+                ? `Khung ${plan.slot.name} còn ${plan.slot.remaining} phút`
+                : 'Hiện không trong khung gọi đã cấu hình'}{' '}
+              · hàng đợi ước {plan.minutes} phút
+            </p>
+          </div>
+        </div>
+        {plan.overflow > 0 && (
+          <p className="mt-2 text-small">
+            Quá tải khoảng {plan.overflow} phút. Gợi ý dời {plan.suggested.length} việc P2 sang khung kế
+            {plan.suggested.length ? `: ${plan.suggested.map((row) => row.customer.full_name).join(', ')}` : ''}. Đây là
+            đề xuất xem trước; lịch và hạn gốc chưa thay đổi.
+          </p>
+        )}
+      </section>
+
+      <section aria-labelledby="queue-title">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 id="queue-title" className="text-heading">
+            Hàng đợi
+          </h2>
+          <fieldset className="flex flex-wrap gap-2">
+            <legend className="sr-only">Lọc hàng đợi</legend>
+            {FILTERS.map((item) => (
+              <Button
+                key={item.key}
+                variant={filter === item.key ? 'primary' : 'secondary'}
+                aria-pressed={filter === item.key}
+                onClick={() => setFilter(item.key)}
+              >
+                {item.label}
+              </Button>
+            ))}
+          </fieldset>
+        </div>
+        {shown.length ? (
+          <ul className="mt-2 divide-y divide-border rounded-card border border-border bg-surface">
+            {shown.map(({ signal, customer, minutes }) => (
+              <li
+                key={signal.dedupeKey}
+                className="flex flex-col gap-2 p-3 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge
+                      variant="status"
+                      tone={signal.priority === 'P0' ? 'danger' : signal.priority === 'P1' ? 'warning' : 'neutral'}
+                    >
+                      {signal.priority}
+                    </Badge>
+                    <h3 className="text-body-strong">{customer.full_name}</h3>
+                  </div>
+                  <p className="mt-1 text-small">
+                    {signal.title} · {signal.reason}
+                  </p>
+                  <p className="text-small text-text-2">
+                    Hạn {formatDue(signal.due)} · ~{minutes} phút
+                  </p>
+                  {signal.secondaryReasons?.length ? (
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {signal.secondaryReasons.map((other) => (
+                        <Badge key={other.id}>{other.reason}</Badge>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+                <SignalActions signal={signal} customer={customer} />
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <EmptyState title="Không có việc trong bộ lọc này" hint="Thử bộ lọc khác hoặc quay lại hàng Ưu tiên." />
+        )}
+      </section>
+
+      <section className="rounded-card border border-border bg-surface p-4">
+        <h2 className="text-heading">Phiên gọi</h2>
+        {sessionIndex == null ? (
+          <>
+            <p className="mt-1 text-small text-text-2">
+              Bắt đầu với {sessionRows.length} khách · khoảng {sessionRows.reduce((sum, row) => sum + row.minutes, 0)}{' '}
+              phút.
+            </p>
+            <Button
+              className="mt-3"
+              variant="primary"
+              disabled={!sessionRows.length}
+              onClick={() => setSessionIndex(0)}
+            >
+              Bắt đầu phiên gọi
+            </Button>
+          </>
+        ) : activeCall ? (
+          <>
+            <p className="mt-1 text-small">
+              {sessionIndex + 1}/{sessionRows.length} · Brief: {activeCall.signal.reason}
+            </p>
+            <h3 className="mt-1 text-body-strong">{activeCall.customer.full_name}</h3>
+            <div className="mt-2">
+              <SignalActions signal={activeCall.signal} customer={activeCall.customer} />
+            </div>
+            <div className="mt-2 flex gap-2">
+              <Button onClick={() => setSessionIndex((i) => (i ?? 0) + 1)}>Bỏ qua khách</Button>
+              <Button onClick={() => setSessionIndex(null)}>Dừng phiên</Button>
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="mt-1 text-small">Đã hết khách trong phiên.</p>
+            <Button className="mt-2" onClick={() => setSessionIndex(null)}>
+              Đóng phiên
+            </Button>
+          </>
+        )}
+      </section>
+
+      {(afterEvening || showSummary) && (
+        <section className="rounded-card border border-border bg-surface p-4">
+          <h2 className="text-heading">Tổng kết ngày</h2>
+          <p className="mt-2 text-small">
+            Lời hứa đã giữ: {summary.kept} · lời hứa trễ: {summary.late} · cuộc gọi chưa ghi kết quả:{' '}
+            {summary.unrecorded} · việc ngày mai: {summary.tomorrow} · thay đổi chờ đồng bộ: {sync.pending}
+          </p>
+        </section>
+      )}
+      {!afterEvening && !showSummary && (
+        <Button className="self-start" variant="ghost" onClick={() => setShowSummary(true)}>
+          Xem tổng kết ngày
+        </Button>
+      )}
+      {!customers.length && (
+        <EmptyState
+          icon="customers"
+          title="Chưa có khách trên thiết bị"
+          hint="Hàng đợi sẽ xuất hiện sau lần đồng bộ đầu tiên."
+        />
+      )}
+    </main>
+  );
+}
+
+export const route: FeatureRoute = { path: '/today', element: <TodayPage />, handle: { title: 'Hôm nay' } };
