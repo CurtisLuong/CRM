@@ -16,6 +16,12 @@ export default defineConfig({
   ],
   webServer: {
     command: 'npm run build && npx vite preview --port 4173 --strictPort',
+    // Synthetic local-only credentials: E2E exercises the offline IndexedDB path, never staging.
+    env: {
+      ...process.env,
+      VITE_SUPABASE_URL: 'http://127.0.0.1:54321',
+      VITE_SUPABASE_ANON_KEY: 'e2e-public-anon-key',
+    },
     url: 'http://localhost:4173',
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,
