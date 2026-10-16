@@ -6,6 +6,16 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-16 — T2.B5: Bộ máy tín hiệu S01–S10 với thứ tự UX đã duyệt (D-016)
+
+- Tự nạp registry rules/*.ts; tín hiệu có bằng chứng, hạn, CTA, một tín hiệu chính mỗi khách và các lý do phụ; đọc ẩn/hoãn từ ui_state, không ghi dữ liệu.
+- D-016: computeSignals mặc định P0→P1→P2, hạn sớm→bậc sâu→liên hệ cũ; bao gồm cảnh báo mục tiêu SLA S05 và hạn bước Booking S10. S01 dùng hạn mức SLA thực, S05 dùng mốc mục tiêu/hạn mức tương ứng.
+- Giữ nguyên golden v1: adapter kiểm tra 12 nhóm/thứ tự khách (11 nhóm trong phạm vi + birthday projection; S15 thuộc T6.3), đối chiếu trực tiếp hàm v1 ở hai thời điểm và bốn rule thông báo.
+- Fixture UX: 010,009,020,019,002,008,001,011,018,004,005,016,003 (đuôi UUID tổng hợp); v1: 019,011,008,001,002,020,018,004,003,010,009,016. Thêm 005 do cảnh báo mục tiêu S05; không sửa golden.
+- Kiểm tra local: npm run check (typecheck/lint/unit); D-010 grace, điều kiện dương/âm S01–S10, ẩn/hoãn, bằng chứng thay đổi, JSONB lỗi, bỏ khách archived, không sửa input. Cổng merge chạy lại check/build/golden.
+- Không UI/SQL/migration/deploy production; không yêu cầu thử trình duyệt cho task logic thuần.
+- File: `src/config/signals.ts`, `src/domain/signals/index.ts`, `src/domain/signals/rules/S01.ts`, `src/domain/signals/rules/S02.ts`, `src/domain/signals/rules/S03.ts`, `src/domain/signals/rules/S04.ts`, `src/domain/signals/rules/S05.ts`, `src/domain/signals/rules/S06.ts`, `src/domain/signals/rules/S07.ts`, `src/domain/signals/rules/S08.ts`, `src/domain/signals/rules/S09.ts`, `src/domain/signals/rules/S10.ts` … (+3)
+
 ## 2026-10-16 — T2.A3: T2.A3 — Sync, Realtime, probe và vòng đời tài khoản
 
 - Port paged pull đầy đủ theo id/count; không thay cache khi queue đang chờ, revision đổi hoặc tài khoản đóng. Adapter Supabase dùng insert=upsert, update=patch và flush delete v1 cũ qua queue A2.
