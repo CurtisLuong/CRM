@@ -6,6 +6,19 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-16 — T2.C2: T2.C2 — Component src/ui + gallery /dev/ui
+
+- src/ui: Button (primary/secondary/ghost/danger/ai, loading, disabled), IconButton (44×44, nhãn bắt buộc), Badge, Kbd, Icon (khái niệm → lucide theo src/config/icons.ts, import từng glyph)
+- Trạng thái: DeadlineTag (nhận kết quả countdownTag, luôn kèm chữ Đến hạn/Quá hạn, giờ mono), StageChip, SlaRing, HealthDot
+- Dòng: QueueRow, ListRow (Avatar, Gọi/Zalo, vuốt trái Xong/phải Gọi, nhãn hạn xuống dòng phụ trên mobile), RowList
+- Khung: Header (⌘K), BottomNav (4 tab + ＋), ActionBar, SyncIndicator (presentational, nối useSyncStatus ở T2.C3)
+- Card: NextActionCard, SignalCard (không màu AI), AIBlock (viền violet, skeleton), BriefCard, FactRow (cũ → "Cần xác nhận"), Timeline
+- Chọn: OutcomePicker (4 nút + Khác từ CALL_RESULTS), SlotPicker (callSlots, nhãn Gợi ý); Tabs, SegmentedControl (Radix)
+- Phản hồi: Sheet (Radix Dialog, bottom/side, bảo vệ bản nháp), Toast (Radix, Hoàn tác/Thử lại), EmptyState, ErrorState, Skeleton, Loading; MetricTile ("Chưa đủ dữ liệu"), MiniChart (spark/bar/funnel + bảng cho screen reader)
+- Gallery /dev/ui (src/features/dev-ui/route.tsx) đủ biến thể + trạng thái, có nút Sáng/Tối/Tự động
+- Kiểm tra: npm run check (tests/ui/components.test.tsx: Button, DeadlineTag, HealthDot, MetricTile, OutcomePicker, Sheet bảo vệ nháp); npm run build; e2e tests/e2e/ui.spec.ts 360/390/1280 sáng+tối: axe không lỗi serious/critical, không cuộn ngang, sheet + toast, vùng chạm ≥44px; xem trình duyệt thật 360px + 1280px sáng/tối
+- File: `src/features/dev-ui/route.tsx`, `src/ui/Badge.tsx`, `src/ui/Button.tsx`, `src/ui/Icon.tsx`, `src/ui/Kbd.tsx`, `src/ui/Sheet.tsx`, `src/ui/Tabs.tsx`, `src/ui/Toast.tsx`, `src/ui/cards.tsx`, `src/ui/chrome.tsx`, `src/ui/cn.ts`, `src/ui/index.ts` … (+8)
+
 ## 2026-10-16 — T2.A1: T2.A1 — Types + Zod + normalize legacy cho bản ghi khách (src/domain/customer)
 
 - Thêm schema.ts: Zod `.passthrough()` cho Customer và mọi phần tử JSONB (call_attempts, next_tasks, notes_manual, care_stage_history, booking_steps, advanced) + trường v2 tuỳ chọn (archived_at, contact_prefs, interests, household, interactions, close_*, retarget_hint, field_meta, referred_by, next_tasks side/key/source…). Không default/transform/coerce; chấp nhận dữ liệu cũ bẩn (phần tử null, thiếu at, source dạng chuỗi). Bắt buộc: id, phone, full_name, owner_id.
