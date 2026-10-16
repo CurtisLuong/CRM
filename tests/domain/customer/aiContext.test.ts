@@ -72,6 +72,10 @@ describe('buildAiContext', () => {
       call_attempts: [{ at: '2026-10-15', result: 'talked', note: 'mail call@example.vn, mã 123456789012' }],
       next_tasks: [{ at: '2026-10-15', text: 'Gọi mail task@example.test, CCCD 234567890123', done_at: null }],
       advanced: { life_stage: 'Mã 345678901234; email memory@example.org' },
+      field_meta: {
+        finance: { at: '2026-10-01', by: 'sale note@example.test 456789012345', confirmed: true },
+        life_stage: { at: '2026-10-01', by: 'sale source@example.vn 567890123456', confirmed: true },
+      },
     } as unknown as Customer;
     const context = buildAiContext(withIdentifiers);
     const json = JSON.stringify(context);
@@ -85,11 +89,17 @@ describe('buildAiContext', () => {
       '234567890123',
       'memory@example.org',
       '345678901234',
+      'note@example.test',
+      '456789012345',
+      'source@example.vn',
+      '567890123456',
     ]) {
       expect(json).not.toContain(identifier);
     }
     expect(json).toContain('[đã ẩn email]');
     expect(json).toContain('[đã ẩn mã định danh]');
+    expect(context.field_meta.finance?.by).toContain('sale');
+    expect(context.memory_facts[0]?.source).toContain('sale');
     expect(context.full_name).toBe('Nguyễn An');
   });
 });

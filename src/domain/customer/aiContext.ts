@@ -38,7 +38,12 @@ export function buildAiContext(customer: Customer) {
         ? value
         : cleanText(value, 300);
     const meta = customer.field_meta?.[key];
-    if (meta) fieldMeta[key] = { at: meta.at || null, by: meta.by || null, confirmed: meta.confirmed ?? null };
+    if (meta)
+      fieldMeta[key] = {
+        at: meta.at || null,
+        by: cleanText(meta.by, 120) || null,
+        confirmed: meta.confirmed ?? null,
+      };
   }
 
   const notes = [
@@ -162,7 +167,7 @@ export function buildAiContext(customer: Customer) {
     const meta = customer.field_meta?.[key];
     memory_facts.push({
       fact: typeof value === 'number' ? value : cleanText(value, 400),
-      source: meta?.by || null,
+      source: cleanText(meta?.by, 120) || null,
       at: meta?.at || null,
     });
   }
