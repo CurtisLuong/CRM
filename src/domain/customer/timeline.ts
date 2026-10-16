@@ -1,3 +1,4 @@
+import { interactionTitle } from './interactions';
 import type { Customer } from './types';
 
 export type CustomerTimelineEntry = {
@@ -32,8 +33,8 @@ export function customerTimeline(customer: Customer): CustomerTimelineEntry[] {
       id: `interaction:${item.at}:${index}`,
       at: item.at,
       kind: 'interaction',
-      title: item.kind || item.channel || 'Tương tác',
-      detail: item.note || undefined,
+      title: interactionTitle(item),
+      detail: item.note || (item.template ? `Mẫu: ${item.template}` : undefined),
     });
   }
   for (const [index, stage] of (customer.care_stage_history ?? []).entries()) {

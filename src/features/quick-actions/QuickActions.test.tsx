@@ -22,12 +22,14 @@ const customer = {
   next_call_at: null,
 } as unknown as Customer;
 const logCall = vi.fn(async () => customer);
+const updateCustomer = vi.fn(async () => customer);
 const account = {
   customers: {
     getSnapshot: () => [customer],
     get: vi.fn(async () => customer),
     list: vi.fn(async () => [customer]),
     logCall,
+    update: updateCustomer,
     sync: { local: { userId: 'u1', isClosed: false } },
   },
   sync: { local: { userId: 'u1', isClosed: false }, isOnline: () => false },
@@ -40,10 +42,61 @@ afterEach(() => {
   clearQuickAction();
   mockSession.account = null;
   logCall.mockClear();
+  updateCustomer.mockClear();
   delete (window as Window & { Capacitor?: unknown }).Capacitor;
 });
 
 describe('quick actions touch budget', () => {
+  it('records a meeting from the interaction sheet in one confirmation tap', async () => {
+    mockSession.account = account;
+    const user = userEvent.setup();
+    render(
+      <ToastProvider>
+        <QuickActionButtons customer={customer} />
+        <QuickActionsHost />
+      </ToastProvider>,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Ghi tương tác' }));
+    await user.click(await screen.findByRole('button', { name: 'Đã gặp' }));
+    await waitFor(() => expect(updateCustomer).toHaveBeenCalledTimes(1));
+    expect(updateCustomer).toHaveBeenCalledWith(
+      'quick-1',
+      expect.objectContaining({
+        interactions: [expect.objectContaining({ channel: 'meet', kind: 'meeting', by: 'u1', origin: 'v2' })],
+      }),
+    );
+  });
+
+  it('saves a Zalo interaction only after the user confirms sending', async () => {
+    mockSession.account = account;
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText: vi.fn().mockResolvedValue(undefined) },
+    });
+    vi.spyOn(window, 'open').mockReturnValue(null);
+    const user = userEvent.setup();
+    render(
+      <ToastProvider>
+        <QuickActionButtons customer={customer} />
+        <QuickActionsHost />
+      </ToastProvider>,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Zalo' }));
+    await user.click(await screen.findByRole('button', { name: 'Sao chép & mở Zalo' }));
+    await waitFor(() => expect(window.open).toHaveBeenCalled());
+    act(() => window.dispatchEvent(new Event('crm:resume')));
+    await user.click(await screen.findByRole('button', { name: /^Đã gửi$/ }));
+    await waitFor(() => expect(updateCustomer).toHaveBeenCalledTimes(1));
+    expect(updateCustomer).toHaveBeenCalledWith(
+      'quick-1',
+      expect.objectContaining({
+        interactions: [expect.objectContaining({ channel: 'zalo', kind: 'sent', by: 'u1', origin: 'v2' })],
+      }),
+    );
+  });
+
   it('records a call, outcome and note in three taps plus typing', async () => {
     mockSession.account = account;
     vi.useFakeTimers({ toFake: ['Date'] });

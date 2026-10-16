@@ -32,4 +32,14 @@ describe('customerBrief', () => {
     expect(brief.find((fact) => fact.key === 'objection')?.value).toBe('Ngại lãi suất');
     expect(c).toStrictEqual(before);
   });
+
+  it('counts a sent interaction as last contact even when it has no note', () => {
+    const c = customer({
+      notes_manual: [{ at: '2026-10-15T00:00:00.000Z', text: 'Ghi chú cũ' }],
+      interactions: [{ at: '2026-10-16T04:30:00.000Z', channel: 'zalo', kind: 'sent' }],
+    });
+    expect(customerBrief(c).find((fact) => fact.key === 'last_contact')?.value).toBe(
+      new Date('2026-10-16T04:30:00.000Z').toLocaleString('vi-VN'),
+    );
+  });
 });

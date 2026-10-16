@@ -181,6 +181,27 @@ for (const scheme of ['light', 'dark'] as const) {
         expect(saved.finance).toBe(500000000);
         expect(saved.field_meta).toMatchObject({ finance: { by: 'ai', confirmed: true } });
       }
+
+      await interact(page.getByRole('button', { name: 'Ghi tương tác' }));
+      const interactionSheet = page.getByRole('dialog', { name: /Ghi tương tác/ });
+      await expect(interactionSheet).toBeVisible();
+      await interact(interactionSheet.getByRole('button', { name: 'Đã xem dự án' }));
+      await expect(interactionSheet).toHaveCount(0);
+      const interactions = await page.evaluate(async () => {
+        const req = indexedDB.open('crm_khach_hang__t31-e2e-user', 2);
+        const db = await new Promise<IDBDatabase>((resolve, reject) => {
+          req.onsuccess = () => resolve(req.result);
+          req.onerror = () => reject(req.error);
+        });
+        const row = await new Promise<Record<string, unknown>>((resolve, reject) => {
+          const get = db.transaction('customers').objectStore('customers').get('t31-e2e-customer');
+          get.onsuccess = () => resolve(get.result);
+          get.onerror = () => reject(get.error);
+        });
+        db.close();
+        return row.interactions;
+      });
+      expect(interactions).toMatchObject([{ channel: 'visit', kind: 'project_view', by: 't31-e2e-user' }]);
     });
   });
 }

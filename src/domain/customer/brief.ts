@@ -15,7 +15,7 @@ export function customerBrief(customer: Customer): BriefFact[] {
     : undefined;
   const latestInteraction = Array.isArray(customer.interactions)
     ? customer.interactions
-        .flatMap((item) => (item?.at && item.note ? [item] : []))
+        .flatMap((item) => (item?.at ? [item] : []))
         .sort((a, b) => (b.at || '').localeCompare(a.at || ''))[0]
     : undefined;
   const lastContactAt = [latestCall?.at, latestNote?.at, latestInteraction?.at].filter(Boolean).sort().at(-1);

@@ -72,6 +72,9 @@ for (const theme of ['light', 'dark'] as const) {
             created_at: '2026-10-10T00:00:00.000Z',
             updated_at: '2026-10-15T00:00:00.000Z',
             projects: [],
+            interactions: [
+              { at: '2026-10-16T03:00:00.000Z', channel: 'visit', kind: 'project_view', by: userId, origin: 'v2' },
+            ],
             next_tasks: [],
             call_attempts: [],
             booking_steps: { x_future_step: 'keep' },
@@ -90,6 +93,9 @@ for (const theme of ['light', 'dark'] as const) {
     );
     await page.goto(`/ho-so/${customerId}`);
     await expect(page.getByRole('heading', { name: 'Nguyễn Thị Hưởng' })).toBeVisible();
+    await expect(page.getByText('16/10/2026', { exact: false }).first()).toBeVisible();
+    await page.getByRole('tab', { name: 'Dòng thời gian' }).click();
+    await expect(page.getByText('Đã xem dự án', { exact: true })).toBeVisible();
     const briefButton = page.getByRole('button', { name: 'Tạo tóm tắt AI' });
     if (await briefButton.count()) {
       await briefButton.click();

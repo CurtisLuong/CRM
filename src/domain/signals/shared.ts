@@ -13,6 +13,7 @@ export function lastInteractionAt(c: Customer): number | null {
     c.care_stage_updated_at,
     ...(Array.isArray(c.care_stage_history) ? c.care_stage_history : []).map((h) => h?.at),
     ...(Array.isArray(c.notes_manual) ? c.notes_manual : []).map((n) => n?.at),
+    ...(Array.isArray(c.interactions) ? c.interactions : []).map((interaction) => interaction?.at),
   ]
     .map((t) => Date.parse(t || ''))
     .filter(Number.isFinite);

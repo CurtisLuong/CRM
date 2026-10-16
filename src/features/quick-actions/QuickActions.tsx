@@ -5,10 +5,12 @@ import { type CallSource, installCallSource } from '@/data/callSource';
 import { useRepositoryAccount } from '@/data/hooks';
 import type { RepositoryAccount } from '@/data/repositories/session';
 import { type CallAttempt, type Customer, callAttemptsOf } from '@/domain/customer';
+import { appendInteractionPatch, createInteraction } from '@/domain/customer/interactions';
 import type { ScheduleSuggestion } from '@/domain/followup';
 import { AiNoteReview } from '@/features/ai/AiNoteReview';
 import { AiZaloDraft } from '@/features/ai/AiZaloDraft';
 import { Button, IconButton, OutcomePicker, Sheet, SlotPicker, useToast } from '@/ui';
+import { InteractionRecorder } from './interactions';
 import {
   type CallDraft,
   callDuration,
@@ -54,6 +56,7 @@ export function QuickActionButtons({ customer }: { customer: Customer }) {
           onClick={() => openQuickAction(customer.id, kind)}
         />
       ))}
+      {account && <InteractionRecorder account={account} customer={customer} trigger />}
     </fieldset>
   );
 }
@@ -337,7 +340,7 @@ function ActionSheet({
     setMode(sug?.kind === 'ask' ? 'custom' : sug?.kind === 'drop' && sug.auto ? 'drop' : 'suggested');
     setEditSchedule(false);
   };
-  const run = async (fn: () => Promise<unknown>, close = true) => {
+  const run = async (fn: () => Promise<unknown>, close = true, successTitle = 'Đã lưu trên máy') => {
     if (busy) return;
     setBusy(true);
     setError('');
@@ -346,7 +349,7 @@ function ActionSheet({
       if (account.sync.local.isClosed) return;
       if (close) {
         toast({
-          title: 'Đã lưu trên máy',
+          title: successTitle,
           description: account.sync.isOnline() ? 'Đang đồng bộ.' : 'Ngoại tuyến · Chờ đồng bộ.',
         });
         onClose();
@@ -596,11 +599,28 @@ function ActionSheet({
                 <p className="text-body-strong">Đã gửi tin trong Zalo?</p>
                 <div className="flex gap-2">
                   <Button
-                    onClick={() => {
-                      onZaloSent?.(c, text, templateId);
-                      toast({ title: 'Đã xác nhận gửi trong Zalo' });
-                      onClose();
-                    }}
+                    loading={busy}
+                    onClick={() =>
+                      void run(
+                        async () => {
+                          await account.customers.update(
+                            c.id,
+                            appendInteractionPatch(
+                              c,
+                              createInteraction(
+                                'sent',
+                                account.sync.local.userId,
+                                new Date().toISOString(),
+                                templateId,
+                              ),
+                            ),
+                          );
+                          onZaloSent?.(c, text, templateId);
+                        },
+                        true,
+                        'Đã ghi tương tác Zalo',
+                      )
+                    }
                   >
                     Đã gửi
                   </Button>
@@ -610,6 +630,7 @@ function ActionSheet({
             )}
           </>
         )}
+        {kind !== 'zalo' && <InteractionRecorder account={account} customer={c} />}
         {error && (
           <p role="alert" className="text-small text-danger">
             {error}
