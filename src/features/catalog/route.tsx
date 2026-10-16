@@ -478,6 +478,9 @@ function CatalogPage() {
           {error}
         </p>
       )}
+      <p className="rounded-control border border-border bg-surface-2 p-3 text-small text-text-2">
+        Lưu trữ dự án, toà, căn và loại căn sẽ mở sau khi schema hỗ trợ xoá mềm; hiện dữ liệu danh mục được giữ nguyên.
+      </p>
       {pendingImport && (
         <section className="rounded-card border border-border bg-surface p-4" aria-live="polite">
           <h2 className="text-heading">Xem trước nhập: {importFileName}</h2>
@@ -529,16 +532,6 @@ function CatalogPage() {
                       }
                     >
                       Sửa
-                    </button>
-                    <button
-                      type="button"
-                      className="min-h-10 text-small text-danger"
-                      onClick={() => {
-                        if (window.confirm(`Xoá loại căn “${type.apt_type}”?`))
-                          void run(() => catalog.deleteProjectType(type.id), 'Đã xoá loại căn');
-                      }}
-                    >
-                      Xoá
                     </button>
                   </span>
                 </div>
@@ -628,18 +621,6 @@ function CatalogPage() {
                   onClick={() => editProject(p.id)}
                 >
                   Sửa
-                </button>
-                <button
-                  type="button"
-                  className="min-h-10 px-2 text-small text-danger"
-                  onClick={() => {
-                    if (
-                      window.confirm(`Xoá dự án “${p.name}” cùng toàn bộ toà và căn? Khách đã lưu không bị ảnh hưởng.`)
-                    )
-                      void run(() => catalog.deleteProject(p.id), 'Đã xoá dự án');
-                  }}
-                >
-                  Xoá
                 </button>
               </div>
             ))}
@@ -800,17 +781,6 @@ function CatalogPage() {
                     onClick={() => editBuilding(b.id)}
                   >
                     Sửa
-                  </button>
-                  <button
-                    type="button"
-                    className="min-h-10 px-2 text-small text-danger"
-                    onClick={() => {
-                      const count = catalog.unitsOf(b.id).length;
-                      if (window.confirm(`Xoá toà ${b.code}${count ? ` cùng ${count} căn` : ''}?`))
-                        void run(() => catalog.deleteBuilding(b.id), 'Đã xoá toà');
-                    }}
-                  >
-                    Xoá
                   </button>
                 </div>
               ))}
@@ -1198,15 +1168,6 @@ function CatalogPage() {
                   </Button>
                   <Button variant="ghost" onClick={() => setUnitClient(unitClient === unit.id ? '' : unit.id)}>
                     Tìm khách phù hợp
-                  </Button>
-                  <Button
-                    variant="danger"
-                    onClick={() => {
-                      if (window.confirm(`Xoá căn ${unit.code}?`))
-                        void run(() => catalog.deleteUnit(unit.id), 'Đã xoá căn');
-                    }}
-                  >
-                    Xoá
                   </Button>
                 </div>
                 {unitClient === unit.id && (

@@ -249,15 +249,8 @@ export function createCatalogRepository(sync: CustomerSync, storage: Storage = l
     return row;
   }
   async function deleteProject(id: any) {
-    needOnline();
-    check(await sb.from('projects').delete().eq('id', id));
-    const bIds = data.buildings.filter((b: any) => b.project_id === id).map((b: any) => b.id);
-    data.projects = data.projects.filter((p: any) => p.id !== id);
-    data.buildings = data.buildings.filter((b: any) => b.project_id !== id);
-    data.units = data.units.filter((u: any) => u.project_id !== id && !bIds.includes(u.building_id));
-    data.projectTypes = data.projectTypes.filter((t: any) => t.project_id !== id);
-    data.buildingTypes = data.buildingTypes.filter((t: any) => t.project_id !== id);
-    emit();
+    void id;
+    throw new Error('Chưa thể lưu trữ dự án: schema catalog chưa có archived_at. Dữ liệu được giữ nguyên.');
   }
   async function saveBuilding(b: any) {
     // có id → sửa, không → thêm
@@ -285,12 +278,8 @@ export function createCatalogRepository(sync: CustomerSync, storage: Storage = l
     return row;
   }
   async function deleteBuilding(id: any) {
-    needOnline();
-    check(await sb.from('buildings').delete().eq('id', id));
-    data.buildings = data.buildings.filter((b: any) => b.id !== id);
-    data.units = data.units.filter((u: any) => u.building_id !== id);
-    data.buildingTypes = data.buildingTypes.filter((t: any) => t.building_id !== id);
-    emit();
+    void id;
+    throw new Error('Chưa thể lưu trữ toà: schema catalog chưa có archived_at. Dữ liệu được giữ nguyên.');
   }
   async function saveUnit(u: any) {
     needOnline();
@@ -320,10 +309,8 @@ export function createCatalogRepository(sync: CustomerSync, storage: Storage = l
     emit();
   }
   async function deleteUnit(id: any) {
-    needOnline();
-    check(await sb.from('units').delete().eq('id', id));
-    data.units = data.units.filter((u: any) => u.id !== id);
-    emit();
+    void id;
+    throw new Error('Chưa thể lưu trữ căn: schema catalog chưa có archived_at. Dữ liệu được giữ nguyên.');
   }
 
   // Căn mang loại căn chưa khai báo → tự thêm vào dự án (và vào toà nếu toà đã có danh sách riêng)
@@ -373,9 +360,8 @@ export function createCatalogRepository(sync: CustomerSync, storage: Storage = l
     await load();
   }
   async function deleteProjectType(id: any) {
-    needOnline();
-    check(await sb.from('project_apt_types').delete().eq('id', id));
-    await load();
+    void id;
+    throw new Error('Chưa thể lưu trữ loại căn: schema catalog chưa có archived_at. Dữ liệu được giữ nguyên.');
   }
   // Ghi lại toàn bộ loại căn của 1 toà: rows = [{ apt_type, area_m2 }] (rỗng = dùng mọi loại của dự án)
   async function setBuildingTypes(buildingId: any, rows: any) {
@@ -461,9 +447,32 @@ export function createCatalogRepository(sync: CustomerSync, storage: Storage = l
     });
     const uRows = [...uMap.values()];
     if (await ensureTypes(uRows)) await load(); // khai báo loại căn mới TRƯỚC khi ghi căn (DB kiểm tra)
-    for (let i = 0; i < uRows.length; i += 500) {
-      // chia lô cho file lớn
-      check(await sb.from('units').upsert(uRows.slice(i, i + 500), { onConflict: 'building_id,code' }));
+    if (uRows.length) {
+      // Đọc khóa hiện có để import cập nhật theo patch. Upsert một row bị thiếu cột
+      // sẽ ghi NULL vào các cột bị lược khỏi file, làm mất dữ liệu đã nhập trước đó.
+      const existing = await pagedFetch<Data & { id: string }>(
+        sb,
+        'units',
+        'id,project_id,building_id,code,area_m2,floor,direction,apt_type,price_per_m2_override,net_price_override,status,note',
+        () => !sync.local.isClosed,
+      );
+      const byKey = new Map(existing.map((unit: any) => [`${unit.building_id}|${norm(unit.code)}`, unit]));
+      const inserts: Data[] = [];
+      for (const unit of uRows) {
+        const current: any = byKey.get(`${unit.building_id}|${norm(unit.code)}`);
+        if (current) {
+          const { project_id, building_id, code, ...fields } = unit;
+          check(
+            await sb
+              .from('units')
+              .update({ project_id, building_id, code, ...fields })
+              .eq('id', current.id),
+          );
+        } else inserts.push(unit);
+      }
+      for (let i = 0; i < inserts.length; i += 500) {
+        check(await sb.from('units').insert(inserts.slice(i, i + 500)));
+      }
     }
     stat.units = uRows.length;
     await load();
