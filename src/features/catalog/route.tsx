@@ -88,6 +88,7 @@ function CatalogPage() {
   const [unitClient, setUnitClient] = useState('');
   const [importFileName, setImportFileName] = useState('');
   const [pendingImport, setPendingImport] = useState<ReturnType<typeof parseCatalogCsv> | null>(null);
+  const [archivedImportMatches, setArchivedImportMatches] = useState({ archivedProjects: 0, archivedBuildings: 0 });
   const [importBusy, setImportBusy] = useState(false);
   const [limit, setLimit] = useState(50);
 
@@ -196,11 +197,13 @@ function CatalogPage() {
                 code: String(row.code).trim(),
               });
           }
-          const newProjects = [...projectsInFile].filter((name) => !catalog.projectByName(name)).length;
-          const newBuildings = [...buildingsInFile.values()].filter(({ project: name, building: code }) => {
+          const missingProjects = [...projectsInFile].filter((name) => !catalog.projectByName(name)).length;
+          const missingBuildings = [...buildingsInFile.values()].filter(({ project: name, building: code }) => {
             const p = catalog.projectByName(name);
             return !p || !catalog.buildingByCode(p.id, code);
           }).length;
+          const newProjects = Math.max(0, missingProjects - archivedImportMatches.archivedProjects);
+          const newBuildings = Math.max(0, missingBuildings - archivedImportMatches.archivedBuildings);
           let newUnits = 0;
           let updatedUnits = 0;
           for (const { project: name, building: code, code: unitCode } of unitsInFile.values()) {
@@ -209,7 +212,7 @@ function CatalogPage() {
             if (b && catalog.unitByCode(b.id, unitCode)) updatedUnits++;
             else newUnits++;
           }
-          return { newProjects, newBuildings, newUnits, updatedUnits };
+          return { newProjects, newBuildings, newUnits, updatedUnits, ...archivedImportMatches };
         })()
       : null;
 
@@ -402,6 +405,7 @@ function CatalogPage() {
 
   const importFile = async (file?: File) => {
     if (!file) return;
+    if (!catalog) return;
     setError('');
     setPendingImport(null);
     setImportFileName(file.name);
@@ -412,12 +416,18 @@ function CatalogPage() {
         const sheetName = workbook.SheetNames[0];
         const firstSheet = sheetName ? workbook.Sheets[sheetName] : undefined;
         if (!firstSheet) throw new Error('File Excel không có trang tính.');
-        setPendingImport(
-          parseCatalogMatrix(XLSX.utils.sheet_to_json(firstSheet, { header: 1, raw: true, defval: '' }) as unknown[][]),
+        const parsed = parseCatalogMatrix(
+          XLSX.utils.sheet_to_json(firstSheet, { header: 1, raw: true, defval: '' }) as unknown[][],
         );
-      } else setPendingImport(parseCatalogCsv(await file.text()));
+        setArchivedImportMatches(await catalog.previewImport(parsed.rows));
+        setPendingImport(parsed);
+      } else {
+        const parsed = parseCatalogCsv(await file.text());
+        setArchivedImportMatches(await catalog.previewImport(parsed.rows));
+        setPendingImport(parsed);
+      }
     } catch (raw) {
-      setError(raw instanceof Error ? raw.message : 'Không đọc được file.');
+      setError(raw instanceof Error ? raw.message : 'Không đọc được file hoặc không kiểm tra được mục lưu trữ.');
     }
   };
   const confirmImport = async () => {
@@ -428,9 +438,10 @@ function CatalogPage() {
       const result = await catalog.importRows(pendingImport.rows, pendingImport.cols);
       setPendingImport(null);
       setImportFileName('');
+      setArchivedImportMatches({ archivedProjects: 0, archivedBuildings: 0 });
       setRevision((value) => value + 1);
       toast({
-        title: `Đã nhập ${result.projects} dự án, ${result.buildings} toà và ${result.units} dòng căn mới/cập nhật`,
+        title: `Đã nhập ${result.projects} dự án, ${result.buildings} toà và ${result.units} dòng căn; khôi phục ${result.restoredProjects} dự án, ${result.restoredBuildings} toà`,
       });
     } catch (raw) {
       setError(raw instanceof Error ? raw.message : 'Nhập file thất bại.');
@@ -486,14 +497,21 @@ function CatalogPage() {
           <h2 className="text-heading">Xem trước nhập: {importFileName}</h2>
           <p className="mt-1 text-small text-text-2">
             {pendingImport.rows.length} dòng · tạo {importPreview?.newProjects} dự án, {importPreview?.newBuildings} toà
-            và {importPreview?.newUnits} căn · cập nhật {importPreview?.updatedUnits} căn. Cột có trong file sẽ ghi đè;
-            ô trống xoá giá trị ở cột đó.
+            và {importPreview?.newUnits} căn · cập nhật {importPreview?.updatedUnits} căn · khôi phục từ lưu trữ{' '}
+            {importPreview?.archivedProjects} dự án, {importPreview?.archivedBuildings} toà. Dự án/toà khớp đã lưu trữ
+            sẽ được khôi phục; cột có trong file sẽ ghi đè, ô trống xoá giá trị ở cột đó.
           </p>
           <div className="mt-3 flex gap-2">
             <Button disabled={importBusy} onClick={() => void confirmImport()}>
               {importBusy ? 'Đang nhập…' : 'Xác nhận nhập'}
             </Button>
-            <Button variant="ghost" onClick={() => setPendingImport(null)}>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setPendingImport(null);
+                setArchivedImportMatches({ archivedProjects: 0, archivedBuildings: 0 });
+              }}
+            >
               Huỷ
             </Button>
           </div>

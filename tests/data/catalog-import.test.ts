@@ -9,12 +9,33 @@ import { CustomerSync } from '@/data/sync';
 function setupCatalog() {
   const tables: Record<string, any[]> = {
     projects: [
-      { id: 'p', name: 'Project' },
-      { id: 'pa', name: 'Archived Project', archived_at: '2026-10-01' },
+      { id: 'p', name: 'Project', note: 'Project note', payment_schedule: { legacy: true } },
+      {
+        id: 'pa',
+        name: 'Archived Project',
+        note: 'Archived project note',
+        payment_schedule: { legacy: true },
+        archived_at: '2026-10-01',
+      },
     ],
     buildings: [
-      { id: 'b', project_id: 'p', code: 'B1' },
-      { id: 'ba', project_id: 'pa', code: 'Archived Building' },
+      {
+        id: 'b',
+        project_id: 'p',
+        code: 'B1',
+        approved_price_per_m2: 19_000_000,
+        handover_date: '2028-01-01',
+        note: 'Building note',
+      },
+      {
+        id: 'ba',
+        project_id: 'pa',
+        code: 'Archived Building',
+        approved_price_per_m2: 18_500_000,
+        handover_date: '2027-06-01',
+        note: 'Archived building note',
+        archived_at: '2026-10-01',
+      },
     ],
     units: [
       {
@@ -171,5 +192,64 @@ it('archives removed building type associations and reuses the archived row on r
   expect(tables.building_apt_types).toHaveLength(1);
   expect(tables.building_apt_types?.[0].archived_at).toBeNull();
   expect(calls.some(([, ...chain]) => chain.some((op: any) => op[0] === 'delete'))).toBe(false);
+  local.close();
+});
+
+it('preserves building fields when price is absent and clears only price when its column is blank', async () => {
+  const first = await setupCatalog();
+  await first.catalog.importRows([{ project: 'Project', building: 'B1' }], { project: true, building: true });
+  expect(first.tables.buildings?.[0]).toMatchObject({
+    approved_price_per_m2: 19_000_000,
+    handover_date: '2028-01-01',
+    note: 'Building note',
+  });
+  first.local.close();
+
+  const second = await setupCatalog();
+  await second.catalog.importRows([{ project: 'Project', building: 'B1', buildingPrice: '' }], {
+    project: true,
+    building: true,
+    buildingPrice: true,
+  });
+  expect(second.tables.buildings?.[0]).toMatchObject({
+    approved_price_per_m2: null,
+    handover_date: '2028-01-01',
+    note: 'Building note',
+  });
+  const update = second.calls.find(
+    ([table, ...chain]) => table === 'buildings' && chain.some((op: any) => op[0] === 'update'),
+  );
+  expect(update[1][1]).toEqual({ approved_price_per_m2: null });
+  second.local.close();
+});
+
+it('previews and deliberately restores matching archived projects and buildings', async () => {
+  const { catalog, local, tables } = await setupCatalog();
+  const rows = [{ project: 'Archived Project', building: 'Archived Building' }];
+  await expect(catalog.previewImport(rows)).resolves.toEqual({ archivedProjects: 1, archivedBuildings: 1 });
+  const result = await catalog.importRows(rows, { project: true, building: true });
+  expect(result).toMatchObject({ projects: 0, buildings: 0, restoredProjects: 1, restoredBuildings: 1 });
+  expect(tables.projects?.find((project: any) => project.id === 'pa')).toMatchObject({
+    archived_at: null,
+    note: 'Archived project note',
+    payment_schedule: { legacy: true },
+  });
+  expect(tables.buildings?.find((building: any) => building.id === 'ba')).toMatchObject({
+    archived_at: null,
+    approved_price_per_m2: 18_500_000,
+    handover_date: '2027-06-01',
+    note: 'Archived building note',
+  });
+  expect(catalog.projectByName('Archived Project')?.id).toBe('pa');
+  expect(catalog.buildingByCode('pa', 'Archived Building')?.id).toBe('ba');
+  local.close();
+});
+
+it('does not preview a nonexistent building as an archived building under a restored project', async () => {
+  const { catalog, local } = await setupCatalog();
+  await expect(catalog.previewImport([{ project: 'Archived Project', building: 'New Building' }])).resolves.toEqual({
+    archivedProjects: 1,
+    archivedBuildings: 0,
+  });
   local.close();
 });

@@ -460,16 +460,81 @@ export function createCatalogRepository(sync: CustomerSync, storage: Storage = l
     await load();
   }
 
+  async function projectAndBuildingRows() {
+    const [projects, buildings] = await Promise.all([
+      pagedFetch<Data & { id: string }>(sb, 'projects', '*', () => !sync.local.isClosed),
+      pagedFetch<Data & { id: string }>(
+        sb,
+        'buildings',
+        'id,project_id,code,approved_price_per_m2,handover_date,note,sort_order,created_at,archived_at',
+        () => !sync.local.isClosed,
+      ),
+    ]);
+    return { projects, buildings };
+  }
+
+  async function previewImport(rows: any) {
+    needOnline();
+    const { projects, buildings } = await projectAndBuildingRows();
+    const projectNames = new Set(rows.map((row: any) => norm(row.project)).filter(Boolean));
+    const archivedProjects = [...projectNames].filter((name) => {
+      const matches = projects.filter((project: any) => norm(project.name) === name);
+      return (
+        !matches.some((project: any) => !project.archived_at) && matches.some((project: any) => project.archived_at)
+      );
+    }).length;
+    const archivedBuildings = new Map<string, { project: string; code: string }>();
+    for (const row of rows) {
+      const matches = projects.filter((candidate: any) => norm(candidate.name) === norm(row.project));
+      const project = matches.find((candidate: any) => !candidate.archived_at) || matches[0];
+      if (!project || !row.building) continue;
+      const matchesForBuilding = buildings.filter(
+        (candidate: any) => candidate.project_id === project.id && norm(candidate.code) === norm(row.building),
+      );
+      if (
+        matchesForBuilding.length > 0 &&
+        (project.archived_at ||
+          (!matchesForBuilding.some((building: any) => !building.archived_at) &&
+            matchesForBuilding.some((building: any) => building.archived_at)))
+      )
+        archivedBuildings.set(`${project.id}|${norm(row.building)}`, { project: row.project, code: row.building });
+    }
+    return { archivedProjects, archivedBuildings: archivedBuildings.size };
+  }
+
   // ---------- Nhập hàng loạt (Excel) ----------
   // rows: [{ project, building, buildingPrice?, code?, area_m2?, floor?, direction?, apt_type?,
   //          price_per_m2_override?, status? }]. `cols` = các field CÓ cột trong file — chỉ
   // field đó được ghi (ô trống → xoá giá trị), field không có cột giữ nguyên dữ liệu cũ.
   async function importRows(rows: any, cols: any) {
     needOnline();
-    const stat = { projects: 0, buildings: 0, units: 0 };
-    // 1) Dự án chưa có → tạo
+    const stat = { projects: 0, buildings: 0, units: 0, restoredProjects: 0, restoredBuildings: 0 };
+    // Read complete keys first so archived matches can be intentionally restored
+    // rather than colliding with unique indexes or being silently left hidden.
+    const { projects: projectRows, buildings: buildingRows } = await projectAndBuildingRows();
+    const projectByKey = new Map<any, any>();
+    const restoredProjectIds = new Set<any>();
+    for (const row of projectRows) {
+      const key = norm(row.name);
+      const current = projectByKey.get(key);
+      if (!current || (current.archived_at && !row.archived_at)) projectByKey.set(key, row);
+    }
     const names = [...new Set(rows.map((r: any) => r.project).filter(Boolean))];
-    const missing = names.filter((n: any) => !projectByName(n));
+    const missing: string[] = [];
+    for (const name of names) {
+      const existing: any = projectByKey.get(norm(name));
+      if (!existing) {
+        missing.push(String(name));
+      } else {
+        if (existing.archived_at) {
+          check(await sb.from('projects').update({ archived_at: null }).eq('id', existing.id));
+          existing.archived_at = null;
+          stat.restoredProjects++;
+          restoredProjectIds.add(existing.id);
+        }
+        if (!data.projects.some((project: any) => project.id === existing.id)) data.projects.push(existing);
+      }
+    }
     if (missing.length) {
       const ins = check(
         await sb
@@ -480,7 +545,9 @@ export function createCatalogRepository(sync: CustomerSync, storage: Storage = l
       data.projects.push(...ins);
       stat.projects = ins.length;
     }
-    // 2) Toà: có cột giá → upsert kèm giá; không → chỉ thêm toà chưa có
+    emit();
+    // 2) Buildings update only imported columns. Blank price is an explicit clear;
+    // an omitted price column leaves the existing price and all other fields intact.
     const bMap = new Map<any, any>();
     rows.forEach((r: any) => {
       const p = projectByName(r.project);
@@ -492,22 +559,44 @@ export function createCatalogRepository(sync: CustomerSync, storage: Storage = l
       bMap.set(key, cur);
     });
     const bRows = [...bMap.values()];
-    const before = data.buildings.length;
-    const withPrice = bRows.filter((b: any) => 'approved_price_per_m2' in b);
-    const noPrice = bRows.filter((b: any) => !('approved_price_per_m2' in b));
-    if (withPrice.length) check(await sb.from('buildings').upsert(withPrice, { onConflict: 'project_id,code' }));
-    if (noPrice.length)
-      check(await sb.from('buildings').upsert(noPrice, { onConflict: 'project_id,code', ignoreDuplicates: true }));
-    data.buildings = (
-      await pagedFetch<Data & { id: string }>(
-        sb,
-        'buildings',
-        'id,project_id,code,approved_price_per_m2,handover_date,note,sort_order,created_at',
-        () => !sync.local.isClosed,
-      )
-    ).sort(byOrder);
+    const buildingByKey = new Map<any, any>();
+    for (const row of buildingRows) {
+      const key = `${row.project_id}|${norm(row.code)}`;
+      const current = buildingByKey.get(key);
+      if (!current || (current.archived_at && !row.archived_at)) buildingByKey.set(key, row);
+    }
+    const inserts: Data[] = [];
+    for (const building of bRows) {
+      const key = `${building.project_id}|${norm(building.code)}`;
+      const current: any = buildingByKey.get(key);
+      if (!current) {
+        inserts.push(building);
+        continue;
+      }
+      const patch: Data = {};
+      if (current.archived_at) {
+        patch.archived_at = null;
+        current.archived_at = null;
+        stat.restoredBuildings++;
+      } else if (restoredProjectIds.has(current.project_id)) {
+        stat.restoredBuildings++;
+      }
+      if ('approved_price_per_m2' in building) patch.approved_price_per_m2 = building.approved_price_per_m2;
+      if (Object.keys(patch).length) {
+        check(await sb.from('buildings').update(patch).eq('id', current.id));
+        Object.assign(current, patch);
+      }
+    }
+    if (inserts.length) {
+      const created = check(await sb.from('buildings').insert(inserts).select());
+      stat.buildings = created.length;
+      buildingRows.push(...created);
+    }
+    const activeProjectIds = new Set(data.projects.map((project: any) => project.id));
+    data.buildings = buildingRows.filter(
+      (building: any) => !building.archived_at && activeProjectIds.has(building.project_id),
+    );
     reindex();
-    stat.buildings = data.buildings.length - before;
     // 3) Căn: upsert theo (toà, mã căn)
     const FIELDS = ['area_m2', 'floor', 'direction', 'apt_type', 'price_per_m2_override', 'status'];
     const uMap = new Map<any, any>();
@@ -566,6 +655,7 @@ export function createCatalogRepository(sync: CustomerSync, storage: Storage = l
   return {
     STATUS,
     load,
+    previewImport,
     scope,
     units: () => data.units,
     onChange: (fn: any) => {
