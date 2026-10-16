@@ -6,6 +6,13 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-16 — T3.2: T3.2 adds the Today dashboard backed by the existing S01-S10 registry.
+
+- Added the `/` Today surface, one-tap Quick Actions, deduplicated queue, call session, capacity estimate, SLA-plan load hook, and end-of-day summary.
+- Capacity only previews P2 deferrals; P0 remains visible, and customers with booked calls or open timed tasks are reserved. No due date or due_original mutation is performed.
+- Validation before final fix: npm run check (448 tests), build, focused E2E (3 viewports); after fix: focused model tests pass and independent review found no remaining issue. Full checks will run in the merge gate.
+- File: `src/config/capacity.ts`, `src/features/home/route.tsx`, `src/features/today/model.ts`, `src/features/today/route.tsx`, `tests/config/capacity.test.ts`, `tests/e2e/today.spec.ts`, `tests/features/today/model.test.ts`
+
 ## 2026-10-16 — T3.4: T3.4 adds the class-one “Khách mới” lead workflow on the existing customers model.
 
 - Added registered lead route and quick-add command, default funnel filter, registration badge, and lead call sheet using the T3.1 quick-action bridge.
