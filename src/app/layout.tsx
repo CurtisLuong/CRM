@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Outlet, useLocation, useMatches, useNavigate } from 'react-router';
+import { QuickActionsHost } from '@/features/quick-actions/QuickActions';
 import { ToastProvider } from '@/ui';
 import { AppShell } from '@/ui/AppShell';
 import { CommandPalette, type PaletteItem } from '@/ui/CommandPalette';
@@ -121,6 +122,7 @@ export function RootLayout() {
       <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} items={items} search={search} />
       <QuickAddSheet open={quickOpen} onOpenChange={setQuickOpen} commands={appCommands} ctx={ctx} />
       <UpdatePrompt />
+      <QuickActionsHost />
     </ToastProvider>
   );
 }
