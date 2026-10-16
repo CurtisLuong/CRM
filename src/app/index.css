@@ -1,2 +1,115 @@
-/* Điểm vào Tailwind v4. Token màu/chữ của Design System do T2.C1 thêm trong src/styles/. */
+/* Điểm vào Tailwind v4 + nối token Design System (src/styles/tokens.css) vào theme. Font: src/styles/fonts.css (nạp ở main.tsx). */
 @import "tailwindcss";
+@import "../styles/tokens.css";
+
+/* Biến thể dark: theo data-theme do src/app/theme.ts đặt (người dùng chọn được Sáng/Tối/Tự động). */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/*
+ * "inline" = class Tailwind trỏ thẳng var(--token) → đổi theme chỉ cần đổi data-theme.
+ * Tên class = tên token: bg-bg, bg-surface-2, text-text, text-text-2, border-border-strong, bg-accent text-accent-fg…
+ */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-text: var(--text);
+  --color-text-2: var(--text-2);
+  --color-text-3: var(--text-3);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-soft: var(--accent-soft);
+  --color-danger: var(--danger);
+  --color-danger-bg: var(--danger-bg);
+  --color-warning: var(--warning);
+  --color-warning-bg: var(--warning-bg);
+  --color-success: var(--success);
+  --color-success-bg: var(--success-bg);
+  --color-ai: var(--ai);
+  --color-ai-bg: var(--ai-bg);
+  --color-focus: var(--accent);
+
+  --shadow-e1: var(--e1);
+  --shadow-e2: var(--e2);
+  --shadow-e3: var(--e3);
+}
+
+@theme {
+  --font-sans: "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  /* 2.2 Cấp chữ: text-display, text-title, text-section, text-body-strong, text-body, text-small, text-label, text-mono-data */
+  --text-display: 28px;
+  --text-display--line-height: 34px;
+  --text-display--font-weight: 600;
+  --text-title: 20px;
+  --text-title--line-height: 28px;
+  --text-title--font-weight: 600;
+  --text-section: 16px;
+  --text-section--line-height: 24px;
+  --text-section--font-weight: 600;
+  --text-body-strong: 15px;
+  --text-body-strong--line-height: 22px;
+  --text-body-strong--font-weight: 600;
+  --text-body: 15px;
+  --text-body--line-height: 22px;
+  --text-body--font-weight: 400;
+  --text-small: 13px;
+  --text-small--line-height: 18px;
+  --text-small--font-weight: 400;
+  --text-label: 12px;
+  --text-label--line-height: 16px;
+  --text-label--font-weight: 500;
+  --text-label--letter-spacing: 0.02em;
+  --text-mono-data: 13px;
+  --text-mono-data--line-height: 18px;
+  --text-mono-data--font-weight: 500;
+
+  /* 2.3 Bo góc: rounded-control / rounded-card / rounded-sheet; chip dùng rounded-full */
+  --radius-control: 10px;
+  --radius-card: 14px;
+  --radius-sheet: 20px;
+
+  /* 2.4 Easing: ease-standard / ease-exit; thời lượng dùng duration-(--dur-fast) / (--dur-base) / (--dur-slow) */
+  --ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+}
+
+@layer base {
+  html {
+    background-color: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  /* Cỡ body đặt ở body (không ở html) để rem của Tailwind vẫn = 16px → lưới 4px đúng. */
+  body {
+    min-height: 100dvh;
+    background-color: var(--bg);
+    font-size: 15px;
+    line-height: 22px;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background-color: var(--accent-soft);
+    color: var(--text);
+  }
+}
+
+/* Chữ mono cho dữ liệu (giờ, số tiền, mã căn, SĐT trong bảng) — luôn chữ số đều cột. Dùng kèm text-mono-data. */
+@utility font-data {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
