@@ -6,6 +6,13 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-16 — T3.6: Form nhập khách hàng đầy đủ với OCR và bảo vệ bản nháp
+
+- Thêm form tạo/sửa khách theo payload v1, giữ dữ liệu JSON chưa biết, gợi ý dự án/loại căn/mã căn và mệnh/cung.
+- Cảnh báo khách trùng theo SĐT chuẩn hóa; OCR chỉ điền gợi ý để người dùng duyệt.
+- Kiểm tra: npm run check (403/403), npm run build, Playwright intake (9/9, 360/390/1280px).
+- File: `package-lock.json`, `package.json`, `src/features/intake/model.ts`, `src/features/intake/route.tsx`, `src/features/intake/schema.ts`, `tests/e2e/intake.spec.ts`, `tests/features/intake/intake.test.ts`
+
 ## 2026-10-16 — T3.3: feat(T3.3): add customer lists, filters, saved segments and virtual scrolling
 
 - Added Potential, New Customer and Team views with v1-compatible status, stage, registration date, apartment, source, owner and multi-key sorting filters; fixture golden counts cover each group.
