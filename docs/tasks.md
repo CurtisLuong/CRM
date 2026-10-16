@@ -105,7 +105,7 @@ Ký hiệu: ☐ chưa · ◐ đang làm (ghi nhánh) · ☑ xong (ghi ngày) · 
 | T2.B3 | Port search + matching + lunar + phone | B | M | T1.2, T2.A1 | Agent | ☐ |
 | T2.B4 | Port loan engine | B | S | T1.1 | Agent | ☑ 2026-10-16 (tự merge 8b045b9) |
 | T2.B5 | Signals registry + S01–S10 | B | L | T2.B1, T2.B2 | Agent | ☐ |
-| T2.C1 | Tokens sáng/tối + fonts + Tailwind theme | C | S | T1.1 | Agent | ☐ |
+| T2.C1 | Tokens sáng/tối + fonts + Tailwind theme | C | S | T1.1 | Agent | ☑ 2026-10-16 (tự merge 6474249) |
 | T2.C2 | Component `src/ui` + gallery | C | L | T2.C1 | Agent | ☐ |
 | T2.C3 | AppShell, nav, Command palette, SyncIndicator | C | M | T2.C2 | Agent | ☐ |
 | T3.1 | Quick actions + Sheet sau gọi + cầu Android | Tính năng | L | T2.A4, T2.B1, T2.C3 | Agent | ☐ |

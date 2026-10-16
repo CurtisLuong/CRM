@@ -6,6 +6,16 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-16 — T2.C1: T2.C1 — Token sáng/tối, font tự host, Tailwind theme, chọn Sáng/Tối/Tự động
+
+- src/styles/tokens.css: đủ token màu §2.1 (sáng :root, tối [data-theme="dark"] + theo hệ thống khi chưa có JS), bóng e1–e3, thời lượng chuyển động
+- src/app/index.css: nối token vào Tailwind v4 (@theme inline: bg-surface, text-text-2, bg-accent…; cấp chữ text-display…text-mono-data; rounded-control/card/sheet; ease-standard/exit; tiện ích font-data)
+- src/styles/fonts.css: Be Vietnam Pro 400–700 + JetBrains Mono 500 tự host (@fontsource, có subset tiếng Việt)
+- src/app/theme.ts: Sáng/Tối/Tự động, lưu localStorage "sk-theme", theo prefers-color-scheme, áp trong main.tsx trước khi vẽ, cập nhật meta theme-color; hook useThemePref
+- /dev/type (src/features/dev-type/route.tsx): mọi cấp chữ với "Trường, Hưởng, Ngữ, Tự, Đường", màu chữ, màu ngữ nghĩa, nền/viền, bộ chọn giao diện
+- Kiểm tra: npm run check (unit test token: đủ cặp sáng/tối, 2 khối tối khớp, tương phản WCAG AA; test theme.ts); npm run build; e2e tests/e2e/theme.spec.ts 360/390/1280 cả sáng/tối (font tải đúng, chữ không bị cắt, không cuộn ngang, axe color-contrast, lưu lựa chọn qua tải lại); xem trình duyệt thật 390px sáng/tối
+- File: `src/app/index.css`, `src/app/theme.ts`, `src/features/dev-type/route.tsx`, `src/main.tsx`, `src/styles/fonts.css`, `src/styles/theme.test.ts`, `src/styles/tokens.css`, `src/styles/tokens.test.ts`, `tests/e2e/theme.spec.ts`
+
 ## 2026-10-16 — T2.B4: T2.B4 — Port engine vay sang TypeScript (src/domain/loan)
 
 - Thêm src/domain/loan/engine.ts (+ index.ts): port 1:1 legacy/js/loan/loan-engine.js sang TS strict thuần (không React/IndexedDB); giữ nguyên công thức, thứ tự làm tròn, cách ép kiểu chuỗi→số, nội dung cảnh báo; thêm kiểu dữ liệu cho đầu vào/đầu ra.
