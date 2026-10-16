@@ -6,6 +6,13 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-16 — T2.A1: T2.A1 — Types + Zod + normalize legacy cho bản ghi khách (src/domain/customer)
+
+- Thêm schema.ts: Zod `.passthrough()` cho Customer và mọi phần tử JSONB (call_attempts, next_tasks, notes_manual, care_stage_history, booking_steps, advanced) + trường v2 tuỳ chọn (archived_at, contact_prefs, interests, household, interactions, close_*, retarget_hint, field_meta, referred_by, next_tasks side/key/source…). Không default/transform/coerce; chấp nhận dữ liệu cũ bẩn (phần tử null, thiếu at, source dạng chuỗi). Bắt buộc: id, phone, full_name, owner_id.
+- Thêm types.ts (suy từ schema), normalize.ts: parseCustomer/safeParseCustomer/serializeCustomer + getter thuần normStage, sourceListOf, isQualified, inFunnel, leadStatus, callAttemptsOf, openTasksOf, parseDob — dùng hằng số src/config, không khai báo lại.
+- Đã kiểm tra: 100% fixture (20 bản ghi) round-trip serialize(parse(x)) deepEqual x, đầu vào đóng băng; giữ thuộc tính lạ ở gốc + mọi mảng JSONB; getter khớp hàm v1 thật (nạp từ legacy/) trên mọi fixture + ca lẻ; bỏ thử .passthrough() → test đỏ. Rà B.3: không SQL, không ghi dữ liệu, không đổi mã đã lưu, không chạm queue. npm run check + build xanh.
+- File: `src/domain/customer/index.ts`, `src/domain/customer/normalize.ts`, `src/domain/customer/schema.ts`, `src/domain/customer/types.ts`, `tests/domain/customer/customer.test.ts`
+
 ## 2026-10-16 — T2.C1: T2.C1 — Token sáng/tối, font tự host, Tailwind theme, chọn Sáng/Tối/Tự động
 
 - src/styles/tokens.css: đủ token màu §2.1 (sáng :root, tối [data-theme="dark"] + theo hệ thống khi chưa có JS), bóng e1–e3, thời lượng chuyển động
