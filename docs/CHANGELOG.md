@@ -6,6 +6,13 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-16 — T3.5: T3.5 adds the v2 customer profile and preserves booking SLA and contact preferences.
+
+- Added profile tabs for overview, customer memory, needs/property, timeline, and documents, with owner/read-only handling and a link from the existing customer context sheet.
+- Booking checklist updates patch only booking_steps, preserving the stage SLA timestamp/history; contact channel and time slot save separately while unknown keys are retained.
+- Validation: npm run check, build, focused Playwright profile tests (6/6), git diff --check, and independent review with no remaining findings. No staging or physical Android validation.
+- File: `src/domain/customer/brief.ts`, `src/domain/customer/timeline.ts`, `src/features/customers/route.tsx`, `src/features/profile/model.ts`, `src/features/profile/route.tsx`, `tests/domain/customer/brief.test.ts`, `tests/domain/customer/timeline.test.ts`, `tests/e2e/profile.spec.ts`, `tests/features/profile/model.test.ts`
+
 ## 2026-10-16 — T3.7: T3.7 adds the v2 task tab and call appointment handling.
 
 - Added six deadline groups and filters for task type, Em hứa/Khách hẹn, and Hẹn gọi; all deadline labels/groups use countdownTag.
