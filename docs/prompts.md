@@ -167,21 +167,29 @@ Dùng các mẫu dưới khi mở phiên Claude Code / Codex. Thay `{…}`.
 ### B.1 Bắt đầu một task
 
 ```text
-Làm task {T-ID} trong docs/tasks.md.
-1. Đọc CLAUDE.md (hoặc AGENTS.md), rồi đúng các mục "Đọc" của task. Không đọc thêm nếu không cần.
-2. Kiểm tra git status, nhánh hiện tại ({branch}), task phụ thuộc đã xong chưa (xem mục Trạng thái trong tasks.md).
-3. Chỉ sửa file trong phạm vi "Sở hữu" của task. Cần sửa file ngoài phạm vi → dừng và hỏi.
-4. Làm xong: chạy kiểm tra trong "Xong khi", cập nhật trạng thái task trong tasks.md, CHANGELOG nếu thay đổi đáng kể.
-5. Báo cáo: đã đổi gì / đã kiểm tra gì (lệnh + kết quả) / điều chưa xác minh / rủi ro dữ liệu.
+Làm task {T-ID} trong docs/tasks.md, TỰ MERGE vào v2 khi đạt điều kiện (tasks.md §0 luật 7).
+1. Đọc CLAUDE.md (hoặc AGENTS.md), tasks.md §0, rồi đúng các mục "Đọc" của task. Không đọc thêm nếu không cần.
+2. Lấy bản mới nhất: git fetch origin. Làm trong worktree/bản clone riêng, nhánh task/{T-ID}-{slug} tách từ origin/v2.
+   Kiểm tra mọi task phụ thuộc đã ☑ trong docs/tasks.md của origin/v2 — chưa thì dừng và báo.
+3. Chỉ sửa file trong phạm vi của {T-ID} ở scripts/agents/ownership.json. Không sửa docs/tasks.md, docs/CHANGELOG.md
+   (cổng tự ghi). Không thêm thư viện. Cần file ngoài phạm vi → dừng và báo.
+4. Logic port từ v1 phải khớp golden tests/golden/*.json (tests/legacy-harness/README.md). Task chạm dữ liệu: tự rà
+   checklist prompts.md B.3 trên diff của mình; có vi phạm thì sửa, không được thì dừng. Không chạy SQL trên Supabase.
+5. Xong: chạy kiểm tra trong "Xong khi", commit hết, viết tóm tắt vào /tmp/{T-ID}.md (dòng 1 = tiêu đề ngắn; sau đó
+   gạch đầu dòng: đã đổi gì, đã kiểm tra gì), rồi chạy:
+     node scripts/agents/merge-to-v2.mjs {T-ID} --changelog /tmp/{T-ID}.md      (thêm --e2e nếu đổi luồng UI)
+   Lỗi kiểm tra/test → sửa rồi chạy lại. Xung đột với task khác hoặc vi phạm phạm vi → DỪNG, không tự sửa file task khác.
+6. Báo cáo tiếng Việt ngắn cho người không biết lập trình: đã merge chưa (mã commit) / đã đổi gì / đã kiểm tra gì /
+   chưa xác minh gì / chủ dự án cần làm gì.
 ```
 
 ### B.2 Chạy nhiều task song song
 
 ```text
-Mở {N} phiên riêng, mỗi phiên một worktree tách từ nhánh v2:
-- Phiên 1: task {T-a}   - Phiên 2: task {T-b}   - Phiên 3: task {T-c}
-Các task này cùng nhóm song song trong docs/tasks.md và không sở hữu chung file.
-Mỗi phiên dùng prompt B.1, commit trên nhánh riêng tên v2/{T-ID}-{slug}, mở PR vào v2.
+Mở {N} phiên riêng (mỗi phiên 1 worktree/bản clone), mỗi phiên dán prompt B.1 với 1 task:
+- Phiên 1: {T-a}   - Phiên 2: {T-b}   - Phiên 3: {T-c}
+Điều kiện: các task này có mọi phụ thuộc đã ☑ trên v2 và phạm vi trong scripts/agents/ownership.json không trùng nhau.
+Mỗi phiên tự merge qua cổng; merge chen nhau được cổng tự xếp hàng (rebase + thử lại).
 ```
 
 ### B.3 Kiểm tra an toàn dữ liệu (chạy trước khi merge task chạm data/schema)

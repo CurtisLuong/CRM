@@ -14,7 +14,7 @@
 
 | | v1 — production | v2 — đang xây |
 |---|---|---|
-| Nhánh | `main` | `v2` (task: `v2/<T-ID>-<slug>` → PR vào `v2`) |
+| Nhánh | `main` | `v2` (task: nhánh `task/<T-ID>-<slug>` → tự merge qua `scripts/agents/merge-to-v2.mjs`, tasks.md §0) |
 | Code | `index.html`, `js/`, `css/`, `sw.js` (trên nhánh v2 nằm ở `legacy/`) | `src/` — Vite + React + TypeScript + Tailwind + Radix (D-011) |
 | Build | Không build (HTML/JS thuần) | `npm run build` → `dist/`; Cloudflare tự build khi push |
 | Deploy | `crm-cop.pages.dev` (vỏ Android trỏ vào đây) | `crm-v2-9hf.pages.dev`, dữ liệu Supabase **staging** |
@@ -52,7 +52,7 @@ Ngoại lệ build cục bộ D-002 vẫn áp dụng cho vỏ `android-app/` (Gr
 3. Chỉ đọc tài liệu theo bảng §5 và mục *Đọc* của task; mở rộng khi có bằng chứng thiếu context. Không quét toàn repo, không đọc hết `CHANGELOG.md`/lịch sử git để phòng hờ.
 4. Chỉ sửa file trong mục *Sở hữu* của task; route/tín hiệu/lệnh tự đăng ký, không sửa file registry chung.
 5. Kiểm chứng đúng phạm vi: v2 `npm run check` (+ `npm run e2e` khi đổi luồng UI); task chạm dữ liệu chạy checklist `docs/prompts.md` B.3; UI kiểm tra trình duyệt (sáng/tối, 360–430px, ≥1024px, dấu tiếng Việt). Chỉ báo "đã pass" khi thực sự chạy; phân biệt local / trình duyệt / staging / production / máy thật.
-6. Cập nhật trạng thái task trong `docs/tasks.md`; `docs/CHANGELOG.md` cho thay đổi đáng kể (định dạng: ngày — mô tả — file); `docs/project-status.md` khi trạng thái triển khai đổi (SQL đã chạy, deploy).
+6. Cập nhật trạng thái task trong `docs/tasks.md`; `docs/CHANGELOG.md` cho thay đổi đáng kể (task v2: cổng merge tự ghi 2 file này — agent không sửa) (định dạng: ngày — mô tả — file); `docs/project-status.md` khi trạng thái triển khai đổi (SQL đã chạy, deploy).
 7. Báo ngắn: đã đổi gì · đã kiểm tra gì · chưa xác minh gì · chủ dự án cần làm gì.
 
 Schema đổi → migration riêng trong `SQL/v2/NNN_*.sql` + đồng bộ `SQL/schema.sql` (baseline cài mới, không phải bằng chứng production). Không chạy lại migration cũ chỉ vì file còn trong repo. Migration production do chủ dự án chạy sau backup.

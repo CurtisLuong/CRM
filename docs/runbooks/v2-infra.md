@@ -43,7 +43,7 @@ Agent làm được bước này khi bắt đầu T1.1 (cần quyền push). N�
 cd ~/Projects/CRM && git switch main && git pull && git switch -c v2 && git push -u origin v2
 ```
 
-Mong đợi: dòng cuối có `branch 'v2' set up to track 'origin/v2'`. Từ đây **không** push thẳng vào `v2`; mỗi task là 1 nhánh `v2/<T-ID>-…` → Pull Request vào `v2`.
+Mong đợi: dòng cuối có `branch 'v2' set up to track 'origin/v2'`. Từ đây mỗi task là 1 nhánh `task/<T-ID>-…`; agent tự merge vào `v2` qua cổng `scripts/agents/merge-to-v2.mjs` (tasks.md §0 luật 7).
 
 ## Bước 5. Cloudflare Pages project `crm-v2`
 

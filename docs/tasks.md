@@ -1,16 +1,18 @@
 # Tasks — Kế hoạch đại tu Sổ Khách v2
 
 > **Version:** 1.0 · 2026-10-16. Phạm vi: `PRD.md`. Kỹ thuật: `architecture.md`. Quyết định: D-011…D-015.
-> **Cách dùng:** chọn task có trạng thái ☐ mà mọi phụ thuộc đã ☑ → mở phiên agent với prompt `prompts.md` B.1. Task cùng **sóng** và cùng **nhóm song song** chạy cùng lúc được (mỗi phiên 1 worktree/nhánh).
+> **Cách dùng:** chọn task có trạng thái ☐ mà mọi phụ thuộc đã ☑ → mở phiên agent với prompt `prompts.md` B.1. Task cùng **sóng** và cùng **nhóm song song** chạy cùng lúc được (mỗi phiên 1 worktree/bản clone + 1 nhánh `task/…`; tự merge qua cổng — §0 luật 7).
 
 ## 0. Luật làm task (cho agent)
 
-1. **Nhánh:** Phase 0 làm trên `main` (không đổi runtime v1 trừ T0.2 SQL). Từ T1.1: nhánh tích hợp `v2`; mỗi task một nhánh `v2/<T-ID>-<slug>` → PR vào `v2`. Không push thẳng `main` khi chưa tới T5.4.
-2. **Sở hữu file:** chỉ sửa file/thư mục trong mục *Sở hữu*. Được **thêm file mới** trong `src/ui/`, `src/config/` nếu task cần (không sửa file của task khác). Cần đổi API/file của task khác → dừng, ghi vào báo cáo, hỏi.
+1. **Nhánh:** Phase 0 làm trên `main` (không đổi runtime v1 trừ T0.2 SQL). Từ T1.1: nhánh tích hợp `v2`; mỗi task một nhánh **`task/<T-ID>-<slug>`** tách từ `origin/v2` (không dùng `v2/…`: Git cấm vì đã có nhánh `v2`). Không đụng `main` khi chưa tới T5.4.
+2. **Sở hữu file:** chỉ sửa file/thư mục trong mục *Sở hữu* — bản máy đọc được ở `scripts/agents/ownership.json` (cổng merge chặn mọi file ngoài danh sách). Cần thêm/sửa file ngoài phạm vi (kể cả file mới trong `src/config/`, `src/ui/`) hoặc đổi API của task khác → dừng, báo người điều phối thêm vào `ownership.json` trước. **Không thêm thư viện** ngoài bộ T1.1 đã cài (CLAUDE.md §3.10).
 3. **Tự đăng ký:** route (`src/features/*/route.tsx`), tín hiệu (`src/domain/signals/rules/*.ts`), lệnh (`src/features/*/commands.ts`) — không sửa file router/registry chung.
-4. **Dữ liệu:** mọi task chạm `src/data`, `SQL/`, schema, repository phải qua checklist `prompts.md` B.3 trước khi PR. Migration production chỉ do **chủ dự án** chạy sau khi đã backup (T0.1) và chạy thử trên staging.
-5. **Xong khi** = mọi tiêu chí trong thẻ + `npm run check` xanh (từ T1.1) + cập nhật trạng thái bảng §2 + `CHANGELOG.md` nếu thay đổi đáng kể.
-6. **Cỡ:** S ≈ ½ phiên · M ≈ 1 phiên · L ≈ 2–3 phiên (chia nhỏ nếu cần, giữ ID con `T3.5a`…).
+4. **Dữ liệu:** mọi task chạm `src/data`, `SQL/`, schema, repository phải tự rà checklist `prompts.md` B.3 trên diff của mình trước khi gọi cổng merge (có vi phạm → không gọi cổng, báo lại). Agent **không bao giờ** chạy SQL trên Supabase. Migration production chỉ do **chủ dự án** chạy sau khi đã backup (T0.1) và chạy thử trên staging.
+5. **Xong khi** = mọi tiêu chí trong thẻ + cổng merge chạy thành công (cổng tự chạy `npm run check` + `build` + golden, tự ghi ☑ vào bảng §2 và mục `CHANGELOG.md` — agent **không** tự sửa 2 file này).
+6. **Cỡ:** S ≈ ½ phiên · M ≈ 1 phiên · L ≈ 2–3 phiên (chia nhỏ nếu cần, giữ ID con `T3.5a`…; ID con phải có mục riêng trong `ownership.json`).
+7. **Tự merge (chủ dự án duyệt 2026-10-16):** xong việc → commit trên `task/<T-ID>-<slug>` → viết tóm tắt vào 1 file (dòng 1 = tiêu đề, sau đó gạch đầu dòng đã đổi/đã kiểm tra) → chạy `node scripts/agents/merge-to-v2.mjs <T-ID> --changelog <file>` (thêm `--e2e` nếu đổi luồng UI). Cổng: lấy `v2` mới nhất + rebase → kiểm phụ thuộc ☑ → kiểm phạm vi file + luật dữ liệu (không đụng `legacy/` trừ T1.1 chuyển nguyên vẹn, không sửa migration cũ, SQL mới không drop/rename/đổi kiểu/xoá dữ liệu, không lộ khoá) → test → ghi ☑ + CHANGELOG → push fast-forward lên `v2` (không force; bị chen → tự làm lại). Thoát khác 0 = **chưa merge**: đọc lý do; xung đột với task khác → dừng và báo, không tự sửa file của task khác. Không mở PR, không merge tay.
+8. **Song song an toàn:** chỉ giao cùng lúc các task mà mọi phụ thuộc đã ☑ trên `v2` và phạm vi trong `ownership.json` không trùng nhau. Mở sóng mới → người điều phối thêm phạm vi các task của sóng đó vào `ownership.json` trước.
 
 ## 1. Sơ đồ phụ thuộc và sóng
 
@@ -183,6 +185,7 @@ Ký hiệu: ☐ chưa · ◐ đang làm (ghi nhánh) · ☑ xong (ghi ngày) · 
 - **Sở hữu:** root config (`package.json`, `vite.config.ts`, `tsconfig*.json`, `biome.json`, `index.html`, `public/`), `src/main.tsx`, `src/app/*`, `.github/` (nếu thêm CI), `legacy/` (di chuyển).
 - **Làm:** trên nhánh `v2`: `git mv` toàn bộ file v1 (index.html, css/, js/, sw.js, manifest.json, icons/, dev/, android-app-version.json) vào `legacy/` **trừ** `SQL/`, `worker/`, `android-app/`, `docs/`, `tests/`; giữ `android-app-version.json` và `icons/` cần cho runtime → copy sang `public/`. Cài Vite + React 19 + TS strict + Tailwind v4 + Radix + Zod + Vitest + Playwright + Biome + vite-plugin-pwa + fake-indexeddb. Router (`react-router` v7, data router) với auto-register `src/features/*/route.tsx`. `public/_redirects`. Scripts: `dev`, `build`, `preview`, `check` (tsc + biome + vitest), `e2e`. SW v2 xoá cache `crm-khach-hang-v*`.
 - **Xong khi:** `npm run check` + `npm run build` xanh; deploy `crm-v2` hiện trang "Sổ Khách v2"; `legacy/` còn nguyên nội dung (so `git diff --stat -M`).
+- **Lưu ý (2026-10-16):** (1) cài **một lần** đủ thư viện cho Sóng 1–2 để các task song song không phải sửa `package.json`: `react@19`, `react-dom`, `react-router` v7, `typescript`, `vite`, `@vitejs/plugin-react`, `tailwindcss@4` + `@tailwindcss/vite`, `radix-ui`, `lucide-react`, `zod`, `@supabase/supabase-js`, `@fontsource/be-vietnam-pro`, `@fontsource/jetbrains-mono`, `vite-plugin-pwa`, `vitest`, `jsdom`, `@testing-library/react`, `@testing-library/user-event`, `@playwright/test`, `@axe-core/playwright`, `fake-indexeddb`, `@biomejs/biome`; (2) đổi đường dẫn `tests/legacy-harness/load-v1.js` và `tests/*.test.js|cjs` sang `legacy/js/…` → `node tests/legacy-harness/run.js --check` vẫn 0 khác; (3) `.gitignore` thêm `node_modules/`, `dist/`, `.env.local`; (4) Cloudflare `crm-v2` đã tự `npm ci && npm run build` khi có `package.json` (output `dist`).
 
 #### T1.2 — Config registry
 - **Đọc:** D-005, D-006, D-008; `legacy/js/followup.js`, `velocity.js`, `icons.js`, đầu `legacy/js/app.js` (hằng số).
