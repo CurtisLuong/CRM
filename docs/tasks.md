@@ -114,7 +114,7 @@ Ký hiệu: ☐ chưa · ◐ đang làm (ghi nhánh) · ☑ xong (ghi ngày) · 
 | T3.4 | Khách mới (lớp 1) | Tính năng | M | T3.1 | Agent | ☑ 2026-10-16 (tự merge 37a36d3) |
 | T3.5 | Hồ sơ khách v2 | Tính năng | L | T3.1, T2.B2, T3.9 | Agent | ☐ |
 | T3.6 | Form tạo/sửa + OCR + cảnh báo trùng | Tính năng | M | T2.A4, T2.C3 | Agent | ☑ 2026-10-16 (tự merge 4ce1773) |
-| T3.7 | Công việc (tab) | Tính năng | M | T3.1 | Agent | ☐ |
+| T3.7 | Công việc (tab) | Tính năng | M | T3.1 | Agent | ☑ 2026-10-16 (tự merge aa4478e) |
 | T3.8 | Giỏ hàng + Excel + ghép căn | Tính năng | L | T2.A4, T2.B3, T2.C3 | Agent | ☑ 2026-10-16 (tự merge f4713ed) |
 | T3.9 | Tính vay + PDF + báo giá | Tính năng | M | T2.B4, T2.C3 | Agent | ☑ 2026-10-16 (tự merge 1be5481) |
 | T3.10 | Nhóm + giao khách | Tính năng | M | T2.A4, T2.C3 | Agent | ☐ |

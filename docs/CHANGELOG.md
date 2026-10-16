@@ -6,6 +6,13 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-16 — T3.7: T3.7 adds the v2 task tab and call appointment handling.
+
+- Added six deadline groups and filters for task type, Em hứa/Khách hẹn, and Hẹn gọi; all deadline labels/groups use countdownTag.
+- Completion/reopen use existing repository APIs and preserve v1 history/payload; call appointments open the T3.1 call flow without mutating the appointment; disqualified customers are excluded.
+- Validation: npm run check (459 tests), build, focused Playwright E2E (12/12 across mobile/desktop and themes); independent review found no remaining issues.
+- File: `src/features/tasks/model.ts`, `src/features/tasks/route.tsx`, `tests/e2e/tasks.spec.ts`, `tests/features/tasks/model.test.ts`
+
 ## 2026-10-16 — T3.2: T3.2 adds the Today dashboard backed by the existing S01-S10 registry.
 
 - Added the `/` Today surface, one-tap Quick Actions, deduplicated queue, call session, capacity estimate, SLA-plan load hook, and end-of-day summary.
