@@ -42,10 +42,20 @@
 
 ## 2. Số v2 hiện khớp DB (Phần C)
 
-| Tài khoản | Mục | DB (`counts.sql`) | v2 máy (`idb-counts.js`) | Màn v2 | Kết quả |
+| Tài khoản | Mục | DB (`counts.sql` 12:05) | v2 máy (`idb-counts.js` 12:30) | Màn v2 | Kết quả |
 |---|---|---|---|---|---|
-| ⏳ admin | khách / khách mới / việc mở / cuộc gọi / ghi chú | ⏳ | ⏳ | ⏳ | ⏳ |
-| ⏳ thành viên | khách / khách mới / việc mở / cuộc gọi / ghi chú | ⏳ | ⏳ | ⏳ | ⏳ |
+| `a70e8d12…` (admin, trình duyệt trong app Claude, Mac) | khách (tổng / đang dùng / lưu trữ) | 88 / 88 / 0 | 88 / 88 / 0 | Khách hàng: "88 khách đã nạp" · "13 tiềm năng, 74 khách mới, 1 khách nhóm" | ✅ |
+| | việc (tổng / đang mở) | 16 / 14 | 16 / 14 | Công việc: "24 việc" = 12 hẹn gọi + 12 việc của khách chưa loại (màn bỏ khách đã loại — `taskRows`) | ✅ |
+| | cuộc gọi (tổng / chưa ghi) | 46 / 1 | 46 / 1 | — | ✅ |
+| | ghi chú hồ sơ · ghi chú đăng ký · mốc lịch sử bậc · tương tác | 67 · 4 · 220 · 0 | 67 · 4 · 220 · 0 | — | ✅ |
+| | khách mới chưa phân loại | 23 | **11** | Khách mới › Trong phễu: 10 thẻ (= 10 của `a70e8d12`) | ✅ có giải thích ↓ |
+| | theo người phụ trách | `a70e8d12` 87 · `ef44fb2f` 1 | `a70e8d12` 87 · `ef44fb2f` 1 | — | ✅ |
+| | hàng đợi chưa gửi | — | 0 ("Đã đồng bộ 12:29") | — | ✅ |
+| `ef44fb2f…` (thành viên) | — | 1 khách | ⏳ chưa đăng nhập | ⏳ | ⏳ |
+
+**Lệch "khách mới" 23 → 11 = 12 khách tự chuyển Loại lúc đăng nhập (12:29), không phải lỗi đọc dữ liệu.** 12 khách bậc "Đăng kí mới" có `disqualified_at` sau 12:05, `disqualify_reason = khong_lien_lac_duoc`, `updated_at` sau 12:05; không khách nào khác đổi `updated_at`. Đây là tự chuyển SLA đã duyệt (D-008, `src/domain/velocity/automation.ts`, giống v1 `runSlaAutomation` trong `legacy/js/app.js`): dữ liệu staging dừng ở 2026-10-16 nên tới 2026-10-17 các khách này quá hạn SLA. Thay đổi đã đồng bộ lên staging → nằm trong nhật ký từ 12:05; cần `audit-since` (mốc 12:05) xác nhận **chỉ** 12 khách đó và chỉ các cột `disqualified_at`, `disqualify_reason`, `disqualify_note`, `next_call_*`, không có ✗: ⏳.
+
+Ghi nhận phụ (không phải mất dữ liệu): 4 việc đang mở thuộc khách đã loại không hiện ở màn Công việc (màn bỏ khách đã loại).
 
 ## 3. Mở + lưu không sửa (Phần D)
 
