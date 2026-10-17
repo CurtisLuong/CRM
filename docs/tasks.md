@@ -148,7 +148,7 @@ Ký hiệu: ☐ chưa · ◐ đang làm (ghi nhánh) · ☑ xong (ghi ngày) · 
 | T6.5 | Hiệu quả › Marketing + chi phí | Mới P1 | M | T3.13, T2.A5 | Agent | ☑ 2026-10-17 (tự merge 728a55c) |
 | T6.6 | Ghi chú giọng nói | Mới P1 | M | T3.1, T3.12 | Agent | ☑ 2026-10-17 (tự merge 7afea24) |
 | T6.7 | AI v2 (brief/parse/retarget/coach) | Mới P1 | M | T6.1, T3.12 | Agent | ☐ |
-| T6.7a | AI v2 — mã Worker + client + bộ chấm offline (chưa nghiệm thu chất lượng) | Mới P1 | M | T6.1, T3.12 | Agent | ☐ |
+| T6.7a | AI v2 — mã Worker + client + bộ chấm offline (chưa nghiệm thu chất lượng) | Mới P1 | M | T6.1, T3.12 | Agent | ☑ 2026-10-17 (tự merge 6feeb97) |
 | T6.8 | Phát hiện + gộp trùng có duyệt | Mới P1 | M | T3.6, T2.A5 | Agent | ☑ 2026-10-17 (tự merge 5b99958) |
 
 ## 3. Thẻ task

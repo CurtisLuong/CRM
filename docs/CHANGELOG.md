@@ -6,6 +6,15 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-17 — T6.7a: AI v2 — mã Worker + client + bộ chấm offline (T6.7a; T6.7 vẫn mở chờ đánh giá ghi chú thật)
+
+- Worker `/ai`: 6 task v2 theo docs/prompts.md A (brief, zalo, parse_note, retarget_msg, coach, close_reason); ẩn SĐT/email/CCCD, bỏ khoá riêng tư; kiểm khung JSON, lọc danh mục, đổi mã ngày bằng code, tiền phải là số nguyên VND; ghi chú >1.500 ký tự trả lỗi thay vì cắt ngầm. Chưa deploy Worker.
+- Client `src/features/ai`: kiểm dữ liệu bằng zod; AI chỉ đề xuất, mọi thay đổi qua hộp duyệt; hộp duyệt hiện đúng khung giờ hẹn gọi sẽ lưu (chỉ có ngày → 09:00–10:00, ghi "giờ mặc định"). Thêm AiCoach, AiCloseReason, AiRetargetDraft (chưa gắn vào màn nào).
+- `aiContext`: giữ chữ số tiền khi ẩn SĐT (đã duyệt).
+- `tests/ai-eval`: bộ chấm + runner offline, dữ liệu tổng hợp/mẫu; không gọi model thật.
+- Kiểm tra: npm run check 831/831, build OK, chạy runner offline exit 0. Chưa chạy e2e (giao diện AI ẩn khi không có VITE_WORKER_URL). Việc do Codex làm dở (dừng vì hết quota), Claude hoàn tất.
+- File: `src/domain/customer/aiContext.ts`, `src/features/ai/AiBrief.tsx`, `src/features/ai/AiCloseReason.tsx`, `src/features/ai/AiCoach.tsx`, `src/features/ai/AiNoteReview.tsx`, `src/features/ai/AiProposalPanel.tsx`, `src/features/ai/AiRetargetDraft.tsx`, `src/features/ai/AiZaloDraft.tsx`, `src/features/ai/model.ts`, `src/features/ai/privacy.ts`, `src/features/ai/useAiScope.ts`, `tests/ai-eval/GRADING.md` … (+15)
+
 ## 2026-10-17 — T5.6b: T5.6b — Lựa chọn hợp lệ cho trường hồ sơ
 
 - Giới tính, tình trạng hôn nhân, nghề nghiệp và mục đích mua dùng lựa chọn khớp schema/config/form legacy; giữ nguyên giá trị cũ khi không sửa, chỉ xoá về null khi chọn Chưa biết.
