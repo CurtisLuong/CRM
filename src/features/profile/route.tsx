@@ -26,6 +26,35 @@ const FIELD =
 type DocumentRow = { id: string; label?: string | null; kind?: string; storage_path: string; mime?: string };
 const fmtValue = (value: unknown) => (value == null || value === '' ? 'Chưa biết' : String(value));
 
+export function editedTimelineNotePatch(
+  customer: Customer,
+  entryId: string,
+  text: string,
+  editedAt: string,
+): Record<string, unknown> | null {
+  const separator = entryId.lastIndexOf(':');
+  const index = Number(entryId.slice(separator + 1));
+  if (separator < 0 || !Number.isInteger(index) || index < 0 || text.length === 0) return null;
+
+  if (entryId.startsWith('note:')) {
+    const notes = Array.isArray(customer.notes_manual) ? customer.notes_manual.slice() : [];
+    const note = notes[index];
+    if (!note || note.text === text) return null;
+    notes[index] = { ...note, text, edited_at: editedAt };
+    return { notes_manual: notes };
+  }
+
+  if (entryId.startsWith('stage:')) {
+    const history = Array.isArray(customer.care_stage_history) ? customer.care_stage_history.slice() : [];
+    const entry = history[index];
+    if (!entry || entry.note === text) return null;
+    history[index] = { ...entry, note: text, edited_at: editedAt };
+    return { care_stage_history: history };
+  }
+
+  return null;
+}
+
 function Profile() {
   const { id = '' } = useParams();
   const navigate = useNavigate();
@@ -184,26 +213,14 @@ function Profile() {
   };
   const saveTimelineEntry = async (entryId: string) => {
     if (!writable || !account) return;
-    const split = entryId.lastIndexOf(':');
-    const index = Number(entryId.slice(split + 1));
-    if (!Number.isInteger(index) || index < 0) return;
-    const text = timelineDraft.trim();
-    if (entryId.startsWith('note:')) {
-      const notes = Array.isArray(c.notes_manual) ? c.notes_manual.slice() : [];
-      if (!notes[index] || !text) {
-        toast({ title: 'Ghi chú không được để trống', tone: 'error' });
-        return;
-      }
-      notes[index] = { ...notes[index], text, edited_at: new Date().toISOString() };
-      if (!(await save({ notes_manual: notes }, 'Đã cập nhật ghi chú'))) return;
-    } else if (entryId.startsWith('stage:')) {
-      const history = Array.isArray(c.care_stage_history) ? c.care_stage_history.slice() : [];
-      if (!history[index] || !text) {
-        toast({ title: 'Ghi chú không được để trống', tone: 'error' });
-        return;
-      }
-      history[index] = { ...history[index], note: text, edited_at: new Date().toISOString() };
-      if (!(await save({ care_stage_history: history }, 'Đã cập nhật ghi chú lịch sử bậc'))) return;
+    if (timelineDraft.length === 0) {
+      toast({ title: 'Ghi chú không được để trống', tone: 'error' });
+      return;
+    }
+    const patch = editedTimelineNotePatch(c, entryId, timelineDraft, new Date().toISOString());
+    if (patch) {
+      const message = entryId.startsWith('stage:') ? 'Đã cập nhật ghi chú lịch sử bậc' : 'Đã cập nhật ghi chú';
+      if (!(await save(patch, message))) return;
     }
     setEditingTimelineId(null);
   };
@@ -268,7 +285,7 @@ function Profile() {
                 <div className="flex gap-2">
                   <Button
                     variant="primary"
-                    disabled={busy || !timelineDraft.trim()}
+                    disabled={busy || timelineDraft.length === 0}
                     onClick={() => void saveTimelineEntry(entry.id)}
                   >
                     Lưu ghi chú
