@@ -6,6 +6,13 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-17 — T6.4: T6.4 hoàn thiện chỉ số Chăm sóc F-07
+
+- Thêm chỉ số chăm sóc với tử/mẫu, định nghĩa, kỳ đo và drill-down ra hồ sơ khách.
+- Bổ sung bài học tuần có ngưỡng mẫu và HealthDot kèm lý do từng khách.
+- Check: 530 test; build; E2E và golden do cổng merge chạy.
+- File: `src/domain/metrics/care.ts`, `src/features/insights/care.tsx`, `src/features/insights/route.tsx`, `tests/domain/metrics/care.test.ts`, `tests/e2e/insights.spec.ts`
+
 ## 2026-10-17 — T6.6: Ghi chú giọng nói
 
 - Thêm Web Speech vi-VN và fallback ghi âm ngắn qua Worker STT; transcript điền vào ghi chú để người dùng rà, lưu hoặc gửi qua parse_note AI.
