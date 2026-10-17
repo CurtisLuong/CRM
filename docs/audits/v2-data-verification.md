@@ -61,9 +61,11 @@ Ghi nhận phụ (không phải mất dữ liệu): 4 việc đang mở thuộc 
 
 | Mục | Kết quả |
 |---|---|
+| Số liệu gốc Phần D (`counts.sql`, sau tự chuyển SLA, trước 12:39) | khách mới 11 · nhật ký 12 dòng · vân tay khách bỏ `updated_at` `9008590ad4693378b219ba0b25cca86d` · đầy đủ `4b5aa4a77ab93a0ce9fc72efba113286` · tài liệu `456e5f42987e40cbec38034e33b5d2b6` (= Phần B); các số khác = Phần B |
+| Mốc giờ Phần D | 2026-10-17 12:39 (+07) |
 | Số khách đã mở + lưu | ⏳ / ⏳ |
 | `audit-since` từ mốc Phần D | ⏳ (đạt = `thay đổi: 0`) |
-| Vân tay 30 so với Phần B | ⏳ (đạt = giống hệt) |
+| Vân tay 30 so với số liệu gốc Phần D | ⏳ (đạt = giống hệt `9008590a…`) |
 
 ## 4. Kịch bản rủi ro (Phần E)
 
