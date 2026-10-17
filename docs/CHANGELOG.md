@@ -6,6 +6,13 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-17 — T6.7: Nghiệm thu AI v2 theo ngoại lệ D-022 (theo dõi trên production)
+
+- Chủ dự án bỏ bước đánh giá 50–100 ghi chú thật; T6.7 xong dựa trên phần mã T6.7a (6feeb97) đã kiểm bằng ghi chú giả.
+- D-022 ghi lý do, rủi ro (AI đọc sai ghi chú viết tắt), cách báo ví dụ sai và cách quay Worker về bản trước nếu sai nghiêm trọng.
+- Kiểm tra: chỉ đổi tài liệu; cổng chạy npm run check + build + golden v1.
+- File: `docs/decisions.md`
+
 ## 2026-10-17 — T6.7a: AI v2 — mã Worker + client + bộ chấm offline (T6.7a; T6.7 vẫn mở chờ đánh giá ghi chú thật)
 
 - Worker `/ai`: 6 task v2 theo docs/prompts.md A (brief, zalo, parse_note, retarget_msg, coach, close_reason); ẩn SĐT/email/CCCD, bỏ khoá riêng tư; kiểm khung JSON, lọc danh mục, đổi mã ngày bằng code, tiền phải là số nguyên VND; ghi chú >1.500 ký tự trả lỗi thay vì cắt ngầm. Chưa deploy Worker.
