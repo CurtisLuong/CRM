@@ -133,6 +133,8 @@ Ký hiệu: ☐ chưa · ◐ đang làm (ghi nhánh) · ☑ xong (ghi ngày) · 
 | T5.2 | Kiểm chứng dữ liệu trên staging | Cutover | M | T5.1 | Agent + chủ dự án | ☑ 2026-10-17 (tự merge c34b3c5) |
 | T5.9 | Gộp mảng khi đồng bộ + bỏ thao tác bị từ chối | Cutover | M | T5.1 | Agent | ☑ 2026-10-17 (tự merge bd67dde) |
 | T5.10 | Lưu trữ khách (xoá mềm) + khôi phục | Cutover | S | T5.1 | Agent | ☑ 2026-10-17 (tự merge 20e24d4) |
+| T5.2a | Test tự động đổi tài khoản khi còn thao tác offline (E5) | Cutover | S | T5.2 | Agent | ☐ |
+| T5.3a | Sửa lỗi QA: cuộn danh sách khách, Bằng chứng thô, lối vào khách lưu trữ, báo lỗi nhóm | Cutover | S | T5.2 | Agent | ☐ |
 | T5.3 | QA thiết bị thật + offline | Cutover | M | T5.2 | Chủ dự án + agent | ☐ |
 | T5.4 | Cutover production + rollback plan | Cutover | S | T5.3 | Chủ dự án + agent | ☐ |
 | T5.4a | Chuẩn bị runbook cutover (chỉ tài liệu) | Cutover | S | T5.2 | Agent | ☑ 2026-10-17 (tự merge bd7dee9) |
@@ -386,6 +388,16 @@ Ký hiệu: ☐ chưa · ◐ đang làm (ghi nhánh) · ☑ xong (ghi ngày) · 
 - **Sở hữu:** `src/features/profile/**`, `src/features/archived/**`, `tests/features/profile/**`, `tests/features/archived/**`, `tests/e2e/profile*`, `tests/e2e/archive*`.
 - **Làm:** v1 có "🗑 Xoá khách" (xoá cứng); v2 chưa có màn nào gọi lưu trữ. Thêm "Lưu trữ khách" trong hồ sơ (chỉ người phụ trách, xác nhận rõ, đặt xa nút thao tác thường) đặt `archived_at` qua `CustomersRepository.remove`; màn "Khách đã lưu trữ" + "Khôi phục" (`restore`). Không xoá cứng, không đổi schema.
 - **Xong khi:** khách lưu trữ biến mất khỏi Danh sách/Hôm nay/Công việc/Thông báo, xem được ở màn đã lưu trữ, khôi phục được; người không phụ trách không thấy nút; test + E2E pass. v1 không hiểu `archived_at` → khách vẫn hiện trên v1 tới cutover (đã biết).
+
+#### T5.2a — Test đổi tài khoản E5 (task con của T5.2)
+- **Đọc:** `docs/audits/v2-data-verification.md` mục 4 dòng E5, `tests/data/sync.test.ts` (helper `remote()`, `row()`).
+- **Sở hữu:** `tests/data/account-switch*`.
+- **Xong khi:** test tự động: A có op offline → đăng xuất → B đăng nhập online không thấy khách/hàng đợi của A và không gửi op của A → A đăng nhập lại: op gửi đúng 1 lần, hàng đợi rỗng; `npm run check` pass.
+
+#### T5.3a — Sửa lỗi QA thiết bị (task con của T5.3)
+- **Đọc:** `docs/audits/v2-device-qa.md` mục 5 (L2, L3, L5, L6), `DESIGN_SYSTEM.md`, `UX_GUIDELINES.md`.
+- **Sở hữu:** `src/features/customers/route.tsx`, `src/features/today/route.tsx`, `src/features/team/route.tsx`, `tests/features/{customers,today,team}/**`, `tests/e2e/t53a*`.
+- **Xong khi:** L6 cuộn lên lại được tới bộ lọc ở 360–430px; L3 không còn `[object Object]`/ISO/epoch trong "Bằng chứng"; L5 có lối vào "Khách đã lưu trữ" từ màn Khách hàng; L2 thông báo đúng nguyên nhân; check + e2e pass.
 
 #### T5.3 — QA thiết bị thật
 - **Làm:** Android (Chrome + vỏ APK 1.4 trỏ `crm-v2`), iPhone Safari (nếu có), Mac; font tiếng Việt; số chạm thực đo so baseline T0.6; hiệu năng (mở app < 2s với cache), pin/mạng yếu.
