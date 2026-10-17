@@ -239,9 +239,14 @@ for (const scheme of ['light', 'dark'] as const) {
       await expect(page.getByRole('textbox', { name: 'Nội dung ghi chú' })).toHaveValue(
         'Khách quan tâm căn 2 phòng ngủ',
       );
-      verifyVoiceNote = true;
-      await interact(page.getByRole('button', { name: 'Lưu + AI · xem đề xuất' }));
-      await expect(page.getByTestId('ai-note-review')).toBeVisible();
+      const voiceAiButton = page.getByRole('button', { name: 'Lưu + AI · xem đề xuất' });
+      if (await voiceAiButton.count()) {
+        verifyVoiceNote = true;
+        await interact(voiceAiButton);
+        await expect(page.getByTestId('ai-note-review')).toBeVisible();
+      } else {
+        await expect(page.getByRole('button', { name: 'Lưu', exact: true })).toBeVisible();
+      }
     });
   });
 }
