@@ -6,6 +6,14 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-17 — T5.2a: Khoá kịch bản E5 đổi tài khoản khi còn thao tác offline
+
+- Chỉ thêm tests/data/account-switch.test.ts với fake-indexeddb mới mỗi test và remote giả hỗ trợ select/maybeSingle cho cập nhật mảng T5.9.
+- Kiểm A logout offline đóng DB; B online không thấy khách hoặc hàng đợi A, không gửi request cập nhật khách a; A quay lại online gửi đúng một update ghi chú và hàng đợi rỗng.
+- Kiểm riêng A quay lại khi vẫn offline giữ nguyên toàn bộ op, chưa gửi server; dùng auto-flush thật của AccountAuth, không gọi flushQueue để ép kết quả.
+- Đã kiểm: targeted 2/2 tests; npm run check 74 files, 592 tests pass; kiểm chéo read-only không có phát hiện cần sửa. Không đổi src, schema, test khác hoặc dữ liệu Supabase.
+- File: `tests/data/account-switch.test.ts`
+
 ## 2026-10-17 — T5.3a: Sửa lỗi QA: cuộn khách hàng, Bằng chứng và trạng thái nhóm
 
 - L6: dùng cuộn trang với danh sách ảo hoá; từ cuối 500 khách cuộn lên bộ lọc bằng wheel nhiều nhịp, không còn khung cuộn lồng chặn người dùng.
