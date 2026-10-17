@@ -45,7 +45,7 @@ describe('AI client model', () => {
     expect(fetchMock.mock.calls[0]?.[0]).toBe('https://worker.test/ai');
     expect(body).toMatchObject({
       task: 'zalo',
-      customer: { full_name: 'An' },
+      customer: {},
       extra: {
         goal: 'Hỏi thăm [đã ẩn số điện thoại], gửi mail [đã ẩn email], CCCD [đã ẩn mã định danh]',
         note: 'Khách cần gọi lại, email [đã ẩn email] và mã [đã ẩn mã định danh]',

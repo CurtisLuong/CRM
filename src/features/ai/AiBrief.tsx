@@ -1,12 +1,23 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRepositoryAccount } from '@/data/hooks';
 import type { Customer } from '@/domain/customer';
 import { buildAiContext } from '@/domain/customer/aiContext';
 import { AIBlock, Button } from '@/ui';
-import { type AiBriefResult, aiAvailable, getAiSettings, requestAi } from './model';
+import { type AiBriefResult, aiAvailable, getAiSettings, requestAi, vietnamDay } from './model';
+import { useAiScope } from './useAiScope';
 
-export function AiBrief({ customer }: { customer: Customer }) {
+export function AiBrief({ customer, signal }: { customer: Customer; signal?: { code: string; reason: string } }) {
   const account = useRepositoryAccount();
+  const identity = JSON.stringify([customer.id, customer.updated_at, signal]);
+  const requestCurrent = useAiScope(identity, account);
+  const latest = useRef({ identity, account });
+  latest.current = { identity, account };
+  useEffect(() => {
+    if (latest.current.identity !== identity || latest.current.account !== account) return;
+    setBrief(null);
+    setError('');
+    setBusy(false);
+  }, [identity, account]);
   const [online, setOnline] = useState(() => typeof navigator === 'undefined' || navigator.onLine);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -25,6 +36,7 @@ export function AiBrief({ customer }: { customer: Customer }) {
   if (!account || !aiAvailable(workerUrl, online && account.sync.isOnline())) return null;
   const generate = async () => {
     if (!account || busy) return;
+    const current = requestCurrent;
     setBusy(true);
     setError('');
     try {
@@ -33,14 +45,14 @@ export function AiBrief({ customer }: { customer: Customer }) {
         account,
         'brief',
         buildAiContext(customer),
-        { today: new Date().toISOString().slice(0, 10) },
+        { today: vietnamDay(), signal },
         settings,
       );
-      setBrief(response.data);
+      if (current()) setBrief(response.data);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Chưa tạo được Brief AI.');
+      if (current()) setError(e instanceof Error ? e.message : 'Chưa tạo được Brief AI.');
     } finally {
-      setBusy(false);
+      if (current()) setBusy(false);
     }
   };
   return (
@@ -59,8 +71,18 @@ export function AiBrief({ customer }: { customer: Customer }) {
         </p>
       )}
       {brief && (
-        <AIBlock source="Dựa trên ngữ cảnh hồ sơ đã lọc" className="mt-3">
+        <AIBlock source={brief.nguon || 'Dựa trên ngữ cảnh hồ sơ đã lọc'} className="mt-3">
           <p>{brief.tom_tat || 'Chưa đủ dữ liệu để tóm tắt.'}</p>
+          {!!brief.loi_hua_mo?.length && (
+            <div className="mt-2">
+              <b>Lời hứa còn mở</b>
+              <ul className="list-inside list-disc">
+                {[...new Set(brief.loi_hua_mo)].map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          )}
           {!!brief.can_hoi?.length && (
             <ul className="mt-2 list-inside list-disc">
               {brief.can_hoi.map((item) => (

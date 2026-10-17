@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Customer } from '@/domain/customer';
-import { buildAiContext } from '@/domain/customer/aiContext';
+import { buildAiContext, redactAiText } from '@/domain/customer/aiContext';
 
 const customer = {
   id: 'customer-id',
@@ -101,5 +101,33 @@ describe('buildAiContext', () => {
     expect(context.field_meta.finance?.by).toContain('sale');
     expect(context.memory_facts[0]?.source).toContain('sale');
     expect(context.full_name).toBe('Nguyễn An');
+  });
+});
+
+describe('AI privacy numeric boundaries', () => {
+  it.each(['1000000000', '1.000.000.000đ', '1 000 000 000 VND', '2800000000', '8400000000', '10000000000000'])(
+    'preserves money/prose %s',
+    (value) => {
+      expect(redactAiText(`Vốn ${value}, không phải 3 tỷ`)).toBe(`Vốn ${value}, không phải 3 tỷ`);
+      const context = buildAiContext({
+        ...customer,
+        notes_manual: [{ text: `Vốn ${value}` }],
+        advanced: { capital: `Vốn ${value}` },
+      } as Customer);
+      expect(context.ghi_chu[0]?.text).toBe(`Vốn ${value}`);
+      expect(context.memory_facts[0]?.fact).toBe(`Vốn ${value}`);
+    },
+  );
+  it.each([
+    '0901234567',
+    '+84 901 234 567',
+    '84901234567',
+    '0084901234567',
+    '02412345678',
+    '+842412345678',
+    '090.123.4567',
+  ])('redacts phone %s', (value) => {
+    expect(redactAiText(`Gọi ${value} nhé`)).not.toContain(value.replace('+', ''));
+    expect(redactAiText(`Gọi ${value} nhé`)).toContain('[đã ẩn');
   });
 });

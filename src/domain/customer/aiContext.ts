@@ -1,6 +1,6 @@
 import type { Customer } from './types';
 
-const PHONE = /(?:\+?84|0)(?:[\s().-]*\d){8,10}/g;
+const PHONE = /(?<!\d)(?:\+?84|0084|0)[\s().-]*(?:[35789](?:[\s().-]*\d){8}|2(?:[\s().-]*\d){9})(?!\d)/g;
 const EMAIL = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi;
 const CCCD_LIKE = /(?<!\d)\d{12}(?!\d)/g;
 export const redactAiText = (value: unknown, limit = 1500) =>

@@ -1,19 +1,34 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { RepositoryAccount } from '@/data/repositories/session';
 import type { Customer } from '@/domain/customer';
-import { buildAiContext, redactAiText } from '@/domain/customer/aiContext';
+import { buildAiContext } from '@/domain/customer/aiContext';
 import { Button } from '@/ui';
 import { type AiZalo, aiAvailable, getAiSettings, requestAi } from './model';
+import { redactAiText } from './privacy';
+import { useAiScope } from './useAiScope';
 
 export function AiZaloDraft({
   account,
   customer,
   onDraft,
+  template,
 }: {
   account: RepositoryAccount;
   customer: Customer;
   onDraft: (text: string) => void;
+  template?: string;
 }) {
+  const identity = JSON.stringify([customer.id, customer.updated_at, customer.contact_prefs, template]);
+  const requestCurrent = useAiScope(identity, account);
+  const latest = useRef({ identity, account });
+  latest.current = { identity, account };
+  const [evidence, setEvidence] = useState('');
+  useEffect(() => {
+    if (latest.current.identity !== identity || latest.current.account !== account) return;
+    setBusy(false);
+    setError('');
+    setEvidence('');
+  }, [identity, account]);
   const [online, setOnline] = useState(() => typeof navigator === 'undefined' || navigator.onLine);
   const [busy, setBusy] = useState(false);
   const [goal, setGoal] = useState('');
@@ -39,6 +54,7 @@ export function AiZaloDraft({
   if (!aiAvailable(workerUrl, online && account.sync.isOnline())) return null;
   const generate = async () => {
     if (busy || customer.contact_prefs?.do_not_contact) return;
+    const current = requestCurrent;
     setBusy(true);
     setError('');
     try {
@@ -50,15 +66,19 @@ export function AiZaloDraft({
         account,
         'zalo',
         buildAiContext(latestCustomer),
-        { goal: redactAiText(goal, 300) },
+        { goal: redactAiText(goal, 300), template },
         settings,
       );
       if (!response.data.tin_nhan?.trim()) throw new Error('AI chưa tạo được nội dung tin nhắn.');
+      const finalCustomer = account.customers.getSnapshot().find((item) => item.id === customer.id);
+      if (!current() || !finalCustomer || finalCustomer.archived_at || finalCustomer.contact_prefs?.do_not_contact)
+        return;
+      setEvidence(response.data.chi_tiet_dung || '');
       onDraft(response.data.tin_nhan.trim());
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Chưa tạo được bản nháp Zalo.');
+      if (current()) setError(e instanceof Error ? e.message : 'Chưa tạo được bản nháp Zalo.');
     } finally {
-      setBusy(false);
+      if (current()) setBusy(false);
     }
   };
   return (
@@ -78,6 +98,7 @@ export function AiZaloDraft({
       <p className="mt-1 text-small text-text-2">
         AI chỉ điền bản nháp. Hãy kiểm tra, rồi tự chọn sao chép và mở Zalo.
       </p>
+      {evidence && <p className="mt-2 text-small text-text-2">Chi tiết đã dùng: {evidence}</p>}
       {error && (
         <p role="alert" className="mt-1 text-small text-danger">
           {error}
