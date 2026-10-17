@@ -6,6 +6,13 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-17 — T4.2: Lời hứa hai chiều, hạn gốc và dời có lý do
+
+- Thêm tạo/lọc lời hứa Em hứa và Khách hẹn, chống trùng theo key và giữ trường dữ liệu lạ.
+- Dời có lý do, giữ hạn gốc; Hôm nay hỗ trợ dời hàng loạt việc P2 và Hoàn tác.
+- Kiểm tra: npm run check (506 tests); focused E2E tasks/today (24/24 trước fixture cập nhật, Today bulk 3/3 sau cập nhật).
+- File: `src/domain/deadlines/promises.ts`, `src/features/tasks/route.tsx`, `src/features/today/model.ts`, `src/features/today/route.tsx`, `tests/domain/deadlines/promises.test.ts`, `tests/e2e/tasks.spec.ts`, `tests/e2e/today.spec.ts`, `tests/features/today/model.test.ts`
+
 ## 2026-10-17 — T6.5: Hiệu quả marketing và chi phí campaign
 
 - Thêm funnel theo kênh/campaign/form, cohort 30 ngày, lý do loại theo kênh và trung vị thời gian tới mốc; số liệu có tử/mẫu và quy tắc rõ.
