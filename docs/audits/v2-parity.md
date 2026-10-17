@@ -2,7 +2,7 @@
 
 **Trạng thái:** CHƯA ĐẠT T5.1 — còn thao tác ghi có ở v1 nhưng thiếu giao diện tương ứng trong v2; cần chủ dự án chấp nhận hoãn hoặc giao task bổ sung trước khi đánh dấu hoàn tất.
 
-**Phạm vi kiểm tra:** các đường ghi dữ liệu người dùng tìm thấy trong `legacy/js/{app,calls,db,team,catalog,catalog-ui,ai}.js`, `legacy/js/loan/*` và handler trong `legacy/index.html`; đối chiếu với code v2 và test hiện có trên nhánh `v2` tại `cb3175f`. Đây là đối chiếu mã nguồn/test cục bộ, không phải kiểm thử staging, production, Android hay ảnh chụp giao diện.
+**Phạm vi kiểm tra:** các đường ghi dữ liệu người dùng tìm thấy trong `legacy/js/{app,calls,db,team,catalog,catalog-ui,ai}.js`, `legacy/js/loan/*` và handler trong `legacy/index.html`; đối chiếu với code v2 và test hiện có trên `origin/v2` tại `9ad2f0d` (sau khi T6.4, T6.6, T6.8 merge). Đây là đối chiếu mã nguồn/test cục bộ, không phải kiểm thử staging, production, Android hay ảnh chụp giao diện.
 
 | Nhóm thao tác ghi của v1 | Đối ứng v2 và bằng chứng | Trạng thái |
 |---|---|---|
@@ -18,16 +18,19 @@
 | Lời hứa hai chiều, chống trùng, giữ hạn gốc, dời hàng loạt và hoàn tác | `src/features/tasks/route.tsx`, `src/features/today/route.tsx`, `src/domain/deadlines/promises.ts`; `tests/domain/deadlines/promises.test.ts`, `tests/e2e/tasks.spec.ts`, `tests/e2e/today.spec.ts` | ✅ Có đường ghi và test |
 | Ghi tương tác Zalo/gặp/xem dự án | `src/features/quick-actions/interactions.tsx`, `src/domain/customer/interactions.ts`, hồ sơ hiển thị timeline qua `src/domain/customer/timeline.ts`; `tests/domain/customer/interactions.test.ts`, `tests/e2e/quick-actions.spec.ts`, `tests/e2e/profile.spec.ts` | ✅ Có đường ghi và test |
 | Tải/xóa tài liệu; ảnh đại diện và ảnh bìa hồ sơ | `src/features/profile/route.tsx`, `src/data/repositories/remote.ts`; `tests/data/remote-repositories.test.ts` | ✅ Có đường ghi; kiểm thử tương tác dịch vụ cục bộ |
+| Phát hiện/gộp hồ sơ trùng có duyệt | `src/features/intake/route.tsx` dùng `detectDuplicatePairs`/`findDuplicateCandidates`, yêu cầu chọn hồ sơ giữ và xác nhận trước `customers.merge`; `src/domain/customer/merge.ts`, `src/data/repositories/customers.ts`; `tests/domain/customer/merge.test.ts`, `tests/features/intake/intake.test.ts`, `tests/e2e/intake.spec.ts` | ✅ Có đường ghi và test; T6.8 đã merge cục bộ vào `origin/v2` |
 | Giao khách, người theo dõi, quản lý thành viên nhóm | `src/features/team/route.tsx`, `src/features/team/model.ts`, `src/data/repositories/customers.ts`; `tests/features/team/model.test.ts`, `tests/e2e/team.spec.ts` | ✅ Có đường ghi và test |
 | Giỏ hàng: dự án/tòa/loại căn/căn, tiến độ thanh toán, nhập Excel | `src/features/catalog/route.tsx`, `src/data/repositories/catalog.ts`; `tests/data/catalog-import.test.ts`, `tests/data/remote-repositories.test.ts`, `tests/e2e/catalog.spec.ts` | ✅ Có đường ghi và test |
 | Tính vay: cài đặt máy tư vấn viên, lưu/mở phương án, PDF | `src/features/loan/LoanCalculator.tsx`, `src/features/loan/store.ts`, `src/features/loan/print.ts`; `tests/features/loan/store.test.ts`, `tests/domain/loan/parity.test.ts`, `tests/e2e/loan.spec.ts` | ✅ Có đường ghi và test |
 | Cài đặt theme, mẫu Zalo, lời chào, cấu hình AI, cập nhật APK | `src/features/settings/route.tsx`, `src/data/repositories/remote.ts`; `tests/features/settings/route.test.tsx`, `tests/data/remote-repositories.test.ts`, `tests/e2e/settings.spec.ts` | ✅ Có đường ghi và test |
 | Nhập/xuất khách Excel/CSV và mẫu ánh xạ cột | `src/features/import-export/route.tsx`, `src/features/import-export/model.ts`; `tests/features/import-export/model.test.ts`, `tests/e2e/import-export.spec.ts` | ✅ Có đường ghi và test |
 | Gợi ý AI/soạn Zalo/đọc ghi chú rồi duyệt cập nhật | `src/features/ai/*`, `src/features/quick-actions/QuickActions.tsx`; `tests/features/ai/AiZaloDraft.test.tsx`, `tests/e2e/quick-actions.spec.ts`, `tests/e2e/profile.spec.ts` | ✅ Có đường ghi sau duyệt; không tự gửi Zalo |
+| Chỉ số chăm sóc, drill-down và HealthDot | `src/features/insights/care.tsx`, `src/domain/metrics/care.ts`; `tests/domain/metrics/care.test.ts`, `tests/e2e/insights.spec.ts` | ✅ Có phần đọc/điều hướng; không bổ sung thao tác ghi hồ sơ (T6.4) |
+| Nhập ghi chú bằng giọng nói | `src/features/quick-actions/voice.tsx`, `src/features/quick-actions/QuickActions.tsx`; `src/features/quick-actions/voice.test.tsx`, `tests/e2e/quick-actions.spec.ts`; nội dung đi qua luồng ghi chú hiện hữu sau khi người dùng xem/duyệt | ✅ Có đường nhập và test; audio không lưu (T6.6) |
 
 ## Gap cần xử lý trước khi T5.1 đạt
 
-Các thao tác dưới đây có trong v1, chưa có giao diện v2 tại snapshot audit này:
+Các thao tác dưới đây có trong v1, vẫn chưa có giao diện v2 tại snapshot `origin/v2` `9ad2f0d`:
 
 1. **Ghi chú hồ sơ:** sửa/xóa ghi chú cũ. V2 có API repository nhưng chưa có UI gọi.
 2. **Ghi chú lịch sử bậc:** sửa ghi chú ở mốc cũ. V2 có API repository nhưng chưa có UI gọi.
