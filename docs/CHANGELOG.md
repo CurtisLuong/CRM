@@ -6,6 +6,14 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-17 — T5.6b: T5.6b — Lựa chọn hợp lệ cho trường hồ sơ
+
+- Giới tính, tình trạng hôn nhân, nghề nghiệp và mục đích mua dùng lựa chọn khớp schema/config/form legacy; giữ nguyên giá trị cũ khi không sửa, chỉ xoá về null khi chọn Chưa biết.
+- Giữ field_meta/unknown fields, quyền owner và read-only của hồ sơ đã lưu trữ; không sửa schema, repository hoặc dữ liệu production.
+- Kiểm chứng local: npm run check (75 files/598 tests), npm run build, profile E2E trên Chrome sáng/tối 360/390/430/1280; cmp AGENTS.md CLAUDE.md và git diff --check.
+- Giữ tab hồ sơ dưới header 56px khi cuộn và điều hướng; E2E kiểm vị trí tab trước click thật, nội dung đích và patch checklist được bảo toàn.
+- File: `src/features/profile/route.tsx`, `tests/e2e/profile.spec.ts`, `tests/features/profile/choices.test.tsx`
+
 ## 2026-10-17 — T5.4b: APK 1.5: quyền micro cho ghi chú giọng nói (lỗi L4 T5.3)
 
 - Thêm RECORD_AUDIO + MODIFY_AUDIO_SETTINGS vào AndroidManifest; versionCode 6 / versionName 1.5
