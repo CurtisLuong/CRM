@@ -26,10 +26,25 @@ const base = (patch: Partial<Customer> = {}): Customer => ({
 const rule = (id: string, customer: Customer) => signalRules.find((r) => r.id === id)?.evaluate(customer, ctx) || [];
 
 describe('signals baseline parity', () => {
-  it('registers S01–S10 exactly once without a manual registry', () => {
-    expect(signalRules.map((r) => r.id)).toEqual(
-      Array.from({ length: 10 }, (_, i) => `S${String(i + 1).padStart(2, '0')}`),
-    );
+  it('keeps S01–S10 and registers only the T6.3 rules with approved single-customer inputs', () => {
+    expect(signalRules.map((r) => r.id)).toEqual([
+      'S01',
+      'S02',
+      'S03',
+      'S04',
+      'S05',
+      'S06',
+      'S07',
+      'S08',
+      'S09',
+      'S10',
+      'S11',
+      'S13',
+      'S14',
+      'S15',
+      'S16',
+      'S18',
+    ]);
   });
   it('matches every original golden group customer and order including birthday projection', () => {
     expect(legacyDashboardGroups(customers, ctx)).toEqual(ids(baseline.groups));
@@ -110,6 +125,49 @@ describe('positive and negative conditions, evidence and suppression', () => {
       'S10',
       base({ ...care, care_stage: 'Booking', care_stage_updated_at: iso(now - 6 * 86400000) }),
       base({ ...care, care_stage: 'Booking', care_stage_updated_at: iso(now) }),
+    ],
+    [
+      'S11',
+      base({ ...care, purpose: 'Ở', next_call_at: iso(now + 86400000) }),
+      base({
+        ...care,
+        purpose: 'Ở',
+        next_call_at: iso(now + 86400000),
+        finance: 0,
+        household: [{ name: 'Người quyết định', role: 'Bản thân' }],
+        interests: [{ purpose: 'Ở', timeline: '6 tháng', status: 'open' }],
+      }),
+    ],
+    [
+      'S13',
+      base({ retarget_hint: { after: iso(now - 1000), note: 'Chờ đủ vốn' } }),
+      base({ retarget_hint: { after: iso(now + 86400000), note: 'Chờ đủ vốn' } }),
+    ],
+    [
+      'S14',
+      base({
+        created_at: iso(now - 10 * 86400000),
+        interactions: [{ at: iso(now - 3 * 86400000), kind: 'project_view', note: 'Dự án A' }],
+      }),
+      base({ interactions: [{ at: iso(now - 86400000), kind: 'project_view', note: 'Dự án A' }] }),
+    ],
+    [
+      'S15',
+      base({
+        ...care,
+        dob: `--${String(new Date(now).getMonth() + 1).padStart(2, '0')}-${String(new Date(now).getDate()).padStart(2, '0')}`,
+      }),
+      base({ ...care, dob: null }),
+    ],
+    [
+      'S16',
+      base({ care_stage: 'Kí HĐMB', care_stage_history: [{ stage: 'Kí HĐMB', at: iso(now - 30 * 86400000) }] }),
+      base({ care_stage: 'Kí HĐMB', care_stage_history: [{ stage: 'Kí HĐMB', at: iso(now - 20 * 86400000) }] }),
+    ],
+    [
+      'S18',
+      base({ care_stage: 'Nuôi dài hạn', next_call_at: iso(now + 2 * 86400000) }),
+      base({ care_stage: 'Đang chăm sóc', next_call_at: iso(now + 2 * 86400000) }),
     ],
   ];
   it.each(cases)('%s has evidence/actions only when its condition holds', (id, positive, negative) => {

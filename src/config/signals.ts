@@ -7,6 +7,13 @@ export const SIGNALS_CONFIG = {
   idleWarmDays: 14,
   leadRetryHours: 24,
   birthdayDays: 7,
+  // P1 signals S11–S18 (PRD F-04). Missing source data means no candidate.
+  briefMissingFieldsMin: 1,
+  retargetReminderDays: 0,
+  projectViewFeedbackDays: 2,
+  postPurchaseMilestonesDays: [30, 90] as const,
+  postPurchaseMilestoneWindowDays: 0,
+  nurtureCallbackReminderDays: 3,
   groupOrder: ['due', 'sla', 'tasks', 'today', 'new', 'retry', 'decide', 'pending', 'hot', 'warm', 'nonext'] as const,
 };
 export type SignalGroup = (typeof SIGNALS_CONFIG.groupOrder)[number];
