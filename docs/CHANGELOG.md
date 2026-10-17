@@ -6,6 +6,13 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-17 — T5.6a: Giữ nguyên ghi chú khi thao tác lưu không chỉnh sửa
+
+- Bỏ qua ghi hồ sơ nếu nội dung ghi chú giống hệt, tránh đổi edited_at hoặc ghi lại payload.
+- Giữ nguyên khoảng trắng ở ghi chú hồ sơ và lịch sử bậc khi người dùng thực sự sửa nội dung.
+- Kiểm tra: tests/features/profile/route.test.ts (2/2), diff --check.
+- File: `src/features/profile/route.tsx`, `tests/features/profile/route.test.ts`
+
 ## 2026-10-17 — T5.10: Lưu trữ khách (xoá mềm) + xem/khôi phục khách đã lưu trữ — parity v1 "Xoá khách" do T5.2 phát hiện
 
 - Hồ sơ khách: mục "Lưu trữ khách" cuối trang, chỉ người phụ trách (D-003), sheet xác nhận nói rõ khách ẩn khỏi Danh sách/Hôm nay/Công việc/Thông báo, dữ liệu giữ nguyên, khôi phục được; ghi `archived_at` qua `CustomersRepository.remove` (patch + hàng đợi; không xoá cứng — D-012). Toast có Hoàn tác.

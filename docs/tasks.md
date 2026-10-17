@@ -124,7 +124,7 @@ Ký hiệu: ☐ chưa · ◐ đang làm (ghi nhánh) · ☑ xong (ghi ngày) · 
 | T4.1 | Ghi tương tác Zalo/gặp/xem dự án | Mới P0 | M | T3.1, T2.A5 | Agent | ☑ 2026-10-17 (tự merge 318666c) |
 | T4.2 | Lời hứa 2 chiều + hạn gốc + dời có lý do | Mới P0 | M | T3.7, T2.A5 | Agent | ☑ 2026-10-17 (tự merge b87899a) |
 | T5.6 | Sửa ghi chú hồ sơ + lịch sử bậc | Cutover | M | T3.5, T4.1 | Agent | ☑ 2026-10-17 (tự merge d0e566a) |
-| T5.6a | Không đổi payload khi lưu ghi chú không chỉnh sửa | Cutover | S | T5.6 | Agent | ☐ |
+| T5.6a | Không đổi payload khi lưu ghi chú không chỉnh sửa | Cutover | S | T5.6 | Agent | ☑ 2026-10-17 (tự merge 5dc7c87) |
 | T5.6b | Dùng lựa chọn hợp lệ cho trường hồ sơ có CHECK constraint | Cutover | S | T5.6a | Agent | ☐ |
 | T5.7 | Sửa công việc | Cutover | M | T3.7, T4.2 | Agent | ☑ 2026-10-17 (tự merge f371f6d) |
 | T5.8 | Sửa kết quả cuộc gọi đã ghi | Cutover | M | T3.1, T4.1 | Agent | ☑ 2026-10-17 (tự merge a55eff2) |
