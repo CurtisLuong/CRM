@@ -129,7 +129,7 @@ Ký hiệu: ☐ chưa · ◐ đang làm (ghi nhánh) · ☑ xong (ghi ngày) · 
 | T5.1 | Kiểm tra parity v1 ↔ v2 | Cutover | M | Sóng 3, 4, T5.6, T5.7, T5.8 | Agent | ☑ 2026-10-17 (tự merge d06747a) |
 | T5.2 | Kiểm chứng dữ liệu trên staging | Cutover | M | T5.1 | Agent + chủ dự án | ☑ 2026-10-17 (tự merge c34b3c5) |
 | T5.9 | Gộp mảng khi đồng bộ + bỏ thao tác bị từ chối | Cutover | M | T5.1 | Agent | ☑ 2026-10-17 (tự merge bd67dde) |
-| T5.10 | Lưu trữ khách (xoá mềm) + khôi phục | Cutover | S | T5.1 | Agent | ☐ |
+| T5.10 | Lưu trữ khách (xoá mềm) + khôi phục | Cutover | S | T5.1 | Agent | ☑ 2026-10-17 (tự merge 20e24d4) |
 | T5.3 | QA thiết bị thật + offline | Cutover | M | T5.2 | Chủ dự án + agent | ☐ |
 | T5.4 | Cutover production + rollback plan | Cutover | S | T5.3 | Chủ dự án + agent | ☐ |
 | T5.5 | Dọn dẹp + tài liệu "as built" | Cutover | S | T5.4 | Agent | ☐ |

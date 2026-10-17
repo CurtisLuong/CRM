@@ -6,6 +6,15 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-17 — T5.10: Lưu trữ khách (xoá mềm) + xem/khôi phục khách đã lưu trữ — parity v1 "Xoá khách" do T5.2 phát hiện
+
+- Hồ sơ khách: mục "Lưu trữ khách" cuối trang, chỉ người phụ trách (D-003), sheet xác nhận nói rõ khách ẩn khỏi Danh sách/Hôm nay/Công việc/Thông báo, dữ liệu giữ nguyên, khôi phục được; ghi `archived_at` qua `CustomersRepository.remove` (patch + hàng đợi; không xoá cứng — D-012). Toast có Hoàn tác.
+- Hồ sơ đã lưu trữ: banner + "Khôi phục" cho người phụ trách; người khác chỉ xem.
+- Màn mới `/khach-hang/luu-tru` (`src/features/archived/`): danh sách khách đã lưu trữ, tìm tên/SĐT, Khôi phục; lệnh "Xem khách đã lưu trữ" trong Tiện ích/Bảng lệnh.
+- Đã kiểm tra: `npm run check`; E2E `tests/e2e/archive.spec.ts` (360/390/1280, sáng/tối): IndexedDB giữ thuộc tính lạ + ghi chú, không có op delete, khách biến mất khỏi Danh sách/Hôm nay/Công việc rồi hiện lại sau Khôi phục.
+- Đã biết: v1 (crm-cop) không hiểu `archived_at` → khách lưu trữ trên v2 vẫn hiện trên v1 tới cutover T5.4. Chưa thử trên staging/máy thật.
+- File: `src/features/archived/commands.ts`, `src/features/archived/model.ts`, `src/features/archived/route.tsx`, `src/features/profile/archive.tsx`, `src/features/profile/route.tsx`, `tests/e2e/archive.spec.ts`, `tests/features/archived/model.test.ts`, `tests/features/profile/archive.test.tsx`
+
 ## 2026-10-17 — T5.2: T5.2 — Kiểm chứng dữ liệu v2 trên staging: 0 mất dữ liệu sau T5.9; 4 task con trước cutover
 
 - Công cụ chỉ đọc: `scripts/verify/counts.sql` (số đếm + vân tay md5), `scripts/verify/audit-since.sql` (soi `customer_changes`: xoá cứng, mất phần tử/thuộc tính mảng, trường bị xoá), `scripts/verify/idb-counts.js` (số v2 giữ trong IndexedDB); runbook `docs/runbooks/data-verification.md`.
