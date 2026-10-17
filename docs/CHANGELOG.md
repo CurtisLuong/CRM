@@ -6,6 +6,15 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-17 — T5.2: T5.2 — Kiểm chứng dữ liệu v2 trên staging: 0 mất dữ liệu sau T5.9; 4 task con trước cutover
+
+- Công cụ chỉ đọc: `scripts/verify/counts.sql` (số đếm + vân tay md5), `scripts/verify/audit-since.sql` (soi `customer_changes`: xoá cứng, mất phần tử/thuộc tính mảng, trường bị xoá), `scripts/verify/idb-counts.js` (số v2 giữ trong IndexedDB); runbook `docs/runbooks/data-verification.md`.
+- Báo cáo `docs/audits/v2-data-verification.md`: staging khôi phục 2026-10-16 (chủ dự án chọn; staging thiếu migration v2 002–006 → đã chạy bổ sung); số trước/sau khớp và giải thích được; mở + lưu không sửa 87 khách → 0 đổi giá trị trừ ghi chú hồ sơ (gắn `edited_at`).
+- Kịch bản: E1 offline + đóng app ✅ (Android); E3 gọi rồi huỷ ✅ (giống v1); E2 hai máy cùng sửa ❌ mất 1 ghi chú + kẹt đồng bộ do ô gõ tự do vi phạm CHECK → sửa ở T5.9 (D-021), chạy lại ✅; E4 FB chống trùng ✅ (test); E5 đổi tài khoản ✅ (test, chưa máy thật); E6 queue chéo v1↔v2 ✅ (test).
+- Task con trước T5.4: T5.6a (ghi chú lưu không đổi vẫn ghi `edited_at`), T5.6b (ô chọn nghề nghiệp/giới tính/hôn nhân/mục đích), T5.8a (nút ghi cuộc gọi nhập tay), T5.10 (nút lưu trữ khách).
+- Đã kiểm: SQL chạy trên Postgres 17 cục bộ với dữ liệu giả (bắt đúng mọi loại mất dữ liệu); staging qua chủ dự án; trình duyệt app Claude + Android Chrome thật.
+- File: `docs/audits/v2-data-verification.md`, `docs/runbooks/data-verification.md`, `scripts/verify/audit-since.sql`, `scripts/verify/counts.sql`, `scripts/verify/idb-counts.js`
+
 ## 2026-10-17 — T5.9: Gộp cột mảng khi đồng bộ + bỏ được op bị server từ chối (D-021)
 
 - Sửa lỗi mất dữ liệu T5.2 E2: op `update` có cột mảng JSONB (ghi chú, việc, cuộc gọi, lịch sử bậc, tương tác, nhu cầu, người cùng quyết định) giờ đọc hàng server, gộp 3 chiều theo `id`/`at` với bản gốc `arrayBase` (chỉ ở máy), PATCH có điều kiện `updated_at`, đọc lại khi bị máy khác chen. Phần tử máy này cố ý bỏ (hoàn tác, mở lại việc, lùi bậc) không sống lại; thuộc tính lạ giữ nguyên.
