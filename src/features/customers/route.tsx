@@ -458,6 +458,9 @@ function Customers() {
           <h2 className="text-title">Danh sách khách</h2>
         </div>
         <div className="flex gap-2">
+          <Button onClick={() => navigate('/khach-hang/retarget')} icon="retarget">
+            Tệp &amp; Retarget
+          </Button>
           <Button onClick={() => navigate('/dong-nghiep')} icon="team">
             Đồng nghiệp
           </Button>
