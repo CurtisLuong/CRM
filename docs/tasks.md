@@ -123,9 +123,9 @@ Ký hiệu: ☐ chưa · ◐ đang làm (ghi nhánh) · ☑ xong (ghi ngày) · 
 | T3.13 | Hiệu quả: parity Phân tích v1 | Tính năng | M | T2.A4, T2.B1, T2.B2, T2.C3 | Agent | ☑ 2026-10-16 (tự merge 9f46b0a) |
 | T4.1 | Ghi tương tác Zalo/gặp/xem dự án | Mới P0 | M | T3.1, T2.A5 | Agent | ☑ 2026-10-17 (tự merge 318666c) |
 | T4.2 | Lời hứa 2 chiều + hạn gốc + dời có lý do | Mới P0 | M | T3.7, T2.A5 | Agent | ☑ 2026-10-17 (tự merge b87899a) |
-| T5.6 | Sửa/xóa ghi chú hồ sơ | Cutover | M | T3.5, T4.1 | Agent | ☐ |
-| T5.7 | Sửa/xóa công việc | Cutover | M | T3.7, T4.2 | Agent | ☐ |
-| T5.8 | Sửa cuộc gọi đã ghi + xóa cuộc gọi chờ | Cutover | M | T3.1, T4.1 | Agent | ☐ |
+| T5.6 | Sửa ghi chú hồ sơ + lịch sử bậc | Cutover | M | T3.5, T4.1 | Agent | ☐ |
+| T5.7 | Sửa công việc | Cutover | M | T3.7, T4.2 | Agent | ☐ |
+| T5.8 | Sửa kết quả cuộc gọi đã ghi | Cutover | M | T3.1, T4.1 | Agent | ☐ |
 | T5.1 | Kiểm tra parity v1 ↔ v2 | Cutover | M | Sóng 3, 4, T5.6, T5.7, T5.8 | Agent | ☐ |
 | T5.2 | Kiểm chứng dữ liệu trên staging | Cutover | M | T5.1 | Agent + chủ dự án | ☐ |
 | T5.3 | QA thiết bị thật + offline | Cutover | M | T5.2 | Chủ dự án + agent | ☐ |
@@ -344,20 +344,20 @@ Ký hiệu: ☐ chưa · ◐ đang làm (ghi nhánh) · ☑ xong (ghi ngày) · 
 
 ### Sóng 5 — Cutover
 
-#### T5.6 — Sửa/xóa ghi chú hồ sơ
+#### T5.6 — Sửa ghi chú hồ sơ + lịch sử bậc
 - **Đọc:** `PRD.md` F-04/F-05, `DESIGN_SYSTEM.md`, `UX_GUIDELINES.md`.
 - **Sở hữu:** `src/features/profile/**`, `tests/features/profile/**`, `tests/e2e/profile*`.
-- **Xong khi:** ghi chú hồ sơ sửa được và xóa theo cách bảo toàn dữ liệu; ghi chú trong lịch sử bậc sửa được; quyền owner/read-only được giữ; trường JSON lạ và lịch sử không liên quan không bị ghi đè. Không gọi API xóa cứng hiện tại. Kiểm tra v1 đọc payload có metadata mới; nếu không tương thích, dừng thao tác xóa và báo điều phối viên.
+- **Xong khi:** ghi chú hồ sơ và ghi chú trong lịch sử bậc sửa được; quyền owner/read-only được giữ; trường JSON lạ và lịch sử không liên quan không bị ghi đè. Không thêm thao tác xóa trong task này. Gap xóa ghi chú vẫn mở do v1 không hiểu tombstone và D-012 cấm mất dữ liệu.
 
-#### T5.7 — Sửa/xóa công việc
+#### T5.7 — Sửa công việc
 - **Đọc:** `PRD.md` F-04, `architecture.md` §3, `DESIGN_SYSTEM.md`, `UX_GUIDELINES.md`.
 - **Sở hữu:** `src/features/tasks/**`, `tests/features/tasks/**`, `tests/e2e/tasks*`.
-- **Xong khi:** việc đang mở sửa nội dung/hạn và xóa theo cách bảo toàn dữ liệu; giữ `due_original`, lời hứa, trạng thái, lịch sử và thuộc tính lạ; quyền owner/read-only được giữ. Không gọi API xóa cứng hiện tại. Kiểm tra v1 đọc payload có metadata mới; nếu không tương thích, dừng thao tác xóa và báo điều phối viên.
+- **Xong khi:** việc đang mở sửa nội dung/hạn; giữ `due_original`, lời hứa, trạng thái, lịch sử và thuộc tính lạ; quyền owner/read-only được giữ. Không thêm thao tác xóa trong task này. Gap xóa việc vẫn mở do v1 không hiểu tombstone và D-012 cấm mất dữ liệu.
 
-#### T5.8 — Sửa cuộc gọi đã ghi + xóa cuộc gọi chờ
+#### T5.8 — Sửa kết quả cuộc gọi đã ghi
 - **Đọc:** `PRD.md` F-04, `DESIGN_SYSTEM.md`, `UX_GUIDELINES.md`.
 - **Sở hữu:** `src/features/quick-actions/**`, `tests/features/quick-actions/**`, `tests/e2e/quick-actions*`.
-- **Xong khi:** kết quả cuộc gọi đã ghi sửa được; cuộc gọi chờ xóa được theo cách bảo toàn dữ liệu; giữ timestamp/metadata không chỉnh sửa và unknown fields; quyền owner/read-only được giữ. Không sửa luồng gọi đang dùng. Kiểm tra v1 đọc payload có metadata mới; nếu không tương thích, dừng thao tác xóa và báo điều phối viên.
+- **Xong khi:** kết quả cuộc gọi đã ghi sửa được; giữ timestamp/metadata không chỉnh sửa và unknown fields; quyền owner/read-only được giữ. Không sửa luồng gọi đang dùng. Không thêm thao tác xóa trong task này. Gap xóa cuộc gọi chờ vẫn mở do v1 không hiểu tombstone và D-012 cấm mất dữ liệu.
 
 #### T5.1 — Kiểm tra parity
 - **Sở hữu:** `docs/audits/v2-parity.md`.
