@@ -63,9 +63,14 @@ Ghi nhận phụ (không phải mất dữ liệu): 4 việc đang mở thuộc 
 |---|---|
 | Số liệu gốc Phần D (`counts.sql`, sau tự chuyển SLA, trước 12:39) | khách mới 11 · nhật ký 12 dòng · vân tay khách bỏ `updated_at` `9008590ad4693378b219ba0b25cca86d` · đầy đủ `4b5aa4a77ab93a0ce9fc72efba113286` · tài liệu `456e5f42987e40cbec38034e33b5d2b6` (= Phần B); các số khác = Phần B |
 | Mốc giờ Phần D | 2026-10-17 12:39 (+07) |
-| Số khách đã mở + lưu | ⏳ / ⏳ |
-| `audit-since` từ mốc Phần D | ⏳ (đạt = `thay đổi: 0`) |
-| Vân tay 30 so với số liệu gốc Phần D | ⏳ (đạt = giống hệt `9008590a…`) |
+| Ô thông tin (tab Trí nhớ + Nhu cầu & căn), trình duyệt trong app Claude | 87/87 khách của `a70e8d12` · ~4.000 lượt focus → blur mọi ô text/textarea/number/date (trừ ô tích) · 12:40–12:44 → **0 khách đổi `updated_at`, hàng đợi 0** ✅ |
+| Sửa việc → lưu không đổi (màn Công việc) | 10 việc hiện trên màn, form `Lưu sửa` gửi không đổi → 1 khách (`a84dcc02…`) đổi `updated_at` 12:44:04, `next_tasks` giống hệt từng ký tự trước/sau → nghi gửi lại bản giống hệt (khác thứ tự khoá); chờ `audit-since` xác nhận 0 dòng ⏳ |
+| Sửa kết quả cuộc gọi → lưu không đổi (Thao tác nhanh) | 1 khách (`01d822c6…`, 1 cuộc gọi `busy`) → chỉ `updated_at` đổi; `call_attempts`, ghi chú, lịch hẹn, bậc giữ nguyên ✅ |
+| Sửa ghi chú hồ sơ → lưu không đổi (Dòng thời gian) | 1 khách (`018b946e…`, 1 ghi chú) → ❌ **thêm `edited_at`** vào ghi chú dù nội dung giống hệt; `text`, `at` giữ nguyên. Nguyên nhân `src/features/profile/route.tsx` `saveTimelineEntry`: luôn ghi + gắn `edited_at`, và `trim()` nội dung (ghi chú cũ có khoảng trắng đầu/cuối sẽ bị đổi chữ). Cùng lỗi ở ghi chú lịch sử bậc. Không mất dữ liệu; vi phạm tiêu chí "mở + lưu không sửa → không đổi giá trị" → **task con** (phạm vi T5.6) |
+| `audit-since` từ mốc Phần D | ⏳ (mong đợi: `thay đổi: 1` = `018b946e…` cột `notes_manual`, lỗi ✗: 0) |
+| Vân tay 30 so với số liệu gốc Phần D | ⏳ (mong đợi **khác** đúng do 1 ghi chú trên; các số đếm giữ nguyên) |
+
+Chưa làm: positive control "sửa thật 1 ô → có ghi" để chứng minh cách bấm tự động kích hoạt lưu — làm ở Phần E trên khách thử.
 
 ## 4. Kịch bản rủi ro (Phần E)
 
