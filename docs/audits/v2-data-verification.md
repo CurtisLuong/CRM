@@ -1,6 +1,6 @@
 # Kiểm chứng dữ liệu v2 trên staging (T5.2)
 
-> **Trạng thái:** XONG kiểm chứng 2026-10-17 — xem Kết luận mục 5. Còn 3 task con trước T5.4 (T5.6a, T5.6b, T5.8a).
+> **Trạng thái:** XONG kiểm chứng 2026-10-17 — xem Kết luận cuối mục 5. Còn 4 task con trước T5.4 (T5.6a, T5.6b, T5.8a, T5.10).
 > **Cách làm:** `docs/runbooks/data-verification.md`. **Công cụ (chỉ đọc):** `scripts/verify/counts.sql`, `scripts/verify/audit-since.sql`, `scripts/verify/idb-counts.js`.
 > **Xong khi (tasks.md T5.2):** báo cáo có số liệu trước/sau; **0 mất dữ liệu**.
 > Ký hiệu: ✅ đạt · ❌ lỗi (có task con) · ⏳ chưa chạy. Ghi rõ nơi kiểm: *local* / *trình duyệt* / *staging* / *máy thật*.
@@ -95,6 +95,18 @@ TÓM TẮT: `thay đổi: 22 · khách bị đổi: 14 · lỗi ✗: 1 · cảnh
 | ✗ MẤT THUỘC TÍNH | 0 | |
 | ⚠ TRƯỜNG BỊ XOÁ | 21 | = 7 khách × `next_call_at/end/reason` bị gỡ khi tự chuyển Loại (SLA, D-008, đúng v1) |
 | · ĐỔI GIÁ TRỊ | — | Chỉ: 12 khách SLA (cột lý do loại + lịch hẹn); `018b946e…` `notes_manual` (12:45, lỗi `edited_at` → T5.6a); `d063bb16…` `call_attempts` + `next_call_*` (13:37, ghi cuộc gọi E3 + tự hẹn lại), `next_tasks` ×2, `notes_manual` ×6 (thao tác E1/E2/E5 có chủ đích) |
+
+### Kết luận T5.2 (2026-10-17)
+
+- Số v2 hiện khớp DB; mọi chênh lệch trước/sau (mục 1) giải thích được bằng thao tác có chủ đích, tự chuyển SLA đã duyệt, hoặc lỗi đã ghi.
+- **Mất dữ liệu: 1 phần tử** (ghi chú, E2 lần 1) do ghi đè mảng khi 2 máy cùng sửa → **đã sửa (T5.9, D-021)** và kiểm lại trên máy thật: không mất. Sau T5.9: **0 mất dữ liệu**.
+- Việc còn mở trước cutover T5.4 (không mất dữ liệu):
+  - **T5.6a** — lưu ghi chú không đổi vẫn gắn `edited_at`.
+  - **T5.6b** — ô Nghề nghiệp/Giới tính/Hôn nhân/Mục đích gõ tự do bị server từ chối (T5.9 đã cho bỏ op lỗi, nhưng giá trị nhập vẫn không lưu được).
+  - **T5.8a** — thiếu nút ghi cuộc gọi nhập tay (parity v1; T5.1 đánh ✅ nhầm).
+  - **T5.10** — thiếu nút lưu trữ khách (xoá mềm, PRD F-14): `archiveCustomer` có ở `src/data/sync.ts` nhưng không màn nào gọi; v1 có "🗑 Xoá khách" (`legacy/js/app.js` ~2536). Không thuộc D-020; `v2-parity.md` không liệt kê. Vì vậy khách thử `Test T5.2 1` (`d063bb16…`) **vẫn còn trên staging** (vô hại).
+- Chưa kiểm trên máy thật: E5 đổi tài khoản (kiểm bằng test), E4 webhook FB (Worker chỉ có bản production), vỏ APK Android (T5.3).
+- Lệch phạm vi: staging khôi phục 2026-10-16, không phải production mới nhất (chủ dự án chọn); staging trước đó thiếu migration v2 002–006 (đã chạy bổ sung).
 
 ## 6. Tự kiểm công cụ (local, 2026-10-17)
 
