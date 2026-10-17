@@ -772,7 +772,12 @@ function Profile() {
         </div>
       </section>
       <AiBrief customer={c} />
-      <Tabs items={tabs} label="Nội dung hồ sơ khách" sticky />
+      <Tabs
+        items={tabs}
+        label="Nội dung hồ sơ khách"
+        sticky
+        className="[&_[role=tab]]:scroll-mt-14 [&_[role=tablist]]:top-14"
+      />
       <section className="space-y-2">
         <h2 className="text-section">Thông tin thêm</h2>
         <dl className="grid grid-cols-2 gap-2 text-small sm:grid-cols-3">

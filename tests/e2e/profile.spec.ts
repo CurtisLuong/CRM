@@ -261,6 +261,12 @@ for (const theme of ['light', 'dark'] as const) {
       x_future: { keep: true },
       advanced: { x_future: { keep: true } },
     });
+    // The long memory form leaves tabs pinned: they must remain below the app header.
+    await page.getByRole('tab', { name: 'Nhu cầu & căn' }).scrollIntoViewIfNeeded();
+    const tabTop = await page.getByRole('tablist', { name: 'Nội dung hồ sơ khách' }).boundingBox();
+    const headerBox = await page.locator('header').first().boundingBox();
+    expect(tabTop?.y).toBeGreaterThanOrEqual((headerBox?.y || 0) + (headerBox?.height || 0) - 1);
+    await page.screenshot({ path: testInfo.outputPath(`profile-tabs-${theme}.png`) });
     await page.getByRole('tab', { name: 'Nhu cầu & căn' }).click();
     await page.getByRole('checkbox', { name: 'Xác nhận cư trú' }).click();
     await expect(page.getByText('Đã cập nhật checklist hồ sơ', { exact: true })).toBeVisible();
