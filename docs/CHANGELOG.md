@@ -6,6 +6,13 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-17 — T5.8: T5.8: sửa kết quả cuộc gọi đã ghi
+
+- Thêm sửa kết quả cuộc gọi đã lưu, chỉ patch result/note và giữ timestamp, metadata, trường JSON lạ.
+- Giữ owner-only và luồng gọi hiện tại; xóa cuộc gọi chờ tiếp tục mở do tombstone không tương thích với v1.
+- npm run check đã pass; gate sẽ chạy lại full check/build/golden/E2E.
+- File: `src/features/quick-actions/QuickActions.test.tsx`, `src/features/quick-actions/QuickActions.tsx`, `src/features/quick-actions/model.ts`, `src/features/quick-actions/route.tsx`
+
 ## 2026-10-17 — T5.7: T5.7: sửa nội dung và hạn công việc
 
 - Thêm inline edit cho việc đang mở; giữ due_original, promise side, status, lịch sử và unknown fields.
