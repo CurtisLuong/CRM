@@ -13,9 +13,7 @@ describe('profile timeline note saves', () => {
   } as Customer;
 
   it('returns no patch when the text is unchanged, preserving the exact stored payload', () => {
-    expect(
-      editedTimelineNotePatch(customer, 'note:2026-10-02T00:00:00.000Z:0', '  giữ nguyên  ', 'now'),
-    ).toBeNull();
+    expect(editedTimelineNotePatch(customer, 'note:2026-10-02T00:00:00.000Z:0', '  giữ nguyên  ', 'now')).toBeNull();
     expect(customer.notes_manual?.[0]).toStrictEqual({
       at: '2026-10-02T00:00:00.000Z',
       text: '  giữ nguyên  ',
@@ -27,9 +25,7 @@ describe('profile timeline note saves', () => {
     expect(
       editedTimelineNotePatch(customer, 'note:2026-10-02T00:00:00.000Z:0', '  mới  ', 'edited-time'),
     ).toStrictEqual({
-      notes_manual: [
-        { at: '2026-10-02T00:00:00.000Z', text: '  mới  ', x_imported: true, edited_at: 'edited-time' },
-      ],
+      notes_manual: [{ at: '2026-10-02T00:00:00.000Z', text: '  mới  ', x_imported: true, edited_at: 'edited-time' }],
     });
     expect(
       editedTimelineNotePatch(customer, 'stage:2026-10-01T00:00:00.000Z:0', '  nội dung  ', 'edited-time'),
