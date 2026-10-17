@@ -26,8 +26,8 @@
 
 | Mục | Mục tiêu | Mac | Android Chrome | APK thử |
 |---|---|---|---|---|
-| Mở app khi đã có cache (tới khi thấy danh sách Hôm nay) | < 2 giây | ✅ LCP 0,2 s (service worker, 0 byte mạng) | ⏳ | ⏳ |
-| Mạng yếu (3G/chập chờn): thao tác ghi vẫn lưu ngay, đồng bộ sau | không mất, không treo | ⏳ | ⏳ | ⏳ |
+| Mở app khi đã có cache (tới khi thấy danh sách Hôm nay) | < 2 giây | ✅ LCP 0,2 s (service worker, 0 byte mạng) | — chưa đo (chủ dự án không báo số giây) | — chưa đo |
+| Mạng yếu (3G/chập chờn): thao tác ghi vẫn lưu ngay, đồng bộ sau | không mất, không treo | — | — | — không kiểm riêng; offline hoàn toàn đã đạt (E1, A5) |
 
 ## 3. Android thật
 
@@ -36,11 +36,11 @@
 | A1 | Đăng nhập, "Đã đồng bộ", font Việt | — | ✅ | 2026-10-17 ~17:00, chủ dự án |
 | A2 | Gọi → quay số → về app → hộp ghi kết quả (Chrome: ước lượng; APK: đọc nhật ký cuộc gọi máy, thời lượng chính xác, cuộc "chưa ghi chú") | (✅ E3 T5.2) | ✅ | Hiện hộp + thời lượng |
 | A3 | Nút Zalo mở đúng chat (lỗi APK cũ: `docs/zalo-android-issue.md`) | — | ✅ | |
-| A4 | Ghi chú giọng nói (T6.6) | ⏳ | ❌ L4 → ✅ với APK thử có `RECORD_AUDIO` | APK 1.4: báo không có quyền micro. APK thử `1.5-v2test-mic` (thêm RECORD_AUDIO + MODIFY_AUDIO_SETTINGS): hỏi quyền, nói ra chữ đúng; chữ hiện **sau khi bấm dừng** (WebView không có Web Speech → ghi âm + Worker `/stt` Gemini, đúng thiết kế T6.6) → L7 |
+| A4 | Ghi chú giọng nói (T6.6) | — không kiểm (Chrome dùng Web Speech) | ❌ L4 → ✅ với APK thử có `RECORD_AUDIO` | APK 1.4: báo không có quyền micro. APK thử `1.5-v2test-mic` (thêm RECORD_AUDIO + MODIFY_AUDIO_SETTINGS): hỏi quyền, nói ra chữ đúng; chữ hiện **sau khi bấm dừng** (WebView không có Web Speech → ghi âm + Worker `/stt` Gemini, đúng thiết kế T6.6) → L7 |
 | A5 | Offline → ghi → đóng hẳn app → mở lại → bật mạng (lặp E1 trên APK) | (✅ E1 T5.2) | ✅ | |
 | A6 | Ảnh/tài liệu khách: chụp/tải lên, xem | — | ✅ | |
 | A7 | Lưu trữ khách + khôi phục (T5.10) | — | ✅ (qua menu ⋮) | Chủ dự án không tìm thấy màn "Khách đã lưu trữ" → L5; lối vào có ở menu ⋮ (Tiện ích) › "Xem khách đã lưu trữ" (agent xác nhận trên khổ 375px) |
-| A8 | Chuông/thông báo trong app, đổi sáng/tối | ⏳ | ⏳ | |
+| A8 | Chuông/thông báo trong app, đổi sáng/tối | — | — | Không kiểm riêng trên Android; sáng/tối đã kiểm trên Mac |
 
 ## 4. Số chạm / thời gian (v1 `crm-cop` vs v2), Android
 
@@ -48,12 +48,12 @@
 
 | Thao tác | v1 | v2 | Ghi chú |
 |---|---|---|---|
-| Ghi **không nghe máy** + lịch gọi lại (vừa cúp máy) | ⏳ | ⏳ | |
-| Ghi **nói chuyện được** + ghi chú ngắn + bước tiếp | ⏳ | ⏳ | |
-| Nhắn Zalo theo mẫu (tới lúc mở Zalo) | ⏳ | ⏳ | |
-| Thêm ghi chú cho khách đang xem | ⏳ | ⏳ | |
-| Hẹn gọi lại (đổi lịch) | ⏳ | ⏳ | |
-| Thêm khách mới (SĐT + tên + nguồn) | ⏳ | ⏳ | |
+| Ghi **không nghe máy** + lịch gọi lại (vừa cúp máy) | — | — | |
+| Ghi **nói chuyện được** + ghi chú ngắn + bước tiếp | — | — | |
+| Nhắn Zalo theo mẫu (tới lúc mở Zalo) | — | — | |
+| Thêm ghi chú cho khách đang xem | — | — | |
+| Hẹn gọi lại (đổi lịch) | — | — | |
+| Thêm khách mới (SĐT + tên + nguồn) | — | — | |
 
 ## 5. Lỗi
 
