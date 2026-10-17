@@ -82,7 +82,15 @@ async function installTaskFixture(page: import('@playwright/test').Page) {
         next_tasks: [
           { at: 'late', text: 'Gọi khách quá hạn', kind: 'call', due: yesterday.toISOString(), due_allday: true },
           { at: 'today', text: 'Gửi bảng giá', kind: 'docs', due: today.toISOString(), due_allday: true },
-          { at: 'week', text: 'Hẹn xem căn', kind: 'visit', due: plusDays(4), side: 'customer' },
+          {
+            at: 'week',
+            text: 'Hẹn xem căn',
+            kind: 'visit',
+            due: plusDays(4),
+            due_original: '2026-10-10T10:00:00.000Z',
+            side: 'customer',
+            opaque_meta: { keep: true },
+          },
           { at: 'later', text: 'Chuẩn bị hồ sơ', kind: 'docs', due: plusDays(8) },
           { at: 'none', text: 'Nhắn tin hỏi thăm', kind: 'message' },
           { at: 'done', text: 'Đã gọi trước đây', kind: 'call', done_at: '2026-10-15T10:00:00.000Z' },
@@ -109,6 +117,47 @@ async function installTaskFixture(page: import('@playwright/test').Page) {
 for (const scheme of ['light', 'dark'] as const) {
   test.describe(`công việc ${scheme}`, () => {
     test.use({ colorScheme: scheme });
+
+    test('sửa việc đang mở chỉ đổi nội dung và hạn, giữ metadata của lời hứa', async ({ page }) => {
+      await installTaskFixture(page);
+      await page.goto('/cong-viec');
+      await page.getByLabel('Lọc theo loại việc').selectOption('visit');
+      const item = page.locator('#main li').filter({ hasText: 'Hẹn xem căn' });
+      await item.getByRole('button', { name: 'Sửa' }).click();
+      await page.getByLabel('Sửa nội dung: Hẹn xem căn').fill('Xác nhận lịch xem căn');
+      const changedDue = new Date();
+      changedDue.setDate(changedDue.getDate() + 2);
+      changedDue.setHours(16, 15, 0, 0);
+      const dueLocal = `${changedDue.getFullYear()}-${String(changedDue.getMonth() + 1).padStart(2, '0')}-${String(changedDue.getDate()).padStart(2, '0')}T16:15`;
+      await page.getByLabel('Sửa hạn: Hẹn xem căn').fill(dueLocal);
+      await item.getByRole('button', { name: 'Lưu sửa' }).click();
+      await expect(page.getByText('Đã sửa việc', { exact: true })).toBeVisible();
+
+      const edited = await page.evaluate(async () => {
+        const db = await new Promise<IDBDatabase>((resolve, reject) => {
+          const request = indexedDB.open('crm_khach_hang__t37-e2e-user', 2);
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+        const row = await new Promise<Record<string, unknown>>((resolve, reject) => {
+          const request = db.transaction('customers').objectStore('customers').get('t37-e2e-customer');
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+        db.close();
+        return (row.next_tasks as Record<string, unknown>[]).find((task) => task.at === 'week');
+      });
+      expect(edited).toEqual(
+        expect.objectContaining({
+          text: 'Xác nhận lịch xem căn',
+          due_original: '2026-10-10T10:00:00.000Z',
+          side: 'customer',
+          opaque_meta: { keep: true },
+        }),
+      );
+      expect(Date.parse(String(edited?.due))).toBe(changedDue.getTime());
+      expect(edited).not.toHaveProperty('done_at');
+    });
 
     test('nhóm hạn, lọc loại và cam kết; hoàn tất ghi history và có thể hoàn tác', async ({ page }) => {
       await installTaskFixture(page);

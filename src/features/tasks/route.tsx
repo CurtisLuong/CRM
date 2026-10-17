@@ -28,6 +28,13 @@ function deadlineLabel(row: TaskRow, now: number) {
   return { tone, label: `${tag.text} · ${date}` };
 }
 
+function toLocalDateTime(value?: string) {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}T${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+}
+
 function TaskCard({
   customer,
   row,
@@ -37,6 +44,7 @@ function TaskCard({
   onReopen,
   onCall,
   onSnooze,
+  onSaveEdit,
   busy,
 }: {
   customer: ReturnType<typeof useCustomers>[number];
@@ -47,9 +55,13 @@ function TaskCard({
   onReopen: () => void;
   onCall: () => void;
   onSnooze: (due: string, reason: string) => void;
+  onSaveEdit: (text: string, due: string) => void;
   busy: boolean;
 }) {
   const [showSnooze, setShowSnooze] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
+  const [editText, setEditText] = useState<string>(row.type === 'task' ? (row.task.text ?? '') : '');
+  const [editDue, setEditDue] = useState(() => (row.type === 'task' ? toLocalDateTime(row.task.due ?? undefined) : ''));
   const [snoozeDue, setSnoozeDue] = useState(() => {
     const due = row.type === 'task' ? row.task.due : undefined;
     if (!due) return '';
@@ -130,6 +142,50 @@ function TaskCard({
         </Link>
         {row.type === 'task' && group !== 'done' && (
           <div className="mt-1">
+            {!showEdit ? (
+              <Button disabled={busy} onClick={() => setShowEdit(true)}>
+                Sửa
+              </Button>
+            ) : (
+              <form
+                className="flex flex-wrap items-end gap-2"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  const cleanText = editText.trim();
+                  if (!cleanText) return;
+                  onSaveEdit(cleanText, editDue);
+                  setShowEdit(false);
+                }}
+              >
+                <label className="flex min-w-48 flex-1 flex-col gap-1 text-small text-text-2">
+                  Nội dung việc
+                  <input
+                    aria-label={`Sửa nội dung: ${row.task.text}`}
+                    className={FIELD}
+                    required
+                    value={editText}
+                    onChange={(event) => setEditText(event.target.value)}
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-small text-text-2">
+                  Hạn (để trống nếu không hạn)
+                  <input
+                    aria-label={`Sửa hạn: ${row.task.text}`}
+                    className={FIELD}
+                    type="datetime-local"
+                    value={editDue}
+                    onChange={(event) => setEditDue(event.target.value)}
+                  />
+                </label>
+                <Button type="submit" variant="primary" disabled={busy}>
+                  Lưu sửa
+                </Button>
+                <Button type="button" disabled={busy} onClick={() => setShowEdit(false)}>
+                  Huỷ
+                </Button>
+              </form>
+            )}
+            {/* Delete stays unavailable until v1 can read a tombstone without treating it as completed. */}
             {!showSnooze ? (
               <Button disabled={busy} onClick={() => setShowSnooze(true)}>
                 Dời
@@ -536,6 +592,35 @@ function TasksPage() {
                         onCall={() => {
                           if (row.type !== 'call' || !canOwn) return;
                           openQuickAction(customer.id, 'call');
+                        }}
+                        onSaveEdit={(text, dueValue) => {
+                          if (row.type !== 'task' || !editable || !taskAt || busyKey) return;
+                          const current = customersRef.current.find((entry) => entry.id === customer.id);
+                          if (!current) return;
+                          const beforeList = Array.isArray(current.next_tasks) ? current.next_tasks : [];
+                          const target = beforeList.find((entry) => entry?.at === taskAt);
+                          if (!target || target.done_at) return;
+                          const due = dueValue ? new Date(dueValue).toISOString() : '';
+                          const nextList = beforeList.map((entry) => {
+                            if (entry?.at !== taskAt) return entry;
+                            const updated = { ...entry, text };
+                            if (due) updated.due = due;
+                            else delete updated.due;
+                            if (!due || !entry.due_allday) delete updated.due_allday;
+                            return updated;
+                          });
+                          setBusyKey(key);
+                          void account.customers
+                            .update(customer.id, { next_tasks: nextList })
+                            .then(() => toast({ title: 'Đã sửa việc', description: `${text} · ${customer.full_name}` }))
+                            .catch((cause) =>
+                              toast({
+                                title: 'Chưa sửa được việc',
+                                description: cause instanceof Error ? cause.message : 'Thử lại sau.',
+                                tone: 'error',
+                              }),
+                            )
+                            .finally(() => setBusyKey(''));
                         }}
                         onSnooze={(due, reason) => {
                           if (row.type !== 'task' || !taskAt || busyKey) return;
