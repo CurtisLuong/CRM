@@ -123,12 +123,25 @@ for (const scheme of ['light', 'dark'] as const) {
       await page.goto('/hieu-qua');
       const main = page.locator('#main');
       await expect(main.getByRole('heading', { name: 'Hiệu quả', exact: true })).toBeVisible();
-      await expect(main.getByRole('heading', { name: 'Nhịp chăm sóc khách' })).toBeVisible();
-      await expect(main.getByText('Khách đã trao đổi', { exact: true })).toBeVisible();
-      await expect(main.getByText('Có bước tiếp theo', { exact: true })).toBeVisible();
-      await expect(main.getByText('Cam kết quá hạn', { exact: true })).toBeVisible();
-      await expect(main.getByText('Trung vị gọi lần đầu', { exact: true })).toBeVisible();
-      await expect(main.getByText('2/4 khách có mốc hợp lệ')).toBeVisible();
+      await expect(main.getByRole('heading', { name: 'Chăm sóc khách' })).toBeVisible();
+      await expect(main.getByText('Tốc độ gọi lần đầu · trung vị')).toBeVisible();
+      await expect(main.getByText('Gọi dưới 30 phút', { exact: true })).toBeVisible();
+      await expect(main.getByText('Tỉ lệ liên lạc được', { exact: true })).toBeVisible();
+      await expect(main.getByText('Nghe máy theo khung', { exact: true })).toBeVisible();
+      await expect(main.getByText('Phủ bước tiếp theo', { exact: true })).toBeVisible();
+      await expect(main.getByText('Giữ lời hứa “Em hứa”', { exact: true })).toBeVisible();
+      await expect(main.getByText('Lời hứa đang quá hạn', { exact: true })).toBeVisible();
+      await expect(main.getByText('Tuổi bậc so với SLA', { exact: true })).toBeVisible();
+      await expect(main.getByText('Nhịp chạm 7 ngày', { exact: true })).toBeVisible();
+      await expect(main.getByText('Chuyển đổi theo số lần chạm', { exact: true })).toBeVisible();
+      await expect(main.getByRole('heading', { name: 'Bài học tuần' })).toBeVisible();
+      await expect(main.getByRole('heading', { name: 'Sức khoẻ chăm sóc từng khách' })).toBeVisible();
+      await main
+        .getByRole('button', { name: /Xem 4 khách/ })
+        .last()
+        .click();
+      await expect(main.getByRole('heading', { name: 'Sức khoẻ từng khách' })).toBeVisible();
+      await expect(main.getByRole('button', { name: 'Mở hồ sơ' }).first()).toBeVisible();
       await expect(main.getByRole('heading', { name: 'Phễu và tốc độ' })).toBeVisible();
       await expect(main.getByRole('rowheader', { name: 'Booking & Làm hồ sơ' })).toBeVisible();
       await expect(main.getByRole('heading', { name: 'Hiệu suất tuần' })).toBeVisible();

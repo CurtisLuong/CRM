@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { FeatureRoute } from '@/app/routes';
 import { useCustomers, useRepositoryAccount } from '@/data/hooks';
 import { Badge, EmptyState, MetricTile, MiniChart } from '@/ui';
+import { CareSection } from './care';
 import { MarketingSection } from './marketing';
 import { insightReport } from './model';
 
@@ -50,42 +51,7 @@ export function InsightsPage() {
         <Badge>{customers.length} khách · mẫu hiện có</Badge>
       </header>
 
-      <section aria-labelledby="care-title" className="flex flex-col gap-3">
-        <div>
-          <h2 id="care-title" className="text-heading">
-            Nhịp chăm sóc khách
-          </h2>
-          <p className="text-small text-text-2">
-            Chỉ dựa trên kết quả đã ghi nhận; thiếu lịch sử có thể làm số liệu chưa đầy đủ.
-          </p>
-        </div>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <MetricTile
-            label="Khách đã trao đổi"
-            value={pct(report.care.talked.percent)}
-            ratio={`${report.care.talked.numerator}/${report.care.talked.denominator} khách`}
-            period="Toàn bộ dữ liệu"
-          />
-          <MetricTile
-            label="Có bước tiếp theo"
-            value={pct(report.care.covered.percent)}
-            ratio={`${report.care.covered.numerator}/${report.care.covered.denominator} khách trong phễu`}
-            period="Lịch gọi hoặc việc mở"
-          />
-          <MetricTile
-            label="Cam kết quá hạn"
-            value={nFmt(report.care.overdue.numerator)}
-            ratio={`${report.care.overdue.numerator}/${report.care.overdue.denominator} lịch gọi/việc theo dõi`}
-            period="Theo D-010"
-          />
-          <MetricTile
-            label="Trung vị gọi lần đầu"
-            value={report.care.firstCallMedianMs == null ? null : formatDuration(report.care.firstCallMedianMs)}
-            ratio={`${report.care.firstCallMedian.numerator}/${report.care.firstCallMedian.denominator} khách có mốc hợp lệ`}
-            period="Đăng ký → cuộc gọi đầu"
-          />
-        </div>
-      </section>
+      <CareSection customers={customers} now={now} />
 
       <section aria-labelledby="insight-title" className="rounded-card border border-border bg-surface p-4 shadow-e1">
         <h2 id="insight-title" className="text-heading">
