@@ -6,6 +6,16 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-17 — T5.3a: Sửa lỗi QA: cuộn khách hàng, Bằng chứng và trạng thái nhóm
+
+- L6: dùng cuộn trang với danh sách ảo hoá; từ cuối 500 khách cuộn lên bộ lọc bằng wheel nhiều nhịp, không còn khung cuộn lồng chặn người dùng.
+- L5: thêm lối vào Khách đã lưu trữ tại màn Khách hàng, giữ phân cấp thao tác chính.
+- L3: nhãn Bằng chứng tiếng Việt từ cấu hình, ngày giờ vi-VN; bỏ object/giá trị không đọc được và định dạng mã bước/lý do.
+- L2: phân biệt chưa đăng nhập, ngoại tuyến, nhóm rỗng và lỗi máy chủ; chỉ hướng dẫn SQL khi xác nhận thiếu RPC team_list.
+- Đã kiểm: npm run check (73 files, 590 tests); toàn bộ E2E lượt đầu 205 pass/23 skip; regression T5.3a 29 pass/16 skip; ma trận cuộn cuối 8/8 pass với 500 khách tại 360/375/430/1280px sáng/tối, ảnh giao diện đã xem. Cổng merge chạy lại toàn bộ check/build/E2E/golden trên v2 mới nhất.
+- Chưa xác minh lại trên điện thoại thật hoặc deployment; không đổi data layer, signals logic, profile hoặc schema.
+- File: `src/features/customers/route.tsx`, `src/features/team/route.tsx`, `src/features/today/route.tsx`, `tests/e2e/t53a-customers.spec.ts`, `tests/e2e/t53a-team.spec.ts`, `tests/e2e/t53a-today-evidence.spec.ts`, `tests/features/team/route.test.tsx`, `tests/features/today/evidence.test.ts`
+
 ## 2026-10-17 — T6.3a: Triển khai phần tín hiệu đã rõ
 
 - Thêm S11, S13–S16 và S18 cùng ngưỡng cấu hình và kiểm tra positive/negative.
