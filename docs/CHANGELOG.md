@@ -6,6 +6,14 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-17 — T5.9: Gộp cột mảng khi đồng bộ + bỏ được op bị server từ chối (D-021)
+
+- Sửa lỗi mất dữ liệu T5.2 E2: op `update` có cột mảng JSONB (ghi chú, việc, cuộc gọi, lịch sử bậc, tương tác, nhu cầu, người cùng quyết định) giờ đọc hàng server, gộp 3 chiều theo `id`/`at` với bản gốc `arrayBase` (chỉ ở máy), PATCH có điều kiện `updated_at`, đọc lại khi bị máy khác chen. Phần tử máy này cố ý bỏ (hoàn tác, mở lại việc, lùi bậc) không sống lại; thuộc tính lạ giữ nguyên.
+- Op bị server từ chối vĩnh viễn (22/23/42, PGRST1xx/2xx) không chặn khách khác; sheet *Đồng bộ* (bấm chỉ báo trên header) hiện lý do tiếng Việt + "Bỏ thao tác này" có xác nhận; bản sao op lưu meta `discarded-ops`, khách quay về giá trị server. Lỗi mạng/5xx vẫn thử lại như cũ.
+- Không migration, không đổi định dạng op v1↔v2; v1 vẫn ghi đè mảng tới cutover (rủi ro ghi trong D-021).
+- Kiểm tra: `npm run check` (560 test, gồm 2 thiết bị giả lập thêm offline, sửa + thêm, hoàn tác không sống lại, race, 23514 bỏ rồi đẩy tiếp, queue chéo v1↔v2); e2e `tests/e2e/sync.spec.ts` với supabase-js thật ở 360/390/1280; ảnh sáng/tối.
+- File: `docs/architecture.md`, `docs/decisions.md`, `src/app/layout.tsx`, `src/data/arrayMerge.ts`, `src/data/hooks/index.ts`, `src/data/queue.ts`, `src/data/repositories/customers.ts`, `src/data/supabase.ts`, `src/data/sync.ts`, `src/data/syncStatus.ts`, `src/features/sync/SyncIssuesSheet.tsx`, `tests/data/array-merge.test.ts` … (+4)
+
 ## 2026-10-17 — T5.1: T5.1: parity v1 ↔ v2 đã kiểm toán
 
 - Ghi bằng chứng cho các thao tác đã có parity và liệt kê các gap xóa còn lại.
