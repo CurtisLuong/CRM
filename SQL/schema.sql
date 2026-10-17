@@ -203,3 +203,12 @@ on conflict (name, owner_id) do nothing;
 --      SQL/v2/001_customer_audit.sql  → cài mới: chạy file đó NGAY SAU file này.
 --    Lưu ý: baseline này chưa gồm mọi migration v1 (xem docs/architecture.md §3.2 "Đối soát production");
 --    staging dựng bằng khôi phục backup (docs/runbooks/backup.md), không dựng từ file này.
+
+-- 6) v2 — Mở rộng chỉ-thêm (T2.A5, docs/architecture.md §3.4). Định nghĩa ở MỘT nơi, chạy theo thứ tự sau 001:
+--      SQL/v2/002_customer_memory.sql        → customers: archived_at, contact_prefs, interests, household,
+--                                              interactions, close_reason, close_note, retarget_hint,
+--                                              field_meta, referred_by
+--      SQL/v2/003_campaign_costs.sql         → bảng campaign_costs (RLS theo người tạo, admin chỉ đọc)
+--      SQL/v2/004_user_settings_ui_state.sql → user_settings.ui_state (cần SQL/add_zalo_greeting_settings.sql)
+--      SQL/v2/005_units_verified_at.sql      → units.verified_at (cần SQL/add_loan_module.sql)
+--      SQL/v2/006_catalog_archives.sql       → catalog: archived_at (projects/buildings/units/project_apt_types/building_apt_types; cần migration catalog v1)

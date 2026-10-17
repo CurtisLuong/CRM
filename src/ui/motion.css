@@ -1,0 +1,45 @@
+/* Chuyển động của src/ui (DESIGN_SYSTEM §2.4). Thời lượng/easing lấy từ token; reduced-motion chỉ đổi opacity. */
+@keyframes sheet-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes sheet-left {
+  from {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  @keyframes sheet-up {
+    from {
+      opacity: 0;
+    }
+  }
+
+  @keyframes sheet-left {
+    from {
+      opacity: 0;
+    }
+  }
+
+  @keyframes toast-in {
+    from {
+      opacity: 0;
+    }
+  }
+}

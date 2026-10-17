@@ -1,7 +1,7 @@
 // Run: node tests/deadlines.test.js. Uses real deadline/SLA functions without network or a DOM.
 process.env.TZ = 'Asia/Ho_Chi_Minh';
 const fs = require('node:fs'), vm = require('node:vm'), assert = require('node:assert/strict');
-const src = fs.readFileSync(require('node:path').join(__dirname, '../js/app.js'), 'utf8');
+const src = fs.readFileSync(require('node:path').join(__dirname, '../legacy/js/app.js'), 'utf8');
 function readFunction(name) {
   const re = new RegExp('^(?:async )?function ' + name + '\\([^\\n]*', 'm');
   const hit = src.match(re); assert(hit, name);
@@ -70,9 +70,9 @@ assert.equal(ctx.taskDueInfo({due:'invalid'}),null);assert.equal(ctx.taskDueInfo
 assert.equal(ctx.callReminder({next_call_at:'invalid'}),null);checks+=3;
 // Real SLA configuration + automation runner: preserve automatic actions, scope, logging metadata and idempotency.
 now=base;
-vm.runInContext(fs.readFileSync(require('node:path').join(__dirname,'../js/velocity.js'),'utf8'),ctx);
+vm.runInContext(fs.readFileSync(require('node:path').join(__dirname,'../legacy/js/velocity.js'),'utf8'),ctx);
 ctx.VELOCITY=ctx.window.VELOCITY;
-vm.runInContext(fs.readFileSync(require('node:path').join(__dirname,'../js/followup.js'),'utf8'),ctx);
+vm.runInContext(fs.readFileSync(require('node:path').join(__dirname,'../legacy/js/followup.js'),'utf8'),ctx);
 ctx.FOLLOWUP=ctx.window.FOLLOWUP;
 ctx.allCustomers=[
   {id:'care',owner_id:'mine',qualified_at:iso(base-21*DAY),care_stage:'Đang chăm sóc',care_stage_updated_at:iso(base-21*DAY)},

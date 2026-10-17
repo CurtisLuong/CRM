@@ -1,16 +1,19 @@
 # Tasks — Kế hoạch đại tu Sổ Khách v2
 
 > **Version:** 1.0 · 2026-10-16. Phạm vi: `PRD.md`. Kỹ thuật: `architecture.md`. Quyết định: D-011…D-015.
-> **Cách dùng:** chọn task có trạng thái ☐ mà mọi phụ thuộc đã ☑ → mở phiên agent với prompt `prompts.md` B.1. Task cùng **sóng** và cùng **nhóm song song** chạy cùng lúc được (mỗi phiên 1 worktree/nhánh).
+> **Cách dùng:** chọn task có trạng thái ☐ mà mọi phụ thuộc đã ☑ → mở phiên agent với prompt `prompts.md` B.1. Task cùng **sóng** và cùng **nhóm song song** chạy cùng lúc được (mỗi phiên 1 worktree/bản clone + 1 nhánh `task/…`; tự merge qua cổng — §0 luật 7).
 
 ## 0. Luật làm task (cho agent)
 
-1. **Nhánh:** Phase 0 làm trên `main` (không đổi runtime v1 trừ T0.2 SQL). Từ T1.1: nhánh tích hợp `v2`; mỗi task một nhánh `v2/<T-ID>-<slug>` → PR vào `v2`. Không push thẳng `main` khi chưa tới T5.4.
-2. **Sở hữu file:** chỉ sửa file/thư mục trong mục *Sở hữu*. Được **thêm file mới** trong `src/ui/`, `src/config/` nếu task cần (không sửa file của task khác). Cần đổi API/file của task khác → dừng, ghi vào báo cáo, hỏi.
+1. **Nhánh:** Phase 0 làm trên `main` (không đổi runtime v1 trừ T0.2 SQL). Từ T1.1: nhánh tích hợp `v2`; mỗi task một nhánh **`task/<T-ID>-<slug>`** tách từ `origin/v2` (không dùng `v2/…`: Git cấm vì đã có nhánh `v2`). Không đụng `main` khi chưa tới T5.4.
+2. **Sở hữu file:** chỉ sửa file/thư mục trong mục *Sở hữu* — bản máy đọc được ở `scripts/agents/ownership.json` (cổng merge chặn mọi file ngoài danh sách). Cần thêm/sửa file ngoài phạm vi (kể cả file mới trong `src/config/`, `src/ui/`) hoặc đổi API của task khác → dừng, báo người điều phối thêm vào `ownership.json` trước. **Không thêm thư viện** ngoài bộ T1.1 đã cài (CLAUDE.md §3.10).
 3. **Tự đăng ký:** route (`src/features/*/route.tsx`), tín hiệu (`src/domain/signals/rules/*.ts`), lệnh (`src/features/*/commands.ts`) — không sửa file router/registry chung.
-4. **Dữ liệu:** mọi task chạm `src/data`, `SQL/`, schema, repository phải qua checklist `prompts.md` B.3 trước khi PR. Migration production chỉ do **chủ dự án** chạy sau khi đã backup (T0.1) và chạy thử trên staging.
-5. **Xong khi** = mọi tiêu chí trong thẻ + `npm run check` xanh (từ T1.1) + cập nhật trạng thái bảng §2 + `CHANGELOG.md` nếu thay đổi đáng kể.
-6. **Cỡ:** S ≈ ½ phiên · M ≈ 1 phiên · L ≈ 2–3 phiên (chia nhỏ nếu cần, giữ ID con `T3.5a`…).
+4. **Dữ liệu:** mọi task chạm `src/data`, `SQL/`, schema, repository phải tự rà checklist `prompts.md` B.3 trên diff của mình trước khi gọi cổng merge (có vi phạm → không gọi cổng, báo lại). Agent **không bao giờ** chạy SQL trên Supabase. Migration production chỉ do **chủ dự án** chạy sau khi đã backup (T0.1) và chạy thử trên staging.
+5. **Xong khi** = mọi tiêu chí trong thẻ + cổng merge chạy thành công (cổng tự chạy `npm run check` + `build` + golden, tự ghi ☑ vào bảng §2 và mục `CHANGELOG.md` — agent **không** tự sửa 2 file này).
+6. **Cỡ:** S ≈ ½ phiên · M ≈ 1 phiên · L ≈ 2–3 phiên (chia nhỏ nếu cần, giữ ID con `T3.5a`…; ID con phải có mục riêng trong `ownership.json`).
+7. **Tự merge (chủ dự án duyệt 2026-10-16):** xong việc → commit trên `task/<T-ID>-<slug>` → viết tóm tắt vào 1 file (dòng 1 = tiêu đề, sau đó gạch đầu dòng đã đổi/đã kiểm tra) → chạy `node scripts/agents/merge-to-v2.mjs <T-ID> --changelog <file>` (thêm `--e2e` nếu đổi luồng UI). Cổng: lấy `v2` mới nhất + rebase → kiểm phụ thuộc ☑ → kiểm phạm vi file + luật dữ liệu (không đụng `legacy/` trừ T1.1 chuyển nguyên vẹn, không sửa migration cũ, SQL mới không drop/rename/đổi kiểu/xoá dữ liệu, không lộ khoá) → test → ghi ☑ + CHANGELOG → push fast-forward lên `v2` (không force; bị chen → tự làm lại). Thoát khác 0 = **chưa merge**: đọc lý do; xung đột với task khác → dừng và báo, không tự sửa file của task khác. Không mở PR, không merge tay.
+8. **Song song an toàn:** chỉ giao cùng lúc các task mà mọi phụ thuộc đã ☑ trên `v2` và phạm vi trong `ownership.json` không trùng nhau. Mở sóng mới → người điều phối thêm phạm vi các task của sóng đó vào `ownership.json` trước.
+9. **Dọn worktree tự động:** mỗi lần cổng merge thành công, nó gọi `scripts/agents/cleanup-worktrees.mjs` để xoá worktree + nhánh `task/…` cục bộ của các task **khác** đã nằm trọn trong `origin/v2`, không còn thay đổi chưa commit, không phải thư mục chính, không do app Claude quản lý (app tự dọn). Worktree vừa merge được dọn ở lần merge kế tiếp. Chạy tay: `node scripts/agents/cleanup-worktrees.mjs` (`--dry-run` để xem trước). Nhánh `task/…` trên GitHub vẫn giữ làm lịch sử.
 
 ## 1. Sơ đồ phụ thuộc và sóng
 
@@ -51,7 +54,7 @@ flowchart LR
     T42[T4.2 Lời hứa 2 chiều]
   end
   subgraph W5[Sóng 5 · Cutover]
-    T51[T5.1 Parity] --> T52[T5.2 Kiểm chứng dữ liệu] --> T53[T5.3 QA thiết bị] --> T54[T5.4 Cutover] --> T55[T5.5 Dọn & tài liệu]
+    T56[T5.6 Ghi chú hồ sơ] & T57[T5.7 Công việc] & T58[T5.8 Cuộc gọi] --> T51[T5.1 Parity] --> T52[T5.2 Kiểm chứng dữ liệu] --> T53[T5.3 QA thiết bị] --> T54[T5.4 Cutover] --> T55[T5.5 Dọn & tài liệu]
   end
   subgraph W6[Sóng 6 · Mới P1 · sau hoặc song song cutover]
     T61[T6.1 Trí nhớ v2] --> T62[T6.2 Retarget]
@@ -90,49 +93,63 @@ Ký hiệu: ☐ chưa · ◐ đang làm (ghi nhánh) · ☑ xong (ghi ngày) · 
 | T0.4 | Fixture + golden test logic v1 | Test | M | — | Agent | ☑ 2026-10-16 |
 | T0.5 | Hạ tầng v2: nhánh, Cloudflare `crm-v2`, Supabase staging | Hạ tầng | S | — | Chủ dự án (agent hướng dẫn) | ☑ 2026-10-16 (nhánh `v2`; `crm-v2-9hf.pages.dev` trang trống; staging `mksjmpcsfawsiabfhoxe` + Auth URL theo chủ dự án báo) |
 | T0.6 | Baseline đo thao tác trên v1 | Sản phẩm | S | — | Chủ dự án | ◐ mẫu `baseline.md` xong 2026-10-16 · chờ 1 tuần đo |
-| T1.1 | Scaffold v2 + chuyển v1 vào `legacy/` | Khung | M | T0.1, T0.2, T0.4, T0.5 | Agent | ☐ |
-| T1.2 | Config registry (nguồn duy nhất) | Khung | M | T1.1 | Agent | ☐ |
-| T2.A1 | Types + Zod + normalize legacy | A | M | T1.2 | Agent | ☐ |
-| T2.A2 | LocalDB + queue tương thích v1 | A | L | T2.A1 | Agent | ☐ |
-| T2.A3 | Sync, Realtime, probe, Auth | A | L | T2.A2 | Agent | ☐ |
-| T2.A4 | Repository + React hooks | A | M | T2.A3 | Agent | ☐ |
-| T2.A5 | SQL v2: cột/bảng mới (chỉ thêm) | A | M | T2.A1 | Agent viết, chủ dự án chạy | ☐ |
-| T2.B1 | Port deadlines + followup | B | M | T1.2, T2.A1 | Agent | ☐ |
-| T2.B2 | Port velocity + kế hoạch tự chuyển SLA | B | M | T1.2, T2.A1 | Agent | ☐ |
-| T2.B3 | Port search + matching + lunar + phone | B | M | T1.2, T2.A1 | Agent | ☐ |
-| T2.B4 | Port loan engine | B | S | T1.1 | Agent | ☐ |
-| T2.B5 | Signals registry + S01–S10 | B | L | T2.B1, T2.B2 | Agent | ☐ |
-| T2.C1 | Tokens sáng/tối + fonts + Tailwind theme | C | S | T1.1 | Agent | ☐ |
-| T2.C2 | Component `src/ui` + gallery | C | L | T2.C1 | Agent | ☐ |
-| T2.C3 | AppShell, nav, Command palette, SyncIndicator | C | M | T2.C2 | Agent | ☐ |
-| T3.1 | Quick actions + Sheet sau gọi + cầu Android | Tính năng | L | T2.A4, T2.B1, T2.C3 | Agent | ☐ |
-| T3.2 | Hôm nay (NBA, hàng đợi, sức làm, phiên gọi) | Tính năng | L | T3.1, T2.B5 | Agent | ☐ |
-| T3.3 | Danh sách khách + lọc + tệp đã lưu | Tính năng | L | T2.A4, T2.B3, T2.C3 | Agent | ☐ |
-| T3.4 | Khách mới (lớp 1) | Tính năng | M | T3.1 | Agent | ☐ |
-| T3.5 | Hồ sơ khách v2 | Tính năng | L | T3.1, T2.B2 | Agent | ☐ |
-| T3.6 | Form tạo/sửa + OCR + cảnh báo trùng | Tính năng | M | T2.A4, T2.C3 | Agent | ☐ |
-| T3.7 | Công việc (tab) | Tính năng | M | T3.1 | Agent | ☐ |
-| T3.8 | Giỏ hàng + Excel + ghép căn | Tính năng | L | T2.A4, T2.B3, T2.C3 | Agent | ☐ |
-| T3.9 | Tính vay + PDF + báo giá | Tính năng | M | T2.B4, T2.C3 | Agent | ☐ |
-| T3.10 | Nhóm + giao khách | Tính năng | M | T2.A4, T2.C3 | Agent | ☐ |
-| T3.11 | Cài đặt, mẫu Zalo, nhập/xuất, cập nhật APK, chuông | Tính năng | M | T2.A4, T2.C3 | Agent | ☐ |
-| T3.12 | Port Trợ lý AI | Tính năng | M | T3.5 | Agent | ☐ |
-| T3.13 | Hiệu quả: parity Phân tích v1 | Tính năng | M | T2.A4, T2.B1, T2.B2, T2.C3 | Agent | ☐ |
-| T4.1 | Ghi tương tác Zalo/gặp/xem dự án | Mới P0 | M | T3.1, T2.A5 | Agent | ☐ |
-| T4.2 | Lời hứa 2 chiều + hạn gốc + dời có lý do | Mới P0 | M | T3.7, T2.A5 | Agent | ☐ |
-| T5.1 | Kiểm tra parity v1 ↔ v2 | Cutover | M | Sóng 3, 4 | Agent | ☐ |
-| T5.2 | Kiểm chứng dữ liệu trên staging | Cutover | M | T5.1 | Agent + chủ dự án | ☐ |
-| T5.3 | QA thiết bị thật + offline | Cutover | M | T5.2 | Chủ dự án + agent | ☐ |
+| T1.1 | Scaffold v2 + chuyển v1 vào `legacy/` | Khung | M | T0.1, T0.2, T0.4, T0.5 | Agent | ☑ 2026-10-16 (tự merge 42f253e) |
+| T1.2 | Config registry (nguồn duy nhất) | Khung | M | T1.1 | Agent | ☑ 2026-10-16 (tự merge 3f7ccf9) |
+| T2.A1 | Types + Zod + normalize legacy | A | M | T1.2 | Agent | ☑ 2026-10-16 (tự merge b99eb93) |
+| T2.A2 | LocalDB + queue tương thích v1 | A | L | T2.A1 | Agent | ☑ 2026-10-16 (tự merge 995d021) |
+| T2.A3 | Sync, Realtime, probe, Auth | A | L | T2.A2 | Agent | ☑ 2026-10-16 (tự merge 6c11a03) |
+| T2.A4 | Repository + React hooks | A | M | T2.A3 | Agent | ☑ 2026-10-16 (tự merge 9d159c6) |
+| T2.A5 | SQL v2: cột/bảng mới (chỉ thêm) | A | M | T2.A1 | Agent viết, chủ dự án chạy | ☑ 2026-10-16 (tự merge 4aa151d) |
+| T2.B1 | Port deadlines + followup | B | M | T1.2, T2.A1 | Agent | ☑ 2026-10-16 (tự merge 381cb6f) |
+| T2.B2 | Port velocity + kế hoạch tự chuyển SLA | B | M | T1.2, T2.A1 | Agent | ☑ 2026-10-16 (tự merge 9e896c1) |
+| T2.B3 | Port search + matching + lunar + phone | B | M | T1.2, T2.A1 | Agent | ☑ 2026-10-16 (tự merge 1d538ae) |
+| T2.B4 | Port loan engine | B | S | T1.1 | Agent | ☑ 2026-10-16 (tự merge 8b045b9) |
+| T2.B5 | Signals registry + S01–S10 | B | L | T2.B1, T2.B2 | Agent | ☑ 2026-10-16 (tự merge dc7cf61) |
+| T2.C1 | Tokens sáng/tối + fonts + Tailwind theme | C | S | T1.1 | Agent | ☑ 2026-10-16 (tự merge 6474249) |
+| T2.C2 | Component `src/ui` + gallery | C | L | T2.C1 | Agent | ☑ 2026-10-16 (tự merge 2742d86) |
+| T2.C3 | AppShell, nav, Command palette, SyncIndicator | C | M | T2.C2 | Agent | ☑ 2026-10-16 (tự merge c6a9586) |
+| T3.1 | Quick actions + Sheet sau gọi + cầu Android | Tính năng | L | T2.A4, T2.B1, T2.C3 | Agent | ☑ 2026-10-16 (tự merge 832005a) |
+| T3.2 | Hôm nay (NBA, hàng đợi, sức làm, phiên gọi) | Tính năng | L | T3.1, T2.B5 | Agent | ☑ 2026-10-16 (tự merge d2bc0f6) |
+| T3.3 | Danh sách khách + lọc + tệp đã lưu | Tính năng | L | T2.A4, T2.B3, T2.C3 | Agent | ☑ 2026-10-16 (tự merge 2c2240f) |
+| T3.4 | Khách mới (lớp 1) | Tính năng | M | T3.1 | Agent | ☑ 2026-10-16 (tự merge 37a36d3) |
+| T3.5 | Hồ sơ khách v2 | Tính năng | L | T3.1, T2.B2, T3.9 | Agent | ☑ 2026-10-16 (tự merge 37e1464) |
+| T3.6 | Form tạo/sửa + OCR + cảnh báo trùng | Tính năng | M | T2.A4, T2.C3 | Agent | ☑ 2026-10-16 (tự merge 4ce1773) |
+| T3.7 | Công việc (tab) | Tính năng | M | T3.1 | Agent | ☑ 2026-10-16 (tự merge aa4478e) |
+| T3.8 | Giỏ hàng + Excel + ghép căn | Tính năng | L | T2.A4, T2.B3, T2.C3 | Agent | ☑ 2026-10-16 (tự merge f4713ed) |
+| T3.9 | Tính vay + PDF + báo giá | Tính năng | M | T2.B4, T2.C3 | Agent | ☑ 2026-10-16 (tự merge 1be5481) |
+| T3.10 | Nhóm + giao khách | Tính năng | M | T2.A4, T2.C3 | Agent | ☑ 2026-10-16 (tự merge f632d52) |
+| T3.11 | Cài đặt, mẫu Zalo, nhập/xuất, cập nhật APK, chuông | Tính năng | M | T2.A4, T2.C3 | Agent | ☑ 2026-10-16 (tự merge e078572) |
+| T3.12 | Port Trợ lý AI | Tính năng | M | T3.5 | Agent | ☑ 2026-10-17 (tự merge a7f324e) |
+| T3.13 | Hiệu quả: parity Phân tích v1 | Tính năng | M | T2.A4, T2.B1, T2.B2, T2.C3 | Agent | ☑ 2026-10-16 (tự merge 9f46b0a) |
+| T4.1 | Ghi tương tác Zalo/gặp/xem dự án | Mới P0 | M | T3.1, T2.A5 | Agent | ☑ 2026-10-17 (tự merge 318666c) |
+| T4.2 | Lời hứa 2 chiều + hạn gốc + dời có lý do | Mới P0 | M | T3.7, T2.A5 | Agent | ☑ 2026-10-17 (tự merge b87899a) |
+| T5.6 | Sửa ghi chú hồ sơ + lịch sử bậc | Cutover | M | T3.5, T4.1 | Agent | ☑ 2026-10-17 (tự merge d0e566a) |
+| T5.6a | Không đổi payload khi lưu ghi chú không chỉnh sửa | Cutover | S | T5.6 | Agent | ☑ 2026-10-17 (tự merge 5dc7c87) |
+| T5.6b | Dùng lựa chọn hợp lệ cho trường hồ sơ có CHECK constraint | Cutover | S | T5.6a | Agent | ☑ 2026-10-17 (tự merge 77fc28b) |
+| T5.7 | Sửa công việc | Cutover | M | T3.7, T4.2 | Agent | ☑ 2026-10-17 (tự merge f371f6d) |
+| T5.8 | Sửa kết quả cuộc gọi đã ghi | Cutover | M | T3.1, T4.1 | Agent | ☑ 2026-10-17 (tự merge a55eff2) |
+| T5.8a | Ghi cuộc gọi nhập tay | Cutover | S | T5.8 | Agent | ☑ 2026-10-17 (tự merge 55b882a) |
+| T5.1 | Kiểm tra parity v1 ↔ v2 | Cutover | M | Sóng 3, 4, T5.6, T5.7, T5.8 | Agent | ☑ 2026-10-17 (tự merge d06747a) |
+| T5.2 | Kiểm chứng dữ liệu trên staging | Cutover | M | T5.1 | Agent + chủ dự án | ☑ 2026-10-17 (tự merge c34b3c5) |
+| T5.9 | Gộp mảng khi đồng bộ + bỏ thao tác bị từ chối | Cutover | M | T5.1 | Agent | ☑ 2026-10-17 (tự merge bd67dde) |
+| T5.10 | Lưu trữ khách (xoá mềm) + khôi phục | Cutover | S | T5.1 | Agent | ☑ 2026-10-17 (tự merge 20e24d4) |
+| T5.2a | Test tự động đổi tài khoản khi còn thao tác offline (E5) | Cutover | S | T5.2 | Agent | ☑ 2026-10-17 (tự merge 795530d) |
+| T5.3a | Sửa lỗi QA: cuộn danh sách khách, Bằng chứng thô, lối vào khách lưu trữ, báo lỗi nhóm | Cutover | S | T5.2 | Agent | ☑ 2026-10-17 (tự merge fe0cb80) |
+| T5.3 | QA thiết bị thật + offline | Cutover | M | T5.2 | Chủ dự án + agent | ☑ 2026-10-17 (tự merge 34664c5) |
 | T5.4 | Cutover production + rollback plan | Cutover | S | T5.3 | Chủ dự án + agent | ☐ |
+| T5.4a | Chuẩn bị runbook cutover (chỉ tài liệu) | Cutover | S | T5.2 | Agent | ☑ 2026-10-17 (tự merge bd7dee9) |
+| T5.4b | APK 1.5: quyền ghi âm (lỗi L4 T5.3) + sửa đường dẫn script build/upload APK trên v2 | Cutover | S | T5.3 | Agent | ☑ 2026-10-17 (tự merge 4252c2b) |
 | T5.5 | Dọn dẹp + tài liệu "as built" | Cutover | S | T5.4 | Agent | ☐ |
-| T6.1 | Trí nhớ khách v2 | Mới P1 | L | Sóng 3, T2.A5 | Agent | ☐ |
-| T6.2 | Tệp khách & Retarget | Mới P1 | L | T6.1, T3.8 | Agent | ☐ |
+| T6.1 | Trí nhớ khách v2 | Mới P1 | L | Sóng 3, T2.A5 | Agent | ☑ 2026-10-17 (tự merge 64d7524) |
+| T6.2 | Tệp khách & Retarget | Mới P1 | L | T6.1, T3.8 | Agent | ☑ 2026-10-17 (tự merge ce5bab8) |
 | T6.3 | Signals S11–S18 | Mới P1 | M | T2.B5, T4.1, T4.2 | Agent | ☐ |
-| T6.4 | Hiệu quả › Chăm sóc đầy đủ | Mới P1 | M | T3.13, T4.1, T4.2 | Agent | ☐ |
-| T6.5 | Hiệu quả › Marketing + chi phí | Mới P1 | M | T3.13, T2.A5 | Agent | ☐ |
-| T6.6 | Ghi chú giọng nói | Mới P1 | M | T3.1, T3.12 | Agent | ☐ |
-| T6.7 | AI v2 (brief/parse/retarget/coach) | Mới P1 | M | T6.1, T3.12 | Agent | ☐ |
-| T6.8 | Phát hiện + gộp trùng có duyệt | Mới P1 | M | T3.6, T2.A5 | Agent | ☐ |
+| T6.3a | Tín hiệu S11, S13–S16, S18 (phần đã rõ) | Mới P1 | S | T2.B5, T4.1, T4.2 | Agent | ☑ 2026-10-17 (tự merge 5a85e11) |
+| T6.4 | Hiệu quả › Chăm sóc đầy đủ | Mới P1 | M | T3.13, T4.1, T4.2 | Agent | ☑ 2026-10-17 (tự merge baa5856) |
+| T6.5 | Hiệu quả › Marketing + chi phí | Mới P1 | M | T3.13, T2.A5 | Agent | ☑ 2026-10-17 (tự merge 728a55c) |
+| T6.6 | Ghi chú giọng nói | Mới P1 | M | T3.1, T3.12 | Agent | ☑ 2026-10-17 (tự merge 7afea24) |
+| T6.7 | AI v2 (brief/parse/retarget/coach) | Mới P1 | M | T6.1, T3.12 | Agent | ☑ 2026-10-17 (tự merge b342c7a) |
+| T6.7a | AI v2 — mã Worker + client + bộ chấm offline (chưa nghiệm thu chất lượng) | Mới P1 | M | T6.1, T3.12 | Agent | ☑ 2026-10-17 (tự merge 6feeb97) |
+| T6.8 | Phát hiện + gộp trùng có duyệt | Mới P1 | M | T3.6, T2.A5 | Agent | ☑ 2026-10-17 (tự merge 5b99958) |
 
 ## 3. Thẻ task
 
@@ -183,6 +200,7 @@ Ký hiệu: ☐ chưa · ◐ đang làm (ghi nhánh) · ☑ xong (ghi ngày) · 
 - **Sở hữu:** root config (`package.json`, `vite.config.ts`, `tsconfig*.json`, `biome.json`, `index.html`, `public/`), `src/main.tsx`, `src/app/*`, `.github/` (nếu thêm CI), `legacy/` (di chuyển).
 - **Làm:** trên nhánh `v2`: `git mv` toàn bộ file v1 (index.html, css/, js/, sw.js, manifest.json, icons/, dev/, android-app-version.json) vào `legacy/` **trừ** `SQL/`, `worker/`, `android-app/`, `docs/`, `tests/`; giữ `android-app-version.json` và `icons/` cần cho runtime → copy sang `public/`. Cài Vite + React 19 + TS strict + Tailwind v4 + Radix + Zod + Vitest + Playwright + Biome + vite-plugin-pwa + fake-indexeddb. Router (`react-router` v7, data router) với auto-register `src/features/*/route.tsx`. `public/_redirects`. Scripts: `dev`, `build`, `preview`, `check` (tsc + biome + vitest), `e2e`. SW v2 xoá cache `crm-khach-hang-v*`.
 - **Xong khi:** `npm run check` + `npm run build` xanh; deploy `crm-v2` hiện trang "Sổ Khách v2"; `legacy/` còn nguyên nội dung (so `git diff --stat -M`).
+- **Lưu ý (2026-10-16):** (1) cài **một lần** đủ thư viện cho Sóng 1–2 để các task song song không phải sửa `package.json`: `react@19`, `react-dom`, `react-router` v7, `typescript`, `vite`, `@vitejs/plugin-react`, `tailwindcss@4` + `@tailwindcss/vite`, `radix-ui`, `lucide-react`, `zod`, `@supabase/supabase-js`, `@fontsource/be-vietnam-pro`, `@fontsource/jetbrains-mono`, `vite-plugin-pwa`, `vitest`, `jsdom`, `@testing-library/react`, `@testing-library/user-event`, `@playwright/test`, `@axe-core/playwright`, `fake-indexeddb`, `@biomejs/biome`; (2) đổi đường dẫn `tests/legacy-harness/load-v1.js` và `tests/*.test.js|cjs` sang `legacy/js/…` → `node tests/legacy-harness/run.js --check` vẫn 0 khác; (3) `.gitignore` thêm `node_modules/`, `dist/`, `.env.local`; (4) Cloudflare `crm-v2` đã tự `npm ci && npm run build` khi có `package.json` (output `dist`).
 
 #### T1.2 — Config registry
 - **Đọc:** D-005, D-006, D-008; `legacy/js/followup.js`, `velocity.js`, `icons.js`, đầu `legacy/js/app.js` (hằng số).
@@ -269,7 +287,7 @@ Ký hiệu: ☐ chưa · ◐ đang làm (ghi nhánh) · ☑ xong (ghi ngày) · 
 - **Xong khi:** đạt ngân sách chạm §3 (e2e đếm chạm); payload ghi khớp v1 (golden); thử trên vỏ Android APK 1.4 với `crm-v2` (cấu hình tạm URL hoặc Chrome Android).
 
 #### T3.2 — Hôm nay
-- **Sở hữu:** `src/features/today/*`, `src/config/capacity.ts`.
+- **Sở hữu:** `src/features/today/*`, `src/features/home/route.tsx` (đưa Today vào route `/` mặc định), `src/config/capacity.ts`.
 - **Làm:** NBA, hàng đợi lọc, chip lý do phụ, sức làm khung hiện tại + đề xuất dời (giữ `due_original` khi có T4.2; trước đó chỉ hiển thị), phiên gọi, Tổng kết ngày, empty state; chạy `applySlaPlan` khi nạp (như v1).
 - **Xong khi:** nghiệm thu F-01 (khách hẹn 18:30 giữ chỗ, không trùng); mở app → Gọi trong 1 chạm.
 
@@ -284,8 +302,8 @@ Ký hiệu: ☐ chưa · ◐ đang làm (ghi nhánh) · ☑ xong (ghi ngày) · 
 - **Xong khi:** quy tắc D-001 giữ nguyên (test); payload Đạt/Loại khớp v1.
 
 #### T3.5 — Hồ sơ khách v2
-- **Sở hữu:** `src/features/profile/*`, `src/domain/customer/brief.ts`, `timeline.ts`.
-- **Làm:** layout `UX_GUIDELINES` §5; Brief rule-based; timeline hợp nhất; Trí nhớ (field hiện có + `advanced`) sửa inline; SLA ring + checklist Booking + Hoàn tác tự chuyển; đổi bậc + gợi ý lịch; Ký HĐMB; tài liệu, avatar/cover, chế độ chỉ xem; ActionBar.
+- **Sở hữu:** `src/features/profile/*`, `src/features/customers/route.tsx` (nút mở hồ sơ đầy đủ từ sheet ngữ cảnh hiện có), `src/domain/customer/brief.ts`, `src/domain/customer/timeline.ts`.
+- **Làm:** layout `UX_GUIDELINES` §5; Brief rule-based; timeline hợp nhất; Trí nhớ (field hiện có + `advanced`) sửa inline; SLA ring + checklist Booking + Hoàn tác tự chuyển; đổi bậc + gợi ý lịch; Ký HĐMB; tài liệu, avatar/cover, chế độ chỉ xem; ActionBar; nút Tính vay gọi contract T3.9 với khách và căn đang xem.
 - **Xong khi:** mọi thông tin v1 hiển thị được; thao tác ghi khớp payload v1; Brief hiện "Chưa biết" đúng.
 
 #### T3.6 — Form tạo/sửa + OCR + cảnh báo trùng
@@ -305,7 +323,7 @@ Ký hiệu: ☐ chưa · ◐ đang làm (ghi nhánh) · ☑ xong (ghi ngày) · 
 #### T3.9 — Tính vay
 - **Đọc:** `loan-module.md`.
 - **Sở hữu:** `src/features/loan/*`.
-- **Xong khi:** UI theo DS v3, PDF giống v1 về nội dung, lưu/đọc `loan_quotes`, mở từ hồ sơ có điền sẵn căn.
+- **Xong khi:** UI theo DS v3, PDF giống v1 về nội dung, lưu/đọc `loan_quotes`; cung cấp route/helper để T3.5 mở từ hồ sơ với căn điền sẵn.
 
 #### T3.10 — Nhóm
 - **Đọc:** D-003, `huong-dan-nhom.md`.
@@ -328,14 +346,29 @@ Ký hiệu: ☐ chưa · ◐ đang làm (ghi nhánh) · ☑ xong (ghi ngày) · 
 ### Sóng 4 — Mới P0
 
 #### T4.1 — Ghi tương tác
-- **Sở hữu:** `src/features/quick-actions/interactions*` (phối hợp T3.1 đã xong), `src/domain/customer/interactions.ts`.
+- **Sở hữu:** `src/features/quick-actions/interactions*` (phối hợp T3.1 đã xong), `src/features/quick-actions/QuickActions.tsx`, `src/features/quick-actions/QuickActions.test.tsx`, `src/domain/customer/{interactions.ts,timeline.ts,brief.ts}`, `src/domain/signals/shared.ts`; test tương ứng và E2E quick-actions/profile/insights.
 - **Xong khi:** "Đã gửi Zalo?" 1 chạm ghi `interactions`; ghi gặp/xem dự án; timeline + "liên hệ cuối" + chỉ số dùng cả `interactions`; v1 bỏ qua cột mới không lỗi.
 
 #### T4.2 — Lời hứa 2 chiều
-- **Sở hữu:** `src/features/tasks/promises*`, `src/domain/deadlines/promises.ts`.
+- **Sở hữu:** `src/features/tasks/{route.tsx,promises*}`, `src/features/today/**` (chỉ luồng dời hàng loạt + Hoàn tác), `src/domain/deadlines/promises.ts`; test tương ứng và E2E tasks/today.
 - **Xong khi:** tạo việc chọn Em hứa/Khách hẹn; dời giữ `due_original` + lý do; chống trùng theo `key`; lọc trong Công việc; dời hàng loạt từ Hôm nay (sức làm) có Hoàn tác; việc v1 không có `side` hiển thị bình thường.
 
 ### Sóng 5 — Cutover
+
+#### T5.6 — Sửa ghi chú hồ sơ + lịch sử bậc
+- **Đọc:** `PRD.md` F-04/F-05, `DESIGN_SYSTEM.md`, `UX_GUIDELINES.md`.
+- **Sở hữu:** `src/features/profile/**`, `tests/features/profile/**`, `tests/e2e/profile*`.
+- **Xong khi:** ghi chú hồ sơ và ghi chú trong lịch sử bậc sửa được; quyền owner/read-only được giữ; trường JSON lạ và lịch sử không liên quan không bị ghi đè. Không thêm thao tác xóa trong task này. Gap xóa ghi chú vẫn mở do v1 không hiểu tombstone và D-012 cấm mất dữ liệu.
+
+#### T5.7 — Sửa công việc
+- **Đọc:** `PRD.md` F-04, `architecture.md` §3, `DESIGN_SYSTEM.md`, `UX_GUIDELINES.md`.
+- **Sở hữu:** `src/features/tasks/**`, `tests/features/tasks/**`, `tests/e2e/tasks*`.
+- **Xong khi:** việc đang mở sửa nội dung/hạn; giữ `due_original`, lời hứa, trạng thái, lịch sử và thuộc tính lạ; quyền owner/read-only được giữ. Không thêm thao tác xóa trong task này. Gap xóa việc vẫn mở do v1 không hiểu tombstone và D-012 cấm mất dữ liệu.
+
+#### T5.8 — Sửa kết quả cuộc gọi đã ghi
+- **Đọc:** `PRD.md` F-04, `DESIGN_SYSTEM.md`, `UX_GUIDELINES.md`.
+- **Sở hữu:** `src/features/quick-actions/**`, `tests/features/quick-actions/**`, `tests/e2e/quick-actions*`.
+- **Xong khi:** kết quả cuộc gọi đã ghi sửa được; giữ timestamp/metadata không chỉnh sửa và unknown fields; quyền owner/read-only được giữ. Không sửa luồng gọi đang dùng. Không thêm thao tác xóa trong task này. Gap xóa cuộc gọi chờ vẫn mở do v1 không hiểu tombstone và D-012 cấm mất dữ liệu.
 
 #### T5.1 — Kiểm tra parity
 - **Sở hữu:** `docs/audits/v2-parity.md`.
@@ -345,6 +378,28 @@ Ký hiệu: ☐ chưa · ◐ đang làm (ghi nhánh) · ☑ xong (ghi ngày) · 
 #### T5.2 — Kiểm chứng dữ liệu (staging khôi phục từ production mới nhất)
 - **Làm:** v2 đăng nhập staging: số khách/việc/cuộc gọi/ghi chú khớp DB; mở + lưu không sửa mọi khách → audit không ghi thay đổi giá trị (chỉ `updated_at` nếu có lưu); queue chéo v1↔v2 trên cùng máy; kịch bản research: offline rồi đóng app, 2 máy sửa cùng khách, mở gọi rồi huỷ, webhook FB lặp, đổi tài khoản.
 - **Xong khi:** báo cáo có số liệu trước/sau; 0 mất dữ liệu.
+
+#### T5.9 — Gộp mảng khi đồng bộ + bỏ thao tác bị từ chối (task con của T5.2)
+- **Đọc:** `architecture.md` §3–§4, `prompts.md` B.3, `decisions.md` D-012, D-020.
+- **Sở hữu:** `src/data/queue.ts`, `src/data/sync.ts`, `src/data/supabase.ts`, `src/data/syncStatus.ts`, `src/data/arrayMerge.ts`, `src/data/hooks/index.ts`, `src/data/repositories/customers.ts` (chỉ ghi bản gốc mảng vào op), `src/features/sync/**`, `src/app/layout.tsx` (chỉ gắn sheet trạng thái đồng bộ), `tests/data/**`, `tests/features/sync/**`, `tests/e2e/sync*`, `docs/decisions.md`, `docs/architecture.md`, `SQL/v2/007_*.sql`.
+- **Làm:** (1) T5.2 E2 mất ghi chú khi 2 máy cùng sửa một khách: khi đẩy op `update` có cột mảng JSONB, gộp với hàng hiện tại trên server theo danh tính phần tử, không làm sống lại phần tử đã bỏ, giữ thuộc tính lạ, an toàn race đọc/ghi. (2) Op bị server từ chối vĩnh viễn (vd. `23514`) không chặn mãi hàng đợi: hiện lý do dễ hiểu + "Bỏ thao tác này" có xác nhận, hoàn tác local về giá trị server; lỗi tạm thời vẫn thử lại.
+- **Xong khi:** test 2 thiết bị cùng thêm phần tử offline → server đủ cả hai; sửa phần tử + máy khác thêm → giữ cả hai; op `23514` không chặn op sau khi đã bỏ; queue chéo v1↔v2 vẫn pass. T5.2 chạy lại E2 trên staging.
+
+#### T5.10 — Lưu trữ khách (xoá mềm) + khôi phục (task con của T5.2)
+- **Đọc:** `PRD.md` F-14, `decisions.md` D-003, D-012, `UX_GUIDELINES.md` §1 (xác nhận thao tác phá huỷ).
+- **Sở hữu:** `src/features/profile/**`, `src/features/archived/**`, `tests/features/profile/**`, `tests/features/archived/**`, `tests/e2e/profile*`, `tests/e2e/archive*`.
+- **Làm:** v1 có "🗑 Xoá khách" (xoá cứng); v2 chưa có màn nào gọi lưu trữ. Thêm "Lưu trữ khách" trong hồ sơ (chỉ người phụ trách, xác nhận rõ, đặt xa nút thao tác thường) đặt `archived_at` qua `CustomersRepository.remove`; màn "Khách đã lưu trữ" + "Khôi phục" (`restore`). Không xoá cứng, không đổi schema.
+- **Xong khi:** khách lưu trữ biến mất khỏi Danh sách/Hôm nay/Công việc/Thông báo, xem được ở màn đã lưu trữ, khôi phục được; người không phụ trách không thấy nút; test + E2E pass. v1 không hiểu `archived_at` → khách vẫn hiện trên v1 tới cutover (đã biết).
+
+#### T5.2a — Test đổi tài khoản E5 (task con của T5.2)
+- **Đọc:** `docs/audits/v2-data-verification.md` mục 4 dòng E5, `tests/data/sync.test.ts` (helper `remote()`, `row()`).
+- **Sở hữu:** `tests/data/account-switch*`.
+- **Xong khi:** test tự động: A có op offline → đăng xuất → B đăng nhập online không thấy khách/hàng đợi của A và không gửi op của A → A đăng nhập lại: op gửi đúng 1 lần, hàng đợi rỗng; `npm run check` pass.
+
+#### T5.3a — Sửa lỗi QA thiết bị (task con của T5.3)
+- **Đọc:** `docs/audits/v2-device-qa.md` mục 5 (L2, L3, L5, L6), `DESIGN_SYSTEM.md`, `UX_GUIDELINES.md`.
+- **Sở hữu:** `src/features/customers/route.tsx`, `src/features/today/route.tsx`, `src/features/team/route.tsx`, `tests/features/{customers,today,team}/**`, `tests/e2e/t53a*`.
+- **Xong khi:** L6 cuộn lên lại được tới bộ lọc ở 360–430px; L3 không còn `[object Object]`/ISO/epoch trong "Bằng chứng"; L5 có lối vào "Khách đã lưu trữ" từ màn Khách hàng; L2 thông báo đúng nguyên nhân; check + e2e pass.
 
 #### T5.3 — QA thiết bị thật
 - **Làm:** Android (Chrome + vỏ APK 1.4 trỏ `crm-v2`), iPhone Safari (nếu có), Mac; font tiếng Việt; số chạm thực đo so baseline T0.6; hiệu năng (mở app < 2s với cache), pin/mạng yếu.
@@ -361,35 +416,35 @@ Ký hiệu: ☐ chưa · ◐ đang làm (ghi nhánh) · ☑ xong (ghi ngày) · 
 
 #### T6.1 — Trí nhớ khách v2
 - **Đọc:** `PRD.md` F-05, `UX_GUIDELINES.md` §5.
-- **Sở hữu:** `src/features/profile/memory*`, `src/domain/customer/facts.ts`, `src/config/reasons.ts` (CLOSE_REASONS — mã mới bất biến).
+- **Sở hữu:** `src/features/profile/{route.tsx,memory*}`, `src/domain/customer/{facts.ts,brief.ts}`, `src/config/reasons.ts` (CLOSE_REASONS — mã mới bất biến), `src/features/quick-actions/QuickActions.tsx` + test, `src/features/ai/AiZaloDraft.tsx`; test tương ứng.
 - **Xong khi:** fact có nguồn/độ mới (`field_meta`), interests theo đợt (lead hỏi dự án thứ 2 → thêm đợt), household, contact_prefs + không liên hệ (chặn Zalo/retarget), kết thúc có lý do + điều kiện retarget, Brief đọc các nguồn mới.
 
 #### T6.2 — Tệp khách & Retarget
-- **Sở hữu:** `src/features/retarget/*`, `src/domain/matching/segments.ts`.
+- **Sở hữu:** `src/features/retarget/*`, `src/domain/matching/segments.ts`, `src/features/customers/route.tsx` (chỉ thêm entry/link mở Retarget); test tương ứng và E2E retarget.
 - **Xong khi:** nghiệm thu F-06 (căn đã bán/giá cũ không được giới thiệu như đã xác minh; "không liên hệ" không bao giờ trong danh sách gửi; không gửi tự động); chiến dịch đo được phản hồi.
 
 #### T6.3 — Signals S11–S18
-- **Sở hữu:** `src/domain/signals/rules/s11…s18*.ts`.
+- **Sở hữu:** `src/domain/signals/rules/S11…S18*.ts`, `src/config/signals.ts`; test tương ứng.
 - **Xong khi:** mỗi rule có test dương/âm + ngưỡng ở `config/signals.ts`; Hoãn/Ẩn hoạt động.
 
 #### T6.4 — Hiệu quả › Chăm sóc
-- **Sở hữu:** `src/features/insights/care*`, `src/domain/metrics/care.ts`.
+- **Sở hữu:** `src/features/insights/{route.tsx,care*}` (route chỉ mount tab Chăm sóc), `src/domain/metrics/care.ts`; test tương ứng và E2E insights.
 - **Xong khi:** đủ chỉ số F-07 với định nghĩa; drill-down ra danh sách; Bài học tuần ≤3 có ngưỡng; HealthDot từng khách giải thích được.
 
 #### T6.5 — Hiệu quả › Marketing
-- **Sở hữu:** `src/features/insights/marketing*`, `src/domain/metrics/marketing.ts`, `src/features/settings/campaign-costs*`.
+- **Sở hữu:** `src/features/insights/{route.tsx,marketing*}`, `src/domain/metrics/marketing.ts`, `src/features/settings/{route.tsx,campaign-costs*}`; test tương ứng.
 - **Xong khi:** funnel theo kênh/campaign/form, cohort, lý do loại theo kênh, nhập chi phí → CPL…, tình trạng `fb_leads` (lần nhận cuối, lỗi).
 
 #### T6.6 — Ghi chú giọng nói
-- **Đọc:** `prompts.md` A.4. **Sở hữu:** `src/features/quick-actions/voice*`; Worker route `/stt` (nếu cần, file mới `worker/stt.js`).
+- **Đọc:** `prompts.md` A.4. **Sở hữu:** `src/features/quick-actions/{QuickActions.tsx,voice*}`, Worker route `/stt` trong `worker/intake-worker.js` + file mới `worker/stt.js` nếu cần; test tương ứng và E2E quick-actions.
 - **Xong khi:** Web Speech vi-VN trên Chrome Android; fallback Worker; văn bản → `parse_note`; audio không lưu.
 
 #### T6.7 — AI v2
 - **Đọc:** `prompts.md` A. **Sở hữu:** `worker/ai-assist.js`, `src/features/ai/*`, `tests/ai-eval/*`.
-- **Xong khi:** prompt v2 (brief, zalo, parse_note, retarget_msg, coach, close_reason) chạy; bộ đánh giá 50–100 ghi chú không có lỗi nghiêm trọng; `MODELS`/`AI_MODELS` khớp.
+- **Xong khi:** prompt v2 (brief, zalo, parse_note, retarget_msg, coach, close_reason) chạy; bộ đánh giá 50–100 ghi chú không có lỗi nghiêm trọng; `MODELS`/`AI_MODELS` khớp. **Ngoại lệ D-022 (2026-10-17):** chủ dự án bỏ bước đánh giá 50–100 ghi chú thật; chất lượng AI được theo dõi trên production thay thế.
 
 #### T6.8 — Gộp trùng có duyệt
-- **Sở hữu:** `src/features/intake/merge*`, `src/domain/customer/merge.ts`.
+- **Sở hữu:** `src/features/intake/{route.tsx,merge/**}`, `src/domain/customer/merge.ts`, `src/data/repositories/customers.ts`; test tương ứng và E2E intake.
 - **Xong khi:** S17 phát hiện; màn so sánh 2 khách; gộp = nối mảng lịch sử (giữ nguồn), giữ cả `source`, xoá mềm bản thừa, audit ghi đủ; không gộp khách khác owner nếu không phải admin.
 
 ## 4. Việc chủ dự án cần làm (không cần code)
@@ -400,4 +455,4 @@ Ký hiệu: ☐ chưa · ◐ đang làm (ghi nhánh) · ☑ xong (ghi ngày) · 
 | Trước T1.1 | Xác nhận stack D-011 (hoặc yêu cầu đổi) |
 | Sóng 2 | Chạy SQL v2 (T2.A5) trên production sau khi agent báo đã qua staging |
 | Sóng 5 | Thử v2 trên điện thoại thật (T5.3); thực hiện cutover theo runbook (T5.4) |
-| Sóng 6 | Chọn 50–100 ghi chú thật để làm bộ đánh giá AI (T6.7); nhập chi phí campaign (T6.5) |
+| Sóng 6 | Theo dõi đề xuất AI trên production, báo lại ví dụ sai (T6.7, D-022 — thay bộ đánh giá 50–100 ghi chú); nhập chi phí campaign (T6.5) |

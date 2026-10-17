@@ -1,7 +1,7 @@
 /* Run with Playwright available via NODE_PATH; uses only a private fake origin. */
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const {chromium}=require('playwright');
-const root=path.resolve(__dirname,'..');
+const root=path.resolve(__dirname,'..','legacy');
 (async()=>{
 const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME_PATH||'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'});
 try{

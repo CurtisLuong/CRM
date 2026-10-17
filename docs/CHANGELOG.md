@@ -6,6 +6,443 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-17 — T6.7: Nghiệm thu AI v2 theo ngoại lệ D-022 (theo dõi trên production)
+
+- Chủ dự án bỏ bước đánh giá 50–100 ghi chú thật; T6.7 xong dựa trên phần mã T6.7a (6feeb97) đã kiểm bằng ghi chú giả.
+- D-022 ghi lý do, rủi ro (AI đọc sai ghi chú viết tắt), cách báo ví dụ sai và cách quay Worker về bản trước nếu sai nghiêm trọng.
+- Kiểm tra: chỉ đổi tài liệu; cổng chạy npm run check + build + golden v1.
+- File: `docs/decisions.md`
+
+## 2026-10-17 — T6.7a: AI v2 — mã Worker + client + bộ chấm offline (T6.7a; T6.7 vẫn mở chờ đánh giá ghi chú thật)
+
+- Worker `/ai`: 6 task v2 theo docs/prompts.md A (brief, zalo, parse_note, retarget_msg, coach, close_reason); ẩn SĐT/email/CCCD, bỏ khoá riêng tư; kiểm khung JSON, lọc danh mục, đổi mã ngày bằng code, tiền phải là số nguyên VND; ghi chú >1.500 ký tự trả lỗi thay vì cắt ngầm. Chưa deploy Worker.
+- Client `src/features/ai`: kiểm dữ liệu bằng zod; AI chỉ đề xuất, mọi thay đổi qua hộp duyệt; hộp duyệt hiện đúng khung giờ hẹn gọi sẽ lưu (chỉ có ngày → 09:00–10:00, ghi "giờ mặc định"). Thêm AiCoach, AiCloseReason, AiRetargetDraft (chưa gắn vào màn nào).
+- `aiContext`: giữ chữ số tiền khi ẩn SĐT (đã duyệt).
+- `tests/ai-eval`: bộ chấm + runner offline, dữ liệu tổng hợp/mẫu; không gọi model thật.
+- Kiểm tra: npm run check 831/831, build OK, chạy runner offline exit 0. Chưa chạy e2e (giao diện AI ẩn khi không có VITE_WORKER_URL). Việc do Codex làm dở (dừng vì hết quota), Claude hoàn tất.
+- File: `src/domain/customer/aiContext.ts`, `src/features/ai/AiBrief.tsx`, `src/features/ai/AiCloseReason.tsx`, `src/features/ai/AiCoach.tsx`, `src/features/ai/AiNoteReview.tsx`, `src/features/ai/AiProposalPanel.tsx`, `src/features/ai/AiRetargetDraft.tsx`, `src/features/ai/AiZaloDraft.tsx`, `src/features/ai/model.ts`, `src/features/ai/privacy.ts`, `src/features/ai/useAiScope.ts`, `tests/ai-eval/GRADING.md` … (+15)
+
+## 2026-10-17 — T5.6b: T5.6b — Lựa chọn hợp lệ cho trường hồ sơ
+
+- Giới tính, tình trạng hôn nhân, nghề nghiệp và mục đích mua dùng lựa chọn khớp schema/config/form legacy; giữ nguyên giá trị cũ khi không sửa, chỉ xoá về null khi chọn Chưa biết.
+- Giữ field_meta/unknown fields, quyền owner và read-only của hồ sơ đã lưu trữ; không sửa schema, repository hoặc dữ liệu production.
+- Kiểm chứng local: npm run check (75 files/598 tests), npm run build, profile E2E trên Chrome sáng/tối 360/390/430/1280; cmp AGENTS.md CLAUDE.md và git diff --check.
+- Giữ tab hồ sơ dưới header 56px khi cuộn và điều hướng; E2E kiểm vị trí tab trước click thật, nội dung đích và patch checklist được bảo toàn.
+- File: `src/features/profile/route.tsx`, `tests/e2e/profile.spec.ts`, `tests/features/profile/choices.test.tsx`
+
+## 2026-10-17 — T5.4b: APK 1.5: quyền micro cho ghi chú giọng nói (lỗi L4 T5.3)
+
+- Thêm RECORD_AUDIO + MODIFY_AUDIO_SETTINGS vào AndroidManifest; versionCode 6 / versionName 1.5
+- public/android-app-version.json trỏ SoKhach-1.5.apk (Storage production); APK phải tải lên trước khi merge v2→main
+- build-apk.sh/upload-apk.sh đọc URL Supabase từ legacy/js/config.js, ghi public/android-app-version.json
+- Kiểm tra: cổng merge (check + build); APK thử T5.3 đã xác nhận 2 quyền này làm ghi âm chạy — android-app/
+- File: `android-app/README.md`, `android-app/android/app/build.gradle`, `android-app/android/app/src/main/AndroidManifest.xml`, `android-app/build-apk.sh`, `android-app/upload-apk.sh`, `public/android-app-version.json`
+
+## 2026-10-17 — T5.3: T5.3 — QA thiết bị thật: 0 lỗi chặn; APK 1.5 cần thêm quyền micro khi cutover
+
+- Báo cáo `docs/audits/v2-device-qa.md`: Mac (360/430/1280, sáng/tối, 15 màn, font Việt, mở có cache 0,2 s) và Android (APK thử `vn.sokhach.crm.v2test` trỏ `crm-v2`, build debug ngoài repo + Chrome).
+- Android đạt: đăng nhập, gọi + nhật ký cuộc gọi, Zalo, offline + đóng app, tải ảnh, lưu trữ/khôi phục, giọng nói khi có quyền micro.
+- Lỗi tìm thấy: L6 cuộn danh sách khách (chặn), L2, L3, L5 → đã sửa ở T5.3a và kiểm lại (Mac + Android); L1 mất phiên khi cập nhật không tái hiện.
+- Phải làm ở T5.4: L4 — APK 1.5 thêm `RECORD_AUDIO` + `MODIFY_AUDIO_SETTINGS` (đã xác nhận bằng APK thử).
+- Hoãn (chủ dự án): L7 giọng nói thời gian thực trong APK; đếm số chạm baseline; iPhone (không có máy).
+- File: `docs/audits/v2-device-qa.md`
+
+## 2026-10-17 — T5.2a: Khoá kịch bản E5 đổi tài khoản khi còn thao tác offline
+
+- Chỉ thêm tests/data/account-switch.test.ts với fake-indexeddb mới mỗi test và remote giả hỗ trợ select/maybeSingle cho cập nhật mảng T5.9.
+- Kiểm A logout offline đóng DB; B online không thấy khách hoặc hàng đợi A, không gửi request cập nhật khách a; A quay lại online gửi đúng một update ghi chú và hàng đợi rỗng.
+- Kiểm riêng A quay lại khi vẫn offline giữ nguyên toàn bộ op, chưa gửi server; dùng auto-flush thật của AccountAuth, không gọi flushQueue để ép kết quả.
+- Đã kiểm: targeted 2/2 tests; npm run check 74 files, 592 tests pass; kiểm chéo read-only không có phát hiện cần sửa. Không đổi src, schema, test khác hoặc dữ liệu Supabase.
+- File: `tests/data/account-switch.test.ts`
+
+## 2026-10-17 — T5.3a: Sửa lỗi QA: cuộn khách hàng, Bằng chứng và trạng thái nhóm
+
+- L6: dùng cuộn trang với danh sách ảo hoá; từ cuối 500 khách cuộn lên bộ lọc bằng wheel nhiều nhịp, không còn khung cuộn lồng chặn người dùng.
+- L5: thêm lối vào Khách đã lưu trữ tại màn Khách hàng, giữ phân cấp thao tác chính.
+- L3: nhãn Bằng chứng tiếng Việt từ cấu hình, ngày giờ vi-VN; bỏ object/giá trị không đọc được và định dạng mã bước/lý do.
+- L2: phân biệt chưa đăng nhập, ngoại tuyến, nhóm rỗng và lỗi máy chủ; chỉ hướng dẫn SQL khi xác nhận thiếu RPC team_list.
+- Đã kiểm: npm run check (73 files, 590 tests); toàn bộ E2E lượt đầu 205 pass/23 skip; regression T5.3a 29 pass/16 skip; ma trận cuộn cuối 8/8 pass với 500 khách tại 360/375/430/1280px sáng/tối, ảnh giao diện đã xem. Cổng merge chạy lại toàn bộ check/build/E2E/golden trên v2 mới nhất.
+- Chưa xác minh lại trên điện thoại thật hoặc deployment; không đổi data layer, signals logic, profile hoặc schema.
+- File: `src/features/customers/route.tsx`, `src/features/team/route.tsx`, `src/features/today/route.tsx`, `tests/e2e/t53a-customers.spec.ts`, `tests/e2e/t53a-team.spec.ts`, `tests/e2e/t53a-today-evidence.spec.ts`, `tests/features/team/route.test.tsx`, `tests/features/today/evidence.test.ts`
+
+## 2026-10-17 — T6.3a: Triển khai phần tín hiệu đã rõ
+
+- Thêm S11, S13–S16 và S18 cùng ngưỡng cấu hình và kiểm tra positive/negative.
+- Giữ S12/S17 ngoài scope cho đến khi định nghĩa được chốt; T6.3 cha vẫn mở.
+- Kiểm tra: npm run check, npm run build, golden v1 --check; test E5 đổi tài khoản riêng 20/20.
+- File: `src/config/signals.ts`, `src/domain/signals/rules/S11.ts`, `src/domain/signals/rules/S13.ts`, `src/domain/signals/rules/S14.ts`, `src/domain/signals/rules/S15.ts`, `src/domain/signals/rules/S16.ts`, `src/domain/signals/rules/S18.ts`, `tests/domain/signals/signals.test.ts`
+
+## 2026-10-17 — T5.8a: Bổ sung ghi cuộc gọi thủ công vào nhật ký
+
+- Thêm nút Ghi cuộc gọi cho chủ khách, mở form kết quả hiện có và ghi origin=manual mà không khởi chạy cuộc gọi.
+- Giữ quyền read-only và điều chỉnh selector E2E để phân biệt nút gọi với nút nhập thủ công.
+- Kiểm tra: QuickActions 8/8, E2E quick-actions 12/12, diff --check.
+- File: `src/features/quick-actions/QuickActions.test.tsx`, `src/features/quick-actions/QuickActions.tsx`, `tests/e2e/quick-actions.spec.ts`
+
+## 2026-10-17 — T5.4a: Chuẩn bị runbook chuyển v1 sang v2
+
+- Tách checklist chuẩn bị khỏi các bước chỉ thực hiện sau T5.3 và xác nhận của chủ dự án.
+- Ghi rõ backup, migration, cấu hình Cloudflare, kiểm tra sau cutover và rollback; không thực hiện thao tác production.
+- Kiểm tra: diff --check, rà soát nội dung runbook, cmp AGENTS.md CLAUDE.md.
+- File: `docs/runbooks/cutover.md`
+
+## 2026-10-17 — T5.6a: Giữ nguyên ghi chú khi thao tác lưu không chỉnh sửa
+
+- Bỏ qua ghi hồ sơ nếu nội dung ghi chú giống hệt, tránh đổi edited_at hoặc ghi lại payload.
+- Giữ nguyên khoảng trắng ở ghi chú hồ sơ và lịch sử bậc khi người dùng thực sự sửa nội dung.
+- Kiểm tra: tests/features/profile/route.test.ts (2/2), diff --check.
+- File: `src/features/profile/route.tsx`, `tests/features/profile/route.test.ts`
+
+## 2026-10-17 — T5.10: Lưu trữ khách (xoá mềm) + xem/khôi phục khách đã lưu trữ — parity v1 "Xoá khách" do T5.2 phát hiện
+
+- Hồ sơ khách: mục "Lưu trữ khách" cuối trang, chỉ người phụ trách (D-003), sheet xác nhận nói rõ khách ẩn khỏi Danh sách/Hôm nay/Công việc/Thông báo, dữ liệu giữ nguyên, khôi phục được; ghi `archived_at` qua `CustomersRepository.remove` (patch + hàng đợi; không xoá cứng — D-012). Toast có Hoàn tác.
+- Hồ sơ đã lưu trữ: banner + "Khôi phục" cho người phụ trách; người khác chỉ xem.
+- Màn mới `/khach-hang/luu-tru` (`src/features/archived/`): danh sách khách đã lưu trữ, tìm tên/SĐT, Khôi phục; lệnh "Xem khách đã lưu trữ" trong Tiện ích/Bảng lệnh.
+- Đã kiểm tra: `npm run check`; E2E `tests/e2e/archive.spec.ts` (360/390/1280, sáng/tối): IndexedDB giữ thuộc tính lạ + ghi chú, không có op delete, khách biến mất khỏi Danh sách/Hôm nay/Công việc rồi hiện lại sau Khôi phục.
+- Đã biết: v1 (crm-cop) không hiểu `archived_at` → khách lưu trữ trên v2 vẫn hiện trên v1 tới cutover T5.4. Chưa thử trên staging/máy thật.
+- File: `src/features/archived/commands.ts`, `src/features/archived/model.ts`, `src/features/archived/route.tsx`, `src/features/profile/archive.tsx`, `src/features/profile/route.tsx`, `tests/e2e/archive.spec.ts`, `tests/features/archived/model.test.ts`, `tests/features/profile/archive.test.tsx`
+
+## 2026-10-17 — T5.2: T5.2 — Kiểm chứng dữ liệu v2 trên staging: 0 mất dữ liệu sau T5.9; 4 task con trước cutover
+
+- Công cụ chỉ đọc: `scripts/verify/counts.sql` (số đếm + vân tay md5), `scripts/verify/audit-since.sql` (soi `customer_changes`: xoá cứng, mất phần tử/thuộc tính mảng, trường bị xoá), `scripts/verify/idb-counts.js` (số v2 giữ trong IndexedDB); runbook `docs/runbooks/data-verification.md`.
+- Báo cáo `docs/audits/v2-data-verification.md`: staging khôi phục 2026-10-16 (chủ dự án chọn; staging thiếu migration v2 002–006 → đã chạy bổ sung); số trước/sau khớp và giải thích được; mở + lưu không sửa 87 khách → 0 đổi giá trị trừ ghi chú hồ sơ (gắn `edited_at`).
+- Kịch bản: E1 offline + đóng app ✅ (Android); E3 gọi rồi huỷ ✅ (giống v1); E2 hai máy cùng sửa ❌ mất 1 ghi chú + kẹt đồng bộ do ô gõ tự do vi phạm CHECK → sửa ở T5.9 (D-021), chạy lại ✅; E4 FB chống trùng ✅ (test); E5 đổi tài khoản ✅ (test, chưa máy thật); E6 queue chéo v1↔v2 ✅ (test).
+- Task con trước T5.4: T5.6a (ghi chú lưu không đổi vẫn ghi `edited_at`), T5.6b (ô chọn nghề nghiệp/giới tính/hôn nhân/mục đích), T5.8a (nút ghi cuộc gọi nhập tay), T5.10 (nút lưu trữ khách).
+- Đã kiểm: SQL chạy trên Postgres 17 cục bộ với dữ liệu giả (bắt đúng mọi loại mất dữ liệu); staging qua chủ dự án; trình duyệt app Claude + Android Chrome thật.
+- File: `docs/audits/v2-data-verification.md`, `docs/runbooks/data-verification.md`, `scripts/verify/audit-since.sql`, `scripts/verify/counts.sql`, `scripts/verify/idb-counts.js`
+
+## 2026-10-17 — T5.9: Gộp cột mảng khi đồng bộ + bỏ được op bị server từ chối (D-021)
+
+- Sửa lỗi mất dữ liệu T5.2 E2: op `update` có cột mảng JSONB (ghi chú, việc, cuộc gọi, lịch sử bậc, tương tác, nhu cầu, người cùng quyết định) giờ đọc hàng server, gộp 3 chiều theo `id`/`at` với bản gốc `arrayBase` (chỉ ở máy), PATCH có điều kiện `updated_at`, đọc lại khi bị máy khác chen. Phần tử máy này cố ý bỏ (hoàn tác, mở lại việc, lùi bậc) không sống lại; thuộc tính lạ giữ nguyên.
+- Op bị server từ chối vĩnh viễn (22/23/42, PGRST1xx/2xx) không chặn khách khác; sheet *Đồng bộ* (bấm chỉ báo trên header) hiện lý do tiếng Việt + "Bỏ thao tác này" có xác nhận; bản sao op lưu meta `discarded-ops`, khách quay về giá trị server. Lỗi mạng/5xx vẫn thử lại như cũ.
+- Không migration, không đổi định dạng op v1↔v2; v1 vẫn ghi đè mảng tới cutover (rủi ro ghi trong D-021).
+- Kiểm tra: `npm run check` (560 test, gồm 2 thiết bị giả lập thêm offline, sửa + thêm, hoàn tác không sống lại, race, 23514 bỏ rồi đẩy tiếp, queue chéo v1↔v2); e2e `tests/e2e/sync.spec.ts` với supabase-js thật ở 360/390/1280; ảnh sáng/tối.
+- File: `docs/architecture.md`, `docs/decisions.md`, `src/app/layout.tsx`, `src/data/arrayMerge.ts`, `src/data/hooks/index.ts`, `src/data/queue.ts`, `src/data/repositories/customers.ts`, `src/data/supabase.ts`, `src/data/sync.ts`, `src/data/syncStatus.ts`, `src/features/sync/SyncIssuesSheet.tsx`, `tests/data/array-merge.test.ts` … (+4)
+
+## 2026-10-17 — T5.1: T5.1: parity v1 ↔ v2 đã kiểm toán
+
+- Ghi bằng chứng cho các thao tác đã có parity và liệt kê các gap xóa còn lại.
+- Chủ dự án chấp nhận hoãn ba thao tác xóa theo D-020 trong cutover hiện tại; audit nêu rõ phạm vi và rủi ro.
+- git diff --check pass; cổng xác minh dependencies, ownership và golden.
+- File: `docs/audits/v2-parity.md`
+
+## 2026-10-17 — T5.8: T5.8: sửa kết quả cuộc gọi đã ghi
+
+- Thêm sửa kết quả cuộc gọi đã lưu, chỉ patch result/note và giữ timestamp, metadata, trường JSON lạ.
+- Giữ owner-only và luồng gọi hiện tại; xóa cuộc gọi chờ tiếp tục mở do tombstone không tương thích với v1.
+- npm run check đã pass; gate sẽ chạy lại full check/build/golden/E2E.
+- File: `src/features/quick-actions/QuickActions.test.tsx`, `src/features/quick-actions/QuickActions.tsx`, `src/features/quick-actions/model.ts`, `src/features/quick-actions/route.tsx`
+
+## 2026-10-17 — T5.7: T5.7: sửa nội dung và hạn công việc
+
+- Thêm inline edit cho việc đang mở; giữ due_original, promise side, status, lịch sử và unknown fields.
+- Giữ quyền owner/read-only; xóa vẫn để mở đến khi có soft-delete tương thích v1.
+- npm run check và E2E tasks đã pass; gate sẽ xác minh lại.
+- File: `src/features/tasks/route.tsx`, `tests/e2e/tasks.spec.ts`
+
+## 2026-10-17 — T5.6: T5.6: sửa ghi chú hồ sơ và lịch sử bậc
+
+- Thêm sửa ghi chú hồ sơ và ghi chú lịch sử bậc, giữ các thuộc tính JSON mở rộng.
+- Giữ quyền sửa theo owner; không thêm xóa vì tombstone không tương thích cách v1 render và D-012 cấm xóa dữ liệu.
+- npm run check đã pass; gate sẽ xác minh lại và chạy E2E.
+- File: `src/features/profile/route.tsx`, `tests/e2e/profile.spec.ts`
+
+## 2026-10-17 — T6.8: feat(T6.8): detect and review customer duplicates
+
+- Intake detects normalized-phone and near-name matches, compares both records, and requires explicit keeper selection and confirmation before archiving a duplicate.
+- Merge keeps source/provenance and appends aggregate histories; repository atomically updates local records and queues patch updates, with owner/admin authorization checks.
+- Validation before gate: npm run check (528 tests), npm run build, git diff --check. Full E2E and golden parity run by merge gate.
+- File: `src/data/repositories/customers.ts`, `src/domain/customer/merge.ts`, `src/features/intake/route.tsx`, `tests/data/repositories.test.ts`, `tests/domain/customer/merge.test.ts`, `tests/e2e/intake.spec.ts`
+
+## 2026-10-17 — T6.4: T6.4 hoàn thiện chỉ số Chăm sóc F-07
+
+- Thêm chỉ số chăm sóc với tử/mẫu, định nghĩa, kỳ đo và drill-down ra hồ sơ khách.
+- Bổ sung bài học tuần có ngưỡng mẫu và HealthDot kèm lý do từng khách.
+- Check: 530 test; build; E2E và golden do cổng merge chạy.
+- File: `src/domain/metrics/care.ts`, `src/features/insights/care.tsx`, `src/features/insights/route.tsx`, `tests/domain/metrics/care.test.ts`, `tests/e2e/insights.spec.ts`
+
+## 2026-10-17 — T6.6: Ghi chú giọng nói
+
+- Thêm Web Speech vi-VN và fallback ghi âm ngắn qua Worker STT; transcript điền vào ghi chú để người dùng rà, lưu hoặc gửi qua parse_note AI.
+- Worker xác thực người dùng, giới hạn audio 8 MB, xử lý inline và tắt lưu interaction; audio không ghi vào DB/bucket.
+- Kiểm tra: check 531 test, build, E2E quick-actions 12/12; gate chạy lại full E2E và golden.
+- File: `src/features/quick-actions/QuickActions.tsx`, `src/features/quick-actions/voice.test.tsx`, `src/features/quick-actions/voice.tsx`, `tests/e2e/quick-actions.spec.ts`, `tests/worker/stt.test.ts`, `worker/intake-worker.js`, `worker/stt.js`
+
+## 2026-10-17 — T6.2: Tệp retarget có lọc an toàn và đo phản hồi
+
+- Thêm tệp khách lọc theo nhu cầu có cấu trúc, thời điểm retarget, ngân sách, khu vực/nghề, lý do kết thúc và lần liên hệ cuối; tệp lưu local và đồng bộ ui_state.
+- Loại khách DNC, khách đã lưu trữ, khách người khác phụ trách và khách chưa tới ngày retarget trước khi hiển thị, xuất hoặc thao tác chiến dịch.
+- Thêm quy trình chiến dịch thủ công: chọn khách, sao chép/mở Zalo, xác nhận gửi, tạo follow-up chống trùng và ghi phản hồi; không có gửi tự động.
+- Catalog hiện không cung cấp verified_at cho màn này; không hiển thị giá/tồn như đã xác minh, yêu cầu kiểm tra nguồn bán trước khi gửi.
+- Đã chạy check, build, unit tests, focused E2E 3 viewport; full E2E và golden sẽ chạy trong merge gate.
+- File: `src/domain/matching/segments.ts`, `src/features/customers/route.tsx`, `src/features/retarget/commands.ts`, `src/features/retarget/route.tsx`, `tests/domain/matching/segments.test.ts`, `tests/e2e/retarget.spec.ts`, `tests/features/retarget/route.test.tsx`
+
+## 2026-10-17 — T6.1: T6.1: Trí nhớ khách v2
+
+- Thêm customer facts có nguồn/độ mới, sở thích liên hệ, chu kỳ quan tâm, hộ gia đình và lifecycle/retarget hints theo kiểu patch additive.
+- Cập nhật Customer Brief và chặn QuickActions/Zalo AI khi khách không muốn liên hệ.
+- Kiểm tra: npm run check; profile/quick-actions E2E; full merge gate.
+- File: `src/config/reasons.ts`, `src/domain/customer/brief.ts`, `src/domain/customer/facts.ts`, `src/features/ai/AiZaloDraft.tsx`, `src/features/profile/memory.tsx`, `src/features/profile/route.tsx`, `src/features/quick-actions/QuickActions.test.tsx`, `src/features/quick-actions/QuickActions.tsx`, `tests/config/config.test.ts`, `tests/domain/customer/brief.test.ts`, `tests/domain/customer/facts.test.ts`, `tests/e2e/profile.spec.ts` … (+2)
+
+## 2026-10-17 — T4.2: Lời hứa hai chiều, hạn gốc và dời có lý do
+
+- Thêm tạo/lọc lời hứa Em hứa và Khách hẹn, chống trùng theo key và giữ trường dữ liệu lạ.
+- Dời có lý do, giữ hạn gốc; Hôm nay hỗ trợ dời hàng loạt việc P2 và Hoàn tác.
+- Kiểm tra: npm run check (506 tests); focused E2E tasks/today (24/24 trước fixture cập nhật, Today bulk 3/3 sau cập nhật).
+- File: `src/domain/deadlines/promises.ts`, `src/features/tasks/route.tsx`, `src/features/today/model.ts`, `src/features/today/route.tsx`, `tests/domain/deadlines/promises.test.ts`, `tests/e2e/tasks.spec.ts`, `tests/e2e/today.spec.ts`, `tests/features/today/model.test.ts`
+
+## 2026-10-17 — T6.5: Hiệu quả marketing và chi phí campaign
+
+- Thêm funnel theo kênh/campaign/form, cohort 30 ngày, lý do loại theo kênh và trung vị thời gian tới mốc; số liệu có tử/mẫu và quy tắc rõ.
+- Thêm nhập/ẩn mềm chi phí campaign và CPL/chi phí mỗi Đạt/Booking; trạng thái fb_leads chỉ đọc metadata, không truy vấn raw PII.
+- `npm run check`: 507/507 tests pass; `npm run build` pass; E2E insights/settings pass 9/9 trên phone 360/390 và desktop 1280, sáng/tối.
+- Chưa xác minh quyền dữ liệu thực trên staging/production; fb_leads vẫn chịu RLS hiện có, không cấu hình Worker/live connector.
+- File: `src/domain/metrics/marketing.ts`, `src/features/insights/marketing.tsx`, `src/features/insights/route.tsx`, `src/features/settings/campaign-costs.tsx`, `src/features/settings/route.tsx`, `tests/domain/metrics/marketing.test.ts`, `tests/e2e/insights.spec.ts`, `tests/e2e/settings.spec.ts`, `tests/features/settings/campaign-costs.test.tsx`, `tests/features/settings/route.test.tsx`
+
+## 2026-10-17 — T4.1: T4.1: ghi tương tác Zalo, gặp và xem dự án
+
+- Xác nhận “Đã gửi” sau khi quay lại từ Zalo mới append tương tác vào customers.interactions qua repository; mở Zalo không tự ghi.
+- Thêm ghi nhận gặp/xem dự án trong Quick Actions; cập nhật timeline, Brief liên hệ cuối và last-touch cho tín hiệu/chỉ số từ interactions.
+- Giữ nguyên dữ liệu interactions cũ và thuộc tính không biết; không thay schema, migration, worker hay legacy v1.
+- Đã chạy npm run check: 54 test files, 503 tests passed; focused E2E quick-actions/profile: 18/18 passed.
+- Chưa kiểm chứng staging, production hoặc thiết bị thật.
+- File: `src/domain/customer/brief.ts`, `src/domain/customer/interactions.ts`, `src/domain/customer/timeline.ts`, `src/domain/signals/shared.ts`, `src/features/quick-actions/QuickActions.test.tsx`, `src/features/quick-actions/QuickActions.tsx`, `src/features/quick-actions/interactions.tsx`, `tests/domain/customer/brief.test.ts`, `tests/domain/customer/interactions.test.ts`, `tests/domain/customer/timeline.test.ts`, `tests/domain/signals/shared.test.ts`, `tests/e2e/profile.spec.ts` … (+1)
+
+## 2026-10-17 — T3.12: T3.12 ports the v1 AI assistant client into v2 profile and Quick Actions.
+
+- Added AI brief, Zalo draft, and note-parse review using the existing Worker contract and user AI settings; drafts remain in UI until explicit approval/save, and Zalo text is only prefilled.
+- Added allowlisted customer context with phone, email, CCCD-like 12-digit IDs, DOB, fortune, household phone, documents, and unknown fields excluded/redacted; source provenance remains usable. Worker/API/model unchanged.
+- Validation: npm run check (497 tests), build, focused Playwright profile/Quick Actions (6/6 before final sanitizer-only fixes), request/context privacy tests, and independent review with no remaining findings. Full E2E gate will verify final commit; no real Worker, staging, production, or physical Android proof.
+- File: `src/domain/customer/aiContext.ts`, `src/features/ai/AiBrief.tsx`, `src/features/ai/AiNoteReview.tsx`, `src/features/ai/AiZaloDraft.tsx`, `src/features/ai/model.ts`, `src/features/profile/route.tsx`, `src/features/quick-actions/QuickActions.tsx`, `tests/domain/customer/aiContext.test.ts`, `tests/e2e/profile.spec.ts`, `tests/e2e/quick-actions.spec.ts`, `tests/features/ai/model.test.ts`
+
+## 2026-10-16 — T3.13: T3.13 adds v2 Insights with parity against the existing T0.4 dashboard golden.
+
+- Added funnel/velocity, care-rhythm metrics, thresholded observations, weekly performance, and lead-source views; displayed metrics include numerator/denominator.
+- Duration labels match the computed mean; owner scoping is applied. Golden baseline is unchanged.
+- Validation: npm run check (490 tests), build, focused Playwright (6/6 across themes and 360/390/1280), golden T0.4 parity, and independent review with no remaining findings. No staging or physical Android proof.
+- File: `src/domain/metrics/index.ts`, `src/features/insights/model.ts`, `src/features/insights/route.tsx`, `tests/domain/metrics/metrics.test.ts`, `tests/e2e/insights.spec.ts`
+
+## 2026-10-16 — T3.10: T3.10 adds v2 team management and customer assignment.
+
+- Added teammate management and display names, plus follow/read-only, full handoff, and reclaim flows with timeline notes.
+- Assignment rejection (duplicate phone or permission) atomically removes the failed queue op and conditionally restores local ownership without overwriting later edits; assignment preserves missing stage and does not reset SLA.
+- Validation: npm run check (473 tests), build, focused Playwright (3/3 across 360/390/1280), diff check, and independent review with no remaining findings. No staging/Supabase or physical Android proof.
+- File: `src/data/queue.ts`, `src/data/repositories/customers.ts`, `src/features/customers/route.tsx`, `src/features/team/model.ts`, `src/features/team/route.tsx`, `tests/data/localdb.test.ts`, `tests/data/repositories.test.ts`, `tests/e2e/team.spec.ts`, `tests/features/team/model.test.ts`
+
+## 2026-10-16 — T3.11: T3.11 adds settings, import/export, and notifications routes to v2.
+
+- Added theme, Zalo/AI settings, logout and APK update check; settings saved offline retry when the device comes online.
+- Added lazy XLSX import/export using the v1 14-field contract; import is add-only, skips duplicate phones, and preserves unknown column names in notes.
+- Notifications read the existing computeSignals registry. Validation: npm run check (475 tests), build, focused Playwright (9/9 before fix; settings/import-export 6/6 after fix), and independent review with no remaining findings. No staging or physical Android proof.
+- File: `src/features/import-export/commands.ts`, `src/features/import-export/model.ts`, `src/features/import-export/route.tsx`, `src/features/notifications/commands.ts`, `src/features/notifications/route.tsx`, `src/features/settings/commands.ts`, `src/features/settings/model.ts`, `src/features/settings/route.tsx`, `tests/e2e/import-export.spec.ts`, `tests/e2e/notifications.spec.ts`, `tests/e2e/settings.spec.ts`, `tests/features/import-export/model.test.ts` … (+3)
+
+## 2026-10-16 — T3.5: T3.5 adds the v2 customer profile and preserves booking SLA and contact preferences.
+
+- Added profile tabs for overview, customer memory, needs/property, timeline, and documents, with owner/read-only handling and a link from the existing customer context sheet.
+- Booking checklist updates patch only booking_steps, preserving the stage SLA timestamp/history; contact channel and time slot save separately while unknown keys are retained.
+- Validation: npm run check, build, focused Playwright profile tests (6/6), git diff --check, and independent review with no remaining findings. No staging or physical Android validation.
+- File: `src/domain/customer/brief.ts`, `src/domain/customer/timeline.ts`, `src/features/customers/route.tsx`, `src/features/profile/model.ts`, `src/features/profile/route.tsx`, `tests/domain/customer/brief.test.ts`, `tests/domain/customer/timeline.test.ts`, `tests/e2e/profile.spec.ts`, `tests/features/profile/model.test.ts`
+
+## 2026-10-16 — T3.7: T3.7 adds the v2 task tab and call appointment handling.
+
+- Added six deadline groups and filters for task type, Em hứa/Khách hẹn, and Hẹn gọi; all deadline labels/groups use countdownTag.
+- Completion/reopen use existing repository APIs and preserve v1 history/payload; call appointments open the T3.1 call flow without mutating the appointment; disqualified customers are excluded.
+- Validation: npm run check (459 tests), build, focused Playwright E2E (12/12 across mobile/desktop and themes); independent review found no remaining issues.
+- File: `src/features/tasks/model.ts`, `src/features/tasks/route.tsx`, `tests/e2e/tasks.spec.ts`, `tests/features/tasks/model.test.ts`
+
+## 2026-10-16 — T3.2: T3.2 adds the Today dashboard backed by the existing S01-S10 registry.
+
+- Added the `/` Today surface, one-tap Quick Actions, deduplicated queue, call session, capacity estimate, SLA-plan load hook, and end-of-day summary.
+- Capacity only previews P2 deferrals; P0 remains visible, and customers with booked calls or open timed tasks are reserved. No due date or due_original mutation is performed.
+- Validation before final fix: npm run check (448 tests), build, focused E2E (3 viewports); after fix: focused model tests pass and independent review found no remaining issue. Full checks will run in the merge gate.
+- File: `src/config/capacity.ts`, `src/features/home/route.tsx`, `src/features/today/model.ts`, `src/features/today/route.tsx`, `tests/config/capacity.test.ts`, `tests/e2e/today.spec.ts`, `tests/features/today/model.test.ts`
+
+## 2026-10-16 — T3.4: T3.4 adds the class-one “Khách mới” lead workflow on the existing customers model.
+
+- Added registered lead route and quick-add command, default funnel filter, registration badge, and lead call sheet using the T3.1 quick-action bridge.
+- Qualification requires a recorded `talked` call and explicit salesperson action; disqualification uses D-001 reasons and requires a note for Other; reopen preserves call history.
+- Validation: npm run check (446 tests), npm run build, focused E2E (3/3 at 360/390/1280px); independent review found no remaining issues.
+- File: `src/features/leads/commands.ts`, `src/features/leads/model.ts`, `src/features/leads/route.tsx`, `tests/e2e/leads.spec.ts`, `tests/features/leads/model.test.ts`
+
+## 2026-10-16 — T3.8: T3.8 adds the v2 catalog, spreadsheet import, and customer-to-unit matching with D-012-safe archive behavior.
+
+- Added account-scoped catalog CRUD/cache, filters, import preview, and customer/unit matching.
+- Added approved SheetJS dependency (D-018) and additive archived_at migration/baseline test for catalog rows and type associations; no SQL was executed.
+- Partial imports preserve absent fields; explicit blank cells clear only their field. Archived matches are previewed and restored explicitly.
+- Validation: npm run check (442 tests), npm run build, import/parity/migration tests (20), catalog E2E (15/15); independent re-review found no remaining issue.
+- File: `SQL/schema.sql`, `SQL/v2/006_catalog_archives.sql`, `package-lock.json`, `package.json`, `src/data/repositories/catalog.ts`, `src/features/catalog/commands.ts`, `src/features/catalog/model.ts`, `src/features/catalog/route.tsx`, `tests/data/catalog-import.test.ts`, `tests/data/remote-repositories.test.ts`, `tests/e2e/catalog.spec.ts`, `tests/features/catalog/model.test.ts` … (+1)
+
+## 2026-10-16 — T3.9: T3.9 adds the v2 loan calculator, quote store, and legacy-compatible PDF output. The route/helper contract supports T3.5 profile integration per D-019.
+
+- Added DS v3 calculator and loanPath(customerId/apartment) contract without editing the profile.
+- Added scoped loan_quotes persistence and legacy report-content PDF parity.
+- Validation on rebased HEAD: npm run check (416 tests), npm run build, focused loan tests (32/32); independent review confirms the T3.5 caller split. Full Playwright E2E will run in the merge gate.
+- File: `src/features/loan/CONTRACT.md`, `src/features/loan/LoanCalculator.tsx`, `src/features/loan/commands.ts`, `src/features/loan/model.ts`, `src/features/loan/print.css`, `src/features/loan/print.ts`, `src/features/loan/route.tsx`, `src/features/loan/store.ts`, `tests/e2e/loan.config.ts`, `tests/e2e/loan.spec.ts`, `tests/features/loan/model.test.ts`, `tests/features/loan/store.test.ts`
+
+## 2026-10-16 — T3.1: T3.1 Quick Actions adds the call sheet flow and shared quick action host.
+
+- Added global Quick Actions host and local call outcome save flow.
+- Added payload/touch-budget coverage and Playwright mobile touch coverage.
+- Validation: npm run check (418 tests); focused Playwright E2E (12/12 across mobile/desktop viewports and light/dark); independent review found no remaining issues.
+- File: `playwright.config.ts`, `src/app/App.tsx`, `src/app/layout.tsx`, `src/app/session.tsx`, `src/data/callSource.ts`, `src/features/quick-actions/QuickActions.test.tsx`, `src/features/quick-actions/QuickActions.tsx`, `src/features/quick-actions/commands.ts`, `src/features/quick-actions/model.test.ts`, `src/features/quick-actions/model.ts`, `src/features/quick-actions/route.tsx`, `src/features/quick-actions/store.ts` … (+3)
+
+## 2026-10-16 — T3.6: Form nhập khách hàng đầy đủ với OCR và bảo vệ bản nháp
+
+- Thêm form tạo/sửa khách theo payload v1, giữ dữ liệu JSON chưa biết, gợi ý dự án/loại căn/mã căn và mệnh/cung.
+- Cảnh báo khách trùng theo SĐT chuẩn hóa; OCR chỉ điền gợi ý để người dùng duyệt.
+- Kiểm tra: npm run check (403/403), npm run build, Playwright intake (9/9, 360/390/1280px).
+- File: `package-lock.json`, `package.json`, `src/features/intake/model.ts`, `src/features/intake/route.tsx`, `src/features/intake/schema.ts`, `tests/e2e/intake.spec.ts`, `tests/features/intake/intake.test.ts`
+
+## 2026-10-16 — T3.3: feat(T3.3): add customer lists, filters, saved segments and virtual scrolling
+
+- Added Potential, New Customer and Team views with v1-compatible status, stage, registration date, apartment, source, owner and multi-key sorting filters; fixture golden counts cover each group.
+- Added list/card presentation, local-first saved segments with remote ui_state sync, filtered CSV export, customer preview deep links at /khach-hang/:id, and a bounded virtual list for large customer sets.
+- Validation: npm run check (396 tests), npm run build, Playwright suite (76 passed, 5 staging-auth skips), focused deep-link check (3 passed), and virtual-window coverage for 2,000 records. Android mid-range device proof not available.
+- File: `src/features/customers/model.ts`, `src/features/customers/route.tsx`, `tests/features/customers/model.test.ts`
+
+## 2026-10-16 — T2.A4: T2.A4 — Repository tương thích v1 và React hooks
+
+- Port API khách, ghi chú, việc, lịch sử bậc/rewind/historyMeta, cuộc gọi và giao khách; giữ nguyên payload queue v1, thuộc tính JSONB lạ và timestamp có chủ ý của v1. Xoá thường dùng archived_at.
+- Ghi local + queue trong một transaction đọc bản mới nhất; rollback nguyên tử, không mất cập nhật khi ghi đồng thời. Thêm LocalDB.markChanged và sửa capture/recheck revision quanh queue read của Sync theo phạm vi coordinator đã mở trước.
+- Port tài liệu/avatar/cover, cài đặt, team và catalog cache theo tài khoản; chặn request/response của phiên cũ, serialize ui_state patches. API save cũ giữ ngữ nghĩa full snapshot; ui_state dùng deep patch.
+- Thêm composition root AccountAuth và hooks useSyncExternalStore, nối slot đồng bộ C3; không sửa app registry hay luồng giao diện.
+- Đã kiểm tra local: TypeScript, Biome, Vitest (370 test trước rebase, gate chạy lại cùng B5 mới), build; parity chạy code v1 thật cho customer queue/CRMCalls/storage/settings/team/catalog, fixture unknown fields, rollback, concurrent writes, account switch và sync races.
+- Đã rà prompts.md B.3: không SQL/schema/codes đổi nghĩa, queue/IndexedDB tương thích v1, update là patch. Không chạy SQL hay xác minh staging/production/máy thật; cột catalog v2 chỉ dùng sau khi migration A5 được chạy và kiểm chứng.
+- File: `src/data/hooks/index.ts`, `src/data/localdb.ts`, `src/data/repositories/catalog.ts`, `src/data/repositories/customers.ts`, `src/data/repositories/remote.ts`, `src/data/repositories/session.ts`, `src/data/sync.ts`, `tests/data/remote-repositories.test.ts`, `tests/data/repositories.test.ts`, `tests/data/repository-hooks.test.tsx`, `tests/data/repository-sync-races.test.ts`
+
+## 2026-10-16 — T2.B5: Bộ máy tín hiệu S01–S10 với thứ tự UX đã duyệt (D-016)
+
+- Tự nạp registry rules/*.ts; tín hiệu có bằng chứng, hạn, CTA, một tín hiệu chính mỗi khách và các lý do phụ; đọc ẩn/hoãn từ ui_state, không ghi dữ liệu.
+- D-016: computeSignals mặc định P0→P1→P2, hạn sớm→bậc sâu→liên hệ cũ; bao gồm cảnh báo mục tiêu SLA S05 và hạn bước Booking S10. S01 dùng hạn mức SLA thực, S05 dùng mốc mục tiêu/hạn mức tương ứng.
+- Giữ nguyên golden v1: adapter kiểm tra 12 nhóm/thứ tự khách (11 nhóm trong phạm vi + birthday projection; S15 thuộc T6.3), đối chiếu trực tiếp hàm v1 ở hai thời điểm và bốn rule thông báo.
+- Fixture UX: 010,009,020,019,002,008,001,011,018,004,005,016,003 (đuôi UUID tổng hợp); v1: 019,011,008,001,002,020,018,004,003,010,009,016. Thêm 005 do cảnh báo mục tiêu S05; không sửa golden.
+- Kiểm tra local: npm run check (typecheck/lint/unit); D-010 grace, điều kiện dương/âm S01–S10, ẩn/hoãn, bằng chứng thay đổi, JSONB lỗi, bỏ khách archived, không sửa input. Cổng merge chạy lại check/build/golden.
+- Không UI/SQL/migration/deploy production; không yêu cầu thử trình duyệt cho task logic thuần.
+- File: `src/config/signals.ts`, `src/domain/signals/index.ts`, `src/domain/signals/rules/S01.ts`, `src/domain/signals/rules/S02.ts`, `src/domain/signals/rules/S03.ts`, `src/domain/signals/rules/S04.ts`, `src/domain/signals/rules/S05.ts`, `src/domain/signals/rules/S06.ts`, `src/domain/signals/rules/S07.ts`, `src/domain/signals/rules/S08.ts`, `src/domain/signals/rules/S09.ts`, `src/domain/signals/rules/S10.ts` … (+3)
+
+## 2026-10-16 — T2.A3: T2.A3 — Sync, Realtime, probe và vòng đời tài khoản
+
+- Port paged pull đầy đủ theo id/count; không thay cache khi queue đang chờ, revision đổi hoặc tài khoản đóng. Adapter Supabase dùng insert=upsert, update=patch và flush delete v1 cũ qua queue A2.
+- Realtime gom tín hiệu 300ms rồi tải đúng một khách, bỏ echo tương đương thời gian; probe 15s/60s, focus/online/visibility, lỗi và trạng thái đồng bộ theo phiên.
+- AccountAuth local-first: nhớ tài khoản v1 khi offline, đóng phiên cũ và huỷ tác vụ trễ, đăng xuất local ngay; latest-wins cho auth events. API callback cho repository/hooks A4.
+- Xoá UI qua archiveCustomer: transaction customers+queue, đọc bản mới nhất và kiểm owner trong transaction, patch archived_at/updated_at, giữ trường lạ; rollback nếu queue ghi lỗi. Legacy delete adapter chỉ để tương thích op v1.
+- Kiểm tra local: npm run check 347 tests pass; build chạy thành công khi Playwright khởi động; cmp AGENTS.md CLAUDE.md đồng bộ. Cổng merge sẽ chạy lại check/build/golden.
+- B.3 audit: không migration/schema thay đổi; update remote chỉ nhận payload patch; full record chỉ cache local/upsert insert v1; JSONB và mã đã lưu giữ nguyên; queue/DB format giữ nguyên, A2 v1 round-trip suite chạy trong check. Không phát hiện vi phạm D-012.
+- Chưa chứng minh staging/máy thật: không có thông tin đăng nhập staging; tests/e2e/auth-staging.spec.ts là kiểm tra API opt-in chỉ cho mksjmpcsfawsiabfhoxe, không phải bằng chứng UI đăng nhập. Auth UI chưa thuộc task này. Không chạy SQL hoặc gọi production.
+- File: `src/data/auth.ts`, `src/data/pagedFetch.ts`, `src/data/probe.ts`, `src/data/realtime.ts`, `src/data/supabase.ts`, `src/data/sync.ts`, `src/data/syncStatus.ts`, `tests/data/sync.test.ts`, `tests/e2e/auth-staging.spec.ts`
+
+## 2026-10-16 — T2.B2: T2.B2: velocity + kế hoạch tự chuyển SLA (src/domain/velocity)
+
+- Port `legacy/js/velocity.js`: `phaseOf`, `status(c, now)`, `stageEnteredAt`, `newLeadStart`, `bookingSteps`, `autoAction`, `fmt` — hàm thuần nhận `now`, đọc `src/config/velocity.ts`.
+- `planSlaAutomation(customers, now, me, forStage)` trả danh sách thay đổi (không ghi): Loại "Không liên lạc được" / Nuôi dài hạn + lịch gọi lại kèm theo + mốc `{auto:'sla'}`; `slaPlanMessage`; `applySlaPlan(plan, writer)` ghi patch qua interface truyền vào (repository T2.A4 sẽ cấp); `slaAutoEntry` + `planSlaUndo` hoàn tác trong `autoUndoDays`.
+- `forStage` (gợi ý lịch Nuôi dài hạn) nhận từ ngoài — nối với `src/domain/followup` của T2.B1 khi có.
+- Đã kiểm tra: khớp golden `velocity.json` + `sla-automation.json`; so trực tiếp với v1 thật ở 6 thời điểm; khách cũ trước `autoSince` không bị chuyển; chỉ khách mình; Xem dự án/Booking/khách mới chưa gọi không bị tự chuyển; `npm run check`, `npm run build`, golden --check 0 khác.
+- File: `src/domain/velocity/automation.ts`, `src/domain/velocity/engine.ts`, `src/domain/velocity/index.ts`, `tests/domain/velocity/automation.test.ts`, `tests/domain/velocity/parity.test.ts`
+
+## 2026-10-16 — T2.B3: T2.B3 — Port tìm kiếm, ghép căn, âm lịch, chuẩn hoá SĐT sang TypeScript
+
+- src/domain/search: port 1:1 CRMSearch (legacy/js/search.js) — bỏ dấu, AND nhiều từ, "cụm", gần đúng 1 lỗi cho tên (không gần đúng SĐT), điểm xếp hạng, highlight giữ chữ gốc + escape HTML, range, apartmentGroup.
+- src/domain/matching: port 1:1 CRMPropertySearch (typeCompatible, price, match); giá tính bằng engine vay TS (@/domain/loan). Thêm customersForUnit (1 căn → khách hợp, điểm cao trước; chưa có UI).
+- src/domain/lunar: port 1:1 lunar.js (âm lịch, can chi, mệnh nạp âm, cung, cầm tinh); parseDob dùng chung bản của domain khách (T2.A1, giống hệt v1).
+- src/domain/customer/phone.ts: normalizePhone, phoneDigits, normalizePhoneVN port 1:1 từ legacy/js/app.js.
+- Test: chuyển phần tìm kiếm + ghép căn của tests/search.test.js sang Vitest (tests/domain/search, tests/domain/matching); phát lại golden search / property-match / lunar / phone bằng bản TS → khớp; parity với code v1 nạp từ legacy/ (hàng nghìn chuỗi ngẫu nhiên có seed, mọi ngày 1900–2100 cho âm lịch).
+- Đã kiểm tra: npm run check (194 test) + npm run build xanh; tests/legacy-harness/run.js --check 0 khác; node tests/search.test.js vẫn pass (giữ nguyên vì còn kiểm paged-fetch v1, chưa port — không thuộc T2.B3); thử cố ý sửa sai bản TS → test báo đỏ.
+- File: `src/domain/customer/phone.ts`, `src/domain/lunar/index.ts`, `src/domain/lunar/lunar.ts`, `src/domain/matching/index.ts`, `src/domain/matching/property.ts`, `src/domain/search/index.ts`, `src/domain/search/search.ts`, `tests/domain/customer/phone.test.ts`, `tests/domain/lunar/lunar.test.ts`, `tests/domain/matching/property.test.ts`, `tests/domain/search/legacy.ts`, `tests/domain/search/parity.test.ts` … (+1)
+
+## 2026-10-16 — T2.C3: T2.C3 — AppShell, nav 4 tab + ＋, Bảng lệnh (Cmd/Ctrl+K), Back Android
+
+- src/ui/AppShell.tsx: header (tiêu đề · ô tìm ⌘K · SyncIndicator · menu), bottom nav 4 tab + ＋ (mobile), rail trái 72↔240px (desktop, nhớ lựa chọn), vùng chính ≤760px, panel phải 360px khi có nội dung
+- src/ui/CommandPalette.tsx: Radix Dialog; tìm không dấu; khách (nguồn `search`) → lệnh → màn; mũi tên/Enter/Esc; mobile toàn màn
+- src/app/layout.tsx: nối AppShell + Bảng lệnh + ＋ Ghi nhanh + menu Tiện ích (Giao diện) + Toast; tiêu đề lấy từ route handle.title hoặc tab
+- src/app/layout.nav.ts: 4 khu vực + path (/, /khach-hang, /cong-viec, /hieu-qua); deep link con → đúng tab
+- src/app/layout.back.ts: window.CRMBack() — đóng lớp nổi trên cùng (qua Escape, giữ chặn bản nháp của Sheet) → lùi lịch sử → về Hôm nay → false
+- src/app/layout.slots.tsx: cổng cắm setShellSync (T2.A4), setCustomerSearch (T2.B3), <ContextPanel> (panel phải) — không cần sửa layout
+- src/app/commands: AppCommand + tự đăng ký src/features/*/commands.ts (quickAdd → sheet ＋, tools → menu Tiện ích), lệnh sẵn: 4 màn + 3 giao diện
+- Kiểm tra: npm run check (tests/ui/AppShell.test.tsx, tests/ui/CommandPalette.test.tsx); npm run build; e2e tests/e2e/shell.spec.ts 360/390/1280 sáng+tối: 4 tab + deep link, Ctrl+K, Back đóng sheet/palette trước, menu giao diện, rail desktop, axe khung không lỗi serious/critical; xem trình duyệt thật 360 sáng + 1280 tối
+- File: `src/app/commands/index.ts`, `src/app/commands/registry.ts`, `src/app/layout.back.ts`, `src/app/layout.menus.tsx`, `src/app/layout.nav.ts`, `src/app/layout.slots.tsx`, `src/app/layout.tsx`, `src/ui/AppShell.tsx`, `src/ui/CommandPalette.tsx`, `tests/e2e/shell.spec.ts`, `tests/ui/AppShell.test.tsx`, `tests/ui/CommandPalette.test.tsx`
+
+## 2026-10-16 — T2.B1: T2.B1 — Port hạn/đến hạn/quá hạn (D-010) + nhịp follow-up (D-005) sang v2
+
+- src/domain/deadlines: countdownTag, taskDueInfo, callReminder, taskDueMs, startOfDayMs, nhãn ngày (taskDayLabel, relDayLabel, dashWhen, callScheduleLabel), fmtClock/fmtRemainMs/fmtCountdown; hằng DUE_GRACE_MS = 30 phút. Hàm thuần nhận `now`.
+- src/domain/followup: afterCall, forStage, firstCall (nhịp khách mới 5 lần A/B/C/D), suggestTemplates/suggestTemplate, slotOfTime, callSlots, windowAfter, scheduleLabel, trailingMisses; greeting.ts: fillGreeting (myName tuỳ chọn thay `team`), upgradeTplText. Khung "phản hồi tốt nhất" nhận statsCustomers qua tham số (v1: statsSource). Cấu hình đọc từ src/config/followup.ts.
+- Đã kiểm tra: khớp 100% golden T0.4 (deadlines.json 2 mốc giờ, followup.json); ranh giới D-010 (mốc +30', cuối khung +30', cả ngày quá hạn từ hôm sau, vắt qua nửa đêm); parity trực tiếp với v1 nạp từ legacy/ (400 mốc giờ ngẫu nhiên cho hạn/nhãn ngày, 600 ca afterCall/firstCall/suggestTemplates, 300 ca windowAfter/forStage, fillGreeting mọi mẫu mặc định). Đã thử phá code → test bắt lỗi.
+- File: `src/domain/deadlines/index.ts`, `src/domain/followup/greeting.ts`, `src/domain/followup/index.ts`, `tests/domain/deadlines/deadlines.test.ts`, `tests/domain/deadlines/golden.ts`, `tests/domain/followup/followup.test.ts`
+
+## 2026-10-16 — T2.A5: T2.A5 — SQL v2 chỉ thêm: cột mới customers/user_settings/units + bảng campaign_costs
+
+- SQL/v2/002_customer_memory.sql: 10 cột nullable trên customers (archived_at, contact_prefs, interests, household, interactions, close_reason, close_note, retarget_hint, field_meta, referred_by)
+- SQL/v2/003_campaign_costs.sql: bảng chi phí chiến dịch, RLS + GRANT (người tạo đọc/ghi, admin chỉ đọc, không xoá cứng, anon không quyền)
+- SQL/v2/004_user_settings_ui_state.sql, 005_units_verified_at.sql: mỗi file 1 cột
+- SQL/schema.sql: mục 6 trỏ tới 002–005; types.ts không cần đổi (T2.A1 đã có đủ trường)
+- Kiểm tra: test tĩnh Vitest 33 ca; chạy thử Postgres cục bộ (giả lập auth Supabase): 2 lần không lỗi, tests/sql/002_005_v2.test.sql 8/8. CHƯA chạy staging/production.
+- File: `SQL/schema.sql`, `SQL/v2/002_customer_memory.sql`, `SQL/v2/003_campaign_costs.sql`, `SQL/v2/004_user_settings_ui_state.sql`, `SQL/v2/005_units_verified_at.sql`, `tests/sql/002_005_v2.test.sql`, `tests/sql/002_005_v2_static.test.ts`
+
+## 2026-10-16 — T2.A2: T2.A2 — LocalDB + hàng đợi đồng bộ v2 dùng chung IndexedDB với v1 (src/data)
+
+- Thêm localdb.ts: mở DB theo tài khoản (giữ nguyên tên crm_khach_hang__<userId>, version 2, store customers/queue/meta, keyPath), đọc/ghi local không biến đổi bản ghi, replaceAll an toàn (từ chối khi còn op chờ / local đổi), assertWritable (D-003), sameRecord; mỗi phiên tài khoản là 1 instance, đóng phiên thì mọi thao tác bị từ chối.
+- Thêm queue.ts: định dạng op y v1 {opId, type, recordId, payload, ts}; flushQueue với adapter server tiêm vào (A3 nối Supabase), port đủ luật lỗi v1 (insert trùng bỏ, giao khách lỗi bỏ + thông báo, lỗi khác dừng giữ thứ tự); clearQueue.
+- Thêm legacyImport.ts: nhập 1 lần từ DB gốc crm_khach_hang (dùng chung cờ legacy-imported với v1), không gán op không rõ chủ cho tài khoản khác.
+- Đã kiểm tra (fake-indexeddb, chạy legacy/js/db.js thật): DB do v1 tạo mở bằng v2 nguyên vẹn; op v1 được v2 flush đúng và v1/v2 flush cùng hàng đợi ra cùng chuỗi lời gọi; op v2 được v1 đọc + flush; luật lỗi cho kết quả giống v1; đổi tài khoản không lẫn dữ liệu (kể cả đổi giữa lúc flush); nhập DB gốc giống v1 với 3 trường hợp người dùng trước. Bỏ thử 1 luật → test đỏ. Rà B.3 không vi phạm. npm run check + build xanh.
+- File: `src/data/legacyImport.ts`, `src/data/localdb.ts`, `src/data/queue.ts`, `tests/data/localdb.test.ts`, `tests/data/v1db.ts`
+
+## 2026-10-16 — T2.C2: T2.C2 — Component src/ui + gallery /dev/ui
+
+- src/ui: Button (primary/secondary/ghost/danger/ai, loading, disabled), IconButton (44×44, nhãn bắt buộc), Badge, Kbd, Icon (khái niệm → lucide theo src/config/icons.ts, import từng glyph)
+- Trạng thái: DeadlineTag (nhận kết quả countdownTag, luôn kèm chữ Đến hạn/Quá hạn, giờ mono), StageChip, SlaRing, HealthDot
+- Dòng: QueueRow, ListRow (Avatar, Gọi/Zalo, vuốt trái Xong/phải Gọi, nhãn hạn xuống dòng phụ trên mobile), RowList
+- Khung: Header (⌘K), BottomNav (4 tab + ＋), ActionBar, SyncIndicator (presentational, nối useSyncStatus ở T2.C3)
+- Card: NextActionCard, SignalCard (không màu AI), AIBlock (viền violet, skeleton), BriefCard, FactRow (cũ → "Cần xác nhận"), Timeline
+- Chọn: OutcomePicker (4 nút + Khác từ CALL_RESULTS), SlotPicker (callSlots, nhãn Gợi ý); Tabs, SegmentedControl (Radix)
+- Phản hồi: Sheet (Radix Dialog, bottom/side, bảo vệ bản nháp), Toast (Radix, Hoàn tác/Thử lại), EmptyState, ErrorState, Skeleton, Loading; MetricTile ("Chưa đủ dữ liệu"), MiniChart (spark/bar/funnel + bảng cho screen reader)
+- Gallery /dev/ui (src/features/dev-ui/route.tsx) đủ biến thể + trạng thái, có nút Sáng/Tối/Tự động
+- Kiểm tra: npm run check (tests/ui/components.test.tsx: Button, DeadlineTag, HealthDot, MetricTile, OutcomePicker, Sheet bảo vệ nháp); npm run build; e2e tests/e2e/ui.spec.ts 360/390/1280 sáng+tối: axe không lỗi serious/critical, không cuộn ngang, sheet + toast, vùng chạm ≥44px; xem trình duyệt thật 360px + 1280px sáng/tối
+- File: `src/features/dev-ui/route.tsx`, `src/ui/Badge.tsx`, `src/ui/Button.tsx`, `src/ui/Icon.tsx`, `src/ui/Kbd.tsx`, `src/ui/Sheet.tsx`, `src/ui/Tabs.tsx`, `src/ui/Toast.tsx`, `src/ui/cards.tsx`, `src/ui/chrome.tsx`, `src/ui/cn.ts`, `src/ui/index.ts` … (+8)
+
+## 2026-10-16 — T2.A1: T2.A1 — Types + Zod + normalize legacy cho bản ghi khách (src/domain/customer)
+
+- Thêm schema.ts: Zod `.passthrough()` cho Customer và mọi phần tử JSONB (call_attempts, next_tasks, notes_manual, care_stage_history, booking_steps, advanced) + trường v2 tuỳ chọn (archived_at, contact_prefs, interests, household, interactions, close_*, retarget_hint, field_meta, referred_by, next_tasks side/key/source…). Không default/transform/coerce; chấp nhận dữ liệu cũ bẩn (phần tử null, thiếu at, source dạng chuỗi). Bắt buộc: id, phone, full_name, owner_id.
+- Thêm types.ts (suy từ schema), normalize.ts: parseCustomer/safeParseCustomer/serializeCustomer + getter thuần normStage, sourceListOf, isQualified, inFunnel, leadStatus, callAttemptsOf, openTasksOf, parseDob — dùng hằng số src/config, không khai báo lại.
+- Đã kiểm tra: 100% fixture (20 bản ghi) round-trip serialize(parse(x)) deepEqual x, đầu vào đóng băng; giữ thuộc tính lạ ở gốc + mọi mảng JSONB; getter khớp hàm v1 thật (nạp từ legacy/) trên mọi fixture + ca lẻ; bỏ thử .passthrough() → test đỏ. Rà B.3: không SQL, không ghi dữ liệu, không đổi mã đã lưu, không chạm queue. npm run check + build xanh.
+- File: `src/domain/customer/index.ts`, `src/domain/customer/normalize.ts`, `src/domain/customer/schema.ts`, `src/domain/customer/types.ts`, `tests/domain/customer/customer.test.ts`
+
+## 2026-10-16 — T2.C1: T2.C1 — Token sáng/tối, font tự host, Tailwind theme, chọn Sáng/Tối/Tự động
+
+- src/styles/tokens.css: đủ token màu §2.1 (sáng :root, tối [data-theme="dark"] + theo hệ thống khi chưa có JS), bóng e1–e3, thời lượng chuyển động
+- src/app/index.css: nối token vào Tailwind v4 (@theme inline: bg-surface, text-text-2, bg-accent…; cấp chữ text-display…text-mono-data; rounded-control/card/sheet; ease-standard/exit; tiện ích font-data)
+- src/styles/fonts.css: Be Vietnam Pro 400–700 + JetBrains Mono 500 tự host (@fontsource, có subset tiếng Việt)
+- src/app/theme.ts: Sáng/Tối/Tự động, lưu localStorage "sk-theme", theo prefers-color-scheme, áp trong main.tsx trước khi vẽ, cập nhật meta theme-color; hook useThemePref
+- /dev/type (src/features/dev-type/route.tsx): mọi cấp chữ với "Trường, Hưởng, Ngữ, Tự, Đường", màu chữ, màu ngữ nghĩa, nền/viền, bộ chọn giao diện
+- Kiểm tra: npm run check (unit test token: đủ cặp sáng/tối, 2 khối tối khớp, tương phản WCAG AA; test theme.ts); npm run build; e2e tests/e2e/theme.spec.ts 360/390/1280 cả sáng/tối (font tải đúng, chữ không bị cắt, không cuộn ngang, axe color-contrast, lưu lựa chọn qua tải lại); xem trình duyệt thật 390px sáng/tối
+- File: `src/app/index.css`, `src/app/theme.ts`, `src/features/dev-type/route.tsx`, `src/main.tsx`, `src/styles/fonts.css`, `src/styles/theme.test.ts`, `src/styles/tokens.css`, `src/styles/tokens.test.ts`, `tests/e2e/theme.spec.ts`
+
+## 2026-10-16 — T2.B4: T2.B4 — Port engine vay sang TypeScript (src/domain/loan)
+
+- Thêm src/domain/loan/engine.ts (+ index.ts): port 1:1 legacy/js/loan/loan-engine.js sang TS strict thuần (không React/IndexedDB); giữ nguyên công thức, thứ tự làm tròn, cách ép kiểu chuỗi→số, nội dung cảnh báo; thêm kiểu dữ liệu cho đầu vào/đầu ra.
+- tests/domain/loan/engine.test.ts: chuyển toàn bộ ca của tests/loan-engine.test.js (phiếu CĐT R30413, ân hạn, đơn giá m2, nhận sổ 1,5 tháng, tiến độ 10 đợt, bàn giao giữa, validate) sang Vitest; các giá trị v1 chỉ in ra (lãi tháng 1, tổng lãi, tất toán) nay được chốt bằng số v1.
+- tests/domain/loan/parity.test.ts: so từng đồng bản TS với bản v1 nạp từ legacy/ — hằng số, util ngày, calcPrice/calcMilestones/validateSchedule/vatPercents, compute mọi tổ hợp gói vay × tiến độ × căn × ngày, simulate/payoff riêng, + 500 ca ngẫu nhiên có seed.
+- Đã kiểm tra: npm run check + npm run build xanh; tests/legacy-harness/run.js --check 0 khác; node tests/loan-engine.test.js vẫn "Tất cả khớp"; thử cố ý sửa sai engine TS (365→366 ngày, đổi làm tròn phí) → test parity báo đỏ.
+- Giữ nguyên tests/loan-engine.test.js (test v1 chạy bằng node trên legacy/).
+- File: `src/domain/loan/engine.ts`, `src/domain/loan/index.ts`, `tests/domain/loan/engine.test.ts`, `tests/domain/loan/parity.test.ts`
+
+## 2026-10-16 — T1.2: T1.2 — Config registry: src/config là nguồn duy nhất (port nguyên giá trị v1)
+
+- Thêm src/config/: followup.ts (FOLLOWUP_CONFIG, ZALO_TEMPLATES_DEFAULT/PREVIOUS, ZALO_SENDER_NAME — D-005), velocity.ts (VELOCITY_CONFIG + MIN/HOUR/DAY — D-008), stages.ts, sources.ts, callResults.ts (+ CALL_RESULT_SETS, SHORT_CALL_SEC, CALL_RESULT_MISS), reasons.ts (+ CLOSE_REASONS rỗng cho T6.1), taskKinds.ts, aptTypes.ts (+ alias), occupations.ts, advanced.ts, docKinds.ts, icons.ts (khái niệm → glyph lucide-react, STAGE_ICON — D-006, kèm khái niệm mới v2 theo DESIGN_SYSTEM §2.5). Mỗi file có comment "NGUỒN DUY NHẤT — Dxxx".
+- Thêm tests/config/: nạp code v1 thật từ legacy/ qua tests/legacy-harness/load-v1.js, so deep equal từng hằng số (52 test); icon: đủ khái niệm v1, glyph lucide có thật, không trùng glyph, fallback như v1; loại việc: icon khớp chuỗi SVG v1.
+- Đã kiểm tra: npm run check + npm run build xanh; đổi thử 1 giá trị → test báo đỏ đúng chỗ.
+- File: `src/config/advanced.ts`, `src/config/aptTypes.ts`, `src/config/callResults.ts`, `src/config/docKinds.ts`, `src/config/followup.ts`, `src/config/icons.ts`, `src/config/occupations.ts`, `src/config/reasons.ts`, `src/config/sources.ts`, `src/config/stages.ts`, `src/config/taskKinds.ts`, `src/config/velocity.ts` … (+2)
+
+## 2026-10-16 — T1.1: Scaffold v2 (Vite + React 19 + TypeScript strict + Tailwind v4 + PWA) và chuyển v1 vào legacy/
+
+- Chuyển nguyên vẹn (git mv) index.html, css/, js/, sw.js, manifest.json, icons/, android-app-version.json vào legacy/; không đổi nội dung.
+- public/: copy icons + android-app-version.json (vỏ Android đọc), _redirects (SPA), sw-cleanup.js — SW v2 xoá cache v1 "crm-khach-hang-v*" khi kích hoạt (không đụng IndexedDB).
+- Cài một lần đủ thư viện Sóng 1–2 (danh sách trong Lưu ý T1.1) + gói kiểu đi kèm (@types/react, @types/react-dom, @types/node, @testing-library/dom).
+- Router react-router v7 (data router) tự gom src/features/*/route.tsx (export const route); trùng path → báo lỗi. Trang chủ "Sổ Khách v2". Thông báo "Có bản mới" khi SW cập nhật.
+- Scripts: dev, build, preview, check (tsc + biome + vitest), e2e (Playwright 360/390/1280, chạy trên bản build).
+- Test v1 (search, loan-engine, deadlines, *browser.cjs) và tests/legacy-harness trỏ sang legacy/.
+- Đã kiểm tra: npm run check (4 test) + npm run build xanh; npm run e2e 9/9 (Chrome); golden v1 --check 10 giống · 0 khác; node tests/search|loan-engine|deadlines.test.js pass; legacy/ = 40 file R100 + index.html giống hệt byte (cmp).
+- package.json không đặt "type": "module" để test v1 (CommonJS: legacy-harness, search, loan-engine, deadlines) chạy nguyên trạng.
+- File: `.gitignore`, `biome.json`, `index.html`, `legacy/android-app-version.json`, `legacy/css/loan.css`, `legacy/css/style.css`, `legacy/icons/.DS_Store`, `legacy/icons/app-icon-192.png`, `legacy/icons/app-icon-512.png`, `legacy/icons/apple-touch-icon.png`, `legacy/icons/backup icons/Net_Icon.png`, `legacy/icons/backup icons/Zalo-icon.png` … (+70)
+
 ## 2026-10-16 — Sóng 0: lưới an toàn dữ liệu (script, SQL, golden test — chưa chạy trên Supabase)
 
 - T0.1: script backup chỉ-đọc production (`pg_dump` schema `public` + tài khoản + `customers.json` + file Storage + số dòng/md5 từng bảng + SHA256SUMS, lưu ngoài repo) và diễn tập khôi phục vào staging (chặn trỏ nhầm production, bảng so sánh ✓/✗). `.gitignore` chặn `.env.backup`.

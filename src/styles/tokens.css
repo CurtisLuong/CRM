@@ -1,0 +1,99 @@
+/*
+ * Token Design System v3 "Signal" — nguồn duy nhất (DESIGN_SYSTEM.md §2).
+ * :root = sáng · [data-theme="dark"] = tối. src/app/theme.ts luôn đặt data-theme = "light" | "dark".
+ * Khi JS chưa chạy (chưa có data-theme) thì theo prefers-color-scheme → không chớp ở chế độ Tự động.
+ * Tailwind đọc các biến này qua @theme trong src/app/index.css — feature dùng class Tailwind, không dùng mã màu.
+ * Khối tối viết 2 lần (attribute + media query); src/styles/tokens.test.ts kiểm 2 khối giống hệt nhau.
+ */
+
+:root {
+  color-scheme: light;
+
+  /* 2.1 Màu */
+  --bg: #f4f6f9;
+  --surface: #ffffff;
+  --surface-2: #eef2f6;
+  --surface-3: #e4e9ef;
+  --text: #0e1621;
+  --text-2: #475467;
+  --text-3: #5f6b7a;
+  --border: #dce3ea;
+  --border-strong: #8291a2;
+  --accent: #2251e5;
+  --accent-fg: #ffffff;
+  --accent-soft: #eaf0ff;
+  --danger: #b42318;
+  --danger-bg: #fef0ef;
+  --warning: #8a5300;
+  --warning-bg: #fff5e0;
+  --success: #126b3e;
+  --success-bg: #e9f7ef;
+  --ai: #6b3fd4;
+  --ai-bg: #f3eeff;
+
+  /* 2.3 Độ cao — tối dùng surface-2/3 + viền thay bóng (bóng trong suốt, không dùng "none" để không phá ring của Tailwind) */
+  --e1: 0 1px 2px rgb(16 24 40 / 0.04);
+  --e2: 0 4px 16px rgb(16 24 40 / 0.08);
+  --e3: 0 12px 32px rgb(16 24 40 / 0.14);
+
+  /* 2.4 Chuyển động */
+  --dur-fast: 120ms;
+  --dur-base: 200ms;
+  --dur-slow: 280ms;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0a0e13;
+  --surface: #10161d;
+  --surface-2: #161e27;
+  --surface-3: #1d2732;
+  --text: #e7ecf2;
+  --text-2: #a7b2bf;
+  --text-3: #8794a3;
+  --border: #253141;
+  --border-strong: #5b6e86;
+  --accent: #7c9dff;
+  --accent-fg: #0a1433;
+  --accent-soft: #17254a;
+  --danger: #ff7a70;
+  --danger-bg: #2a1416;
+  --warning: #f2b34b;
+  --warning-bg: #2a1f0c;
+  --success: #4ccb8a;
+  --success-bg: #0f2219;
+  --ai: #b596ff;
+  --ai-bg: #1e1636;
+  --e1: 0 0 #0000;
+  --e2: 0 0 #0000;
+  --e3: 0 0 #0000;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    color-scheme: dark;
+    --bg: #0a0e13;
+    --surface: #10161d;
+    --surface-2: #161e27;
+    --surface-3: #1d2732;
+    --text: #e7ecf2;
+    --text-2: #a7b2bf;
+    --text-3: #8794a3;
+    --border: #253141;
+    --border-strong: #5b6e86;
+    --accent: #7c9dff;
+    --accent-fg: #0a1433;
+    --accent-soft: #17254a;
+    --danger: #ff7a70;
+    --danger-bg: #2a1416;
+    --warning: #f2b34b;
+    --warning-bg: #2a1f0c;
+    --success: #4ccb8a;
+    --success-bg: #0f2219;
+    --ai: #b596ff;
+    --ai-bg: #1e1636;
+    --e1: 0 0 #0000;
+    --e2: 0 0 #0000;
+    --e3: 0 0 #0000;
+  }
+}

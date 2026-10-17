@@ -68,7 +68,7 @@ Giai đoạn chuyển đổi: v1 vẫn chạy ở `main`. v2 phát triển trên
 1. **Migration chỉ thêm**: `add column if not exists` (nullable hoặc có default), `create table if not exists`, index, policy. **Cấm** `drop`, `rename`, đổi kiểu, đổi nghĩa giá trị, `update` hàng loạt dữ liệu khách trong migration v2. Ngoại lệ phải có quyết định riêng + backup ngay trước.
 2. **Mã đã lưu bất biến**: `care_stage` (gồm tên cũ `Hỗ trợ hồ sơ`, `Booking` → đọc qua `normStage`), `contact_status`, `CALL_RESULTS`, `source` (gồm mã cũ `manual`/`ocr`/`landing` → `SOURCE_LEGACY`), `intake_method`, `disqualify_reason`, `kind` việc, mã khung giờ A/B/C/D, `booking_steps` key. Thêm giá trị mới được; đổi/xoá thì không.
 3. **Không làm rơi trường lạ**: schema Zod dùng `.passthrough()`; phần tử JSONB (`call_attempts`, `next_tasks`, `notes_manual`, `care_stage_history`) khi sửa phải giữ mọi thuộc tính không biết. Test round-trip: đọc → lưu không sửa gì → **không có diff**.
-4. **Ghi theo trường (patch)**, không ghi cả hàng: `update(payload)` chỉ chứa trường đổi + `updated_at`. Đây là điều kiện để v1 và v2 chạy song song an toàn.
+4. **Ghi theo trường (patch)**, không ghi cả hàng: `update(payload)` chỉ chứa trường đổi + `updated_at`. Đây là điều kiện để v1 và v2 chạy song song an toàn. Cột mảng JSONB: v2 gộp theo phần tử với server trước khi ghi (D-021) — mảng trong op là ý định của máy này, không phải bản ghi đè.
 5. **Xoá mềm**: v2 dùng `archived_at`; xoá cứng (kéo theo `documents` vì `on delete cascade`) chỉ admin, có xác nhận gõ tên, sau khi audit đã ghi.
 6. **Audit server** (T0.2): trigger ghi mọi `update`/`delete` trên `customers` vào bảng append-only `customer_changes` (giá trị cũ của các cột đổi). Không client nào có quyền sửa/xoá bảng này.
 7. **Backup trước mọi migration production** và trước cutover (T0.1, `scripts/backup`). Không chạy lại migration cũ chỉ vì còn file.
@@ -166,8 +166,12 @@ v1 bỏ qua cột mới (đọc `*`, ghi patch) nên chạy song song được. 
 Ghi:  UI → repository → IndexedDB + queue {opId, type: insert|update|delete, recordId, payload, ts} → flush lên Supabase
 Nhận: Realtime postgres_changes trên customers → tải đúng 1 khách → IndexedDB → render
       Lưới an toàn: probe (đếm + updated_at mới nhất) khi quay lại app/tab, có mạng, định kỳ 15s (kênh rớt) / 60s
-Xung đột: last-write-wins theo updated_at; insert dùng upsert theo id
+Xung đột: last-write-wins theo updated_at cho cột thường; insert dùng upsert theo id
+          cột mảng JSONB (call_attempts, next_tasks, notes_manual, care_stage_history, interactions, interests,
+          household): v2 gộp 3 chiều theo phần tử với hàng server + ghi có điều kiện updated_at (D-021); v1 vẫn ghi đè
 ```
+
+- **Op bị server từ chối vĩnh viễn** (lớp 22/23/42, PGRST1xx/2xx): không chặn khách khác; sheet *Đồng bộ* hiện lý do + "Bỏ thao tác này" (xác nhận, bản sao op lưu meta `discarded-ops`, khách về giá trị server). Lỗi tạm thời: dừng + thử lại (D-021).
 
 - **Tên DB giữ nguyên**: `crm_khach_hang__<userId>` (stores `customers` keyPath `id`, `queue` keyPath `opId` autoIncrement, `meta` keyPath `key`); DB gốc `crm_khach_hang` chỉ đọc để nhập một lần (logic `legacy-imported`). v2 **phải** flush được queue do v1 ghi và ngược lại (test T2.A2).
 - Pull chỉ thay cache khi queue rỗng và local không đổi trong lúc kéo (`paged-fetch`: kéo theo `id`, đếm chính xác).

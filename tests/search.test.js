@@ -1,8 +1,8 @@
 const assert = require('node:assert/strict');
-const S = require('../js/search.js');global.CRMSearch=S;
-const P = require('../js/property-search.js');
-const E = require('../js/loan/loan-engine.js');
-const F = require('../js/paged-fetch.js');
+const S = require('../legacy/js/search.js');global.CRMSearch=S;
+const P = require('../legacy/js/property-search.js');
+const E = require('../legacy/js/loan/loan-engine.js');
+const F = require('../legacy/js/paged-fetch.js');
 const doc=S.prepare([['Tên','Nguyễn Thị Hương'],['SĐT','0901234567'],['Dự án','Marquee Homes'],['Loại căn','2N-2WC'],['Mã căn','1208'],['Ngày sinh','12/05/1990'],['Diện tích','53,6 m²'],['Giá căn','1,2 tỷ'],['Việc tiếp theo','Chuẩn bị hồ sơ vay'],['Cuộc gọi','Muốn ban công hướng Nam']]);
 let checked=0;
 function check(q,expected,scope='all'){assert.equal(S.match(doc,S.compile(q,scope)).match,expected,q);checked++;}

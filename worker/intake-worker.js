@@ -130,6 +130,7 @@ CÁC FIELD (đúng thuộc tính CRM):
 
 import { handleFb, pollLeads } from './fb-leads.js';
 import { handleAi } from './ai-assist.js';
+import { handleStt } from './stt.js';
 
 export default {
   async fetch(request, env, ctx) {
@@ -151,6 +152,9 @@ export default {
     if (request.method === 'POST' && url.pathname === '/ai') {
       const denied = await requireUser(request, env); // chặn người lạ dùng quota Workers AI
       return withCors(denied || await handleAi(request, env, json), origin);
+    }
+    if (request.method === 'POST' && url.pathname === '/stt') {
+      return withCors(await handleStt(request, env, requireUser), origin);
     }
     return withCors(json({ error: 'Not found' }, 404), origin);
   },

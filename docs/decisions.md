@@ -25,6 +25,13 @@ Lựa chọn nền tảng ban đầu (Supabase, Cloudflare Pages, local-first) k
 | D-013 | IA/UX v2: Hôm nay · Khách hàng · Công việc · Hiệu quả | Đã duyệt hướng 2026-10-16 | Áp dụng cho v2 |
 | D-014 | Design System v3 "Signal" (sáng + tối) | Đã duyệt hướng 2026-10-16 | Áp dụng cho v2 |
 | D-015 | Bộ máy Tín hiệu là nguồn duy nhất cho ưu tiên/gợi ý/thông báo | Đã duyệt hướng 2026-10-16 | Áp dụng cho v2 |
+| D-016 | T2.B5 dùng thứ tự UX; giữ parity v1 riêng | Ngoại lệ cục bộ đã duyệt 2026-10-16 | Chỉ nghiệm thu T2.B5 |
+| D-017 | T3.6 được dùng react-hook-form cùng Zod | Ngoại lệ cục bộ đã duyệt 2026-10-16 | Chỉ T3.6 |
+| D-018 | T3.8 được thêm thư viện XLSX để nhập Excel | Ngoại lệ cục bộ đã duyệt 2026-10-16 | Chỉ T3.8 |
+| D-019 | T3.5 tích hợp hồ sơ với contract máy tính vay của T3.9 | Đã duyệt 2026-10-16 | Chỉ tích hợp T3.9 ↔ T3.5 |
+| D-020 | Hoãn ba thao tác xóa nested record trong cutover v2 | Ngoại lệ cục bộ đã duyệt 2026-10-17 | Chỉ chấp nhận gap T5.1; giữ D-012 và v1 |
+| D-021 | Đồng bộ v2 gộp cột mảng theo phần tử + bỏ được op bị server từ chối | Đã duyệt hướng 2026-10-17 (sửa trước cutover) | Hàng đợi v2; v1 giữ ghi đè tới cutover |
+| D-022 | T6.7 nghiệm thu không cần bộ đánh giá 50–100 ghi chú thật; theo dõi trên production | Ngoại lệ cục bộ đã duyệt 2026-10-17 | Chỉ T6.7 |
 
 ## Ba loại kết quả
 
@@ -266,3 +273,100 @@ Ví dụ và mẫu trong bộ tài liệu không phải sự chấp thuận cho 
 - Tài liệu: `docs/PRD.md` F-04, `docs/UX_GUIDELINES.md` §6, `docs/architecture.md` §2.
 - Trạng thái: Đã duyệt hướng; áp dụng cho v2.
 
+### D-016 — Ngoại lệ parity thứ tự ưu tiên của T2.B5
+
+- Ngày: 2026-10-16
+- Loại: Ngoại lệ cục bộ
+- Nguyên tắc liên quan: `docs/tasks.md` thẻ T2.B5 yêu cầu thứ tự khớp golden v1; `docs/UX_GUIDELINES.md` §4 yêu cầu P0 → hạn → bậc → lâu chưa tương tác; D-015 và `docs/PRD.md` F-04.
+- Quyết định: API `computeSignals` mặc định dùng thứ tự UX và đầy đủ rule S01–S10. Giữ bộ test parity v1 riêng để chứng minh điều kiện, thành viên và thứ tự của các nhóm việc/thông báo cũ; không sửa golden để hợp thức hoá thứ tự mới.
+- Phạm vi: chỉ nghiệm thu T2.B5 và đầu ra bộ máy signals của task này; không đổi tiêu chí parity của task khác, không sửa v1, không mở rộng automation.
+- Lý do và đánh đổi: trên fixture, việc hồ sơ Booking cần xử lý được đưa lên trước hẹn gọi; cảnh báo vượt mục tiêu SLA có thể thêm khách chưa xuất hiện trong hàng đợi v1. Do đó đầu ra mới có thể khác cả thứ tự lẫn tập khách, nhưng phải có test riêng theo UX và bằng chứng cho từng rule.
+- Chấp thuận: Curtis chọn “Ngoại lệ cục bộ cho B5: dùng thứ tự UX, giữ test parity v1 riêng (đề xuất)” trong phiên tiếp quản nhóm Claude ngày 2026-10-16.
+- Giới hạn: không dùng ngoại lệ này để bỏ kiểm tra dữ liệu/payload hay chấp nhận sai lệch ngoài S01–S10. Mở rộng phạm vi cần quyết định mới.
+- Tài liệu đã cập nhật: `docs/decisions.md`; cổng merge T2.B5 ghi ngoại lệ vào CHANGELOG của task.
+- Trạng thái: Đã duyệt; áp dụng khi nghiệm thu T2.B5.
+
+### D-017 — Ngoại lệ thư viện form cho T3.6
+
+- Ngày: 2026-10-16
+- Loại: Ngoại lệ cục bộ
+- Nguyên tắc liên quan: D-011 và AGENTS.md §3.10 chỉ cho phép thêm thư viện ngoài stack đã duyệt sau khi được chấp thuận; thẻ T3.6 yêu cầu react-hook-form + Zod.
+- Quyết định: Cho phép T3.6 thêm `react-hook-form` để triển khai form tạo/sửa; tiếp tục dùng Zod cho schema và xác thực.
+- Phạm vi: Chỉ `src/features/intake/**` và dependency phục vụ trực tiếp T3.6; không thay đổi stack D-011 hoặc cấp phép cho task khác.
+- Lý do và đánh đổi: đáp ứng đúng yêu cầu form đã ghi trong T3.6, đổi lại thêm một dependency cần bảo trì.
+- Chấp thuận: Curtis chọn “Ngoại lệ T3.6: thêm react-hook-form” trong phiên điều phối ngày 2026-10-16.
+- Tài liệu đã cập nhật: `docs/decisions.md`, `scripts/agents/ownership.json`.
+- Trạng thái: Đã duyệt; áp dụng khi nghiệm thu T3.6.
+
+### D-018 — Ngoại lệ thư viện XLSX cho T3.8
+
+- Ngày: 2026-10-16
+- Loại: Ngoại lệ cục bộ
+- Nguyên tắc liên quan: D-011 và AGENTS.md §3.10 yêu cầu duyệt trước khi thêm thư viện ngoài stack; thẻ T3.8 yêu cầu nhập Excel và cung cấp file mẫu.
+- Quyết định: Cho phép T3.8 thêm một thư viện XLSX cần thiết để nhập dữ liệu Excel.
+- Phạm vi: Chỉ T3.8 và dependency phục vụ trực tiếp việc nhập XLSX; không thay đổi stack D-011 hoặc cấp phép cho task khác.
+- Lý do và đánh đổi: đáp ứng yêu cầu nhập Excel; thêm một dependency cần bảo trì và kiểm tra bảo mật.
+- Chấp thuận: Curtis chọn “Ngoại lệ T3.8: thêm thư viện XLSX” trong phiên điều phối ngày 2026-10-16.
+- Tài liệu đã cập nhật: `docs/decisions.md`, `scripts/agents/ownership.json`.
+- Trạng thái: Đã duyệt; áp dụng khi nghiệm thu T3.8.
+
+### D-019 — Phân chia máy tính vay và liên kết hồ sơ
+
+- Ngày: 2026-10-16
+- Loại: Điều chỉnh phụ thuộc task
+- Nguyên tắc liên quan: route máy tính vay thuộc T3.9; hồ sơ khách thuộc T3.5; task chỉ sửa file trong phạm vi ownership.
+- Quyết định: T3.9 cung cấp route và `loanPath()` nhận `customerId`/thông tin căn. T3.5 phụ thuộc T3.9 và thêm nút từ hồ sơ với dữ liệu khách/căn đang xem. T3.9 được nghiệm thu theo contract route; T3.5 kiểm chứng caller.
+- Phạm vi: Chỉ phân chia tích hợp T3.9 ↔ T3.5; T3.9 không sửa file hồ sơ.
+- Lý do và đánh đổi: giữ ranh giới ownership và tránh vòng phụ thuộc; luồng đầy đủ từ hồ sơ chỉ có sau khi T3.5 hoàn thành.
+- Chấp thuận: Curtis chọn “Chờ T3.5 rồi nối từ hồ sơ (đề xuất)” trong phiên điều phối ngày 2026-10-16.
+- Tài liệu đã cập nhật: `docs/decisions.md`, `docs/tasks.md`.
+- Trạng thái: Đã duyệt; áp dụng cho nghiệm thu T3.9 và tích hợp T3.5.
+
+
+### D-020 — Hoãn ba thao tác xóa nested record trong cutover v2
+
+- Ngày: 2026-10-17
+- Loại: Ngoại lệ cục bộ — chấp nhận hoãn gap nghiệm thu
+- Nguyên tắc liên quan: D-012 yêu cầu bảo toàn dữ liệu và xóa mềm; v1 hiện không lọc tombstone trong ghi chú hồ sơ, việc và cuộc gọi chờ.
+- Quyết định: Trong phạm vi cutover hiện tại, hoãn xóa ghi chú hồ sơ, xóa việc và xóa cuộc gọi chờ. Chấp nhận ba gap này được ghi rõ trong audit T5.1 để task audit có thể hoàn tất. Giữ nguyên dữ liệu và hành vi v1; không dùng hard delete và không thêm tombstone chỉ ở v2.
+- Phạm vi: Chỉ ba thao tác trên trong T5.1/cutover hiện tại. Không thay đổi D-012 toàn dự án; mọi triển khai tương lai cần giải pháp tương thích v1 được duyệt riêng.
+- Lý do và đánh đổi: tombstone v2-only vẫn bị v1 hiển thị và sửa; xóa khỏi mảng làm mất dữ liệu. Hoãn giữ an toàn dữ liệu nhưng thiếu thao tác xóa trong cutover.
+- Chấp thuận: Curtis chọn “Hoãn xóa; chấp nhận các gap trong T5.1” trong phiên điều phối ngày 2026-10-17.
+- Tài liệu đã cập nhật: `docs/decisions.md`, `docs/audits/v2-parity.md`.
+- Trạng thái: Đã duyệt; chỉ áp dụng cho T5.1/cutover hiện tại.
+
+### D-021 — Đồng bộ v2 gộp cột mảng theo phần tử + bỏ được op bị server từ chối
+
+- Ngày: 2026-10-17
+- Loại: Đổi cách giải xung đột cho cột mảng JSONB của `customers` (trong v2); giữ D-012.
+- Nguyên tắc liên quan: `docs/architecture.md` §3.1.4, §4 ("last-write-wins theo `updated_at`"); D-012; D-020.
+- Bối cảnh: T5.2 (staging, khách d063bb16…) chứng minh mất ghi chú: Mac online thêm ghi chú; điện thoại offline thêm ghi chú khác rồi online → op `update` gửi nguyên mảng `notes_manual` cũ → ghi chú của Mac bị ghi đè. Ảnh hưởng mọi mảng (`call_attempts`, `next_tasks`, `notes_manual`, `care_stage_history`, `interactions`, `interests`, `household`). Cùng đợt: 1 op bị server từ chối (vd. `23514`) làm `flushQueue` dừng mãi, chỉ hiện "Lỗi đồng bộ". Chủ dự án chọn **sửa trước cutover** (không chấp nhận như v1).
+- Quyết định:
+  1. **Gộp 3 chiều phía client, ghi có điều kiện** (không cần SQL/RPC). Khi tạo op `update` có cột mảng, repository lưu `arrayBase` = mảng local ngay trước khi sửa (metadata chỉ ở máy như `assignmentRollback`; không gửi server; v1 bỏ qua). Khi flush: đọc `updated_at` + các cột mảng của hàng trên server → gộp theo danh tính phần tử (`id`, không có thì `at`) → `PATCH … where id = … and updated_at = <giá trị vừa đọc>`; máy khác ghi chen giữa (0 hàng khớp) → đọc lại, gộp lại (tối đa 3 lần), rồi ghi thường với bản gộp mới nhất. Không đổi định dạng op, không đổi cột khác (vẫn patch theo trường).
+  2. **Luật gộp** (`src/data/arrayMerge.ts`): phần tử chỉ server có → giữ (máy khác thêm); phần tử local cố ý bỏ (có trong `arrayBase`, không còn trong payload — hoàn tác, mở lại việc, lùi bậc) → **không sống lại**; phần tử cả hai có → theo thuộc tính: thuộc tính local đổi so với bản gốc lấy local (kể cả xoá thuộc tính), còn lại lấy server → giữ sửa của máy khác và thuộc tính lạ; server đã bỏ mà local không sửa → bỏ theo server, local có sửa → giữ local; mảng đang xếp theo `at` thì phần tử máy khác được chèn đúng thứ tự thời gian. Op không có `arrayBase` (op do v1 ghi, op v2 cũ) → hợp nhất, không bỏ phần tử nào (thà hiện lại phần tử đã xoá còn hơn mất dữ liệu).
+  3. **Op bị từ chối vĩnh viễn** (SQLSTATE lớp 22/23/42, PGRST1xx/2xx): op nằm lại trong hàng đợi, op sau của **cùng khách** chờ (giữ thứ tự), **khách khác vẫn đồng bộ**. Chỉ báo "Lỗi đồng bộ" mở sheet *Đồng bộ*: lý do tiếng Việt + "Bỏ thao tác này" (xác nhận) → op được chép vào meta `discarded-ops` (50 op gần nhất, khôi phục tay được) rồi mới xoá; khách quay về giá trị server khi không còn op chờ. Lỗi tạm thời (mạng/5xx/hết phiên/timeout) dừng và thử lại như v1.
+- Vì sao không chọn RPC Postgres gộp phía server: cần migration mới chạy trên staging + production, v1 không dùng được, thêm điểm hỏng khi chưa chạy SQL; ghi có điều kiện `updated_at` đã chặn race đọc–ghi mà không cần SQL.
+- Rủi ro còn lại (chủ dự án nên biết):
+  - **v1 vẫn ghi đè cả mảng tới cutover T5.4.** Nếu v1 (crm-cop) và v2 cùng sửa một khách khi một bên offline, op của v1 vẫn có thể xoá phần tử bên kia vừa thêm. Giảm thiểu: trong giai đoạn song song, sửa khách thật chủ yếu trên một phiên bản; bảng `customer_changes` (T0.2) lưu giá trị cũ để khôi phục.
+  - Danh tính theo `at` (như v1): hai máy tạo phần tử cùng một mili-giây trong cùng mảng sẽ bị coi là một phần tử (gần như không xảy ra trong dùng thật).
+  - Ghi có điều kiện thất bại 3 lần liên tiếp (tranh chấp liên tục, hoặc RLS cho đọc mà không cho sửa) → ghi thường với bản gộp mới nhất, như hành vi cũ.
+  - Op `insert` (upsert cả hàng) không gộp — id khách là UUID mới nên chỉ trùng khi cùng 1 op bị đẩy 2 lần.
+- Phạm vi: `src/data/{arrayMerge,queue,sync,supabase,syncStatus}.ts`, `src/data/repositories/customers.ts` (chỉ gắn `arrayBase`), sheet `src/features/sync/`, chỉ báo đồng bộ trên header. Không migration, không đổi schema, không đổi v1.
+- Chấp thuận: chủ dự án quyết định "sửa trước cutover" sau báo cáo T5.2 ngày 2026-10-17 (task T5.9); phương án kỹ thuật do agent chọn trong phạm vi đó, không xung đột D-012.
+- Tài liệu đã cập nhật: `docs/decisions.md`, `docs/architecture.md` §3.1, §4.
+- Trạng thái: Đã duyệt hướng; T5.2 chạy lại kịch bản E2 trên staging để nghiệm thu.
+
+### D-022 — T6.7 nghiệm thu không cần bộ đánh giá ghi chú thật; theo dõi trên production
+
+- Ngày: 2026-10-17
+- Loại: Ngoại lệ cục bộ — bỏ một điều kiện nghiệm thu
+- Nguyên tắc liên quan: `docs/tasks.md` T6.7 "Xong khi" (bộ đánh giá 50–100 ghi chú không có lỗi nghiêm trọng); `docs/prompts.md` (bộ `tests/ai-eval/notes.jsonl` do chủ dự án chọn).
+- Quyết định: Đánh dấu T6.7 xong khi chưa có bộ ghi chú thật. Phần mã đã merge ở T6.7a (6feeb97) và chỉ được kiểm bằng ghi chú giả (`tests/ai-eval/synthetic-notes.jsonl`). Chất lượng AI trên ghi chú thật sẽ được chủ dự án theo dõi khi dùng trên production.
+- Lý do: chủ dự án chưa có sẵn 50–100 ghi chú thật, gom và ẩn danh mất nhiều thời gian. Rủi ro hạn chế vì AI chỉ đề xuất (CLAUDE.md §3.8): mọi thay đổi đều qua hộp duyệt, không tự ghi, gửi hay gọi, và không gửi SĐT.
+- Rủi ro còn lại: AI có thể đọc sai ghi chú viết tắt hoặc không dấu (ngày tương đối như "t7", số tiền, mã căn, phủ định/đổi ý) và đề xuất sai. Sale phải đọc kỹ đề xuất trước khi bấm duyệt.
+- Cách theo dõi: khi thấy đề xuất sai, chụp màn hình hoặc chép ghi chú (bỏ SĐT, tên khách) kèm đề xuất sai rồi gửi agent. Các ví dụ này được thêm vào `tests/ai-eval/` theo mẫu `owner-notes.template.jsonl`, rồi chạy `tests/ai-eval/run.mjs` để sửa prompt. Sai nghiêm trọng hoặc lặp lại thì quay Worker về phiên bản trước trên Cloudflare (Workers → Deployments → Rollback) trong lúc sửa prompt. Không bỏ `VITE_WORKER_URL`, vì làm vậy tắt luôn OCR nhập khách.
+- Điều kiện để dùng được trên production: Worker AI v2 phải được chủ dự án deploy (agent không deploy).
+- Phạm vi: Chỉ T6.7. Các tính năng AI sau vẫn phải có đánh giá theo `docs/prompts.md` trừ khi có quyết định riêng.
+- Chấp thuận: Curtis trong phiên điều phối 2026-10-17: "Tôi sẽ quan sát tính năng này trên production luôn. Bạn ghi chú bước này và cho phép pass."
+- Tài liệu đã cập nhật: `docs/decisions.md`, `docs/tasks.md` (T6.7 "Xong khi", việc chủ dự án Sóng 6), `scripts/agents/ownership.json`.
+- Trạng thái: Đã duyệt; chỉ áp dụng cho T6.7.

@@ -1,5 +1,5 @@
 // Chạy: node tests/loan-engine.test.js — so sánh với phiếu CĐT căn R30413 (The Rise 3)
-const E = require('../js/loan/loan-engine.js');
+const E = require('../legacy/js/loan/loan-engine.js');
 let fail = 0;
 function eq(name, got, exp) {
   const ok = got === exp;
