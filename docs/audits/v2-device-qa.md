@@ -44,7 +44,7 @@
 
 ## 4. Số chạm / thời gian (v1 `crm-cop` vs v2), Android
 
-Đo theo `docs/runbooks/baseline.md` Bảng 1; mỗi ô `chạm / giây`. v1 thao tác trên **khách thử**, hoàn tác sau. Ngân sách: `docs/UX_GUIDELINES.md` §3.
+**Bỏ qua (chủ dự án 2026-10-17, cần app gấp):** không đo số chạm v1/v2 trong T5.3; không có baseline "trước" cho chỉ số tốc độ thao tác (PRD §8) — đo trên v2 sau cutover nếu cần. Đo theo `docs/runbooks/baseline.md` Bảng 1; mỗi ô `chạm / giây`. v1 thao tác trên **khách thử**, hoàn tác sau. Ngân sách: `docs/UX_GUIDELINES.md` §3.
 
 | Thao tác | v1 | v2 | Ghi chú |
 |---|---|---|---|
