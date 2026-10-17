@@ -1,5 +1,6 @@
 import { createRequire } from 'node:module';
 import { describe, expect, it } from 'vitest';
+import { SIGNALS_CONFIG as C } from '@/config/signals';
 import type { Customer } from '@/domain/customer';
 import { computeSignals, evaluateSignals, legacyDashboardGroups, signalRules } from '@/domain/signals';
 import { fixture, golden, loadCustomers } from '../deadlines/golden';
@@ -178,6 +179,74 @@ describe('positive and negative conditions, evidence and suppression', () => {
       expect(s.evidence.length).toBeGreaterThan(0);
       expect(s.actions.length).toBeGreaterThan(0);
     }
+  });
+  it('honors the configured thresholds at their boundaries', () => {
+    const completeBrief = {
+      ...care,
+      next_call_at: iso(now + 86400000),
+      finance: 0,
+      purpose: 'Ở',
+      advanced: { decision_influencers: 'Bản thân', timeline_events: '6 tháng' },
+    };
+    const briefWithMissing = (count: number) => {
+      const customer = structuredClone(completeBrief);
+      const remove: (() => void)[] = [
+        () => Object.assign(customer, { finance: undefined }),
+        () => Object.assign(customer, { purpose: undefined }),
+        () => Object.assign(customer.advanced, { decision_influencers: undefined }),
+        () => Object.assign(customer.advanced, { timeline_events: undefined }),
+      ];
+      remove.slice(0, count).forEach((field) => {
+        field();
+      });
+      return base(customer);
+    };
+    expect(rule('S11', briefWithMissing(C.briefMissingFieldsMin))).toHaveLength(1);
+    expect(rule('S11', briefWithMissing(C.briefMissingFieldsMin - 1))).toEqual([]);
+
+    expect(rule('S13', base({ retarget_hint: { after: iso(now) } }))).toHaveLength(1);
+    expect(rule('S13', base({ retarget_hint: { after: iso(now + 1) } }))).toEqual([]);
+
+    expect(
+      rule(
+        'S14',
+        base({ interactions: [{ at: iso(now - C.projectViewFeedbackDays * 86400000), kind: 'project_view' }] }),
+      ),
+    ).toHaveLength(1);
+    expect(
+      rule(
+        'S14',
+        base({
+          interactions: [{ at: iso(now - C.projectViewFeedbackDays * 86400000 + 1), kind: 'project_view' }],
+        }),
+      ),
+    ).toEqual([]);
+
+    const birthdayAt = new Date(now);
+    birthdayAt.setDate(birthdayAt.getDate() + C.birthdayDays);
+    const birthday = `--${String(birthdayAt.getMonth() + 1).padStart(2, '0')}-${String(birthdayAt.getDate()).padStart(2, '0')}`;
+    expect(rule('S15', base({ ...care, dob: birthday }))).toHaveLength(1);
+    birthdayAt.setDate(birthdayAt.getDate() + 1);
+    const birthdayAfterWindow = `--${String(birthdayAt.getMonth() + 1).padStart(2, '0')}-${String(birthdayAt.getDate()).padStart(2, '0')}`;
+    expect(rule('S15', base({ ...care, dob: birthdayAfterWindow }))).toEqual([]);
+
+    const purchased90DaysAgo = iso(now - 90 * 86400000);
+    expect(
+      rule('S16', base({ care_stage: 'Kí HĐMB', care_stage_history: [{ stage: 'Kí HĐMB', at: purchased90DaysAgo }] })),
+    ).toHaveLength(1);
+
+    expect(
+      rule(
+        'S18',
+        base({ care_stage: 'Nuôi dài hạn', next_call_at: iso(now + C.nurtureCallbackReminderDays * 86400000) }),
+      ),
+    ).toHaveLength(1);
+    expect(
+      rule(
+        'S18',
+        base({ care_stage: 'Nuôi dài hạn', next_call_at: iso(now + C.nurtureCallbackReminderDays * 86400000 + 1) }),
+      ),
+    ).toEqual([]);
   });
   it('suppresses unchanged evidence, restores after evidence change, expires snooze', () => {
     const c = base(),
