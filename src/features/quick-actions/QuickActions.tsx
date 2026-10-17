@@ -24,6 +24,7 @@ import {
   slotFor,
 } from './model';
 import { actionStore, clearQuickAction, openQuickAction, type QuickAction } from './store';
+import { VoiceNoteInput } from './voice';
 import { contactPhones, copyAndOpenZalo, defaultTemplates } from './zalo';
 
 const FIELD =
@@ -460,6 +461,12 @@ function ActionSheet({
                 onChange={(e) => setNote(e.target.value)}
               />
             </label>
+            <VoiceNoteInput
+              account={account}
+              onTranscript={(transcript) =>
+                setNote((current) => [current.trim(), transcript].filter(Boolean).join(' '))
+              }
+            />
             {result && note.trim() && <AiNoteReview account={account} customer={c} note={note} />}
             {result && (
               <section className="flex flex-col gap-2">
@@ -539,16 +546,25 @@ function ActionSheet({
           </>
         )}
         {kind === 'note' && (
-          <label className="flex flex-col gap-1 text-small">
-            Nội dung
-            <textarea
-              className={FIELD}
-              aria-label="Nội dung ghi chú"
-              rows={5}
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
+          <div className="flex flex-col gap-2">
+            <label className="flex flex-col gap-1 text-small">
+              Nội dung
+              <textarea
+                className={FIELD}
+                aria-label="Nội dung ghi chú"
+                rows={5}
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+              />
+            </label>
+            <VoiceNoteInput
+              account={account}
+              onTranscript={(transcript) =>
+                setNote((current) => [current.trim(), transcript].filter(Boolean).join(' '))
+              }
             />
-          </label>
+            {note.trim() && <AiNoteReview account={account} customer={c} note={note} />}
+          </div>
         )}
         {kind === 'schedule' && <ScheduleFields schedule={schedule} onChange={setSchedule} />}
         {kind === 'zalo' && (

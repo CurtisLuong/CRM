@@ -26,9 +26,11 @@ for (const scheme of ['light', 'dark'] as const) {
       await page.route('http://127.0.0.1:54321/**', (route) =>
         route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }),
       );
+      let verifyVoiceNote = false;
       await page.route('https://worker.test/ai', async (route) => {
         const body = JSON.parse(route.request().postData() || '{}');
         expect(body.task).toBe('parse_note');
+        if (verifyVoiceNote) expect(body.extra.note).toContain('Khách quan tâm căn 2 phòng ngủ');
         expect(body.customer).not.toHaveProperty('phone');
         expect(JSON.stringify(body)).not.toContain('0901234567');
         await route.fulfill({
@@ -38,6 +40,26 @@ for (const scheme of ['light', 'dark'] as const) {
         });
       });
       await page.addInitScript(() => {
+        class MockSpeechRecognition {
+          static latest: MockSpeechRecognition | null = null;
+          lang = '';
+          interimResults = true;
+          continuous = true;
+          onresult: ((event: unknown) => void) | null = null;
+          onerror: ((event: unknown) => void) | null = null;
+          onend: (() => void) | null = null;
+          start() {
+            MockSpeechRecognition.latest = this;
+          }
+          stop() {
+            this.onend?.();
+          }
+          abort() {}
+        }
+        (window as Window & { SpeechRecognition?: typeof MockSpeechRecognition }).SpeechRecognition =
+          MockSpeechRecognition;
+        (window as Window & { __MockSpeechRecognition?: typeof MockSpeechRecognition }).__MockSpeechRecognition =
+          MockSpeechRecognition;
         const userId = 't31-e2e-user';
         const user = {
           id: userId,
@@ -202,6 +224,24 @@ for (const scheme of ['light', 'dark'] as const) {
         return row.interactions;
       });
       expect(interactions).toMatchObject([{ channel: 'visit', kind: 'project_view', by: 't31-e2e-user' }]);
+
+      await interact(page.getByRole('button', { name: 'Ghi chú' }));
+      await interact(page.getByRole('button', { name: /Đọc giọng nói/ }));
+      await page.evaluate(() => {
+        const Recognition = (
+          window as Window & { __MockSpeechRecognition?: { latest: { onresult?: (event: unknown) => void } | null } }
+        ).__MockSpeechRecognition;
+        Recognition?.latest?.onresult?.({
+          resultIndex: 0,
+          results: [{ isFinal: true, 0: { transcript: 'Khách quan tâm căn 2 phòng ngủ' } }],
+        });
+      });
+      await expect(page.getByRole('textbox', { name: 'Nội dung ghi chú' })).toHaveValue(
+        'Khách quan tâm căn 2 phòng ngủ',
+      );
+      verifyVoiceNote = true;
+      await interact(page.getByRole('button', { name: 'Lưu + AI · xem đề xuất' }));
+      await expect(page.getByTestId('ai-note-review')).toBeVisible();
     });
   });
 }
