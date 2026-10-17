@@ -441,7 +441,7 @@ Ký hiệu: ☐ chưa · ◐ đang làm (ghi nhánh) · ☑ xong (ghi ngày) · 
 
 #### T6.7 — AI v2
 - **Đọc:** `prompts.md` A. **Sở hữu:** `worker/ai-assist.js`, `src/features/ai/*`, `tests/ai-eval/*`.
-- **Xong khi:** prompt v2 (brief, zalo, parse_note, retarget_msg, coach, close_reason) chạy; bộ đánh giá 50–100 ghi chú không có lỗi nghiêm trọng; `MODELS`/`AI_MODELS` khớp.
+- **Xong khi:** prompt v2 (brief, zalo, parse_note, retarget_msg, coach, close_reason) chạy; bộ đánh giá 50–100 ghi chú không có lỗi nghiêm trọng; `MODELS`/`AI_MODELS` khớp. **Ngoại lệ D-022 (2026-10-17):** chủ dự án bỏ bước đánh giá 50–100 ghi chú thật; chất lượng AI được theo dõi trên production thay thế.
 
 #### T6.8 — Gộp trùng có duyệt
 - **Sở hữu:** `src/features/intake/{route.tsx,merge/**}`, `src/domain/customer/merge.ts`, `src/data/repositories/customers.ts`; test tương ứng và E2E intake.
@@ -455,4 +455,4 @@ Ký hiệu: ☐ chưa · ◐ đang làm (ghi nhánh) · ☑ xong (ghi ngày) · 
 | Trước T1.1 | Xác nhận stack D-011 (hoặc yêu cầu đổi) |
 | Sóng 2 | Chạy SQL v2 (T2.A5) trên production sau khi agent báo đã qua staging |
 | Sóng 5 | Thử v2 trên điện thoại thật (T5.3); thực hiện cutover theo runbook (T5.4) |
-| Sóng 6 | Chọn 50–100 ghi chú thật để làm bộ đánh giá AI (T6.7); nhập chi phí campaign (T6.5) |
+| Sóng 6 | Theo dõi đề xuất AI trên production, báo lại ví dụ sai (T6.7, D-022 — thay bộ đánh giá 50–100 ghi chú); nhập chi phí campaign (T6.5) |
