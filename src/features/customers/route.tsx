@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router';
+import { Link, useNavigate, useParams } from 'react-router';
 import type { FeatureRoute } from '@/app/routes';
 import { APT_TYPES } from '@/config/aptTypes';
 import { SOURCES } from '@/config/sources';
@@ -84,7 +84,34 @@ function Customers() {
   const [segmentName, setSegmentName] = useState('');
   const [scrollTop, setScrollTop] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(560);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLElement>(null);
+
+  // One page scroll surface: list gestures can always reach the filters above it.
+  // Keep rendering bounded to the viewport, relative to the list's page position.
+  useEffect(() => {
+    const list = scrollRef.current;
+    if (!list) return;
+    let frame = 0;
+    const measure = () => {
+      setScrollTop(Math.max(0, -list.getBoundingClientRect().top));
+      setViewportHeight(window.innerHeight);
+    };
+    const schedule = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(measure);
+    };
+    measure();
+    window.addEventListener('scroll', schedule, { passive: true });
+    window.addEventListener('resize', schedule);
+    const observer = new ResizeObserver(schedule);
+    if (list.parentElement?.parentElement) observer.observe(list.parentElement.parentElement);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener('scroll', schedule);
+      window.removeEventListener('resize', schedule);
+      observer.disconnect();
+    };
+  }, []);
 
   useEffect(() => {
     if (!userId) {
@@ -138,7 +165,6 @@ function Customers() {
     setActiveSaved('');
     setFilters((prev) => ({ ...prev, [key]: value }));
     setScrollTop(0);
-    if (scrollRef.current) scrollRef.current.scrollTop = 0;
   };
   const applySaved = (item: SavedSegment) => {
     setGroup(item.group);
@@ -205,7 +231,6 @@ function Customers() {
     setSort(DEFAULT_SORT);
     setActiveSaved('');
     setScrollTop(0);
-    if (scrollRef.current) scrollRef.current.scrollTop = 0;
   };
 
   const ownRows = rows.filter((c) => c.owner_id === userId);
@@ -410,20 +435,17 @@ function Customers() {
   );
 
   const itemHeight = view === 'list' ? 72 : 120;
-  const window = virtualWindow(visible.length, scrollTop, viewportHeight, itemHeight);
-  const slice = visible.slice(window.start, window.end);
+  const range = virtualWindow(
+    visible.length,
+    Math.min(scrollTop, Math.max(0, (visible.length - 1) * itemHeight)),
+    viewportHeight,
+    itemHeight,
+  );
+  const slice = visible.slice(range.start, range.end);
   const list = (
-    <section
-      ref={scrollRef}
-      onScroll={(e) => {
-        setScrollTop(e.currentTarget.scrollTop);
-        setViewportHeight(e.currentTarget.clientHeight);
-      }}
-      className="h-[min(68dvh,680px)] overflow-auto overscroll-contain"
-      aria-label="Danh sách khách"
-    >
-      <div style={{ height: window.totalHeight, position: 'relative' }}>
-        <div style={{ position: 'absolute', insetInline: 0, top: window.offset }}>
+    <section ref={scrollRef} aria-label="Danh sách khách">
+      <div style={{ height: range.totalHeight, position: 'relative' }}>
+        <div style={{ position: 'absolute', insetInline: 0, top: range.offset }}>
           {view === 'list' ? (
             <RowList label="Khách hàng" className="[&>li]:h-[72px]">
               {slice.map((c) => (
@@ -457,7 +479,7 @@ function Customers() {
           <p className="text-label text-text-3">KHÁCH HÀNG</p>
           <h2 className="text-title">Danh sách khách</h2>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button onClick={() => navigate('/khach-hang/retarget')} icon="retarget">
             Tệp &amp; Retarget
           </Button>
@@ -521,7 +543,7 @@ function Customers() {
           {visible.length.toLocaleString('vi-VN')} khách{' '}
           <span className="text-small font-normal text-text-2">· xuất theo đúng bộ lọc</span>
         </p>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <input
             aria-label="Tên tệp mới"
             value={segmentName}
@@ -535,6 +557,12 @@ function Customers() {
           <Button onClick={reset}>Xoá lọc</Button>
         </div>
       </div>
+      <Link
+        to="/khach-hang/luu-tru"
+        className="inline-flex min-h-11 items-center rounded-control text-small text-text-2 underline underline-offset-4 hover:text-text focus-visible:outline-2 focus-visible:outline-focus"
+      >
+        Khách đã lưu trữ
+      </Link>
       <section aria-label="Kết quả lọc" className="overflow-hidden rounded-card border border-border bg-surface">
         {list}
       </section>

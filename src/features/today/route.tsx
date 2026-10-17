@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FeatureRoute } from '@/app/routes';
 import { useAppSession } from '@/app/session';
+import { CLOSE_REASONS, LEAD_DROP_REASONS } from '@/config/reasons';
+import { VELOCITY_CONFIG } from '@/config/velocity';
 import { useCustomers, useRepositoryAccount, useSyncStatus } from '@/data/hooks';
 import type { Customer, Task } from '@/domain/customer';
 import { snoozePromise, undoPromiseSnooze } from '@/domain/deadlines/promises';
@@ -27,6 +29,80 @@ const FILTERS: { key: QueueFilter; label: string }[] = [
 ];
 const formatDue = (due?: number) =>
   due == null ? 'Chưa có hạn' : new Date(due).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' });
+
+const EVIDENCE_LABELS: Record<string, string> = {
+  registered_at: 'Ngày đăng ký',
+  created_at: 'Ngày tạo',
+  sla_anchor_at: 'Mốc tính SLA',
+  next_call_at: 'Hẹn gọi',
+  next_call_end: 'Kết thúc khung gọi',
+  next_call_reason: 'Lý do hẹn gọi',
+  care_stage_updated_at: 'Cập nhật bậc',
+  care_stage: 'Bậc chăm sóc',
+  lastTouch: 'Liên hệ cuối',
+  lastInteraction: 'Trao đổi cuối',
+  last_touch_at: 'Liên hệ cuối',
+  interest_level: 'Mức quan tâm',
+  step: 'Bước hồ sơ',
+  phase: 'Giai đoạn',
+  start: 'Bắt đầu giai đoạn',
+  due: 'Hạn',
+  due_at: 'Hạn',
+  after: 'Ngày retarget',
+  reason: 'Lý do',
+  project_view_at: 'Ngày xem dự án',
+  project_view: 'Lần xem dự án',
+  finance: 'Tài chính',
+  purpose: 'Mục đích mua',
+  decision_maker: 'Người quyết định',
+  purchase_timeline: 'Thời điểm mua',
+};
+const EVIDENCE_DATES = new Set([
+  'registered_at',
+  'created_at',
+  'sla_anchor_at',
+  'next_call_at',
+  'next_call_end',
+  'care_stage_updated_at',
+  'lastTouch',
+  'lastInteraction',
+  'last_touch_at',
+  'start',
+  'due',
+  'due_at',
+  'after',
+  'project_view_at',
+]);
+
+/** Display only evidence with a known label and a readable value; never stringify structured records. */
+export function formatSignalEvidence(evidence: Signal['evidence']): string[] {
+  return evidence.flatMap(({ field, value }) => {
+    const label = EVIDENCE_LABELS[field];
+    if (!label || value == null || (typeof value !== 'string' && typeof value !== 'number')) return [];
+    let formatted: string;
+    if (EVIDENCE_DATES.has(field)) {
+      const timestamp = typeof value === 'number' ? value : Date.parse(value);
+      if (!Number.isFinite(timestamp) || !Number.isFinite(new Date(timestamp).getTime())) return [];
+      formatted = formatDue(timestamp);
+    } else if (field === 'step') {
+      const step = VELOCITY_CONFIG.bookingSteps.find((entry) => entry.key === value);
+      if (!step) return [];
+      formatted = step.label;
+    } else if (field === 'phase') {
+      const phase = Object.entries(VELOCITY_CONFIG.phases).find(([key]) => key === value)?.[1];
+      if (!phase) return [];
+      formatted = phase.label;
+    } else if (typeof value === 'number') {
+      if (!Number.isFinite(value)) return [];
+      formatted = `${value.toLocaleString('vi-VN')}${field === 'interest_level' ? '%' : ''}`;
+    } else {
+      const text = value.trim();
+      formatted = field === 'reason' ? CLOSE_REASONS[text] || LEAD_DROP_REASONS[text] || text : text;
+      if (!formatted || formatted.includes('[object Object]') || /^\d{4}-\d{2}-\d{2}T/.test(formatted)) return [];
+    }
+    return [`${label}: ${formatted}`];
+  });
+}
 
 function SignalActions({ signal, customer }: { signal: Signal; customer: Customer }) {
   const account = useRepositoryAccount();
@@ -126,6 +202,7 @@ export function TodayPage() {
   const lateCount = rows.filter((row) => row.signal.due != null && row.signal.due < now).length;
   const sessionRows = rows.filter((row) => row.signal.actions.includes('call'));
   const activeCall = sessionIndex == null ? null : (sessionRows[sessionIndex] ?? null);
+  const nbaEvidence = formatSignalEvidence(rows[0]?.signal.evidence ?? []);
   const afterEvening = new Date(now).getHours() >= 20 && new Date(now).getMinutes() >= 45;
 
   if (!account) {
@@ -219,10 +296,8 @@ export function TodayPage() {
             {rows[0].customer.full_name} · {rows[0].signal.title}
           </h2>
           <p className="mt-1 text-small">{rows[0].signal.reason}</p>
-          {rows[0].signal.evidence.length > 0 && (
-            <p className="mt-1 text-small text-text-2">
-              Bằng chứng: {rows[0].signal.evidence.map((e) => `${e.field}: ${String(e.value ?? '—')}`).join(' · ')}
-            </p>
+          {nbaEvidence.length > 0 && (
+            <p className="mt-1 text-small text-text-2">Bằng chứng: {nbaEvidence.join(' · ')}</p>
           )}
           <p className="mt-1 text-small text-text-2">
             Hạn: {formatDue(rows[0].signal.due)} · Brief: {rows[0].customer.notes || rows[0].signal.reason}

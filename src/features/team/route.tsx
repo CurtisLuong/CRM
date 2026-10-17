@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { FeatureRoute } from '@/app/routes';
 import { useCustomers, useRepositoryAccount } from '@/data/hooks';
 import { Avatar, Badge, Button, useToast } from '@/ui';
@@ -18,30 +18,73 @@ function Team() {
   const [myName, setMyName] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const [offline, setOffline] = useState(false);
+  const [loadState, setLoadState] = useState<'loading' | 'ready' | 'offline' | 'error'>('loading');
+  const [loadError, setLoadError] = useState('');
+  const loadRequest = useRef(0);
 
   const refresh = useCallback(async () => {
-    if (!account || !userId) return;
+    const request = ++loadRequest.current;
+    if (!account || !userId) {
+      setMembers([]);
+      setMyName('');
+      return;
+    }
+    setLoadState('loading');
+    setLoadError('');
     try {
       const cached = JSON.parse(localStorage.getItem(cacheKey(userId)) || '[]');
-      if (Array.isArray(cached)) setMembers(cached);
+      setMembers(Array.isArray(cached) ? cached : []);
     } catch {
       setMembers([]);
     }
-    const remote = await account.remote.teamList();
-    if (!remote) {
-      setOffline(true);
+    if (!account.sync.isOnline()) {
+      setLoadState('offline');
       return;
     }
-    const rows = remote as TeamMember[];
-    setMembers(rows);
-    setOffline(false);
-    localStorage.setItem(cacheKey(userId), JSON.stringify(rows));
-    setMyName(rows.find((member) => member.is_me)?.full_name || '');
+    try {
+      // teamList() discards RPC errors. Read the result here to explain the actual failure.
+      account.sync.local.assertOpen();
+      const { data, error: rpcError } = await account.sync.client.rpc('team_list');
+      if (request !== loadRequest.current) return;
+      account.sync.local.assertOpen();
+      if (rpcError) throw rpcError;
+      const rows = (data || []) as TeamMember[];
+      setMembers(rows);
+      setLoadState('ready');
+      localStorage.setItem(cacheKey(userId), JSON.stringify(rows));
+      setMyName(rows.find((member) => member.is_me)?.full_name || '');
+    } catch (cause) {
+      if (request !== loadRequest.current) return;
+      if (!account.sync.isOnline()) {
+        setLoadState('offline');
+        return;
+      }
+      const detail = cause as { code?: string; message?: string } | null;
+      const message = detail?.message || 'Máy chủ không phản hồi. Vui lòng thử lại.';
+      const missingRpc =
+        (detail?.code === 'PGRST202' || detail?.code === '42883') && /(?:public\.)?team_list\b/i.test(message);
+      const expiredSession = detail?.code === 'PGRST301' || detail?.code === 'PGRST303';
+      setLoadError(
+        expiredSession
+          ? 'Phiên đăng nhập không còn hợp lệ. Vui lòng đăng nhập lại để xem đồng nghiệp.'
+          : missingRpc
+            ? 'Máy chủ thiếu hàm team_list. Nhờ trưởng nhóm kiểm tra SQL/add_team_assign.sql.'
+            : `Chưa tải được danh sách nhóm: ${message}`,
+      );
+      setLoadState('error');
+    }
   }, [account, userId]);
 
   useEffect(() => {
     void refresh();
+    const reload = () => void refresh();
+    window.addEventListener('online', reload);
+    window.addEventListener('offline', reload);
+    return () => {
+      loadRequest.current += 1;
+      window.removeEventListener('online', reload);
+      window.removeEventListener('offline', reload);
+    };
   }, [refresh]);
 
   const me = members.find((member) => member.is_me);
@@ -92,9 +135,15 @@ function Team() {
           Trưởng nhóm thêm thành viên bằng email. Người theo dõi chỉ xem khách; chỉ người phụ trách được sửa.
         </p>
       </header>
-      {offline && (
+      {userId && loadState === 'offline' && (
         <p role="status" className="rounded-control border border-border bg-surface-2 p-3 text-small text-text-2">
-          Ngoại tuyến hoặc chưa cài SQL nhóm. Đang hiển thị danh sách đã lưu trên thiết bị.
+          Ngoại tuyến.{' '}
+          {members.length ? 'Đang hiển thị danh sách đã lưu trên thiết bị.' : 'Kết nối mạng để tải danh sách nhóm.'}
+        </p>
+      )}
+      {userId && loadState === 'error' && (
+        <p role="alert" className="rounded-control bg-danger/10 p-3 text-small text-danger">
+          {loadError}
         </p>
       )}
       {error && (
@@ -119,7 +168,7 @@ function Team() {
             value={myName}
             onChange={(e) => setMyName(e.target.value)}
           />
-          <Button onClick={saveName} loading={busy} disabled={!myName.trim()}>
+          <Button onClick={saveName} loading={busy} disabled={!myName.trim() || !userId || loadState !== 'ready'}>
             Lưu tên
           </Button>
         </div>
@@ -186,11 +235,18 @@ function Team() {
           </ul>
         ) : (
           <div className="space-y-2 p-4 text-body text-text-2">
-            <p>Chưa tải được danh sách nhóm.</p>
-            <p className="text-small">
-              Trưởng nhóm cần chạy SQL/add_team_assign.sql và đặt role admin theo hướng dẫn nhóm.
+            <p role="status">
+              {!userId
+                ? 'Bạn chưa đăng nhập. Đăng nhập để xem đồng nghiệp.'
+                : loadState === 'loading'
+                  ? 'Đang tải danh sách nhóm…'
+                  : loadState === 'ready'
+                    ? 'Nhóm chưa có thành viên. Nhờ trưởng nhóm thêm đồng nghiệp bằng email.'
+                    : loadState === 'offline'
+                      ? 'Chưa có danh sách nhóm đã lưu trên thiết bị.'
+                      : 'Danh sách nhóm chưa tải được. Vui lòng thử lại.'}
             </p>
-            <Button onClick={() => void refresh()}>Tải lại</Button>
+            {userId && loadState !== 'loading' && <Button onClick={() => void refresh()}>Tải lại</Button>}
           </div>
         )}
       </section>
