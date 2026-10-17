@@ -6,6 +6,13 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-17 — T6.8: feat(T6.8): detect and review customer duplicates
+
+- Intake detects normalized-phone and near-name matches, compares both records, and requires explicit keeper selection and confirmation before archiving a duplicate.
+- Merge keeps source/provenance and appends aggregate histories; repository atomically updates local records and queues patch updates, with owner/admin authorization checks.
+- Validation before gate: npm run check (528 tests), npm run build, git diff --check. Full E2E and golden parity run by merge gate.
+- File: `src/data/repositories/customers.ts`, `src/domain/customer/merge.ts`, `src/features/intake/route.tsx`, `tests/data/repositories.test.ts`, `tests/domain/customer/merge.test.ts`, `tests/e2e/intake.spec.ts`
+
 ## 2026-10-17 — T6.4: T6.4 hoàn thiện chỉ số Chăm sóc F-07
 
 - Thêm chỉ số chăm sóc với tử/mẫu, định nghĩa, kỳ đo và drill-down ra hồ sơ khách.
