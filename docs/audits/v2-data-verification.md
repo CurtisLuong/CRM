@@ -77,7 +77,7 @@ Chưa làm: positive control "sửa thật 1 ô → có ghi" để chứng minh 
 
 | # | Kịch bản | Nơi kiểm | Kết quả | Bằng chứng |
 |---|---|---|---|---|
-| E1 | Offline rồi đóng app | máy thật + staging | ⏳ | |
+| E1 | Offline rồi đóng app | Android Chrome (máy thật) + staging + Mac | ✅ (trừ cuộc gọi) | 12:55–13:15. Chế độ máy bay → tạo khách `Test T5.2 1` (`d063bb16…`, `0900000001`) + 1 ghi chú + 1 việc → đóng hẳn Chrome → mở lại offline: còn đủ (chủ dự án) → bật mạng: "Đã đồng bộ". Mac (trình duyệt app Claude) nhận về đủ: 89 khách, khách thử có 1 ghi chú + 1 việc đúng nội dung. **Cuộc gọi chưa ghi được:** v2 không có nút ghi cuộc gọi nhập tay (v1 có `📞 Ghi cuộc gọi`, `legacy/js/calls.js` cách 1) — hộp ghi kết quả chỉ mở sau khi bấm Gọi (quay số) hoặc với cuộc gọi đang chờ. Thiếu parity mà `v2-parity.md` (T5.1) đánh ✅ → **task con**; phần ghi cuộc gọi offline kiểm cùng E3 |
 | E2 | 2 máy sửa cùng khách | máy thật + staging | ⏳ | Rủi ro đã biết: 2 máy cùng thêm phần tử vào **cùng một mảng** khi offline → bản ghi sau thắng cả mảng (LWW theo cột, D-012) → có thể mất 1 ghi chú. `audit-since` sẽ báo `✗ MẤT PHẦN TỬ` |
 | E3 | Mở gọi rồi huỷ | trình duyệt/máy thật + staging | ⏳ | |
 | E4 | Webhook FB lặp | local | ✅ chống trùng (test) · ⏳ thật | `node tests/fb-leads.test.mjs` → passed (2026-10-17). Không thử thật trên staging: Worker `intake-worker` chỉ có 1 bản, `SUPABASE_URL` là secret dùng cho production — bắn lead thử sẽ ghi vào production |
