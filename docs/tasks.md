@@ -336,7 +336,7 @@ Ký hiệu: ☐ chưa · ◐ đang làm (ghi nhánh) · ☑ xong (ghi ngày) · 
 - **Xong khi:** "Đã gửi Zalo?" 1 chạm ghi `interactions`; ghi gặp/xem dự án; timeline + "liên hệ cuối" + chỉ số dùng cả `interactions`; v1 bỏ qua cột mới không lỗi.
 
 #### T4.2 — Lời hứa 2 chiều
-- **Sở hữu:** `src/features/tasks/promises*`, `src/domain/deadlines/promises.ts`.
+- **Sở hữu:** `src/features/tasks/{route.tsx,promises*}`, `src/features/today/**` (chỉ luồng dời hàng loạt + Hoàn tác), `src/domain/deadlines/promises.ts`; test tương ứng và E2E tasks/today.
 - **Xong khi:** tạo việc chọn Em hứa/Khách hẹn; dời giữ `due_original` + lý do; chống trùng theo `key`; lọc trong Công việc; dời hàng loạt từ Hôm nay (sức làm) có Hoàn tác; việc v1 không có `side` hiển thị bình thường.
 
 ### Sóng 5 — Cutover
@@ -365,7 +365,7 @@ Ký hiệu: ☐ chưa · ◐ đang làm (ghi nhánh) · ☑ xong (ghi ngày) · 
 
 #### T6.1 — Trí nhớ khách v2
 - **Đọc:** `PRD.md` F-05, `UX_GUIDELINES.md` §5.
-- **Sở hữu:** `src/features/profile/memory*`, `src/domain/customer/facts.ts`, `src/config/reasons.ts` (CLOSE_REASONS — mã mới bất biến).
+- **Sở hữu:** `src/features/profile/{route.tsx,memory*}`, `src/domain/customer/{facts.ts,brief.ts}`, `src/config/reasons.ts` (CLOSE_REASONS — mã mới bất biến), `src/features/quick-actions/QuickActions.tsx` + test, `src/features/ai/AiZaloDraft.tsx`; test tương ứng.
 - **Xong khi:** fact có nguồn/độ mới (`field_meta`), interests theo đợt (lead hỏi dự án thứ 2 → thêm đợt), household, contact_prefs + không liên hệ (chặn Zalo/retarget), kết thúc có lý do + điều kiện retarget, Brief đọc các nguồn mới.
 
 #### T6.2 — Tệp khách & Retarget
@@ -381,7 +381,7 @@ Ký hiệu: ☐ chưa · ◐ đang làm (ghi nhánh) · ☑ xong (ghi ngày) · 
 - **Xong khi:** đủ chỉ số F-07 với định nghĩa; drill-down ra danh sách; Bài học tuần ≤3 có ngưỡng; HealthDot từng khách giải thích được.
 
 #### T6.5 — Hiệu quả › Marketing
-- **Sở hữu:** `src/features/insights/marketing*`, `src/domain/metrics/marketing.ts`, `src/features/settings/campaign-costs*`.
+- **Sở hữu:** `src/features/insights/{route.tsx,marketing*}`, `src/domain/metrics/marketing.ts`, `src/features/settings/{route.tsx,campaign-costs*}`; test tương ứng.
 - **Xong khi:** funnel theo kênh/campaign/form, cohort, lý do loại theo kênh, nhập chi phí → CPL…, tình trạng `fb_leads` (lần nhận cuối, lỗi).
 
 #### T6.6 — Ghi chú giọng nói
