@@ -1,6 +1,6 @@
 # Kiểm chứng dữ liệu v2 trên staging (T5.2)
 
-> **Trạng thái:** ĐANG LÀM — công cụ + runbook xong (2026-10-17); dùng staging hiện tại (bỏ Phần A); chờ Phần B.
+> **Trạng thái:** XONG kiểm chứng 2026-10-17 — xem Kết luận mục 5. Còn 3 task con trước T5.4 (T5.6a, T5.6b, T5.8a).
 > **Cách làm:** `docs/runbooks/data-verification.md`. **Công cụ (chỉ đọc):** `scripts/verify/counts.sql`, `scripts/verify/audit-since.sql`, `scripts/verify/idb-counts.js`.
 > **Xong khi (tasks.md T5.2):** báo cáo có số liệu trước/sau; **0 mất dữ liệu**.
 > Ký hiệu: ✅ đạt · ❌ lỗi (có task con) · ⏳ chưa chạy. Ghi rõ nơi kiểm: *local* / *trình duyệt* / *staging* / *máy thật*.
@@ -21,24 +21,24 @@
 
 ## 1. Số liệu trước / sau (`counts.sql`, staging)
 
-| Mục | Trước (Phần B) | Sau (Phần F) | Chênh | Giải thích |
+| Mục | Trước (Phần B, 12:05) | Sau (Phần F, ~15:45) | Chênh | Giải thích |
 |---|---|---|---|---|
-| 01 khách (tổng) | 88 | ⏳ | | |
-| 02 khách đang dùng | 88 | ⏳ | | |
-| 03 khách đã lưu trữ | 0 | ⏳ | | |
-| 04 khách mới (chưa phân loại) | 23 | ⏳ | | |
-| 05 việc (tổng) | 16 | ⏳ | | |
-| 06 việc đang mở | 14 | ⏳ | | |
-| 07 cuộc gọi (tổng) | 46 | ⏳ | | |
-| 08 cuộc gọi chưa ghi kết quả | 1 | ⏳ | | |
-| 09 ghi chú hồ sơ | 67 | ⏳ | | |
-| 10 khách có ghi chú đăng ký | 4 | ⏳ | | |
-| 11 mốc lịch sử bậc | 220 | ⏳ | | |
-| 12 tương tác ngoài cuộc gọi | 0 | ⏳ | | |
-| 20 tài liệu | 59 | ⏳ | | |
-| 21 nhật ký thay đổi | 0 | ⏳ | | |
-| 30 vân tay khách (bỏ `updated_at`) | `faf8a2d7…` | ⏳ | | Chỉ được đổi do Phần E |
-| 32 vân tay tài liệu | `456e5f42…` | ⏳ | | Phải giữ nguyên |
+| 01 khách (tổng) | 88 | 89 | +1 | khách thử `Test T5.2 1` (E1) |
+| 02 khách đang dùng | 88 | 89 | +1 | khách thử |
+| 03 khách đã lưu trữ | 0 | 0 | 0 |  |
+| 04 khách mới (chưa phân loại) | 23 | 12 | −11 | −12 tự chuyển Loại SLA (12:26) + 1 khách thử |
+| 05 việc (tổng) | 16 | 18 | +2 | `việc offline e1`, `việc Mac E2` |
+| 06 việc đang mở | 14 | 16 | +2 | như trên |
+| 07 cuộc gọi (tổng) | 46 | 47 | +1 | cuộc gọi E3 (Không nghe) |
+| 08 cuộc gọi chưa ghi kết quả | 1 | 1 | 0 |  |
+| 09 ghi chú hồ sơ | 67 | 72 | +5 | khách thử: offline e1, từ điện thoại e2, e5, Điện thoại e2, Mac E2 lần 2 (ghi chú Mac E2 lần 1 bị mất ở E2 lần 1 → không tính) |
+| 10 khách có ghi chú đăng ký | 4 | 4 | 0 |  |
+| 11 mốc lịch sử bậc | 220 | 221 | +1 | mốc "Đăng kí mới" khi tạo khách thử |
+| 12 tương tác ngoài cuộc gọi | 0 | 0 | 0 |  |
+| 20 tài liệu | 59 | 59 | 0 |  |
+| 21 nhật ký thay đổi | 0 | 22 | +22 | = `audit-since` mục 5 |
+| 30 vân tay khách (bỏ `updated_at`) | `faf8a2d7…` | `f6f1470b…` | đổi | chỉ do SLA + Phần D + Phần E (nhật ký mục 5) |
+| 32 vân tay tài liệu | `456e5f42…` | `456e5f42…` | giữ nguyên | ✅ |
 
 ## 2. Số v2 hiện khớp DB (Phần C)
 
