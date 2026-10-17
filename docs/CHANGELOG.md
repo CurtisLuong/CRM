@@ -6,6 +6,13 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-17 — T5.1: T5.1: parity v1 ↔ v2 đã kiểm toán
+
+- Ghi bằng chứng cho các thao tác đã có parity và liệt kê các gap xóa còn lại.
+- Chủ dự án chấp nhận hoãn ba thao tác xóa theo D-020 trong cutover hiện tại; audit nêu rõ phạm vi và rủi ro.
+- git diff --check pass; cổng xác minh dependencies, ownership và golden.
+- File: `docs/audits/v2-parity.md`
+
 ## 2026-10-17 — T5.8: T5.8: sửa kết quả cuộc gọi đã ghi
 
 - Thêm sửa kết quả cuộc gọi đã lưu, chỉ patch result/note và giữ timestamp, metadata, trường JSON lạ.
