@@ -6,6 +6,13 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-17 — T6.3a: Triển khai phần tín hiệu đã rõ
+
+- Thêm S11, S13–S16 và S18 cùng ngưỡng cấu hình và kiểm tra positive/negative.
+- Giữ S12/S17 ngoài scope cho đến khi định nghĩa được chốt; T6.3 cha vẫn mở.
+- Kiểm tra: npm run check, npm run build, golden v1 --check; test E5 đổi tài khoản riêng 20/20.
+- File: `src/config/signals.ts`, `src/domain/signals/rules/S11.ts`, `src/domain/signals/rules/S13.ts`, `src/domain/signals/rules/S14.ts`, `src/domain/signals/rules/S15.ts`, `src/domain/signals/rules/S16.ts`, `src/domain/signals/rules/S18.ts`, `tests/domain/signals/signals.test.ts`
+
 ## 2026-10-17 — T5.8a: Bổ sung ghi cuộc gọi thủ công vào nhật ký
 
 - Thêm nút Ghi cuộc gọi cho chủ khách, mở form kết quả hiện có và ghi origin=manual mà không khởi chạy cuộc gọi.

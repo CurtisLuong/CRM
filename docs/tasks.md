@@ -140,7 +140,7 @@ Ký hiệu: ☐ chưa · ◐ đang làm (ghi nhánh) · ☑ xong (ghi ngày) · 
 | T6.1 | Trí nhớ khách v2 | Mới P1 | L | Sóng 3, T2.A5 | Agent | ☑ 2026-10-17 (tự merge 64d7524) |
 | T6.2 | Tệp khách & Retarget | Mới P1 | L | T6.1, T3.8 | Agent | ☑ 2026-10-17 (tự merge ce5bab8) |
 | T6.3 | Signals S11–S18 | Mới P1 | M | T2.B5, T4.1, T4.2 | Agent | ☐ |
-| T6.3a | Tín hiệu S11, S13–S16, S18 (phần đã rõ) | Mới P1 | S | T2.B5, T4.1, T4.2 | Agent | ☐ |
+| T6.3a | Tín hiệu S11, S13–S16, S18 (phần đã rõ) | Mới P1 | S | T2.B5, T4.1, T4.2 | Agent | ☑ 2026-10-17 (tự merge 5a85e11) |
 | T6.4 | Hiệu quả › Chăm sóc đầy đủ | Mới P1 | M | T3.13, T4.1, T4.2 | Agent | ☑ 2026-10-17 (tự merge baa5856) |
 | T6.5 | Hiệu quả › Marketing + chi phí | Mới P1 | M | T3.13, T2.A5 | Agent | ☑ 2026-10-17 (tự merge 728a55c) |
 | T6.6 | Ghi chú giọng nói | Mới P1 | M | T3.1, T3.12 | Agent | ☑ 2026-10-17 (tự merge 7afea24) |
