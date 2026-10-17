@@ -135,7 +135,7 @@ Ký hiệu: ☐ chưa · ◐ đang làm (ghi nhánh) · ☑ xong (ghi ngày) · 
 | T5.10 | Lưu trữ khách (xoá mềm) + khôi phục | Cutover | S | T5.1 | Agent | ☑ 2026-10-17 (tự merge 20e24d4) |
 | T5.2a | Test tự động đổi tài khoản khi còn thao tác offline (E5) | Cutover | S | T5.2 | Agent | ☑ 2026-10-17 (tự merge 795530d) |
 | T5.3a | Sửa lỗi QA: cuộn danh sách khách, Bằng chứng thô, lối vào khách lưu trữ, báo lỗi nhóm | Cutover | S | T5.2 | Agent | ☑ 2026-10-17 (tự merge fe0cb80) |
-| T5.3 | QA thiết bị thật + offline | Cutover | M | T5.2 | Chủ dự án + agent | ☐ |
+| T5.3 | QA thiết bị thật + offline | Cutover | M | T5.2 | Chủ dự án + agent | ☑ 2026-10-17 (tự merge 34664c5) |
 | T5.4 | Cutover production + rollback plan | Cutover | S | T5.3 | Chủ dự án + agent | ☐ |
 | T5.4a | Chuẩn bị runbook cutover (chỉ tài liệu) | Cutover | S | T5.2 | Agent | ☑ 2026-10-17 (tự merge bd7dee9) |
 | T5.5 | Dọn dẹp + tài liệu "as built" | Cutover | S | T5.4 | Agent | ☐ |

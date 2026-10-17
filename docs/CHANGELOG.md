@@ -6,6 +6,15 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-17 — T5.3: T5.3 — QA thiết bị thật: 0 lỗi chặn; APK 1.5 cần thêm quyền micro khi cutover
+
+- Báo cáo `docs/audits/v2-device-qa.md`: Mac (360/430/1280, sáng/tối, 15 màn, font Việt, mở có cache 0,2 s) và Android (APK thử `vn.sokhach.crm.v2test` trỏ `crm-v2`, build debug ngoài repo + Chrome).
+- Android đạt: đăng nhập, gọi + nhật ký cuộc gọi, Zalo, offline + đóng app, tải ảnh, lưu trữ/khôi phục, giọng nói khi có quyền micro.
+- Lỗi tìm thấy: L6 cuộn danh sách khách (chặn), L2, L3, L5 → đã sửa ở T5.3a và kiểm lại (Mac + Android); L1 mất phiên khi cập nhật không tái hiện.
+- Phải làm ở T5.4: L4 — APK 1.5 thêm `RECORD_AUDIO` + `MODIFY_AUDIO_SETTINGS` (đã xác nhận bằng APK thử).
+- Hoãn (chủ dự án): L7 giọng nói thời gian thực trong APK; đếm số chạm baseline; iPhone (không có máy).
+- File: `docs/audits/v2-device-qa.md`
+
 ## 2026-10-17 — T5.2a: Khoá kịch bản E5 đổi tài khoản khi còn thao tác offline
 
 - Chỉ thêm tests/data/account-switch.test.ts với fake-indexeddb mới mỗi test và remote giả hỗ trợ select/maybeSingle cho cập nhật mảng T5.9.
