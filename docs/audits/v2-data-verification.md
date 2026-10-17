@@ -12,7 +12,7 @@
 | Project | `mksjmpcsfawsiabfhoxe` (staging hiện tại) |
 | Khôi phục từ backup | `~/CRM-backups/20261016-120548` (diễn tập T0.1, khớp 22/22 bảng). **Không** khôi phục lại — chủ dự án chọn 2026-10-17 |
 | Độ lệch so với yêu cầu | tasks.md T5.2 yêu cầu staging khôi phục từ production **mới nhất**. Lần kiểm này dùng bản 2026-10-16 + dữ liệu chủ dự án đã thử trên v2 từ đó. Hệ quả: (1) khách/ghi chú/cuộc gọi tạo trên production sau 2026-10-16 không có trong lần kiểm; (2) có thể có bản ghi do v2 tạo/sửa trước Phần B — vẫn nằm trong "số liệu gốc" nên không ảnh hưởng so sánh trước/sau. Bù lại: T5.4 backup + chạy migration v2 trên production ngay trước cutover |
-| Migration v2 đã chạy trên staging | **Phát hiện 2026-10-17:** staging **chưa** có 002–006 (kiểm cột: `cot_002=0, bang_003_001=1, cot_004=0, cot_005_006=0`) → v2 trên staging chạy thiếu cột v2 từ trước tới nay; tasks.md §4 "chạy SQL v2 trên production sau khi agent báo đã qua staging" chưa từng qua staging. Chạy bổ sung 002→006 trên staging trước Phần B: ⏳ · `tests/sql/002_005_v2.test.sql`: ⏳ |
+| Migration v2 đã chạy trên staging | **Phát hiện 2026-10-17:** staging **chưa** có 002–006 (kiểm cột: `cot_002=0, bang_003_001=1, cot_004=0, cot_005_006=0`) → v2 trên staging chạy thiếu cột v2 từ trước tới nay; tasks.md §4 "chạy SQL v2 trên production sau khi agent báo đã qua staging" chưa từng qua staging. Chạy bổ sung 002→006 trên staging trước Phần B: ✅ (chủ dự án: 5 file Success; kiểm cột lại 3·2·1·2; trigger audit `trigger_count = 3`, `rls = true`) · `tests/sql/002_005_v2.test.sql`: chưa báo kết quả |
 | Bản v2 được kiểm | `v2` @ `fbd2e0e` (2026-10-17 10:58) — `crm-v2-9hf.pages.dev` |
 | Mốc giờ bắt đầu (Phần B) | 2026-10-17 12:05 (+07) |
 | Theo người phụ trách (Phần B) | `a70e8d12…`: 87 khách · 22 khách mới · 14 việc mở · 45 cuộc gọi · 67 ghi chú — `ef44fb2f…`: 1 khách · 1 khách mới · 0 việc mở · 1 cuộc gọi · 0 ghi chú (cả 2 `profiles.full_name` trống) |
@@ -51,7 +51,7 @@
 | | khách mới chưa phân loại | 23 | **11** | Khách mới › Trong phễu: 10 thẻ (= 10 của `a70e8d12`) | ✅ có giải thích ↓ |
 | | theo người phụ trách | `a70e8d12` 87 · `ef44fb2f` 1 | `a70e8d12` 87 · `ef44fb2f` 1 | — | ✅ |
 | | hàng đợi chưa gửi | — | 0 ("Đã đồng bộ 12:29") | — | ✅ |
-| `ef44fb2f…` (thành viên) | — | 1 khách | ⏳ chưa đăng nhập | ⏳ | ⏳ |
+| `ef44fb2f…` (thành viên) | — | 1 khách | không kiểm: tài khoản chưa ai dùng, không có mật khẩu (chủ dự án) | — | bỏ qua |
 
 **Lệch "khách mới" 23 → 11 = 12 khách tự chuyển Loại lúc đăng nhập (12:26), không phải lỗi đọc dữ liệu.** 12 khách bậc "Đăng kí mới" có `disqualified_at` sau 12:05, `disqualify_reason = khong_lien_lac_duoc`, `updated_at` sau 12:05; không khách nào khác đổi `updated_at`. Đây là tự chuyển SLA đã duyệt (D-008, `src/domain/velocity/automation.ts`, giống v1 `runSlaAutomation` trong `legacy/js/app.js`): dữ liệu staging dừng ở 2026-10-16 nên tới 2026-10-17 các khách này quá hạn SLA. Thay đổi đã đồng bộ lên staging → nằm trong nhật ký từ 12:05; `audit-since` (mốc 2026-10-17 00:00, chạy staging) xác nhận ✅: `thay đổi: 12 · khách bị đổi: 12 · lỗi ✗: 0 · cảnh báo ⚠: 21`. Cột đổi chỉ gồm `disqualified_at`, `disqualify_reason`, `disqualify_note` (12 khách) và `next_call_at/end/reason` (7 khách có lịch hẹn → bị gỡ khi chuyển Loại, đúng v1; 21 cảnh báo ⚠ = 7 × 3 trường này). Thời điểm 12:26:09–12:26:24 — lần đăng nhập v2 đầu tiên của chủ dự án (trước khi đăng nhập lại trong trình duyệt app Claude lúc ~12:29); nên ghi chính xác: tự chuyển lúc **12:26**, không phải 12:29.
 
