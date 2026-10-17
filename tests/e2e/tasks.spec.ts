@@ -189,5 +189,95 @@ for (const scheme of ['light', 'dark'] as const) {
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
       }
     });
+
+    test('tạo lời hứa có key, chống trùng và dời giữ hạn gốc có thể hoàn tác', async ({ page }) => {
+      await installTaskFixture(page);
+      await page.goto('/cong-viec');
+      const due = new Date();
+      due.setDate(due.getDate() + 4);
+      due.setHours(15, 0, 0, 0);
+      const dueLocal = `${due.getFullYear()}-${String(due.getMonth() + 1).padStart(2, '0')}-${String(due.getDate()).padStart(2, '0')}T15:00`;
+      await page.getByRole('button', { name: 'Thêm lời hứa' }).click();
+      await page.getByLabel('Khách hàng của lời hứa').selectOption('t37-e2e-customer');
+      await page.getByLabel('Nội dung lời hứa').fill('Gửi bảng giá T4.2');
+      await page.getByLabel('Loại lời hứa').selectOption('customer');
+      await page.getByLabel('Hạn lời hứa').fill(dueLocal);
+      await page.getByRole('button', { name: 'Lưu lời hứa' }).click();
+      const item = page.locator('#main li').filter({ hasText: 'Gửi bảng giá T4.2' });
+      await expect(item.getByText('Khách hẹn', { exact: true })).toBeVisible();
+
+      await page.getByRole('button', { name: 'Thêm lời hứa' }).click();
+      await page.getByLabel('Khách hàng của lời hứa').selectOption('t37-e2e-customer');
+      await page.getByLabel('Nội dung lời hứa').fill('Gửi bảng giá T4.2');
+      await page.getByLabel('Loại lời hứa').selectOption('customer');
+      await page.getByLabel('Hạn lời hứa').fill(dueLocal);
+      await page.getByRole('button', { name: 'Lưu lời hứa' }).click();
+      await expect(page.getByText('Lời hứa đã có', { exact: true })).toBeVisible();
+
+      const original = await page.evaluate(async () => {
+        const db = await new Promise<IDBDatabase>((resolve, reject) => {
+          const request = indexedDB.open('crm_khach_hang__t37-e2e-user', 2);
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+        const row = await new Promise<Record<string, unknown>>((resolve, reject) => {
+          const request = db.transaction('customers').objectStore('customers').get('t37-e2e-customer');
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+        db.close();
+        return (row.next_tasks as Record<string, unknown>[]).find((task) => task.text === 'Gửi bảng giá T4.2');
+      });
+      expect(original?.key).toEqual(expect.stringMatching(/^promise:/));
+      expect(original?.side).toBe('customer');
+      expect(original?.due).toBeTruthy();
+
+      await item.getByRole('button', { name: 'Dời' }).click();
+      const later = new Date(due);
+      later.setDate(later.getDate() + 1);
+      const laterLocal = `${later.getFullYear()}-${String(later.getMonth() + 1).padStart(2, '0')}-${String(later.getDate()).padStart(2, '0')}T16:30`;
+      await page.getByLabel('Hạn mới: Gửi bảng giá T4.2').fill(laterLocal);
+      await page.getByLabel('Lý do dời: Gửi bảng giá T4.2').selectOption('Khách bận');
+      await item.getByRole('button', { name: 'Lưu hạn mới' }).click();
+      const snoozed = await page.evaluate(async () => {
+        const db = await new Promise<IDBDatabase>((resolve, reject) => {
+          const request = indexedDB.open('crm_khach_hang__t37-e2e-user', 2);
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+        const row = await new Promise<Record<string, unknown>>((resolve, reject) => {
+          const request = db.transaction('customers').objectStore('customers').get('t37-e2e-customer');
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+        db.close();
+        return (row.next_tasks as Record<string, unknown>[]).find((task) => task.text === 'Gửi bảng giá T4.2');
+      });
+      expect(snoozed?.due_original).toBe(original?.due);
+      expect(snoozed?.snoozed_reason).toBe('Khách bận');
+      expect(snoozed?.due).not.toBe(original?.due);
+      await page.getByRole('button', { name: 'Hoàn tác' }).click();
+      await expect
+        .poll(async () =>
+          page.evaluate(async () => {
+            const db = await new Promise<IDBDatabase>((resolve, reject) => {
+              const request = indexedDB.open('crm_khach_hang__t37-e2e-user', 2);
+              request.onsuccess = () => resolve(request.result);
+              request.onerror = () => reject(request.error);
+            });
+            const row = await new Promise<Record<string, unknown>>((resolve, reject) => {
+              const request = db.transaction('customers').objectStore('customers').get('t37-e2e-customer');
+              request.onsuccess = () => resolve(request.result);
+              request.onerror = () => reject(request.error);
+            });
+            db.close();
+            const task = (row.next_tasks as Record<string, unknown>[]).find(
+              (entry) => entry.text === 'Gửi bảng giá T4.2',
+            );
+            return task?.due;
+          }),
+        )
+        .toBe(original?.due);
+    });
   });
 }

@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import type { FeatureRoute } from '@/app/routes';
 import { useAppSession } from '@/app/session';
 import { TASK_KINDS } from '@/config/taskKinds';
 import { useCustomers, useRepositoryAccount, useSyncStatus } from '@/data/hooks';
 import { countdownTag } from '@/domain/deadlines';
+import { appendPromise, promiseTaskKey, snoozePromise, undoPromiseSnooze } from '@/domain/deadlines/promises';
 import { openQuickAction } from '@/features/quick-actions/store';
 import { Badge, Button, EmptyState, Loading, Skeleton, type Tone, useToast } from '@/ui';
 import { TASK_GROUPS, type TaskGroupId, type TaskRow, type TaskSideFilter, taskRows } from './model';
@@ -35,6 +36,7 @@ function TaskCard({
   onComplete,
   onReopen,
   onCall,
+  onSnooze,
   busy,
 }: {
   customer: ReturnType<typeof useCustomers>[number];
@@ -44,8 +46,18 @@ function TaskCard({
   onComplete: () => void;
   onReopen: () => void;
   onCall: () => void;
+  onSnooze: (due: string, reason: string) => void;
   busy: boolean;
 }) {
+  const [showSnooze, setShowSnooze] = useState(false);
+  const [snoozeDue, setSnoozeDue] = useState(() => {
+    const due = row.type === 'task' ? row.task.due : undefined;
+    if (!due) return '';
+    const date = new Date(due);
+    if (row.type === 'task' && row.task.due_allday) date.setHours(9, 0, 0, 0);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}T${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+  });
+  const [snoozeReason, setSnoozeReason] = useState('Em bận');
   const task = row.type === 'task' ? row.task : null;
   const ownPromise = task ? (task.side || 'me') === 'me' : null;
   const deadline = group === 'done' ? null : deadlineLabel(row, now);
@@ -116,6 +128,56 @@ function TaskCard({
         >
           {customer.full_name || 'Khách chưa có tên'} · {customer.phone}
         </Link>
+        {row.type === 'task' && group !== 'done' && (
+          <div className="mt-1">
+            {!showSnooze ? (
+              <Button disabled={busy} onClick={() => setShowSnooze(true)}>
+                Dời
+              </Button>
+            ) : (
+              <form
+                className="flex flex-wrap items-end gap-2"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  if (!snoozeDue) return;
+                  onSnooze(new Date(snoozeDue).toISOString(), snoozeReason);
+                  setShowSnooze(false);
+                }}
+              >
+                <label className="flex flex-col gap-1 text-small text-text-2">
+                  Hạn mới
+                  <input
+                    aria-label={`Hạn mới: ${row.task.text}`}
+                    className={FIELD}
+                    type="datetime-local"
+                    required
+                    value={snoozeDue}
+                    onChange={(event) => setSnoozeDue(event.target.value)}
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-small text-text-2">
+                  Lý do dời
+                  <select
+                    aria-label={`Lý do dời: ${row.task.text}`}
+                    className={FIELD}
+                    value={snoozeReason}
+                    onChange={(event) => setSnoozeReason(event.target.value)}
+                  >
+                    <option>Em bận</option>
+                    <option>Khách bận</option>
+                    <option>Chờ thông tin</option>
+                  </select>
+                </label>
+                <Button type="submit" variant="primary" disabled={busy}>
+                  Lưu hạn mới
+                </Button>
+                <Button type="button" onClick={() => setShowSnooze(false)}>
+                  Huỷ
+                </Button>
+              </form>
+            )}
+          </div>
+        )}
       </div>
     </li>
   );
@@ -125,6 +187,8 @@ function TasksPage() {
   const { session, booting, error } = useAppSession();
   const account = useRepositoryAccount();
   const customers = useCustomers();
+  const customersRef = useRef(customers);
+  customersRef.current = customers;
   const sync = useSyncStatus();
   const toast = useToast();
   const [now, setNow] = useState(() => Date.now());
@@ -134,6 +198,14 @@ function TasksPage() {
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
   const [busyKey, setBusyKey] = useState('');
+  const [showCreate, setShowCreate] = useState(false);
+  const [createCustomer, setCreateCustomer] = useState('');
+  const [createText, setCreateText] = useState('');
+  const [createSide, setCreateSide] = useState<'me' | 'customer'>('me');
+  const [createKind, setCreateKind] = useState('other');
+  const [createDue, setCreateDue] = useState('');
+  const [createError, setCreateError] = useState('');
+  const [createBusy, setCreateBusy] = useState(false);
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 60_000);
     return () => window.clearInterval(timer);
@@ -207,6 +279,138 @@ function TasksPage() {
         </div>
         <p className="text-small text-text-2">{sync.pending ? `${sync.pending} thay đổi chờ đồng bộ` : 'Đã đồng bộ'}</p>
       </header>
+      <section className="rounded-card border border-border bg-surface p-3">
+        {!showCreate ? (
+          <Button variant="primary" onClick={() => setShowCreate(true)}>
+            Thêm lời hứa
+          </Button>
+        ) : (
+          <form
+            className="grid gap-3 sm:grid-cols-2"
+            onSubmit={async (event) => {
+              event.preventDefault();
+              if (createBusy) return;
+              setCreateError('');
+              const customer = customersRef.current.find(
+                (entry) => entry.id === createCustomer && entry.owner_id === account.sync.local.userId,
+              );
+              const text = createText.trim();
+              if (!customer || !text) return;
+              setCreateBusy(true);
+              try {
+                const due = createDue ? new Date(createDue).toISOString() : undefined;
+                const key = promiseTaskKey(customer.id, createSide, text, due);
+                const list = Array.isArray(customer.next_tasks) ? customer.next_tasks : [];
+                const result = appendPromise(list, {
+                  text,
+                  at: new Date().toISOString(),
+                  kind: createKind,
+                  side: createSide,
+                  source: 'manual',
+                  key,
+                  ...(due ? { due } : {}),
+                });
+                if (!result.added) {
+                  toast({ title: 'Lời hứa đã có', description: 'Việc cùng nội dung và hạn đã được ghi trước đó.' });
+                  return;
+                }
+                await account.customers.update(customer.id, { next_tasks: result.tasks });
+                setCreateText('');
+                setCreateDue('');
+                setShowCreate(false);
+                toast({ title: 'Đã thêm lời hứa', description: `${text} · ${customer.full_name}` });
+              } catch (cause) {
+                setCreateError(cause instanceof Error ? cause.message : 'Chưa lưu được lời hứa. Thử lại sau.');
+              } finally {
+                setCreateBusy(false);
+              }
+            }}
+          >
+            <label className="flex flex-col gap-1 text-small text-text-2 sm:col-span-2">
+              Khách hàng
+              <select
+                aria-label="Khách hàng của lời hứa"
+                required
+                className={FIELD}
+                value={createCustomer}
+                onChange={(event) => setCreateCustomer(event.target.value)}
+              >
+                <option value="">Chọn khách hàng</option>
+                {customers
+                  .filter((entry) => entry.owner_id === account.sync.local.userId)
+                  .map((entry) => (
+                    <option key={entry.id} value={entry.id}>
+                      {entry.full_name} · {entry.phone}
+                    </option>
+                  ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-small text-text-2 sm:col-span-2">
+              Việc cần làm
+              <input
+                aria-label="Nội dung lời hứa"
+                required
+                className={FIELD}
+                value={createText}
+                onChange={(event) => setCreateText(event.target.value)}
+                placeholder="Ví dụ: Gửi bảng giá căn 2 phòng ngủ"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-small text-text-2">
+              Cam kết
+              <select
+                aria-label="Loại lời hứa"
+                className={FIELD}
+                value={createSide}
+                onChange={(event) => setCreateSide(event.target.value as 'me' | 'customer')}
+              >
+                <option value="me">Em hứa</option>
+                <option value="customer">Khách hẹn</option>
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-small text-text-2">
+              Loại việc
+              <select
+                aria-label="Loại việc mới"
+                className={FIELD}
+                value={createKind}
+                onChange={(event) => setCreateKind(event.target.value)}
+              >
+                {Object.entries(TASK_KINDS)
+                  .filter(([key]) => key !== 'call')
+                  .map(([key, value]) => (
+                    <option key={key} value={key}>
+                      {value.label}
+                    </option>
+                  ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-small text-text-2">
+              Hạn
+              <input
+                aria-label="Hạn lời hứa"
+                className={FIELD}
+                type="datetime-local"
+                value={createDue}
+                onChange={(event) => setCreateDue(event.target.value)}
+              />
+            </label>
+            <div className="flex items-end gap-2">
+              <Button type="submit" variant="primary" disabled={createBusy}>
+                Lưu lời hứa
+              </Button>
+              <Button type="button" onClick={() => setShowCreate(false)}>
+                Huỷ
+              </Button>
+            </div>
+            {createError && (
+              <p role="alert" className="text-small text-danger sm:col-span-2">
+                {createError}
+              </p>
+            )}
+          </form>
+        )}
+      </section>
       <section
         aria-label="Lọc công việc"
         className="grid grid-cols-1 gap-3 rounded-card border border-border bg-surface p-3 sm:grid-cols-2"
@@ -332,6 +536,48 @@ function TasksPage() {
                         onCall={() => {
                           if (row.type !== 'call' || !canOwn) return;
                           openQuickAction(customer.id, 'call');
+                        }}
+                        onSnooze={(due, reason) => {
+                          if (row.type !== 'task' || !taskAt || busyKey) return;
+                          const current = customersRef.current.find((entry) => entry.id === customer.id);
+                          if (!current) return;
+                          const beforeList = Array.isArray(current.next_tasks) ? current.next_tasks : [];
+                          const before = beforeList.find((entry) => entry?.at === taskAt);
+                          if (!before) return;
+                          const nextList = beforeList.map((entry) =>
+                            entry?.at === taskAt ? snoozePromise(entry, due, reason) : entry,
+                          );
+                          setBusyKey(key);
+                          void account.customers
+                            .update(customer.id, { next_tasks: nextList })
+                            .then(() =>
+                              toast({
+                                title: 'Đã dời lời hứa',
+                                description: `${task?.text} · ${reason}`,
+                                onUndo: () => {
+                                  const latest = customersRef.current.find((entry) => entry.id === customer.id);
+                                  const latestList = Array.isArray(latest?.next_tasks) ? latest.next_tasks : nextList;
+                                  const restored = latestList.map((entry) =>
+                                    entry?.at === taskAt ? undoPromiseSnooze(entry, before) : entry,
+                                  );
+                                  void account.customers.update(customer.id, { next_tasks: restored }).catch((cause) =>
+                                    toast({
+                                      title: 'Chưa hoàn tác được',
+                                      description: cause instanceof Error ? cause.message : 'Thử lại sau.',
+                                      tone: 'error',
+                                    }),
+                                  );
+                                },
+                              }),
+                            )
+                            .catch((cause) =>
+                              toast({
+                                title: 'Chưa dời được lời hứa',
+                                description: cause instanceof Error ? cause.message : 'Thử lại sau.',
+                                tone: 'error',
+                              }),
+                            )
+                            .finally(() => setBusyKey(''));
                         }}
                       />
                     );

@@ -3,12 +3,21 @@ import type { FeatureRoute } from '@/app/routes';
 import { useAppSession } from '@/app/session';
 import { useCustomers, useRepositoryAccount, useSyncStatus } from '@/data/hooks';
 import type { Customer, Task } from '@/domain/customer';
+import { snoozePromise, undoPromiseSnooze } from '@/domain/deadlines/promises';
 import { forStage } from '@/domain/followup';
 import type { Signal } from '@/domain/signals';
 import { applySlaPlan, planSlaAutomation, slaPlanMessage } from '@/domain/velocity/automation';
 import { QuickActionButtons } from '@/features/quick-actions/QuickActions';
 import { Badge, Button, EmptyState, Loading, Skeleton } from '@/ui';
-import { capacityPlan, endOfDaySummary, type QueueFilter, queueRows, visibleQueue } from './model';
+import {
+  capacityPlan,
+  capacitySnoozeCandidates,
+  endOfDaySummary,
+  nextCallSlotStart,
+  type QueueFilter,
+  queueRows,
+  visibleQueue,
+} from './model';
 
 const FILTERS: { key: QueueFilter; label: string }[] = [
   { key: 'priority', label: 'Ưu tiên' },
@@ -74,6 +83,10 @@ export function TodayPage() {
     [password, setPassword] = useState(''),
     [loginError, setLoginError] = useState('');
   const processedSla = useRef(new WeakSet<object>());
+  const customersRef = useRef(customers);
+  customersRef.current = customers;
+  const [snoozeBusy, setSnoozeBusy] = useState(false);
+  const [snoozeUndo, setSnoozeUndo] = useState<(() => void) | null>(null);
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 60_000);
     return () => window.clearInterval(timer);
@@ -108,6 +121,7 @@ export function TodayPage() {
   );
   const shown = visibleQueue(rows, filter);
   const plan = capacityPlan(rows, now);
+  const snoozeCandidates = capacitySnoozeCandidates(plan.suggested, now);
   const summary = endOfDaySummary(customers, now);
   const lateCount = rows.filter((row) => row.signal.due != null && row.signal.due < now).length;
   const sessionRows = rows.filter((row) => row.signal.actions.includes('call'));
@@ -185,9 +199,13 @@ export function TodayPage() {
         <p className="text-small text-text-2">{sync.pending ? `${sync.pending} thay đổi chờ đồng bộ` : 'Đã đồng bộ'}</p>
       </header>
       {notice && (
-        <p role="status" className="rounded-control bg-surface-2 p-3 text-small">
-          {notice}
-        </p>
+        <div
+          role="status"
+          className="flex flex-wrap items-center justify-between gap-2 rounded-control bg-surface-2 p-3 text-small"
+        >
+          <span>{notice}</span>
+          {snoozeUndo && <Button onClick={() => snoozeUndo()}>Hoàn tác</Button>}
+        </div>
       )}
       {rows[0] ? (
         <section aria-labelledby="nba-title" className="rounded-card border border-border bg-surface p-4 shadow-card">
@@ -239,6 +257,78 @@ export function TodayPage() {
             {plan.suggested.length ? `: ${plan.suggested.map((row) => row.customer.full_name).join(', ')}` : ''}. Đây là
             đề xuất xem trước; lịch và hạn gốc chưa thay đổi.
           </p>
+        )}
+        {plan.overflow > 0 && snoozeCandidates.length > 0 && account && (
+          <Button
+            className="mt-3"
+            variant="primary"
+            disabled={snoozeBusy}
+            onClick={async () => {
+              const earliestDue = Math.max(
+                ...snoozeCandidates.map(({ task }) => {
+                  const dayAfter = new Date(Date.parse(task.due || ''));
+                  dayAfter.setHours(24, 0, 0, 0);
+                  return dayAfter.getTime();
+                }),
+              );
+              const due = new Date(nextCallSlotStart(now, earliestDue)).toISOString();
+              const reason = 'Em bận';
+              const before = snoozeCandidates.map(({ customer, task }) => ({ customerId: customer.id, task }));
+              setSnoozeBusy(true);
+              try {
+                const byCustomer = new Map<string, { list: (Task | null)[]; touched: number }>();
+                for (const { customer, task } of snoozeCandidates) {
+                  const current = customersRef.current.find((entry) => entry.id === customer.id);
+                  if (!current) continue;
+                  const list = Array.isArray(current.next_tasks) ? current.next_tasks : [];
+                  const existing = byCustomer.get(customer.id) || { list: [...list], touched: 0 };
+                  existing.list = existing.list.map((entry) =>
+                    entry && entry.at === task.at ? snoozePromise(entry, due, reason) : entry,
+                  );
+                  existing.touched++;
+                  byCustomer.set(customer.id, existing);
+                }
+                for (const [customerId, update] of byCustomer) {
+                  await account.customers.update(customerId, { next_tasks: update.list });
+                }
+                setNotice(`Đã dời ${before.length} việc sang ${new Date(due).toLocaleString('vi-VN')} · ${reason}`);
+                const undo = () => {
+                  void (async () => {
+                    try {
+                      const restores = new Map<string, (Task | null)[]>();
+                      for (const { customerId, task } of before) {
+                        const current = customersRef.current.find((entry) => entry.id === customerId);
+                        if (!current) continue;
+                        const list = restores.get(customerId) || [
+                          ...(Array.isArray(current.next_tasks) ? current.next_tasks : []),
+                        ];
+                        restores.set(
+                          customerId,
+                          list.map((entry) => (entry && entry.at === task.at ? undoPromiseSnooze(entry, task) : entry)),
+                        );
+                      }
+                      for (const [customerId, next_tasks] of restores) {
+                        await account.customers.update(customerId, { next_tasks });
+                      }
+                      setNotice('Đã hoàn tác việc dời hạn.');
+                    } catch (cause) {
+                      setNotice(`Chưa hoàn tác được: ${cause instanceof Error ? cause.message : 'Thử lại sau.'}`);
+                    } finally {
+                      setSnoozeUndo(null);
+                    }
+                  })();
+                };
+                setSnoozeUndo(() => undo);
+                window.setTimeout(() => setSnoozeUndo(null), 5000);
+              } catch (cause) {
+                setNotice(`Chưa dời được các việc: ${cause instanceof Error ? cause.message : 'Thử lại sau.'}`);
+              } finally {
+                setSnoozeBusy(false);
+              }
+            }}
+          >
+            Dời {snoozeCandidates.length} việc P2 sang khung kế
+          </Button>
         )}
       </section>
 

@@ -1,7 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import type { Customer } from '@/domain/customer';
 import type { Signal } from '@/domain/signals';
-import { capacityPlan, currentCallSlot, type QueueRow, queueRows, visibleQueue } from '@/features/today/model';
+import {
+  capacityPlan,
+  capacitySnoozeCandidates,
+  currentCallSlot,
+  nextCallSlotStart,
+  type QueueRow,
+  queueRows,
+  visibleQueue,
+} from '@/features/today/model';
 
 function row(
   id: string,
@@ -52,6 +60,19 @@ describe('T3.2 today queue and capacity', () => {
 
   it('returns no call capacity outside a configured slot', () => {
     expect(currentCallSlot(new Date('2026-10-16T10:30:00+07:00').getTime())).toBeNull();
+  });
+
+  it('moves capacity tasks to the next configured slot and excludes customer promises', () => {
+    const now = new Date(2026, 9, 16, 10, 30).getTime();
+    expect(nextCallSlotStart(now)).toBe(new Date(2026, 9, 16, 11, 30).getTime());
+    expect(nextCallSlotStart(new Date(2026, 9, 16, 21, 0).getTime())).toBe(new Date(2026, 9, 17, 9, 0).getTime());
+    const nextDay = new Date(2026, 9, 17, 0, 0).toISOString();
+    const rowWithTasks = row('flex-task', 'P2');
+    rowWithTasks.customer.next_tasks = [
+      { at: 'me-task', text: 'Gửi hồ sơ', due: nextDay, due_allday: true },
+      { at: 'customer-task', text: 'Khách hẹn trả lời', due: nextDay, due_allday: true, side: 'customer' },
+    ];
+    expect(capacitySnoozeCandidates([rowWithTasks], now).map(({ task }) => task.at)).toEqual(['me-task']);
   });
 
   it('keeps an 18:30 appointment exactly once when a new lead is added', () => {

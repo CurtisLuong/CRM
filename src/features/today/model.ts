@@ -1,10 +1,51 @@
 import { CAPACITY_CONFIG } from '@/config/capacity';
 import { type CallSlotKey, FOLLOWUP_CONFIG } from '@/config/followup';
-import type { Customer } from '@/domain/customer';
+import type { Customer, Task } from '@/domain/customer';
 import { computeSignals, type Signal } from '@/domain/signals';
 
 export type QueueFilter = 'priority' | 'new' | 'promise' | 'opportunity';
 export type QueueRow = { signal: Signal; customer: Customer; minutes: number };
+export type CapacitySnoozeCandidate = { customer: Customer; task: Task };
+
+/** Start of the next configured calling slot, using local time like D-005. */
+export function nextCallSlotStart(now: number, notBefore = now): number {
+  const slots = Object.values(FOLLOWUP_CONFIG.callSlots)
+    .map(({ range }) => Number(range.slice(0, 2)) * 60 + Number(range.slice(3, 5)))
+    .sort((a, b) => a - b);
+  const current = new Date(Math.max(now, notBefore));
+  const minute = current.getHours() * 60 + current.getMinutes();
+  const next = slots.find((start) => start > minute);
+  if (next === undefined) current.setDate(current.getDate() + 1);
+  const targetMinute = next ?? slots[0] ?? 9 * 60;
+  current.setHours(Math.floor(targetMinute / 60), targetMinute % 60, 0, 0);
+  return current.getTime();
+}
+
+/** Capacity can move one future all-day task per suggested P2 row; never move customer promises. */
+export function capacitySnoozeCandidates(rows: readonly QueueRow[], now: number): CapacitySnoozeCandidate[] {
+  const today = new Date(now);
+  const result: CapacitySnoozeCandidate[] = [];
+  const seen = new Set<string>();
+  for (const { customer } of rows) {
+    const task = (Array.isArray(customer.next_tasks) ? customer.next_tasks : []).find((entry) => {
+      if (!entry || entry.done_at || entry.side === 'customer' || !entry.due || !entry.due_allday) return false;
+      const due = new Date(entry.due);
+      return (
+        due.getFullYear() > today.getFullYear() ||
+        (due.getFullYear() === today.getFullYear() && due.getMonth() > today.getMonth()) ||
+        (due.getFullYear() === today.getFullYear() &&
+          due.getMonth() === today.getMonth() &&
+          due.getDate() > today.getDate())
+      );
+    });
+    if (!task?.at) continue;
+    const key = `${customer.id}:${task.key || task.at}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push({ customer, task });
+  }
+  return result;
+}
 export function queueRows(customers: readonly Customer[], now: number, ownerId?: string): QueueRow[] {
   const byId = new Map(customers.map((customer) => [customer.id, customer]));
   return computeSignals(customers, { now, ownerId })
