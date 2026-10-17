@@ -88,6 +88,13 @@ export async function saveCall(
   const c = await repo.get(id);
   if (!c || c.archived_at || c.owner_id !== repo.sync.local.userId)
     throw new Error('Khách không còn thuộc quyền chỉnh sửa.');
+  const existingCall = draft.editAt ? callAttemptsOf(c).find((a) => a.at === draft.editAt) : null;
+  if (draft.editAt && !existingCall) throw new Error('Cuộc gọi đã thay đổi. Mở lại để kiểm tra.');
+  // Editing an already-recorded call changes only its outcome and note. Keep the
+  // original timestamp, source/device metadata, unknown fields, and stage history.
+  if (existingCall?.result) {
+    return repo.logCall(id, { result, note: note.trim() || null }, { editAt: draft.editAt });
+  }
   const suggestion = callSuggestion(c, draft, result, now, stats);
   const suggested =
     suggestion?.kind === 'schedule' ? suggestion : suggestion?.kind === 'drop' ? suggestion.fallback : null;
@@ -113,8 +120,6 @@ export async function saveCall(
     ...(draft.device_id ? { device_id: draft.device_id } : {}),
     ...(draft.direction ? { direction: draft.direction } : {}),
   };
-  if (draft.editAt && !callAttemptsOf(c).some((a) => a.at === draft.editAt))
-    throw new Error('Cuộc gọi đã thay đổi. Mở lại để kiểm tra.');
   const qualified = isQualified(c);
   if (qualified) patch.care_stage = c.care_stage;
   const dur = callDuration(draft.duration);

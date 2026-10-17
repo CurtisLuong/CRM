@@ -3,9 +3,8 @@ import { useSearchParams } from 'react-router';
 import type { FeatureRoute } from '@/app/routes';
 import { useAppSession } from '@/app/session';
 import { useCustomers, useRepositoryAccount } from '@/data/hooks';
-import { callAttemptsOf } from '@/domain/customer';
 import { Button, EmptyState, Loading, Skeleton } from '@/ui';
-import { QuickActionButtons } from './QuickActions';
+import { CallHistoryActions, QuickActionButtons } from './QuickActions';
 import { openQuickAction, type QuickAction } from './store';
 
 const FIELD = 'min-h-11 w-full rounded-control border border-border-strong bg-surface px-3 py-2 text-body text-text';
@@ -134,25 +133,7 @@ function QuickActionsPage() {
                     {c.owner_id !== account.sync.local.userId ? (
                       <p className="text-small text-text-2">Khách nhóm · Chỉ xem</p>
                     ) : (
-                      callAttemptsOf(c)
-                        .filter((a) => !a.result)
-                        .map((a) => (
-                          <Button
-                            key={a.at}
-                            onClick={() =>
-                              openQuickAction(c.id, 'outcome', {
-                                at: a.at,
-                                editAt: a.at,
-                                duration: a.duration,
-                                origin: a.origin ?? 'manual',
-                                device_id: a.device_id ?? undefined,
-                                direction: a.direction ?? undefined,
-                              })
-                            }
-                          >
-                            Ghi kết quả cuộc gọi {new Date(a.at).toLocaleString('vi-VN')}
-                          </Button>
-                        ))
+                      <CallHistoryActions customer={c} />
                     )}
                   </li>
                 ))}

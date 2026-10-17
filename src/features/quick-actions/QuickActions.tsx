@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import type { CallResult } from '@/config/callResults';
+import { CALL_RESULTS, type CallResult } from '@/config/callResults';
 import type { CallSlotKey, ZaloTemplate } from '@/config/followup';
 import { type CallSource, installCallSource } from '@/data/callSource';
 import { useRepositoryAccount } from '@/data/hooks';
@@ -59,6 +59,45 @@ export function QuickActionButtons({ customer }: { customer: Customer }) {
       ))}
       {account && <InteractionRecorder account={account} customer={customer} trigger />}
     </fieldset>
+  );
+}
+
+/** Calls stay in their original aggregate; completed calls can be corrected by their owner. */
+export function CallHistoryActions({ customer }: { customer: Customer }) {
+  const account = useRepositoryAccount();
+  const writable = !!account && customer.owner_id === account.sync.local.userId && !customer.archived_at;
+  if (!writable) return null;
+  const calls = callAttemptsOf(customer);
+  if (!calls.length) return null;
+  return (
+    <section className="flex flex-col gap-2" aria-label={`Nhật ký cuộc gọi ${customer.full_name}`}>
+      <h3 className="text-small text-text-2">Nhật ký cuộc gọi</h3>
+      {calls.map((attempt) => {
+        const pending = !attempt.result;
+        const when = new Date(attempt.at).toLocaleString('vi-VN');
+        const result = attempt.result
+          ? (CALL_RESULTS[attempt.result as CallResult] ?? attempt.result)
+          : 'Chưa ghi kết quả';
+        return (
+          <Button
+            key={`${attempt.at}:${attempt.device_id ?? ''}`}
+            variant="secondary"
+            onClick={() =>
+              openQuickAction(customer.id, 'outcome', {
+                at: attempt.at,
+                editAt: attempt.at,
+                duration: attempt.duration,
+                origin: attempt.origin ?? 'manual',
+                device_id: attempt.device_id ?? undefined,
+                direction: attempt.direction ?? undefined,
+              })
+            }
+          >
+            {pending ? 'Ghi kết quả' : 'Sửa kết quả'} cuộc gọi · {when} · {result}
+          </Button>
+        );
+      })}
+    </section>
   );
 }
 type Active = {
@@ -307,7 +346,8 @@ function ActionSheet({
   const noteInput = useRef<HTMLTextAreaElement>(null);
   const [launched, setLaunched] = useState(false);
   const [editSchedule, setEditSchedule] = useState(kind === 'schedule');
-  const suggestion = callSuggestion(c, draft, result, now, account.customers.getSnapshot());
+  const editingRecorded = !!(existing?.result && draft.editAt);
+  const suggestion = editingRecorded ? null : callSuggestion(c, draft, result, now, account.customers.getSnapshot());
   const suggested =
     suggestion?.kind === 'schedule' ? suggestion : suggestion?.kind === 'drop' ? suggestion.fallback : null;
   useEffect(() => {
@@ -398,7 +438,9 @@ function ActionSheet({
     });
   const title =
     kind === 'outcome'
-      ? 'Kết quả cuộc gọi'
+      ? editingRecorded
+        ? 'Sửa kết quả cuộc gọi'
+        : 'Kết quả cuộc gọi'
       : kind === 'note'
         ? 'Ghi chú nhanh'
         : kind === 'schedule'
@@ -441,7 +483,7 @@ function ActionSheet({
           </Button>
         ) : (
           <Button variant="primary" block loading={busy} onClick={save}>
-            Lưu
+            {editingRecorded ? 'Lưu thay đổi' : 'Lưu'}
           </Button>
         )
       }

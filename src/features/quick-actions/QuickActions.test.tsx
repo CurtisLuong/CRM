@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Customer } from '@/domain/customer';
 import { ToastProvider } from '@/ui';
-import { QuickActionButtons, QuickActionsHost } from './QuickActions';
+import { CallHistoryActions, QuickActionButtons, QuickActionsHost } from './QuickActions';
 import { clearQuickAction } from './store';
 import { contactPhones, defaultTemplates, zaloHref } from './zalo';
 
@@ -21,13 +21,13 @@ const customer = {
   call_attempts: [],
   next_call_at: null,
 } as unknown as Customer;
-const logCall = vi.fn(async () => customer);
+const logCall = vi.fn(async () => snapshotCustomer);
 const updateCustomer = vi.fn(async () => customer);
 let snapshotCustomer: Customer = customer;
 const account = {
   customers: {
     getSnapshot: () => [snapshotCustomer],
-    get: vi.fn(async () => customer),
+    get: vi.fn(async () => snapshotCustomer),
     list: vi.fn(async () => [customer]),
     logCall,
     update: updateCustomer,
@@ -49,6 +49,49 @@ afterEach(() => {
 });
 
 describe('quick actions touch budget', () => {
+  it('edits a recorded call while preserving its timestamp and source metadata', async () => {
+    mockSession.account = account;
+    const attempt = {
+      at: '2026-10-10T03:00:00.000Z',
+      result: 'no_answer',
+      note: 'Gọi lần trước',
+      duration: 21,
+      origin: 'device',
+      device_id: 'android-9',
+      direction: 'in',
+      x_legacy: { keep: true },
+    };
+    snapshotCustomer = { ...customer, call_attempts: [attempt] } as unknown as Customer;
+    const user = userEvent.setup();
+    render(
+      <ToastProvider>
+        <CallHistoryActions customer={snapshotCustomer} />
+        <QuickActionsHost />
+      </ToastProvider>,
+    );
+
+    await user.click(screen.getByRole('button', { name: /Sửa kết quả cuộc gọi/ }));
+    expect(await screen.findByRole('heading', { name: /Sửa kết quả cuộc gọi/ })).toBeTruthy();
+    await user.click(screen.getByRole('radio', { name: 'Nói chuyện được' }));
+    await user.clear(screen.getByRole('textbox', { name: 'Ghi chú cuộc gọi' }));
+    await user.type(screen.getByRole('textbox', { name: 'Ghi chú cuộc gọi' }), 'Đã trao đổi');
+    await user.click(screen.getByRole('button', { name: 'Lưu thay đổi' }));
+
+    await waitFor(() => expect(logCall).toHaveBeenCalledTimes(1));
+    expect(logCall).toHaveBeenCalledWith('quick-1', { result: 'talked', note: 'Đã trao đổi' }, { editAt: attempt.at });
+  });
+
+  it('does not offer call editing for another owner’s customer', () => {
+    mockSession.account = account;
+    const otherOwner = {
+      ...customer,
+      owner_id: 'u2',
+      call_attempts: [{ at: '2026-10-10T03:00:00Z', result: 'talked' }],
+    };
+    const { container } = render(<CallHistoryActions customer={otherOwner as Customer} />);
+    expect(container.textContent).toBe('');
+  });
+
   it('blocks Zalo when the latest customer preference is do-not-contact', async () => {
     mockSession.account = account;
     snapshotCustomer = { ...customer, contact_prefs: { do_not_contact: true, dnc_reason: 'Khách yêu cầu' } };
