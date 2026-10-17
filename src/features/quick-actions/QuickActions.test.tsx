@@ -49,6 +49,39 @@ afterEach(() => {
 });
 
 describe('quick actions touch budget', () => {
+  it('records a manual call for the owner without starting a phone call', async () => {
+    mockSession.account = account;
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(NOW);
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    render(
+      <ToastProvider>
+        <CallHistoryActions customer={customer} />
+        <QuickActionsHost />
+      </ToastProvider>,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Ghi cuộc gọi' }));
+    expect(await screen.findByRole('heading', { name: /Kết quả cuộc gọi/ })).toBeTruthy();
+    await user.click(screen.getByRole('radio', { name: 'Nói chuyện được' }));
+    await user.type(screen.getByRole('textbox', { name: 'Ghi chú cuộc gọi' }), 'Khách quan tâm');
+    await user.click(screen.getByRole('checkbox', { name: 'Không hẹn gọi tiếp' }));
+    await user.click(screen.getByRole('button', { name: 'Lưu' }));
+
+    await waitFor(() => expect(logCall).toHaveBeenCalledTimes(1));
+    expect(logCall).toHaveBeenCalledWith(
+      'quick-1',
+      expect.objectContaining({
+        at: new Date(NOW).toISOString(),
+        result: 'talked',
+        note: 'Khách quan tâm',
+        duration: null,
+        origin: 'manual',
+      }),
+      expect.objectContaining({ forceLog: true }),
+    );
+  });
+
   it('edits a recorded call while preserving its timestamp and source metadata', async () => {
     mockSession.account = account;
     const attempt = {

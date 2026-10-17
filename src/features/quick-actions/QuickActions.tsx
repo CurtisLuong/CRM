@@ -68,10 +68,14 @@ export function CallHistoryActions({ customer }: { customer: Customer }) {
   const writable = !!account && customer.owner_id === account.sync.local.userId && !customer.archived_at;
   if (!writable) return null;
   const calls = callAttemptsOf(customer);
-  if (!calls.length) return null;
   return (
     <section className="flex flex-col gap-2" aria-label={`Nhật ký cuộc gọi ${customer.full_name}`}>
-      <h3 className="text-small text-text-2">Nhật ký cuộc gọi</h3>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 className="text-small text-text-2">Nhật ký cuộc gọi</h3>
+        <Button variant="secondary" onClick={() => openQuickAction(customer.id, 'outcome')}>
+          Ghi cuộc gọi
+        </Button>
+      </div>
       {calls.map((attempt) => {
         const pending = !attempt.result;
         const when = new Date(attempt.at).toLocaleString('vi-VN');

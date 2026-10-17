@@ -141,7 +141,7 @@ for (const scheme of ['light', 'dark'] as const) {
           w.__taps = (w.__taps ?? 0) + 1;
         });
       });
-      await interact(page.getByRole('button', { name: 'Gọi' }));
+      await interact(page.getByRole('button', { name: 'Gọi', exact: true }));
       await page.waitForFunction(() => (window as Window & { __dialCalls?: number }).__dialCalls === 1);
       await page.evaluate(() => window.dispatchEvent(new Event('blur')));
       await page.waitForTimeout(3_500);
