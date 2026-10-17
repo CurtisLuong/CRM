@@ -8,6 +8,18 @@ Bộ tài liệu được biên soạn ngày 06/10/2026; đây không phải ng�
 
 Chỉ đọc file này khi cần tiếp nối công việc hoặc task phụ thuộc trạng thái triển khai/test.
 
+## Cutover v2 → production (T5.4, 2026-10-17)
+
+- **v2 đang chạy production** tại `https://crm-cop.pages.dev` từ 2026-10-17 ~23:39 +07: `main` = `f63bf7d` (merge `v2` @ `66fc241`). Vỏ Android vẫn trỏ `crm-cop` (không đổi `server.url`).
+- Trước khi đổi: mọi máy báo "Đã đồng bộ"; backup production mới (`scripts/backup/dump.sh`) đạt checksum, có bản sao thứ hai (chủ dự án giữ đường dẫn, ngoài repo).
+- **Migration production đã chạy 2026-10-17:** `SQL/v2/002_customer_memory.sql` → `003_campaign_costs.sql` → `004_user_settings_ui_state.sql` → `005_units_verified_at.sql` → `006_catalog_archives.sql`; mỗi file báo Success, kiểm tra cột/bảng sau cùng đều có. Production giờ có đủ `SQL/v2/001`–`006`.
+- **Cloudflare `crm-cop`:** Build command `npm ci && npm run build`, output `dist`, biến Production `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` (production), `VITE_WORKER_URL` (`intake-worker`, như v1), `NODE_VERSION=22`. Đã xác minh bundle chứa ref production, không chứa ref staging.
+  - *Rollback (runbook `cutover.md` §4):* Deployments → rollback về deployment v1 trước `f63bf7d`, rồi xoá Build command/output/4 biến (cấu hình v1 cũ: nhánh `main`, auto-deploy bật, build/output/root trống, không có biến).
+- **APK 1.5** (versionCode 6, quyền RECORD_AUDIO + MODIFY_AUDIO_SETTINGS — lỗi L4 T5.3): đã tải lên Storage production `app-releases/SoKhach-1.5.apk` (checksum khớp), cùng chứng chỉ ký với 1.4; `/android-app-version.json` báo 1.5.
+- Kiểm tra sau cutover (chủ dự án, 2026-10-17): **Mac và Android đạt** — đăng nhập, danh sách, hồ sơ, tìm kiếm, ghi chú, đồng bộ, Gọi/Zalo/Back; APK 1.5 cài đè được, ghi chú giọng nói chạy.
+- **Đang theo dõi 48 giờ** (đến ~2026-10-19 23:40): lỗi đăng nhập/đồng bộ và nhật ký `customer_changes` (không có DELETE cứng, mảng ghi chú/việc/cuộc gọi không bị ngắn lại ngoài ý muốn).
+- Còn lại: Worker AI v2 (T6.7, D-022) **chưa deploy** — chủ dự án deploy khi sẵn sàng; nếu rollback app thì rollback Worker kèm. Dọn dẹp + tài liệu as-built: T5.5.
+
 ## Đại tu v2 (cập nhật 2026-10-16)
 
 - Đã có bộ quy định: `PRD.md`, `tasks.md`, `architecture.md` v2, `DESIGN_SYSTEM.md` v3, `UX_GUIDELINES.md` v2, `prompts.md`, D-011…D-015. **Chưa code v2.**
@@ -16,7 +28,7 @@ Chỉ đọc file này khi cần tiếp nối công việc hoặc task phụ thu
 
 | Supabase | Mã project | Vai trò |
 |---|---|---|
-| production | `nrqccwamwctihivpxjww` | DB cũ, app v1 (`crm-cop.pages.dev`, APK) đang dùng |
+| production | `nrqccwamwctihivpxjww` | DB thật; từ 2026-10-17 app v2 (`crm-cop.pages.dev`, APK 1.5) dùng |
 | staging | `mksjmpcsfawsiabfhoxe` | Khôi phục từ backup 2026-10-16; app v2 `crm-v2-9hf.pages.dev` (Cloudflare project `crm-v2`, nhánh `v2`) trỏ vào đây |
 
 ## Migration production (xác minh 2026-10-16 bằng `scripts/sql/inspect.sql`)
