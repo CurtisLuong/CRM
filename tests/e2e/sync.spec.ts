@@ -164,30 +164,33 @@ test('điện thoại offline thêm ghi chú → flush gộp với ghi chú Mac 
   await sheet.getByRole('button', { name: 'Xác nhận bỏ' }).click();
   await expect(sheet.getByText('Dữ liệu trên máy này đã khớp máy chủ')).toBeVisible();
 
-  const local = await page.evaluate(async (userId) => {
-    const db = await new Promise<IDBDatabase>((resolve, reject) => {
-      const request = indexedDB.open(`crm_khach_hang__${encodeURIComponent(userId)}`, 2);
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
-    const read = <T>(store: string, key?: string) =>
-      new Promise<T>((resolve, reject) => {
-        const os = db.transaction(store).objectStore(store);
-        const req = key ? os.get(key) : os.getAll();
-        req.onsuccess = () => resolve(req.result as T);
-        req.onerror = () => reject(req.error);
+  const readLocal = () =>
+    page.evaluate(async (userId) => {
+      const db = await new Promise<IDBDatabase>((resolve, reject) => {
+        const request = indexedDB.open(`crm_khach_hang__${encodeURIComponent(userId)}`, 2);
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
       });
-    const out = {
-      rejected: await read<Record<string, unknown>>('customers', 't59-reject'),
-      merged: await read<Record<string, unknown>>('customers', 't59-merge'),
-      queue: await read<unknown[]>('queue'),
-      discarded: await read<{ ops: unknown[] }>('meta', 'discarded-ops'),
-    };
-    db.close();
-    return out;
-  }, USER);
+      const read = <T>(store: string, key?: string) =>
+        new Promise<T>((resolve, reject) => {
+          const os = db.transaction(store).objectStore(store);
+          const req = key ? os.get(key) : os.getAll();
+          req.onsuccess = () => resolve(req.result as T);
+          req.onerror = () => reject(req.error);
+        });
+      const out = {
+        rejected: await read<Record<string, unknown>>('customers', 't59-reject'),
+        merged: await read<Record<string, unknown>>('customers', 't59-merge'),
+        queue: await read<unknown[]>('queue'),
+        discarded: await read<{ ops: unknown[] }>('meta', 'discarded-ops'),
+      };
+      db.close();
+      return out;
+    }, USER);
+  // Tải lại từ server chạy nền sau khi bỏ/gộp → chờ tới khi cache khớp.
+  await expect.poll(async () => (await readLocal()).rejected.care_stage).toBe('Đang chăm sóc'); // về giá trị server
+  await expect.poll(async () => (await readLocal()).merged.notes_manual).toEqual([PHONE_NOTE, MAC_NOTE, OLD_NOTE]);
+  const local = await readLocal();
   expect(local.queue).toEqual([]);
-  expect(local.rejected.care_stage).toBe('Đang chăm sóc'); // về giá trị server
   expect(local.discarded.ops).toHaveLength(1); // bản sao op đã bỏ còn trong máy
-  expect(local.merged.notes_manual).toEqual([PHONE_NOTE, MAC_NOTE, OLD_NOTE]); // cache tải lại từ server
 });

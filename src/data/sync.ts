@@ -89,41 +89,39 @@ export class CustomerSync {
   }
 
   async applyRemote(id: string, deleted = false): Promise<boolean> {
-    if (!id || this.local.isClosed) return false;
+    return (await this.applyRemoteResult(id, deleted)) === 'applied';
+  }
+
+  /** 'stale' = local vừa đổi trong lúc tải (thử lại được); 'pending' = khách còn op chờ (không được đè). */
+  private async applyRemoteResult(id: string, deleted = false): Promise<'applied' | 'unchanged' | 'pending' | 'stale'> {
+    if (!id || this.local.isClosed) return 'unchanged';
     const revision = this.local.revision;
     const archiveRevision = this.archiveRevision;
-    const pending = await queueGetAll(this.local);
-    if (
-      this.local.isClosed ||
-      revision !== this.local.revision ||
-      archiveRevision !== this.archiveRevision ||
-      pending.some((op) => op.recordId === id)
-    )
-      return false;
+    const stale = () =>
+      this.local.isClosed || revision !== this.local.revision || archiveRevision !== this.archiveRevision;
+    const hasPending = async () => (await queueGetAll(this.local)).some((op) => op.recordId === id);
+    if (this.local.isClosed) return 'unchanged';
+    if (await hasPending()) return 'pending';
+    if (stale()) return 'stale';
     let row: Customer | null = null;
     if (!deleted) {
       const { data, error } = await this.client.from('customers').select('*').eq('id', id).maybeSingle();
       if (error) throw error;
       row = data as Customer | null;
     }
-    if (
-      this.local.isClosed ||
-      revision !== this.local.revision ||
-      archiveRevision !== this.archiveRevision ||
-      (await queueGetAll(this.local)).some((op) => op.recordId === id)
-    )
-      return false;
+    if (this.local.isClosed) return 'unchanged';
+    if (await hasPending()) return 'pending';
+    if (stale()) return 'stale';
     const local = await this.local.get(id);
-    if (this.local.isClosed || revision !== this.local.revision || archiveRevision !== this.archiveRevision)
-      return false;
+    if (stale()) return 'stale';
     if (!row) {
-      if (!local) return false;
+      if (!local) return 'unchanged';
       await this.local.delete(id);
-      return true;
+      return 'applied';
     }
-    if (sameRecord(local, row)) return false;
+    if (sameRecord(local, row)) return 'unchanged';
     await this.local.put(row);
-    return true;
+    return 'applied';
   }
 
   private async reloadFromServer(ids: string[]) {
@@ -131,7 +129,12 @@ export class CustomerSync {
     for (const id of ids) {
       if (this.local.isClosed) return;
       try {
-        if (await this.applyRemote(id)) changed = true;
+        // Local đổi trong lúc tải (vd. tự động SLA khi mở app) → thử lại, tối đa 3 lần.
+        for (let attempt = 0; attempt < 3; attempt++) {
+          const result = await this.applyRemoteResult(id);
+          if (result === 'applied') changed = true;
+          if (result !== 'stale') break;
+        }
       } catch {
         // Không tải được: realtime/probe/pull sẽ sửa sau.
       }
@@ -150,8 +153,9 @@ export class CustomerSync {
       rejected: this.status.getSnapshot().rejected.filter((r) => r.opId !== opId),
       pending: await queueCount(this.local),
     });
-    if (op && this.isOnline()) await this.reloadFromServer([op.recordId]);
+    // Đẩy tiếp op còn lại (kể cả op sau của cùng khách), rồi đưa local của khách về giá trị server.
     await this.flushQueue();
+    if (op && this.isOnline()) await this.reloadFromServer([op.recordId]);
     return op;
   }
 
