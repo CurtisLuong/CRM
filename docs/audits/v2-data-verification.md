@@ -12,7 +12,7 @@
 | Project | `mksjmpcsfawsiabfhoxe` (staging hiện tại) |
 | Khôi phục từ backup | `~/CRM-backups/20261016-120548` (diễn tập T0.1, khớp 22/22 bảng). **Không** khôi phục lại — chủ dự án chọn 2026-10-17 |
 | Độ lệch so với yêu cầu | tasks.md T5.2 yêu cầu staging khôi phục từ production **mới nhất**. Lần kiểm này dùng bản 2026-10-16 + dữ liệu chủ dự án đã thử trên v2 từ đó. Hệ quả: (1) khách/ghi chú/cuộc gọi tạo trên production sau 2026-10-16 không có trong lần kiểm; (2) có thể có bản ghi do v2 tạo/sửa trước Phần B — vẫn nằm trong "số liệu gốc" nên không ảnh hưởng so sánh trước/sau. Bù lại: T5.4 backup + chạy migration v2 trên production ngay trước cutover |
-| Migration v2 đã chạy trên staging | ⏳ kiểm ở Phần B (002 · 003 · 004 · 005 · 006) |
+| Migration v2 đã chạy trên staging | **Phát hiện 2026-10-17:** staging **chưa** có 002–006 (kiểm cột: `cot_002=0, bang_003_001=1, cot_004=0, cot_005_006=0`) → v2 trên staging chạy thiếu cột v2 từ trước tới nay; tasks.md §4 "chạy SQL v2 trên production sau khi agent báo đã qua staging" chưa từng qua staging. Chạy bổ sung 002→006 trên staging trước Phần B: ⏳ · `tests/sql/002_005_v2.test.sql`: ⏳ |
 | Bản v2 được kiểm | `v2` @ `fbd2e0e` (2026-10-17 10:58) — `crm-v2-9hf.pages.dev` |
 | Mốc giờ bắt đầu (Phần B) | ⏳ |
 
