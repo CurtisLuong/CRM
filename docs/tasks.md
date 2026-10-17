@@ -377,7 +377,7 @@ Ký hiệu: ☐ chưa · ◐ đang làm (ghi nhánh) · ☑ xong (ghi ngày) · 
 - **Xong khi:** mỗi rule có test dương/âm + ngưỡng ở `config/signals.ts`; Hoãn/Ẩn hoạt động.
 
 #### T6.4 — Hiệu quả › Chăm sóc
-- **Sở hữu:** `src/features/insights/care*`, `src/domain/metrics/care.ts`.
+- **Sở hữu:** `src/features/insights/{route.tsx,care*}` (route chỉ mount tab Chăm sóc), `src/domain/metrics/care.ts`; test tương ứng và E2E insights.
 - **Xong khi:** đủ chỉ số F-07 với định nghĩa; drill-down ra danh sách; Bài học tuần ≤3 có ngưỡng; HealthDot từng khách giải thích được.
 
 #### T6.5 — Hiệu quả › Marketing
@@ -385,7 +385,7 @@ Ký hiệu: ☐ chưa · ◐ đang làm (ghi nhánh) · ☑ xong (ghi ngày) · 
 - **Xong khi:** funnel theo kênh/campaign/form, cohort, lý do loại theo kênh, nhập chi phí → CPL…, tình trạng `fb_leads` (lần nhận cuối, lỗi).
 
 #### T6.6 — Ghi chú giọng nói
-- **Đọc:** `prompts.md` A.4. **Sở hữu:** `src/features/quick-actions/voice*`; Worker route `/stt` (nếu cần, file mới `worker/stt.js`).
+- **Đọc:** `prompts.md` A.4. **Sở hữu:** `src/features/quick-actions/{QuickActions.tsx,voice*}`, Worker route `/stt` trong `worker/intake-worker.js` + file mới `worker/stt.js` nếu cần; test tương ứng và E2E quick-actions.
 - **Xong khi:** Web Speech vi-VN trên Chrome Android; fallback Worker; văn bản → `parse_note`; audio không lưu.
 
 #### T6.7 — AI v2
@@ -393,7 +393,7 @@ Ký hiệu: ☐ chưa · ◐ đang làm (ghi nhánh) · ☑ xong (ghi ngày) · 
 - **Xong khi:** prompt v2 (brief, zalo, parse_note, retarget_msg, coach, close_reason) chạy; bộ đánh giá 50–100 ghi chú không có lỗi nghiêm trọng; `MODELS`/`AI_MODELS` khớp.
 
 #### T6.8 — Gộp trùng có duyệt
-- **Sở hữu:** `src/features/intake/merge*`, `src/domain/customer/merge.ts`.
+- **Sở hữu:** `src/features/intake/{route.tsx,merge/**}`, `src/domain/customer/merge.ts`, `src/data/repositories/customers.ts`; test tương ứng và E2E intake.
 - **Xong khi:** S17 phát hiện; màn so sánh 2 khách; gộp = nối mảng lịch sử (giữ nguồn), giữ cả `source`, xoá mềm bản thừa, audit ghi đủ; không gộp khách khác owner nếu không phải admin.
 
 ## 4. Việc chủ dự án cần làm (không cần code)
