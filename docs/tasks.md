@@ -369,11 +369,11 @@ Ký hiệu: ☐ chưa · ◐ đang làm (ghi nhánh) · ☑ xong (ghi ngày) · 
 - **Xong khi:** fact có nguồn/độ mới (`field_meta`), interests theo đợt (lead hỏi dự án thứ 2 → thêm đợt), household, contact_prefs + không liên hệ (chặn Zalo/retarget), kết thúc có lý do + điều kiện retarget, Brief đọc các nguồn mới.
 
 #### T6.2 — Tệp khách & Retarget
-- **Sở hữu:** `src/features/retarget/*`, `src/domain/matching/segments.ts`.
+- **Sở hữu:** `src/features/retarget/*`, `src/domain/matching/segments.ts`; test tương ứng và E2E retarget.
 - **Xong khi:** nghiệm thu F-06 (căn đã bán/giá cũ không được giới thiệu như đã xác minh; "không liên hệ" không bao giờ trong danh sách gửi; không gửi tự động); chiến dịch đo được phản hồi.
 
 #### T6.3 — Signals S11–S18
-- **Sở hữu:** `src/domain/signals/rules/s11…s18*.ts`.
+- **Sở hữu:** `src/domain/signals/rules/S11…S18*.ts`, `src/config/signals.ts`; test tương ứng.
 - **Xong khi:** mỗi rule có test dương/âm + ngưỡng ở `config/signals.ts`; Hoãn/Ẩn hoạt động.
 
 #### T6.4 — Hiệu quả › Chăm sóc
