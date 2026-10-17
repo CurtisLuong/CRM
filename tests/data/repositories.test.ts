@@ -225,6 +225,49 @@ describe('repository operations match real v1 payloads and local records', () =>
   });
 });
 describe('transaction durability and races', () => {
+  it('merges two owned customers atomically, queues patch updates, archives the duplicate, and rejects cross-owner writes', async () => {
+    const p = await pair();
+    await p.local.put({
+      id: 'keeper',
+      owner_id: UID,
+      phone: '0912345678',
+      full_name: 'Nguyễn Thị Mai',
+      source: ['facebook_ads'],
+      notes_manual: [{ at: 'a', text: 'Giữ', extension: true }],
+      future_json: { preserved: true },
+    } as any);
+    await p.local.put({
+      id: 'duplicate',
+      owner_id: UID,
+      phone: '+84 912 345 678',
+      full_name: 'Nguyen Thi Mai',
+      source: 'referral',
+      notes_manual: [{ at: 'b', text: 'Nối' }],
+      care_stage_history: [{ stage: 'Booking', at: NOW, provenance: 'import' }],
+    } as any);
+    const merged = await p.repo.merge('keeper', 'duplicate');
+    expect(merged.keeper).toMatchObject({
+      source: ['facebook_ads', 'referral'],
+      notes_manual: [
+        { at: 'a', text: 'Giữ', extension: true },
+        { at: 'b', text: 'Nối' },
+      ],
+      future_json: { preserved: true },
+    });
+    expect(merged.duplicate.archived_at).toBe(NOW);
+    const ops = await queueGetAll(p.local);
+    expect(ops).toHaveLength(2);
+    expect(ops.find((op) => op.recordId === 'keeper')?.payload).toHaveProperty('notes_manual');
+    expect(ops.find((op) => op.recordId === 'duplicate')?.payload).toEqual({ archived_at: NOW, updated_at: NOW });
+
+    await p.local.put({ id: 'foreign', owner_id: 'another-owner', phone: '0900000000', full_name: 'Khác' } as any);
+    const before = await p.local.getAll();
+    await expect(p.repo.merge('keeper', 'foreign')).rejects.toThrow('Cần kết nối mạng để xác minh quyền trưởng nhóm');
+    expect(await p.local.getAll()).toEqual(before);
+    p.local.close();
+    p.v1.CRM.suspend();
+  });
+
   it('queue failure rolls back customer mutation, including create', async () => {
     const p = await pair();
     await p.repo.create({ id: ID, phone: '0', full_name: 'Tự' });

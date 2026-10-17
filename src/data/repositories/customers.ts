@@ -1,6 +1,7 @@
 /** Customer aggregate repository. Mutation bodies port legacy/js/db.js; queue payload keys intentionally match v1. */
 // biome-ignore-all lint/suspicious/noExplicitAny: Preserve unknown legacy and future JSON fields without projecting the aggregate.
 import type { Customer } from '@/domain/customer';
+import { buildCustomerMerge } from '@/domain/customer/merge';
 import { ReadOnlyError, STORE_CUSTOMERS, STORE_QUEUE, sameRecord } from '../localdb';
 import { type AssignmentRollback, type QueueOp, queueCount } from '../queue';
 import type { CustomerSync } from '../sync';
@@ -197,6 +198,88 @@ export class CustomerRepository {
       },
       opts.assign === true,
     );
+  }
+
+  /** User-approved merge: atomically patch the keeper and soft-archive the duplicate.
+   * Both changes enter the existing queue; the server customer_changes trigger audits each UPDATE.
+   */
+  async merge(keeperId: string, duplicateId: string) {
+    if (keeperId === duplicateId) throw new Error('Không thể gộp cùng một hồ sơ.');
+    const local = this.sync.local;
+    local.assertOpen();
+    const [preflightKeeper, preflightDuplicate] = await Promise.all([local.get(keeperId), local.get(duplicateId)]);
+    if (!preflightKeeper || !preflightDuplicate)
+      throw new Error('Không tìm thấy đủ hai hồ sơ để gộp. Tải lại rồi thử lại.');
+    const ownsBoth = preflightKeeper.owner_id === local.userId && preflightDuplicate.owner_id === local.userId;
+    let adminVerified = false;
+    if (!ownsBoth) {
+      if (!this.sync.isOnline())
+        throw new Error('Cần kết nối mạng để xác minh quyền trưởng nhóm trước khi gộp khách khác người phụ trách.');
+      const { data, error } = await (this.sync.client as any).rpc('team_list');
+      if (error) throw new Error('Không xác minh được quyền trưởng nhóm; không có hồ sơ nào được thay đổi.');
+      adminVerified = Array.isArray(data) && data.some((member: Data) => member?.is_me && member?.is_admin);
+      if (!adminVerified) throw new ReadOnlyError();
+    }
+    local.markChanged();
+    const result = await new Promise<{ keeper: Customer; duplicate: Customer }>((resolve, reject) => {
+      const tx = local.db.transaction([STORE_CUSTOMERS, STORE_QUEUE], 'readwrite');
+      const customers = tx.objectStore(STORE_CUSTOMERS);
+      const keeperRequest = customers.get(keeperId);
+      const duplicateRequest = customers.get(duplicateId);
+      let merged: { keeper: Customer; duplicate: Customer } | undefined;
+      let failure: unknown;
+      let reads = 0;
+      const finishRead = () => {
+        if (++reads !== 2) return;
+        try {
+          local.assertOpen();
+          const keeper = keeperRequest.result as Customer | undefined;
+          const duplicate = duplicateRequest.result as Customer | undefined;
+          if (!keeper || !duplicate || keeper.archived_at || duplicate.archived_at)
+            throw new Error('Một hồ sơ không còn tồn tại hoặc đã lưu trữ. Tải lại danh sách rồi thử lại.');
+          const stillOwnsBoth = keeper.owner_id === local.userId && duplicate.owner_id === local.userId;
+          if (!stillOwnsBoth && !adminVerified) throw new ReadOnlyError();
+          const patch = buildCustomerMerge(keeper, duplicate);
+          customers.put(patch.keeper);
+          customers.put(patch.duplicate);
+          const queue = tx.objectStore(STORE_QUEUE);
+          queue.add({
+            type: 'update',
+            recordId: keeper.id,
+            payload: patch.keeperPatch,
+            ts: String(patch.keeper.updated_at),
+          });
+          queue.add({
+            type: 'update',
+            recordId: duplicate.id,
+            payload: patch.duplicatePatch,
+            ts: String(patch.duplicate.updated_at),
+          });
+          merged = { keeper: patch.keeper, duplicate: patch.duplicate };
+        } catch (error) {
+          failure = error;
+          tx.abort();
+        }
+      };
+      keeperRequest.onsuccess = finishRead;
+      duplicateRequest.onsuccess = finishRead;
+      tx.oncomplete = () => {
+        if (merged) resolve(merged);
+        else reject(new Error('Không thể hoàn tất gộp hồ sơ.'));
+      };
+      tx.onabort = () => reject(failure || tx.error);
+      tx.onerror = () => {
+        failure ||= tx.error;
+      };
+    });
+    if (!local.isClosed) {
+      await this.refresh();
+      if (!local.isClosed) {
+        this.sync.status.set({ pending: await queueCount(local) });
+        void this.sync.flushQueue().catch(() => {});
+      }
+    }
+    return result;
   }
 
   async addNote(id: string, text: string | null) {

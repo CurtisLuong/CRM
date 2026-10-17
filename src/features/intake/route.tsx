@@ -8,6 +8,7 @@ import { SOURCE_DEFAULT, SOURCES } from '@/config/sources';
 import { CARE_STAGE_DEFAULT, CARE_STAGE_OPTIONS, CONTACT_STATUSES } from '@/config/stages';
 import { useCustomers, useRepositoryAccount } from '@/data/hooks';
 import type { Customer } from '@/domain/customer';
+import { detectDuplicatePairs, findDuplicateCandidates } from '@/domain/customer/merge';
 import { calcCungFromDOB, calcMenhFromSolarDOB } from '@/domain/lunar/lunar';
 import { Button } from '@/ui';
 import {
@@ -132,11 +133,19 @@ function IntakePage() {
   const [ocrImage, setOcrImage] = useState(false);
   const [ocrPhoto, setOcrPhoto] = useState<Blob | null>(null);
   const [customAptType, setCustomAptType] = useState(false);
+  const [selectedDuplicate, setSelectedDuplicate] = useState<[string, string] | null>(null);
+  const [keeperId, setKeeperId] = useState('');
+  const [mergeBusy, setMergeBusy] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
   const initialized = useRef('');
   const [, setCatalogRevision] = useState(0);
   const customer = useMemo(() => customers.find((row) => row.id === customerId) ?? null, [customers, customerId]);
   const phoneMatches = findPhoneMatches(customers, values.phone, customerId);
+  const intakeCandidates = findDuplicateCandidates(customers, values.phone, values.full_name, customerId);
+  const duplicatePairs = useMemo(() => detectDuplicatePairs(customers), [customers]);
+  const selectedPair = selectedDuplicate
+    ? selectedDuplicate.map((id) => customers.find((row) => row.id === id)).filter((row): row is Customer => !!row)
+    : [];
   const dirty = formState.isDirty || JSON.stringify(manualNotes) !== initialManualNotes || !!newManualNote.trim();
   const blocker = useBlocker(dirty);
 
@@ -243,6 +252,13 @@ function IntakePage() {
       return;
     }
     const matches = findPhoneMatches(customers, checked.data.phone, customerId);
+    const nearDuplicates = findDuplicateCandidates(customers, checked.data.phone, checked.data.full_name, customerId);
+    if (nearDuplicates.length) {
+      setError(
+        `Có hồ sơ trùng gần giống: ${nearDuplicates.map((row) => row.full_name).join(', ')}. Mở hồ sơ đó để cập nhật, hoặc xử lý cặp nghi trùng bên dưới.`,
+      );
+      return;
+    }
     const sameOwner = matches.find((match) => match.owner_id === account.sync.local.userId);
     if (sameOwner) {
       setError(`Số điện thoại đã thuộc khách ${sameOwner.full_name}. Mở hồ sơ cũ để sửa thay vì tạo trùng.`);
@@ -279,6 +295,30 @@ function IntakePage() {
       setError(raw instanceof Error ? raw.message : 'Không lưu được khách.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const mergeSelected = async () => {
+    if (!account || selectedPair.length !== 2 || !keeperId) return;
+    const duplicate = selectedPair.find((row) => row.id !== keeperId);
+    const keeper = selectedPair.find((row) => row.id === keeperId);
+    if (!duplicate || !keeper) return;
+    if (
+      !window.confirm(
+        `Gộp “${duplicate.full_name}” vào “${keeper.full_name}” và lưu trữ mềm hồ sơ trùng? Thao tác được ghi audit.`,
+      )
+    )
+      return;
+    setMergeBusy(true);
+    setError('');
+    try {
+      await account.customers.merge(keeper.id, duplicate.id);
+      setSelectedDuplicate(null);
+      setKeeperId('');
+    } catch (raw) {
+      setError(raw instanceof Error ? raw.message : 'Không gộp được hồ sơ.');
+    } finally {
+      setMergeBusy(false);
     }
   };
 
@@ -334,6 +374,106 @@ function IntakePage() {
         </div>
         <Button onClick={() => navigate(-1)}>Đóng</Button>
       </header>
+      {duplicatePairs.length > 0 && (
+        <section
+          className="flex flex-col gap-3 rounded-card border border-border-strong bg-surface p-4 shadow-e1"
+          aria-label="Khách có thể trùng"
+        >
+          <div>
+            <h2 className="text-section">Có hồ sơ nghi trùng</h2>
+            <p className="text-small text-text-2">
+              Phát hiện theo SĐT chuẩn hoá trùng và tên gần giống. Chỉ lưu trữ hồ sơ sau khi chọn giữ lại và xác nhận
+              gộp.
+            </p>
+          </div>
+          <ul className="flex flex-col gap-2">
+            {duplicatePairs.map(([left, right]) => (
+              <li
+                key={`${left.id}:${right.id}`}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-control border border-border p-3"
+              >
+                <span className="text-body">
+                  {left.full_name} · {left.phone} <span className="text-text-3">↔</span> {right.full_name} ·{' '}
+                  {right.phone}
+                </span>
+                <Button
+                  onClick={() => {
+                    const pair: [string, string] = [left.id, right.id];
+                    setSelectedDuplicate(pair);
+                    setKeeperId(left.id);
+                  }}
+                >
+                  So sánh
+                </Button>
+              </li>
+            ))}
+          </ul>
+          {selectedPair.length === 2 && (
+            <div className="grid gap-3 md:grid-cols-2">
+              {selectedPair.map((row) => (
+                <article
+                  key={row.id}
+                  className={`flex flex-col gap-2 rounded-control border p-3 ${keeperId === row.id ? 'border-primary bg-primary/5' : 'border-border'}`}
+                >
+                  <h3 className="text-body-strong">{row.full_name}</h3>
+                  <dl className="grid grid-cols-[auto_1fr] gap-x-2 text-small text-text-2">
+                    <dt>SĐT</dt>
+                    <dd>{row.phone}</dd>
+                    <dt>Người phụ trách</dt>
+                    <dd>
+                      {row.owner_id === account?.sync.local.userId
+                        ? 'Bạn'
+                        : row.owner_id
+                          ? 'Người phụ trách khác'
+                          : 'Chưa gán'}
+                    </dd>
+                    <dt>Nguồn</dt>
+                    <dd>{Array.isArray(row.source) ? row.source.join(', ') : row.source || 'Chưa rõ'}</dd>
+                    <dt>Ghi chú</dt>
+                    <dd>{Array.isArray(row.notes_manual) ? row.notes_manual.length : 0}</dd>
+                    <dt>Lịch sử chăm sóc</dt>
+                    <dd>{Array.isArray(row.care_stage_history) ? row.care_stage_history.length : 0}</dd>
+                    <dt>Tương tác</dt>
+                    <dd>{Array.isArray(row.interactions) ? row.interactions.length : 0}</dd>
+                  </dl>
+                  <Button
+                    variant={keeperId === row.id ? 'primary' : 'secondary'}
+                    onClick={() => setKeeperId(row.id)}
+                    aria-pressed={keeperId === row.id}
+                  >
+                    {keeperId === row.id ? 'Giữ hồ sơ này' : 'Chọn giữ hồ sơ này'}
+                  </Button>
+                </article>
+              ))}
+              <div className="flex flex-wrap gap-2 md:col-span-2">
+                <Button
+                  variant="danger"
+                  loading={mergeBusy}
+                  disabled={!keeperId || mergeBusy}
+                  onClick={() => void mergeSelected()}
+                >
+                  Xác nhận gộp và lưu trữ hồ sơ còn lại
+                </Button>
+                <Button disabled={mergeBusy} onClick={() => setSelectedDuplicate(null)}>
+                  Đóng so sánh
+                </Button>
+              </div>
+            </div>
+          )}
+        </section>
+      )}
+      {intakeCandidates.length > 0 && (
+        <section
+          className="flex flex-wrap items-center justify-between gap-3 rounded-control border border-border-strong bg-surface p-3"
+          role="status"
+        >
+          <p className="text-small text-text-2">
+            SĐT và tên gần giống hồ sơ {intakeCandidates.map((row) => `“${row.full_name}”`).join(', ')}. Mở hồ sơ hiện
+            có để cập nhật, tránh tạo bản ghi trùng.
+          </p>
+          <Button onClick={() => navigate(`/intake/${intakeCandidates[0]?.id}`)}>Mở hồ sơ hiện có</Button>
+        </section>
+      )}
       <form onSubmit={handleSubmit(save)} className="flex flex-col gap-4" noValidate>
         <section className="flex flex-col gap-3 rounded-card border border-border bg-surface p-4 shadow-e1">
           <div className="flex flex-wrap items-center justify-between gap-2">
