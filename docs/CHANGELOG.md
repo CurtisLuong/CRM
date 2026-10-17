@@ -6,6 +6,13 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-17 — T5.7: T5.7: sửa nội dung và hạn công việc
+
+- Thêm inline edit cho việc đang mở; giữ due_original, promise side, status, lịch sử và unknown fields.
+- Giữ quyền owner/read-only; xóa vẫn để mở đến khi có soft-delete tương thích v1.
+- npm run check và E2E tasks đã pass; gate sẽ xác minh lại.
+- File: `src/features/tasks/route.tsx`, `tests/e2e/tasks.spec.ts`
+
 ## 2026-10-17 — T5.6: T5.6: sửa ghi chú hồ sơ và lịch sử bậc
 
 - Thêm sửa ghi chú hồ sơ và ghi chú lịch sử bậc, giữ các thuộc tính JSON mở rộng.
