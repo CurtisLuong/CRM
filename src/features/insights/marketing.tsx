@@ -31,9 +31,19 @@ export function MarketingSection({
     logs: [],
   });
   const [now, setNow] = useState(() => Date.now());
+  const [online, setOnline] = useState(() => typeof navigator === 'undefined' || navigator.onLine);
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 60_000);
     return () => window.clearInterval(timer);
+  }, []);
+  useEffect(() => {
+    const update = () => setOnline(navigator.onLine);
+    window.addEventListener('online', update);
+    window.addEventListener('offline', update);
+    return () => {
+      window.removeEventListener('online', update);
+      window.removeEventListener('offline', update);
+    };
   }, []);
   useEffect(() => {
     let active = true;
@@ -42,7 +52,7 @@ export function MarketingSection({
         setLogState({ loading: false, available: false, latest: null, errors: 0, logs: [] });
         return;
       }
-      if (!account.sync.isOnline()) {
+      if (!online) {
         setLogState({ loading: false, available: false, latest: null, errors: 0, logs: [] });
         return;
       }
@@ -85,7 +95,7 @@ export function MarketingSection({
     return () => {
       active = false;
     };
-  }, [account, customers]);
+  }, [account, customers, online]);
 
   const dimensions = useMemo(() => marketingDimensions(customers, logState.logs), [customers, logState.logs]);
   const cohorts = useMemo(() => marketingCohorts(customers, now), [customers, now]);

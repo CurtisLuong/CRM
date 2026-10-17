@@ -29,9 +29,19 @@ export function CampaignCostsSection({
   const [error, setError] = useState('');
   const [status, setStatus] = useState('');
   const [now, setNow] = useState(() => Date.now());
+  const [online, setOnline] = useState(() => typeof navigator === 'undefined' || navigator.onLine);
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 60_000);
     return () => window.clearInterval(timer);
+  }, []);
+  useEffect(() => {
+    const update = () => setOnline(navigator.onLine);
+    window.addEventListener('online', update);
+    window.addEventListener('offline', update);
+    return () => {
+      window.removeEventListener('online', update);
+      window.removeEventListener('offline', update);
+    };
   }, []);
   useEffect(() => {
     let active = true;
@@ -40,7 +50,7 @@ export function CampaignCostsSection({
         setLoading(false);
         return;
       }
-      if (!account.sync.isOnline()) {
+      if (!online) {
         setError('Chi phí campaign cần mạng để tải và lưu.');
         setLoading(false);
         return;
@@ -69,7 +79,7 @@ export function CampaignCostsSection({
     return () => {
       active = false;
     };
-  }, [account]);
+  }, [account, online]);
 
   const metrics = useMemo(() => campaignCostMetrics(customers, rows, now), [customers, rows, now]);
   const save = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -84,7 +94,7 @@ export function CampaignCostsSection({
       setError('Ngày kết thúc phải bằng hoặc sau ngày bắt đầu.');
       return;
     }
-    if (!account.sync.isOnline()) {
+    if (!online) {
       setError('Đang ngoại tuyến; hãy thử lưu lại khi có mạng.');
       return;
     }
@@ -118,7 +128,7 @@ export function CampaignCostsSection({
     }
   };
   const archive = async (id: string) => {
-    if (!account?.sync.isOnline()) {
+    if (!account || !online) {
       setError('Cần mạng để ẩn dòng chi phí.');
       return;
     }
