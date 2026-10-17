@@ -31,6 +31,7 @@ Lựa chọn nền tảng ban đầu (Supabase, Cloudflare Pages, local-first) k
 | D-019 | T3.5 tích hợp hồ sơ với contract máy tính vay của T3.9 | Đã duyệt 2026-10-16 | Chỉ tích hợp T3.9 ↔ T3.5 |
 | D-020 | Hoãn ba thao tác xóa nested record trong cutover v2 | Ngoại lệ cục bộ đã duyệt 2026-10-17 | Chỉ chấp nhận gap T5.1; giữ D-012 và v1 |
 | D-021 | Đồng bộ v2 gộp cột mảng theo phần tử + bỏ được op bị server từ chối | Đã duyệt hướng 2026-10-17 (sửa trước cutover) | Hàng đợi v2; v1 giữ ghi đè tới cutover |
+| D-022 | T6.7 nghiệm thu không cần bộ đánh giá 50–100 ghi chú thật; theo dõi trên production | Ngoại lệ cục bộ đã duyệt 2026-10-17 | Chỉ T6.7 |
 
 ## Ba loại kết quả
 
@@ -354,3 +355,18 @@ Ví dụ và mẫu trong bộ tài liệu không phải sự chấp thuận cho 
 - Chấp thuận: chủ dự án quyết định "sửa trước cutover" sau báo cáo T5.2 ngày 2026-10-17 (task T5.9); phương án kỹ thuật do agent chọn trong phạm vi đó, không xung đột D-012.
 - Tài liệu đã cập nhật: `docs/decisions.md`, `docs/architecture.md` §3.1, §4.
 - Trạng thái: Đã duyệt hướng; T5.2 chạy lại kịch bản E2 trên staging để nghiệm thu.
+
+### D-022 — T6.7 nghiệm thu không cần bộ đánh giá ghi chú thật; theo dõi trên production
+
+- Ngày: 2026-10-17
+- Loại: Ngoại lệ cục bộ — bỏ một điều kiện nghiệm thu
+- Nguyên tắc liên quan: `docs/tasks.md` T6.7 "Xong khi" (bộ đánh giá 50–100 ghi chú không có lỗi nghiêm trọng); `docs/prompts.md` (bộ `tests/ai-eval/notes.jsonl` do chủ dự án chọn).
+- Quyết định: Đánh dấu T6.7 xong khi chưa có bộ ghi chú thật. Phần mã đã merge ở T6.7a (6feeb97) và chỉ được kiểm bằng ghi chú giả (`tests/ai-eval/synthetic-notes.jsonl`). Chất lượng AI trên ghi chú thật sẽ được chủ dự án theo dõi khi dùng trên production.
+- Lý do: chủ dự án chưa có sẵn 50–100 ghi chú thật, gom và ẩn danh mất nhiều thời gian. Rủi ro hạn chế vì AI chỉ đề xuất (CLAUDE.md §3.8): mọi thay đổi đều qua hộp duyệt, không tự ghi, gửi hay gọi, và không gửi SĐT.
+- Rủi ro còn lại: AI có thể đọc sai ghi chú viết tắt hoặc không dấu (ngày tương đối như "t7", số tiền, mã căn, phủ định/đổi ý) và đề xuất sai. Sale phải đọc kỹ đề xuất trước khi bấm duyệt.
+- Cách theo dõi: khi thấy đề xuất sai, chụp màn hình hoặc chép ghi chú (bỏ SĐT, tên khách) kèm đề xuất sai rồi gửi agent. Các ví dụ này được thêm vào `tests/ai-eval/` theo mẫu `owner-notes.template.jsonl`, rồi chạy `tests/ai-eval/run.mjs` để sửa prompt. Sai nghiêm trọng hoặc lặp lại thì ẩn tính năng AI (bỏ `VITE_WORKER_URL` khỏi cấu hình build; khi thiếu, app ẩn AI) trong lúc sửa.
+- Điều kiện để dùng được trên production: Worker AI v2 phải được chủ dự án deploy (agent không deploy).
+- Phạm vi: Chỉ T6.7. Các tính năng AI sau vẫn phải có đánh giá theo `docs/prompts.md` trừ khi có quyết định riêng.
+- Chấp thuận: Curtis trong phiên điều phối 2026-10-17: "Tôi sẽ quan sát tính năng này trên production luôn. Bạn ghi chú bước này và cho phép pass."
+- Tài liệu đã cập nhật: `docs/decisions.md`, `docs/tasks.md` (T6.7 "Xong khi", việc chủ dự án Sóng 6), `scripts/agents/ownership.json`.
+- Trạng thái: Đã duyệt; chỉ áp dụng cho T6.7.
