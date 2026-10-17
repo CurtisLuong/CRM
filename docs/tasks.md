@@ -129,6 +129,7 @@ Ký hiệu: ☐ chưa · ◐ đang làm (ghi nhánh) · ☑ xong (ghi ngày) · 
 | T5.1 | Kiểm tra parity v1 ↔ v2 | Cutover | M | Sóng 3, 4, T5.6, T5.7, T5.8 | Agent | ☑ 2026-10-17 (tự merge d06747a) |
 | T5.2 | Kiểm chứng dữ liệu trên staging | Cutover | M | T5.1 | Agent + chủ dự án | ☑ 2026-10-17 (tự merge c34b3c5) |
 | T5.9 | Gộp mảng khi đồng bộ + bỏ thao tác bị từ chối | Cutover | M | T5.1 | Agent | ☑ 2026-10-17 (tự merge bd67dde) |
+| T5.10 | Lưu trữ khách (xoá mềm) + khôi phục | Cutover | S | T5.1 | Agent | ☐ |
 | T5.3 | QA thiết bị thật + offline | Cutover | M | T5.2 | Chủ dự án + agent | ☐ |
 | T5.4 | Cutover production + rollback plan | Cutover | S | T5.3 | Chủ dự án + agent | ☐ |
 | T5.5 | Dọn dẹp + tài liệu "as built" | Cutover | S | T5.4 | Agent | ☐ |
@@ -374,6 +375,12 @@ Ký hiệu: ☐ chưa · ◐ đang làm (ghi nhánh) · ☑ xong (ghi ngày) · 
 - **Sở hữu:** `src/data/queue.ts`, `src/data/sync.ts`, `src/data/supabase.ts`, `src/data/syncStatus.ts`, `src/data/arrayMerge.ts`, `src/data/hooks/index.ts`, `src/data/repositories/customers.ts` (chỉ ghi bản gốc mảng vào op), `src/features/sync/**`, `src/app/layout.tsx` (chỉ gắn sheet trạng thái đồng bộ), `tests/data/**`, `tests/features/sync/**`, `tests/e2e/sync*`, `docs/decisions.md`, `docs/architecture.md`, `SQL/v2/007_*.sql`.
 - **Làm:** (1) T5.2 E2 mất ghi chú khi 2 máy cùng sửa một khách: khi đẩy op `update` có cột mảng JSONB, gộp với hàng hiện tại trên server theo danh tính phần tử, không làm sống lại phần tử đã bỏ, giữ thuộc tính lạ, an toàn race đọc/ghi. (2) Op bị server từ chối vĩnh viễn (vd. `23514`) không chặn mãi hàng đợi: hiện lý do dễ hiểu + "Bỏ thao tác này" có xác nhận, hoàn tác local về giá trị server; lỗi tạm thời vẫn thử lại.
 - **Xong khi:** test 2 thiết bị cùng thêm phần tử offline → server đủ cả hai; sửa phần tử + máy khác thêm → giữ cả hai; op `23514` không chặn op sau khi đã bỏ; queue chéo v1↔v2 vẫn pass. T5.2 chạy lại E2 trên staging.
+
+#### T5.10 — Lưu trữ khách (xoá mềm) + khôi phục (task con của T5.2)
+- **Đọc:** `PRD.md` F-14, `decisions.md` D-003, D-012, `UX_GUIDELINES.md` §1 (xác nhận thao tác phá huỷ).
+- **Sở hữu:** `src/features/profile/**`, `src/features/archived/**`, `tests/features/profile/**`, `tests/features/archived/**`, `tests/e2e/profile*`, `tests/e2e/archive*`.
+- **Làm:** v1 có "🗑 Xoá khách" (xoá cứng); v2 chưa có màn nào gọi lưu trữ. Thêm "Lưu trữ khách" trong hồ sơ (chỉ người phụ trách, xác nhận rõ, đặt xa nút thao tác thường) đặt `archived_at` qua `CustomersRepository.remove`; màn "Khách đã lưu trữ" + "Khôi phục" (`restore`). Không xoá cứng, không đổi schema.
+- **Xong khi:** khách lưu trữ biến mất khỏi Danh sách/Hôm nay/Công việc/Thông báo, xem được ở màn đã lưu trữ, khôi phục được; người không phụ trách không thấy nút; test + E2E pass. v1 không hiểu `archived_at` → khách vẫn hiện trên v1 tới cutover (đã biết).
 
 #### T5.3 — QA thiết bị thật
 - **Làm:** Android (Chrome + vỏ APK 1.4 trỏ `crm-v2`), iPhone Safari (nếu có), Mac; font tiếng Việt; số chạm thực đo so baseline T0.6; hiệu năng (mở app < 2s với cache), pin/mạng yếu.
