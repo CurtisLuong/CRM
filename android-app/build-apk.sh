@@ -18,11 +18,11 @@ VNAME=$(grep -E '^\s*versionName' android/app/build.gradle | grep -oE '"[^"]+"' 
 NOTES="${1:-}"   # ghi chú bản mới (tuỳ chọn): ./build-apk.sh "Sửa lỗi ..."
 mkdir -p dist
 cp android/app/build/outputs/apk/release/app-release.apk "dist/SoKhach-$VNAME.apk"
-SUPABASE_URL=$(grep -oE "https://[a-z0-9]+\.supabase\.co" ../js/config.js | head -1)
+SUPABASE_URL=$(grep -oE "https://[a-z0-9]+\.supabase\.co" ../legacy/js/config.js | head -1)
 python3 - "$VCODE" "$VNAME" "$SUPABASE_URL" "$NOTES" <<'PY'
 import json, sys
 code, name, base, notes = sys.argv[1:5]
-p = '../android-app-version.json'
+p = '../public/android-app-version.json'
 try: old = json.load(open(p))
 except Exception: old = {}
 json.dump({
@@ -33,4 +33,4 @@ json.dump({
 open(p, 'a').write('\n')
 PY
 echo "✅ APK: $(pwd)/dist/SoKhach-$VNAME.apk (versionCode $VCODE)"
-echo "   Tiếp: (1) tải file này lên Supabase › Storage › app-releases  (2) commit + push android-app-version.json"
+echo "   Tiếp: (1) tải file này lên Supabase › Storage › app-releases  (2) commit + push public/android-app-version.json"

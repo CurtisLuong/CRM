@@ -47,4 +47,7 @@
     <uses-permission android:name="android.permission.READ_CALL_LOG" />
     <!-- Bấm nút gọi trong CRM → gọi THẲNG số khách (CallLogPlugin.dial), khỏi bấm thêm trong trình quay số. -->
     <uses-permission android:name="android.permission.CALL_PHONE" />
+    <!-- Ghi chú bằng giọng nói (Web Speech trong WebView) cần quyền micro; thiếu thì nút ghi âm không chạy (lỗi L4 T5.3). -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
 </manifest>
