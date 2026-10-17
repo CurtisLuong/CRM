@@ -6,6 +6,15 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-17 — T6.2: Tệp retarget có lọc an toàn và đo phản hồi
+
+- Thêm tệp khách lọc theo nhu cầu có cấu trúc, thời điểm retarget, ngân sách, khu vực/nghề, lý do kết thúc và lần liên hệ cuối; tệp lưu local và đồng bộ ui_state.
+- Loại khách DNC, khách đã lưu trữ, khách người khác phụ trách và khách chưa tới ngày retarget trước khi hiển thị, xuất hoặc thao tác chiến dịch.
+- Thêm quy trình chiến dịch thủ công: chọn khách, sao chép/mở Zalo, xác nhận gửi, tạo follow-up chống trùng và ghi phản hồi; không có gửi tự động.
+- Catalog hiện không cung cấp verified_at cho màn này; không hiển thị giá/tồn như đã xác minh, yêu cầu kiểm tra nguồn bán trước khi gửi.
+- Đã chạy check, build, unit tests, focused E2E 3 viewport; full E2E và golden sẽ chạy trong merge gate.
+- File: `src/domain/matching/segments.ts`, `src/features/customers/route.tsx`, `src/features/retarget/commands.ts`, `src/features/retarget/route.tsx`, `tests/domain/matching/segments.test.ts`, `tests/e2e/retarget.spec.ts`, `tests/features/retarget/route.test.tsx`
+
 ## 2026-10-17 — T6.1: T6.1: Trí nhớ khách v2
 
 - Thêm customer facts có nguồn/độ mới, sở thích liên hệ, chu kỳ quan tâm, hộ gia đình và lifecycle/retarget hints theo kiểu patch additive.
