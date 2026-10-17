@@ -18,15 +18,15 @@
 
 | Mục | Sáng | Tối | Kết quả / ghi chú |
 |---|---|---|---|
-| ≥1024px: Hôm nay, Khách hàng, Hồ sơ, Công việc, Hiệu quả, Cài đặt | ⏳ | ⏳ | |
-| 360px / 430px: cùng các màn, không cuộn ngang | ⏳ | ⏳ | |
-| Dấu tiếng Việt (Be Vietnam Pro), không vỡ chữ/ô | ⏳ | ⏳ | |
+| 1280px: 15 màn (Trang chủ, Hôm nay, Khách hàng, Khách mới, Hồ sơ, Công việc, Thao tác nhanh, Hiệu quả, Giỏ hàng, Tính vay, Thông báo, Cài đặt, Nhập/xuất, Retarget, Đồng nghiệp) | ✅ | ✅ | 15/15 không cuộn ngang, không phần tử tràn, không chữ lỗi/đăng nhập (quét tự động khi đã đăng nhập, 16:38) |
+| 360px / 430px: cùng 15 màn | ✅ | ✅ | 15/15 ở cả 2 khổ × sáng/tối |
+| Dấu tiếng Việt (Be Vietnam Pro), không vỡ chữ/ô | ✅ | ✅ | `document.fonts.check('Be Vietnam Pro', 'Trường Hưởng Đường')` = true; ảnh chụp Hôm nay tối đọc rõ. Lỗi hiển thị L3 |
 
 ## 2. Hiệu năng
 
 | Mục | Mục tiêu | Mac | Android Chrome | APK thử |
 |---|---|---|---|---|
-| Mở app khi đã có cache (tới khi thấy danh sách Hôm nay) | < 2 giây | ⏳ | ⏳ | ⏳ |
+| Mở app khi đã có cache (tới khi thấy danh sách Hôm nay) | < 2 giây | ✅ LCP 0,2 s (service worker, 0 byte mạng) | ⏳ | ⏳ |
 | Mạng yếu (3G/chập chờn): thao tác ghi vẫn lưu ngay, đồng bộ sau | không mất, không treo | ⏳ | ⏳ | ⏳ |
 
 ## 3. Android thật
@@ -59,7 +59,8 @@
 
 | # | Mức | Mô tả | Nơi | Task |
 |---|---|---|---|---|
-| L1 | ⏳ cần tái hiện | ~16:30 sau khi bấm "Tải lại" (banner "Có bản mới") để lên bundle `index-rg_L917X.js`, trình duyệt **mất phiên đăng nhập** (không còn `sb-…-auth-token`, chỉ còn `crm_last_user`). App vẫn mở các màn: Đồng nghiệp hiện "Chưa tải được danh sách nhóm… cần chạy SQL/add_team_assign.sql" (thông báo sai nguyên nhân khi chưa đăng nhập); Hôm nay hiện form đăng nhập. Chưa rõ do cập nhật SW hay phiên hết hạn — thử lại: đăng nhập → bấm Tải lại khi có bản mới → còn đăng nhập không | Mac, trình duyệt app Claude | ⏳ |
-| L2 | ⚠ | Màn Đồng nghiệp khi lỗi/chưa đăng nhập luôn ghi "cần chạy SQL/add_team_assign.sql" (`src/features/team/route.tsx` hiển thị khi `members.length === 0`) — gây hiểu nhầm | Mac | ⏳ |
+| L1 | ⚠ theo dõi | ~16:30 sau khi bấm "Tải lại" (banner "Có bản mới") để lên bundle `index-rg_L917X.js`, trình duyệt **mất phiên đăng nhập** (không còn `sb-…-auth-token`, chỉ còn `crm_last_user`). App vẫn mở các màn: Đồng nghiệp hiện "Chưa tải được danh sách nhóm… cần chạy SQL/add_team_assign.sql" (thông báo sai nguyên nhân khi chưa đăng nhập); Hôm nay hiện form đăng nhập. Tải lại trang thường (16:39) vẫn giữ phiên. Nút Tải lại chỉ gọi `updateServiceWorker(true)` (`src/app/UpdatePrompt.tsx`), không xoá storage → nghi phiên hết hạn đúng lúc reload và 2 trang cùng làm mới token (Supabase đăng xuất khi refresh token bị dùng 2 lần). Thử lại ở lần có bản mới kế tiếp + để ý trên điện thoại; tái hiện được → chặn | Mac, trình duyệt app Claude | theo dõi |
+| L2 | ⚠ | Màn Đồng nghiệp khi lỗi/chưa đăng nhập luôn ghi "cần chạy SQL/add_team_assign.sql" (`src/features/team/route.tsx` hiển thị khi `members.length === 0`) — gây hiểu nhầm. Khi đã đăng nhập thì tải được danh sách bình thường | Mac | task con (dễ) |
+| L3 | ⚠ | Hôm nay › thẻ Next Best Action, dòng "Bằng chứng" in dữ liệu thô: `booking_steps: [object Object] · care_stage_updated_at: 2026-10-07T03:54:48… · due: 1789272314339` (`src/features/today/route.tsx:224` nối `field: String(value)`). Không mất dữ liệu; xấu, ngay thẻ đầu màn chính | Mac | task con (dễ) |
 
 **Lỗi chặn còn mở:** ⏳
