@@ -6,6 +6,13 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-17 — T5.6: T5.6: sửa ghi chú hồ sơ và lịch sử bậc
+
+- Thêm sửa ghi chú hồ sơ và ghi chú lịch sử bậc, giữ các thuộc tính JSON mở rộng.
+- Giữ quyền sửa theo owner; không thêm xóa vì tombstone không tương thích cách v1 render và D-012 cấm xóa dữ liệu.
+- npm run check đã pass; gate sẽ xác minh lại và chạy E2E.
+- File: `src/features/profile/route.tsx`, `tests/e2e/profile.spec.ts`
+
 ## 2026-10-17 — T6.8: feat(T6.8): detect and review customer duplicates
 
 - Intake detects normalized-phone and near-name matches, compares both records, and requires explicit keeper selection and confirmation before archiving a duplicate.
