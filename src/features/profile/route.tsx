@@ -33,6 +33,8 @@ function Profile() {
   const toast = useToast();
   const [now, setNow] = useState(Date.now());
   const [busy, setBusy] = useState(false);
+  const [editingTimelineId, setEditingTimelineId] = useState<string | null>(null);
+  const [timelineDraft, setTimelineDraft] = useState('');
   const [docs, setDocs] = useState<DocumentRow[]>([]);
   const [docError, setDocError] = useState('');
   const writable = !!customer && !!account && customer.owner_id === account.sync.local.userId && !customer.archived_at;
@@ -78,26 +80,28 @@ function Profile() {
     );
   }
   const c: Customer = customer;
-  const save = async (patch: Record<string, unknown>, message = 'Đã lưu trên thiết bị') => {
-    if (!writable || !account || busy) return;
+  const save = async (patch: Record<string, unknown>, message = 'Đã lưu trên thiết bị'): Promise<boolean> => {
+    if (!writable || !account || busy) return false;
     if ('phone' in patch && !String(patch.phone || '').trim()) {
       toast({ title: 'Số điện thoại là thông tin bắt buộc', tone: 'error' });
-      return;
+      return false;
     }
     if ('full_name' in patch && !String(patch.full_name || '').trim()) {
       toast({ title: 'Họ tên là thông tin bắt buộc', tone: 'error' });
-      return;
+      return false;
     }
     setBusy(true);
     try {
       await account.customers.update(c.id, patch);
       toast({ title: message, description: account.sync.isOnline() ? 'Đang đồng bộ.' : 'Ngoại tuyến · chờ đồng bộ.' });
+      return true;
     } catch (error) {
       toast({
         title: 'Chưa lưu được',
         description: error instanceof Error ? error.message : 'Thử lại.',
         tone: 'error',
       });
+      return false;
     } finally {
       setBusy(false);
     }
@@ -172,6 +176,35 @@ function Profile() {
   const completeTask = async (at: string) => {
     if (account && writable) await account.customers.completeTask(c.id, at);
   };
+  const editTimelineEntry = (entryId: string, value: string) => {
+    setTimelineDraft(value);
+    setEditingTimelineId(entryId);
+  };
+  const saveTimelineEntry = async (entryId: string) => {
+    if (!writable || !account) return;
+    const split = entryId.lastIndexOf(':');
+    const index = Number(entryId.slice(split + 1));
+    if (!Number.isInteger(index) || index < 0) return;
+    const text = timelineDraft.trim();
+    if (entryId.startsWith('note:')) {
+      const notes = Array.isArray(c.notes_manual) ? c.notes_manual.slice() : [];
+      if (!notes[index] || !text) {
+        toast({ title: 'Ghi chú không được để trống', tone: 'error' });
+        return;
+      }
+      notes[index] = { ...notes[index], text, edited_at: new Date().toISOString() };
+      if (!(await save({ notes_manual: notes }, 'Đã cập nhật ghi chú'))) return;
+    } else if (entryId.startsWith('stage:')) {
+      const history = Array.isArray(c.care_stage_history) ? c.care_stage_history.slice() : [];
+      if (!history[index] || !text) {
+        toast({ title: 'Ghi chú không được để trống', tone: 'error' });
+        return;
+      }
+      history[index] = { ...history[index], note: text, edited_at: new Date().toISOString() };
+      if (!(await save({ care_stage_history: history }, 'Đã cập nhật ghi chú lịch sử bậc'))) return;
+    }
+    setEditingTimelineId(null);
+  };
   const uploadDoc = async (file?: File) => {
     if (!file || !account || !writable) return;
     setBusy(true);
@@ -221,7 +254,42 @@ function Profile() {
               <span className="text-body-strong">{entry.title}</span>
               {entry.automatic && <Badge>Tự động · SLA</Badge>}
             </div>
-            {entry.detail && <p className="mt-1 whitespace-pre-wrap text-body text-text-2">{entry.detail}</p>}
+            {entry.detail && (entry.kind === 'note' || entry.kind === 'stage') && editingTimelineId === entry.id ? (
+              <div className="mt-2 space-y-2">
+                <textarea
+                  aria-label="Sửa ghi chú"
+                  value={timelineDraft}
+                  disabled={busy}
+                  onChange={(event) => setTimelineDraft(event.target.value)}
+                  className={`${FIELD} min-h-20 py-2`}
+                />
+                <div className="flex gap-2">
+                  <Button
+                    variant="primary"
+                    disabled={busy || !timelineDraft.trim()}
+                    onClick={() => void saveTimelineEntry(entry.id)}
+                  >
+                    Lưu ghi chú
+                  </Button>
+                  <Button disabled={busy} onClick={() => setEditingTimelineId(null)}>
+                    Huỷ
+                  </Button>
+                </div>
+              </div>
+            ) : entry.detail ? (
+              <div className="mt-1 flex flex-wrap items-start justify-between gap-2">
+                <p className="min-w-0 flex-1 whitespace-pre-wrap text-body text-text-2">{entry.detail}</p>
+                {writable && (entry.kind === 'note' || entry.kind === 'stage') && (
+                  <Button
+                    aria-label={`Sửa ghi chú ${entry.kind === 'stage' ? 'lịch sử bậc' : 'hồ sơ'}`}
+                    disabled={busy}
+                    onClick={() => editTimelineEntry(entry.id, entry.detail || '')}
+                  >
+                    Sửa
+                  </Button>
+                )}
+              </div>
+            ) : null}
             <time className="mt-1 block font-data text-small text-text-3">
               {new Date(entry.at).toLocaleString('vi-VN')}
             </time>

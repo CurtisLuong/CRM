@@ -67,8 +67,14 @@ for (const theme of ['light', 'dark'] as const) {
             care_stage_updated_at: '2026-10-15T00:00:00.000Z',
             care_stage_history: [
               { stage: 'Đang chăm sóc', at: '2026-10-10T00:00:00.000Z' },
-              { stage: 'Booking & Làm hồ sơ', at: '2026-10-15T00:00:00.000Z', x_source: 'import' },
+              {
+                stage: 'Booking & Làm hồ sơ',
+                at: '2026-10-15T00:00:00.000Z',
+                note: 'Ghi chú bậc cũ',
+                x_source: 'import',
+              },
             ],
+            notes_manual: [{ text: 'Ghi chú hồ sơ cũ', at: '2026-10-16T04:00:00.000Z', x_import_id: 'keep-note' }],
             created_at: '2026-10-10T00:00:00.000Z',
             updated_at: '2026-10-15T00:00:00.000Z',
             projects: [],
@@ -96,6 +102,41 @@ for (const theme of ['light', 'dark'] as const) {
     await expect(page.getByText('16/10/2026', { exact: false }).first()).toBeVisible();
     await page.getByRole('tab', { name: 'Dòng thời gian' }).click();
     await expect(page.getByText('Đã xem dự án', { exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Sửa ghi chú hồ sơ' }).click();
+    await page.getByRole('textbox', { name: 'Sửa ghi chú' }).fill('Ghi chú hồ sơ đã sửa');
+    await page.getByRole('button', { name: 'Lưu ghi chú' }).click();
+    await expect(
+      page.getByRole('tabpanel', { name: 'Dòng thời gian' }).getByText('Ghi chú hồ sơ đã sửa').first(),
+    ).toBeVisible();
+    await page.getByRole('button', { name: 'Sửa ghi chú lịch sử bậc' }).click();
+    await page.getByRole('textbox', { name: 'Sửa ghi chú' }).fill('Ghi chú bậc đã sửa');
+    await page.getByRole('button', { name: 'Lưu ghi chú' }).click();
+    await expect(
+      page.getByRole('tabpanel', { name: 'Dòng thời gian' }).getByText('Ghi chú bậc đã sửa').first(),
+    ).toBeVisible();
+    const editedHistory = await page.evaluate(async (userId) => {
+      const request = indexedDB.open(`crm_khach_hang__${encodeURIComponent(userId)}`, 2);
+      const db = await new Promise<IDBDatabase>((resolve, reject) => {
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+      const data = await new Promise<Record<string, unknown>>((resolve, reject) => {
+        const tx = db.transaction('customers', 'readonly');
+        const get = tx.objectStore('customers').getAll();
+        get.onsuccess = () => resolve(get.result[0] as Record<string, unknown>);
+        get.onerror = () => reject(get.error);
+      });
+      db.close();
+      return data;
+    }, userId);
+    expect((editedHistory.notes_manual as Array<Record<string, unknown>>)[0]).toMatchObject({
+      text: 'Ghi chú hồ sơ đã sửa',
+      x_import_id: 'keep-note',
+    });
+    expect((editedHistory.care_stage_history as Array<Record<string, unknown>>)[1]).toMatchObject({
+      note: 'Ghi chú bậc đã sửa',
+      x_source: 'import',
+    });
     const briefButton = page.getByRole('button', { name: 'Tạo tóm tắt AI' });
     if (await briefButton.count()) {
       await briefButton.click();
