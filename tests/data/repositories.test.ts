@@ -34,7 +34,8 @@ async function pair() {
     local,
     async equal() {
       expect(clean(await repo.list({ includeArchived: true }))).toEqual(clean(await v1.CRM.list()));
-      const left = clean(await queueGetAll(local));
+      // arrayBase = metadata chỉ ở máy (bản gốc gộp mảng D-021), không gửi server, v1 bỏ qua.
+      const left = clean(await queueGetAll(local)).map(({ arrayBase: _base, ...op }: any) => op);
       const right = clean(await v1.run('queueGetAll()'));
       expect(left).toEqual(right);
     },
@@ -155,7 +156,9 @@ describe('repository operations match real v1 payloads and local records', () =>
     await p.repo.assign(ID, 'other', [UID]);
     await p.v1.CRM.update(ID, { owner_id: 'other', followers: [UID] }, { assign: true });
     expect(clean(await p.repo.list({ includeArchived: true }))).toEqual(clean(await p.v1.CRM.list()));
-    const v2Ops = clean(await queueGetAll(p.local)).map(({ assignmentRollback: _rollback, ...op }: any) => op);
+    const v2Ops = clean(await queueGetAll(p.local)).map(
+      ({ assignmentRollback: _rollback, arrayBase: _base, ...op }: any) => op,
+    );
     expect(v2Ops).toEqual(clean(await p.v1.run('queueGetAll()')));
     expect((await queueGetAll(p.local)).at(-1)?.assignmentRollback).toMatchObject({
       owner_id: { present: true, value: UID },

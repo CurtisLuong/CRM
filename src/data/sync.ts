@@ -2,13 +2,15 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Customer } from '@/domain/customer';
 import { LOCAL_CHANGED, type LocalDB, ReadOnlyError, STORE_CUSTOMERS, STORE_QUEUE, sameRecord } from './localdb';
 import { pagedFetch } from './pagedFetch';
-import { flushQueue, queueCount, queueGetAll } from './queue';
+import { discardOp, flushQueue, queueCount, queueGetAll } from './queue';
 import { customerRemote } from './supabase';
 import { createSyncStatus, dataError } from './syncStatus';
 
 export class CustomerSync {
   private archiveRevision = 0;
   readonly status = createSyncStatus();
+  /** Gọi khi cache local được thay bằng bản server ngoài luồng realtime/pull (sau gộp mảng, sau bỏ op). */
+  readonly localReplaced = new Set<() => void>();
   lastPullError: ReturnType<typeof dataError> | null = null;
   constructor(
     readonly local: LocalDB,
@@ -31,10 +33,13 @@ export class CustomerSync {
           pending: result.pending,
           error: result.error ? dataError(result.error) : this.lastPullError,
           assignError: result.assignError || this.status.getSnapshot().assignError,
+          rejected: result.rejected ?? [],
           ...(!result.pending && !result.error && !this.lastPullError
             ? { lastSyncedAt: new Date().toISOString() }
             : {}),
         });
+      // Đã gộp mảng với server → cache local thiếu phần tử máy khác thêm: tải đúng khách đó (bỏ qua nếu còn op chờ).
+      if (result.merged?.length) await this.reloadFromServer(result.merged);
       return result;
     } catch (error) {
       if (!this.local.isClosed) this.status.set({ error: dataError(error) });
@@ -119,6 +124,35 @@ export class CustomerSync {
     if (sameRecord(local, row)) return false;
     await this.local.put(row);
     return true;
+  }
+
+  private async reloadFromServer(ids: string[]) {
+    let changed = false;
+    for (const id of ids) {
+      if (this.local.isClosed) return;
+      try {
+        if (await this.applyRemote(id)) changed = true;
+      } catch {
+        // Không tải được: realtime/probe/pull sẽ sửa sau.
+      }
+    }
+    if (changed && !this.local.isClosed) for (const fn of this.localReplaced) fn();
+  }
+
+  /**
+   * Người dùng bỏ 1 op bị server từ chối (đã xác nhận). Op được lưu bản sao trong meta `discarded-ops`;
+   * bản local của khách quay về giá trị server nếu không còn op nào khác chờ cho khách đó. Rồi đẩy tiếp hàng đợi.
+   */
+  async discardRejected(opId: number) {
+    const op = await discardOp(this.local, opId);
+    if (this.local.isClosed) return op;
+    this.status.set({
+      rejected: this.status.getSnapshot().rejected.filter((r) => r.opId !== opId),
+      pending: await queueCount(this.local),
+    });
+    if (op && this.isOnline()) await this.reloadFromServer([op.recordId]);
+    await this.flushQueue();
+    return op;
   }
 
   /** Ordinary UI deletion is an owner-checked patch; legacy queue deletes remain compatible. */

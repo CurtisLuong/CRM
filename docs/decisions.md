@@ -30,6 +30,7 @@ Lựa chọn nền tảng ban đầu (Supabase, Cloudflare Pages, local-first) k
 | D-018 | T3.8 được thêm thư viện XLSX để nhập Excel | Ngoại lệ cục bộ đã duyệt 2026-10-16 | Chỉ T3.8 |
 | D-019 | T3.5 tích hợp hồ sơ với contract máy tính vay của T3.9 | Đã duyệt 2026-10-16 | Chỉ tích hợp T3.9 ↔ T3.5 |
 | D-020 | Hoãn ba thao tác xóa nested record trong cutover v2 | Ngoại lệ cục bộ đã duyệt 2026-10-17 | Chỉ chấp nhận gap T5.1; giữ D-012 và v1 |
+| D-021 | Đồng bộ v2 gộp cột mảng theo phần tử + bỏ được op bị server từ chối | Đã duyệt hướng 2026-10-17 (sửa trước cutover) | Hàng đợi v2; v1 giữ ghi đè tới cutover |
 
 ## Ba loại kết quả
 
@@ -332,3 +333,24 @@ Ví dụ và mẫu trong bộ tài liệu không phải sự chấp thuận cho 
 - Chấp thuận: Curtis chọn “Hoãn xóa; chấp nhận các gap trong T5.1” trong phiên điều phối ngày 2026-10-17.
 - Tài liệu đã cập nhật: `docs/decisions.md`, `docs/audits/v2-parity.md`.
 - Trạng thái: Đã duyệt; chỉ áp dụng cho T5.1/cutover hiện tại.
+
+### D-021 — Đồng bộ v2 gộp cột mảng theo phần tử + bỏ được op bị server từ chối
+
+- Ngày: 2026-10-17
+- Loại: Đổi cách giải xung đột cho cột mảng JSONB của `customers` (trong v2); giữ D-012.
+- Nguyên tắc liên quan: `docs/architecture.md` §3.1.4, §4 ("last-write-wins theo `updated_at`"); D-012; D-020.
+- Bối cảnh: T5.2 (staging, khách d063bb16…) chứng minh mất ghi chú: Mac online thêm ghi chú; điện thoại offline thêm ghi chú khác rồi online → op `update` gửi nguyên mảng `notes_manual` cũ → ghi chú của Mac bị ghi đè. Ảnh hưởng mọi mảng (`call_attempts`, `next_tasks`, `notes_manual`, `care_stage_history`, `interactions`, `interests`, `household`). Cùng đợt: 1 op bị server từ chối (vd. `23514`) làm `flushQueue` dừng mãi, chỉ hiện "Lỗi đồng bộ". Chủ dự án chọn **sửa trước cutover** (không chấp nhận như v1).
+- Quyết định:
+  1. **Gộp 3 chiều phía client, ghi có điều kiện** (không cần SQL/RPC). Khi tạo op `update` có cột mảng, repository lưu `arrayBase` = mảng local ngay trước khi sửa (metadata chỉ ở máy như `assignmentRollback`; không gửi server; v1 bỏ qua). Khi flush: đọc `updated_at` + các cột mảng của hàng trên server → gộp theo danh tính phần tử (`id`, không có thì `at`) → `PATCH … where id = … and updated_at = <giá trị vừa đọc>`; máy khác ghi chen giữa (0 hàng khớp) → đọc lại, gộp lại (tối đa 3 lần), rồi ghi thường với bản gộp mới nhất. Không đổi định dạng op, không đổi cột khác (vẫn patch theo trường).
+  2. **Luật gộp** (`src/data/arrayMerge.ts`): phần tử chỉ server có → giữ (máy khác thêm); phần tử local cố ý bỏ (có trong `arrayBase`, không còn trong payload — hoàn tác, mở lại việc, lùi bậc) → **không sống lại**; phần tử cả hai có → theo thuộc tính: thuộc tính local đổi so với bản gốc lấy local (kể cả xoá thuộc tính), còn lại lấy server → giữ sửa của máy khác và thuộc tính lạ; server đã bỏ mà local không sửa → bỏ theo server, local có sửa → giữ local; mảng đang xếp theo `at` thì phần tử máy khác được chèn đúng thứ tự thời gian. Op không có `arrayBase` (op do v1 ghi, op v2 cũ) → hợp nhất, không bỏ phần tử nào (thà hiện lại phần tử đã xoá còn hơn mất dữ liệu).
+  3. **Op bị từ chối vĩnh viễn** (SQLSTATE lớp 22/23/42, PGRST1xx/2xx): op nằm lại trong hàng đợi, op sau của **cùng khách** chờ (giữ thứ tự), **khách khác vẫn đồng bộ**. Chỉ báo "Lỗi đồng bộ" mở sheet *Đồng bộ*: lý do tiếng Việt + "Bỏ thao tác này" (xác nhận) → op được chép vào meta `discarded-ops` (50 op gần nhất, khôi phục tay được) rồi mới xoá; khách quay về giá trị server khi không còn op chờ. Lỗi tạm thời (mạng/5xx/hết phiên/timeout) dừng và thử lại như v1.
+- Vì sao không chọn RPC Postgres gộp phía server: cần migration mới chạy trên staging + production, v1 không dùng được, thêm điểm hỏng khi chưa chạy SQL; ghi có điều kiện `updated_at` đã chặn race đọc–ghi mà không cần SQL.
+- Rủi ro còn lại (chủ dự án nên biết):
+  - **v1 vẫn ghi đè cả mảng tới cutover T5.4.** Nếu v1 (crm-cop) và v2 cùng sửa một khách khi một bên offline, op của v1 vẫn có thể xoá phần tử bên kia vừa thêm. Giảm thiểu: trong giai đoạn song song, sửa khách thật chủ yếu trên một phiên bản; bảng `customer_changes` (T0.2) lưu giá trị cũ để khôi phục.
+  - Danh tính theo `at` (như v1): hai máy tạo phần tử cùng một mili-giây trong cùng mảng sẽ bị coi là một phần tử (gần như không xảy ra trong dùng thật).
+  - Ghi có điều kiện thất bại 3 lần liên tiếp (tranh chấp liên tục, hoặc RLS cho đọc mà không cho sửa) → ghi thường với bản gộp mới nhất, như hành vi cũ.
+  - Op `insert` (upsert cả hàng) không gộp — id khách là UUID mới nên chỉ trùng khi cùng 1 op bị đẩy 2 lần.
+- Phạm vi: `src/data/{arrayMerge,queue,sync,supabase,syncStatus}.ts`, `src/data/repositories/customers.ts` (chỉ gắn `arrayBase`), sheet `src/features/sync/`, chỉ báo đồng bộ trên header. Không migration, không đổi schema, không đổi v1.
+- Chấp thuận: chủ dự án quyết định "sửa trước cutover" sau báo cáo T5.2 ngày 2026-10-17 (task T5.9); phương án kỹ thuật do agent chọn trong phạm vi đó, không xung đột D-012.
+- Tài liệu đã cập nhật: `docs/decisions.md`, `docs/architecture.md` §3.1, §4.
+- Trạng thái: Đã duyệt hướng; T5.2 chạy lại kịch bản E2 trên staging để nghiệm thu.

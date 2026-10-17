@@ -44,7 +44,7 @@ export function useSyncStatus() {
     }
     const online = session.getSnapshot()?.sync.isOnline();
     setShellSync(
-      snapshot.error
+      snapshot.error || snapshot.rejected.length
         ? { kind: 'error' }
         : !online
           ? { kind: 'offline' }

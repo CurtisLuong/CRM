@@ -153,6 +153,8 @@ describe('op do v2 ghi → v1 đọc + flush được', () => {
         recordId: rec.id,
         payload: { notes_manual: [{ text: 'v2', at: now }], updated_at: now },
         ts: now,
+        // Metadata chỉ ở máy (D-021): v1 phải bỏ qua, chỉ gửi payload.
+        arrayBase: { notes_manual: [] },
       },
       { type: 'delete', recordId: 'khach-khac', ts: now },
     ];

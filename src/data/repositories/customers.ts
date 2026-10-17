@@ -2,6 +2,7 @@
 // biome-ignore-all lint/suspicious/noExplicitAny: Preserve unknown legacy and future JSON fields without projecting the aggregate.
 import type { Customer } from '@/domain/customer';
 import { buildCustomerMerge } from '@/domain/customer/merge';
+import { captureArrayBase } from '../arrayMerge';
 import { ReadOnlyError, STORE_CUSTOMERS, STORE_QUEUE, sameRecord } from '../localdb';
 import { type AssignmentRollback, type QueueOp, queueCount } from '../queue';
 import type { CustomerSync } from '../sync';
@@ -16,6 +17,12 @@ export type UpdateOptions = {
   historyMeta?: Data;
 };
 type Mutation = { record: Data; op: Omit<QueueOp, 'opId'> };
+/** Gắn bản gốc mảng (local trước khi sửa) vào op update để flush gộp 3 chiều với server (D-021). */
+function withArrayBase(op: Omit<QueueOp, 'opId'>, existing: Data | undefined): Omit<QueueOp, 'opId'> {
+  if (op.type !== 'update') return op;
+  const arrayBase = captureArrayBase(existing, op.payload as Data | undefined);
+  return arrayBase ? { ...op, arrayBase } : op;
+}
 export class CustomerRepository {
   private rows: Customer[] = [];
   private listeners = new Set<() => void>();
@@ -61,7 +68,7 @@ export class CustomerRepository {
           const mutation = change(existing);
           if (!mutation) return;
           store.put(mutation.record);
-          tx.objectStore(STORE_QUEUE).add(mutation.op);
+          tx.objectStore(STORE_QUEUE).add(withArrayBase(mutation.op, existing));
           result = mutation.record as Customer;
         } catch (error) {
           failure = error;
@@ -243,18 +250,23 @@ export class CustomerRepository {
           customers.put(patch.keeper);
           customers.put(patch.duplicate);
           const queue = tx.objectStore(STORE_QUEUE);
-          queue.add({
-            type: 'update',
-            recordId: keeper.id,
-            payload: patch.keeperPatch,
-            ts: String(patch.keeper.updated_at),
-          });
-          queue.add({
-            type: 'update',
-            recordId: duplicate.id,
-            payload: patch.duplicatePatch,
-            ts: String(patch.duplicate.updated_at),
-          });
+          queue.add(
+            withArrayBase(
+              { type: 'update', recordId: keeper.id, payload: patch.keeperPatch, ts: String(patch.keeper.updated_at) },
+              keeper,
+            ),
+          );
+          queue.add(
+            withArrayBase(
+              {
+                type: 'update',
+                recordId: duplicate.id,
+                payload: patch.duplicatePatch,
+                ts: String(patch.duplicate.updated_at),
+              },
+              duplicate,
+            ),
+          );
           merged = { keeper: patch.keeper, duplicate: patch.duplicate };
         } catch (error) {
           failure = error;

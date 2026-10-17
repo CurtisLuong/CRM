@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Outlet, useLocation, useMatches, useNavigate } from 'react-router';
 import { QuickActionsHost } from '@/features/quick-actions/QuickActions';
+import { SyncIssuesSheet } from '@/features/sync/SyncIssuesSheet';
 import { ToastProvider } from '@/ui';
 import { AppShell } from '@/ui/AppShell';
 import { CommandPalette, type PaletteItem } from '@/ui/CommandPalette';
@@ -58,6 +59,7 @@ export function RootLayout() {
 
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [quickOpen, setQuickOpen] = useState(false);
+  const [syncOpen, setSyncOpen] = useState(false);
   const [rail, setRail] = useState(readRail);
 
   const ctx = useMemo<CommandContext>(() => ({ navigate: (to) => navigate(to) }), [navigate]);
@@ -111,6 +113,7 @@ export function RootLayout() {
         onAdd={() => setQuickOpen(true)}
         onSearch={() => setPaletteOpen(true)}
         sync={sync}
+        onSyncOpen={() => setSyncOpen(true)}
         menu={<ToolsMenu commands={appCommands} ctx={ctx} />}
         railExpanded={rail}
         onToggleRail={toggleRail}
@@ -123,6 +126,7 @@ export function RootLayout() {
       <QuickAddSheet open={quickOpen} onOpenChange={setQuickOpen} commands={appCommands} ctx={ctx} />
       <UpdatePrompt />
       <QuickActionsHost />
+      <SyncIssuesSheet open={syncOpen} onOpenChange={setSyncOpen} />
     </ToastProvider>
   );
 }
