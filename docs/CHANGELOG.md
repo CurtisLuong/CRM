@@ -6,6 +6,13 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-17 — T5.8a: Bổ sung ghi cuộc gọi thủ công vào nhật ký
+
+- Thêm nút Ghi cuộc gọi cho chủ khách, mở form kết quả hiện có và ghi origin=manual mà không khởi chạy cuộc gọi.
+- Giữ quyền read-only và điều chỉnh selector E2E để phân biệt nút gọi với nút nhập thủ công.
+- Kiểm tra: QuickActions 8/8, E2E quick-actions 12/12, diff --check.
+- File: `src/features/quick-actions/QuickActions.test.tsx`, `src/features/quick-actions/QuickActions.tsx`, `tests/e2e/quick-actions.spec.ts`
+
 ## 2026-10-17 — T5.4a: Chuẩn bị runbook chuyển v1 sang v2
 
 - Tách checklist chuẩn bị khỏi các bước chỉ thực hiện sau T5.3 và xác nhận của chủ dự án.
