@@ -6,6 +6,14 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-17 — T6.5: Hiệu quả marketing và chi phí campaign
+
+- Thêm funnel theo kênh/campaign/form, cohort 30 ngày, lý do loại theo kênh và trung vị thời gian tới mốc; số liệu có tử/mẫu và quy tắc rõ.
+- Thêm nhập/ẩn mềm chi phí campaign và CPL/chi phí mỗi Đạt/Booking; trạng thái fb_leads chỉ đọc metadata, không truy vấn raw PII.
+- `npm run check`: 507/507 tests pass; `npm run build` pass; E2E insights/settings pass 9/9 trên phone 360/390 và desktop 1280, sáng/tối.
+- Chưa xác minh quyền dữ liệu thực trên staging/production; fb_leads vẫn chịu RLS hiện có, không cấu hình Worker/live connector.
+- File: `src/domain/metrics/marketing.ts`, `src/features/insights/marketing.tsx`, `src/features/insights/route.tsx`, `src/features/settings/campaign-costs.tsx`, `src/features/settings/route.tsx`, `tests/domain/metrics/marketing.test.ts`, `tests/e2e/insights.spec.ts`, `tests/e2e/settings.spec.ts`, `tests/features/settings/campaign-costs.test.tsx`, `tests/features/settings/route.test.tsx`
+
 ## 2026-10-17 — T4.1: T4.1: ghi tương tác Zalo, gặp và xem dự án
 
 - Xác nhận “Đã gửi” sau khi quay lại từ Zalo mới append tương tác vào customers.interactions qua repository; mở Zalo không tự ghi.
