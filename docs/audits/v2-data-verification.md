@@ -84,16 +84,17 @@ Chưa làm: positive control "sửa thật 1 ô → có ghi" để chứng minh 
 | E5 | Đổi tài khoản | local (test tự động) | ✅ bằng test · ⏳ máy thật | Chủ dự án chọn 2026-10-17: không tạo tài khoản thử (chỉ có 1 người dùng thật; tài khoản `ef44fb2f` chưa ai dùng, không có mật khẩu) → kiểm bằng test, **chưa thử trên máy thật**. Trên `v2` @ `4271bf3` (đã có T5.9): `npx vitest run tests/data/sync.test.ts tests/data/localdb.test.ts` → 35/35 pass (gồm: offline đổi tài khoản tách kho riêng + đăng xuất local; tài khoản sau cùng thắng, phiên cũ đóng; đóng phiên giữa lúc kéo/flush không ghi đè). Thêm 1 test tạm (không commit — `tests/data/**` ngoài phạm vi T5.2) đúng kịch bản E5: A offline có 1 op ghi chú → đăng xuất → B đăng nhập online: B không thấy khách/hàng đợi của A, **0 lần gửi** op của A → B đăng xuất, A đăng nhập lại: op của A gửi **đúng 1 lần**, hàng đợi rỗng → pass. `migrateLegacy` chỉ nhận op của đúng tài khoản. Đề xuất đưa test này vào `tests/data` ở task sau |
 | E6 | Hàng đợi chéo v1 ↔ v2 cùng máy | local | ✅ | `npx vitest run tests/data/localdb.test.ts` → 20/20 pass (2026-10-17): v2 gửi đúng hàng đợi v1 ghi (đúng thứ tự, upsert/patch/delete), v1 gửi đúng op v2, cùng xử lý lỗi. Thật chỉ xảy ra lúc cutover (cùng tên miền) → runbook T5.4 giữ bước "mọi máy Đã đồng bộ" |
 
-## 5. Mất dữ liệu (`audit-since.sql` từ mốc Phần B, staging)
+## 5. Mất dữ liệu (`audit-since.sql` từ 2026-10-17 00:00, staging, chạy ~15:40)
 
-| Mức | Số dòng | Ghi chú / task con |
+TÓM TẮT: `thay đổi: 22 · khách bị đổi: 14 · lỗi ✗: 1 · cảnh báo ⚠: 21`. 14 khách = 12 tự chuyển SLA (12:26) + `018b946e…` (ghi chú lưu không đổi, Phần D) + `d063bb16…` (khách thử Phần E).
+
+| Mức | Số dòng | Giải thích |
 |---|---|---|
-| ✗ XOÁ CỨNG | ⏳ | |
-| ✗ MẤT PHẦN TỬ | ⏳ | |
-| ✗ MẤT THUỘC TÍNH | ⏳ | |
-| ⚠ TRƯỜNG BỊ XOÁ | ⏳ | |
-
-**Kết luận:** ⏳
+| ✗ XOÁ CỨNG | 0 | |
+| ✗ MẤT PHẦN TỬ | 1 | `d063bb16…` `notes_manual` lúc 13:48:56 = ghi chú Mac bị ghi đè ở **E2 lần 1** (trước T5.9). Đã sửa bằng T5.9; E2 lần 2 (15:23–15:34) không mất phần tử nào — nhật ký sau 15:00 không có ✗ |
+| ✗ MẤT THUỘC TÍNH | 0 | |
+| ⚠ TRƯỜNG BỊ XOÁ | 21 | = 7 khách × `next_call_at/end/reason` bị gỡ khi tự chuyển Loại (SLA, D-008, đúng v1) |
+| · ĐỔI GIÁ TRỊ | — | Chỉ: 12 khách SLA (cột lý do loại + lịch hẹn); `018b946e…` `notes_manual` (12:45, lỗi `edited_at` → T5.6a); `d063bb16…` `call_attempts` + `next_call_*` (13:37, ghi cuộc gọi E3 + tự hẹn lại), `next_tasks` ×2, `notes_manual` ×6 (thao tác E1/E2/E5 có chủ đích) |
 
 ## 6. Tự kiểm công cụ (local, 2026-10-17)
 
