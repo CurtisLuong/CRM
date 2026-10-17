@@ -6,6 +6,14 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-17 — T5.4b: APK 1.5: quyền micro cho ghi chú giọng nói (lỗi L4 T5.3)
+
+- Thêm RECORD_AUDIO + MODIFY_AUDIO_SETTINGS vào AndroidManifest; versionCode 6 / versionName 1.5
+- public/android-app-version.json trỏ SoKhach-1.5.apk (Storage production); APK phải tải lên trước khi merge v2→main
+- build-apk.sh/upload-apk.sh đọc URL Supabase từ legacy/js/config.js, ghi public/android-app-version.json
+- Kiểm tra: cổng merge (check + build); APK thử T5.3 đã xác nhận 2 quyền này làm ghi âm chạy — android-app/
+- File: `android-app/README.md`, `android-app/android/app/build.gradle`, `android-app/android/app/src/main/AndroidManifest.xml`, `android-app/build-apk.sh`, `android-app/upload-apk.sh`, `public/android-app-version.json`
+
 ## 2026-10-17 — T5.3: T5.3 — QA thiết bị thật: 0 lỗi chặn; APK 1.5 cần thêm quyền micro khi cutover
 
 - Báo cáo `docs/audits/v2-device-qa.md`: Mac (360/430/1280, sáng/tối, 15 màn, font Việt, mở có cache 0,2 s) và Android (APK thử `vn.sokhach.crm.v2test` trỏ `crm-v2`, build debug ngoài repo + Chrome).

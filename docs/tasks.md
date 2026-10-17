@@ -138,7 +138,7 @@ Ký hiệu: ☐ chưa · ◐ đang làm (ghi nhánh) · ☑ xong (ghi ngày) · 
 | T5.3 | QA thiết bị thật + offline | Cutover | M | T5.2 | Chủ dự án + agent | ☑ 2026-10-17 (tự merge 34664c5) |
 | T5.4 | Cutover production + rollback plan | Cutover | S | T5.3 | Chủ dự án + agent | ☐ |
 | T5.4a | Chuẩn bị runbook cutover (chỉ tài liệu) | Cutover | S | T5.2 | Agent | ☑ 2026-10-17 (tự merge bd7dee9) |
-| T5.4b | APK 1.5: quyền ghi âm (lỗi L4 T5.3) + sửa đường dẫn script build/upload APK trên v2 | Cutover | S | T5.3 | Agent | ☐ |
+| T5.4b | APK 1.5: quyền ghi âm (lỗi L4 T5.3) + sửa đường dẫn script build/upload APK trên v2 | Cutover | S | T5.3 | Agent | ☑ 2026-10-17 (tự merge 4252c2b) |
 | T5.5 | Dọn dẹp + tài liệu "as built" | Cutover | S | T5.4 | Agent | ☐ |
 | T6.1 | Trí nhớ khách v2 | Mới P1 | L | Sóng 3, T2.A5 | Agent | ☑ 2026-10-17 (tự merge 64d7524) |
 | T6.2 | Tệp khách & Retarget | Mới P1 | L | T6.1, T3.8 | Agent | ☑ 2026-10-17 (tự merge ce5bab8) |
