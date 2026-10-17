@@ -29,6 +29,7 @@ Lựa chọn nền tảng ban đầu (Supabase, Cloudflare Pages, local-first) k
 | D-017 | T3.6 được dùng react-hook-form cùng Zod | Ngoại lệ cục bộ đã duyệt 2026-10-16 | Chỉ T3.6 |
 | D-018 | T3.8 được thêm thư viện XLSX để nhập Excel | Ngoại lệ cục bộ đã duyệt 2026-10-16 | Chỉ T3.8 |
 | D-019 | T3.5 tích hợp hồ sơ với contract máy tính vay của T3.9 | Đã duyệt 2026-10-16 | Chỉ tích hợp T3.9 ↔ T3.5 |
+| D-020 | Hoãn ba thao tác xóa nested record trong cutover v2 | Ngoại lệ cục bộ đã duyệt 2026-10-17 | Chỉ chấp nhận gap T5.1; giữ D-012 và v1 |
 
 ## Ba loại kết quả
 
@@ -318,3 +319,16 @@ Ví dụ và mẫu trong bộ tài liệu không phải sự chấp thuận cho 
 - Chấp thuận: Curtis chọn “Chờ T3.5 rồi nối từ hồ sơ (đề xuất)” trong phiên điều phối ngày 2026-10-16.
 - Tài liệu đã cập nhật: `docs/decisions.md`, `docs/tasks.md`.
 - Trạng thái: Đã duyệt; áp dụng cho nghiệm thu T3.9 và tích hợp T3.5.
+
+
+### D-020 — Hoãn ba thao tác xóa nested record trong cutover v2
+
+- Ngày: 2026-10-17
+- Loại: Ngoại lệ cục bộ — chấp nhận hoãn gap nghiệm thu
+- Nguyên tắc liên quan: D-012 yêu cầu bảo toàn dữ liệu và xóa mềm; v1 hiện không lọc tombstone trong ghi chú hồ sơ, việc và cuộc gọi chờ.
+- Quyết định: Trong phạm vi cutover hiện tại, hoãn xóa ghi chú hồ sơ, xóa việc và xóa cuộc gọi chờ. Chấp nhận ba gap này được ghi rõ trong audit T5.1 để task audit có thể hoàn tất. Giữ nguyên dữ liệu và hành vi v1; không dùng hard delete và không thêm tombstone chỉ ở v2.
+- Phạm vi: Chỉ ba thao tác trên trong T5.1/cutover hiện tại. Không thay đổi D-012 toàn dự án; mọi triển khai tương lai cần giải pháp tương thích v1 được duyệt riêng.
+- Lý do và đánh đổi: tombstone v2-only vẫn bị v1 hiển thị và sửa; xóa khỏi mảng làm mất dữ liệu. Hoãn giữ an toàn dữ liệu nhưng thiếu thao tác xóa trong cutover.
+- Chấp thuận: Curtis chọn “Hoãn xóa; chấp nhận các gap trong T5.1” trong phiên điều phối ngày 2026-10-17.
+- Tài liệu đã cập nhật: `docs/decisions.md`, `docs/audits/v2-parity.md`.
+- Trạng thái: Đã duyệt; chỉ áp dụng cho T5.1/cutover hiện tại.
