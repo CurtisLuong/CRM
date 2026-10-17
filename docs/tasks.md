@@ -124,14 +124,18 @@ Ký hiệu: ☐ chưa · ◐ đang làm (ghi nhánh) · ☑ xong (ghi ngày) · 
 | T4.1 | Ghi tương tác Zalo/gặp/xem dự án | Mới P0 | M | T3.1, T2.A5 | Agent | ☑ 2026-10-17 (tự merge 318666c) |
 | T4.2 | Lời hứa 2 chiều + hạn gốc + dời có lý do | Mới P0 | M | T3.7, T2.A5 | Agent | ☑ 2026-10-17 (tự merge b87899a) |
 | T5.6 | Sửa ghi chú hồ sơ + lịch sử bậc | Cutover | M | T3.5, T4.1 | Agent | ☑ 2026-10-17 (tự merge d0e566a) |
+| T5.6a | Không đổi payload khi lưu ghi chú không chỉnh sửa | Cutover | S | T5.6 | Agent | ☐ |
+| T5.6b | Dùng lựa chọn hợp lệ cho trường hồ sơ có CHECK constraint | Cutover | S | T5.6a | Agent | ☐ |
 | T5.7 | Sửa công việc | Cutover | M | T3.7, T4.2 | Agent | ☑ 2026-10-17 (tự merge f371f6d) |
 | T5.8 | Sửa kết quả cuộc gọi đã ghi | Cutover | M | T3.1, T4.1 | Agent | ☑ 2026-10-17 (tự merge a55eff2) |
+| T5.8a | Ghi cuộc gọi nhập tay | Cutover | S | T5.8 | Agent | ☐ |
 | T5.1 | Kiểm tra parity v1 ↔ v2 | Cutover | M | Sóng 3, 4, T5.6, T5.7, T5.8 | Agent | ☑ 2026-10-17 (tự merge d06747a) |
 | T5.2 | Kiểm chứng dữ liệu trên staging | Cutover | M | T5.1 | Agent + chủ dự án | ☑ 2026-10-17 (tự merge c34b3c5) |
 | T5.9 | Gộp mảng khi đồng bộ + bỏ thao tác bị từ chối | Cutover | M | T5.1 | Agent | ☑ 2026-10-17 (tự merge bd67dde) |
 | T5.10 | Lưu trữ khách (xoá mềm) + khôi phục | Cutover | S | T5.1 | Agent | ☑ 2026-10-17 (tự merge 20e24d4) |
 | T5.3 | QA thiết bị thật + offline | Cutover | M | T5.2 | Chủ dự án + agent | ☐ |
 | T5.4 | Cutover production + rollback plan | Cutover | S | T5.3 | Chủ dự án + agent | ☐ |
+| T5.4a | Chuẩn bị runbook cutover (chỉ tài liệu) | Cutover | S | T5.2 | Agent | ☐ |
 | T5.5 | Dọn dẹp + tài liệu "as built" | Cutover | S | T5.4 | Agent | ☐ |
 | T6.1 | Trí nhớ khách v2 | Mới P1 | L | Sóng 3, T2.A5 | Agent | ☑ 2026-10-17 (tự merge 64d7524) |
 | T6.2 | Tệp khách & Retarget | Mới P1 | L | T6.1, T3.8 | Agent | ☑ 2026-10-17 (tự merge ce5bab8) |
