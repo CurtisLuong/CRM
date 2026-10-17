@@ -1,6 +1,6 @@
 # Kiểm chứng dữ liệu v2 trên staging (T5.2)
 
-> **Trạng thái:** ĐANG LÀM — công cụ + runbook xong (2026-10-17); chờ chủ dự án chuẩn bị staging và chạy SQL.
+> **Trạng thái:** ĐANG LÀM — công cụ + runbook xong (2026-10-17); dùng staging hiện tại (bỏ Phần A); chờ Phần B.
 > **Cách làm:** `docs/runbooks/data-verification.md`. **Công cụ (chỉ đọc):** `scripts/verify/counts.sql`, `scripts/verify/audit-since.sql`, `scripts/verify/idb-counts.js`.
 > **Xong khi (tasks.md T5.2):** báo cáo có số liệu trước/sau; **0 mất dữ liệu**.
 > Ký hiệu: ✅ đạt · ❌ lỗi (có task con) · ⏳ chưa chạy. Ghi rõ nơi kiểm: *local* / *trình duyệt* / *staging* / *máy thật*.
@@ -9,10 +9,11 @@
 
 | Mục | Giá trị |
 |---|---|
-| Project | ⏳ (`mksjmpcsfawsiabfhoxe` hoặc mã mới) |
-| Khôi phục từ backup | ⏳ `~/CRM-backups/<thư-mục>` — kết quả `restore-staging.sh`: ⏳ |
-| Migration v2 đã chạy trên staging | ⏳ 002 · 003 · 004 · 005 · 006 |
-| Bản v2 được kiểm | ⏳ commit `v2` @ … (`crm-v2-9hf.pages.dev`) |
+| Project | `mksjmpcsfawsiabfhoxe` (staging hiện tại) |
+| Khôi phục từ backup | `~/CRM-backups/20261016-120548` (diễn tập T0.1, khớp 22/22 bảng). **Không** khôi phục lại — chủ dự án chọn 2026-10-17 |
+| Độ lệch so với yêu cầu | tasks.md T5.2 yêu cầu staging khôi phục từ production **mới nhất**. Lần kiểm này dùng bản 2026-10-16 + dữ liệu chủ dự án đã thử trên v2 từ đó. Hệ quả: (1) khách/ghi chú/cuộc gọi tạo trên production sau 2026-10-16 không có trong lần kiểm; (2) có thể có bản ghi do v2 tạo/sửa trước Phần B — vẫn nằm trong "số liệu gốc" nên không ảnh hưởng so sánh trước/sau. Bù lại: T5.4 backup + chạy migration v2 trên production ngay trước cutover |
+| Migration v2 đã chạy trên staging | ⏳ kiểm ở Phần B (002 · 003 · 004 · 005 · 006) |
+| Bản v2 được kiểm | `v2` @ `fbd2e0e` (2026-10-17 10:58) — `crm-v2-9hf.pages.dev` |
 | Mốc giờ bắt đầu (Phần B) | ⏳ |
 
 ## 1. Số liệu trước / sau (`counts.sql`, staging)
