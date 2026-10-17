@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import type { FeatureRoute } from '@/app/routes';
 import { ADVANCED_GROUPS } from '@/config/advanced';
+import { OCCUPATIONS } from '@/config/occupations';
 import { CARE_STAGE_BOOKING, CARE_STAGE_DISPLAY, CARE_STAGE_OPTIONS } from '@/config/stages';
 import { VELOCITY_CONFIG } from '@/config/velocity';
 import { useCustomer, useRepositoryAccount } from '@/data/hooks';
@@ -23,6 +24,16 @@ import { bookingStepPatch } from './model';
 
 const FIELD =
   'min-h-11 w-full rounded-control border border-border-strong bg-surface px-3 text-body text-text focus-visible:outline-2 focus-visible:outline-focus disabled:opacity-60';
+const GENDER_OPTIONS = [
+  { value: 'nam', label: 'Nam' },
+  { value: 'nữ', label: 'Nữ' },
+  { value: 'khác', label: 'Khác' },
+];
+const MARITAL_STATUS_OPTIONS = [
+  { value: 'đã kết hôn', label: 'Đã kết hôn' },
+  { value: 'chưa kết hôn', label: 'Chưa kết hôn' },
+];
+const PURPOSE_OPTIONS = ['Ở', 'Đầu tư', 'Cho tặng'].map((value) => ({ value, label: value }));
 type DocumentRow = { id: string; label?: string | null; kind?: string; storage_path: string; mime?: string };
 const fmtValue = (value: unknown) => (value == null || value === '' ? 'Chưa biết' : String(value));
 
@@ -336,17 +347,25 @@ function Profile() {
           onSave={(value) => setField('phone', value)}
         />
         <Field label="Ngày sinh" value={c.dob} disabled={!writable} onSave={(value) => setField('dob', value)} />
-        <Field label="Giới tính" value={c.gender} disabled={!writable} onSave={(value) => setField('gender', value)} />
-        <Field
+        <ChoiceField
+          label="Giới tính"
+          value={c.gender}
+          disabled={!writable || busy}
+          options={GENDER_OPTIONS}
+          onSave={(value) => setField('gender', value)}
+        />
+        <ChoiceField
           label="Tình trạng hôn nhân"
           value={c.marital_status}
-          disabled={!writable}
+          disabled={!writable || busy}
+          options={MARITAL_STATUS_OPTIONS}
           onSave={(value) => setField('marital_status', value)}
         />
-        <Field
+        <ChoiceField
           label="Nghề nghiệp"
           value={c.occupation}
-          disabled={!writable}
+          disabled={!writable || busy}
+          options={OCCUPATIONS.map((value) => ({ value, label: value }))}
           onSave={(value) => setField('occupation', value)}
         />
         <Field label="Thu nhập" value={c.income} disabled={!writable} onSave={(value) => setField('income', value)} />
@@ -394,10 +413,11 @@ function Profile() {
     <div className="space-y-4">
       <section className="space-y-3">
         <h2 className="text-section">Nhu cầu hiện tại</h2>
-        <Field
+        <ChoiceField
           label="Mục đích mua"
           value={c.purpose}
-          disabled={!writable}
+          disabled={!writable || busy}
+          options={PURPOSE_OPTIONS}
           onSave={(value) => setField('purpose', value)}
         />
         <Field
@@ -828,6 +848,47 @@ function Field({
     </div>
   );
 }
+function ChoiceField({
+  label,
+  value,
+  disabled,
+  options,
+  onSave,
+}: {
+  label: string;
+  value: unknown;
+  disabled: boolean;
+  options: readonly { value: string; label: string }[];
+  onSave: (value: string | null) => void;
+}) {
+  const id = `profile-field-${label.toLocaleLowerCase('vi').replace(/[^\p{L}\p{N}]+/gu, '-')}`;
+  const current = value == null ? '' : String(value);
+  const preservesUnknown = current !== '' && !options.some((option) => option.value === current);
+  return (
+    <div className="block space-y-1 text-small text-text-2">
+      <label htmlFor={id}>{label}</label>
+      <select
+        id={id}
+        value={current}
+        disabled={disabled}
+        onChange={(event) => {
+          const next = event.target.value;
+          if (next !== current) onSave(next || null);
+        }}
+        className={FIELD}
+      >
+        <option value="">— Chưa biết —</option>
+        {preservesUnknown && <option value={current}>{current} (giá trị hiện có)</option>}
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
 function Fact({ label, value }: { label: string; value: unknown }) {
   return (
     <div>

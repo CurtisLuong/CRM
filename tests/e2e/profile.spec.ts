@@ -60,6 +60,10 @@ for (const theme of ['light', 'dark'] as const) {
             owner_id: userId,
             full_name: 'Nguyễn Thị Hưởng',
             phone: '0901234567',
+            gender: 'Nữ',
+            marital_status: 'Độc thân',
+            occupation: 'Giáo viên',
+            purpose: 'Mua cho thuê',
             care_stage: 'Booking & Làm hồ sơ',
             apt_code: 'B1201',
             apt_area: 54,
@@ -152,10 +156,40 @@ for (const theme of ['light', 'dark'] as const) {
     await expect(page.getByText('Chưa biết').first()).toBeVisible();
     await expect(page.getByRole('navigation', { name: 'Hành động nhanh' })).toBeVisible();
     await page.getByRole('tab', { name: 'Trí nhớ' }).click();
-    await page.getByLabel('Nghề nghiệp').fill('Giáo viên');
-    await page.getByLabel('Nghề nghiệp').press('Tab');
-    await expect(page.getByText('Đã lưu trên thiết bị', { exact: true }).first()).toBeVisible();
+    await expect(page.getByLabel('Giới tính')).toHaveValue('Nữ');
+    await expect(page.getByLabel('Tình trạng hôn nhân')).toHaveValue('Độc thân');
+    await expect(page.getByLabel('Nghề nghiệp')).toHaveValue('Giáo viên');
+    const profileViewport = page.viewportSize();
+    for (const width of testInfo.project.name === 'phone-390' ? [390, 430] : [profileViewport?.width || 1280]) {
+      await page.setViewportSize({ width, height: profileViewport?.height || 800 });
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+      await page.getByLabel('Giới tính').scrollIntoViewIfNeeded();
+      await page
+        .getByRole('tabpanel', { name: 'Trí nhớ' })
+        .locator('section')
+        .first()
+        .screenshot({
+          path: testInfo.outputPath(`profile-choices-${theme}-${width}.png`),
+        });
+    }
+    if (profileViewport) await page.setViewportSize(profileViewport);
+
+    const savedToast = page.getByText('Đã lưu trên thiết bị', { exact: true }).first();
+    await page.getByLabel('Giới tính').selectOption('nữ');
+    await expect(savedToast).toBeVisible();
     await page.waitForTimeout(300);
+    await page.getByLabel('Tình trạng hôn nhân').selectOption('đã kết hôn');
+    await expect(savedToast).toBeVisible();
+    await page.waitForTimeout(300);
+    await page.getByLabel('Nghề nghiệp').selectOption('Công ty, DN');
+    await expect(savedToast).toBeVisible();
+    await page.waitForTimeout(300);
+    await page.getByRole('tab', { name: 'Nhu cầu & căn' }).click();
+    await expect(page.getByLabel('Mục đích mua')).toHaveValue('Mua cho thuê');
+    await page.getByLabel('Mục đích mua').selectOption('Đầu tư');
+    await expect(savedToast).toBeVisible();
+    await page.waitForTimeout(300);
+    await page.getByRole('tab', { name: 'Trí nhớ' }).click();
     await page.getByLabel('Kênh liên hệ ưu tiên').fill('Điện thoại');
     await page.getByLabel('Kênh liên hệ ưu tiên').press('Tab');
     await expect(page.getByText('Đã lưu trên thiết bị', { exact: true }).first()).toBeVisible();
@@ -202,7 +236,10 @@ for (const theme of ['light', 'dark'] as const) {
       { userId, customerId },
     );
     expect(saved).toMatchObject({
-      occupation: 'Giáo viên',
+      gender: 'nữ',
+      marital_status: 'đã kết hôn',
+      occupation: 'Công ty, DN',
+      purpose: 'Đầu tư',
       contact_prefs: {
         channel: 'Điện thoại',
         slot: 'Sáng',
@@ -213,7 +250,10 @@ for (const theme of ['light', 'dark'] as const) {
       interests: [expect.objectContaining({ project: 'Dự án thứ hai', status: 'open', source: 'sale' })],
       household: [expect.objectContaining({ name: 'Anh Minh', role: 'Chồng' })],
       field_meta: {
+        gender: expect.objectContaining({ by: 'sale', confirmed: true }),
+        marital_status: expect.objectContaining({ by: 'sale', confirmed: true }),
         occupation: expect.objectContaining({ by: 'sale', confirmed: true }),
+        purpose: expect.objectContaining({ by: 'sale', confirmed: true }),
         contact_prefs: expect.objectContaining({ by: 'sale', confirmed: true }),
         interests: expect.objectContaining({ by: 'sale', confirmed: true }),
         household: expect.objectContaining({ by: 'sale', confirmed: true }),
