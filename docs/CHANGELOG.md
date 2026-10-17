@@ -6,6 +6,13 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-17 — T6.1: T6.1: Trí nhớ khách v2
+
+- Thêm customer facts có nguồn/độ mới, sở thích liên hệ, chu kỳ quan tâm, hộ gia đình và lifecycle/retarget hints theo kiểu patch additive.
+- Cập nhật Customer Brief và chặn QuickActions/Zalo AI khi khách không muốn liên hệ.
+- Kiểm tra: npm run check; profile/quick-actions E2E; full merge gate.
+- File: `src/config/reasons.ts`, `src/domain/customer/brief.ts`, `src/domain/customer/facts.ts`, `src/features/ai/AiZaloDraft.tsx`, `src/features/profile/memory.tsx`, `src/features/profile/route.tsx`, `src/features/quick-actions/QuickActions.test.tsx`, `src/features/quick-actions/QuickActions.tsx`, `tests/config/config.test.ts`, `tests/domain/customer/brief.test.ts`, `tests/domain/customer/facts.test.ts`, `tests/e2e/profile.spec.ts` … (+2)
+
 ## 2026-10-17 — T4.2: Lời hứa hai chiều, hạn gốc và dời có lý do
 
 - Thêm tạo/lọc lời hứa Em hứa và Khách hẹn, chống trùng theo key và giữ trường dữ liệu lạ.

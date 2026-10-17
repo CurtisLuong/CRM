@@ -128,7 +128,7 @@ Ký hiệu: ☐ chưa · ◐ đang làm (ghi nhánh) · ☑ xong (ghi ngày) · 
 | T5.3 | QA thiết bị thật + offline | Cutover | M | T5.2 | Chủ dự án + agent | ☐ |
 | T5.4 | Cutover production + rollback plan | Cutover | S | T5.3 | Chủ dự án + agent | ☐ |
 | T5.5 | Dọn dẹp + tài liệu "as built" | Cutover | S | T5.4 | Agent | ☐ |
-| T6.1 | Trí nhớ khách v2 | Mới P1 | L | Sóng 3, T2.A5 | Agent | ☐ |
+| T6.1 | Trí nhớ khách v2 | Mới P1 | L | Sóng 3, T2.A5 | Agent | ☑ 2026-10-17 (tự merge 64d7524) |
 | T6.2 | Tệp khách & Retarget | Mới P1 | L | T6.1, T3.8 | Agent | ☐ |
 | T6.3 | Signals S11–S18 | Mới P1 | M | T2.B5, T4.1, T4.2 | Agent | ☐ |
 | T6.4 | Hiệu quả › Chăm sóc đầy đủ | Mới P1 | M | T3.13, T4.1, T4.2 | Agent | ☐ |
