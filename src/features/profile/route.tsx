@@ -17,6 +17,7 @@ import { AiBrief } from '@/features/ai/AiBrief';
 import { customerUnit, loanPath } from '@/features/loan/model';
 import { openQuickAction } from '@/features/quick-actions/store';
 import { ActionBar, Avatar, Badge, Button, DeadlineTag, HealthDot, SlaRing, StageChip, Tabs, useToast } from '@/ui';
+import { ArchiveCustomerSection, ArchivedBanner } from './archive';
 import { CustomerMemory } from './memory';
 import { bookingStepPatch } from './model';
 
@@ -39,6 +40,7 @@ function Profile() {
   const [docError, setDocError] = useState('');
   const writable = !!customer && !!account && customer.owner_id === account.sync.local.userId && !customer.archived_at;
   const readOnly = !!customer && !writable;
+  const otherOwner = !!customer?.owner_id && !!account && customer.owner_id !== account.sync.local.userId;
   const stage = normStage(customer?.care_stage) || '';
   const sla = customer ? slaStatus(customer, now) : null;
   const timeline = useMemo(() => (customer ? customerTimeline(customer) : []), [customer]);
@@ -674,9 +676,10 @@ function Profile() {
               {sla.label} · {sla.text}
             </div>
           )}
-          {readOnly && <p className="text-small text-text-2">Người phụ trách khác · hồ sơ chỉ xem.</p>}
+          {otherOwner && <p className="text-small text-text-2">Người phụ trách khác · hồ sơ chỉ xem.</p>}
         </div>
       </header>
+      <ArchivedBanner customer={c} />
       {(() => {
         const undoPlan = account ? planSlaUndo(c, now, account.sync.local.userId) : null;
         return undoPlan ? (
@@ -758,6 +761,7 @@ function Profile() {
           <Fact label="Ngày đăng ký" value={c.registered_at || c.created_at} />
         </dl>
       </section>
+      <ArchiveCustomerSection customer={c} />
       {actionBar}
     </main>
   );
