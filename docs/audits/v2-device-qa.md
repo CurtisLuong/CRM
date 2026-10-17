@@ -33,13 +33,13 @@
 
 | # | Kịch bản | Chrome | APK thử | Ghi chú |
 |---|---|---|---|---|
-| A1 | Đăng nhập, "Đã đồng bộ", font Việt | ⏳ | ⏳ | |
-| A2 | Gọi → quay số → về app → hộp ghi kết quả (Chrome: ước lượng; APK: đọc nhật ký cuộc gọi máy, thời lượng chính xác, cuộc "chưa ghi chú") | ⏳ | ⏳ | |
-| A3 | Nút Zalo mở đúng chat (lỗi APK cũ: `docs/zalo-android-issue.md`) | ⏳ | ⏳ | |
-| A4 | Ghi chú giọng nói (T6.6) | ⏳ | ⏳ | |
-| A5 | Offline → ghi → đóng hẳn app → mở lại → bật mạng (lặp E1 trên APK) | (✅ E1 T5.2) | ⏳ | |
-| A6 | Ảnh/tài liệu khách: chụp/tải lên, xem | ⏳ | ⏳ | |
-| A7 | Lưu trữ khách + khôi phục (T5.10) | ⏳ | ⏳ | |
+| A1 | Đăng nhập, "Đã đồng bộ", font Việt | — | ✅ | 2026-10-17 ~17:00, chủ dự án |
+| A2 | Gọi → quay số → về app → hộp ghi kết quả (Chrome: ước lượng; APK: đọc nhật ký cuộc gọi máy, thời lượng chính xác, cuộc "chưa ghi chú") | (✅ E3 T5.2) | ✅ | Hiện hộp + thời lượng |
+| A3 | Nút Zalo mở đúng chat (lỗi APK cũ: `docs/zalo-android-issue.md`) | — | ✅ | |
+| A4 | Ghi chú giọng nói (T6.6) | ⏳ | ❌ L4 | Báo không có quyền micro; Cài đặt Android không có mục micro cho app |
+| A5 | Offline → ghi → đóng hẳn app → mở lại → bật mạng (lặp E1 trên APK) | (✅ E1 T5.2) | ✅ | |
+| A6 | Ảnh/tài liệu khách: chụp/tải lên, xem | — | ✅ | |
+| A7 | Lưu trữ khách + khôi phục (T5.10) | — | ⏳ thử lại | Chủ dự án không tìm thấy màn "Khách đã lưu trữ" → L5; lối vào có ở menu ⋮ (Tiện ích) › "Xem khách đã lưu trữ" (agent xác nhận trên khổ 375px) |
 | A8 | Chuông/thông báo trong app, đổi sáng/tối | ⏳ | ⏳ | |
 
 ## 4. Số chạm / thời gian (v1 `crm-cop` vs v2), Android
@@ -62,5 +62,7 @@
 | L1 | ⚠ theo dõi | ~16:30 sau khi bấm "Tải lại" (banner "Có bản mới") để lên bundle `index-rg_L917X.js`, trình duyệt **mất phiên đăng nhập** (không còn `sb-…-auth-token`, chỉ còn `crm_last_user`). App vẫn mở các màn: Đồng nghiệp hiện "Chưa tải được danh sách nhóm… cần chạy SQL/add_team_assign.sql" (thông báo sai nguyên nhân khi chưa đăng nhập); Hôm nay hiện form đăng nhập. Tải lại trang thường (16:39) vẫn giữ phiên. Nút Tải lại chỉ gọi `updateServiceWorker(true)` (`src/app/UpdatePrompt.tsx`), không xoá storage → nghi phiên hết hạn đúng lúc reload và 2 trang cùng làm mới token (Supabase đăng xuất khi refresh token bị dùng 2 lần). Thử lại ở lần có bản mới kế tiếp + để ý trên điện thoại; tái hiện được → chặn | Mac, trình duyệt app Claude | theo dõi |
 | L2 | ⚠ | Màn Đồng nghiệp khi lỗi/chưa đăng nhập luôn ghi "cần chạy SQL/add_team_assign.sql" (`src/features/team/route.tsx` hiển thị khi `members.length === 0`) — gây hiểu nhầm. Khi đã đăng nhập thì tải được danh sách bình thường | Mac | task con (dễ) |
 | L3 | ⚠ | Hôm nay › thẻ Next Best Action, dòng "Bằng chứng" in dữ liệu thô: `booking_steps: [object Object] · care_stage_updated_at: 2026-10-07T03:54:48… · due: 1789272314339` (`src/features/today/route.tsx:224` nối `field: String(value)`). Không mất dữ liệu; xấu, ngay thẻ đầu màn chính | Mac | task con (dễ) |
+| L4 | ❌ (APK) | Ghi chú giọng nói trong vỏ APK: báo không có quyền micro, Android không hiện quyền để bật. Nguyên nhân: `android-app/android/app/src/main/AndroidManifest.xml` chỉ khai INTERNET, READ_CALL_LOG, CALL_PHONE — **thiếu `RECORD_AUDIO`** (+ `MODIFY_AUDIO_SETTINGS`); `BridgeWebChromeClient` của Capacitor xin RECORD_AUDIO lúc chạy nhưng thiếu khai báo nên bị từ chối ngay. Sửa = thêm quyền + phát hành APK 1.5 (D-002). WebView Android không có Web Speech → giọng nói trong APK đi đường ghi âm + Worker `/stt` (T6.6) — cần xác nhận Worker đã deploy. Không chặn cutover dữ liệu (tính năng mới P1, v1 không có) nhưng là tính năng hỏng trên thiết bị chính | Android APK | task con |
+| L5 | ⚠ | Màn "Khách đã lưu trữ" khó tìm: chỉ có trong menu ⋮ (9 mục) và bảng lệnh; danh sách Khách hàng không có lối vào | Android | task con (dễ) — chờ chủ dự án thử lại A7 |
 
 **Lỗi chặn còn mở:** ⏳
