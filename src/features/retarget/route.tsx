@@ -11,8 +11,8 @@ import {
   isRetargetEligible,
   type RetargetFilters,
 } from '@/domain/matching/segments';
-import { Badge, Button, EmptyState, useToast } from '@/ui';
 import { copyAndOpenZalo } from '@/features/quick-actions/zalo';
+import { Badge, Button, EmptyState, useToast } from '@/ui';
 
 type SavedSegment = { id: string; name: string; filters: RetargetFilters };
 const STORAGE = 'crm_v2_retarget_segments';
