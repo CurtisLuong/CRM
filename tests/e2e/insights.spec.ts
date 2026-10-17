@@ -57,6 +57,7 @@ async function installInsightsFixture(page: Page) {
       full_name: 'Khách phân tích',
       phone: '0901234567',
       source: ['facebook_ads'],
+      campaign: 'Campaign E2E',
       care_stage: 'Đang chăm sóc',
       qualified_at: at(-20),
       care_stage_updated_at: at(-10),
@@ -132,7 +133,13 @@ for (const scheme of ['light', 'dark'] as const) {
       await expect(main.getByRole('rowheader', { name: 'Booking & Làm hồ sơ' })).toBeVisible();
       await expect(main.getByRole('heading', { name: 'Hiệu suất tuần' })).toBeVisible();
       await expect(main.getByRole('heading', { name: 'Nguồn khách' })).toBeVisible();
-      await expect(main.getByText('Facebook Ads')).toBeVisible();
+      await expect(main.getByRole('heading', { name: 'Facebook Ads' })).toBeVisible();
+      await expect(main.getByRole('heading', { name: 'Marketing' })).toBeVisible();
+      await expect(main.getByRole('tab', { name: 'Campaign' })).toBeVisible();
+      await expect(main.getByText('Cohort đăng ký theo tháng')).toBeVisible();
+      await expect(main.getByText(/Đường thu lead Facebook/)).toBeVisible();
+      await main.getByRole('tab', { name: 'Campaign' }).click();
+      await expect(main.getByText('Campaign E2E')).toBeVisible();
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     });
   });

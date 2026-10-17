@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import type { FeatureRoute } from '@/app/routes';
 import { useAppSession } from '@/app/session';
 import { THEME_OPTIONS, type ThemePref, useThemePref } from '@/app/theme';
-import { useRepositoryAccount } from '@/data/hooks';
+import { useCustomers, useRepositoryAccount } from '@/data/hooks';
 import { Button, EmptyState, useToast } from '@/ui';
+import { CampaignCostsSection } from './campaign-costs';
 import {
   AI_DEFAULT_STYLE,
   AI_MODELS,
@@ -30,6 +31,7 @@ export function SettingsPage() {
   const toast = useToast();
   const [theme, setTheme] = useThemePref();
   const userId = account?.sync.local.userId || '';
+  const customers = useCustomers((customer) => !!account && customer.owner_id === userId);
   const [templates, setTemplates] = useState<SettingsTemplate[]>(defaultTemplates());
   const [ai, setAi] = useState(() => normalizeAiSettings(null));
   const [loading, setLoading] = useState(true);
@@ -198,6 +200,7 @@ export function SettingsPage() {
         <p className="text-small text-text-2">Tuỳ chọn tài khoản và thiết bị.</p>
       </header>
       {!account ? <EmptyState title="Chưa đăng nhập" hint="Đăng nhập để đồng bộ cài đặt tài khoản." /> : null}
+      <CampaignCostsSection customers={customers} account={account} />
       <section className="rounded-card border border-border bg-surface p-4">
         <h2 className="text-section">Giao diện</h2>
         <fieldset className="mt-3 flex flex-wrap gap-2" aria-label="Giao diện">

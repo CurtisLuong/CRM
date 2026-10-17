@@ -3,7 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { route } from '@/features/settings/route';
 
 const state = vi.hoisted(() => ({ account: null as unknown }));
-vi.mock('@/data/hooks', () => ({ useRepositoryAccount: () => state.account }));
+vi.mock('@/data/hooks', () => ({ useCustomers: () => [], useRepositoryAccount: () => state.account }));
+vi.mock('@/features/settings/campaign-costs', () => ({ CampaignCostsSection: () => null }));
 vi.mock('@/app/session', () => ({ useAppSession: () => ({ session: null }) }));
 vi.mock('@/app/theme', () => ({
   THEME_OPTIONS: [],

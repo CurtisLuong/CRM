@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { FeatureRoute } from '@/app/routes';
 import { useCustomers, useRepositoryAccount } from '@/data/hooks';
 import { Badge, EmptyState, MetricTile, MiniChart } from '@/ui';
+import { MarketingSection } from './marketing';
 import { insightReport } from './model';
 
 const pct = (value: number | null) => (value == null ? '—' : `${value}%`);
@@ -28,11 +29,12 @@ export function InsightsPage() {
     );
   if (!customers.length)
     return (
-      <main className="mx-auto max-w-5xl p-4">
+      <main className="mx-auto flex max-w-5xl flex-col gap-5 p-4 pb-10">
         <EmptyState
           title="Chưa có dữ liệu phân tích"
-          hint="Các chỉ số sẽ xuất hiện khi có khách và lịch sử chăm sóc."
+          hint="Các chỉ số chăm sóc sẽ xuất hiện khi có khách và lịch sử."
         />
+        <MarketingSection customers={customers} account={account} />
       </main>
     );
 
@@ -219,6 +221,7 @@ export function InsightsPage() {
           <p className="text-small text-text-3">Chưa rõ nguồn khách.</p>
         )}
       </section>
+      <MarketingSection customers={customers} account={account} />
     </main>
   );
 }
