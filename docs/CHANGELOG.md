@@ -6,6 +6,13 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-17 — T6.6: Ghi chú giọng nói
+
+- Thêm Web Speech vi-VN và fallback ghi âm ngắn qua Worker STT; transcript điền vào ghi chú để người dùng rà, lưu hoặc gửi qua parse_note AI.
+- Worker xác thực người dùng, giới hạn audio 8 MB, xử lý inline và tắt lưu interaction; audio không ghi vào DB/bucket.
+- Kiểm tra: check 531 test, build, E2E quick-actions 12/12; gate chạy lại full E2E và golden.
+- File: `src/features/quick-actions/QuickActions.tsx`, `src/features/quick-actions/voice.test.tsx`, `src/features/quick-actions/voice.tsx`, `tests/e2e/quick-actions.spec.ts`, `tests/worker/stt.test.ts`, `worker/intake-worker.js`, `worker/stt.js`
+
 ## 2026-10-17 — T6.2: Tệp retarget có lọc an toàn và đo phản hồi
 
 - Thêm tệp khách lọc theo nhu cầu có cấu trúc, thời điểm retarget, ngân sách, khu vực/nghề, lý do kết thúc và lần liên hệ cuối; tệp lưu local và đồng bộ ui_state.
