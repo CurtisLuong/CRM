@@ -106,8 +106,18 @@ describe('src/config = giá trị v1 (deep equal)', () => {
     expect(ZALO_SENDER_NAME).toBe(v1raw('FOLLOWUP.senderName'));
   });
 
-  it('CLOSE_REASONS là khung rỗng (T6.1 điền)', () => {
-    expect(CLOSE_REASONS).toStrictEqual({});
+  it('CLOSE_REASONS có mã bất biến cho kết thúc khách lớp 2', () => {
+    expect(CLOSE_REASONS).toMatchObject({
+      tai_chinh: expect.any(String),
+      thoi_diem: expect.any(String),
+      khong_co_hang: expect.any(String),
+      dieu_kien_phap_ly: expect.any(String),
+      vi_tri: expect.any(String),
+      chon_du_an_khac: expect.any(String),
+      mat_lien_lac: expect.any(String),
+      khac: expect.any(String),
+    });
+    expect(new Set(Object.keys(CLOSE_REASONS)).size).toBe(Object.keys(CLOSE_REASONS).length);
   });
 });
 

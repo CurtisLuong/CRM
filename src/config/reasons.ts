@@ -18,5 +18,14 @@ export const LEAD_DROP_REASONS: Readonly<Record<string, string>> = {
 // 4 lý do hay gặp nhất (hiện nổi bật).
 export const LEAD_DROP_TOP = ['gia_cao', 'pha_campaign', 'khong_du_dieu_kien', 'khong_lien_lac_duoc'] as const;
 
-// Lý do đóng khách lớp 2 (thắng/thua) — khung rỗng, T6.1 điền.
-export const CLOSE_REASONS: Readonly<Record<string, string>> = {};
+// Mã đóng khách lớp 2 — đã lưu thì không đổi nghĩa (D-012).
+export const CLOSE_REASONS: Readonly<Record<string, string>> = {
+  tai_chinh: 'Chưa phù hợp tài chính',
+  thoi_diem: 'Chưa đúng thời điểm',
+  khong_co_hang: 'Chưa có sản phẩm phù hợp',
+  dieu_kien_phap_ly: 'Điều kiện pháp lý / NOXH',
+  vi_tri: 'Vị trí chưa phù hợp',
+  chon_du_an_khac: 'Chọn dự án khác',
+  mat_lien_lac: 'Không liên lạc được',
+  khac: 'Khác',
+};

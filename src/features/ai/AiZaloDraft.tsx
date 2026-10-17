@@ -29,17 +29,27 @@ export function AiZaloDraft({
     };
   }, []);
   const workerUrl = import.meta.env.VITE_WORKER_URL as string | undefined;
+  if (customer.contact_prefs?.do_not_contact) {
+    return (
+      <p role="alert" className="text-small text-danger">
+        Khách yêu cầu không liên hệ. Đã chặn tạo bản nháp Zalo.
+      </p>
+    );
+  }
   if (!aiAvailable(workerUrl, online && account.sync.isOnline())) return null;
   const generate = async () => {
-    if (busy) return;
+    if (busy || customer.contact_prefs?.do_not_contact) return;
     setBusy(true);
     setError('');
     try {
       const settings = await getAiSettings(account, account.sync.local.userId);
+      const latestCustomer = account.customers.getSnapshot().find((item) => item.id === customer.id) || customer;
+      if (latestCustomer.contact_prefs?.do_not_contact)
+        throw new Error('Khách yêu cầu không liên hệ. Đã chặn tạo bản nháp Zalo.');
       const response = await requestAi<AiZalo>(
         account,
         'zalo',
-        buildAiContext(customer),
+        buildAiContext(latestCustomer),
         { goal: redactAiText(goal, 300) },
         settings,
       );

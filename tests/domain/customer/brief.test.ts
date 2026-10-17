@@ -8,8 +8,8 @@ const customer = (overrides: Partial<Customer> = {}) =>
 describe('customerBrief', () => {
   it('marks absent facts as unknown with useful questions', () => {
     const brief = customerBrief(customer());
-    expect(brief).toHaveLength(7);
-    expect(brief.filter((fact) => fact.value === 'Chưa biết')).toHaveLength(7);
+    expect(brief).toHaveLength(8);
+    expect(brief.filter((fact) => fact.value === 'Chưa biết')).toHaveLength(8);
     expect(brief[0]?.question).toContain('mua để');
   });
 
@@ -41,5 +41,33 @@ describe('customerBrief', () => {
     expect(customerBrief(c).find((fact) => fact.key === 'last_contact')?.value).toBe(
       new Date('2026-10-16T04:30:00.000Z').toLocaleString('vi-VN'),
     );
+  });
+
+  it('uses open interest cycles and their budget in the brief', () => {
+    const brief = customerBrief(
+      customer({
+        projects: ['Dự án đầu'],
+        interests: [
+          {
+            id: 'i1',
+            project: 'Dự án thứ hai',
+            apt_type: '2N',
+            budget_max: 1_500_000_000,
+            purpose: 'Ở',
+            status: 'open',
+          },
+          { id: 'i2', project: 'Đợt đã khép', status: 'lost' },
+        ],
+      }),
+    );
+    expect(brief.find((fact) => fact.key === 'need')?.value).toContain('Dự án thứ hai');
+    expect(brief.find((fact) => fact.key === 'need')?.value).toContain('Dự án đầu');
+    expect(brief.find((fact) => fact.key === 'finance')?.value).toContain('1500000000');
+    expect(brief.find((fact) => fact.key === 'purpose')?.value).toBe('Ở');
+  });
+
+  it('surfaces the no-contact preference in the brief', () => {
+    const brief = customerBrief(customer({ contact_prefs: { do_not_contact: true, dnc_reason: 'Khách xin dừng' } }));
+    expect(brief.find((fact) => fact.key === 'contact_preference')?.value).toBe('Không liên hệ · Khách xin dừng');
   });
 });

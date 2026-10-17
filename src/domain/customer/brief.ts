@@ -21,16 +21,34 @@ export function customerBrief(customer: Customer): BriefFact[] {
   const lastContactAt = [latestCall?.at, latestNote?.at, latestInteraction?.at].filter(Boolean).sort().at(-1);
   const openPromise = openTasksOf(customer).find((task) => task.side === 'customer') ?? openTasksOf(customer)[0];
   const advanced = customer.advanced && typeof customer.advanced === 'object' ? customer.advanced : {};
-  const project = Array.isArray(customer.projects) ? customer.projects.filter(Boolean).join(', ') : '';
+  const openInterests = (customer.interests || []).filter((interest) => interest?.status === 'open');
+  const project = [
+    ...(Array.isArray(customer.projects) ? customer.projects : []),
+    ...openInterests.map((interest) => interest?.project),
+  ]
+    .filter((value): value is string => !!value)
+    .filter((value, index, all) => all.indexOf(value) === index)
+    .join(', ');
+  const aptTypes = [customer.apt_type, ...openInterests.map((interest) => interest?.apt_type)]
+    .filter((value): value is string => !!value)
+    .filter((value, index, all) => all.indexOf(value) === index)
+    .join(', ');
+  const budgetMax = [...openInterests]
+    .reverse()
+    .map((interest) => interest?.budget_max)
+    .find((value) => value != null && value !== '');
   const known = (value: unknown) => text(value) || 'Chưa biết';
   return [
-    { key: 'purpose', label: 'Mua để', value: known(customer.purpose), question: 'Anh/chị mua để ở hay đầu tư?' },
+    {
+      key: 'purpose',
+      label: 'Mua để',
+      value: known(customer.purpose || [...openInterests].reverse().find((interest) => interest?.purpose)?.purpose),
+      question: 'Anh/chị mua để ở hay đầu tư?',
+    },
     {
       key: 'need',
       label: 'Cần gì',
-      value: known(
-        [project, customer.apt_type, customer.apt_area ? `${customer.apt_area} m²` : ''].filter(Boolean).join(' · '),
-      ),
+      value: known([project, aptTypes, customer.apt_area ? `${customer.apt_area} m²` : ''].filter(Boolean).join(' · ')),
       question: 'Anh/chị ưu tiên dự án, loại căn và diện tích nào?',
     },
     {
@@ -39,6 +57,7 @@ export function customerBrief(customer: Customer): BriefFact[] {
       value: known(
         [
           customer.finance ? `Vốn ${customer.finance}` : '',
+          budgetMax != null ? `Ngân sách đợt quan tâm ${budgetMax}` : '',
           advanced.loan_need ? `Vay ${advanced.loan_need}` : '',
           advanced.monthly_payment ? `Trả tháng ${advanced.monthly_payment}` : '',
         ]
@@ -53,7 +72,9 @@ export function customerBrief(customer: Customer): BriefFact[] {
       value: known(
         advanced.decision_influencers ||
           customer.household
-            ?.map((member) => member?.name)
+            ?.map((member) =>
+              member?.role ? `${member?.name || 'Người cùng quyết định'} (${member.role})` : member?.name,
+            )
             .filter(Boolean)
             .join(', '),
       ),
@@ -82,6 +103,14 @@ export function customerBrief(customer: Customer): BriefFact[] {
       label: 'Liên hệ cuối',
       value: lastContactAt ? new Date(lastContactAt).toLocaleString('vi-VN') : 'Chưa biết',
       question: 'Lần gần nhất mình trao đổi với anh/chị là khi nào?',
+    },
+    {
+      key: 'contact_preference',
+      label: 'Liên hệ',
+      value: customer.contact_prefs?.do_not_contact
+        ? `Không liên hệ${customer.contact_prefs.dnc_reason ? ` · ${customer.contact_prefs.dnc_reason}` : ''}`
+        : known([customer.contact_prefs?.channel, customer.contact_prefs?.slot].filter(Boolean).join(' · ')),
+      question: 'Anh/chị muốn trao đổi qua kênh nào và khung giờ nào?',
     },
   ];
 }

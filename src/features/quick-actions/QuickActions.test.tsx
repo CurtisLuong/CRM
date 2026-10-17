@@ -23,9 +23,10 @@ const customer = {
 } as unknown as Customer;
 const logCall = vi.fn(async () => customer);
 const updateCustomer = vi.fn(async () => customer);
+let snapshotCustomer: Customer = customer;
 const account = {
   customers: {
-    getSnapshot: () => [customer],
+    getSnapshot: () => [snapshotCustomer],
     get: vi.fn(async () => customer),
     list: vi.fn(async () => [customer]),
     logCall,
@@ -41,12 +42,30 @@ afterEach(() => {
   vi.useRealTimers();
   clearQuickAction();
   mockSession.account = null;
+  snapshotCustomer = customer;
   logCall.mockClear();
   updateCustomer.mockClear();
   delete (window as Window & { Capacitor?: unknown }).Capacitor;
 });
 
 describe('quick actions touch budget', () => {
+  it('blocks Zalo when the latest customer preference is do-not-contact', async () => {
+    mockSession.account = account;
+    snapshotCustomer = { ...customer, contact_prefs: { do_not_contact: true, dnc_reason: 'Khách yêu cầu' } };
+    const user = userEvent.setup();
+    render(
+      <ToastProvider>
+        <QuickActionButtons customer={customer} />
+        <QuickActionsHost />
+      </ToastProvider>,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Zalo' }));
+    await waitFor(() => expect(screen.getByText('Khách yêu cầu không liên hệ')).toBeTruthy());
+    expect(screen.queryByRole('heading', { name: /Nhắn Zalo/ })).toBeNull();
+    expect(updateCustomer).not.toHaveBeenCalled();
+  });
+
   it('records a meeting from the interaction sheet in one confirmation tap', async () => {
     mockSession.account = account;
     const user = userEvent.setup();

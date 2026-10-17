@@ -122,6 +122,25 @@ for (const theme of ['light', 'dark'] as const) {
     await page.getByLabel('Khung giờ liên hệ').fill('Sáng');
     await page.getByLabel('Khung giờ liên hệ').press('Tab');
     await expect(page.getByText('Đã lưu trên thiết bị', { exact: true }).first()).toBeVisible();
+    await page.getByLabel('Dự án quan tâm mới').fill('Dự án thứ hai');
+    await page.getByRole('button', { name: 'Thêm đợt' }).click();
+    await expect(page.getByText('Đã thêm đợt quan tâm', { exact: true })).toBeVisible();
+    await page.waitForTimeout(300);
+    await page.getByLabel('Tên người cùng quyết định').fill('Anh Minh');
+    await page.getByLabel('Vai trò người cùng quyết định').fill('Chồng');
+    await page.getByRole('button', { name: 'Thêm người' }).click();
+    await expect(page.getByText('Đã thêm người cùng quyết định', { exact: true })).toBeVisible();
+    await page.waitForTimeout(300);
+    const doNotContact = page.getByRole('checkbox', { name: /Không liên hệ/ });
+    await doNotContact.check();
+    await expect(doNotContact).toBeChecked();
+    await page.waitForTimeout(300);
+    await page.getByLabel('Lý do không liên hệ').fill('Khách xin tạm dừng');
+    await page.getByLabel('Lý do không liên hệ').press('Tab');
+    await expect(page.getByText('Đã lưu trên thiết bị', { exact: true }).first()).toBeVisible();
+    await page.getByRole('button', { name: 'Zalo', exact: true }).click();
+    await expect(page.getByText('Khách yêu cầu không liên hệ', { exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Nhắn Zalo/ })).toHaveCount(0);
     await page.waitForTimeout(300);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     const saved = await page.evaluate(
@@ -143,7 +162,21 @@ for (const theme of ['light', 'dark'] as const) {
     );
     expect(saved).toMatchObject({
       occupation: 'Giáo viên',
-      contact_prefs: { channel: 'Điện thoại', slot: 'Sáng', x_extension: { keep: true } },
+      contact_prefs: {
+        channel: 'Điện thoại',
+        slot: 'Sáng',
+        do_not_contact: true,
+        dnc_reason: 'Khách xin tạm dừng',
+        x_extension: { keep: true },
+      },
+      interests: [expect.objectContaining({ project: 'Dự án thứ hai', status: 'open', source: 'sale' })],
+      household: [expect.objectContaining({ name: 'Anh Minh', role: 'Chồng' })],
+      field_meta: {
+        occupation: expect.objectContaining({ by: 'sale', confirmed: true }),
+        contact_prefs: expect.objectContaining({ by: 'sale', confirmed: true }),
+        interests: expect.objectContaining({ by: 'sale', confirmed: true }),
+        household: expect.objectContaining({ by: 'sale', confirmed: true }),
+      },
       x_future: { keep: true },
       advanced: { x_future: { keep: true } },
     });

@@ -428,7 +428,8 @@ function ActionSheet({
             disabled={!text.trim() || !phone}
             onClick={() =>
               run(async () => {
-                if (c.contact_prefs?.do_not_contact) throw new Error('Khách yêu cầu không liên hệ.');
+                const latestCustomer = account.customers.getSnapshot().find((item) => item.id === c.id) || c;
+                if (latestCustomer.contact_prefs?.do_not_contact) throw new Error('Khách yêu cầu không liên hệ.');
                 await copyAndOpenZalo(text, phone);
                 setLaunched(true);
                 onZaloOpen();

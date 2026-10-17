@@ -7,6 +7,7 @@ import { VELOCITY_CONFIG } from '@/config/velocity';
 import { useCustomer, useRepositoryAccount } from '@/data/hooks';
 import type { Customer } from '@/domain/customer';
 import { customerBrief } from '@/domain/customer/brief';
+import { factPatch } from '@/domain/customer/facts';
 import { callAttemptsOf, normStage, openTasksOf, sourceListOf } from '@/domain/customer/normalize';
 import { customerTimeline } from '@/domain/customer/timeline';
 import { forStage } from '@/domain/followup';
@@ -16,7 +17,8 @@ import { AiBrief } from '@/features/ai/AiBrief';
 import { customerUnit, loanPath } from '@/features/loan/model';
 import { openQuickAction } from '@/features/quick-actions/store';
 import { ActionBar, Avatar, Badge, Button, DeadlineTag, HealthDot, SlaRing, StageChip, Tabs, useToast } from '@/ui';
-import { bookingStepPatch, contactPrefsPatch } from './model';
+import { CustomerMemory } from './memory';
+import { bookingStepPatch } from './model';
 
 const FIELD =
   'min-h-11 w-full rounded-control border border-border-strong bg-surface px-3 text-body text-text focus-visible:outline-2 focus-visible:outline-focus disabled:opacity-60';
@@ -100,7 +102,7 @@ function Profile() {
       setBusy(false);
     }
   };
-  const setField = (key: keyof Customer, value: unknown) => void save({ [key]: value });
+  const setField = (key: keyof Customer, value: unknown) => void save(factPatch(c, String(key), value));
   const actionBar = (
     <ActionBar
       actions={[
@@ -267,33 +269,6 @@ function Profile() {
           disabled={!writable}
           onSave={(value) => setField('residence', value)}
         />
-        <Field
-          label="Kênh liên hệ ưu tiên"
-          value={c.contact_prefs?.channel}
-          disabled={!writable}
-          onSave={(value) => void save(contactPrefsPatch(c, 'channel', value))}
-        />
-        <Field
-          label="Khung giờ liên hệ"
-          value={c.contact_prefs?.slot}
-          disabled={!writable}
-          onSave={(value) => void save(contactPrefsPatch(c, 'slot', value))}
-        />
-        <label className="flex min-h-11 items-center gap-2 text-body">
-          <input
-            type="checkbox"
-            checked={!!c.contact_prefs?.do_not_contact}
-            disabled={!writable}
-            onChange={(e) =>
-              setField('contact_prefs', {
-                ...(c.contact_prefs || {}),
-                do_not_contact: e.target.checked,
-                dnc_at: e.target.checked ? new Date().toISOString() : null,
-              })
-            }
-          />
-          Không liên hệ
-        </label>
       </section>
       <section className="space-y-3">
         <h2 className="text-section">Hồ sơ nâng cao</h2>
@@ -320,6 +295,12 @@ function Profile() {
             </p>
           ))}
       </section>
+      <CustomerMemory
+        customer={c}
+        writable={writable}
+        onSave={(patch, message) => void save(patch, message)}
+        now={now}
+      />
     </div>
   );
   const needsContent = (
@@ -398,21 +379,6 @@ function Profile() {
           Tính vay cho khách này
         </Button>
       </section>
-      {Array.isArray(c.interests) && c.interests.length > 0 && (
-        <section className="space-y-2">
-          <h2 className="text-section">Nhu cầu theo đợt</h2>
-          {c.interests.filter(Boolean).map((item, index) => (
-            <div key={item?.id || index} className="border-b border-border py-2">
-              <p className="text-body-strong">
-                {item?.project || 'Chưa rõ dự án'} · {item?.apt_type || 'Chưa rõ loại căn'}
-              </p>
-              <p className="text-small text-text-2">
-                Ngân sách {fmtValue(item?.budget_max)} · {item?.status || 'chưa rõ trạng thái'}
-              </p>
-            </div>
-          ))}
-        </section>
-      )}
       {stage === CARE_STAGE_BOOKING && (
         <section className="space-y-3">
           <h2 className="text-section">Checklist Booking & làm hồ sơ</h2>
