@@ -132,7 +132,7 @@ for (const theme of ['light', 'dark'] as const) {
     await expect(page.getByText('Đã thêm người cùng quyết định', { exact: true })).toBeVisible();
     await page.waitForTimeout(300);
     const doNotContact = page.getByRole('checkbox', { name: /Không liên hệ/ });
-    await doNotContact.check();
+    await doNotContact.click();
     await expect(doNotContact).toBeChecked();
     await page.waitForTimeout(300);
     await page.getByLabel('Lý do không liên hệ').fill('Khách xin tạm dừng');
