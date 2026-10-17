@@ -68,7 +68,8 @@ Ghi nhận phụ (không phải mất dữ liệu): 4 việc đang mở thuộc 
 | Sửa kết quả cuộc gọi → lưu không đổi (Thao tác nhanh) | 1 khách (`01d822c6…`, 1 cuộc gọi `busy`) → chỉ `updated_at` đổi; `call_attempts`, ghi chú, lịch hẹn, bậc giữ nguyên ✅ |
 | Sửa ghi chú hồ sơ → lưu không đổi (Dòng thời gian) | 1 khách (`018b946e…`, 1 ghi chú) → ❌ **thêm `edited_at`** vào ghi chú dù nội dung giống hệt; `text`, `at` giữ nguyên. Nguyên nhân `src/features/profile/route.tsx` `saveTimelineEntry`: luôn ghi + gắn `edited_at`, và `trim()` nội dung (ghi chú cũ có khoảng trắng đầu/cuối sẽ bị đổi chữ). Cùng lỗi ở ghi chú lịch sử bậc. Không mất dữ liệu; vi phạm tiêu chí "mở + lưu không sửa → không đổi giá trị" → **task con** (phạm vi T5.6) |
 | `audit-since` (chạy với mốc 00:00, đọc phần sau 12:39) | ✅ đúng mong đợi: tổng `thay đổi: 13 · lỗi ✗: 0` = 12 tự chuyển SLA lúc 12:26 + **đúng 1** thay đổi sau 12:39: `018b946e…` cột `notes_manual` lúc 12:45:35 (ghi chú lưu không sửa ở trên). Sửa việc (`a84dcc02…`) và sửa cuộc gọi (`01d822c6…`) không sinh dòng nhật ký → không đổi giá trị |
-| Vân tay 30 so với số liệu gốc Phần D | ⏳ (mong đợi **khác** đúng do 1 ghi chú trên; các số đếm giữ nguyên) |
+| `counts.sql` sau Phần D | ✅ mọi số đếm giữ nguyên (khách 88, việc 16/14, cuộc gọi 46/1, ghi chú 67, lịch sử bậc 220, tài liệu 59); nhật ký 12 → 13 (+1 = ghi chú trên); vân tay khách bỏ `updated_at` `9008590a…` → `26b2304fc98bf94f7979fdfa4d21c98d` (khác duy nhất do ghi chú trên — nhật ký chứng minh); vân tay tài liệu giữ nguyên `456e5f42…` |
+| **Kết luận Phần D** | Đạt cho ô thông tin, sửa việc, sửa cuộc gọi. **Không đạt** cho sửa ghi chú hồ sơ / lịch sử bậc (gắn `edited_at` khi lưu không đổi) → task con T5.6a, phải xong trước T5.4. 0 mất dữ liệu |
 
 Chưa làm: positive control "sửa thật 1 ô → có ghi" để chứng minh cách bấm tự động kích hoạt lưu — làm ở Phần E trên khách thử.
 
