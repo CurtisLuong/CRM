@@ -6,6 +6,13 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-17 — T5.4a: Chuẩn bị runbook chuyển v1 sang v2
+
+- Tách checklist chuẩn bị khỏi các bước chỉ thực hiện sau T5.3 và xác nhận của chủ dự án.
+- Ghi rõ backup, migration, cấu hình Cloudflare, kiểm tra sau cutover và rollback; không thực hiện thao tác production.
+- Kiểm tra: diff --check, rà soát nội dung runbook, cmp AGENTS.md CLAUDE.md.
+- File: `docs/runbooks/cutover.md`
+
 ## 2026-10-17 — T5.6a: Giữ nguyên ghi chú khi thao tác lưu không chỉnh sửa
 
 - Bỏ qua ghi hồ sơ nếu nội dung ghi chú giống hệt, tránh đổi edited_at hoặc ghi lại payload.
