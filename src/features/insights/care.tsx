@@ -12,6 +12,13 @@ const duration = (ms: number | null) => {
   return mins < 60 ? `${mins} phút` : `${Math.floor(mins / 60)} giờ ${mins % 60} phút`;
 };
 const ratio = (n: number, d: number) => `${fmt(n)}/${fmt(d)}`;
+// D-023 L3: domain definitions are display text too; never expose stored codes or internal doc IDs.
+const readableDefinition = (text: string) =>
+  text
+    .replace(/\btalked\b/g, 'Nói chuyện được')
+    .replace(/\s*theo\s+(?:countdownTag\/)?D-0\d\d/gi, '')
+    .replace(/\bD-0\d\d\b/g, '')
+    .replace(/\s{2,}/g, ' ');
 
 export function CareSection({ customers, now }: { customers: readonly Customer[]; now: number }) {
   const navigate = useNavigate();
@@ -37,7 +44,7 @@ export function CareSection({ customers, now }: { customers: readonly Customer[]
         period={period}
         smallSample={d > 0 && d < 5 ? `Mẫu nhỏ: n=${d}` : undefined}
       />
-      <p className="text-small text-text-2">{definition}</p>
+      <p className="text-small text-text-2">{readableDefinition(definition)}</p>
       <Button className="self-start" variant="secondary" onClick={() => pick(title, ids)}>
         Xem {fmt(ids.length)} khách
       </Button>
@@ -69,9 +76,7 @@ export function CareSection({ customers, now }: { customers: readonly Customer[]
                 : undefined
             }
           />
-          <p className="text-small text-text-2">
-            Trung vị chỉ tính lead đã gọi; SLA tính trong giờ làm 06:00–22:00 theo D-008.
-          </p>
+          <p className="text-small text-text-2">Trung vị chỉ tính lead đã gọi; SLA tính trong giờ làm 06:00–22:00.</p>
           <Button
             className="self-start"
             variant="secondary"
@@ -103,7 +108,7 @@ export function CareSection({ customers, now }: { customers: readonly Customer[]
         <article className="flex flex-col gap-2 rounded-card border border-border bg-surface p-3 shadow-e1 sm:col-span-2 lg:col-span-3">
           <h3 className="text-body-strong">Nghe máy theo khung</h3>
           <p className="text-small text-text-2">
-            Cuộc có kết quả `talked` / mọi cuộc có kết quả trong khung; cửa sổ 30 ngày. Cỡ mẫu nhỏ hơn{' '}
+            Cuộc có kết quả Nói chuyện được / mọi cuộc có kết quả trong khung; cửa sổ 30 ngày. Cỡ mẫu nhỏ hơn{' '}
             {CARE_METRIC_CONFIG.slotSample} vẫn hiển thị nhưng không dùng làm bài học.
           </p>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
@@ -157,7 +162,7 @@ export function CareSection({ customers, now }: { customers: readonly Customer[]
         <article className="flex flex-col gap-2 rounded-card border border-border bg-surface p-3 shadow-e1 sm:col-span-2 lg:col-span-3">
           <h3 className="text-body-strong">Tuổi bậc so với SLA</h3>
           <p className="text-small text-text-2">
-            Số khách trong từng bậc; trạng thái so với mục tiêu/hạn mức D-008. Nhấn để xem khách ở bậc.
+            Số khách trong từng bậc; trạng thái so với mục tiêu/hạn mức của bậc. Nhấn để xem khách ở bậc.
           </p>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-5">
             {metrics.stages.map((stage) => (
@@ -172,7 +177,7 @@ export function CareSection({ customers, now }: { customers: readonly Customer[]
                 <span className="block text-small text-text-2">
                   {stage.targetExceeded} quá mục tiêu · {stage.limitExceeded} quá hạn mức
                 </span>
-                <span className="block text-xs text-text-3">{stage.definition}</span>
+                <span className="block text-xs text-text-3">{readableDefinition(stage.definition)}</span>
               </button>
             ))}
           </div>
