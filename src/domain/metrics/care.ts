@@ -171,7 +171,7 @@ export function fullCareMetrics(customers: readonly Customer[], now: number) {
       targetExceeded: warn.length,
       limitExceeded: over.length,
       customerIds: rows.map((customer) => customer.id),
-      definition: `Tuổi bậc hiện tại theo D-008; mục tiêu ${phase.targetText}, hạn mức ${phase.maxText}.`,
+      definition: `Tuổi bậc hiện tại; mục tiêu ${phase.targetText}, hạn mức ${phase.maxText}.`,
     };
   });
   const activeTouched = active.map((customer) => ({ customer, at: recordedTouchMs(customer) }));
@@ -302,7 +302,7 @@ export function fullCareMetrics(customers: readonly Customer[], now: number) {
         percent: pct(fast.length, firstCalls.length),
         customerIds: firstCallCustomerIds,
         definition:
-          'Khách đăng ký trong 30 ngày; thời gian tính theo giờ làm SLA D-008. Trung vị chỉ tính khách đã có cuộc gọi hợp lệ.',
+          'Khách đăng ký trong 30 ngày; thời gian chỉ tính trong giờ làm. Trung vị chỉ tính khách đã có cuộc gọi hợp lệ.',
       },
       eligible: firstCalls.length,
       called: firstValid.length,
