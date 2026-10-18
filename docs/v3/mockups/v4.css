@@ -1,5 +1,5 @@
 /* Bản mẫu Design System v4 — hướng D "Precision Tonal" (Curtis chọn 2026-10-19). CHỈ để duyệt (M0), không phải code app.
- * Xem docs/v3/design-language.md + docs/v3/DESIGN_SYSTEM-v4-draft.md */
+ * Xem docs/v3/design-language.md + docs/DESIGN_SYSTEM.md */
 :root {
   color-scheme: light;
   --bg: #f2f4f7; --surface: #ffffff; --surface-2: #eceff3; --surface-3: #e3e7ec;

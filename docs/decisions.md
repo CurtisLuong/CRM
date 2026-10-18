@@ -23,7 +23,7 @@ Lựa chọn nền tảng ban đầu (Supabase, Cloudflare Pages, local-first) k
 | D-011 | v2 dùng build step: Vite + React + TS + Tailwind + Radix | Đã duyệt hướng 2026-10-16 | Áp dụng từ T1.1 |
 | D-012 | Hợp đồng bảo toàn dữ liệu, migration chỉ thêm | Đã duyệt hướng 2026-10-16 | Áp dụng ngay (cả v1) |
 | D-013 | IA/UX v2: Hôm nay · Khách hàng · Công việc · Hiệu quả | Đã duyệt hướng 2026-10-16 | Áp dụng cho v2 |
-| D-014 | Design System v3 "Signal" (sáng + tối) | Đã duyệt hướng 2026-10-16 | Áp dụng cho v2 |
+| D-014 | Design System v3 "Signal" (sáng + tối) | Lịch sử | Thay bởi D-023 (giữ ngữ nghĩa màu, font, icon) |
 | D-015 | Bộ máy Tín hiệu là nguồn duy nhất cho ưu tiên/gợi ý/thông báo | Đã duyệt hướng 2026-10-16 | Áp dụng cho v2 |
 | D-016 | T2.B5 dùng thứ tự UX; giữ parity v1 riêng | Ngoại lệ cục bộ đã duyệt 2026-10-16 | Chỉ nghiệm thu T2.B5 |
 | D-017 | T3.6 được dùng react-hook-form cùng Zod | Ngoại lệ cục bộ đã duyệt 2026-10-16 | Chỉ T3.6 |
@@ -32,6 +32,8 @@ Lựa chọn nền tảng ban đầu (Supabase, Cloudflare Pages, local-first) k
 | D-020 | Hoãn ba thao tác xóa nested record trong cutover v2 | Ngoại lệ cục bộ đã duyệt 2026-10-17 | Chỉ chấp nhận gap T5.1; giữ D-012 và v1 |
 | D-021 | Đồng bộ v2 gộp cột mảng theo phần tử + bỏ được op bị server từ chối | Đã duyệt hướng 2026-10-17 (sửa trước cutover) | Hàng đợi v2; v1 giữ ghi đè tới cutover |
 | D-022 | T6.7 nghiệm thu không cần bộ đánh giá 50–100 ghi chú thật; theo dõi trên production | Ngoại lệ cục bộ đã duyệt 2026-10-17 | Chỉ T6.7 |
+| D-023 | Design System v4 "Precision Tonal" + 5 luật UI đo được | Đã duyệt 2026-10-19 | Áp dụng cho v3 (nhánh `factory`) |
+| D-024 | Đợt v3 chạy bằng AI Factory trên nhánh `factory`; task cũ T5.5, T6.3 tạm hoãn | Đã duyệt 2026-10-18 | Áp dụng tới khi v3 lên production |
 
 ## Ba loại kết quả
 
@@ -262,7 +264,7 @@ Ví dụ và mẫu trong bộ tài liệu không phải sự chấp thuận cho 
 - Quyết định: phong cách hiện đại / công nghệ / tương lai bằng cấu trúc và chuyển động chứ không bằng trang trí: nền lạnh, bề mặt phân tầng, chữ số đơn cách cho dữ liệu, chế độ **sáng + tối** ngang hàng (mặc định theo hệ thống), font **Be Vietnam Pro**, CTA chính dùng **accent Signal Blue** (thay graphite). Giữ từ D-009: đỏ/vàng/xanh lá chỉ cho thời hạn/kết quả, violet chỉ cho AI, không neon/glow, không card lồng card, một CTA chính mỗi vùng.
 - Lý do: người dùng yêu cầu giao diện "hiện đại, công nghệ, tương lai" và phân cấp thị giác tốt (chat 2026-10-16).
 - Tài liệu: `docs/DESIGN_SYSTEM.md` (v3).
-- Trạng thái: Đã duyệt hướng; áp dụng cho v2 (v1 giữ D-009 đến cutover).
+- Trạng thái: Thay bởi D-023 (2026-10-19). Giữ ngữ nghĩa màu, font, icon.
 
 ### D-015 — Bộ máy Tín hiệu (signals) là nguồn duy nhất cho ưu tiên việc và gợi ý
 
@@ -370,3 +372,26 @@ Ví dụ và mẫu trong bộ tài liệu không phải sự chấp thuận cho 
 - Chấp thuận: Curtis trong phiên điều phối 2026-10-17: "Tôi sẽ quan sát tính năng này trên production luôn. Bạn ghi chú bước này và cho phép pass."
 - Tài liệu đã cập nhật: `docs/decisions.md`, `docs/tasks.md` (T6.7 "Xong khi", việc chủ dự án Sóng 6), `scripts/agents/ownership.json`.
 - Trạng thái: Đã duyệt; chỉ áp dụng cho T6.7.
+
+### D-023 — Design System v4 "Precision Tonal"
+
+- Ngày: 2026-10-19
+- Loại: Đổi nguyên tắc toàn dự án (phần giao diện)
+- Nguyên tắc liên quan: `docs/DESIGN_SYSTEM.md` (v3 → v4), D-014, CLAUDE.md §3.9.
+- Quyết định: Thay DS v3 "Signal" bằng v4 "Precision Tonal" = cách phân cấp của Material 3 Expressive + vẻ ngoài gần đơn sắc, số liệu đơn cách kiểu Linear / Geist / Carbon. Mỗi khách một thẻ; cấp 1 = tên + một nút hành động lớn có chữ; cấp 2–3 = lần gọi gần nhất, số lần gọi, ghi chú cuối, thanh SLA 7 đoạn; vạch trái 3px mang màu thời hạn. Nhóm gấp ở Hôm nay hiện thẻ đầy đủ, nhóm sau hiện thẻ gọn. Thêm 5 luật đo được L1–L5 (màn đầu, 1 hành động/thẻ, không mã thô, không ô trống, không trắng màn).
+- Phạm vi: toàn bộ giao diện v2/v3 (`src/ui`, `src/styles`, `src/features`). Giữ: ngữ nghĩa màu (đỏ/vàng/xanh lá cho thời hạn, tím cho AI), font Be Vietnam Pro + JetBrains Mono, registry icon D-006. Không đổi logic, dữ liệu, cấu hình nghiệp vụ.
+- Lý do và đánh đổi: Curtis 2026-10-18/19: bản v2 rối, mã lạ, thẩm mĩ chưa ổn; tiêu chí dễ đọc → phân cấp rõ, tách từng khách → công nghệ/tối giản. Liquid Glass/kính mờ bị loại vì tương phản thấp. Đánh đổi: thẻ đầy đủ cao, màn đầu Hôm nay thấy ~2–3 khách (đã chọn "nhóm gấp đầy đủ, còn lại gọn").
+- Chấp thuận: Curtis chọn hướng D và cách xử lý mật độ (2026-10-19), rồi "Duyệt Design System v4 Precision Tonal và 4 bản mẫu".
+- Tài liệu đã cập nhật: `docs/DESIGN_SYSTEM.md`, `docs/v3/design-language.md`, `docs/v3/mockups/`, `CLAUDE.md` + `AGENTS.md` §3.9.
+- Trạng thái: Đang áp dụng cho v3; code app chuyển dần theo `docs/ROADMAP.md` M1–M5.
+
+### D-024 — Đợt v3 chạy bằng AI Factory trên nhánh `factory`
+
+- Ngày: 2026-10-18
+- Loại: Đổi quy trình (ngoại lệ có thời hạn cho `docs/tasks.md` §0)
+- Nguyên tắc liên quan: `docs/tasks.md` §0 (nhánh `task/…` → tự merge vào `v2`), CLAUDE.md §2, §4.
+- Quyết định: Thiết kế lại UI/UX (v3) làm theo `docs/factory-playbook.md`: nhánh phát triển `factory` (tách từ `v2`), Lead (Claude) viết đặc tả + task `tasks/queue/`, worker (DeepSeek qua OpenCode) làm trong worktree riêng, push bị khoá **chỉ trong worktree worker**; Lead đọc diff rồi merge vào `factory`; Curtis tự push và quyết lên production. Task chưa xong T5.5, T6.3 tạm hoãn, xét lại khi có thiết kế v3. Cổng `merge-to-v2.mjs` giữ nguyên, không dùng cho v3.
+- Phạm vi: đợt v3 đến khi lên production.
+- Chấp thuận: Curtis 2026-10-18 chọn "Dựng AI Factory mới", "Task cũ tạm hoãn", "Khoá riêng trong worktree worker".
+- Tài liệu đã cập nhật: `CLAUDE.md`, `AGENTS.md` (dòng AI Factory), `docs/factory-playbook.md`, `docs/STATE.md`, `docs/ROADMAP.md`.
+- Trạng thái: Đang áp dụng.

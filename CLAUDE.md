@@ -44,7 +44,7 @@ Ngoại lệ build cục bộ D-002 vẫn áp dụng cho vỏ `android-app/` (Gr
 6. **Tự động hoá theo quy tắc đã duyệt (D-008, D-010):** quá hạn mức SLA ở giai đoạn có cấu hình tự chuyển → app tự chuyển + tạo lịch kèm theo, không hỏi lại từng lần; giữ lịch sử, thông báo, Hoàn tác/Mở lại. Không tự mở rộng automation sang giai đoạn/hành động chưa duyệt.
 7. **Thời hạn (D-010):** việc có giờ quá hạn sau mốc +30 phút; hẹn gọi sau cuối khung +30 phút; việc cả ngày quá hạn từ ngày hôm sau. Mọi màn đọc cùng một hàm.
 8. **AI chỉ đề xuất:** không tự ghi, gửi, gọi, đổi bậc, giao khách, đặt lịch; mọi thay đổi qua hộp duyệt. Không gửi SĐT cho AI. Prompt chuẩn: `docs/prompts.md`.
-9. **UI/UX:** mọi việc giao diện/trải nghiệm (phân tích, đề xuất, sửa) phải theo `docs/DESIGN_SYSTEM.md` (v3, cho v2) và `docs/UX_GUIDELINES.md`. Không restyle v1.
+9. **UI/UX:** mọi việc giao diện/trải nghiệm (phân tích, đề xuất, sửa) phải theo `docs/DESIGN_SYSTEM.md` (v4 "Precision Tonal", D-023) và `docs/UX_GUIDELINES.md`. Không restyle v1.
 10. **Đơn giản:** tái sử dụng code/module có sẵn; không đổi kiến trúc để giải quyết một chỉnh sửa nhỏ; không thêm thư viện ngoài stack D-011 khi chưa được duyệt.
 
 ## 4. Quy trình mỗi phiên
