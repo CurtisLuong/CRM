@@ -3,6 +3,7 @@
  * AppShell + CommandPalette thuộc T2.C3. Gallery: /dev/ui.
  */
 export { Badge, type BadgeVariant, type Tone } from './Badge';
+export { BlockBoundary } from './BlockBoundary';
 export { Button, type ButtonProps, type ButtonVariant, IconButton, type IconButtonProps } from './Button';
 export {
   AIBlock,
