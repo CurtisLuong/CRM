@@ -1,5 +1,11 @@
+import { CALL_RESULTS } from '@/config/callResults';
 import { interactionTitle } from './interactions';
 import type { Customer } from './types';
+
+const callTitle = (result: unknown) => {
+  if (result == null || result === '') return 'Cuộc gọi chưa ghi kết quả';
+  return (CALL_RESULTS as Record<string, string>)[String(result)] ?? 'Kết quả khác';
+};
 
 export type CustomerTimelineEntry = {
   id: string;
@@ -19,7 +25,7 @@ export function customerTimeline(customer: Customer): CustomerTimelineEntry[] {
       id: `call:${call.at}:${index}`,
       at: call.at,
       kind: 'call',
-      title: call.result || 'Cuộc gọi chưa ghi kết quả',
+      title: callTitle(call.result),
       detail: call.note || undefined,
     });
   }

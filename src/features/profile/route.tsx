@@ -17,7 +17,23 @@ import { bookingSteps, status as slaStatus } from '@/domain/velocity/engine';
 import { AiBrief } from '@/features/ai/AiBrief';
 import { customerUnit, loanPath } from '@/features/loan/model';
 import { openQuickAction } from '@/features/quick-actions/store';
-import { ActionBar, Avatar, Badge, Button, DeadlineTag, HealthDot, SlaRing, StageChip, Tabs, useToast } from '@/ui';
+import {
+  ActionBar,
+  Avatar,
+  Badge,
+  Button,
+  DeadlineTag,
+  displayDate,
+  displayDateTime,
+  displayText,
+  HealthDot,
+  intakeLabel,
+  SlaRing,
+  StageChip,
+  sourceLabel,
+  Tabs,
+  useToast,
+} from '@/ui';
 import { ArchiveCustomerSection, ArchivedBanner } from './archive';
 import { CustomerMemory } from './memory';
 import { bookingStepPatch } from './model';
@@ -35,7 +51,7 @@ const MARITAL_STATUS_OPTIONS = [
 ];
 const PURPOSE_OPTIONS = ['Ở', 'Đầu tư', 'Cho tặng'].map((value) => ({ value, label: value }));
 type DocumentRow = { id: string; label?: string | null; kind?: string; storage_path: string; mime?: string };
-const fmtValue = (value: unknown) => (value == null || value === '' ? 'Chưa biết' : String(value));
+const fmtValue = (value: unknown) => (value == null || value === '' ? 'Chưa biết' : displayText(value));
 
 export function editedTimelineNotePatch(
   customer: Customer,
@@ -320,9 +336,7 @@ function Profile() {
                 )}
               </div>
             ) : null}
-            <time className="mt-1 block font-data text-small text-text-3">
-              {new Date(entry.at).toLocaleString('vi-VN')}
-            </time>
+            <time className="mt-1 block font-data text-small text-text-3">{displayDateTime(entry.at)}</time>
           </article>
         ))
       ) : (
@@ -683,7 +697,7 @@ function Profile() {
                 }
                 showText
               />
-              <Badge>{sourceListOf(c.source).join(' · ') || 'Chưa rõ nguồn'}</Badge>
+              <Badge>{sourceListOf(c.source).map(sourceLabel).filter(Boolean).join(' · ') || 'Chưa rõ nguồn'}</Badge>
             </div>
           </div>
         </div>
@@ -748,7 +762,7 @@ function Profile() {
                 <p className="text-body-strong">{task.text}</p>
                 <p className="text-small text-text-2">
                   {task.side === 'customer' ? 'Khách hẹn' : 'Em hứa'}
-                  {task.due ? ` · ${new Date(task.due).toLocaleString('vi-VN')}` : ''}
+                  {task.due ? ` · ${displayDateTime(task.due)}` : ''}
                 </p>
               </div>
             </div>
@@ -783,13 +797,10 @@ function Profile() {
         <dl className="grid grid-cols-2 gap-2 text-small sm:grid-cols-3">
           <Fact label="Trạng thái liên hệ" value={c.contact_status} />
           <Fact label="Số lần gọi" value={calls.length} />
-          <Fact
-            label="Lần gọi cuối"
-            value={calls.at(-1)?.at ? new Date(calls.at(-1)?.at || '').toLocaleString('vi-VN') : null}
-          />
+          <Fact label="Lần gọi cuối" value={calls.at(-1)?.at ? displayDateTime(calls.at(-1)?.at) : null} />
           <Fact label="Chiến dịch" value={c.campaign} />
-          <Fact label="Nguồn" value={sourceListOf(c.source).join(' · ')} />
-          <Fact label="Cách nhập" value={c.intake_method} />
+          <Fact label="Nguồn" value={sourceListOf(c.source).map(sourceLabel).filter(Boolean).join(' · ')} />
+          <Fact label="Cách nhập" value={intakeLabel(c.intake_method)} />
           <Fact label="Mức quan tâm" value={c.interest_level} />
           <Fact label="Lý do loại" value={c.disqualify_reason} />
           <Fact label="Ghi chú kết thúc" value={c.disqualify_note || c.close_note} />
@@ -798,9 +809,9 @@ function Profile() {
             label="Không liên hệ"
             value={c.contact_prefs?.do_not_contact ? c.contact_prefs.dnc_reason || 'Đã yêu cầu' : 'Không'}
           />
-          <Fact label="Ngày tạo" value={c.created_at} />
+          <Fact label="Ngày tạo" value={displayDate(c.created_at)} />
           <Fact label="Ghi chú đăng ký" value={c.notes} />
-          <Fact label="Ngày đăng ký" value={c.registered_at || c.created_at} />
+          <Fact label="Ngày đăng ký" value={displayDate(c.registered_at || c.created_at)} />
         </dl>
       </section>
       <ArchiveCustomerSection customer={c} />
@@ -823,10 +834,10 @@ function Field({
   onSave: (value: string) => void;
 }) {
   const id = `profile-field-${label.toLocaleLowerCase('vi').replace(/[^\p{L}\p{N}]+/gu, '-')}`;
-  const [draft, setDraft] = useState(fmtValue(value) === 'Chưa biết' ? '' : String(value));
-  useEffect(() => setDraft(fmtValue(value) === 'Chưa biết' ? '' : String(value)), [value]);
+  const [draft, setDraft] = useState(fmtValue(value) === 'Chưa biết' ? '' : displayText(value));
+  useEffect(() => setDraft(fmtValue(value) === 'Chưa biết' ? '' : displayText(value)), [value]);
   const save = () => {
-    if (draft !== String(value ?? '')) onSave(draft);
+    if (draft !== displayText(value ?? '')) onSave(draft);
   };
   return (
     <div className="block space-y-1 text-small text-text-2">
