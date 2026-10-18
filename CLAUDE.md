@@ -1,6 +1,8 @@
 # CLAUDE.md — Hướng dẫn AI cho Sổ Khách CRM
 
 > **Đồng bộ Codex ↔ Claude:** `AGENTS.md` và `CLAUDE.md` phải **giống hệt nhau**. Mọi thay đổi ở một file phải chép sang file kia trong cùng lần sửa; trước khi xong, chạy `cmp AGENTS.md CLAUDE.md` (không in gì = đã đồng bộ).
+>
+> **AI Factory (từ 2026-10-18):** đợt thiết kế lại UI/UX (v3) chạy trên nhánh `factory` (tách từ `v2`). Khi Curtis đưa yêu cầu: làm theo `docs/factory-playbook.md`. Task chưa xong trong `docs/tasks.md` (T5.5, T6.3) tạm hoãn tới khi có thiết kế v3.
 
 ## 1. Dự án trong 6 dòng
 
