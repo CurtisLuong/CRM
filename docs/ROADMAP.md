@@ -24,8 +24,8 @@
 
 | # | Tên | Nội dung | Ai | Nghiệm thu |
 |---|---|---|---|---|
-| **M0** | Thiết kế | Design System v4 + bản mẫu Hôm nay, Hồ sơ, Danh sách, Hiệu quả (360px + desktop, sáng/tối) | Lead → Curtis duyệt | Curtis duyệt bản mẫu (luật Factory 9) |
-| **M1** | Sửa lỗi hiển thị | I6, I10 | Lead/worker | Không còn mã/ISO trên mọi màn với bộ khách giả; dữ liệu lạ không làm trắng màn |
+| **M0** ☑ 2026-10-19 | Thiết kế | Design System v4 + bản mẫu Hôm nay, Hồ sơ, Danh sách, Hiệu quả (360px + desktop, sáng/tối) | Lead → Curtis duyệt | Curtis duyệt bản mẫu (luật Factory 9) |
+| **M1** ☑ 2026-10-19 | Sửa lỗi hiển thị | I6, I10 | Lead/worker | Không còn mã/ISO trên mọi màn với bộ khách giả; dữ liệu lạ không làm trắng màn |
 | **M2** | Nền v4 | Token + component `src/ui` theo DS v4; khung (thanh trên không cắt tiêu đề, bỏ tiêu đề lặp — U11) | Lead (móng) + worker | Gallery `/dev/ui` + ảnh chụp 360/1280 sáng/tối |
 | **M3** | Hôm nay v3 | I1, I2, I3 | Worker | Số khách thấy trọn trên màn đầu 360×780 ≥ 6 (hiện 2–3); ngân sách chạm UX §3 giữ nguyên hoặc tốt hơn |
 | **M4** | Hồ sơ v3 | I5, I7 | Worker | Mở hồ sơ thấy việc tiếp + tương tác gần nhất không cần cuộn (360×780) |
