@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Outlet, useLocation, useMatches, useNavigate } from 'react-router';
 import { QuickActionsHost } from '@/features/quick-actions/QuickActions';
 import { SyncIssuesSheet } from '@/features/sync/SyncIssuesSheet';
-import { ToastProvider } from '@/ui';
+import { BlockBoundary, ToastProvider } from '@/ui';
 import { AppShell } from '@/ui/AppShell';
 import { CommandPalette, type PaletteItem } from '@/ui/CommandPalette';
 import { type AppCommand, appCommands, type CommandContext } from './commands';
@@ -120,7 +120,9 @@ export function RootLayout() {
         aside={aside}
         asideRef={setAsideElement}
       >
-        <Outlet />
+        <BlockBoundary label="màn này" resetKey={pathname}>
+          <Outlet />
+        </BlockBoundary>
       </AppShell>
       <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} items={items} search={search} />
       <QuickAddSheet open={quickOpen} onOpenChange={setQuickOpen} commands={appCommands} ctx={ctx} />
