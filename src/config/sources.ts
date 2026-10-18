@@ -14,6 +14,14 @@ export const SOURCES: Readonly<Record<string, string>> = {
 
 export const SOURCE_DEFAULT = 'facebook_ads';
 
+// Cách nhập (cột intake_method, CHECK: manual | ocr | import | api) → nhãn hiển thị (D-023 L3: không hiện mã).
+export const INTAKE_METHODS: Readonly<Record<string, string>> = {
+  manual: 'Nhập tay',
+  ocr: 'Từ ảnh chụp',
+  import: 'Nhập Excel',
+  api: 'Tự động (landing / Facebook)',
+};
+
 // Mã cũ trước 2026-10-06 (thiết bị chưa cập nhật có thể còn ghi) → mã kênh mới.
 export const SOURCE_LEGACY: Readonly<Record<string, string>> = {
   manual: 'facebook_ads',
