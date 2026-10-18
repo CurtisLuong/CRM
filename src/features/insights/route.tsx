@@ -84,8 +84,8 @@ export function InsightsPage() {
           Phễu và tốc độ
         </h2>
         <p className="mb-3 text-small text-text-2">
-          Số khách đã tới từng bậc trên tổng {nFmt(funnelDenominator)} khách vào phễu; thời gian hiện tại theo đồng hồ
-          SLA D-008. Nuôi dài hạn nằm ngoài phễu.
+          Số khách đã tới từng bậc trên tổng {nFmt(funnelDenominator)} khách vào phễu; thời gian hiện tại theo đồng hồ.
+          Nuôi dài hạn nằm ngoài phễu.
         </p>
         <MiniChart
           kind="funnel"
