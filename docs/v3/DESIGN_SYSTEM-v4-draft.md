@@ -1,86 +1,80 @@
-# Sổ Khách — Design System v4 "Gọn" (BẢN NHÁP — chờ Curtis duyệt, M0)
+# Sổ Khách — Design System v4 "Precision Tonal" (BẢN NHÁP — chờ Curtis duyệt, M0)
 
-> 2026-10-18 · Thay `docs/DESIGN_SYSTEM.md` v3 "Signal" **sau khi duyệt** (ghi `decisions.md` D-0xx). Bản mẫu: `docs/v3/mockups/*.html` (mở bằng trình duyệt; `?theme=dark`, danh sách `?sheet=1`).
-> Vì sao đổi: v3 đúng hướng nhưng toàn **lời khuyên**, không có **giới hạn đo được** → code thực tế mỗi dòng 5–6 nút, mã thô lộ ra, bộ lọc che danh sách (`docs/v3/current-state-ui.md`). v4 giữ phần nhìn tốt của v3 và thêm luật kiểm được bằng e2e.
+> 2026-10-19 · Thay `docs/DESIGN_SYSTEM.md` v3 "Signal" **sau khi duyệt** (ghi `decisions.md`). Vì sao chọn hướng này: `docs/v3/design-language.md`.
+> Bản mẫu: `docs/v3/mockups/*.html` (mở bằng trình duyệt; `?theme=dark`; danh sách `?sheet=1`). Ảnh: `docs/v3/mockups/shots/`.
+> **Precision Tonal** = cách phân cấp của Material 3 Expressive (cái quan trọng thì to, có chữ, nằm gần ngón tay) + vẻ ngoài tĩnh, gần đơn sắc, số liệu đơn cách kiểu Linear / Vercel Geist / IBM Carbon.
 
 ## 0. Năm luật cứng (kiểm được, chặn merge)
 
 | # | Luật | Cách kiểm |
 |---|---|---|
-| L1 | **Ngân sách màn đầu** ở 360×780 (trừ header 52 + thanh dưới 64): Hôm nay ≥ 6 khách (thẻ Gọi tiếp + 5 dòng; app hiện tại 2–3) · Danh sách ≥ 8 khách · Hồ sơ thấy tên + Việc tiếp theo + Lần trước + 4 nút liên hệ · Hiệu quả thấy 4 con số | e2e đếm phần tử trong viewport |
-| L2 | **Một dòng = một hành động hiện ra** (Gọi, hoặc ô Xong cho việc, hoặc "Ghi kết quả"). Chạm dòng = mở khách (desktop: panel phải). Hành động khác ở hồ sơ / panel / menu ⋯ | e2e: ≤ 1 nút trong mỗi `[data-row]` |
-| L3 | **Không mã, không ISO, không "[object Object]"**: mọi giá trị đi qua formatter + nhãn trong `src/config/*`. Ngày giờ: "Hôm nay 14:00", "Hôm qua", "Thứ Năm 16/10", "04/10/2026" | unit test formatter + e2e quét chữ cấm (`_`, `T\d\d:`, `object Object`, mã nguồn/kết quả gọi) |
-| L4 | **Không hiện ô trống**: trường chưa có thì ẩn; thông tin còn thiếu gom thành chip "Còn thiếu: …" (viền đứt) | e2e: không có chữ "Chưa biết" |
-| L5 | **Không trắng màn**: mỗi khối có ErrorBoundary riêng; lỗi → khối đó hiện "Không hiển thị được phần này" + Thử lại, phần còn lại vẫn chạy | e2e seed khách có trường sai kiểu |
+| L1 | **Màn đầu** 360×780: Hôm nay thấy trọn ≥ 2 thẻ đầy đủ của nhóm gấp nhất (thẻ thứ 3 lộ một phần) · Danh sách ≥ 7 khách · Hồ sơ thấy tên + SLA + Việc tiếp theo + Lần trước + 4 nút liên hệ · Hiệu quả thấy 4 con số | e2e đếm phần tử trong viewport |
+| L2 | **Mỗi thẻ đúng 1 hành động hiện ra** (Gọi · Xong · Ghi kết quả). Chạm thẻ = mở khách (desktop: panel phải). Hành động khác ở hồ sơ / panel / ⋯ | e2e: 1 nút trong mỗi `[data-card]` |
+| L3 | **Không mã, không ISO, không "[object Object]"**: mọi giá trị qua formatter + nhãn `src/config/*`. Ngày giờ: "Hôm nay 14:00", "Hôm qua", "2 ngày trước", "Thứ Năm 16/10", "04/10/2026" | unit test formatter + e2e quét chữ cấm |
+| L4 | **Không hiện ô trống**: trường chưa có thì ẩn; còn thiếu gom thành chip "Còn thiếu: …" (viền đứt) | e2e: không có "Chưa biết" |
+| L5 | **Không trắng màn**: ErrorBoundary từng khối; lỗi → khối đó báo + Thử lại | e2e seed khách có trường sai kiểu |
 
-## 1. Giữ nguyên từ v3
+## 1. Ngôn ngữ
 
-- **Màu:** toàn bộ bảng token v3 (`src/styles/tokens.css`, đã kiểm AA) + ngữ nghĩa: đỏ/vàng/xanh lá chỉ cho thời hạn/kết quả; violet chỉ cho AI; accent cho hành động chính/đang chọn.
-- **Chữ:** Be Vietnam Pro + JetBrains Mono (giờ, SĐT, số), thang cỡ v3.
-- **Icon:** registry `src/config/icons.ts` (D-006), lucide stroke 1.75.
-- Chuyển động, truy cập (vùng chạm ≥ 44, focus, reduced-motion), sáng/tối.
+1. **Ba cấp thông tin trong mọi thẻ khách**
+   - **Cấp 1:** tên (18/650, chữ đậm nhất màn) + **một nút hành động lớn có chữ** (48px, màu nhấn) + thời hạn ngay dưới tên (đỏ = quá hạn, vàng = sắp/đang trễ).
+   - **Cấp 2:** lưới nhãn nhỏ / giá trị (Gọi gần nhất · Đã gọi · Nguồn…) dưới một vạch chia mảnh; giờ và số dùng chữ đơn cách.
+   - **Cấp 3:** ghi chú cuối (1 dòng, chữ phụ, trong ngoặc kép) + thanh SLA.
+2. **Mỗi khách một thẻ**, cách nhau 8–10px, bo 18px, viền mảnh. **Vạch dọc 3px bên trái** mang màu thời hạn (đỏ quá hạn, vàng sắp/đang trễ, không màu khi bình thường) → quét dọc màn là thấy khách gấp.
+3. **Một màu nhấn** (xanh "Precision Blue") chỉ dành cho hành động chính và mục đang chọn. Còn lại gần đơn sắc. Đỏ/vàng/xanh lá chỉ cho thời hạn/kết quả; tím chỉ cho AI.
+4. **Số liệu kiểu thiết bị đo:** giờ, SĐT, số lớn dùng JetBrains Mono; SLA là **thanh 7 đoạn** (mỗi đoạn = 1 phần thời gian mục tiêu của bậc), đơn sắc, chuyển vàng khi quá mục tiêu, đỏ khi quá hạn mức.
+5. **Sáng và tối ngang hàng**; tối dùng bề mặt sáng dần thay bóng. Không kính mờ trên nội dung, không gradient trang trí, không phát sáng.
 
-## 2. Thay đổi
+## 2. Token (`src/styles/tokens.css`)
 
-### 2.1 Token thêm
-
-| Token | Sáng | Tối | Dùng |
+| Token | Sáng | Tối | Vai trò |
 |---|---|---|---|
-| `--hairline` | `#E8EDF2` | `#1C2530` | Vạch chia dòng, viền nhóm (nhẹ hơn `--border`) |
-| `--accent-tonal` | `#DFE7FF` | `#1C2D5C` | Nền nút Gọi tròn trên dòng |
-| `--scrim` | `rgb(14 22 33/.45)` | `rgb(0 0 0/.6)` | Nền mờ sau sheet |
+| `--bg` | `#F2F4F7` | `#0A0D12` | Nền app |
+| `--surface` | `#FFFFFF` | `#121821` | Thẻ, sheet |
+| `--surface-2` | `#ECEFF3` | `#19212C` | Nút phụ, ô nền phụ |
+| `--surface-3` | `#E3E7EC` | `#212A36` | Popover |
+| `--text` | `#0D1117` | `#EDF1F6` | Chữ chính |
+| `--text-2` | `#444C56` | `#AAB4C0` | Chữ phụ (cấp 2–3) |
+| `--text-3` | `#5D6672` (5.3:1 trên bg) | `#8893A1` (5.7:1) | Nhãn nhỏ — không nhỏ hơn 11.5px |
+| `--border` / `--hairline` | `#D9DEE5` / `#E3E7EC` | `#2A3441` / `#222B37` | Viền ô nhập / viền thẻ, vạch chia |
+| `--accent` | `#2B5CFF` (5.1:1 với chữ trắng) | `#6F8FFF` (6.5:1 với chữ `#0A0D12`) | Hành động chính, đang chọn, focus |
+| `--accent-tonal` | `#E1E8FF` | `#1D2B5A` | Nền nút hành động trên thẻ gọn |
+| `--danger` | `#C0262D` | `#FF6E6E` | Quá hạn, lỗi |
+| `--warning` | `#8A5300` | `#F2B34B` | Sắp hạn, đang trễ, quá mục tiêu SLA |
+| `--success` | `#1A7F4B` | `#4FD08E` | Xong, đúng nhịp |
+| `--ai` | `#6B3FD4` | `#B596FF` | Chỉ AI |
+| `--track` / `--bar` | `#E7EBF0` / `#0D1117` | `#222B37` / `#EDF1F6` | Thanh SLA |
 
-### 2.2 Bề mặt & nút
+Bo góc: nút 14 · thẻ 18 · thẻ gọn 16 · sheet 20 · chip 999. Bóng sáng: `e1` `0 1px 2px rgb(13 17 23/.05)`; tối: không bóng.
+Font giữ **Be Vietnam Pro** + **JetBrains Mono** (đã cài; không thêm thư viện). Tên khách 18/650 (thẻ gọn 16/650), tiêu đề màn 20/650, nhãn 11.5/500, chữ phụ 13–13.5.
 
-- **Bỏ viền nút phụ**: nút phụ = `tonal` (nền `--surface-2`, không viền). Chỉ ô nhập và chip chưa chọn có viền.
-- **Nhóm thay thẻ**: danh sách = 1 khối `--surface` bo 14px, các dòng chia bằng `--hairline`. Không bọc từng dòng thành thẻ. Không thẻ lồng thẻ.
-- **Chip đang chọn = nền chữ đậm** (`--text` trên `--surface`), không dùng accent → accent chỉ còn cho hành động.
-- Bỏ native `<select>` trên màn chính (bậc, sắp xếp): dùng chip + sheet.
-
-### 2.3 Chữ
-
-- Tiêu đề màn **chỉ 1 lần** (trên thanh đầu, 20/600). Bỏ H1 lặp trong nội dung. Hồ sơ: thanh đầu chỉ có ← và ⋯; tên khách là tiêu đề (22/600).
-- Tên khách trên dòng 15/600; dòng phụ 13/400 `--text-2`; giờ hạn mono bên phải dòng 1, mang màu thời hạn.
-- Tiêu đề nhóm 13/600 `--text-2` + số đếm `--text-3` ("Gọi lại — chưa liên lạc được 3").
-
-### 2.4 Khung
-
-- **Mobile thanh đầu 52px**: tiêu đề · 🔍 · chấm đồng bộ (8px, chữ ẩn cho screen reader; chạm → chi tiết) · ⋯. Không còn ô chữ "Lỗi đồng bộ" làm cắt tiêu đề; lỗi = chấm đỏ + Toast.
-- **Hồ sơ mobile**: thanh 4 nút Gọi (accent, rộng hơn) · Zalo · Ghi chú · Hẹn **thay** thanh điều hướng dưới (không chồng 2 thanh).
-- **Desktop ≥ 1024**: rail trái 76px; Hôm nay & Danh sách = **2 cột** (danh sách 380–460px + panel khách đang chọn, chọn dòng không đổi màn); Hồ sơ = 2 cột (nội dung + cột phải 320px "Đã biết", "Thông tin thêm"); 4 nút liên hệ nằm trong dòng dưới tên, không nổi.
-
-## 3. Component (thêm / đổi trong `src/ui`)
+## 3. Component (`src/ui`)
 
 | Component | Quy tắc |
 |---|---|
-| `ActionRow` (thay `QueueRow` + `ListRow`) | Cao ≥ 56px; [avatar 36 tuỳ chọn] · dòng 1: tên + thời điểm phải · dòng 2: lý do/bậc · dự án · **1** hành động phải (`CallButton` / `CheckButton` / nút tonal nhỏ). Chữ quá dài cắt `…`, giờ không bao giờ bị cắt |
-| `CallButton` | Tròn 44px, nền `--accent-tonal`, icon accent, `aria-label="Gọi <tên>"` |
-| `RowGroup` | Tiêu đề nhóm + số đếm + khối dòng. Nhóm rỗng không hiện |
-| `NextCallCard` (thay `NextActionCard`) | Eyebrow "Gọi tiếp · 1/N" + thời hạn → tên (18/600) → lý do 1 dòng → "Lần trước: …" 1 dòng → [Gọi] (primary) + [Gọi lần lượt N khách] (tonal). Một thẻ duy nhất mỗi màn |
-| `ProfileHeader` | Tên · SĐT mono + sao chép · `StageButton` (chip + vòng SLA + ▾, chạm → sheet đổi bậc) · HealthDot · nguồn |
-| `KnownFacts` (thay `BriefCard`) | Chỉ ô đã biết (lưới 2 cột mobile, 1 cột cột phải desktop) + hàng chip "Còn thiếu:" viền đứt; chạm chip → câu hỏi gợi ý + ô nhập |
-| `LastTouch` | "Lần trước · <thời điểm>" + kết quả đậm + ghi chú |
-| `TimelineFilter` | Chip Tất cả · Cuộc gọi · Ghi chú · Zalo · Bậc (có số); nhóm theo ngày ("Hôm qua · 17/10") |
-| `SavedListChips` | Hàng chip cuộn ngang: [Lọc] · Tiềm năng · Khách mới · tệp đã lưu (có số) |
-| `FilterSheet` | Bottom sheet nhóm chip; chân dính: Xoá lọc · **Xem N khách**; "Lưu thành tệp" ở đầu sheet |
-| `StatTile` (thay `MetricTile` trên màn Hiệu quả chính) | Nhãn · số 28/600 · tử/mẫu · xu hướng (mũi tên + chữ, màu chỉ khi tốt/xấu). **Cả ô bấm được** → danh sách/trang con |
-| `ImproveList` | Dòng "việc cần cải thiện" + 1 nút (Xem / Ghi) |
-| `BlockBoundary` | ErrorBoundary cho từng khối (L5) |
+| `CustomerCard` (đầy đủ) | Cấp 1–2–3 như §1. Dùng cho **nhóm gấp nhất** ở Hôm nay (quá giờ hẹn gọi, khách mới chưa gọi). `data-due` → vạch trái |
+| `CustomerCard compact` | Tên 16/650 + 1 dòng (thời hạn/trạng thái **đứng đầu dòng** để không bị cắt) + nút vuông 44 nền `--accent-tonal`. Dùng cho nhóm sau ở Hôm nay, Danh sách, Công việc. Chạm để mở |
+| `ActionButton` | 48px, chữ + icon, nền accent; trên thẻ gọn: 44×44 chỉ icon + `aria-label` |
+| `SlaBar` | 7 đoạn, nhãn bậc trái, "còn N ngày" đậm phải; màu theo `src/domain/velocity` (không tự tính) |
+| `SessionBar` | Dải đậm (nền `--text`, chữ `--surface`) "Gọi lần lượt N khách · ~X phút" + [Bắt đầu]. Một dải duy nhất trên Hôm nay |
+| `ProfileHeader` | Tên 22–24/650 · SĐT mono + sao chép · [Bậc ▾] (chạm → sheet) · Đúng nhịp · nguồn · `SlaBar` |
+| `KnownFacts` | Ô đã biết + chip "Còn thiếu" viền đứt |
+| `LastTouch`, `TimelineFilter`, `SavedListChips`, `FilterSheet`, `StatTile`, `ImproveList`, `BlockBoundary` | Như bản mẫu; `StatTile` số lớn dùng mono, cả ô bấm được |
 
-Giữ nguyên: `Sheet`, `Toast`, `CommandPalette`, `OutcomePicker`, `SlotPicker`, `DeadlineTag`, `SlaRing`, `HealthDot`, `AIBlock`, `Kbd`, `EmptyState`, `Skeleton`.
+Giữ: `Sheet`, `Toast`, `CommandPalette`, `OutcomePicker`, `SlotPicker`, `HealthDot`, `AIBlock`, `Kbd`, `EmptyState`, `Skeleton`.
 
-## 4. Bố cục màn (theo bản mẫu)
+## 4. Khung & bố cục
 
-| Màn | Thứ tự (mobile) |
-|---|---|
-| Hôm nay | Tóm tắt 1 dòng ("Thứ Bảy 18/10 · 14 việc · ~70 phút" + "3 quá hạn") → `NextCallCard` → nhóm theo **nhóm tín hiệu có sẵn** (`SIGNAL_GROUPS`: quá giờ hẹn, khách mới chưa gọi, gọi lại, việc hôm nay, chưa ghi kết quả…) → nhóm ít gấp thu thành dòng link (Khách nóng đang nguội, Chưa có việc tiếp, Tổng kết ngày). Bỏ 4 tab Ưu tiên/Khách mới/Lời hứa/Cơ hội và nhãn P0 |
-| Hồ sơ | Tên/bậc → Việc tiếp theo → Lần trước → Đã biết → tab (Dòng thời gian · Trí nhớ · Nhu cầu & căn · Tài liệu · Tính vay) + lọc → "Thông tin thêm (N trường)" → Lưu trữ vào ⋯ |
-| Danh sách | Ô tìm → `SavedListChips` → "96 khách · sắp xếp ▾" → dòng. Retarget, Đồng nghiệp, Xuất, Khách lưu trữ vào ⋯ |
-| Hiệu quả | Kỳ (7 ngày / 30 ngày / Tháng này) → 4 `StatTile` → Cần cải thiện → Phễu → link trang con Chăm sóc · Phễu & SLA · Marketing (nội dung chi tiết hiện có chuyển vào đây) |
+- **Mobile:** thanh đầu 52px (tiêu đề · 🔍 · chấm đồng bộ · ⋯); thanh dưới 4 tab + ＋. Hồ sơ: thanh dưới thay bằng 4 nút Gọi · Zalo · Ghi chú · Hẹn.
+- **Desktop ≥ 1024:** rail trái 76px; Hôm nay & Danh sách 2 cột (thẻ 380–460px + panel khách đang chọn); Hồ sơ 2 cột (nội dung + cột phải 320px).
+- **Hôm nay:** tóm tắt → `SessionBar` → nhóm gấp (thẻ đầy đủ) → nhóm sau (thẻ gọn) → dòng link (Khách nóng đang nguội, Chưa có việc tiếp, Tổng kết ngày). Nhóm lấy từ `SIGNAL_GROUPS` có sẵn; bỏ 4 tab cũ và nhãn P0.
+- **Hồ sơ:** tên/bậc/SLA → Việc tiếp theo (vạch trái nếu quá hạn) → Lần trước → Đã biết → tab + lọc dòng thời gian → Thông tin thêm.
+- **Danh sách:** tìm → chip tệp → "96 khách · sắp xếp ▾" → thẻ gọn. Retarget/Đồng nghiệp/Xuất/Lưu trữ vào ⋯.
+- **Hiệu quả:** kỳ → 4 `StatTile` → Cần cải thiện → Phễu → trang con chi tiết.
 
-## 5. Definition of Done — UI (v4)
+## 5. Definition of Done — UI
 
-- [ ] Đạt L1–L5 (có e2e).
-- [ ] Chỉ token + component `src/ui`; đúng ngữ nghĩa màu.
+- [ ] L1–L5 có e2e.
+- [ ] Chỉ token + component `src/ui`; một màu nhấn; màu thời hạn chỉ ở vạch trái + chữ thời hạn.
 - [ ] Sáng + tối; 360 / 390 / 430 / ≥ 1024; dấu tiếng Việt; không cuộn ngang.
-- [ ] Không đổi logic/dữ liệu: màn chỉ đọc từ `src/domain/*`, `src/config/*`.
+- [ ] Không đổi logic/dữ liệu: chỉ đọc `src/domain/*`, `src/config/*`.

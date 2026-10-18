@@ -1,33 +1,36 @@
-/* Bản mẫu Design System v4 "Gọn" — CHỈ để duyệt (M0), không phải code app.
- * Token màu kế thừa v3 (đã kiểm AA) + hairline/tonal mới. Xem docs/v3/DESIGN_SYSTEM-v4-draft.md */
+/* Bản mẫu Design System v4 — hướng D "Precision Tonal" (Curtis chọn 2026-10-19). CHỈ để duyệt (M0), không phải code app.
+ * Xem docs/v3/design-language.md + docs/v3/DESIGN_SYSTEM-v4-draft.md */
 :root {
   color-scheme: light;
-  --bg: #f4f6f9; --surface: #ffffff; --surface-2: #eef2f6; --surface-3: #e4e9ef;
-  --text: #0e1621; --text-2: #475467; --text-3: #5f6b7a;
-  --border: #dce3ea; --hairline: #e8edf2; --border-strong: #8291a2;
-  --accent: #2251e5; --accent-fg: #ffffff; --accent-soft: #eaf0ff; --accent-tonal: #dfe7ff;
-  --danger: #b42318; --danger-bg: #fef0ef; --warning: #8a5300; --warning-bg: #fff5e0;
-  --success: #126b3e; --success-bg: #e9f7ef; --ai: #6b3fd4; --ai-bg: #f3eeff;
-  --e2: 0 4px 16px rgb(16 24 40 / .08); --e3: 0 12px 32px rgb(16 24 40 / .14);
-  --scrim: rgb(14 22 33 / .45);
+  --bg: #f2f4f7; --surface: #ffffff; --surface-2: #eceff3; --surface-3: #e3e7ec;
+  --text: #0d1117; --text-2: #444c56; --text-3: #5d6672;
+  --border: #d9dee5; --hairline: #e3e7ec; --border-strong: #808b98;
+  --accent: #2b5cff; --accent-fg: #ffffff; --accent-soft: #eaf0ff; --accent-tonal: #e1e8ff;
+  --danger: #c0262d; --danger-bg: #fdeeee; --warning: #8a5300; --warning-bg: #fff4dd;
+  --success: #1a7f4b; --success-bg: #e7f6ee; --ai: #6b3fd4; --ai-bg: #f3eeff;
+  --track: #e7ebf0; --bar: #0d1117;
+  --e1: 0 1px 2px rgb(13 17 23 / .05); --e2: 0 4px 16px rgb(13 17 23 / .08); --e3: 0 12px 32px rgb(13 17 23 / .14);
+  --scrim: rgb(13 17 23 / .45);
 }
 :root[data-theme="dark"] { color-scheme: dark;
-  --bg: #0a0e13; --surface: #10161d; --surface-2: #161e27; --surface-3: #1d2732;
-  --text: #e7ecf2; --text-2: #a7b2bf; --text-3: #8794a3;
-  --border: #253141; --hairline: #1c2530; --border-strong: #5b6e86;
-  --accent: #7c9dff; --accent-fg: #0a1433; --accent-soft: #17254a; --accent-tonal: #1c2d5c;
-  --danger: #ff7a70; --danger-bg: #2a1416; --warning: #f2b34b; --warning-bg: #2a1f0c;
-  --success: #4ccb8a; --success-bg: #0f2219; --ai: #b596ff; --ai-bg: #1e1636;
-  --e2: 0 0 #0000; --e3: 0 0 #0000; --scrim: rgb(0 0 0 / .6);
+  --bg: #0a0d12; --surface: #121821; --surface-2: #19212c; --surface-3: #212a36;
+  --text: #edf1f6; --text-2: #aab4c0; --text-3: #8893a1;
+  --border: #2a3441; --hairline: #222b37; --border-strong: #5b6878;
+  --accent: #6f8fff; --accent-fg: #0a0d12; --accent-soft: #18234a; --accent-tonal: #1d2b5a;
+  --danger: #ff6e6e; --danger-bg: #2c1517; --warning: #f2b34b; --warning-bg: #2a1f0c;
+  --success: #4fd08e; --success-bg: #0f2219; --ai: #b596ff; --ai-bg: #1e1636;
+  --track: #222b37; --bar: #edf1f6;
+  --e1: 0 0 #0000; --e2: 0 0 #0000; --e3: 0 0 #0000; --scrim: rgb(0 0 0 / .6);
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { color-scheme: dark;
-  --bg: #0a0e13; --surface: #10161d; --surface-2: #161e27; --surface-3: #1d2732;
-  --text: #e7ecf2; --text-2: #a7b2bf; --text-3: #8794a3;
-  --border: #253141; --hairline: #1c2530; --border-strong: #5b6e86;
-  --accent: #7c9dff; --accent-fg: #0a1433; --accent-soft: #17254a; --accent-tonal: #1c2d5c;
-  --danger: #ff7a70; --danger-bg: #2a1416; --warning: #f2b34b; --warning-bg: #2a1f0c;
-  --success: #4ccb8a; --success-bg: #0f2219; --ai: #b596ff; --ai-bg: #1e1636;
-  --e2: 0 0 #0000; --e3: 0 0 #0000; --scrim: rgb(0 0 0 / .6);
+  --bg: #0a0d12; --surface: #121821; --surface-2: #19212c; --surface-3: #212a36;
+  --text: #edf1f6; --text-2: #aab4c0; --text-3: #8893a1;
+  --border: #2a3441; --hairline: #222b37; --border-strong: #5b6878;
+  --accent: #6f8fff; --accent-fg: #0a0d12; --accent-soft: #18234a; --accent-tonal: #1d2b5a;
+  --danger: #ff6e6e; --danger-bg: #2c1517; --warning: #f2b34b; --warning-bg: #2a1f0c;
+  --success: #4fd08e; --success-bg: #0f2219; --ai: #b596ff; --ai-bg: #1e1636;
+  --track: #222b37; --bar: #edf1f6;
+  --e1: 0 0 #0000; --e2: 0 0 #0000; --e3: 0 0 #0000; --scrim: rgb(0 0 0 / .6);
 } }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -194,3 +197,48 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
   .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
 }
 @media (max-width: 1023px) { .d-only { display: none !important; } }
+
+/* ── Hướng D: thẻ khách (mỗi khách một thẻ, tách bằng khoảng trắng) ── */
+.cards { display: flex; flex-direction: column; gap: 10px; }
+.cc { position: relative; overflow: hidden; background: var(--surface); border: 1px solid var(--hairline); border-radius: 18px; padding: 14px 14px 12px 16px; box-shadow: var(--e1); }
+.cc[data-due="over"]::before, .cc[data-due="soon"]::before { content: ""; position: absolute; left: 0; top: 14px; bottom: 14px; width: 3px; border-radius: 0 3px 3px 0; background: var(--danger); }
+.cc[data-due="soon"]::before { background: var(--warning); }
+.cc-top { display: flex; align-items: flex-start; gap: 12px; }
+.cc-id { flex: 1; min-width: 0; }
+.cc-name { font-size: 18px; line-height: 24px; font-weight: 650; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cc-sub { font-size: 13px; line-height: 18px; color: var(--text-2); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cc-sub .u { color: var(--danger); font-weight: 600; } .cc-sub .w { color: var(--warning); font-weight: 600; }
+.cc-act { flex: none; height: 48px; padding: 0 18px; border-radius: 14px; background: var(--accent); color: var(--accent-fg); display: inline-flex; align-items: center; gap: 6px; font-weight: 600; }
+.cc-act.tonal { background: var(--surface-2); color: var(--text); }
+.cc-data { display: grid; grid-template-columns: 1.5fr 1fr; gap: 6px 12px; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--hairline); }
+.cc-data dt { font-size: 11.5px; line-height: 16px; color: var(--text-3); font-weight: 500; }
+.cc-data dd { font-size: 13.5px; line-height: 19px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cc-note { font-size: 13.5px; line-height: 19px; color: var(--text-2); margin-top: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sla { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 12.5px; color: var(--text-2); }
+.sla .segs { flex: 1; display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+.sla .segs i { height: 6px; border-radius: 2px; background: var(--track); }
+.sla .segs i.f { background: var(--bar); }
+.sla .segs.warn i.f { background: var(--warning); } .sla .segs.over i.f { background: var(--danger); }
+.sla b { font-weight: 600; color: var(--text); }
+/* Thẻ gọn: tên + nút + 1 dòng; chạm để mở rộng */
+.cc.compact { padding: 10px 10px 10px 16px; border-radius: 16px; }
+.cc.compact .cc-name { font-size: 16px; line-height: 22px; }
+.cc.compact .cc-act { height: 44px; width: 44px; padding: 0; justify-content: center; border-radius: 12px; background: var(--accent-tonal); color: var(--accent); }
+.cc.compact .cc-top { align-items: center; }
+.session { display: flex; align-items: center; gap: 12px; padding: 10px 10px 10px 14px; border-radius: 16px; background: var(--text); color: var(--surface); margin-bottom: 4px; }
+.session .t { flex: 1; min-width: 0; }
+.session .t b { display: block; font-weight: 600; }
+.session .t span { font-size: 13px; opacity: .75; }
+.session .go { height: 40px; padding: 0 14px; border-radius: 12px; background: var(--surface); color: var(--text); display: inline-flex; align-items: center; gap: 6px; font-weight: 600; font-size: 14px; }
+/* Ghi đè khối cũ cho hướng D */
+.card { border-radius: 18px; border-color: var(--hairline); box-shadow: var(--e1); }
+.tile { border-radius: 18px; box-shadow: var(--e1); }
+.tile .v { font-family: "JetBrains Mono", monospace; font-weight: 500; letter-spacing: -0.03em; }
+.group { border-radius: 18px; box-shadow: var(--e1); }
+.chip.on { background: var(--text); color: var(--surface); }
+.btn.primary { border-radius: 14px; }
+@media (min-width: 1024px) { .cc-data { grid-template-columns: 1.5fr 1fr 1fr; } }
+
+.tile .v small { font-family: "Be Vietnam Pro", sans-serif; letter-spacing: 0; margin-left: 2px; }
+.card { position: relative; overflow: hidden; }
+.card[data-due="over"]::before { content: ""; position: absolute; left: 0; top: 14px; bottom: 14px; width: 3px; border-radius: 0 3px 3px 0; background: var(--danger); }
