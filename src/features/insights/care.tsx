@@ -12,13 +12,6 @@ const duration = (ms: number | null) => {
   return mins < 60 ? `${mins} phút` : `${Math.floor(mins / 60)} giờ ${mins % 60} phút`;
 };
 const ratio = (n: number, d: number) => `${fmt(n)}/${fmt(d)}`;
-// D-023 L3: domain definitions are display text too; never expose stored codes or internal doc IDs.
-const readableDefinition = (text: string) =>
-  text
-    .replace(/\btalked\b/g, 'Nói chuyện được')
-    .replace(/\s*theo\s+(?:countdownTag\/)?D-0\d\d/gi, '')
-    .replace(/\bD-0\d\d\b/g, '')
-    .replace(/\s{2,}/g, ' ');
 
 export function CareSection({ customers, now }: { customers: readonly Customer[]; now: number }) {
   const navigate = useNavigate();
@@ -44,7 +37,7 @@ export function CareSection({ customers, now }: { customers: readonly Customer[]
         period={period}
         smallSample={d > 0 && d < 5 ? `Mẫu nhỏ: n=${d}` : undefined}
       />
-      <p className="text-small text-text-2">{readableDefinition(definition)}</p>
+      <p className="text-small text-text-2">{definition}</p>
       <Button className="self-start" variant="secondary" onClick={() => pick(title, ids)}>
         Xem {fmt(ids.length)} khách
       </Button>
@@ -177,7 +170,7 @@ export function CareSection({ customers, now }: { customers: readonly Customer[]
                 <span className="block text-small text-text-2">
                   {stage.targetExceeded} quá mục tiêu · {stage.limitExceeded} quá hạn mức
                 </span>
-                <span className="block text-xs text-text-3">{readableDefinition(stage.definition)}</span>
+                <span className="block text-xs text-text-3">{stage.definition}</span>
               </button>
             ))}
           </div>

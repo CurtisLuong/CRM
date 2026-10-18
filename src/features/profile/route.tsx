@@ -834,10 +834,11 @@ function Field({
   onSave: (value: string) => void;
 }) {
   const id = `profile-field-${label.toLocaleLowerCase('vi').replace(/[^\p{L}\p{N}]+/gu, '-')}`;
-  const [draft, setDraft] = useState(fmtValue(value) === 'Chưa biết' ? '' : displayText(value));
-  useEffect(() => setDraft(fmtValue(value) === 'Chưa biết' ? '' : displayText(value)), [value]);
+  const raw = typeof value === 'string' || typeof value === 'number' ? String(value) : displayText(value);
+  const [draft, setDraft] = useState(raw);
+  useEffect(() => setDraft(raw), [raw]);
   const save = () => {
-    if (draft !== displayText(value ?? '')) onSave(draft);
+    if (draft !== raw) onSave(draft);
   };
   return (
     <div className="block space-y-1 text-small text-text-2">
