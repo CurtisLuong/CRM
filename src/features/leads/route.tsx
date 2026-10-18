@@ -215,7 +215,7 @@ function LeadsPage() {
     <main className="mx-auto flex max-w-3xl flex-col gap-4 p-4">
       <header>
         <h1 className="text-title">Khách mới</h1>
-        <p className="mt-1 text-small text-text-2">Lớp 1 · nhật ký gọi và phân loại theo D-001</p>
+        <p className="mt-1 text-small text-text-2">Khách vừa đăng ký · gọi và phân loại</p>
       </header>
       <label className="flex flex-col gap-1 text-small">
         Lọc khách

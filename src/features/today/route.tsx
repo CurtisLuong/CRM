@@ -10,7 +10,7 @@ import { forStage } from '@/domain/followup';
 import type { Signal } from '@/domain/signals';
 import { applySlaPlan, planSlaAutomation, slaPlanMessage } from '@/domain/velocity/automation';
 import { QuickActionButtons } from '@/features/quick-actions/QuickActions';
-import { Badge, Button, EmptyState, Loading, Skeleton } from '@/ui';
+import { Badge, Button, displayText, EmptyState, Loading, Skeleton } from '@/ui';
 import {
   capacityPlan,
   capacitySnoozeCandidates,
@@ -290,7 +290,7 @@ export function TodayPage() {
             <Badge variant="status" tone={rows[0].signal.priority === 'P0' ? 'danger' : 'warning'}>
               {rows[0].signal.priority}
             </Badge>
-            <span className="text-label text-text-2">Next Best Action</span>
+            <span className="text-label text-text-2">Gọi tiếp</span>
           </div>
           <h2 id="nba-title" className="mt-2 text-heading">
             {rows[0].customer.full_name} · {rows[0].signal.title}
@@ -300,7 +300,7 @@ export function TodayPage() {
             <p className="mt-1 text-small text-text-2">Bằng chứng: {nbaEvidence.join(' · ')}</p>
           )}
           <p className="mt-1 text-small text-text-2">
-            Hạn: {formatDue(rows[0].signal.due)} · Brief: {rows[0].customer.notes || rows[0].signal.reason}
+            Hạn: {formatDue(rows[0].signal.due)} · Brief: {displayText(rows[0].customer.notes) || rows[0].signal.reason}
           </p>
           <div className="mt-3">
             <SignalActions signal={rows[0].signal} customer={rows[0].customer} />
