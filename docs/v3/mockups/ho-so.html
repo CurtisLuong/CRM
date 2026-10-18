@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hồ sơ khách — bản mẫu v4</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="v4.css"><script src="icons.js"></script>
+</head>
+<body>
+<nav class="rail" aria-label="Điều hướng">
+  <a class="plus" href="#" aria-label="Thêm"><svg class="i"><use href="#plus"/></svg></a>
+  <a href="hom-nay.html"><svg class="i i-24"><use href="#home"/></svg>Hôm nay</a>
+  <a class="on" href="danh-sach.html"><svg class="i i-24"><use href="#users"/></svg>Khách hàng</a>
+  <a href="#"><svg class="i i-24"><use href="#task"/></svg>Công việc</a>
+  <a href="hieu-qua.html"><svg class="i i-24"><use href="#chart"/></svg>Hiệu quả</a>
+</nav>
+<div class="app">
+  <header class="top">
+    <a class="ib back" href="hom-nay.html" aria-label="Quay lại"><svg class="i"><use href="#back"/></svg></a>
+    <span style="flex:1"></span>
+    <div class="search d-only"><svg class="i i-16"><use href="#search"/></svg><span class="small">Tìm khách, lệnh…</span><span class="kbd">⌘K</span></div>
+    <div class="sync" role="status"><span class="dot"></span><span class="sync-text">Đã đồng bộ 09:38</span><span class="sr">Đã đồng bộ</span></div>
+    <button class="ib" aria-label="Thêm thao tác: sửa, giao khách, lưu trữ"><svg class="i"><use href="#more"/></svg></button>
+  </header>
+
+  <main class="main" style="padding-bottom:120px">
+    <div class="two">
+      <div>
+        <section class="ph">
+          <h1 class="n">Trần Thị Thu Hương</h1>
+          <div style="display:flex;align-items:center;gap:6px"><span class="mono t2" style="font-size:14px">0911 234 567</span><button class="ib" style="width:32px;height:32px" aria-label="Sao chép số"><svg class="i i-16"><use href="#copy"/></svg></button></div>
+          <div class="meta">
+            <button class="stage" aria-label="Đổi bậc"><span class="ring"></span>Xem dự án · còn 2 ngày<svg class="i i-16 t3"><use href="#down"/></svg></button>
+            <span class="health"><span class="dot"></span>Đúng nhịp</span>
+            <span class="tag">Facebook Ads</span>
+          </div>
+          <div class="actionbar">
+            <button class="btn primary ab-v"><svg class="i"><use href="#phone"/></svg>Gọi</button>
+            <button class="btn tonal ab-v"><svg class="i"><use href="#zalo"/></svg>Zalo</button>
+            <button class="btn tonal ab-v"><svg class="i"><use href="#note"/></svg>Ghi chú</button>
+            <button class="btn tonal ab-v"><svg class="i"><use href="#cal"/></svg>Hẹn</button>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-h"><span class="label">Việc tiếp theo</span><button class="btn ghost sm">Đổi</button></div>
+          <div style="display:flex;gap:12px;align-items:center">
+            <div class="tl" style="padding:0"><span class="ic"><svg class="i i-16"><use href="#phone"/></svg></span></div>
+            <div style="flex:1;min-width:0"><div style="font-weight:600">Gọi lại báo giá căn 2PN</div><div class="small t2"><span class="danger">Quá 25 phút</span> · hẹn <span class="mono">09:15</span> hôm nay</div></div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-h"><span class="label">Lần trước · Hôm qua <span class="mono">15:00</span></span><span class="small t2">Gọi 3 phút</span></div>
+          <p><b style="font-weight:600">Nói chuyện được.</b> Hỏi giá căn 2PN, muốn vay 70%. Hẹn sáng nay gọi lại báo giá.</p>
+        </section>
+
+        <section class="card m-only">
+          <div class="card-h"><span class="label">Đã biết</span><button class="btn ghost sm">Sửa</button></div>
+          <div class="facts" style="grid-template-columns:1fr 1fr">
+            <div class="fact"><div class="small t3">Cần</div><div class="v">2PN · NOXH Tràng Duệ</div></div>
+            <div class="fact"><div class="small t3">Tài chính</div><div class="v">Vay 70% · ~25tr/tháng</div></div>
+            <div class="fact" style="grid-column:1/-1"><div class="small t3">Vướng mắc</div><div class="v">Lo thủ tục xác nhận cư trú</div></div>
+          </div>
+          <div class="chips" style="flex-wrap:wrap;margin-top:12px"><span class="small t2" style="align-self:center">Còn thiếu:</span><button class="chip missing">Mua để</button><button class="chip missing">Người quyết định</button><button class="chip missing">Kênh ưa thích</button></div>
+        </section>
+
+        <nav class="tabs" aria-label="Phần hồ sơ">
+          <a class="on" href="#">Dòng thời gian</a><a href="#">Trí nhớ</a><a href="#">Nhu cầu &amp; căn</a><a href="#">Tài liệu</a><a href="#">Tính vay</a>
+        </nav>
+        <div class="chips" style="margin-top:12px">
+          <button class="chip on">Tất cả</button><button class="chip">Cuộc gọi <span class="count">4</span></button><button class="chip">Ghi chú <span class="count">2</span></button><button class="chip">Zalo <span class="count">1</span></button><button class="chip">Bậc <span class="count">2</span></button>
+        </div>
+
+        <div class="tl-day">Hôm qua · 17/10</div>
+        <div class="tl"><span class="ic"><svg class="i i-16"><use href="#zalo"/></svg></span><div class="b"><div class="h"><b>Zalo · đã gửi bảng giá mẫu</b><span class="mono t3" style="margin-left:auto">15:10</span></div></div></div>
+        <div class="tl"><span class="ic"><svg class="i i-16"><use href="#phone"/></svg></span><div class="b"><div class="h"><b>Gọi đi · Nói chuyện được</b><span class="mono t3" style="margin-left:auto">15:00</span></div><p class="small t2">3 phút · Hỏi giá căn 2PN, muốn vay 70%.</p></div></div>
+        <div class="tl-day">Thứ Năm · 16/10</div>
+        <div class="tl"><span class="ic"><svg class="i i-16"><use href="#note"/></svg></span><div class="b"><div class="h"><b>Ghi chú</b><span class="mono t3" style="margin-left:auto">09:00</span></div><p class="small t2">Vợ chồng làm KCN, chưa có nhà. Ưu tiên tầng trung.</p></div></div>
+        <div class="tl-day">Thứ Tư · 15/10</div>
+        <div class="tl"><span class="ic"><svg class="i i-16"><use href="#phone"/></svg></span><div class="b"><div class="h"><b>Gọi đi · Không nghe máy</b><span class="mono t3" style="margin-left:auto">10:00</span></div></div></div>
+        <div class="tl-day">Thứ Bảy · 11/10</div>
+        <div class="tl"><span class="ic"><svg class="i i-16"><use href="#stage"/></svg></span><div class="b"><div class="h"><b>Chuyển bậc: Đang chăm sóc → Xem dự án</b><span class="mono t3" style="margin-left:auto">09:00</span></div></div></div>
+
+        <div class="group m-only" style="margin-top:16px">
+          <a class="link-row" href="#"><span>Thông tin thêm <span class="count">6 trường</span></span><svg class="i t3"><use href="#chev"/></svg></a>
+        </div>
+      </div>
+
+      <aside class="side d-only">
+        <div>
+          <section class="card">
+            <div class="card-h"><span class="label">Đã biết</span><button class="btn ghost sm">Sửa</button></div>
+            <div class="facts">
+              <div class="fact"><div class="small t3">Cần</div><div class="v">2PN · NOXH Tràng Duệ</div></div>
+              <div class="fact"><div class="small t3">Tài chính</div><div class="v">Vay 70% · ~25tr/tháng</div></div>
+              <div class="fact"><div class="small t3">Vướng mắc</div><div class="v">Lo thủ tục xác nhận cư trú</div></div>
+            </div>
+            <div class="chips" style="flex-wrap:wrap;margin-top:12px"><span class="small t2" style="align-self:center">Còn thiếu:</span><button class="chip missing">Mua để</button><button class="chip missing">Người quyết định</button><button class="chip missing">Kênh ưa thích</button></div>
+          </section>
+          <section class="card">
+            <div class="card-h"><span class="label">Thông tin thêm</span></div>
+            <div class="facts">
+              <div class="fact"><div class="small t3">Nguồn</div><div class="v">Facebook Ads · chiến dịch Tràng Duệ T10</div></div>
+              <div class="fact"><div class="small t3">Đăng ký</div><div class="v">04/10/2026</div></div>
+              <div class="fact"><div class="small t3">Số lần gọi</div><div class="v">4 · lần cuối hôm qua</div></div>
+              <div class="fact"><div class="small t3">Mức quan tâm</div><div class="v">Nóng</div></div>
+            </div>
+          </section>
+        </div>
+      </aside>
+    </div>
+  </main>
+</div>
+</body>
+</html>

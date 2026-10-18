@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hiệu quả — bản mẫu v4</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="v4.css"><script src="icons.js"></script>
+</head>
+<body>
+<nav class="rail" aria-label="Điều hướng">
+  <a class="plus" href="#" aria-label="Thêm"><svg class="i"><use href="#plus"/></svg></a>
+  <a href="hom-nay.html"><svg class="i i-24"><use href="#home"/></svg>Hôm nay</a>
+  <a href="danh-sach.html"><svg class="i i-24"><use href="#users"/></svg>Khách hàng</a>
+  <a href="#"><svg class="i i-24"><use href="#task"/></svg>Công việc</a>
+  <a class="on" href="hieu-qua.html"><svg class="i i-24"><use href="#chart"/></svg>Hiệu quả</a>
+</nav>
+<div class="app">
+  <header class="top">
+    <h1>Hiệu quả</h1>
+    <div class="search d-only"><svg class="i i-16"><use href="#search"/></svg><span class="small">Tìm khách, lệnh…</span><span class="kbd">⌘K</span></div>
+    <div class="sync" role="status"><span class="dot"></span><span class="sync-text">Đã đồng bộ 09:38</span><span class="sr">Đã đồng bộ</span></div>
+  </header>
+
+  <main class="main">
+    <div class="wide">
+      <div class="seg" role="tablist" aria-label="Kỳ"><a href="#">7 ngày</a><a class="on" href="#">30 ngày</a><a href="#">Tháng này</a></div>
+
+      <div class="tiles">
+        <a class="tile" href="#">
+          <span class="label">Gọi khách mới</span>
+          <span class="v">18<small> phút</small></span>
+          <span class="small t2">trung vị từ lúc đăng ký</span>
+          <span class="tr success"><svg class="i i-16"><use href="#down"/></svg>nhanh hơn 6 phút</span>
+        </a>
+        <a class="tile" href="#">
+          <span class="label">Nói chuyện được</span>
+          <span class="v">42<small>%</small></span>
+          <span class="small t2">63/150 cuộc gọi</span>
+          <span class="tr success"><svg class="i i-16"><use href="#up"/></svg>tăng 3 điểm</span>
+        </a>
+        <a class="tile" href="#">
+          <span class="label">Chăm đúng nhịp</span>
+          <span class="v">71<small>%</small></span>
+          <span class="small t2">34/48 khách đang chăm</span>
+          <span class="tr warning"><svg class="i i-16"><use href="#down"/></svg>giảm 5 điểm</span>
+        </a>
+        <a class="tile" href="#">
+          <span class="label">Booking / Kí</span>
+          <span class="v">5<small> · 2 kí</small></span>
+          <span class="small t2">trên 128 khách mới</span>
+          <span class="tr t2">bằng kỳ trước</span>
+        </a>
+      </div>
+
+      <div class="cols">
+        <section class="sec">
+          <div class="sec-h"><h2>Cần cải thiện</h2><span class="count">3</span></div>
+          <div class="group">
+            <div class="row"><div class="body"><div class="name" style="white-space:normal">14 khách đang chăm quá 7 ngày chưa liên hệ</div><div class="l2">Làm giảm "Chăm đúng nhịp"</div></div><button class="btn tonal sm">Xem</button></div>
+            <div class="row"><div class="body"><div class="name" style="white-space:normal">5 cuộc gọi chưa ghi kết quả</div><div class="l2">Số liệu nói chuyện được chưa đủ</div></div><button class="btn tonal sm">Ghi</button></div>
+            <div class="row"><div class="body"><div class="name" style="white-space:normal">Facebook Ads: 0 booking / 36 khách</div><div class="l2">Landing page: 3 booking / 41 khách</div></div><button class="btn tonal sm">Xem</button></div>
+          </div>
+        </section>
+
+        <section class="sec">
+          <div class="sec-h"><h2>Phễu 30 ngày</h2><span class="count">số khách đã tới bậc</span></div>
+          <div class="group" style="padding:14px">
+            <div class="bars" role="img" aria-label="Phễu: Đăng kí mới 128, Đang tiếp cận 96, Đang chăm sóc 48, Xem dự án 21, Booking 5">
+              <div class="bar"><span>Đăng kí mới</span><span class="track"><span class="fill" style="width:100%"></span></span><span class="num mono">128</span></div>
+              <div class="bar"><span>Đang tiếp cận</span><span class="track"><span class="fill" style="width:75%"></span></span><span class="num mono">96</span></div>
+              <div class="bar"><span>Đang chăm sóc</span><span class="track"><span class="fill" style="width:37.5%"></span></span><span class="num mono">48</span></div>
+              <div class="bar"><span>Xem dự án</span><span class="track"><span class="fill" style="width:16.4%"></span></span><span class="num mono">21</span></div>
+              <div class="bar"><span>Booking</span><span class="track"><span class="fill" style="width:3.9%"></span></span><span class="num mono">5</span></div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <section class="sec">
+        <div class="sec-h"><h2>Xem chi tiết</h2></div>
+        <div class="group">
+          <a class="link-row" href="#"><span>Chăm sóc — nghe máy theo khung, số lần chạm</span><svg class="i t3"><use href="#chev"/></svg></a>
+          <a class="link-row" href="#"><span>Phễu &amp; SLA — tuổi bậc, tự chuyển</span><svg class="i t3"><use href="#chev"/></svg></a>
+          <a class="link-row" href="#"><span>Marketing — nguồn, chi phí, chiến dịch</span><svg class="i t3"><use href="#chev"/></svg></a>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <nav class="nav" aria-label="Điều hướng">
+    <a href="hom-nay.html"><svg class="i i-24"><use href="#home"/></svg>Hôm nay</a>
+    <a href="danh-sach.html"><svg class="i i-24"><use href="#users"/></svg>Khách hàng</a>
+    <a class="plus" href="#" aria-label="Thêm"><svg class="i i-24"><use href="#plus"/></svg></a>
+    <a href="#"><svg class="i i-24"><use href="#task"/></svg>Công việc</a>
+    <a class="on" href="hieu-qua.html"><svg class="i i-24"><use href="#chart"/></svg>Hiệu quả</a>
+  </nav>
+</div>
+</body>
+</html>
