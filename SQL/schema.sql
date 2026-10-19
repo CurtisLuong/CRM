@@ -212,3 +212,5 @@ on conflict (name, owner_id) do nothing;
 --      SQL/v2/004_user_settings_ui_state.sql → user_settings.ui_state (cần SQL/add_zalo_greeting_settings.sql)
 --      SQL/v2/005_units_verified_at.sql      → units.verified_at (cần SQL/add_loan_module.sql)
 --      SQL/v2/006_catalog_archives.sql       → catalog: archived_at (projects/buildings/units/project_apt_types/building_apt_types; cần migration catalog v1)
+--      SQL/v2/007_meta_lead_ads.sql          → Meta Lead Ads: cột mới fb_leads, bảng fb_lead_queue + integration_health,
+--                                              hàm fb_attach_lead (cần SQL/add_fb_leads.sql)

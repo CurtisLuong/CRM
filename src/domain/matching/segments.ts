@@ -1,4 +1,5 @@
 import type { Customer } from '@/domain/customer';
+import { isSaleTouch } from '@/domain/customer/interactions';
 import { normalize } from '@/domain/search';
 import { typeCompatible } from './property';
 
@@ -38,7 +39,7 @@ export function isRetargetEligible(customer: Customer, ownerId: string, now = Da
 
 function lastContactAt(customer: Customer): number | null {
   const timestamps = [
-    ...(Array.isArray(customer.interactions) ? customer.interactions.map((item) => item?.at) : []),
+    ...(Array.isArray(customer.interactions) ? customer.interactions.filter(isSaleTouch).map((item) => item?.at) : []),
     ...(Array.isArray(customer.call_attempts) ? customer.call_attempts.map((item) => item?.at) : []),
   ]
     .map((value) => (value ? Date.parse(value) : Number.NaN))

@@ -5,7 +5,7 @@
 // Mã thoát: 0 ĐẠT · 1 TRƯỢT · 2 LỖI · 3 BLOCKED (worker hỏi Lead — không leo thang model, không tính trượt).
 // Biến môi trường (tuỳ chọn): FACTORY_MODELS="m1,m2,m3" · FACTORY_ATTEMPT_TIMEOUT_MIN=10
 import { spawnSync } from 'node:child_process';
-import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -103,6 +103,23 @@ export function globToRegExp(pattern) {
 /** File có nằm trong phạm vi task không. */
 export function inScope(path, patterns) {
   return patterns.some((p) => globToRegExp(p).test(path));
+}
+
+/**
+ * Danh sách deny cho worker, mở đúng phần task cho phép: vùng cấm (vd. `worker/**`) mà Phạm vi của task nằm trong
+ * → bỏ dòng deny đó, chỉ cho phép các glob của task. Phạm vi vẫn bị verify() kiểm lại sau mỗi lần thử.
+ */
+export function workerPermissions(config, allowed) {
+  const edit = { ...(config.permission?.edit ?? {}) };
+  for (const [key, rule] of Object.entries(edit)) {
+    if (rule !== 'deny' || !key.endsWith('/**')) continue;
+    const prefix = key.slice(0, -2);
+    const opened = allowed.filter((p) => p.replace(/^\.\//, '').startsWith(prefix));
+    if (!opened.length) continue;
+    delete edit[key];
+    for (const p of opened) edit[p.endsWith('/') ? `${p}**` : p] = 'allow';
+  }
+  return { ...config, permission: { ...config.permission, edit } };
 }
 
 /** Câu trả lời cuối của worker = phần "text" cuối cùng trong log JSON của OpenCode. */
@@ -291,7 +308,8 @@ function main() {
   must('git', ['config', '--worktree', 'remote.origin.pushurl', 'DISABLED'], { cwd: wt });
   const baseSha = must('git', ['rev-parse', 'HEAD'], { cwd: wt });
   installDeps(wt);
-  copyFileSync(DENY_CONFIG, join(wt, 'opencode.json'));
+  const denyConfig = JSON.parse(readFileSync(DENY_CONFIG, 'utf8'));
+  writeFileSync(join(wt, 'opencode.json'), `${JSON.stringify(workerPermissions(denyConfig, task.allowed), null, 2)}\n`);
 
   // Chốt chặn: repo chính không được đổi trong lúc worker chạy.
   const mainState = () => must('git', ['status', '--porcelain'], { cwd: ROOT });

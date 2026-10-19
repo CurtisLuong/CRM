@@ -4,7 +4,7 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
-import { blockedQuestion, finalText, inScope, parseTask } from './factory-run.mjs';
+import { blockedQuestion, finalText, inScope, parseTask, workerPermissions } from './factory-run.mjs';
 
 test('inScope: thư mục, glob nhiều cấp, file cụ thể', () => {
   const scope = ['src/features/profile/**', 'tests/e2e/', 'src/ui/display.ts', 'src/features/today', 'src/**/*.test.ts'];
@@ -93,4 +93,17 @@ test('parseTask: mẫu cũ vẫn đọc được', () => {
   const t = parseTask(file);
   assert.deepEqual(t.allowed, ['src/a.ts', 'tests/a.test.ts']);
   assert.deepEqual(t.checks, ['npm run check']);
+});
+
+test('workerPermissions: chỉ mở vùng cấm mà Phạm vi task nằm trong, giữ mọi deny khác', () => {
+  const base = { permission: { edit: { '*': 'allow', 'worker/**': 'deny', 'SQL/**': 'deny', 'src/data/**': 'deny' }, bash: { '*': 'allow' } } };
+  const out = workerPermissions(base, ['worker/fb-leads.js', 'worker/meta/', 'tests/worker/**']);
+  assert.equal(out.permission.edit['worker/**'], undefined);
+  assert.equal(out.permission.edit['worker/fb-leads.js'], 'allow');
+  assert.equal(out.permission.edit['worker/meta/**'], 'allow');
+  assert.equal(out.permission.edit['SQL/**'], 'deny');
+  assert.equal(out.permission.edit['src/data/**'], 'deny');
+  assert.deepEqual(out.permission.bash, { '*': 'allow' });
+  assert.equal(base.permission.edit['worker/**'], 'deny'); // không sửa object gốc
+  assert.deepEqual(workerPermissions(base, ['src/features/settings/**']).permission.edit, base.permission.edit);
 });

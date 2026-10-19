@@ -1,3 +1,4 @@
+import { isSaleTouch } from './interactions';
 import { callAttemptsOf, openTasksOf } from './normalize';
 import type { Customer } from './types';
 
@@ -15,7 +16,7 @@ export function customerBrief(customer: Customer): BriefFact[] {
     : undefined;
   const latestInteraction = Array.isArray(customer.interactions)
     ? customer.interactions
-        .flatMap((item) => (item?.at ? [item] : []))
+        .flatMap((item) => (item?.at && isSaleTouch(item) ? [item] : []))
         .sort((a, b) => (b.at || '').localeCompare(a.at || ''))[0]
     : undefined;
   const lastContactAt = [latestCall?.at, latestNote?.at, latestInteraction?.at].filter(Boolean).sort().at(-1);

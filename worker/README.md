@@ -137,4 +137,4 @@ header `X-Intake-Secret: <FB_MANUAL_SECRET>`, body JSON:
 ```
 
 ## Kiểm thử code
-`node tests/fb-leads.test.mjs` — giả lập Supabase + Graph (không gọi mạng thật).
+`npx vitest run tests/worker` — giả lập Supabase + Graph (không gọi mạng thật). Hướng dẫn thiết lập đầy đủ: `docs/runbooks/meta-lead-ads.md`.
