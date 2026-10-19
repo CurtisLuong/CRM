@@ -4,7 +4,7 @@ import { expect, type Page, test } from '@playwright/test';
 // T2.C1: token sáng/tối, chọn Sáng/Tối/Tự động, font tự host, /dev/type hiển thị dấu tiếng Việt ở mọi cỡ.
 const SAMPLE = 'Trường, Hưởng, Ngữ, Tự, Đường';
 const ROLES = ['display', 'title', 'section', 'body-strong', 'body', 'small', 'label', 'mono-data'];
-const BG = { light: 'rgb(244, 246, 249)', dark: 'rgb(10, 14, 19)' };
+const BG = { light: 'rgb(242, 244, 247)', dark: 'rgb(10, 13, 18)' };
 
 const themeAttr = (page: Page) => page.evaluate(() => document.documentElement.dataset.theme);
 const bodyBg = (page: Page) => page.evaluate(() => getComputedStyle(document.body).backgroundColor);
@@ -69,7 +69,7 @@ test.describe('chọn giao diện', () => {
     expect(await themeAttr(page)).toBe('dark');
     expect(await bodyBg(page)).toBe(BG.dark);
     const meta = await page.locator('meta[name="theme-color"]').getAttribute('content');
-    expect(meta?.toLowerCase()).toBe('#0a0e13');
+    expect(meta?.toLowerCase()).toBe('#0a0d12');
 
     await page.reload();
     expect(await themeAttr(page)).toBe('dark');

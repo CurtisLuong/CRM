@@ -118,7 +118,8 @@ test('Việc tiếp theo · Lần trước · Đã biết theo thứ tự, đún
   await open(page);
   const next = page.getByRole('region', { name: 'Việc tiếp theo', exact: true });
   await expect(next).toContainText('Gọi lại báo giá căn 2PN');
-  await expect(next).toHaveAttribute('data-tone', 'over');
+  // Hẹn 09:15, bây giờ 09:30: còn trong 30 phút ân hạn → "đến hạn" = vàng (D-010, DS v4).
+  await expect(next).toHaveAttribute('data-tone', 'soon');
   const last = page.getByRole('region', { name: 'Lần trước', exact: true });
   await expect(last).toContainText('Hôm qua 15:00');
   await expect(last).toContainText('Gọi 3 phút');
