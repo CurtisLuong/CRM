@@ -704,7 +704,8 @@ function Profile() {
   const stageLabel = CARE_STAGE_DISPLAY[stage] || stage || 'Chưa có bậc';
   const stageOptions = stageChoicesFor(stage);
   // Việc đến hạn/quá hạn đứng đầu hồ sơ, vạch đỏ để không bỏ quên (D-010).
-  const nextTone = tasks.some((task) => dueTone(taskDueInfo(task, now)) === 'over') ? 'over' : undefined;
+  const tones = tasks.map((task) => dueTone(taskDueInfo(task, now)));
+  const nextTone = tones.includes('over') ? 'over' : tones.includes('soon') ? 'soon' : undefined;
   const asked = briefParts.missing.find((item) => item.key === missingKey) ?? null;
   const undoPlan = account ? planSlaUndo(c, now, account.sync.local.userId) : null;
   const sourceText = sourceListOf(c.source).map(sourceLabel).filter(Boolean).join(' · ');

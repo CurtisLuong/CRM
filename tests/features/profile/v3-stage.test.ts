@@ -25,9 +25,9 @@ describe('stageChoicesFor', () => {
 });
 
 describe('dueTone', () => {
-  it('việc đã quá hạn hoặc đang đến hạn → vạch đỏ', () => {
+  it('quá hạn → đỏ; đến hạn (trong 30 phút ân hạn, D-010) → vàng — DS v4', () => {
     expect(dueTone(taskDueInfo({ due: iso(19, 8, 30) }, now))).toBe('over');
-    expect(dueTone(taskDueInfo({ due: iso(19, 9, 15) }, now))).toBe('over');
+    expect(dueTone(taskDueInfo({ due: iso(19, 9, 15) }, now))).toBe('soon');
   });
 
   it('việc còn xa / hôm nay chưa tới giờ / không hạn → không vạch đỏ', () => {

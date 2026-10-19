@@ -107,9 +107,9 @@ export function stageChoicesFor(current: string): string[] {
   return current && !options.includes(current) ? [current, ...options] : options;
 }
 
-/** Vạch đỏ cho việc đã đến hạn/quá hạn — trạng thái lấy từ taskDueInfo (D-010). */
-export function dueTone(info: TaskDueInfo | null): 'over' | undefined {
-  return info && (info.state === 'overdue' || info.state === 'due') ? 'over' : undefined;
+/** Vạch trái của việc theo taskDueInfo (D-010, DS v4): quá hạn → đỏ, đến hạn (trong 30 phút ân hạn) → vàng. */
+export function dueTone(info: TaskDueInfo | null): 'over' | 'soon' | undefined {
+  return info?.state === 'overdue' ? 'over' : info?.state === 'due' ? 'soon' : undefined;
 }
 
 export type TimelineFilter = 'all' | 'call' | 'note' | 'interaction' | 'stage';
