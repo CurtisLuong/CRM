@@ -915,4 +915,8 @@ function Fact({ label, value }: { label: string; value: unknown }) {
   );
 }
 
-export const route: FeatureRoute = { path: '/ho-so/:id', element: <Profile />, handle: { title: 'Hồ sơ khách' } };
+export const route: FeatureRoute = {
+  path: '/ho-so/:id',
+  element: <Profile />,
+  handle: { title: 'Hồ sơ khách', hideNav: true },
+};

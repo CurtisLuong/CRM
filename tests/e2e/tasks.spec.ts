@@ -162,7 +162,9 @@ for (const scheme of ['light', 'dark'] as const) {
     test('nhóm hạn, lọc loại và cam kết; hoàn tất ghi history và có thể hoàn tác', async ({ page }) => {
       await installTaskFixture(page);
       await page.goto('/cong-viec');
-      await expect(page.locator('#main').getByRole('heading', { name: 'Công việc', exact: true })).toBeVisible();
+      // v3 (D-023): tiêu đề màn chỉ ở thanh trên, không lặp trong nội dung.
+      await expect(page.locator('header h1')).toHaveText('Công việc');
+      await expect(page.locator('#main').getByRole('heading', { level: 1 })).toHaveCount(0);
       for (const heading of ['Quá hạn', 'Hôm nay', '7 ngày tới', 'Sau đó', 'Chưa có hạn', 'Đã xong']) {
         await expect(page.getByRole('heading', { name: heading, exact: true })).toBeVisible();
       }
@@ -227,6 +229,22 @@ for (const scheme of ['light', 'dark'] as const) {
       );
       await page.getByRole('button', { name: 'Hoàn tác' }).click();
       await expect(page.getByRole('button', { name: 'Hoàn tất: Gửi bảng giá' })).toBeVisible();
+    });
+
+    test('M5 thẻ việc v3: mỗi việc một thẻ, vạch màu theo hạn, gọn (≤ 150px ở 360)', async ({ page }, info) => {
+      await installTaskFixture(page);
+      await page.goto('/cong-viec');
+      const cards = page.locator('#main li[data-card]');
+      await expect(cards.first()).toBeVisible();
+      const overdue = page.getByRole('region', { name: 'Quá hạn' }).locator('li[data-card]').first();
+      await expect(overdue).toHaveAttribute('data-tone', 'over');
+      // Chip loại việc / cam kết / lịch hẹn gộp thành 1 dòng chữ, không còn badge riêng.
+      await expect(page.locator('#main li[data-card] [data-badge]')).toHaveCount(0);
+      if (info.project.name === 'phone-360') {
+        const heights = await cards.evaluateAll((els) => els.map((e) => e.getBoundingClientRect().height));
+        expect(Math.max(...heights)).toBeLessThanOrEqual(150);
+      }
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     });
 
     test('bố cục vừa viewport điện thoại và desktop khi đăng xuất', async ({ page }) => {

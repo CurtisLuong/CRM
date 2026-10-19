@@ -32,6 +32,11 @@ function useTitle(fallback: string): string {
   return fallback;
 }
 
+/** Route ẩn thanh điều hướng dưới (mobile): `handle: { hideNav: true }`. */
+function useHideNav(): boolean {
+  return useMatches().some((m) => (m.handle as { hideNav?: boolean } | undefined)?.hideNav === true);
+}
+
 function toPaletteItem(c: AppCommand, ctx: CommandContext): PaletteItem {
   return {
     id: c.id,
@@ -53,6 +58,7 @@ export function RootLayout() {
   const { pathname } = useLocation();
   const active = tabForPath(pathname);
   const title = useTitle(NAV_TABS.find((t) => t.value === active)?.label ?? 'Sổ Khách');
+  const hideNav = useHideNav();
   const sync = useShellSync();
   const search = useCustomerSearch();
   const aside = useAsideVisible();
@@ -104,6 +110,7 @@ export function RootLayout() {
     <ToastProvider>
       <AppShell
         title={title}
+        hideNav={hideNav}
         tabs={TABS}
         active={active}
         onNavigate={(v) => {

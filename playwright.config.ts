@@ -9,6 +9,8 @@ const base = { ...devices['Desktop Chrome'], launchOptions: chrome ? { executabl
 export default defineConfig({
   testDir: 'tests/e2e',
   fullyParallel: true,
+  // Nhiều worker Factory chạy song song → giới hạn luồng mỗi tiến trình (E2E_WORKERS) để máy không quá tải.
+  workers: process.env.E2E_WORKERS ? Number(process.env.E2E_WORKERS) : undefined,
   reporter: process.env.CI ? 'line' : 'list',
   use: { baseURL: `http://localhost:${port}`, locale: 'vi-VN', timezoneId: 'Asia/Ho_Chi_Minh' },
   projects: [

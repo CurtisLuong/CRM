@@ -122,7 +122,15 @@ for (const scheme of ['light', 'dark'] as const) {
       await installInsightsFixture(page);
       await page.goto('/hieu-qua');
       const main = page.locator('#main');
-      await expect(main.getByRole('heading', { name: 'Hiệu quả', exact: true })).toBeVisible();
+      // v3 (D-023): tiêu đề ở thanh trên; đầu trang = 4 con số; chi tiết thu gọn, mở từng khối.
+      await expect(page.locator('header h1')).toHaveText('Hiệu quả');
+      await expect(main.getByRole('button', { name: /^Gọi khách mới/ })).toBeVisible();
+      for (const name of ['Chăm sóc chi tiết', 'Phễu & tuần', 'Nguồn & Marketing']) {
+        const toggle = main.getByRole('button', { name, exact: true });
+        await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+        await toggle.click();
+        await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+      }
       await expect(main.getByRole('heading', { name: 'Chăm sóc khách' })).toBeVisible();
       await expect(main.getByText('Tốc độ gọi lần đầu · trung vị')).toBeVisible();
       await expect(main.getByText('Gọi dưới 30 phút', { exact: true })).toBeVisible();
