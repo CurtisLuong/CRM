@@ -1,6 +1,8 @@
 import { QUALIFIED_STAGE, STAGE_INTEREST } from '@/config/stages';
+import type { IntegrationHealthState } from '@/data/hooks';
 import type { CustomerRepository, Data } from '@/data/repositories/customers';
 import { type Customer, callAttemptsOf, isQualified } from '@/domain/customer';
+import { HEALTH_STALE_TEXT, integrationHealthLevel, isIntegrationHealthStale } from '@/features/settings/model';
 
 export const LEAD_DROP_REASONS = {
   gia_cao: 'Chê giá cao',
@@ -18,6 +20,28 @@ export type LeadFilter = 'open' | 'new' | 'retry' | 'dropped' | 'all';
 
 export function isLead(c: Customer) {
   return !isQualified(c);
+}
+
+export type MetaLeadAdsAlert = { text: string; tone: 'warning' | 'danger' };
+
+/**
+ * Dòng cảnh báo đầu màn Khách mới. Chỉ có khi đọc được dòng (ready) và kết nối đang
+ * warning/error — hoặc dữ liệu cũ (Worker ngừng chạy cũng là mất lead).
+ * none/offline/loading/error đều im lặng: không biết ≠ không có vấn đề.
+ */
+export function metaLeadAdsAlert(state: IntegrationHealthState, now: number): MetaLeadAdsAlert | null {
+  if (state.state !== 'ready') return null;
+  const row = state.row;
+  const stale = isIntegrationHealthStale(row.checked_at, now);
+  if (row.status === 'ok' && !stale) return null;
+  const message = typeof row.message === 'string' ? row.message.trim() : '';
+  const parts =
+    row.status === 'ok' && stale ? [HEALTH_STALE_TEXT] : [message || integrationHealthLevel(row.status).label];
+  if (stale && !parts.includes(HEALTH_STALE_TEXT)) parts.push(HEALTH_STALE_TEXT);
+  return {
+    text: `Kết nối Facebook: ${parts.join(' · ')}`,
+    tone: row.status === 'error' ? 'danger' : 'warning',
+  };
 }
 
 export function hasTalked(c: Customer) {
