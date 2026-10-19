@@ -4,7 +4,8 @@
 // - Mỗi task tối đa --task-timeout phút (cả 3 lần thử). Tổng chi phí > --max-cost → dừng hẳn.
 // - Task trượt / lỗi / hết giờ → ghi log, chạy task tiếp. Chỉ dừng cả batch khi chốt chặn repo chính kích hoạt
 //   (worker đã ghi vào repo chính — chạy tiếp là để nó sửa repo thật cả đêm).
-// - Task xong: tasks/queue/X.md → tasks/done/ (ĐẠT) hoặc tasks/failed/ (còn lại).
+// - Task xong: tasks/queue/X.md → tasks/done/ (ĐẠT), tasks/blocked/ (BLOCKED — worker hỏi Lead, không tính trượt)
+//   hoặc tasks/failed/ (còn lại). Câu hỏi BLOCKED đứng đầu báo cáo để Lead gom hỏi Curtis.
 // - Báo cáo reports/overnight-<ngày>.md, ghi lại sau MỖI task. Output từng task: logs/batch-<ID>.out.txt
 import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readdirSync, renameSync, writeFileSync } from 'node:fs';
@@ -14,7 +15,7 @@ import { parseTask } from './factory-run.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const RUN = join(ROOT, 'scripts', 'factory-run.mjs');
-const DIRS = Object.fromEntries(['queue', 'done', 'failed'].map((d) => [d, join(ROOT, 'tasks', d)]));
+const DIRS = Object.fromEntries(['queue', 'done', 'failed', 'blocked'].map((d) => [d, join(ROOT, 'tasks', d)]));
 const args = process.argv.slice(2);
 const opt = (name, def) => (args.includes(name) ? args[args.indexOf(name) + 1] : def);
 const base = opt('--base', 'factory');
@@ -68,6 +69,9 @@ function writeReport(final) {
     '',
     'Không merge, không push. Lead đọc diff từng task ĐẠT trước khi merge vào `factory`.',
     stopped ? `\n**DỪNG:** ${stopped}.` : '',
+    ...(rows.some((r) => r.status === 'BLOCKED')
+      ? ['', '## Cần Lead trả lời (BLOCKED)', ...rows.filter((r) => r.status === 'BLOCKED').map((r) => `- **${r.id}:** ${r.question}`)]
+      : []),
     pending.length ? `\nChưa chạy: ${pending.join(', ')}` : '',
     '',
     '| Task | Kết quả | Số lần thử | Model | Chi phí | Nhánh | File đổi | Log | Phút |',
@@ -77,12 +81,14 @@ function writeReport(final) {
         `| ${cell(r.id)} | ${r.status} | ${r.attempts} | ${cell(r.model)} | $${r.cost.toFixed(4)} | ${cell(r.branch)} | ${cell(r.files)} | ${cell(r.log)} | ${r.minutes} |`,
     ),
     '',
-    ...rows.filter((r) => r.status !== 'ĐẠT').flatMap((r) => [`## ${r.id} — ${r.status}`, '```', r.tail, '```', '']),
+    ...rows
+      .filter((r) => r.status !== 'ĐẠT' && r.status !== 'BLOCKED')
+      .flatMap((r) => [`## ${r.id} — ${r.status}`, '```', r.tail, '```', '']),
   ];
   writeFileSync(reportPath, lines.filter((l, i) => l !== '' || lines[i - 1] !== '').join('\n'));
 }
-function moveTask(t, ok) {
-  const dest = join(ok ? DIRS.done : DIRS.failed, basename(t.file));
+function moveTask(t, status) {
+  const dest = join(status === 'ĐẠT' ? DIRS.done : status === 'BLOCKED' ? DIRS.blocked : DIRS.failed, basename(t.file));
   try {
     renameSync(t.file, dest);
   } catch (e) {
@@ -143,7 +149,16 @@ async function main() {
       const lastModel = models.split(',').at(-1)?.replace(/[✓✗]/g, '').trim() || '—';
       r = {
         id: t.id,
-        status: res.timedOut ? 'HẾT GIỜ' : res.code === 0 ? 'ĐẠT' : res.code === 1 ? 'TRƯỢT' : 'LỖI',
+        status: res.timedOut
+          ? 'HẾT GIỜ'
+          : res.code === 0
+            ? 'ĐẠT'
+            : res.code === 1
+              ? 'TRƯỢT'
+              : res.code === 3
+                ? 'BLOCKED'
+                : 'LỖI',
+        question: field(res.out, 'Câu hỏi'),
         attempts: attemptsField.split(' ')[0] || '—',
         model: res.code === 0 ? lastModel : models || '—',
         cost: Number(field(res.out, 'Chi phí').replace('$', '')) || 0,
@@ -157,7 +172,7 @@ async function main() {
     }
     cost += r.cost;
     rows.push(r);
-    moveTask(t, r.status === 'ĐẠT');
+    moveTask(t, r.status);
     console.log(`■ ${r.id}: ${r.status} · ${r.attempts} lần · $${r.cost.toFixed(4)} · ${r.minutes} phút`);
     writeReport(false);
   }

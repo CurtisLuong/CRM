@@ -2,7 +2,7 @@
 
 > **Ai làm:** chủ dự án, theo từng bước; agent hỗ trợ khi có lỗi. Không đụng project production (`crm-cop`, Supabase production).
 > **Xong khi:** `https://crm-v2-9hf.pages.dev` mở được trang trống; staging đăng nhập được bằng tài khoản thử.
-> Kiến trúc: `architecture.md` §8–9 · Quyết định D-011.
+> Kiến trúc: `ARCHITECTURE.md` §8–9 · Quyết định D-011.
 
 **Thứ tự:** Bước 1 (staging) → `backup.md` Phần C (khôi phục vào staging) → Bước 2–3 → Bước 4–6.
 
@@ -72,7 +72,7 @@ Project `crm-cop` (v1, production) **giữ nguyên** — không đổi gì ở �
 
 Worker hiện tại (`worker/intake-worker.js`) chỉ cho **một** origin (`ALLOWED_ORIGIN = https://crm-cop.pages.dev`) và kiểm tra đăng nhập bằng Supabase **production** → app v2 đăng nhập staging gọi Worker sẽ bị từ chối. Vì vậy:
 
-- Giai đoạn đầu: `VITE_WORKER_URL` để trống → v2 ẩn OCR/AI (đúng thiết kế, `architecture.md` §6).
+- Giai đoạn đầu: `VITE_WORKER_URL` để trống → v2 ẩn OCR/AI (đúng thiết kế, `ARCHITECTURE.md` §6).
 - Khi tới T3.6 (OCR) / T3.12 (AI): agent đề xuất 1 trong 2 cách để anh duyệt — (a) deploy thêm Worker `intake-worker-staging` trỏ staging + origin `crm-v2`; (b) sửa Worker nhận danh sách origin. **Không** đổi `ALLOWED_ORIGIN` của Worker production lúc này (sẽ làm hỏng OCR/AI của v1).
 
 ## Kiểm tra cuối (gửi agent để đánh dấu T0.5 ☑)

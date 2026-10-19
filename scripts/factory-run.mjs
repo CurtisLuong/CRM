@@ -2,6 +2,7 @@
 // AI Factory — chạy MỘT task bằng worker OpenCode/DeepSeek trong worktree riêng. Không merge, không push.
 // Dùng: node scripts/factory-run.mjs tasks/queue/<ID>.md [--base factory]
 // Đạt → commit trong worktree ../wt-<ID>, nhánh agent/<ID>. Lead đọc diff rồi merge vào `factory` bằng cách của repo.
+// Mã thoát: 0 ĐẠT · 1 TRƯỢT · 2 LỖI · 3 BLOCKED (worker hỏi Lead — không leo thang model, không tính trượt).
 // Biến môi trường (tuỳ chọn): FACTORY_MODELS="m1,m2,m3" · FACTORY_ATTEMPT_TIMEOUT_MIN=10
 import { spawnSync } from 'node:child_process';
 import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -35,8 +36,9 @@ function tail(text, lines = 40, chars = 4000) {
 }
 
 // --- Đọc file task -------------------------------------------------------
-// "# <ID> — tiêu đề", "## Mô tả", "## File được phép sửa" (gạch đầu dòng, có thể bọc `...`),
-// "## Lệnh kiểm tra" (code block hoặc gạch đầu dòng `lệnh`). Lệnh kiểm tra lấy NGUYÊN từ task.
+// Mẫu mới (tasks/TEMPLATE.md): "## Phạm vi" chứa glob/thư mục bọc `...` (vd. `src/features/profile/**`, `tests/e2e/`);
+// "## Nghiệm thu" chứa code block lệnh kiểm tra (hoặc dòng "Lệnh kiểm tra: `lệnh`").
+// Mẫu cũ vẫn đọc được: "## File được phép sửa" (gạch đầu dòng) + "## Lệnh kiểm tra". Lệnh lấy NGUYÊN từ task.
 export function parseTask(file) {
   const md = readFileSync(file, 'utf8');
   const sections = {};
@@ -48,6 +50,11 @@ export function parseTask(file) {
   }
   const find = (re) => Object.entries(sections).find(([k]) => re.test(k))?.[1] ?? [];
   const items = (lines) => lines.map((l) => l.match(/^\s*[-*]\s+`?([^`\s]+)`?/)?.[1]).filter(Boolean);
+  const patterns = (lines) => {
+    const ticked = lines.flatMap((l) => [...l.matchAll(/`([^`\s]+)`/g)].map((m) => m[1]));
+    const paths = ticked.filter((t) => /[/*.]/.test(t));
+    return paths.length ? [...new Set(paths)] : items(lines);
+  };
   const commands = (lines) => {
     const inBlock = [];
     let on = false;
@@ -55,16 +62,65 @@ export function parseTask(file) {
       if (/^\s*```/.test(l)) on = !on;
       else if (on && l.trim() && !l.trim().startsWith('#')) inBlock.push(l.trim());
     }
-    return inBlock.length ? inBlock : lines.map((l) => l.match(/^\s*[-*]\s+`(.+)`/)?.[1]).filter(Boolean);
+    if (inBlock.length) return inBlock;
+    const labelled = lines.flatMap((l) => (/lệnh kiểm tra/i.test(l) ? [...l.matchAll(/`([^`]+)`/g)].map((m) => m[1]) : []));
+    return labelled.length ? labelled : lines.map((l) => l.match(/^\s*[-*]\s+`(.+)`/)?.[1]).filter(Boolean);
   };
   const head = md.match(/^#\s+([A-Za-z0-9._-]+)\s*(?:[—–-]\s*(.+))?$/m);
   const id = head?.[1] ?? basename(file, '.md');
   const title = head?.[2]?.trim() || id;
-  const allowed = items(find(/được phép|allowed/));
-  const checks = commands(find(/kiểm tra|check/));
-  if (!allowed.length) throw new Error('Task thiếu mục "## File được phép sửa".');
-  if (!checks.length) throw new Error('Task thiếu mục "## Lệnh kiểm tra" (cần ít nhất 1 lệnh).');
+  const allowed = patterns(find(/phạm vi|được phép|allowed/));
+  const checks = commands(find(/nghiệm thu|kiểm tra|check/));
+  if (!allowed.length) throw new Error('Task thiếu phạm vi ("## Phạm vi" với glob/thư mục bọc `...`).');
+  if (!checks.length) throw new Error('Task thiếu lệnh kiểm tra (code block trong "## Nghiệm thu").');
   return { id, title, md, allowed, checks };
+}
+
+/** Glob → RegExp. Thư mục ("a/b/" hoặc "a/b") = mọi file bên trong; `**` = nhiều cấp; `*`, `?` = trong 1 cấp. */
+export function globToRegExp(pattern) {
+  let p = pattern.replace(/^\.\//, '');
+  if (p.endsWith('/')) p += '**';
+  let re = '';
+  for (let i = 0; i < p.length; i++) {
+    const c = p[i];
+    if (c === '*' && p[i + 1] === '*') {
+      if (p[i + 2] === '/') {
+        re += '(?:.*/)?';
+        i += 2;
+      } else {
+        re += '.*';
+        i += 1;
+      }
+    } else if (c === '*') re += '[^/]*';
+    else if (c === '?') re += '[^/]';
+    else re += c.replace(/[.+^${}()|[\]\\]/g, '\\$&');
+  }
+  // Không ký tự đại diện và không phải file có đuôi rõ ràng → coi là thư mục.
+  const plainDir = !/[*?]/.test(pattern) && !/\.[A-Za-z0-9]+$/.test(pattern.replace(/\/$/, ''));
+  return new RegExp(`^${re}${plainDir && !pattern.endsWith('/') ? '(?:/.*)?' : ''}$`);
+}
+
+/** File có nằm trong phạm vi task không. */
+export function inScope(path, patterns) {
+  return patterns.some((p) => globToRegExp(p).test(path));
+}
+
+/** Câu trả lời cuối của worker = phần "text" cuối cùng trong log JSON của OpenCode. */
+export function finalText(jsonl) {
+  let last = '';
+  for (const line of jsonl.split('\n')) {
+    if (!line.includes('"text"')) continue;
+    try {
+      const e = JSON.parse(line);
+      if (e.type === 'text' && typeof e.part?.text === 'string' && e.part.text.trim()) last = e.part.text;
+    } catch {}
+  }
+  return last;
+}
+
+/** Dòng "BLOCKED: <câu hỏi>" trong câu trả lời cuối (cho phép bọc **, `, >, -). Không có → ''. */
+export function blockedQuestion(text) {
+  return text.match(/^[\s*`>-]*BLOCKED[*`]*\s*:[*`]*\s*(.+)$/m)?.[1]?.trim() ?? '';
 }
 
 // --- Kiểm tra sau mỗi lần ------------------------------------------------
@@ -87,8 +143,9 @@ function verify(wt, base, task) {
   const problems = [];
   const files = changedFiles(wt, base);
   if (!files.length) problems.push('Worker không thay đổi file nào.');
-  const outside = files.filter((f) => !task.allowed.includes(f.path));
-  if (outside.length) problems.push(`Sửa file ngoài danh sách cho phép: ${outside.map((f) => f.path).join(', ')}`);
+  const outside = files.filter((f) => !inScope(f.path, task.allowed));
+  if (outside.length)
+    problems.push(`Sửa file ngoài phạm vi (${task.allowed.join(', ')}): ${outside.map((f) => f.path).join(', ')}`);
   const touchedTests = files.filter((f) => TEST_FILE.test(f.path) && f.status !== 'A');
   if (touchedTests.length) problems.push(`Sửa/xoá file test có sẵn: ${touchedTests.map((f) => f.path).join(', ')}`);
   const flaky = [];
@@ -141,14 +198,15 @@ function retryUntouched(wt, cmd, out, files) {
 // --- Worker --------------------------------------------------------------
 function prompt(task, feedback) {
   return [
-    'Bạn là worker lập trình trong repo này. Đọc AGENTS.md trước (luật của repo). Luật bắt buộc của Factory:',
-    `1. CHỈ được tạo/sửa đúng các file sau: ${task.allowed.join(', ')}. Không đụng file nào khác.`,
-    '2. KHÔNG sửa hay xoá file test có sẵn. Chỉ được tạo file test MỚI nếu nó nằm trong danh sách trên.',
-    '3. Không thêm thư viện, không sửa file khai báo thư viện/lockfile, không ghi dữ liệu thật, không gọi mạng.',
+    'Bạn là worker lập trình (coding agent) trong repo này. Đọc AGENTS.md (hàng rào chung) và docs/ARCHITECTURE.md §0 (module, hợp đồng, vùng cấm) trước.',
+    'Cách cài đặt trong phạm vi do bạn tự quyết. Luật bắt buộc của Factory:',
+    `1. CHỈ được tạo/sửa file nằm trong phạm vi: ${task.allowed.join(', ')}. Không đụng file nào khác.`,
+    '2. KHÔNG sửa hay xoá file test có sẵn. Test mới đặt trong phạm vi được giao.',
+    '3. Không thêm thư viện, không sửa file khai báo thư viện/lockfile/config build, không ghi dữ liệu thật, không gọi mạng.',
     '4. Không chạy git commit/push/merge/reset/checkout. Script điều phối sẽ tự commit.',
     `5. Trước khi kết thúc, tự chạy và làm cho pass: ${task.checks.join(' && ')}.`,
-    '6. Viết code giống phong cách code xung quanh; thay đổi nhỏ nhất có thể.',
-    '7. Thấy mâu thuẫn giữa các ca test hoặc với mục Luật: KHÔNG tự đặt luật mới; làm theo Luật và ghi rõ mâu thuẫn trong câu trả lời cuối.',
+    '6. Luật nghiệp vụ mâu thuẫn, thiếu, hoặc test bắt buộc trái luật: DỪNG, không tự đặt luật; kết thúc bằng một dòng riêng "BLOCKED: <câu hỏi cụ thể + 1–2 phương án>". BLOCKED không bị tính là trượt.',
+    '7. Câu trả lời cuối gồm đúng 3 mục: (1) Đã làm gì; (2) Quyết định thiết kế đã tự đưa ra + lý do; (3) Điều chưa chắc / đề xuất ngoài phạm vi.',
     '',
     '--- TASK ---',
     task.md.trim(),
@@ -186,7 +244,10 @@ function runWorker(wt, task, n, model, feedback) {
   );
   writeFileSync(log, r.stdout);
   if (r.code !== 0 || r.error) writeFileSync(`${log}.stderr.txt`, r.out);
-  return { log, cost: costOf(r.stdout), code: r.code, timedOut: r.error?.code === 'ETIMEDOUT' };
+  const text = finalText(r.stdout);
+  const report = join(LOG_DIR, `${task.id}-${n}.report.md`);
+  writeFileSync(report, text || '(worker không có câu trả lời cuối)');
+  return { log, report, text, cost: costOf(r.stdout), code: r.code, timedOut: r.error?.code === 'ETIMEDOUT' };
 }
 
 function installDeps(wt) {
@@ -238,14 +299,23 @@ function main() {
   const history = [];
   let feedback = '';
   let result = { ok: false, problems: [], files: [] };
+  let blocked = '';
   for (let i = 0; i < MODELS.length; i++) {
     const n = i + 1;
     const model = MODELS[i];
     console.log(`\n[${task.id}] Lần ${n}/${MODELS.length} — ${model}`);
     const w = runWorker(wt, task, n, model, feedback);
     if (mainState() !== mainBefore) throw new Error(`Worker đã sửa repo chính ${ROOT}! Dừng ngay. Kiểm tra: git -C ${ROOT} status`);
+    const question = blockedQuestion(w.text);
+    if (question) {
+      // Worker hỏi Lead về luật/test: dừng, không leo thang model, không tính trượt.
+      blocked = question;
+      history.push({ n, model, cost: w.cost, log: w.log, report: w.report, exit: w.code, timedOut: w.timedOut, ok: false, flaky: [] });
+      console.log(`  worker exit=${w.code} · cost=$${w.cost.toFixed(4)} · BLOCKED`);
+      break;
+    }
     result = verify(wt, baseSha, task);
-    history.push({ n, model, cost: w.cost, log: w.log, exit: w.code, timedOut: w.timedOut, ok: result.ok, flaky: result.flaky ?? [] });
+    history.push({ n, model, cost: w.cost, log: w.log, report: w.report, exit: w.code, timedOut: w.timedOut, ok: result.ok, flaky: result.flaky ?? [] });
     console.log(`  worker exit=${w.code}${w.timedOut ? ' (hết giờ)' : ''} · cost=$${w.cost.toFixed(4)} · ${result.ok ? 'ĐẠT' : 'TRƯỢT'}`);
     if (result.ok) break;
     result.problems.forEach((p) => console.log(`  - ${p.split('\n')[0]}`));
@@ -264,7 +334,16 @@ function main() {
 
   console.log('\n===== BÁO CÁO =====');
   console.log(`Task:       ${task.id} — ${task.title}`);
-  console.log(`Trạng thái: ${result.ok ? `ĐẠT — commit ${commit} trên ${branch} (chưa merge, chưa push)` : `TRƯỢT — dừng sau ${history.length} lần`}`);
+  console.log(
+    `Trạng thái: ${
+      blocked
+        ? 'BLOCKED — worker cần Lead trả lời (không tính trượt)'
+        : result.ok
+          ? `ĐẠT — commit ${commit} trên ${branch} (chưa merge, chưa push)`
+          : `TRƯỢT — dừng sau ${history.length} lần`
+    }`,
+  );
+  if (blocked) console.log(`Câu hỏi:    ${blocked}`);
   console.log(`Worktree:   ${wt}`);
   console.log(`Số lần thử: ${history.length} (${history.map((h) => `${h.model}${h.ok ? ' ✓' : ' ✗'}`).join(', ')})`);
   console.log(`File đổi:   ${result.files.map((f) => `${f.status} ${f.path}`).join(', ') || '(không)'}`);
@@ -272,8 +351,9 @@ function main() {
   const flaky = [...new Set(history.flatMap((h) => h.flaky))];
   if (flaky.length) console.log(`Chập chờn:  ${flaky.join(', ')} (trượt rồi xanh khi chạy lại; file worker không đụng)`);
   console.log(`Log:        ${history.map((h) => h.log).join(', ')}`);
-  if (!result.ok) console.log(`\nLỗi lần cuối:\n${result.problems.join('\n\n')}`);
-  process.exit(result.ok ? 0 : 1);
+  console.log(`Báo cáo:    ${history.map((h) => h.report).join(', ')}`);
+  if (!result.ok && !blocked) console.log(`\nLỗi lần cuối:\n${result.problems.join('\n\n')}`);
+  process.exit(blocked ? 3 : result.ok ? 0 : 1);
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

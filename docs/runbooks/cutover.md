@@ -30,7 +30,7 @@ Backup phải được lưu ngoài repo, có bản sao riêng tư thứ hai và 
 
 ### 1.3 Lập danh sách migration production còn thiếu
 
-Đối chiếu danh sách migration `SQL/v2/` với bằng chứng đã chạy trên **production `nrqccwamwctihivpxjww`**. `docs/project-status.md` và `docs/architecture.md` là snapshot, cần xác minh lại tại thời điểm cutover. Không chạy lại migration đã chạy và không suy ra trạng thái production chỉ từ việc file có trong repo.
+Đối chiếu danh sách migration `SQL/v2/` với bằng chứng đã chạy trên **production `nrqccwamwctihivpxjww`**. `docs/project-status.md` và `docs/ARCHITECTURE.md` là snapshot, cần xác minh lại tại thời điểm cutover. Không chạy lại migration đã chạy và không suy ra trạng thái production chỉ từ việc file có trong repo.
 
 Với từng migration còn thiếu, ghi tên file và cách xác minh sau khi chạy. Kiểm tra nội dung theo D-012: chỉ thêm, không drop/rename/đổi kiểu/đổi nghĩa hoặc cập nhật hàng loạt. Nếu phát hiện migration không an toàn, trạng thái production không rõ, hoặc file cần chạy không rõ thứ tự, dừng và yêu cầu chủ dự án quyết định trước khi chạm production.
 

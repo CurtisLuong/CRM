@@ -22,7 +22,7 @@ Chỉ đọc file này khi cần tiếp nối công việc hoặc task phụ thu
 
 ## Đại tu v2 (cập nhật 2026-10-16)
 
-- Đã có bộ quy định: `PRD.md`, `tasks.md`, `architecture.md` v2, `DESIGN_SYSTEM.md` v3, `UX_GUIDELINES.md` v2, `prompts.md`, D-011…D-015. **Chưa code v2.**
+- Đã có bộ quy định: `PRD.md`, `tasks.md`, `ARCHITECTURE.md` v2, `DESIGN_SYSTEM.md` v3, `UX_GUIDELINES.md` v2, `prompts.md`, D-011…D-015. **Chưa code v2.**
 - Sóng 0: T0.1 ☑ (backup `~/CRM-backups/20261016-120548`, diễn tập khôi phục vào staging khớp 22/22 bảng) · T0.2 ☑ · T0.3 ☑ · T0.4 ☑ · T0.5 ☑ (`crm-v2-9hf.pages.dev`, nhánh `v2`, staging) · T0.6 đang đo.
 - Chờ chủ dự án xác nhận stack D-011 trước T1.1.
 
@@ -33,7 +33,7 @@ Chỉ đọc file này khi cần tiếp nối công việc hoặc task phụ thu
 
 ## Migration production (xác minh 2026-10-16 bằng `scripts/sql/inspect.sql`)
 
-- **Mọi migration v1 trong `SQL/` đã chạy** (kể cả `add_zalo_templates`, `add_team_assign`, `add_ai_settings`, `add_realtime_customers`). Chi tiết: `architecture.md` §3.2.
+- **Mọi migration v1 trong `SQL/` đã chạy** (kể cả `add_zalo_templates`, `add_team_assign`, `add_ai_settings`, `add_realtime_customers`). Chi tiết: `ARCHITECTURE.md` §3.2.
 - `SQL/v2/001_customer_audit.sql` (T0.2): **đã chạy production 2026-10-16** — mọi sửa/xoá khách được ghi vào `customer_changes`.
 
 ## Trạng thái được ghi trong nguồn

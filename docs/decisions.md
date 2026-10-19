@@ -82,7 +82,7 @@ Ví dụ và mẫu trong bộ tài liệu không phải sự chấp thuận cho 
 
 - Ngày: 2026-10-06
 - Loại: Quy ước dữ liệu toàn dự án (không xung đột nguyên tắc: vẫn một bảng `customers`, local-first, RLS như cũ)
-- Nguyên tắc liên quan: `CLAUDE.md` §2 (dữ liệu khách, field bắt buộc); `docs/architecture.md` mục "Lớp khách và nguồn khách"
+- Nguyên tắc liên quan: `CLAUDE.md` §2 (dữ liệu khách, field bắt buộc); `docs/ARCHITECTURE.md` mục "Lớp khách và nguồn khách"
 - Quyết định:
   1. **Hai lớp trên cùng bảng `customers`**, phân biệt bằng `qualified_at`. Lớp 1 "Khách mới" (trống): mọi khách mới nhập theo bất kỳ kênh nào, chỉ ghi cuộc gọi (`call_attempts`), Đạt hoặc Loại. Lớp 2 (có giá trị): trang chủ + hồ sơ đầy đủ. Không tách bảng `leads` riêng (tránh luồng đồng bộ thứ hai, sao chép khi Đạt, chống trùng trên 2 bảng).
   2. **Tiêu chí Đạt:** có ≥1 cuộc gọi kết quả `talked` và sale bấm Đạt → `qualified_at` + bậc `Đang chăm sóc`. Bậc `Đăng kí mới`/`Đang tiếp cận` thuộc lớp 1, không hiện ở trang chủ. Khách cũ ở 2 bậc này chuyển hết xuống lớp 1.
@@ -96,7 +96,7 @@ Ví dụ và mẫu trong bộ tài liệu không phải sự chấp thuận cho 
 - Phạm vi: bảng `customers`, `js/app.js`, form khách, tab "Khách mới"; API landing page (repo Marquee_Homes) giữ nguyên vì đã ghi `source: ["website"]`.
 - Lý do và đánh đổi: tập trung trang chủ vào khách có giá trị; dữ liệu lớp 1 phục vụ phân tích ngược campaign. Đánh đổi: bảng `customers` có thêm vài cột chỉ dùng ở lớp 1.
 - Chấp thuận: người dùng duyệt phương án 2 lớp, chọn chuyển hết khách bậc 1–2 xuống lớp 1, đưa danh sách lý do và 3 kênh chính, yêu cầu thiết kế nguồn rõ ràng để mở rộng (chat 2026-10-06).
-- Tài liệu đã cập nhật: `docs/architecture.md`, `docs/CHANGELOG.md`, `SQL/add_lead_layer.sql`, `SQL/schema.sql`
+- Tài liệu đã cập nhật: `docs/ARCHITECTURE.md`, `docs/CHANGELOG.md`, `SQL/add_lead_layer.sql`, `SQL/schema.sql`
 - Trạng thái: Đang áp dụng
 
 ### D-002 — Vỏ Android (Capacitor) để tự ghi nhật ký cuộc gọi
@@ -109,7 +109,7 @@ Ví dụ và mẫu trong bộ tài liệu không phải sự chấp thuận cho 
 - Lý do và đánh đổi: iOS không cho app nào đọc lịch sử cuộc gọi; web không có API này. Chủ dự án dùng Android nên ưu tiên tự động hoá trên Android. Đánh đổi: phải cài Android Studio, giữ khoá ký APK, build lại APK khi đổi phần native.
 - Quy tắc gợi ý kết quả cuộc gọi (cùng ngày): 0s / dưới 30s / từ 30s, khác nhau giữa Khách mới và Tiềm năng (`CALL_RESULT_SETS` trong `js/calls.js`). Cuộc ≥30s chỉ gợi ý ghi chú, KHÔNG tự Đạt — chuyển Tiềm năng vẫn bấm tay. Cuộc gọi khách Tiềm năng ghi thêm 1 mốc vào dòng thời gian chăm sóc.
 - Chấp thuận: người dùng chọn "Ngoại lệ cục bộ" và đề xuất desktop/iOS web, Android Capacitor (chat 2026-10-07).
-- Tài liệu đã cập nhật: `CLAUDE.md`, `AGENTS.md`, `docs/architecture.md`, `docs/FEATURE_IDEAS.md`, `docs/CHANGELOG.md`
+- Tài liệu đã cập nhật: `CLAUDE.md`, `AGENTS.md`, `docs/ARCHITECTURE.md`, `docs/FEATURE_IDEAS.md`, `docs/CHANGELOG.md`
 - Trạng thái: Đang áp dụng (giai đoạn 1 web + vỏ Android đã build 2026-10-07; chưa thử trên máy thật)
 - Bổ sung 2026-10-13 (chủ dự án yêu cầu): vỏ thêm GỌI THẲNG — `CallLogPlugin.dial` + quyền `CALL_PHONE` (APK 1.4). Vẫn trong phạm vi ngoại lệ (chỉ `android-app/` có build); web chỉ gọi plugin khi có `window.Capacitor`, thiếu plugin → dùng link `tel:` như cũ.
 
@@ -128,7 +128,7 @@ Ví dụ và mẫu trong bộ tài liệu không phải sự chấp thuận cho 
 - Phạm vi: `SQL/add_team_assign.sql`, `js/team.js`, `js/db.js`, `js/app.js`, `js/calls.js`. Tài liệu đính kèm (bảng `documents` + file `customer-docs`) ai xem được khách thì xem được. Báo giá vay (`loan_quotes`) vẫn theo người tạo.
 - Lý do và đánh đổi: giữ 1 bảng `customers` + RLS, không cần backend riêng; last-write-wins vẫn đủ vì mỗi khách chỉ 1 người ghi. Đánh đổi: SĐT unique theo người phụ trách → giao cho người đã có cùng SĐT sẽ bị từ chối; lead landing page vẫn vào tài khoản trưởng nhóm rồi chia tay.
 - Chấp thuận: người dùng chọn (chat 2026-10-08): thêm đồng nghiệp bằng email; trưởng nhóm xem hết; theo dõi = chỉ xem; nhắc việc chỉ cho người phụ trách.
-- Tài liệu đã cập nhật: `CLAUDE.md`, `AGENTS.md`, `docs/architecture.md`, `docs/design.md`, `docs/huong-dan-nhom.md`, `docs/CHANGELOG.md`
+- Tài liệu đã cập nhật: `CLAUDE.md`, `AGENTS.md`, `docs/ARCHITECTURE.md`, `docs/design.md`, `docs/huong-dan-nhom.md`, `docs/CHANGELOG.md`
 - Trạng thái: Đã code 2026-10-08; chưa chạy SQL trên Supabase, chưa thử với tài khoản thật
 
 ### D-004 — Điều hướng 2 tab: Tổng quan · Khách hàng (3 nhóm khách)
@@ -191,7 +191,7 @@ Ví dụ và mẫu trong bộ tài liệu không phải sự chấp thuận cho 
 - Lý do: phễu 7 bậc dàn trải, không đo được tốc độ; cần mốc rõ để biết khách nào đang ứ và tự dọn khách nguội khỏi phễu.
 - Chấp thuận: người dùng gửi đặc tả (chat 2026-10-09) và chọn: Xem dự án 7 / 14 ngày; tự chuyển có ghi lịch sử + hoàn tác; khách cũ Hỗ trợ hồ sơ + Booking → Booking & Làm hồ sơ; 1 khách = 1 căn.
 - Phạm vi: `SQL/add_funnel_velocity.sql` (ràng buộc bậc, cột `booking_steps`, `sla_anchor_at`), `SQL/schema.sql`, `js/velocity.js` (mới), `js/app.js`, `js/db.js` (`historyMeta`), `js/notifications.js` (rule `sla_over`), `js/followup.js`, `js/icons.js` (`nurture`, `sla`), `index.html`, `css/style.css`.
-- Tài liệu đã cập nhật: `CLAUDE.md`, `AGENTS.md`, `docs/funnel-velocity.md`, `docs/architecture.md`, `docs/design.md`, `docs/huong-dan-follow-up.md`, `docs/CHANGELOG.md`
+- Tài liệu đã cập nhật: `CLAUDE.md`, `AGENTS.md`, `docs/funnel-velocity.md`, `docs/ARCHITECTURE.md`, `docs/design.md`, `docs/huong-dan-follow-up.md`, `docs/CHANGELOG.md`
 - Trạng thái: Đang áp dụng (chưa chạy SQL, chưa deploy lúc ghi)
 
 
@@ -234,18 +234,18 @@ Ví dụ và mẫu trong bộ tài liệu không phải sự chấp thuận cho 
 - Phương án đã cân nhắc: giữ không build + tách ES modules (rẻ nhưng không có kiểu dữ liệu/component, khó làm UI mới); Svelte/Vue (gọn nhưng agent kém quen hơn, ít component truy cập sẵn).
 - Phạm vi: toàn bộ web app v2. Không đổi Supabase, Worker, vỏ Android (D-002 vẫn hiệu lực cho `android-app/`).
 - Chấp thuận: người dùng cho phép "có thể đổi luôn nguyên tắc no build thành build nếu các thư viện nền tảng sẵn có tối ưu hơn" (chat 2026-10-16); agent đánh giá là tối ưu hơn và chọn stack trên. Chủ dự án có thể đổi stack trước khi bắt đầu T1.1.
-- Tài liệu: `CLAUDE.md`, `AGENTS.md`, `docs/architecture.md`, `docs/tasks.md`.
+- Tài liệu: `CLAUDE.md`, `AGENTS.md`, `docs/ARCHITECTURE.md`, `docs/tasks.md`.
 - Trạng thái: Đã duyệt hướng; chưa triển khai.
 
 ### D-012 — Hợp đồng bảo toàn dữ liệu cho đại tu
 
 - Ngày: 2026-10-16
 - Loại: Nguyên tắc toàn dự án (áp dụng ngay, cả v1)
-- Quyết định: (1) migration chỉ **thêm**, cấm drop/rename/đổi kiểu/đổi nghĩa mã đã lưu; (2) giữ mô hình `customers` aggregate (mảng JSONB trên hàng) cho v2; (3) ghi theo trường (patch), không làm rơi trường/thuộc tính lạ; (4) audit trigger append-only `customer_changes` trước mọi việc khác; (5) xoá mềm `archived_at`; (6) backup + diễn tập khôi phục trước migration production và trước cutover; (7) v2 đọc/ghi được DB IndexedDB và queue của v1. Chi tiết: `architecture.md` §3.
+- Quyết định: (1) migration chỉ **thêm**, cấm drop/rename/đổi kiểu/đổi nghĩa mã đã lưu; (2) giữ mô hình `customers` aggregate (mảng JSONB trên hàng) cho v2; (3) ghi theo trường (patch), không làm rơi trường/thuộc tính lạ; (4) audit trigger append-only `customer_changes` trước mọi việc khác; (5) xoá mềm `archived_at`; (6) backup + diễn tập khôi phục trước migration production và trước cutover; (7) v2 đọc/ghi được DB IndexedDB và queue của v1. Chi tiết: `ARCHITECTURE.md` §3.
 - Lý do: người dùng yêu cầu "mọi dữ liệu phải được bảo toàn"; chuẩn hoá bảng (interactions/opportunities riêng) đem lại ít lợi ích ở quy mô hiện tại nhưng rủi ro chuyển dữ liệu và đồng bộ offline lớn.
 - Đánh đổi: phân tích nặng chạy ở client; mảng JSONB có thể mất phần tử nếu 2 máy sửa cùng mảng cùng lúc (rủi ro đã chấp nhận từ v1, giảm nhờ audit).
 - Chấp thuận: yêu cầu trực tiếp của người dùng (chat 2026-10-16).
-- Tài liệu: `docs/architecture.md`, `CLAUDE.md`, `AGENTS.md`.
+- Tài liệu: `docs/ARCHITECTURE.md`, `CLAUDE.md`, `AGENTS.md`.
 - Trạng thái: Đã duyệt hướng; audit/backup làm ở Phase 0.
 
 ### D-013 — Kiến trúc thông tin và UX v2
@@ -272,7 +272,7 @@ Ví dụ và mẫu trong bộ tài liệu không phải sự chấp thuận cho 
 - Loại: Nguyên tắc toàn dự án (v2)
 - Quyết định: mọi "việc nên làm", gợi ý, thông báo trong app và gợi ý ở Hiệu quả sinh từ registry rule `src/domain/signals/rules/*` (mỗi rule 1 file: điều kiện, bằng chứng, mức P0–P2, hành động, điều kiện dừng, ngưỡng dữ liệu). Ngưỡng/tham số ở `src/config/signals.ts`. Hôm nay, chuông, hồ sơ, Hiệu quả chỉ đọc kết quả registry; không tự viết logic ưu tiên riêng. AI chỉ giải thích/soạn nháp cho tín hiệu, không đổi mức ưu tiên. Thời hạn theo D-010; tự chuyển SLA theo D-008/D-010 không đổi.
 - Lý do: v1 có 3 nơi tự tính ưu tiên (`dashActionGroups`, `notifications.js`, `analyticsInsightsHtml`) → dễ lệch nhau; registry cho phép nhiều agent thêm rule song song.
-- Tài liệu: `docs/PRD.md` F-04, `docs/UX_GUIDELINES.md` §6, `docs/architecture.md` §2.
+- Tài liệu: `docs/PRD.md` F-04, `docs/UX_GUIDELINES.md` §6, `docs/ARCHITECTURE.md` §2.
 - Trạng thái: Đã duyệt hướng; áp dụng cho v2.
 
 ### D-016 — Ngoại lệ parity thứ tự ưu tiên của T2.B5
@@ -341,7 +341,7 @@ Ví dụ và mẫu trong bộ tài liệu không phải sự chấp thuận cho 
 
 - Ngày: 2026-10-17
 - Loại: Đổi cách giải xung đột cho cột mảng JSONB của `customers` (trong v2); giữ D-012.
-- Nguyên tắc liên quan: `docs/architecture.md` §3.1.4, §4 ("last-write-wins theo `updated_at`"); D-012; D-020.
+- Nguyên tắc liên quan: `docs/ARCHITECTURE.md` §3.1.4, §4 ("last-write-wins theo `updated_at`"); D-012; D-020.
 - Bối cảnh: T5.2 (staging, khách d063bb16…) chứng minh mất ghi chú: Mac online thêm ghi chú; điện thoại offline thêm ghi chú khác rồi online → op `update` gửi nguyên mảng `notes_manual` cũ → ghi chú của Mac bị ghi đè. Ảnh hưởng mọi mảng (`call_attempts`, `next_tasks`, `notes_manual`, `care_stage_history`, `interactions`, `interests`, `household`). Cùng đợt: 1 op bị server từ chối (vd. `23514`) làm `flushQueue` dừng mãi, chỉ hiện "Lỗi đồng bộ". Chủ dự án chọn **sửa trước cutover** (không chấp nhận như v1).
 - Quyết định:
   1. **Gộp 3 chiều phía client, ghi có điều kiện** (không cần SQL/RPC). Khi tạo op `update` có cột mảng, repository lưu `arrayBase` = mảng local ngay trước khi sửa (metadata chỉ ở máy như `assignmentRollback`; không gửi server; v1 bỏ qua). Khi flush: đọc `updated_at` + các cột mảng của hàng trên server → gộp theo danh tính phần tử (`id`, không có thì `at`) → `PATCH … where id = … and updated_at = <giá trị vừa đọc>`; máy khác ghi chen giữa (0 hàng khớp) → đọc lại, gộp lại (tối đa 3 lần), rồi ghi thường với bản gộp mới nhất. Không đổi định dạng op, không đổi cột khác (vẫn patch theo trường).
@@ -355,7 +355,7 @@ Ví dụ và mẫu trong bộ tài liệu không phải sự chấp thuận cho 
   - Op `insert` (upsert cả hàng) không gộp — id khách là UUID mới nên chỉ trùng khi cùng 1 op bị đẩy 2 lần.
 - Phạm vi: `src/data/{arrayMerge,queue,sync,supabase,syncStatus}.ts`, `src/data/repositories/customers.ts` (chỉ gắn `arrayBase`), sheet `src/features/sync/`, chỉ báo đồng bộ trên header. Không migration, không đổi schema, không đổi v1.
 - Chấp thuận: chủ dự án quyết định "sửa trước cutover" sau báo cáo T5.2 ngày 2026-10-17 (task T5.9); phương án kỹ thuật do agent chọn trong phạm vi đó, không xung đột D-012.
-- Tài liệu đã cập nhật: `docs/decisions.md`, `docs/architecture.md` §3.1, §4.
+- Tài liệu đã cập nhật: `docs/decisions.md`, `docs/ARCHITECTURE.md` §3.1, §4.
 - Trạng thái: Đã duyệt hướng; T5.2 chạy lại kịch bản E2 trên staging để nghiệm thu.
 
 ### D-022 — T6.7 nghiệm thu không cần bộ đánh giá ghi chú thật; theo dõi trên production

@@ -1,6 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
 
-// Viewport 360 / 390 / 1280 (architecture.md §8). Chạy trên bản build (vite preview).
+// Viewport 360 / 390 / 1280 (ARCHITECTURE.md §8). Chạy trên bản build (vite preview).
 const chrome = process.env.CHROME_PATH;
 // Cổng riêng cho mỗi worker Factory chạy song song (scripts/factory-run.mjs đặt E2E_PORT); mặc định 4173.
 const port = Number(process.env.E2E_PORT || 4173);
