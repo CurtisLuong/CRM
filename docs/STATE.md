@@ -5,7 +5,7 @@ Cập nhật: 2026-10-18 · Nhánh phát triển: `factory` (tách từ `v2` @ 4
 | Mục | Trạng thái |
 |---|---|
 | Luồng | **B** — nâng cấp v2 → v3: thiết kế lại lớn UI/UX, được đổi Design System |
-| Giai đoạn | B0–B4 ☑ · M0 ☑ (D-023) · M1 ☑ · M2 ☑ (nền v4) · **M3 ☑ 2026-10-19** (Hôm nay v3, e2e 107 đạt) · M4/M5: Lead đã chuẩn bị model + e2e (đang trượt chờ worker), **chưa viết task** — viết theo mẫu mới `tasks/TEMPLATE.md` |
+| Giai đoạn | B0–B4 ☑ · M0 ☑ · M1 ☑ · M2 ☑ · M3 ☑ · **M4 ☑ · M5 ☑ 2026-10-19** · **Chờ Curtis duyệt phát hành** — `docs/v3/release/README.md` |
 | Production | `main` f63bf7d → `crm-cop.pages.dev` (Supabase production). Không đụng khi chưa duyệt |
 | Task cũ | T5.5, T6.3 (`docs/tasks.md`) tạm hoãn |
 | Worker | OpenCode 2.0.29 + DeepSeek; push bị khoá trong từng worktree worker (`git config --worktree`) |
