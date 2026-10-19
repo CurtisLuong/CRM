@@ -1,5 +1,5 @@
 import type { Customer, Task } from '@/domain/customer';
-import { countdownTag, startOfDayMs } from '@/domain/deadlines';
+import { type CountdownState, countdownTag, startOfDayMs } from '@/domain/deadlines';
 
 export const TASK_GROUPS = [
   { id: 'overdue', label: 'Quá hạn' },
@@ -19,6 +19,35 @@ export type TaskRow =
       appointment: { start: string; end?: string | null; reason?: string | null };
       group: TaskGroupId;
     };
+
+/** Màu vạch trái + chữ hạn trên thẻ việc (D-023): đỏ quá hạn, vàng sắp/đến hạn. */
+export type TaskCardTone = 'over' | 'soon';
+
+export type TaskTiming = {
+  state: CountdownState;
+  /** Vạch trái chỉ tô khi thật sự gấp; việc còn xa không có vạch. */
+  tone?: TaskCardTone;
+  /** Mốc bắt đầu để in ngày: việc = hạn, hẹn gọi = giờ bắt đầu. */
+  startMs: number;
+  allDay: boolean;
+  /** Nhãn đếm ngược của D-010 ("quá hạn", "còn 2 ngày"…). */
+  text: string;
+};
+
+/**
+ * Thời hạn của một dòng việc dùng đúng `countdownTag` (D-010) — không tự tính lại.
+ * `null` khi không có hạn hoặc hạn hỏng.
+ */
+export function taskTiming(row: TaskRow, now: number): TaskTiming | null {
+  const startMs =
+    row.type === 'call' ? Date.parse(row.appointment.start) : row.task.due ? Date.parse(row.task.due) : Number.NaN;
+  const endMs = row.type === 'call' && row.appointment.end ? Date.parse(row.appointment.end) : startMs;
+  const allDay = row.type === 'task' && !!row.task.due_allday;
+  const tag = countdownTag(startMs, endMs, allDay, now);
+  if (!tag) return null;
+  const tone = tag.state === 'missed' ? 'over' : tag.state === 'due' || tag.state === 'soon' ? 'soon' : undefined;
+  return { state: tag.state, tone, startMs, allDay, text: tag.text };
+}
 
 function calendarDayDiff(dueMs: number, now: number) {
   const due = new Date(startOfDayMs(dueMs));
