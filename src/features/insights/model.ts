@@ -36,6 +36,11 @@ export type HeadlineTile = {
 
 const fmtN = (n: number) => n.toLocaleString('vi-VN');
 
+/** Quan sát hiện ngay dưới 4 ô; phần dư nằm trong khối chi tiết (M5-03). */
+export function splitInsights<T>(items: readonly T[], limit = 3): { top: T[]; rest: T[] } {
+  return { top: items.slice(0, limit), rest: items.slice(limit) };
+}
+
 /** Trung vị ms → [số, đơn vị] dễ đọc; null → [null, undefined]. */
 export function durationParts(ms: number | null): [number | null, string | undefined] {
   if (ms == null || !Number.isFinite(ms)) return [null, undefined];
