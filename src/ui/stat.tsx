@@ -52,10 +52,12 @@ export function StatTile({
     className,
   );
   return onClick ? (
-    <button type="button" className={cls} onClick={onClick}>
+    <button type="button" data-tile className={cls} onClick={onClick}>
       {body}
     </button>
   ) : (
-    <div className={cls}>{body}</div>
+    <div data-tile className={cls}>
+      {body}
+    </div>
   );
 }

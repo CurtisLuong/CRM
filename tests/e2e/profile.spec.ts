@@ -153,7 +153,7 @@ for (const theme of ['light', 'dark'] as const) {
       await page.getByRole('button', { name: 'Đóng' }).click();
       await page.getByRole('button', { name: 'Bỏ nháp' }).click();
     }
-    await expect(page.getByText('Chưa biết').first()).toBeVisible();
+    await expect(page.getByText('Còn thiếu').first()).toBeVisible();
     await expect(page.getByRole('navigation', { name: 'Hành động nhanh' })).toBeVisible();
     await page.getByRole('tab', { name: 'Trí nhớ' }).click();
     await expect(page.getByLabel('Giới tính')).toHaveValue('Nữ');

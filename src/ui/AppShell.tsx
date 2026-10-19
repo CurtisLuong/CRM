@@ -23,6 +23,7 @@ export function AppShell({
   onToggleRail,
   aside,
   asideRef,
+  hideNav,
   children,
 }: {
   title: string;
@@ -39,6 +40,8 @@ export function AppShell({
   menu?: ReactNode;
   railExpanded: boolean;
   onToggleRail: () => void;
+  /** Ẩn thanh điều hướng dưới (mobile) — màn tự có thanh hành động đáy, vd. Hồ sơ (D-023). */
+  hideNav?: boolean;
   /** Có nội dung panel phải (desktop) hay không. */
   aside?: boolean;
   /** Phần tử đích cho panel phải (feature portal nội dung vào đây). */
@@ -80,14 +83,16 @@ export function AppShell({
           />
         </div>
       </div>
-      <BottomNav
-        tabs={tabs}
-        active={active ?? ''}
-        onSelect={onNavigate}
-        onAdd={onAdd}
-        addLabel="Ghi nhanh"
-        className="lg:hidden"
-      />
+      {!hideNav && (
+        <BottomNav
+          tabs={tabs}
+          active={active ?? ''}
+          onSelect={onNavigate}
+          onAdd={onAdd}
+          addLabel="Ghi nhanh"
+          className="lg:hidden"
+        />
+      )}
     </div>
   );
 }

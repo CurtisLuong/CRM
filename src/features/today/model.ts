@@ -323,6 +323,21 @@ function lastNoteOf(customer: Customer): string {
   return notes[0]?.text.trim() || displayText(customer.notes);
 }
 
+/** Thanh SLA bậc (DESIGN_SYSTEM v4 SlaBar) từ `velocity.status` (D-008); ngoài phễu → undefined. Dùng chung Hôm nay + Hồ sơ. */
+export function slaBarOf(customer: Customer, now: number): TodayCard['sla'] {
+  const s = slaStatus(customer, now);
+  if (!s) return undefined;
+  return {
+    label: s.label,
+    state: s.state,
+    ratio: s.max > 0 ? Math.max(0, s.elapsed) / s.max : 0,
+    text:
+      s.state === 'over'
+        ? `quá ${fmtDuration(s.elapsed - s.max)}`
+        : `còn ${fmtDuration((s.state === 'warn' ? s.max : s.target) - s.elapsed)}`,
+  };
+}
+
 /** Dữ liệu một thẻ khách ở Hôm nay. Thời hạn theo `countdownTag` (D-010), SLA theo `velocity.status` (D-008). */
 export function todayCard(row: QueueRow, now: number): TodayCard {
   const { signal, customer } = row;
@@ -388,18 +403,7 @@ export function todayCard(row: QueueRow, now: number): TodayCard {
         ];
 
   // Cấp 3: SLA bậc.
-  const s = slaStatus(customer, now);
-  const sla = s
-    ? {
-        label: s.label,
-        state: s.state,
-        ratio: s.max > 0 ? Math.max(0, s.elapsed) / s.max : 0,
-        text:
-          s.state === 'over'
-            ? `quá ${fmtDuration(s.elapsed - s.max)}`
-            : `còn ${fmtDuration((s.state === 'warn' ? s.max : s.target) - s.elapsed)}`,
-      }
-    : undefined;
+  const sla = slaBarOf(customer, now);
 
   // Nhóm SLA/hồ sơ: lý do + bằng chứng quan trọng hơn ghi chú.
   const note = group === 'sla' ? undefined : lastNoteOf(customer) || undefined;
