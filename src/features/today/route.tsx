@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router';
 import type { FeatureRoute } from '@/app/routes';
 import { useAppSession } from '@/app/session';
 import { SIGNALS_CONFIG } from '@/config/signals';
-import { useCustomers, useRepositoryAccount } from '@/data/hooks';
+import { useCustomers, useRepositoryAccount, useSyncStatus } from '@/data/hooks';
 import type { Task } from '@/domain/customer';
 import { snoozePromise, undoPromiseSnooze } from '@/domain/deadlines/promises';
 import { forStage } from '@/domain/followup';
@@ -37,6 +37,7 @@ export function TodayPage() {
   const { session, booting, error } = useAppSession();
   const account = useRepositoryAccount();
   const customers = useCustomers();
+  const sync = useSyncStatus();
   const navigate = useNavigate();
   const [notice, setNotice] = useState('');
   const [now, setNow] = useState(() => Date.now());
@@ -87,8 +88,10 @@ export function TodayPage() {
   const plan = capacityPlan(rows, now);
   const snoozeCandidates = capacitySnoozeCandidates(plan.suggested, now);
   const summary = endOfDaySummary(customers, now);
-  const lateCount = rows.filter((row) => row.signal.due != null && row.signal.due < now).length;
-  const sessionRows = rows.filter((row) => row.signal.actions.includes('call'));
+  // Một định nghĩa quá hạn (D-010) và một quy tắc hành động (kể cả tín hiệu phụ) — cùng nguồn với thẻ.
+  const cards = new Map(rows.map((row) => [row, todayCard(row, now)]));
+  const lateCount = rows.filter((row) => cards.get(row)?.tone === 'over').length;
+  const sessionRows = rows.filter((row) => cards.get(row)?.action === 'call');
   const activeCall = sessionIndex == null ? null : (sessionRows[sessionIndex] ?? null);
   const sessionMinutes = sessionRows.reduce((sum, row) => sum + row.minutes, 0);
   const afterEvening = new Date(now).getHours() >= 20 && new Date(now).getMinutes() >= 45;
@@ -394,7 +397,7 @@ export function TodayPage() {
           <h2 className="text-heading">Tổng kết ngày</h2>
           <p className="mt-2 text-small">
             Lời hứa đã giữ: {summary.kept} · lời hứa trễ: {summary.late} · cuộc gọi chưa ghi kết quả:{' '}
-            {summary.unrecorded} · việc ngày mai: {summary.tomorrow}
+            {summary.unrecorded} · việc ngày mai: {summary.tomorrow} · thay đổi chờ đồng bộ: {sync.pending}
           </p>
         </section>
       )}
