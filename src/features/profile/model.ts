@@ -1,10 +1,11 @@
 import { CLOSE_REASONS, LEAD_DROP_REASONS } from '@/config/reasons';
-import { INTEREST_TIERS } from '@/config/stages';
+import { CARE_STAGE_OPTIONS, INTEREST_TIERS } from '@/config/stages';
+import { VELOCITY_CONFIG } from '@/config/velocity';
 import type { Customer } from '@/domain/customer';
 import type { BriefFact } from '@/domain/customer/brief';
 import { interactionTitle } from '@/domain/customer/interactions';
 import { callAttemptsOf, sourceListOf } from '@/domain/customer/normalize';
-import { fmtClock, taskDayLabel } from '@/domain/deadlines';
+import { fmtClock, type TaskDueInfo, taskDayLabel } from '@/domain/deadlines';
 import { callResultLabel, displayDate, displayText, intakeLabel, sourceLabel } from '@/ui/display';
 
 /** Checklist state belongs to booking_steps; it must never move the stage SLA clock. */
@@ -96,6 +97,19 @@ export function extraFacts(customer: Customer, now: number): { label: string; va
     ['Ghi chú đăng ký', displayText(customer.notes)],
   ];
   return rows.filter(([, v]) => v).map(([label, value]) => ({ label, value }));
+}
+
+/** Bậc được chọn trong sheet: giữ nguyên danh sách cũ, thêm bậc hiện tại nếu nằm ngoài phễu. */
+export function stageChoicesFor(current: string): string[] {
+  const options = CARE_STAGE_OPTIONS.filter(
+    (option) => option !== VELOCITY_CONFIG.stageWon && option !== 'Loại',
+  ) as string[];
+  return current && !options.includes(current) ? [current, ...options] : options;
+}
+
+/** Vạch đỏ cho việc đã đến hạn/quá hạn — trạng thái lấy từ taskDueInfo (D-010). */
+export function dueTone(info: TaskDueInfo | null): 'over' | undefined {
+  return info && (info.state === 'overdue' || info.state === 'due') ? 'over' : undefined;
 }
 
 export type TimelineFilter = 'all' | 'call' | 'note' | 'interaction' | 'stage';
