@@ -3,8 +3,9 @@
 // Route hiện có:
 //   POST /ocr   — nhận ảnh (base64), gọi Gemini vision, trả JSON field khách để
 //                 app tự điền vào form "Thêm khách" (KHÔNG lưu thẳng — user rà tay).
-//   /fb/*       — Facebook Lead Ads → ghi thẳng khách mới vào Supabase (xem fb-leads.js):
+//   /fb/*       — Facebook Lead Ads → hàng chờ → ghi khách (xem fb-leads.js):
 //                 GET/POST /fb/webhook · POST /fb/manual (Make/Zapier) · POST /fb/poll (quét ngay)
+//                 POST /fb/backfill (kéo bù theo ngày) · GET /fb/health (tình trạng kết nối)
 //   POST /ai    — trợ lý AI trang hồ sơ (Workers AI, Qwen3): tóm tắt trước khi gọi, soạn tin Zalo,
 //                 tách ghi chú → đề xuất cập nhật + việc (xem ai-assist.js). Cần binding [ai] trong wrangler.toml.
 //   cron 5 phút — quét lead Facebook mới (lưới an toàn cho webhook) — [triggers] trong wrangler.toml
@@ -128,7 +129,7 @@ CÁC FIELD (đúng thuộc tính CRM):
   • KHÔNG tự suy hôm nay/hôm qua/năm — chỉ đọc ĐÚNG những gì ghi trong ảnh; app sẽ tự tính.
   • Không thấy mốc thời gian tin nhắn nào → tất cả 4 field null.`;
 
-import { handleFb, pollLeads } from './fb-leads.js';
+import { handleFb, runCron } from './fb-leads.js';
 import { handleAi } from './ai-assist.js';
 import { handleStt } from './stt.js';
 
@@ -159,10 +160,13 @@ export default {
     return withCors(json({ error: 'Not found' }, 404), origin);
   },
 
-  // Cron (wrangler.toml [triggers]): quét lead Facebook mới mỗi 5 phút.
+  // Cron (wrangler.toml [triggers]): quét lead Facebook mới + xử lý hàng chờ mỗi 5 phút.
   async scheduled(event, env, ctx) {
-    ctx.waitUntil(pollLeads(env).then((r) => console.log('fb poll', JSON.stringify(r)))
-      .catch((e) => console.error('fb poll lỗi', e.message)));
+    ctx.waitUntil(
+      runCron(env)
+        .then((r) => console.log('fb cron', JSON.stringify(r)))
+        .catch((e) => console.error('fb cron lỗi', e.message)),
+    );
   },
 };
 
