@@ -145,6 +145,16 @@ export function sortCustomers(rows: readonly Customer[], rules: readonly SortRul
   });
 }
 
+/** Số khách theo nhóm chip đầu danh sách: của tôi (tiềm năng/khách mới) + khách đồng nghiệp. */
+export function customerGroupCounts(customers: readonly Customer[], ownerId: string) {
+  const own = customers.filter((c) => c.owner_id === ownerId);
+  return {
+    potential: own.filter((c) => isQualified(c)).length,
+    leads: own.filter((c) => !isQualified(c)).length,
+    team: customers.filter((c) => c.owner_id && c.owner_id !== ownerId).length,
+  };
+}
+
 export function dateRange(preset: CustomerFilters['date'], now: Date): { start: number; end: number } | null {
   if (preset === 'all') return null;
   const start = new Date(now);
