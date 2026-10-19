@@ -1,8 +1,9 @@
+import { HEALTH_STALE_TEXT } from '@/config/integrations';
 import { QUALIFIED_STAGE, STAGE_INTEREST } from '@/config/stages';
 import type { IntegrationHealthState } from '@/data/hooks';
 import type { CustomerRepository, Data } from '@/data/repositories/customers';
 import { type Customer, callAttemptsOf, isQualified } from '@/domain/customer';
-import { HEALTH_STALE_TEXT, integrationHealthLevel, isIntegrationHealthStale } from '@/features/settings/model';
+import { integrationHealthLevel, isIntegrationHealthStale } from '@/domain/integrations';
 
 export const LEAD_DROP_REASONS = {
   gia_cao: 'Chê giá cao',

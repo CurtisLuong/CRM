@@ -143,6 +143,8 @@ export async function runHealthCheck(env, ctx, { force = false, forcedError = nu
     if (forcedError) {
       status = 'error';
       message = forcedError;
+      // Lượt sau phải kiểm lại token thật (debug_token) thay vì dùng kết quả "hợp lệ" cũ → không nhấp nháy ok/lỗi.
+      delete details.token_checked_at;
     } else if (!valid) {
       status = 'error';
       message = 'Token Facebook không còn hiệu lực — tạo token mới trong Meta rồi cập nhật cho Worker.';
@@ -152,7 +154,7 @@ export async function runHealthCheck(env, ctx, { force = false, forcedError = nu
         'Token Facebook thiếu quyền đọc lead (leads_retrieval) — cấp lại quyền trong Meta rồi cập nhật token.';
     } else if (snapshot.stuck.length > 0) {
       status = 'error';
-      message = `Có ${snapshot.stuck.length} lead lỗi đã dừng tự thử — mở nhật ký lead trong Cài đặt để xử lý.`;
+      message = `Có ${snapshot.stuck.length} lead không tự ghi được vào CRM — cần xử lý tay (xem hướng dẫn Meta Lead Ads, mục "Khi có cảnh báo").`;
     } else if (expiringSoon) {
       status = 'warning';
       message = expiryWarning(daysLeft, expiresMs);

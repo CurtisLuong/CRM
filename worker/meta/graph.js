@@ -94,8 +94,12 @@ export function createGraph(env, { budget, now = () => new Date() } = {}) {
     return request(`${env.FB_PAGE_ID}/leadgen_forms`, { fields: 'id,name,status', limit: 100 });
   }
 
-  /** Lead của 1 form trong khoảng [since, until] (giây). Meta lọc GREATER_THAN nên lấy since-1. */
-  async function leadsOfForm(formId, since, until) {
+  /**
+   * Lead của 1 form trong khoảng [since, until] (giây). Meta lọc GREATER_THAN nên lấy since-1.
+   * Đi hết các trang (`paging.next`, 100 lead/trang) trong khi còn ngân sách, chừa `reserve` lượt gọi
+   * cho việc ghi hàng chờ. `more = true` = còn trang chưa đọc (gọi lại để lấy tiếp) — không được im lặng bỏ sót.
+   */
+  async function leadsOfForm(formId, since, until, { reserve = 1 } = {}) {
     const filtering = JSON.stringify([{ field: 'time_created', operator: 'GREATER_THAN', value: Math.max(0, since - 1) }]);
     let data;
     try {
@@ -104,13 +108,41 @@ export function createGraph(env, { budget, now = () => new Date() } = {}) {
       if (error && error.code === 'budget') throw error;
       data = await request(`${formId}/leads`, { fields: LEAD_FIELDS_MIN, limit: 100, filtering });
     }
-    const rows = Array.isArray(data.data) ? data.data : [];
-    return rows.filter((lead) => {
+    const rows = Array.isArray(data.data) ? [...data.data] : [];
+    let next = data.paging && data.paging.next;
+    while (next && budget && budget.left() > reserve) {
+      const page = await nextPage(next);
+      if (Array.isArray(page.data)) rows.push(...page.data);
+      next = page.paging && page.paging.next;
+    }
+    const leads = rows.filter((lead) => {
       const seconds = toEpochSeconds(lead && lead.created_time);
       if (seconds === null) return true;
       if (seconds < since) return false;
       return until === null || until === undefined || seconds <= until;
     });
+    return { leads, more: Boolean(next) };
+  }
+
+  // Link trang sau do Meta trả về (đã kèm token + bộ lọc) — vẫn tính vào ngân sách và phân loại lỗi.
+  async function nextPage(url) {
+    let response;
+    try {
+      response = await countedFetch(budget, url);
+    } catch (error) {
+      if (error && error.code === 'budget') throw error;
+      throw new GraphError('Không gọi được Facebook', { kind: 'transient' });
+    }
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || data.error) {
+      const graphError = data.error || {};
+      throw new GraphError(graphError.message || `Graph ${response.status}`, {
+        graphCode: graphError.code,
+        status: response.status,
+        kind: classify(graphError, response.status),
+      });
+    }
+    return data;
   }
 
   async function debugToken() {

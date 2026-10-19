@@ -1,6 +1,6 @@
 import { Link } from 'react-router';
+import { META_LEAD_ADS_ANCHOR, META_LEAD_ADS_ID } from '@/config/integrations';
 import { useIntegrationHealth } from '@/data/hooks';
-import { META_LEAD_ADS_ANCHOR, META_LEAD_ADS_ID } from '@/features/settings/model';
 import { Button } from '@/ui';
 import { metaLeadAdsAlert } from './model';
 

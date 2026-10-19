@@ -15,6 +15,9 @@ Nguồn: báo cáo `scripts/factory-run.mjs` / `reports/overnight-*.md` + nghi�
 | M5-01 | code | 2026-10-19 | deepseek-flash | 1 | $0.0359 | 3 | ĐẠT (hết giờ 20′, gate xanh) | Đạt | — | ~5 | — | Gọi từ danh sách nay đi luồng chuẩn (trước dùng `tel:`) |
 | M5-02 | code | 2026-10-19 | deepseek-flash | 1 | $0.0362 | 3 | ĐẠT (hết giờ 20′, gate xanh) | Đạt | — | ~4 | — | |
 | M5-03 | code | 2026-10-19 | deepseek-flash | 1 | $0.0239 | 4 | ĐẠT (hết giờ 20′, gate xanh) | Đạt | — | ~4 | — | |
+| ML-L | lead | 2026-10-19 | — | — | — | SQL/v2/007 + test, `domain` (`lead_form`, `isSaleTouch`), hook `useIntegrationHealth`, factory-run mở vùng cấm theo Phạm vi | xanh | — | — | — | Migration chạy thử Postgres 17 cục bộ (gắn lead, chống gắn trùng, RLS/GRANT) | Lead làm vì là vùng dữ liệu/migration |
+| ML-01 | code | 2026-10-19 | deepseek-flash | 1 | $0.0858 | 14 | ĐẠT (hết giờ 25′, gate xanh) | Đạt, vá 4 | — | ~20 | Phân trang Graph (kéo bù > 100 lead/form bị sót); token hỏng ở lượt quét không báo + health nhấp nháy ok/lỗi; mã lead Make chứa SĐT (lộ vào log); câu báo trỏ tới "nhật ký lead trong Cài đặt" không tồn tại | Không có báo cáo cuối (hết giờ). Đặc tả nên nói rõ "đọc hết các trang" |
+| ML-02 | code | 2026-10-19 | deepseek-flash | 1 | $0.0372 | 9 | ĐẠT (hết giờ 20′, gate xanh) | Đạt, vá 1 | — | ~5 | `leads` import `features/settings/model` (phá ranh giới module) → chuyển mã/ngưỡng/nhãn sang `src/config/integrations.ts` + `src/domain/integrations.ts` | Đặc tả nên chỉ sẵn nơi đặt luật dùng chung giữa 2 feature |
 
 Loại: `code` / `test-only` / `lead` (Lead tự làm) / `đối chứng` (làm bằng Claude Code thuần để so sánh).
 
@@ -36,3 +39,4 @@ Loại: `code` / `test-only` / `lead` (Lead tự làm) / `đối chứng` (làm 
 - 0 lần luật nghiệp vụ bị bẻ lọt qua Lead review — **trượt = DỪNG**.
 - Trung vị nghiệm thu tay ≤ 10 phút/task (mục tiêu); > 20 phút trên 5 task code liên tiếp = DỪNG.
 - Lead loại > 2 lần chạy trên 5 task liên tiếp (đặc tả sai) = DỪNG.
+- 2026-10-19 (ML-01/02 song song, trần 25′/20′): cả 2 hết giờ lần 1 nhưng gate xanh → ĐẠT, lại mất báo cáo cuối. Task Worker lớn (14 file) nên trần 35′.

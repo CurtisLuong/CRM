@@ -3,7 +3,7 @@
 import { createBudget, MAX_FETCHES_PER_RUN } from './budget.js';
 import { createGraph } from './graph.js';
 import { runHealthCheck } from './health.js';
-import { processQueueItem, redactError } from './process.js';
+import { connectionMessage, processQueueItem, redactError } from './process.js';
 import { createStore } from './store.js';
 
 const VN_OFFSET_SECONDS = 7 * 3600;
@@ -85,9 +85,11 @@ export async function pollRecentLeads(ctx) {
   const forms = Array.isArray(data && data.data) ? data.data : [];
   const rows = [];
   let found = 0;
+  let truncated = false;
   for (const form of forms) {
     if (ctx.budget.left() < 4) break;
-    const leads = await ctx.graph.leadsOfForm(form.id, since, null);
+    const { leads, more } = await ctx.graph.leadsOfForm(form.id, since, null, { reserve: 3 });
+    if (more) truncated = true; // trang còn lại: lượt cron sau đọc tiếp (lead đã vào hàng chờ được bỏ qua)
     found += leads.length;
     for (const lead of leads) {
       rows.push(
@@ -106,7 +108,7 @@ export async function pollRecentLeads(ctx) {
   }
   let inserted = [];
   if (rows.length && ctx.budget.left() >= 1) inserted = await ctx.store.enqueue(rows);
-  return { forms: forms.length, found, queued: inserted.length };
+  return { forms: forms.length, found, queued: inserted.length, truncated };
 }
 
 export async function processDueBatch(ctx, limit) {
@@ -146,6 +148,8 @@ export async function runCron(env, options = {}) {
     if (!error || error.code !== 'budget') {
       console.error('fb poll lỗi', JSON.stringify({ error: redactError(error, env) }));
     }
+    // Token hỏng phát hiện ngay ở lượt quét, không chờ lượt kiểm token hằng ngày.
+    if (error && (error.kind === 'token' || error.kind === 'permission')) ctx.healthError = connectionMessage(error.kind);
   }
 
   try {
@@ -212,7 +216,9 @@ export async function runBackfill(env, body = {}) {
     }
     let leads;
     try {
-      leads = await ctx.graph.leadsOfForm(form.id, range.since, range.until);
+      const page = await ctx.graph.leadsOfForm(form.id, range.since, range.until, { reserve: 2 });
+      leads = page.leads;
+      if (page.more) truncated = true;
     } catch (error) {
       if (error && error.code === 'budget') {
         truncated = true;
@@ -248,7 +254,7 @@ export async function runBackfill(env, body = {}) {
   if (nowSeconds - range.since > 90 * 86400) {
     notes.push('Meta chỉ giữ lead khoảng 90 ngày — lead trước mốc đó có thể không còn.');
   }
-  if (truncated) notes.push('Đã chạm giới hạn 45 lượt gọi mạng — chạy lại để lấy tiếp.');
+  if (truncated) notes.push('Còn lead chưa đọc hết (giới hạn 45 lượt gọi mạng) — chia khoảng ngày nhỏ hơn rồi chạy lại.');
   const result = { forms: forms.length, found, queued, already };
   if (notes.length) result.note = notes.join(' ');
   return { status: 200, body: result };

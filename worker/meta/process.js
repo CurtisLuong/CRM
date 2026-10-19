@@ -37,7 +37,7 @@ export function redactError(error, env = {}) {
   return message.slice(0, 500);
 }
 
-function healthMessage(kind, message) {
+export function connectionMessage(kind, message = '') {
   if (kind === 'token') {
     return 'Token Facebook không còn hiệu lực — tạo token mới trong Meta rồi cập nhật cho Worker.';
   }
@@ -110,7 +110,7 @@ async function handleFailure(ctx, row, error, baseLog, nowIso) {
   const nowMs = new Date(nowIso).getTime();
   try {
     if (kind === 'config' || kind === 'token' || kind === 'permission') {
-      const notice = healthMessage(kind, message);
+      const notice = connectionMessage(kind, message);
       await ctx.store.updateQueue(row.lead_id, {
         attempts: previousAttempts, // lỗi cấu hình/token không đốt lượt thử
         next_attempt_at: new Date(nowMs + 3600 * 1000).toISOString(),

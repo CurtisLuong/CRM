@@ -145,13 +145,19 @@ async function receiveWebhook(request, env, ctx) {
 }
 
 // Make / Zapier: { full_name, phone, email?, campaign?, form_name?, created_time?, answers?, lead_id? }
-function manualLead(body) {
+// Make không gửi lead_id → mã thay thế từ băm SĐT + giờ gửi (chống trùng khi Make gửi lại) — không để lộ SĐT trong mã/log.
+async function manualLeadId(body) {
+  if (body.lead_id) return String(body.lead_id);
+  const seed = `${body.phone || ''}|${body.created_time || new Date().toISOString()}`;
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(seed));
+  const hex = [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('');
+  return `manual-${hex.slice(0, 24)}`;
+}
+
+function manualLead(body, id) {
   const answers = Object.entries(body.answers && typeof body.answers === 'object' ? body.answers : {}).map(
     ([name, value]) => ({ name, values: [String(value)] }),
   );
-  const id = body.lead_id
-    ? String(body.lead_id)
-    : `manual-${body.phone || ''}-${body.created_time || Date.now()}`;
   return {
     id,
     created_time: body.created_time || new Date().toISOString(),
@@ -175,7 +181,7 @@ async function receiveManual(request, env) {
     return json({ error: 'Bad JSON' }, 400);
   }
 
-  const lead = manualLead(body || {});
+  const lead = manualLead(body || {}, await manualLeadId(body || {}));
   const run = createRun(env);
   const row = makeQueueRow({
     leadId: lead.id,

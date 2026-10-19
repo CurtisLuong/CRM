@@ -1,5 +1,7 @@
 import { ZALO_TEMPLATES_DEFAULT, type ZaloTemplate } from '@/config/followup';
+import { HEALTH_STALE_TEXT, type IntegrationLevel } from '@/config/integrations';
 import type { IntegrationHealth } from '@/data/hooks';
+import { integrationHealthLevel, isIntegrationHealthStale } from '@/domain/integrations';
 import { displayDate, displayDateTime } from '@/ui/display';
 
 export const AI_MODELS = [
@@ -54,34 +56,16 @@ export function normalizeAiSettings(value: unknown) {
   };
 }
 
-/** Dòng tình trạng của Worker Meta Lead Ads (app chỉ đọc) và mốc "dữ liệu cũ". */
-export const META_LEAD_ADS_ID = 'meta_lead_ads';
-export const META_LEAD_ADS_ANCHOR = 'meta-lead-ads';
-export const HEALTH_STALE_MS = 30 * 60 * 1000;
-export const HEALTH_STALE_TEXT = 'Chưa nhận được cập nhật từ máy chủ trong 30 phút qua';
-
-export type HealthTone = 'success' | 'warning' | 'danger';
-export type IntegrationLevel = { label: string; tone: HealthTone };
-
-const LEVELS: Record<IntegrationHealth['status'], IntegrationLevel> = {
-  ok: { label: 'Đang hoạt động', tone: 'success' },
-  warning: { label: 'Cần chú ý', tone: 'warning' },
-  error: { label: 'Đang lỗi', tone: 'danger' },
-};
-
-/** Mã trạng thái của Worker → nhãn người dùng + sắc thái DS v4. Mã lạ coi như cần chú ý. */
-export function integrationHealthLevel(status: IntegrationHealth['status']): IntegrationLevel {
-  return LEVELS[status] ?? LEVELS.warning;
-}
-
-/**
- * Quá 30 phút không có lượt quét mới = dữ liệu cũ (Worker có thể đã ngừng chạy → mất lead).
- * Mốc không đọc được cũng coi là cũ: không thể chứng minh kết nối còn sống.
- */
-export function isIntegrationHealthStale(checkedAt: string | null | undefined, now: number): boolean {
-  const at = typeof checkedAt === 'string' ? Date.parse(checkedAt) : Number.NaN;
-  return Number.isNaN(at) ? true : now - at > HEALTH_STALE_MS;
-}
+// Mã dòng, mốc "dữ liệu cũ", nhãn mức: nguồn duy nhất ở config/domain (màn Khách mới dùng chung).
+export {
+  HEALTH_STALE_MS,
+  HEALTH_STALE_TEXT,
+  type HealthTone,
+  type IntegrationLevel,
+  META_LEAD_ADS_ANCHOR,
+  META_LEAD_ADS_ID,
+} from '@/config/integrations';
+export { integrationHealthLevel, isIntegrationHealthStale } from '@/domain/integrations';
 
 const countLeads = (value: unknown) => Math.max(0, Math.trunc(Number(value)) || 0);
 

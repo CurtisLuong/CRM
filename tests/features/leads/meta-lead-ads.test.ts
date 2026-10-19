@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { HEALTH_STALE_TEXT } from '@/config/integrations';
 import type { IntegrationHealth, IntegrationHealthState } from '@/data/hooks';
 import { metaLeadAdsAlert } from '@/features/leads/model';
-import { HEALTH_STALE_TEXT } from '@/features/settings/model';
 
 const NOW = new Date('2026-10-19T10:31:00+07:00').getTime();
 
