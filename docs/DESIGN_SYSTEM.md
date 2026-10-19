@@ -18,7 +18,7 @@
 ## 1. Ngôn ngữ
 
 1. **Ba cấp thông tin trong mọi thẻ khách**
-   - **Cấp 1:** tên (18/650, chữ đậm nhất màn) + **một nút hành động lớn có chữ** (48px, màu nhấn) + thời hạn ngay dưới tên (đỏ = quá hạn, vàng = sắp/đang trễ).
+   - **Cấp 1:** tên (18/700, chữ đậm nhất màn) + **một nút hành động lớn có chữ** (48px, màu nhấn) + thời hạn ngay dưới tên (đỏ = quá hạn, vàng = sắp/đang trễ).
    - **Cấp 2:** lưới nhãn nhỏ / giá trị (Gọi gần nhất · Đã gọi · Nguồn…) dưới một vạch chia mảnh; giờ và số dùng chữ đơn cách.
    - **Cấp 3:** ghi chú cuối (1 dòng, chữ phụ, trong ngoặc kép) + thanh SLA.
 2. **Mỗi khách một thẻ**, cách nhau 8–10px, bo 18px, viền mảnh. **Vạch dọc 3px bên trái** mang màu thời hạn (đỏ quá hạn, vàng sắp/đang trễ, không màu khi bình thường) → quét dọc màn là thấy khách gấp.
@@ -42,23 +42,23 @@
 | `--accent-tonal` | `#E1E8FF` | `#1D2B5A` | Nền nút hành động trên thẻ gọn |
 | `--danger` | `#C0262D` | `#FF6E6E` | Quá hạn, lỗi |
 | `--warning` | `#8A5300` | `#F2B34B` | Sắp hạn, đang trễ, quá mục tiêu SLA |
-| `--success` | `#1A7F4B` | `#4FD08E` | Xong, đúng nhịp |
+| `--success` | `#187645` | `#4FD08E` | Xong, đúng nhịp |
 | `--ai` | `#6B3FD4` | `#B596FF` | Chỉ AI |
 | `--track` / `--bar` | `#E7EBF0` / `#0D1117` | `#222B37` / `#EDF1F6` | Thanh SLA |
 
 Bo góc: nút 14 · thẻ 18 · thẻ gọn 16 · sheet 20 · chip 999. Bóng sáng: `e1` `0 1px 2px rgb(13 17 23/.05)`; tối: không bóng.
-Font giữ **Be Vietnam Pro** + **JetBrains Mono** (đã cài; không thêm thư viện). Tên khách 18/650 (thẻ gọn 16/650), tiêu đề màn 20/650, nhãn 11.5/500, chữ phụ 13–13.5.
+Font giữ **Be Vietnam Pro** + **JetBrains Mono** (đã cài; không thêm thư viện). Tên khách 18/700 (thẻ gọn 16/700), tiêu đề màn 20/600, nhãn 11.5/500, chữ phụ 13–13.5.
 
 ## 3. Component (`src/ui`)
 
 | Component | Quy tắc |
 |---|---|
 | `CustomerCard` (đầy đủ) | Cấp 1–2–3 như §1. Dùng cho **nhóm gấp nhất** ở Hôm nay (quá giờ hẹn gọi, khách mới chưa gọi). `data-due` → vạch trái |
-| `CustomerCard compact` | Tên 16/650 + 1 dòng (thời hạn/trạng thái **đứng đầu dòng** để không bị cắt) + nút vuông 44 nền `--accent-tonal`. Dùng cho nhóm sau ở Hôm nay, Danh sách, Công việc. Chạm để mở |
+| `CustomerCard compact` | Tên 16/700 + 1 dòng (thời hạn/trạng thái **đứng đầu dòng** để không bị cắt) + nút vuông 44 nền `--accent-tonal`. Dùng cho nhóm sau ở Hôm nay, Danh sách, Công việc. Chạm để mở |
 | `ActionButton` | 48px, chữ + icon, nền accent; trên thẻ gọn: 44×44 chỉ icon + `aria-label` |
 | `SlaBar` | 7 đoạn, nhãn bậc trái, "còn N ngày" đậm phải; màu theo `src/domain/velocity` (không tự tính) |
 | `SessionBar` | Dải đậm (nền `--text`, chữ `--surface`) "Gọi lần lượt N khách · ~X phút" + [Bắt đầu]. Một dải duy nhất trên Hôm nay |
-| `ProfileHeader` | Tên 22–24/650 · SĐT mono + sao chép · [Bậc ▾] (chạm → sheet) · Đúng nhịp · nguồn · `SlaBar` |
+| `ProfileHeader` | Tên 22–24/700 · SĐT mono + sao chép · [Bậc ▾] (chạm → sheet) · Đúng nhịp · nguồn · `SlaBar` |
 | `KnownFacts` | Ô đã biết + chip "Còn thiếu" viền đứt |
 | `LastTouch`, `TimelineFilter`, `SavedListChips`, `FilterSheet`, `StatTile`, `ImproveList`, `BlockBoundary` | Như bản mẫu; `StatTile` số lớn dùng mono, cả ô bấm được |
 

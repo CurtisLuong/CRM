@@ -56,6 +56,10 @@ const COLOR_TOKENS = [
   '--success-bg',
   '--ai',
   '--ai-bg',
+  '--hairline',
+  '--accent-tonal',
+  '--track',
+  '--bar',
 ];
 
 describe('tokens.css', () => {
@@ -83,6 +87,9 @@ describe('tokens.css', () => {
     expect(c('--accent-fg', '--accent')).toBeGreaterThanOrEqual(4.5);
     expect(c('--accent', '--surface')).toBeGreaterThanOrEqual(4.5);
     expect(c('--accent', '--accent-soft')).toBeGreaterThanOrEqual(4.5);
+    // v4: icon nút trên thẻ gọn (nền tonal) và thanh SLA cần ≥ 3:1 (WCAG 1.4.11 thành phần đồ hoạ).
+    expect(c('--accent', '--accent-tonal')).toBeGreaterThanOrEqual(3);
+    expect(c('--bar', '--track')).toBeGreaterThanOrEqual(3);
     for (const s of ['--danger', '--warning', '--success', '--ai']) {
       expect(c(s, `${s}-bg`), `${s} trên nền riêng`).toBeGreaterThanOrEqual(4.5);
       expect(c(s, '--surface'), `${s} trên --surface`).toBeGreaterThanOrEqual(4.5);

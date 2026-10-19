@@ -19,6 +19,18 @@ export {
 } from './cards';
 export { ActionBar, type ActionItem, BottomNav, Header, type NavTab, SyncIndicator, type SyncState } from './chrome';
 export { cn } from './cn';
+export {
+  type CardFact,
+  CardGroup,
+  type CardTone,
+  CustomerCard,
+  type CustomerCardAction,
+  type CustomerCardProps,
+  SessionBar,
+  SlaBar,
+  type SlaBarProps,
+  type SlaBarState,
+} from './customer';
 export { callResultLabel, displayDate, displayDateTime, displayText, intakeLabel, sourceLabel } from './display';
 export { Icon, type IconSize } from './Icon';
 export { Kbd } from './Kbd';
@@ -26,6 +38,7 @@ export { type ChartPoint, MetricTile, MiniChart } from './metrics';
 export { type DayOption, OutcomePicker, SlotPicker } from './pickers';
 export { Avatar, ListRow, QueueRow, RowList } from './rows';
 export { Sheet } from './Sheet';
+export { StatTile, type StatTrend } from './stat';
 export { EmptyState, ErrorState, Loading, Skeleton } from './states';
 export {
   type Countdown,

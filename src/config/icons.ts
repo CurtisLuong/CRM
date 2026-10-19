@@ -62,6 +62,16 @@ export const ICONS = {
   command: 'Command', // Bảng lệnh
   sync: 'RefreshCw', // Đồng bộ
   offline: 'CloudOff', // Ngoại tuyến
+  // ── Khái niệm v4 (DESIGN_SYSTEM v4 §3 — D-023) ──
+  done: 'Check', // Đánh dấu xong (nút trên thẻ việc)
+  start: 'Play', // Bắt đầu phiên gọi
+  more: 'Ellipsis', // Thêm thao tác (⋯)
+  filter: 'ListFilter', // Lọc
+  open: 'ChevronRight', // Mở / đi tới
+  expand: 'ChevronDown', // Mở rộng / chọn · xu hướng giảm
+  up: 'ChevronUp', // Xu hướng tăng
+  copy: 'Copy', // Sao chép
+  back: 'ArrowLeft', // Quay lại
 } as const satisfies Record<string, LucideName>;
 
 export type IconName = keyof typeof ICONS;

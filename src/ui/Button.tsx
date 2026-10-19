@@ -5,11 +5,14 @@ import type { IconName } from '@/config/icons';
 import { cn } from './cn';
 import { Icon } from './Icon';
 
-export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'ai';
+export type ButtonVariant = 'primary' | 'secondary' | 'accent' | 'ghost' | 'danger' | 'ai';
 
 const VARIANT: Record<ButtonVariant, string> = {
   primary: 'bg-accent text-accent-fg hover:brightness-110 active:brightness-95',
-  secondary: 'bg-surface text-text border border-border-strong hover:bg-surface-2',
+  // v4 (D-023): nút phụ = tonal, không viền.
+  secondary: 'bg-surface-2 text-text hover:bg-surface-3',
+  // Hành động chính trên thẻ gọn (nút Gọi icon): nền accent-tonal, chữ accent.
+  accent: 'bg-accent-tonal text-accent hover:brightness-95',
   ghost: 'text-text hover:bg-surface-2',
   // Chỉ cho hành động phá huỷ (xoá, loại).
   danger: 'bg-danger text-surface hover:brightness-110',

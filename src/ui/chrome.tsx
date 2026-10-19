@@ -16,7 +16,7 @@ export function ActionBar({ actions, className }: { actions: ActionItem[]; class
     <nav
       aria-label="Hành động nhanh"
       className={cn(
-        'sticky bottom-0 z-20 grid border-t border-border pb-[env(safe-area-inset-bottom)] shadow-e2',
+        'sticky bottom-0 z-20 grid border-t border-hairline pb-[env(safe-area-inset-bottom)] shadow-e2',
         STICKY_BG,
         className,
       )}
@@ -66,11 +66,12 @@ export function SyncIndicator({
     <>
       <span className={cn('size-2 shrink-0 rounded-full', dot)} aria-hidden />
       {state.kind === 'offline' && <Icon name="offline" size={16} />}
-      <span className={cn('truncate', state.kind === 'synced' && 'font-data')}>{text}</span>
+      {/* v4 (D-023): mobile chỉ hiện chấm — chữ vẫn là tên truy cập, không chiếm chỗ tiêu đề. */}
+      <span className={cn('sr-only lg:not-sr-only lg:truncate', state.kind === 'synced' && 'font-data')}>{text}</span>
     </>
   );
   const cls = cn(
-    'inline-flex min-h-11 items-center gap-1.5 whitespace-nowrap text-small text-text-2',
+    'inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 whitespace-nowrap text-small text-text-2 lg:justify-start',
     state.kind === 'error' && 'text-danger',
     className,
   );
@@ -106,7 +107,7 @@ export function Header({
   return (
     <header
       className={cn(
-        'sticky top-0 z-30 flex items-center gap-2 border-b border-border px-4 pt-[env(safe-area-inset-top)]',
+        'sticky top-0 z-30 flex items-center gap-2 border-b border-hairline px-4 pt-[env(safe-area-inset-top)]',
         compact ? 'h-12' : 'h-14',
         STICKY_BG,
         className,
@@ -180,7 +181,7 @@ export function BottomNav({
     <nav
       aria-label="Điều hướng chính"
       className={cn(
-        'fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 items-center border-t border-border pb-[env(safe-area-inset-bottom)]',
+        'fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 items-center border-t border-hairline pb-[env(safe-area-inset-bottom)]',
         STICKY_BG,
         className,
       )}
