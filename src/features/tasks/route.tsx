@@ -4,28 +4,30 @@ import type { FeatureRoute } from '@/app/routes';
 import { useAppSession } from '@/app/session';
 import { TASK_KINDS } from '@/config/taskKinds';
 import { useCustomers, useRepositoryAccount, useSyncStatus } from '@/data/hooks';
-import { countdownTag } from '@/domain/deadlines';
 import { appendPromise, promiseTaskKey, snoozePromise, undoPromiseSnooze } from '@/domain/deadlines/promises';
 import { openQuickAction } from '@/features/quick-actions/store';
-import { Badge, Button, EmptyState, Loading, Skeleton, type Tone, useToast } from '@/ui';
-import { TASK_GROUPS, type TaskGroupId, type TaskRow, type TaskSideFilter, taskRows } from './model';
+import { Badge, Button, cn, EmptyState, Loading, Skeleton, useToast } from '@/ui';
+import { TASK_GROUPS, type TaskGroupId, type TaskRow, type TaskSideFilter, taskRows, taskTiming } from './model';
 
 const FIELD = 'min-h-11 rounded-control border border-border-strong bg-surface px-3 text-body text-text';
+/** Nút phụ trong thẻ (Sửa/Dời): nhỏ, không chiếm chỗ của hành động chính. */
+const SMALL_ACTION =
+  'inline-flex min-h-8 items-center rounded-control px-2 text-small text-text-2 hover:bg-surface-2 disabled:opacity-50';
 
-function deadlineLabel(row: TaskRow, now: number) {
-  const startMs =
-    row.type === 'call' ? Date.parse(row.appointment.start) : row.task.due ? Date.parse(row.task.due) : Number.NaN;
-  const endMs = row.type === 'call' && row.appointment.end ? Date.parse(row.appointment.end) : startMs;
-  const allDay = row.type === 'task' && !!row.task.due_allday;
-  const tag = countdownTag(startMs, endMs, allDay, now);
-  if (!tag) return null;
-  const tone: Tone = tag.state === 'missed' ? 'danger' : tag.state === 'due' ? 'warning' : 'neutral';
-  const date = new Date(startMs).toLocaleString('vi-VN', {
+function deadlineLabel(row: TaskRow, group: TaskGroupId, now: number) {
+  if (group === 'done') return null;
+  const timing = taskTiming(row, now);
+  if (!timing) return null;
+  const date = new Date(timing.startMs).toLocaleString('vi-VN', {
     day: '2-digit',
     month: '2-digit',
-    ...(allDay ? {} : { hour: '2-digit', minute: '2-digit' }),
+    ...(timing.allDay ? {} : { hour: '2-digit', minute: '2-digit' }),
   });
-  return { tone, label: `${tag.text} · ${date}` };
+  return {
+    tone: timing.tone,
+    text: `${timing.text} · ${date}`,
+    className: timing.tone === 'over' ? 'text-danger' : timing.tone === 'soon' ? 'text-warning' : 'text-text-2',
+  };
 }
 
 function toLocalDateTime(value?: string) {
@@ -72,7 +74,7 @@ function TaskCard({
   const [snoozeReason, setSnoozeReason] = useState('Em bận');
   const task = row.type === 'task' ? row.task : null;
   const ownPromise = task ? (task.side || 'me') === 'me' : null;
-  const deadline = group === 'done' ? null : deadlineLabel(row, now);
+  const deadline = deadlineLabel(row, group, now);
   const kind =
     row.type === 'call'
       ? TASK_KINDS.call.label
@@ -83,8 +85,22 @@ function TaskCard({
     row.type === 'call'
       ? `Hẹn gọi${row.appointment.reason ? ` · ${row.appointment.reason}` : ''}`
       : task?.text || 'Việc chưa có nội dung';
+  const done = group === 'done' && row.type === 'task';
   return (
-    <li className="flex items-start gap-3 p-3 sm:p-4">
+    <li
+      data-card
+      data-tone={deadline?.tone}
+      className="relative flex items-start gap-2.5 overflow-hidden rounded-card-sm border border-hairline bg-surface py-2.5 pr-2.5 pl-3.5 shadow-e1"
+    >
+      {deadline?.tone && (
+        <span
+          aria-hidden="true"
+          className={cn(
+            'absolute top-2.5 bottom-2.5 left-0 w-[3px] rounded-r-[3px]',
+            deadline.tone === 'over' ? 'bg-danger' : 'bg-warning',
+          )}
+        />
+      )}
       {row.type === 'call' ? (
         <Button aria-label={`Gọi: ${customer.full_name}`} disabled={busy} onClick={onCall} icon="call">
           Gọi
@@ -106,49 +122,52 @@ function TaskCard({
         </button>
       )}
       <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <p className={`text-body-strong ${group === 'done' ? 'text-text-2 line-through' : ''}`}>{text}</p>
-          <Badge>{kind}</Badge>
+        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+          <p className={cn('min-w-0 text-body-strong', done && 'text-text-2 line-through')}>{text}</p>
+          {deadline && <span className={cn('shrink-0 text-small', deadline.className)}>{deadline.text}</span>}
+        </div>
+        <div className="mt-0.5 flex flex-wrap items-baseline gap-x-1.5 text-small text-text-2">
+          <Link to={`/khach-hang/${encodeURIComponent(customer.id)}`} className="text-accent hover:underline">
+            {customer.full_name || 'Khách chưa có tên'}
+          </Link>
+          <span aria-hidden="true">·</span>
+          <span>{kind}</span>
           {ownPromise !== null && (
-            <Badge
-              variant="status"
-              tone={ownPromise ? 'neutral' : 'warning'}
-              icon={ownPromise ? 'promise_me' : 'promise_customer'}
-            >
-              {ownPromise ? 'Em hứa' : 'Khách hẹn'}
-            </Badge>
+            <>
+              <span aria-hidden="true">·</span>
+              <span>{ownPromise ? 'Em hứa' : 'Khách hẹn'}</span>
+            </>
           )}
           {row.type === 'call' && (
-            <Badge variant="status" icon="call_sched">
-              Lịch hẹn
-            </Badge>
+            <>
+              <span aria-hidden="true">·</span>
+              <span>Lịch hẹn</span>
+            </>
           )}
-          {deadline && (
-            <Badge variant="status" tone={deadline.tone}>
-              {deadline.label}
-            </Badge>
-          )}
-          {group === 'done' && row.type === 'task' && (
-            <Badge variant="status" tone="success">
-              Đã xong{row.task.done_at ? ` · ${new Date(row.task.done_at).toLocaleDateString('vi-VN')}` : ''}
-            </Badge>
+          {done && (
+            <>
+              <span aria-hidden="true">·</span>
+              <span>
+                Đã xong{row.task.done_at ? ` · ${new Date(row.task.done_at).toLocaleDateString('vi-VN')}` : ''}
+              </span>
+            </>
           )}
         </div>
-        <Link
-          to={`/khach-hang/${encodeURIComponent(customer.id)}`}
-          className="mt-1 inline-flex min-h-11 items-center text-small text-accent hover:underline"
-        >
-          {customer.full_name || 'Khách chưa có tên'} · {customer.phone}
-        </Link>
-        {row.type === 'task' && group !== 'done' && (
+        {row.type === 'task' && !done && (
           <div className="mt-1">
-            {!showEdit ? (
-              <Button disabled={busy} onClick={() => setShowEdit(true)}>
-                Sửa
-              </Button>
-            ) : (
+            {!showEdit && !showSnooze && (
+              <div className="flex flex-wrap items-center gap-1">
+                <button type="button" disabled={busy} onClick={() => setShowEdit(true)} className={SMALL_ACTION}>
+                  Sửa
+                </button>
+                <button type="button" disabled={busy} onClick={() => setShowSnooze(true)} className={SMALL_ACTION}>
+                  Dời
+                </button>
+              </div>
+            )}
+            {showEdit && (
               <form
-                className="flex flex-wrap items-end gap-2"
+                className="flex min-w-0 flex-col gap-2"
                 onSubmit={(event) => {
                   event.preventDefault();
                   const cleanText = editText.trim();
@@ -157,42 +176,40 @@ function TaskCard({
                   setShowEdit(false);
                 }}
               >
-                <label className="flex min-w-48 flex-1 flex-col gap-1 text-small text-text-2">
+                <label className="flex min-w-0 flex-col gap-1 text-small text-text-2">
                   Nội dung việc
                   <input
                     aria-label={`Sửa nội dung: ${row.task.text}`}
-                    className={FIELD}
+                    className={cn(FIELD, 'w-full min-w-0')}
                     required
                     value={editText}
                     onChange={(event) => setEditText(event.target.value)}
                   />
                 </label>
-                <label className="flex flex-col gap-1 text-small text-text-2">
+                <label className="flex min-w-0 flex-col gap-1 text-small text-text-2">
                   Hạn (để trống nếu không hạn)
                   <input
                     aria-label={`Sửa hạn: ${row.task.text}`}
-                    className={FIELD}
+                    className={cn(FIELD, 'w-full min-w-0')}
                     type="datetime-local"
                     value={editDue}
                     onChange={(event) => setEditDue(event.target.value)}
                   />
                 </label>
-                <Button type="submit" variant="primary" disabled={busy}>
-                  Lưu sửa
-                </Button>
-                <Button type="button" disabled={busy} onClick={() => setShowEdit(false)}>
-                  Huỷ
-                </Button>
+                <div className="flex flex-wrap gap-1.5">
+                  <Button type="submit" variant="primary" disabled={busy} className="min-h-9">
+                    Lưu sửa
+                  </Button>
+                  <Button type="button" disabled={busy} className="min-h-9" onClick={() => setShowEdit(false)}>
+                    Huỷ
+                  </Button>
+                </div>
               </form>
             )}
             {/* Delete stays unavailable until v1 can read a tombstone without treating it as completed. */}
-            {!showSnooze ? (
-              <Button disabled={busy} onClick={() => setShowSnooze(true)}>
-                Dời
-              </Button>
-            ) : (
+            {showSnooze && (
               <form
-                className="flex flex-wrap items-end gap-2"
+                className="flex min-w-0 flex-col gap-2"
                 onSubmit={(event) => {
                   event.preventDefault();
                   if (!snoozeDue) return;
@@ -200,22 +217,22 @@ function TaskCard({
                   setShowSnooze(false);
                 }}
               >
-                <label className="flex flex-col gap-1 text-small text-text-2">
+                <label className="flex min-w-0 flex-col gap-1 text-small text-text-2">
                   Hạn mới
                   <input
                     aria-label={`Hạn mới: ${row.task.text}`}
-                    className={FIELD}
+                    className={cn(FIELD, 'w-full min-w-0')}
                     type="datetime-local"
                     required
                     value={snoozeDue}
                     onChange={(event) => setSnoozeDue(event.target.value)}
                   />
                 </label>
-                <label className="flex flex-col gap-1 text-small text-text-2">
+                <label className="flex min-w-0 flex-col gap-1 text-small text-text-2">
                   Lý do dời
                   <select
                     aria-label={`Lý do dời: ${row.task.text}`}
-                    className={FIELD}
+                    className={cn(FIELD, 'w-full min-w-0')}
                     value={snoozeReason}
                     onChange={(event) => setSnoozeReason(event.target.value)}
                   >
@@ -224,12 +241,14 @@ function TaskCard({
                     <option>Chờ thông tin</option>
                   </select>
                 </label>
-                <Button type="submit" variant="primary" disabled={busy}>
-                  Lưu hạn mới
-                </Button>
-                <Button type="button" onClick={() => setShowSnooze(false)}>
-                  Huỷ
-                </Button>
+                <div className="flex flex-wrap gap-1.5">
+                  <Button type="submit" variant="primary" disabled={busy} className="min-h-9">
+                    Lưu hạn mới
+                  </Button>
+                  <Button type="button" className="min-h-9" onClick={() => setShowSnooze(false)}>
+                    Huỷ
+                  </Button>
+                </div>
               </form>
             )}
           </div>
@@ -328,11 +347,8 @@ function TasksPage() {
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-4 p-4 pb-24">
-      <header className="flex flex-wrap items-end justify-between gap-2">
-        <div>
-          <h1 className="text-title">Công việc</h1>
-          <p className="text-small text-text-2">{rows.length} việc · Em hứa và Khách hẹn</p>
-        </div>
+      <header className="flex flex-wrap items-end justify-between gap-2 px-1">
+        <p className="text-small text-text-2">{rows.length} việc · Em hứa và Khách hẹn</p>
         <p className="text-small text-text-2">{sync.pending ? `${sync.pending} thay đổi chờ đồng bộ` : 'Đã đồng bộ'}</p>
       </header>
       <section className="rounded-card border border-border bg-surface p-3">
@@ -511,23 +527,19 @@ function TasksPage() {
           }
         />
       ) : (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-5">
           {TASK_GROUPS.map((group) => {
             const grouped = rows.filter((row) => row.group === group.id);
             if (!grouped.length) return null;
             return (
-              <section
-                key={group.id}
-                aria-labelledby={`tasks-${group.id}`}
-                className="overflow-hidden rounded-card border border-border bg-surface shadow-card"
-              >
-                <header className="flex items-center justify-between gap-2 border-b border-border px-3 py-3 sm:px-4">
-                  <h2 id={`tasks-${group.id}`} className="text-heading">
+              <section key={group.id} aria-labelledby={`tasks-${group.id}`} className="flex flex-col gap-2">
+                <header className="flex items-center justify-between gap-2 px-1">
+                  <h2 id={`tasks-${group.id}`} className="text-section">
                     {group.label}
                   </h2>
                   <Badge variant="count">{grouped.length}</Badge>
                 </header>
-                <ul className="divide-y divide-border">
+                <ul className="flex flex-col gap-2">
                   {grouped.map((row) => {
                     const { customer, group: id } = row;
                     const task = row.type === 'task' ? row.task : null;
