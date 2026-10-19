@@ -75,9 +75,7 @@ export function InsightsPage() {
         <h2 id="improve-title" className="text-heading">
           Cần cải thiện
         </h2>
-        <p className="mb-3 text-small text-text-2">
-          Quan sát theo quy tắc với ngưỡng mẫu của v1; không suy ra quan hệ nhân quả.
-        </p>
+        <p className="mb-3 text-small text-text-2">Quan sát theo quy tắc khi đủ mẫu; không suy ra quan hệ nhân quả.</p>
         {observations.top.length ? (
           <ul className="flex flex-col divide-y divide-border">
             {observations.top.map((item) => (

@@ -8,7 +8,7 @@ import {
 } from '@/config/stages';
 import type { Customer } from '@/domain/customer';
 import { isQualified, leadStatus, normStage, openTasksOf, sourceListOf } from '@/domain/customer/normalize';
-import { callReminder } from '@/domain/deadlines';
+import { callReminder, fmtClock } from '@/domain/deadlines';
 import { apartmentGroup, compile, match, prepare, type SearchDoc } from '@/domain/search/search';
 import { lastTouchMs } from '@/domain/signals';
 
@@ -200,7 +200,7 @@ export function listCardSub(c: Customer, now: number): ListCardSub {
   let lead: ListCardSub['lead'];
   if (reminder?.state === 'missed') lead = { text: `Quên gọi ${reminder.text.replace('quên gọi ', '')}`, tone: 'over' };
   else if (reminder?.state === 'due') lead = { text: 'Đến giờ gọi', tone: 'soon' };
-  else if (reminder) lead = { text: reminder.text };
+  else if (reminder) lead = { text: `Hẹn gọi ${fmtClock(reminder.sort)}` };
   else {
     const last = lastTouchMs(c);
     if (last) lead = { text: relativeAgo(last, now) };

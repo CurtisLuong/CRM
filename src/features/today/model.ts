@@ -373,7 +373,8 @@ export function todayCard(row: QueueRow, now: number): TodayCard {
     } else {
       when = { text: stamp, state: 'plain' };
     }
-    if (when.state !== 'plain') when.text = `${when.text} · hạn ${stamp}`;
+    // Hạn trong hôm nay mới kèm giờ; hạn ngày khác chỉ nói "Quá N ngày" để dòng không bị cắt.
+    if (when.state !== 'plain' && day === 'Hôm nay') when.text = `${when.text} · hạn ${clock}`;
   }
 
   // Cấp 2.

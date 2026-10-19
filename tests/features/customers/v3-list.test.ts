@@ -36,6 +36,12 @@ describe('listCardSub', () => {
     });
   });
 
+  it('hẹn gọi trong 24 giờ tới → "Hẹn gọi HH:mm", không màu', () => {
+    expect(listCardSub(c({ next_call_at: at(19, 14), next_call_end: at(19, 15) }), now).lead).toEqual({
+      text: 'Hẹn gọi 14:00',
+    });
+  });
+
   it('không hẹn → lần liên hệ cuối tương đối; bậc + loại căn', () => {
     expect(
       listCardSub(

@@ -117,6 +117,11 @@ describe('todayCard — thời hạn (D-010: quá hạn sau mốc + 30 phút)', 
     expect(card.when).toEqual({ text: '14:00', state: 'plain' });
   });
 
+  it('hạn ngày khác → chỉ "Quá N ngày" (không kèm giờ, để dòng không bị cắt)', () => {
+    const card = todayCard(row({ due: new Date(2026, 9, 17, 10, 0).getTime() }), now);
+    expect(card.when).toEqual({ text: 'Quá 2 ngày', state: 'over' });
+  });
+
   it('không có hạn → không dòng thời hạn', () => {
     expect(todayCard(row({ due: undefined }), now).when).toBeUndefined();
   });
