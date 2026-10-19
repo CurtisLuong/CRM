@@ -15,6 +15,11 @@ export const SIGNALS_CONFIG = {
   postPurchaseMilestoneWindowDays: 0,
   nurtureCallbackReminderDays: 3,
   groupOrder: ['due', 'sla', 'tasks', 'today', 'new', 'retry', 'decide', 'pending', 'hot', 'warm', 'nonext'] as const,
+  // Hôm nay v3 (D-023): nhóm gấp nhất hiện thẻ đầy đủ; nhóm ít gấp thu gọn thành dòng mở rộng; còn lại thẻ gọn.
+  todayFullGroups: ['due', 'sla', 'new'] as const,
+  todayCollapsedGroups: ['hot', 'warm', 'nonext'] as const,
+  // Thẻ gọn trong một nhóm: hiện tối đa N, còn lại sau "Xem thêm".
+  todayCompactLimit: 5,
 };
 export type SignalGroup = (typeof SIGNALS_CONFIG.groupOrder)[number];
 export const SIGNAL_GROUPS: Record<SignalGroup, { title: string; contact: boolean }> = {

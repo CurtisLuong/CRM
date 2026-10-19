@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FeatureRoute } from '@/app/routes';
 import { useAppSession } from '@/app/session';
-import { CLOSE_REASONS, LEAD_DROP_REASONS } from '@/config/reasons';
-import { VELOCITY_CONFIG } from '@/config/velocity';
 import { useCustomers, useRepositoryAccount, useSyncStatus } from '@/data/hooks';
 import type { Customer, Task } from '@/domain/customer';
 import { snoozePromise, undoPromiseSnooze } from '@/domain/deadlines/promises';
@@ -15,6 +13,8 @@ import {
   capacityPlan,
   capacitySnoozeCandidates,
   endOfDaySummary,
+  formatDue,
+  formatSignalEvidence,
   nextCallSlotStart,
   type QueueFilter,
   queueRows,
@@ -27,82 +27,6 @@ const FILTERS: { key: QueueFilter; label: string }[] = [
   { key: 'promise', label: 'Lời hứa' },
   { key: 'opportunity', label: 'Cơ hội' },
 ];
-const formatDue = (due?: number) =>
-  due == null ? 'Chưa có hạn' : new Date(due).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' });
-
-const EVIDENCE_LABELS: Record<string, string> = {
-  registered_at: 'Ngày đăng ký',
-  created_at: 'Ngày tạo',
-  sla_anchor_at: 'Mốc tính SLA',
-  next_call_at: 'Hẹn gọi',
-  next_call_end: 'Kết thúc khung gọi',
-  next_call_reason: 'Lý do hẹn gọi',
-  care_stage_updated_at: 'Cập nhật bậc',
-  care_stage: 'Bậc chăm sóc',
-  lastTouch: 'Liên hệ cuối',
-  lastInteraction: 'Trao đổi cuối',
-  last_touch_at: 'Liên hệ cuối',
-  interest_level: 'Mức quan tâm',
-  step: 'Bước hồ sơ',
-  phase: 'Giai đoạn',
-  start: 'Bắt đầu giai đoạn',
-  due: 'Hạn',
-  due_at: 'Hạn',
-  after: 'Ngày retarget',
-  reason: 'Lý do',
-  project_view_at: 'Ngày xem dự án',
-  project_view: 'Lần xem dự án',
-  finance: 'Tài chính',
-  purpose: 'Mục đích mua',
-  decision_maker: 'Người quyết định',
-  purchase_timeline: 'Thời điểm mua',
-};
-const EVIDENCE_DATES = new Set([
-  'registered_at',
-  'created_at',
-  'sla_anchor_at',
-  'next_call_at',
-  'next_call_end',
-  'care_stage_updated_at',
-  'lastTouch',
-  'lastInteraction',
-  'last_touch_at',
-  'start',
-  'due',
-  'due_at',
-  'after',
-  'project_view_at',
-]);
-
-/** Display only evidence with a known label and a readable value; never stringify structured records. */
-export function formatSignalEvidence(evidence: Signal['evidence']): string[] {
-  return evidence.flatMap(({ field, value }) => {
-    const label = EVIDENCE_LABELS[field];
-    if (!label || value == null || (typeof value !== 'string' && typeof value !== 'number')) return [];
-    let formatted: string;
-    if (EVIDENCE_DATES.has(field)) {
-      const timestamp = typeof value === 'number' ? value : Date.parse(value);
-      if (!Number.isFinite(timestamp) || !Number.isFinite(new Date(timestamp).getTime())) return [];
-      formatted = formatDue(timestamp);
-    } else if (field === 'step') {
-      const step = VELOCITY_CONFIG.bookingSteps.find((entry) => entry.key === value);
-      if (!step) return [];
-      formatted = step.label;
-    } else if (field === 'phase') {
-      const phase = Object.entries(VELOCITY_CONFIG.phases).find(([key]) => key === value)?.[1];
-      if (!phase) return [];
-      formatted = phase.label;
-    } else if (typeof value === 'number') {
-      if (!Number.isFinite(value)) return [];
-      formatted = `${value.toLocaleString('vi-VN')}${field === 'interest_level' ? '%' : ''}`;
-    } else {
-      const text = value.trim();
-      formatted = field === 'reason' ? CLOSE_REASONS[text] || LEAD_DROP_REASONS[text] || text : text;
-      if (!formatted || formatted.includes('[object Object]') || /^\d{4}-\d{2}-\d{2}T/.test(formatted)) return [];
-    }
-    return [`${label}: ${formatted}`];
-  });
-}
 
 function SignalActions({ signal, customer }: { signal: Signal; customer: Customer }) {
   const account = useRepositoryAccount();
@@ -533,3 +457,5 @@ export function TodayPage() {
 }
 
 export const route: FeatureRoute = { path: '/today', element: <TodayPage />, handle: { title: 'Hôm nay' } };
+
+export { formatSignalEvidence };
