@@ -11,26 +11,35 @@ const STICKY_BG = 'bg-surface/85 backdrop-blur-md supports-[not(backdrop-filter:
 export type ActionItem = { icon: IconName; label: string; onClick: () => void; disabled?: boolean };
 
 /** Thanh dính đáy hồ sơ/sheet: Gọi · Zalo · Ghi chú · Hẹn — 4 ô đều, icon + nhãn. */
+/**
+ * Thanh 4 hành động liên hệ (DESIGN_SYSTEM v4 §4, D-023). Hành động đầu (Gọi) là chính: nền accent, rộng hơn.
+ * Mobile: cố định ở đáy, thay thanh điều hướng (route đặt `handle.hideNav`). Desktop ≥1024: hàng nút trong nội dung.
+ */
 export function ActionBar({ actions, className }: { actions: ActionItem[]; className?: string }) {
   return (
     <nav
       aria-label="Hành động nhanh"
       className={cn(
-        'sticky bottom-0 z-20 grid border-t border-border pb-[env(safe-area-inset-bottom)] shadow-e2',
+        'fixed inset-x-0 bottom-0 z-30 grid gap-2 border-t border-hairline px-3 pt-2 pb-[calc(8px+env(safe-area-inset-bottom))]',
         STICKY_BG,
+        'lg:static lg:z-auto lg:flex lg:flex-wrap lg:border-0 lg:bg-transparent lg:p-0 lg:backdrop-blur-none',
         className,
       )}
-      style={{ gridTemplateColumns: `repeat(${actions.length}, minmax(0, 1fr))` }}
+      style={{ gridTemplateColumns: `1.4fr repeat(${Math.max(0, actions.length - 1)}, minmax(0, 1fr))` }}
     >
-      {actions.map((a) => (
+      {actions.map((a, i) => (
         <button
           key={a.label}
           type="button"
           onClick={a.onClick}
           disabled={a.disabled}
-          className="flex min-h-14 flex-col items-center justify-center gap-0.5 text-label text-text hover:bg-surface-2 disabled:opacity-50"
+          className={cn(
+            'flex min-h-12 flex-col items-center justify-center gap-0.5 rounded-control text-label font-medium disabled:opacity-50',
+            'lg:min-h-10 lg:flex-row lg:gap-2 lg:px-4 lg:text-body-strong',
+            i === 0 ? 'bg-accent text-accent-fg hover:brightness-110' : 'bg-surface-2 text-text hover:bg-surface-3',
+          )}
         >
-          <Icon name={a.icon} size={24} />
+          <Icon name={a.icon} size={20} />
           {a.label}
         </button>
       ))}
@@ -66,11 +75,12 @@ export function SyncIndicator({
     <>
       <span className={cn('size-2 shrink-0 rounded-full', dot)} aria-hidden />
       {state.kind === 'offline' && <Icon name="offline" size={16} />}
-      <span className={cn('truncate', state.kind === 'synced' && 'font-data')}>{text}</span>
+      {/* v4 (D-023): mobile chỉ hiện chấm — chữ vẫn là tên truy cập, không chiếm chỗ tiêu đề. */}
+      <span className={cn('sr-only lg:not-sr-only lg:truncate', state.kind === 'synced' && 'font-data')}>{text}</span>
     </>
   );
   const cls = cn(
-    'inline-flex min-h-11 items-center gap-1.5 whitespace-nowrap text-small text-text-2',
+    'inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 whitespace-nowrap text-small text-text-2 lg:justify-start',
     state.kind === 'error' && 'text-danger',
     className,
   );
@@ -106,7 +116,7 @@ export function Header({
   return (
     <header
       className={cn(
-        'sticky top-0 z-30 flex items-center gap-2 border-b border-border px-4 pt-[env(safe-area-inset-top)]',
+        'sticky top-0 z-30 flex items-center gap-2 border-b border-hairline px-4 pt-[env(safe-area-inset-top)]',
         compact ? 'h-12' : 'h-14',
         STICKY_BG,
         className,
@@ -180,7 +190,7 @@ export function BottomNav({
     <nav
       aria-label="Điều hướng chính"
       className={cn(
-        'fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 items-center border-t border-border pb-[env(safe-area-inset-bottom)]',
+        'fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 items-center border-t border-hairline pb-[env(safe-area-inset-bottom)]',
         STICKY_BG,
         className,
       )}

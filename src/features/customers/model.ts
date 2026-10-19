@@ -1,5 +1,6 @@
 import {
   CARE_DONE_STAGES,
+  CARE_STAGE_DISPLAY,
   CARE_STAGE_DROPPED,
   CARE_STAGE_NURTURE,
   CARE_STAGE_OPTIONS,
@@ -7,7 +8,9 @@ import {
 } from '@/config/stages';
 import type { Customer } from '@/domain/customer';
 import { isQualified, leadStatus, normStage, openTasksOf, sourceListOf } from '@/domain/customer/normalize';
+import { callReminder, fmtClock } from '@/domain/deadlines';
 import { apartmentGroup, compile, match, prepare, type SearchDoc } from '@/domain/search/search';
+import { lastTouchMs } from '@/domain/signals';
 
 export type CustomerGroup = 'potential' | 'new' | 'team';
 export type CustomerFilters = {
@@ -142,6 +145,16 @@ export function sortCustomers(rows: readonly Customer[], rules: readonly SortRul
   });
 }
 
+/** Số khách theo nhóm chip đầu danh sách: của tôi (tiềm năng/khách mới) + khách đồng nghiệp. */
+export function customerGroupCounts(customers: readonly Customer[], ownerId: string) {
+  const own = customers.filter((c) => c.owner_id === ownerId);
+  return {
+    potential: own.filter((c) => isQualified(c)).length,
+    leads: own.filter((c) => !isQualified(c)).length,
+    team: customers.filter((c) => c.owner_id && c.owner_id !== ownerId).length,
+  };
+}
+
 export function dateRange(preset: CustomerFilters['date'], now: Date): { start: number; end: number } | null {
   if (preset === 'all') return null;
   const start = new Date(now);
@@ -153,4 +166,47 @@ export function dateRange(preset: CustomerFilters['date'], now: Date): { start: 
   if (preset === 'week') end.setDate(end.getDate() + 7);
   if (preset === 'month') end.setMonth(end.getMonth() + 1);
   return { start: start.getTime(), end: end.getTime() };
+}
+
+// ── Danh sách v3 (D-023): dòng phụ của thẻ gọn. Trạng thái hạn ĐỨNG ĐẦU để không bị cắt. ──
+
+const DAY_MS = 86_400_000;
+
+/** "Hôm nay", "Hôm qua", "N ngày trước", "N tuần trước", "N tháng trước" theo ngày lịch máy. */
+export function relativeAgo(ms: number, now: number): string {
+  const day = (t: number) => {
+    const d = new Date(t);
+    d.setHours(0, 0, 0, 0);
+    return d.getTime();
+  };
+  const days = Math.round((day(now) - day(ms)) / DAY_MS);
+  if (days <= 0) return 'Hôm nay';
+  if (days === 1) return 'Hôm qua';
+  if (days < 7) return `${days} ngày trước`;
+  if (days < 30) return `${Math.floor(days / 7)} tuần trước`;
+  return `${Math.floor(days / 30)} tháng trước`;
+}
+
+export type ListCardSub = {
+  /** Phần đầu: hạn gọi (callReminder, D-010) hoặc lần liên hệ cuối. */
+  lead?: { text: string; tone?: 'over' | 'soon' };
+  /** Bậc · dự án/loại căn. */
+  rest: string;
+};
+
+/** Dòng phụ thẻ khách trong danh sách. Không có gì → rest có thể rỗng. */
+export function listCardSub(c: Customer, now: number): ListCardSub {
+  const reminder = callReminder(c, now);
+  let lead: ListCardSub['lead'];
+  if (reminder?.state === 'missed') lead = { text: `Quên gọi ${reminder.text.replace('quên gọi ', '')}`, tone: 'over' };
+  else if (reminder?.state === 'due') lead = { text: 'Đến giờ gọi', tone: 'soon' };
+  else if (reminder) lead = { text: `Hẹn gọi ${fmtClock(reminder.sort)}` };
+  else {
+    const last = lastTouchMs(c);
+    if (last) lead = { text: relativeAgo(last, now) };
+  }
+  const stage = normStage(c.care_stage) || '';
+  const project = (Array.isArray(c.projects) ? c.projects : []).find(Boolean) || '';
+  const rest = [CARE_STAGE_DISPLAY[stage] || stage, project || c.apt_type || ''].filter(Boolean).join(' · ');
+  return { lead, rest };
 }

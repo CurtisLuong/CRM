@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hướng thiết kế — so sánh</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<script src="icons.js"></script>
+<style>
+/* So sánh 4 ngôn ngữ thiết kế trên CÙNG nội dung. Chỉ để duyệt, không phải code app. */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #cfd5dd; font-family: system-ui; padding: 24px; color: #111; }
+:root[data-theme="dark"] body { background: #2a2f36; color: #eee; }
+.wrap { display: flex; gap: 24px; align-items: flex-start; }
+.col h2 { font: 600 18px/24px system-ui; margin-bottom: 4px; }
+.col p.sub { font: 400 13px/18px system-ui; opacity: .75; margin-bottom: 10px; max-width: 360px; }
+.phone { width: 360px; height: 780px; overflow: hidden; border-radius: 22px; position: relative; }
+.i { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.i-16 { width: 16px; height: 16px; }
+button { font: inherit; color: inherit; background: none; border: 0; }
+
+/* ── Khung chung, biến theo hướng ── */
+.phone { background: var(--bg); color: var(--text); font-family: var(--font); }
+.hd { height: 52px; display: flex; align-items: center; padding: 0 16px; gap: 8px; border-bottom: 1px solid var(--line); background: var(--bg); }
+.hd h1 { flex: 1; font-size: 20px; font-weight: 650; letter-spacing: var(--title-track, 0); }
+.hd .dot { width: 8px; height: 8px; border-radius: 99px; background: var(--ok); }
+.content { padding: 12px 16px; }
+.sum { display: flex; justify-content: space-between; font-size: 13px; color: var(--text2); margin-bottom: 14px; }
+.sum b { color: var(--danger); font-weight: 600; }
+.sec { display: flex; align-items: baseline; gap: 8px; margin: 0 2px 10px; }
+.sec h2 { font-size: var(--sec-size, 13px); font-weight: 600; color: var(--text2); letter-spacing: var(--sec-track, 0); }
+.sec .n { font-size: 12px; font-weight: 600; color: var(--text3); }
+.list { display: flex; flex-direction: column; gap: var(--gap); }
+.cc { background: var(--card); border: var(--card-border); border-radius: var(--r); padding: var(--pad); position: relative; box-shadow: var(--shadow, none); }
+.cc-top { display: flex; align-items: flex-start; gap: 12px; }
+.cc-id { flex: 1; min-width: 0; }
+.cc-name { font-size: var(--name-size); line-height: 1.3; font-weight: var(--name-w); letter-spacing: var(--name-track, 0); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cc-urg { font-size: 13px; color: var(--text2); margin-top: 2px; }
+.cc-urg .u { color: var(--danger); font-weight: 600; }
+.cc-call { flex: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-weight: 600; font-size: 15px; }
+.cc-data { display: grid; grid-template-columns: 1.4fr 1fr; gap: 8px 12px; margin-top: 12px; }
+.cc-data dt { font-size: 11.5px; color: var(--text3); font-weight: 500; }
+.cc-data dd { font-size: 13.5px; color: var(--text); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cc-note { font-size: 13.5px; line-height: 19px; color: var(--text2); margin-top: 10px; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+.cc-sla { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 12.5px; color: var(--text2); }
+.cc-sla .bar { flex: 1; height: var(--bar-h, 4px); background: var(--track); border-radius: 99px; overflow: hidden; display: block; }
+.cc-sla .bar i { display: block; height: 100%; background: var(--bar); border-radius: 99px; }
+.cc-sla .val { font-weight: 600; color: var(--text); }
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.nav { position: absolute; left: 0; right: 0; bottom: 0; height: 64px; background: var(--bg); border-top: 1px solid var(--line); display: grid; grid-template-columns: repeat(5, 1fr); align-items: center; justify-items: center; color: var(--text3); font-size: 11px; }
+.nav .on { color: var(--accent); }
+.nav .p { width: 46px; height: 46px; border-radius: var(--plus-r, 16px); background: var(--accent); color: var(--on-accent); display: grid; place-items: center; }
+.nav span { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+
+/* ── A. Swiss Precision (Swiss typographic + IBM Carbon) ── */
+.A { --font: "IBM Plex Sans", sans-serif; --mono: "IBM Plex Mono", monospace;
+  --bg: #ffffff; --card: #ffffff; --text: #0b0b0c; --text2: #4a4f57; --text3: #6b717a; --line: #e2e4e8; --track: #e6e8eb; --bar: #0b0b0c;
+  --danger: #c4161c; --ok: #198038; --accent: #0b0b0c; --on-accent: #fff;
+  --gap: 0px; --r: 0; --pad: 14px 0 16px; --card-border: 0; --name-size: 19px; --name-w: 600; --name-track: -0.01em; --bar-h: 2px; --plus-r: 4px; }
+.A .cc { border-top: 2px solid var(--text); }
+.A .cc + .cc { margin-top: 6px; }
+.A .cc-call { height: 40px; padding: 0 16px; background: var(--text); color: var(--bg); border-radius: 2px; }
+.A .cc-data { grid-template-columns: 1fr 1fr; border-top: 1px solid var(--line); padding-top: 10px; }
+.A .cc-data dd { font-family: var(--mono); font-size: 13px; }
+:root[data-theme="dark"] .A { --bg: #0b0b0c; --card: #0b0b0c; --text: #f2f3f5; --text2: #b3b8c0; --text3: #8d939c; --line: #2a2d32; --track: #2a2d32; --bar: #f2f3f5; --danger: #ff6b6b; --ok: #42be65; --accent: #f2f3f5; --on-accent: #0b0b0c; }
+
+/* ── B. Expressive Tonal (Material 3 Expressive) ── */
+.B { --font: "Be Vietnam Pro", sans-serif; --mono: "Be Vietnam Pro", sans-serif;
+  --bg: #f4f2f8; --card: #ffffff; --text: #1b1b21; --text2: #46464f; --text3: #5e5e68; --line: #e6e3ee; --track: #e8e5f2; --bar: #4b57d1;
+  --danger: #b3261e; --ok: #2e7d32; --accent: #4b57d1; --on-accent: #fff;
+  --gap: 12px; --r: 26px; --pad: 16px; --card-border: 0; --name-size: 19px; --name-w: 700; --bar-h: 8px; --plus-r: 18px; }
+.B .cc-urg { display: inline-flex; gap: 6px; align-items: center; margin-top: 6px; padding: 3px 10px; border-radius: 99px; background: #fde7e6; }
+.B .cc-call { height: 52px; min-width: 88px; padding: 0 18px; border-radius: 99px; background: var(--accent); color: #fff; font-size: 16px; }
+.B .cc-data { background: var(--bg); border-radius: 16px; padding: 10px 12px; }
+:root[data-theme="dark"] .B { --bg: #131318; --card: #1f1f26; --text: #e5e1ec; --text2: #c7c5d0; --text3: #a19fab; --line: #2b2a33; --track: #34333e; --bar: #b9c3ff; --danger: #ffb4ab; --ok: #7fd387; --accent: #b9c3ff; --on-accent: #1b2678; }
+:root[data-theme="dark"] .B .cc-urg { background: #5c1c18; }
+:root[data-theme="dark"] .B .cc-call { color: #1b2678; }
+
+/* ── C. Dark Console (Linear / Vercel Geist) ── */
+.C { --font: "Inter", sans-serif; --mono: "JetBrains Mono", monospace;
+  --bg: #fbfbfc; --card: #ffffff; --text: #0f1011; --text2: #4d5157; --text3: #6a6f76; --line: #e7e8ea; --track: #eceef0; --bar: #5e6ad2;
+  --danger: #d4372c; --ok: #26a269; --accent: #5e6ad2; --on-accent: #fff;
+  --gap: 8px; --r: 10px; --pad: 12px 12px 12px 14px; --card-border: 1px solid var(--line); --name-size: 15.5px; --name-w: 600; --name-track: -0.011em; --title-track: -0.02em; --bar-h: 6px; --plus-r: 10px; }
+.C .cc-call { width: 40px; height: 40px; border-radius: 8px; border: 1px solid var(--line); color: var(--accent); }
+.C .cc-call span { display: none; }
+.C .cc-data { grid-template-columns: auto 1fr; gap: 4px 10px; margin-top: 10px; }
+.C .cc-data div { display: contents; }
+.C .cc-data dt { font-family: var(--mono); font-size: 11px; line-height: 19px; }
+.C .cc-data dd { font-size: 13px; }
+.C .cc-sla .bar { background: repeating-linear-gradient(90deg, var(--track) 0 12px, transparent 12px 15px); border-radius: 2px; }
+.C .cc-sla .bar i { background: repeating-linear-gradient(90deg, var(--bar) 0 12px, transparent 12px 15px); border-radius: 2px; }
+:root[data-theme="dark"] .C { --bg: #08090a; --card: #101113; --text: #f7f8f8; --text2: #b4b8bf; --text3: #8a8f98; --line: #23252a; --track: #23252a; --bar: #828fff; --danger: #ff7369; --ok: #4cb782; --accent: #828fff; --on-accent: #08090a; }
+:root[data-theme="dark"] .C .cc { box-shadow: inset 0 1px 0 rgb(255 255 255 / .04); }
+
+/* ── D. ĐỀ XUẤT: "Precision Tonal" = phân cấp của M3 Expressive + vẻ tĩnh, đơn sắc, số liệu kiểu Linear/Carbon ── */
+.D { --font: "Be Vietnam Pro", sans-serif; --mono: "JetBrains Mono", monospace;
+  --bg: #f2f4f7; --card: #ffffff; --text: #0d1117; --text2: #444c56; --text3: #5d6672; --line: #e3e7ec; --track: #e7ebf0; --bar: #0d1117;
+  --danger: #c0262d; --ok: #1a7f4b; --accent: #2b5cff; --on-accent: #fff;
+  --gap: 10px; --r: 18px; --pad: 14px 14px 12px 16px; --card-border: 1px solid var(--line); --name-size: 18px; --name-w: 650; --name-track: -0.01em; --bar-h: 6px; --plus-r: 16px;
+  --shadow: 0 1px 2px rgb(13 17 23 / .05); }
+.D .cc { overflow: hidden; }
+.D .cc::before { content: ""; position: absolute; left: 0; top: 14px; bottom: 14px; width: 3px; border-radius: 0 3px 3px 0; background: var(--danger); }
+.D .cc-call { height: 48px; padding: 0 18px; border-radius: 14px; background: var(--accent); color: var(--on-accent); }
+.D .cc-data { grid-template-columns: 1.5fr 1fr; padding-top: 10px; border-top: 1px solid var(--line); }
+.D .cc-data dd .mono { font-size: 12.5px; }
+.D .cc-sla .bar { background: repeating-linear-gradient(90deg, var(--track) 0 calc(14.28% - 3px), transparent calc(14.28% - 3px) 14.28%); border-radius: 2px; }
+.D .cc-sla .bar i { background: repeating-linear-gradient(90deg, var(--bar) 0 calc(var(--seg) - 3px), transparent calc(var(--seg) - 3px) var(--seg)); --seg: 20.4%; border-radius: 2px; }
+:root[data-theme="dark"] .D { --bg: #0a0d12; --card: #121821; --text: #edf1f6; --text2: #aab4c0; --text3: #8893a1; --line: #222b37; --track: #222b37; --bar: #edf1f6; --danger: #ff6e6e; --ok: #4fd08e; --accent: #6f8fff; --on-accent: #0a0d12; --shadow: none; }
+</style>
+</head>
+<body>
+<div class="wrap" id="wrap"></div>
+<template id="screen">
+  <div class="phone">
+    <header class="hd"><h1>Hôm nay</h1><svg class="i"><use href="#search"/></svg><span class="dot"></span></header>
+    <div class="content">
+      <div class="sum"><span>Thứ Hai 19/10 · 14 việc · ~70 phút</span><b>3 quá hạn</b></div>
+      <div class="sec"><h2>Quá giờ hẹn gọi</h2><span class="n">3</span></div>
+      <div class="list">
+        <article class="cc">
+          <div class="cc-top">
+            <div class="cc-id"><h3 class="cc-name">Bùi Thị Hồng Nhung</h3><div class="cc-urg"><span class="u">Quá 1 giờ</span> · hẹn <span class="mono">08:30</span></div></div>
+            <button class="cc-call" aria-label="Gọi Bùi Thị Hồng Nhung"><svg class="i"><use href="#phone"/></svg><span>Gọi</span></button>
+          </div>
+          <dl class="cc-data">
+            <div><dt>Gọi gần nhất</dt><dd>Hôm qua <span class="mono">15:00</span> · Không nghe</dd></div>
+            <div><dt>Đã gọi</dt><dd>3 lần</dd></div>
+          </dl>
+          <p class="cc-note">“Hỏi giá căn 2PN, muốn vay 70%”</p>
+          <div class="cc-sla"><span>Đang chăm sóc</span><span class="bar"><i style="width:71%"></i></span><span class="val">còn 2 ngày</span></div>
+        </article>
+        <article class="cc">
+          <div class="cc-top">
+            <div class="cc-id"><h3 class="cc-name">Hoàng Đức Thắng</h3><div class="cc-urg"><span class="u">Quá 40 phút</span> · hẹn <span class="mono">09:00</span></div></div>
+            <button class="cc-call" aria-label="Gọi Hoàng Đức Thắng"><svg class="i"><use href="#phone"/></svg><span>Gọi</span></button>
+          </div>
+          <dl class="cc-data">
+            <div><dt>Gọi gần nhất</dt><dd>16/10 <span class="mono">10:00</span> · Nói chuyện</dd></div>
+            <div><dt>Đã gọi</dt><dd>5 lần</dd></div>
+          </dl>
+          <p class="cc-note">“Muốn xem nhà mẫu cuối tuần, đi cùng vợ”</p>
+          <div class="cc-sla"><span>Xem dự án</span><span class="bar"><i style="width:40%"></i></span><span class="val">còn 3 ngày</span></div>
+        </article>
+        <article class="cc">
+          <div class="cc-top">
+            <div class="cc-id"><h3 class="cc-name">Trần Thị Thu Hương</h3><div class="cc-urg"><span class="u">Quá 25 phút</span> · hẹn <span class="mono">09:15</span></div></div>
+            <button class="cc-call" aria-label="Gọi Trần Thị Thu Hương"><svg class="i"><use href="#phone"/></svg><span>Gọi</span></button>
+          </div>
+          <dl class="cc-data">
+            <div><dt>Gọi gần nhất</dt><dd>Hôm qua <span class="mono">15:00</span> · Nói chuyện</dd></div>
+            <div><dt>Đã gọi</dt><dd>4 lần</dd></div>
+          </dl>
+          <p class="cc-note">“Hẹn sáng nay gọi lại báo giá”</p>
+          <div class="cc-sla"><span>Xem dự án</span><span class="bar"><i style="width:60%"></i></span><span class="val">còn 2 ngày</span></div>
+        </article>
+      </div>
+    </div>
+    <nav class="nav"><span class="on"><svg class="i"><use href="#home"/></svg>Hôm nay</span><span><svg class="i"><use href="#users"/></svg>Khách</span><span class="p"><svg class="i"><use href="#plus"/></svg></span><span><svg class="i"><use href="#task"/></svg>Việc</span><span><svg class="i"><use href="#chart"/></svg>Hiệu quả</span></nav>
+  </div>
+</template>
+<script>
+const dirs = [
+  ['A', 'A · Swiss Precision', 'Kiểu chữ Thuỵ Sĩ + IBM Carbon. Đen trắng, kẻ vạch, chữ làm chủ. Rất dễ đọc, nghiêm, ít "tương lai".'],
+  ['B', 'B · Expressive Tonal', 'Material 3 Expressive (Google). Khối bo tròn lớn, nút to có chữ, màu theo tầng. Nổi bật nhất, thân thiện, ít "công nghệ".'],
+  ['C', 'C · Dark Console', 'Linear / Vercel Geist. Tối giản, viền mảnh, số liệu đơn cách, nút nhỏ. Rất "tech", nhưng nút hành động chìm.'],
+  ['D', 'D · Precision Tonal — đề xuất', 'Lai B + C: phân cấp và nút Gọi to của Expressive, vẻ tĩnh đơn sắc + số liệu kiểu Linear/Carbon, vạch màu thời hạn bên trái.'],
+];
+const wrap = document.getElementById('wrap'), tpl = document.getElementById('screen');
+for (const [k, t, s] of dirs) {
+  const col = document.createElement('div'); col.className = 'col';
+  col.innerHTML = `<h2>${t}</h2><p class="sub">${s}</p>`;
+  const ph = tpl.content.cloneNode(true); ph.querySelector('.phone').classList.add(k);
+  col.appendChild(ph); wrap.appendChild(col);
+}
+</script>
+</body>
+</html>

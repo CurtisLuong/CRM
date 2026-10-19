@@ -1,5 +1,5 @@
 /**
- * Nút/vuốt Back của vỏ Android (architecture.md §7): MainActivity gọi `window.CRMBack()`;
+ * Nút/vuốt Back của vỏ Android (ARCHITECTURE.md §7): MainActivity gọi `window.CRMBack()`;
  * true = web đã lùi 1 bước, false = hết đường lùi → vỏ đưa app xuống nền. Trình duyệt thường không gọi.
  * Thứ tự: lớp nổi trên cùng (sheet/dialog/menu/palette) → lùi lịch sử trong app → về Hôm nay → hết.
  */

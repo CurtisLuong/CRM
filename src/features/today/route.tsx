@@ -1,160 +1,50 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router';
 import type { FeatureRoute } from '@/app/routes';
 import { useAppSession } from '@/app/session';
-import { CLOSE_REASONS, LEAD_DROP_REASONS } from '@/config/reasons';
-import { VELOCITY_CONFIG } from '@/config/velocity';
+import { SIGNALS_CONFIG } from '@/config/signals';
 import { useCustomers, useRepositoryAccount, useSyncStatus } from '@/data/hooks';
-import type { Customer, Task } from '@/domain/customer';
+import type { Task } from '@/domain/customer';
 import { snoozePromise, undoPromiseSnooze } from '@/domain/deadlines/promises';
 import { forStage } from '@/domain/followup';
-import type { Signal } from '@/domain/signals';
 import { applySlaPlan, planSlaAutomation, slaPlanMessage } from '@/domain/velocity/automation';
-import { QuickActionButtons } from '@/features/quick-actions/QuickActions';
-import { Badge, Button, EmptyState, Loading, Skeleton } from '@/ui';
+import { openQuickAction } from '@/features/quick-actions/store';
+import {
+  Button,
+  CardGroup,
+  CustomerCard,
+  type CustomerCardAction,
+  EmptyState,
+  Icon,
+  Loading,
+  SessionBar,
+  Skeleton,
+} from '@/ui';
 import {
   capacityPlan,
   capacitySnoozeCandidates,
   endOfDaySummary,
+  formatSignalEvidence,
+  groupQueue,
   nextCallSlotStart,
-  type QueueFilter,
+  type QueueRow,
   queueRows,
-  visibleQueue,
+  signalTask,
+  todayCard,
 } from './model';
-
-const FILTERS: { key: QueueFilter; label: string }[] = [
-  { key: 'priority', label: 'Ưu tiên' },
-  { key: 'new', label: 'Khách mới' },
-  { key: 'promise', label: 'Lời hứa' },
-  { key: 'opportunity', label: 'Cơ hội' },
-];
-const formatDue = (due?: number) =>
-  due == null ? 'Chưa có hạn' : new Date(due).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' });
-
-const EVIDENCE_LABELS: Record<string, string> = {
-  registered_at: 'Ngày đăng ký',
-  created_at: 'Ngày tạo',
-  sla_anchor_at: 'Mốc tính SLA',
-  next_call_at: 'Hẹn gọi',
-  next_call_end: 'Kết thúc khung gọi',
-  next_call_reason: 'Lý do hẹn gọi',
-  care_stage_updated_at: 'Cập nhật bậc',
-  care_stage: 'Bậc chăm sóc',
-  lastTouch: 'Liên hệ cuối',
-  lastInteraction: 'Trao đổi cuối',
-  last_touch_at: 'Liên hệ cuối',
-  interest_level: 'Mức quan tâm',
-  step: 'Bước hồ sơ',
-  phase: 'Giai đoạn',
-  start: 'Bắt đầu giai đoạn',
-  due: 'Hạn',
-  due_at: 'Hạn',
-  after: 'Ngày retarget',
-  reason: 'Lý do',
-  project_view_at: 'Ngày xem dự án',
-  project_view: 'Lần xem dự án',
-  finance: 'Tài chính',
-  purpose: 'Mục đích mua',
-  decision_maker: 'Người quyết định',
-  purchase_timeline: 'Thời điểm mua',
-};
-const EVIDENCE_DATES = new Set([
-  'registered_at',
-  'created_at',
-  'sla_anchor_at',
-  'next_call_at',
-  'next_call_end',
-  'care_stage_updated_at',
-  'lastTouch',
-  'lastInteraction',
-  'last_touch_at',
-  'start',
-  'due',
-  'due_at',
-  'after',
-  'project_view_at',
-]);
-
-/** Display only evidence with a known label and a readable value; never stringify structured records. */
-export function formatSignalEvidence(evidence: Signal['evidence']): string[] {
-  return evidence.flatMap(({ field, value }) => {
-    const label = EVIDENCE_LABELS[field];
-    if (!label || value == null || (typeof value !== 'string' && typeof value !== 'number')) return [];
-    let formatted: string;
-    if (EVIDENCE_DATES.has(field)) {
-      const timestamp = typeof value === 'number' ? value : Date.parse(value);
-      if (!Number.isFinite(timestamp) || !Number.isFinite(new Date(timestamp).getTime())) return [];
-      formatted = formatDue(timestamp);
-    } else if (field === 'step') {
-      const step = VELOCITY_CONFIG.bookingSteps.find((entry) => entry.key === value);
-      if (!step) return [];
-      formatted = step.label;
-    } else if (field === 'phase') {
-      const phase = Object.entries(VELOCITY_CONFIG.phases).find(([key]) => key === value)?.[1];
-      if (!phase) return [];
-      formatted = phase.label;
-    } else if (typeof value === 'number') {
-      if (!Number.isFinite(value)) return [];
-      formatted = `${value.toLocaleString('vi-VN')}${field === 'interest_level' ? '%' : ''}`;
-    } else {
-      const text = value.trim();
-      formatted = field === 'reason' ? CLOSE_REASONS[text] || LEAD_DROP_REASONS[text] || text : text;
-      if (!formatted || formatted.includes('[object Object]') || /^\d{4}-\d{2}-\d{2}T/.test(formatted)) return [];
-    }
-    return [`${label}: ${formatted}`];
-  });
-}
-
-function SignalActions({ signal, customer }: { signal: Signal; customer: Customer }) {
-  const account = useRepositoryAccount();
-  const [failure, setFailure] = useState('');
-  const taskEvidence = signal.evidence.find((entry) => entry.field === 'task')?.value as Partial<Task> | undefined;
-  const task = (Array.isArray(customer.next_tasks) ? customer.next_tasks : []).find(
-    (entry) =>
-      entry &&
-      !entry.done_at &&
-      ((!!taskEvidence?.key && entry.key === taskEvidence.key) ||
-        (!!taskEvidence?.at && entry.at === taskEvidence.at) ||
-        (!taskEvidence?.key &&
-          !taskEvidence?.at &&
-          entry.due === taskEvidence?.due &&
-          entry.text === taskEvidence?.text)),
-  );
-  const taskAt = task?.at;
-  const canComplete = !!account && account.sync.local.userId === customer.owner_id && !!taskAt;
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      <QuickActionButtons customer={customer} />
-      {signal.actions.includes('complete') && canComplete && (
-        <Button
-          onClick={() => {
-            if (!account || !taskAt) return;
-            void account.customers
-              .completeTask(customer.id, taskAt)
-              .catch((error) => setFailure(error instanceof Error ? error.message : 'Chưa hoàn tất được việc.'));
-          }}
-        >
-          Xong
-        </Button>
-      )}
-      {failure && (
-        <p role="alert" className="text-small text-danger">
-          {failure}
-        </p>
-      )}
-    </div>
-  );
-}
 
 export function TodayPage() {
   const { session, booting, error } = useAppSession();
   const account = useRepositoryAccount();
   const customers = useCustomers();
   const sync = useSyncStatus();
+  const navigate = useNavigate();
   const [notice, setNotice] = useState('');
   const [now, setNow] = useState(() => Date.now());
-  const [filter, setFilter] = useState<QueueFilter>('priority');
   const [sessionIndex, setSessionIndex] = useState<number | null>(null);
   const [showSummary, setShowSummary] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+  const [openCollapsed, setOpenCollapsed] = useState<Record<string, boolean>>({});
   const [email, setEmail] = useState(''),
     [password, setPassword] = useState(''),
     [loginError, setLoginError] = useState('');
@@ -195,14 +85,15 @@ export function TodayPage() {
     () => (account ? queueRows(customers, now, account.sync.local.userId) : []),
     [account, customers, now],
   );
-  const shown = visibleQueue(rows, filter);
   const plan = capacityPlan(rows, now);
   const snoozeCandidates = capacitySnoozeCandidates(plan.suggested, now);
   const summary = endOfDaySummary(customers, now);
-  const lateCount = rows.filter((row) => row.signal.due != null && row.signal.due < now).length;
-  const sessionRows = rows.filter((row) => row.signal.actions.includes('call'));
+  // Một định nghĩa quá hạn (D-010) và một quy tắc hành động (kể cả tín hiệu phụ) — cùng nguồn với thẻ.
+  const cards = new Map(rows.map((row) => [row, todayCard(row, now)]));
+  const lateCount = rows.filter((row) => cards.get(row)?.tone === 'over').length;
+  const sessionRows = rows.filter((row) => cards.get(row)?.action === 'call');
   const activeCall = sessionIndex == null ? null : (sessionRows[sessionIndex] ?? null);
-  const nbaEvidence = formatSignalEvidence(rows[0]?.signal.evidence ?? []);
+  const sessionMinutes = sessionRows.reduce((sum, row) => sum + row.minutes, 0);
   const afterEvening = new Date(now).getHours() >= 20 && new Date(now).getMinutes() >= 45;
 
   if (!account) {
@@ -264,49 +155,236 @@ export function TodayPage() {
     );
   }
 
+  const renderCard = (row: QueueRow, compact = false) => {
+    const { signal, customer } = row;
+    const card = todayCard(row, now);
+    const writable = account.sync.local.userId === customer.owner_id && !customer.archived_at;
+    const open = () => navigate(`/ho-so/${customer.id}`);
+    const action: CustomerCardAction =
+      card.action === 'call'
+        ? { label: 'Gọi', icon: 'call', onClick: () => openQuickAction(customer.id, 'call'), disabled: !writable }
+        : card.action === 'complete'
+          ? {
+              label: 'Xong',
+              icon: 'done',
+              disabled: !writable,
+              onClick: () => {
+                const task = signalTask(signal, customer);
+                if (!task?.at) return;
+                void account.customers
+                  .completeTask(customer.id, task.at)
+                  .catch(() => setNotice('Chưa hoàn tất được việc.'));
+              },
+            }
+          : card.action === 'outcome'
+            ? {
+                label: 'Ghi kết quả',
+                icon: 'note',
+                onClick: () => openQuickAction(customer.id, 'outcome'),
+                disabled: !writable,
+              }
+            : { label: 'Mở', icon: 'open', onClick: open };
+    const sub = card.when ? (
+      <>
+        <span
+          className={
+            card.when.state === 'over'
+              ? 'font-semibold text-danger'
+              : card.when.state === 'soon'
+                ? 'font-semibold text-warning'
+                : 'font-data'
+          }
+        >
+          {card.when.text}
+        </span>
+        {card.detail ? ` · ${card.detail}` : ''}
+      </>
+    ) : (
+      card.detail
+    );
+    return (
+      <CustomerCard
+        key={signal.dedupeKey}
+        name={customer.full_name}
+        tone={card.tone}
+        sub={sub}
+        onOpen={open}
+        action={action}
+        compact={compact}
+        facts={compact ? undefined : card.facts}
+        note={compact ? undefined : card.note}
+        sla={compact ? undefined : card.sla}
+      />
+    );
+  };
+
   return (
-    <main className="mx-auto flex max-w-3xl flex-col gap-4 p-4 pb-24">
-      <header className="flex flex-wrap items-end justify-between gap-2">
-        <div>
-          <h1 className="text-title">Hôm nay</h1>
-          <p className="text-small text-text-2">
-            {rows.length} việc · ~{plan.minutes} phút · {lateCount} quá hạn
-          </p>
-        </div>
-        <p className="text-small text-text-2">{sync.pending ? `${sync.pending} thay đổi chờ đồng bộ` : 'Đã đồng bộ'}</p>
-      </header>
+    <main className="mx-auto flex max-w-3xl flex-col p-4 pb-24">
+      <div className="flex items-center justify-between gap-2 text-small">
+        <span>
+          {rows.length} việc · ~{plan.minutes} phút
+        </span>
+        {lateCount > 0 && <span className="font-semibold text-danger">{lateCount} quá hạn</span>}
+      </div>
       {notice && (
         <div
           role="status"
-          className="flex flex-wrap items-center justify-between gap-2 rounded-control bg-surface-2 p-3 text-small"
+          className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-control bg-surface-2 p-3 text-small"
         >
           <span>{notice}</span>
           {snoozeUndo && <Button onClick={() => snoozeUndo()}>Hoàn tác</Button>}
         </div>
       )}
-      {rows[0] ? (
-        <section aria-labelledby="nba-title" className="rounded-card border border-border bg-surface p-4 shadow-card">
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="status" tone={rows[0].signal.priority === 'P0' ? 'danger' : 'warning'}>
-              {rows[0].signal.priority}
-            </Badge>
-            <span className="text-label text-text-2">Next Best Action</span>
-          </div>
-          <h2 id="nba-title" className="mt-2 text-heading">
-            {rows[0].customer.full_name} · {rows[0].signal.title}
-          </h2>
-          <p className="mt-1 text-small">{rows[0].signal.reason}</p>
-          {nbaEvidence.length > 0 && (
-            <p className="mt-1 text-small text-text-2">Bằng chứng: {nbaEvidence.join(' · ')}</p>
+      {plan.overflow > 0 && (
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-card-sm bg-surface-2 p-3 text-small">
+          <span>Quá tải khoảng {plan.overflow} phút</span>
+          {snoozeCandidates.length > 0 && (
+            <Button
+              variant="secondary"
+              disabled={snoozeBusy}
+              onClick={async () => {
+                const earliestDue = Math.max(
+                  ...snoozeCandidates.map(({ task }) => {
+                    const dayAfter = new Date(Date.parse(task.due || ''));
+                    dayAfter.setHours(24, 0, 0, 0);
+                    return dayAfter.getTime();
+                  }),
+                );
+                const due = new Date(nextCallSlotStart(now, earliestDue)).toISOString();
+                const reason = 'Em bận';
+                const before = snoozeCandidates.map(({ customer, task }) => ({ customerId: customer.id, task }));
+                setSnoozeBusy(true);
+                try {
+                  const byCustomer = new Map<string, { list: (Task | null)[]; touched: number }>();
+                  for (const { customer, task } of snoozeCandidates) {
+                    const current = customersRef.current.find((entry) => entry.id === customer.id);
+                    if (!current) continue;
+                    const list = Array.isArray(current.next_tasks) ? current.next_tasks : [];
+                    const existing = byCustomer.get(customer.id) || { list: [...list], touched: 0 };
+                    existing.list = existing.list.map((entry) =>
+                      entry && entry.at === task.at ? snoozePromise(entry, due, reason) : entry,
+                    );
+                    existing.touched++;
+                    byCustomer.set(customer.id, existing);
+                  }
+                  for (const [customerId, update] of byCustomer) {
+                    await account.customers.update(customerId, { next_tasks: update.list });
+                  }
+                  setNotice(`Đã dời ${before.length} việc sang ${new Date(due).toLocaleString('vi-VN')} · ${reason}`);
+                  const undo = () => {
+                    void (async () => {
+                      try {
+                        const restores = new Map<string, (Task | null)[]>();
+                        for (const { customerId, task } of before) {
+                          const current = customersRef.current.find((entry) => entry.id === customerId);
+                          if (!current) continue;
+                          const list = restores.get(customerId) || [
+                            ...(Array.isArray(current.next_tasks) ? current.next_tasks : []),
+                          ];
+                          restores.set(
+                            customerId,
+                            list.map((entry) =>
+                              entry && entry.at === task.at ? undoPromiseSnooze(entry, task) : entry,
+                            ),
+                          );
+                        }
+                        for (const [customerId, next_tasks] of restores) {
+                          await account.customers.update(customerId, { next_tasks });
+                        }
+                        setNotice('Đã hoàn tác việc dời hạn.');
+                      } catch (cause) {
+                        setNotice(`Chưa hoàn tác được: ${cause instanceof Error ? cause.message : 'Thử lại sau.'}`);
+                      } finally {
+                        setSnoozeUndo(null);
+                      }
+                    })();
+                  };
+                  setSnoozeUndo(() => undo);
+                  window.setTimeout(() => setSnoozeUndo(null), 5000);
+                } catch (cause) {
+                  setNotice(`Chưa dời được các việc: ${cause instanceof Error ? cause.message : 'Thử lại sau.'}`);
+                } finally {
+                  setSnoozeBusy(false);
+                }
+              }}
+            >
+              Dời {snoozeCandidates.length} việc P2 sang khung kế
+            </Button>
           )}
-          <p className="mt-1 text-small text-text-2">
-            Hạn: {formatDue(rows[0].signal.due)} · Brief: {rows[0].customer.notes || rows[0].signal.reason}
+        </div>
+      )}
+
+      {sessionIndex == null ? (
+        sessionRows.length > 0 && (
+          <SessionBar
+            className="mt-3"
+            title={`Gọi lần lượt ${sessionRows.length} khách`}
+            sub={`~${sessionMinutes} phút`}
+            onStart={() => setSessionIndex(0)}
+          />
+        )
+      ) : activeCall ? (
+        <div className="mt-3 flex flex-col gap-2">
+          {renderCard(activeCall)}
+          <p className="text-small">
+            {sessionIndex + 1}/{sessionRows.length}
           </p>
-          <div className="mt-3">
-            <SignalActions signal={rows[0].signal} customer={rows[0].customer} />
+          <div className="flex gap-2">
+            <Button onClick={() => setSessionIndex((i) => (i ?? 0) + 1)}>Bỏ qua khách</Button>
+            <Button onClick={() => setSessionIndex(null)}>Dừng phiên</Button>
           </div>
-        </section>
+        </div>
       ) : (
+        <div className="mt-3 flex flex-col gap-2">
+          <p className="text-small">Đã hết khách trong phiên.</p>
+          <Button className="self-start" onClick={() => setSessionIndex(null)}>
+            Đóng phiên
+          </Button>
+        </div>
+      )}
+
+      {groupQueue(rows).map((group) => {
+        if (group.collapsed) {
+          const opened = !!openCollapsed[group.key];
+          return (
+            <section key={group.key} aria-label={group.title} className="mt-3.5">
+              <button
+                type="button"
+                aria-expanded={opened}
+                onClick={() => setOpenCollapsed((prev) => ({ ...prev, [group.key]: !opened }))}
+                className="flex min-h-12 w-full items-center justify-between gap-2 rounded-card-sm border border-hairline bg-surface px-4 text-left"
+              >
+                <span>
+                  {group.title} <span className="text-text-3">{group.rows.length}</span>
+                </span>
+                <Icon name={opened ? 'expand' : 'open'} />
+              </button>
+              {opened && (
+                <div className="mt-2 flex flex-col gap-2.5">{group.rows.map((row) => renderCard(row, true))}</div>
+              )}
+            </section>
+          );
+        }
+        const showAll = group.full || !!expandedGroups[group.key];
+        const shownRows = showAll ? group.rows : group.rows.slice(0, SIGNALS_CONFIG.todayCompactLimit);
+        const remaining = group.rows.length - shownRows.length;
+        return (
+          <CardGroup key={group.key} title={group.title} count={group.rows.length}>
+            {shownRows.map((row) => renderCard(row, !group.full))}
+            {remaining > 0 && (
+              <Button
+                variant="ghost"
+                className="self-start"
+                onClick={() => setExpandedGroups((prev) => ({ ...prev, [group.key]: true }))}
+              >
+                Xem thêm {remaining}
+              </Button>
+            )}
+          </CardGroup>
+        );
+      })}
+
+      {!rows.length && (
         <EmptyState
           icon="task"
           title="Đã xử lý các việc ưu tiên"
@@ -314,201 +392,8 @@ export function TodayPage() {
         />
       )}
 
-      <section className="rounded-card border border-border bg-surface p-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <h2 className="text-heading">Sức làm</h2>
-            <p className="text-small text-text-2">
-              {plan.slot
-                ? `Khung ${plan.slot.name} còn ${plan.slot.remaining} phút`
-                : 'Hiện không trong khung gọi đã cấu hình'}{' '}
-              · hàng đợi ước {plan.minutes} phút
-            </p>
-          </div>
-        </div>
-        {plan.overflow > 0 && (
-          <p className="mt-2 text-small">
-            Quá tải khoảng {plan.overflow} phút. Gợi ý dời {plan.suggested.length} việc P2 sang khung kế
-            {plan.suggested.length ? `: ${plan.suggested.map((row) => row.customer.full_name).join(', ')}` : ''}. Đây là
-            đề xuất xem trước; lịch và hạn gốc chưa thay đổi.
-          </p>
-        )}
-        {plan.overflow > 0 && snoozeCandidates.length > 0 && account && (
-          <Button
-            className="mt-3"
-            variant="primary"
-            disabled={snoozeBusy}
-            onClick={async () => {
-              const earliestDue = Math.max(
-                ...snoozeCandidates.map(({ task }) => {
-                  const dayAfter = new Date(Date.parse(task.due || ''));
-                  dayAfter.setHours(24, 0, 0, 0);
-                  return dayAfter.getTime();
-                }),
-              );
-              const due = new Date(nextCallSlotStart(now, earliestDue)).toISOString();
-              const reason = 'Em bận';
-              const before = snoozeCandidates.map(({ customer, task }) => ({ customerId: customer.id, task }));
-              setSnoozeBusy(true);
-              try {
-                const byCustomer = new Map<string, { list: (Task | null)[]; touched: number }>();
-                for (const { customer, task } of snoozeCandidates) {
-                  const current = customersRef.current.find((entry) => entry.id === customer.id);
-                  if (!current) continue;
-                  const list = Array.isArray(current.next_tasks) ? current.next_tasks : [];
-                  const existing = byCustomer.get(customer.id) || { list: [...list], touched: 0 };
-                  existing.list = existing.list.map((entry) =>
-                    entry && entry.at === task.at ? snoozePromise(entry, due, reason) : entry,
-                  );
-                  existing.touched++;
-                  byCustomer.set(customer.id, existing);
-                }
-                for (const [customerId, update] of byCustomer) {
-                  await account.customers.update(customerId, { next_tasks: update.list });
-                }
-                setNotice(`Đã dời ${before.length} việc sang ${new Date(due).toLocaleString('vi-VN')} · ${reason}`);
-                const undo = () => {
-                  void (async () => {
-                    try {
-                      const restores = new Map<string, (Task | null)[]>();
-                      for (const { customerId, task } of before) {
-                        const current = customersRef.current.find((entry) => entry.id === customerId);
-                        if (!current) continue;
-                        const list = restores.get(customerId) || [
-                          ...(Array.isArray(current.next_tasks) ? current.next_tasks : []),
-                        ];
-                        restores.set(
-                          customerId,
-                          list.map((entry) => (entry && entry.at === task.at ? undoPromiseSnooze(entry, task) : entry)),
-                        );
-                      }
-                      for (const [customerId, next_tasks] of restores) {
-                        await account.customers.update(customerId, { next_tasks });
-                      }
-                      setNotice('Đã hoàn tác việc dời hạn.');
-                    } catch (cause) {
-                      setNotice(`Chưa hoàn tác được: ${cause instanceof Error ? cause.message : 'Thử lại sau.'}`);
-                    } finally {
-                      setSnoozeUndo(null);
-                    }
-                  })();
-                };
-                setSnoozeUndo(() => undo);
-                window.setTimeout(() => setSnoozeUndo(null), 5000);
-              } catch (cause) {
-                setNotice(`Chưa dời được các việc: ${cause instanceof Error ? cause.message : 'Thử lại sau.'}`);
-              } finally {
-                setSnoozeBusy(false);
-              }
-            }}
-          >
-            Dời {snoozeCandidates.length} việc P2 sang khung kế
-          </Button>
-        )}
-      </section>
-
-      <section aria-labelledby="queue-title">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 id="queue-title" className="text-heading">
-            Hàng đợi
-          </h2>
-          <fieldset className="flex flex-wrap gap-2">
-            <legend className="sr-only">Lọc hàng đợi</legend>
-            {FILTERS.map((item) => (
-              <Button
-                key={item.key}
-                variant={filter === item.key ? 'primary' : 'secondary'}
-                aria-pressed={filter === item.key}
-                onClick={() => setFilter(item.key)}
-              >
-                {item.label}
-              </Button>
-            ))}
-          </fieldset>
-        </div>
-        {shown.length ? (
-          <ul className="mt-2 divide-y divide-border rounded-card border border-border bg-surface">
-            {shown.map(({ signal, customer, minutes }) => (
-              <li
-                key={signal.dedupeKey}
-                className="flex flex-col gap-2 p-3 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge
-                      variant="status"
-                      tone={signal.priority === 'P0' ? 'danger' : signal.priority === 'P1' ? 'warning' : 'neutral'}
-                    >
-                      {signal.priority}
-                    </Badge>
-                    <h3 className="text-body-strong">{customer.full_name}</h3>
-                  </div>
-                  <p className="mt-1 text-small">
-                    {signal.title} · {signal.reason}
-                  </p>
-                  <p className="text-small text-text-2">
-                    Hạn {formatDue(signal.due)} · ~{minutes} phút
-                  </p>
-                  {signal.secondaryReasons?.length ? (
-                    <div className="mt-1 flex flex-wrap gap-1">
-                      {signal.secondaryReasons.map((other) => (
-                        <Badge key={other.id}>{other.reason}</Badge>
-                      ))}
-                    </div>
-                  ) : null}
-                </div>
-                <SignalActions signal={signal} customer={customer} />
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <EmptyState title="Không có việc trong bộ lọc này" hint="Thử bộ lọc khác hoặc quay lại hàng Ưu tiên." />
-        )}
-      </section>
-
-      <section className="rounded-card border border-border bg-surface p-4">
-        <h2 className="text-heading">Phiên gọi</h2>
-        {sessionIndex == null ? (
-          <>
-            <p className="mt-1 text-small text-text-2">
-              Bắt đầu với {sessionRows.length} khách · khoảng {sessionRows.reduce((sum, row) => sum + row.minutes, 0)}{' '}
-              phút.
-            </p>
-            <Button
-              className="mt-3"
-              variant="primary"
-              disabled={!sessionRows.length}
-              onClick={() => setSessionIndex(0)}
-            >
-              Bắt đầu phiên gọi
-            </Button>
-          </>
-        ) : activeCall ? (
-          <>
-            <p className="mt-1 text-small">
-              {sessionIndex + 1}/{sessionRows.length} · Brief: {activeCall.signal.reason}
-            </p>
-            <h3 className="mt-1 text-body-strong">{activeCall.customer.full_name}</h3>
-            <div className="mt-2">
-              <SignalActions signal={activeCall.signal} customer={activeCall.customer} />
-            </div>
-            <div className="mt-2 flex gap-2">
-              <Button onClick={() => setSessionIndex((i) => (i ?? 0) + 1)}>Bỏ qua khách</Button>
-              <Button onClick={() => setSessionIndex(null)}>Dừng phiên</Button>
-            </div>
-          </>
-        ) : (
-          <>
-            <p className="mt-1 text-small">Đã hết khách trong phiên.</p>
-            <Button className="mt-2" onClick={() => setSessionIndex(null)}>
-              Đóng phiên
-            </Button>
-          </>
-        )}
-      </section>
-
       {(afterEvening || showSummary) && (
-        <section className="rounded-card border border-border bg-surface p-4">
+        <section className="mt-3 rounded-card border border-border bg-surface p-4">
           <h2 className="text-heading">Tổng kết ngày</h2>
           <p className="mt-2 text-small">
             Lời hứa đã giữ: {summary.kept} · lời hứa trễ: {summary.late} · cuộc gọi chưa ghi kết quả:{' '}
@@ -517,7 +402,7 @@ export function TodayPage() {
         </section>
       )}
       {!afterEvening && !showSummary && (
-        <Button className="self-start" variant="ghost" onClick={() => setShowSummary(true)}>
+        <Button className="mt-2 self-start" variant="ghost" onClick={() => setShowSummary(true)}>
           Xem tổng kết ngày
         </Button>
       )}
@@ -533,3 +418,5 @@ export function TodayPage() {
 }
 
 export const route: FeatureRoute = { path: '/today', element: <TodayPage />, handle: { title: 'Hôm nay' } };
+
+export { formatSignalEvidence };

@@ -1,0 +1,100 @@
+# Factory playbook
+
+> Theo skill `ai-factory-lead` (cập nhật 2026-10-19: Lead vạch xương sống, worker tự do trong hàng rào). Hàng rào chung cho worker: `AGENTS.md`. Bản đồ module/hợp đồng/vùng cấm: `docs/ARCHITECTURE.md` §0. Mẫu task: `tasks/TEMPLATE.md`.
+
+| Vai | Ai | Làm gì |
+|---|---|---|
+| Product Owner | Curtis | Nói muốn gì / không thích gì, quyết luật nghiệp vụ, chọn ưu tiên, nghiệm thu, quyết merge vào `main`/production |
+| Lead | Claude | Vạch **xương sống** và **hàng rào**: kiến trúc, hợp đồng, luật + số chuẩn, PHẢI/CẤM, nghiệm thu. Nghiên cứu, chia việc, review, merge vào `factory` |
+| Worker | DeepSeek qua OpenCode (`scripts/factory-run.mjs`) | Coding agent: **tự thiết kế cách cài đặt**, tự viết test, tự sửa lỗi trong phạm vi. Worktree riêng, không bao giờ push |
+
+Giao tiếp với Curtis: ngắn, thực tế, dùng bảng; gom câu hỏi thành một lần (mỗi câu có đề xuất mặc định); FACT / HYPOTHESIS; ghi kết quả vào file. Tự làm hết, chỉ hỏi khi vướng giới hạn kỹ thuật, tiền, hoặc duyệt trước deploy production.
+
+## Phân vai: xương sống và không gian tự do
+
+| Lead PHẢI vạch rõ | Lead KHÔNG làm (worker tự quyết) |
+|---|---|
+| Mục tiêu: người dùng thấy/làm được gì | Cách cài đặt từng bước, vị trí dòng code |
+| Kiến trúc, ranh giới module, hợp đồng | Tên biến, hàm nội bộ, cấu trúc trong module |
+| Luật nghiệp vụ + **ví dụ số chuẩn** | Ca test thêm, helper, refactor nhỏ trong phạm vi |
+| Phạm vi (thư mục/glob) | Sửa file nào trong vùng đó |
+| PHẢI / CẤM riêng của task | Thứ tự làm, cách debug |
+| Nghiệm thu: hành vi + test bắt buộc | Thiết kế test chi tiết ngoài ca bắt buộc |
+
+Không viết code mẫu, không "bản vá chứng minh". Việc < 20 dòng: Lead tự sửa. Migration, kiến trúc, vùng dữ liệu/đồng bộ/auth: Lead làm hoặc ghi hợp đồng rất rõ.
+
+## Đầu mỗi phiên
+
+1. Đọc `docs/ARCHITECTURE.md`, `docs/STATE.md`, `docs/ROADMAP.md`, `docs/factory-metrics.md`, `tasks/queue/`, `tasks/blocked/`, `reports/` mới nhất.
+2. Xác định luồng (A dự án mới / B nâng cấp / C sửa lỗi nhỏ) và giai đoạn; báo 1 câu.
+
+## Luồng B — nâng cấp app có sẵn (đang dùng cho v3)
+
+B0 hiện trạng (`docs/v3/current-state-ui.md`, cập nhật `docs/ARCHITECTURE.md`) → B1 phản hồi (`docs/v3/feedback.md`) → B2 đối thủ (`docs/research/`) → B3 lộ trình (`docs/ROADMAP.md`) → B4 milestone (phát hành được riêng; lỗi P1 → UX P1 → tính năng) → B5 lưới an toàn (vùng sắp sửa chưa có test → task test-only giữ hành vi, chạy trên code cũ phải trượt đúng chỗ) → B6 task → B7 worker → review → merge → hết milestone hỏi Curtis có phát hành không. Một milestone một lúc.
+
+Luồng C (lỗi/yêu cầu nhỏ): đối chiếu repo → gom câu hỏi → < 20 dòng Lead tự sửa → còn lại gộp theo vùng code thành task → batch.
+
+## Task
+
+- Mẫu `tasks/TEMPLATE.md`: Mục tiêu · Bối cảnh · Luật nghiệp vụ (số chuẩn) · Hợp đồng · Phạm vi (glob) · PHẢI · CẤM · Nghiệm thu (code block lệnh) · Tự do · Báo cáo cuối.
+- Cỡ: một lát tính năng trọn vẹn (thường 1 màn / 1 module). Các task cùng hàng đợi không phụ thuộc nhau, không chồng phạm vi.
+- `factory-run.mjs` kiểm phạm vi theo glob, chặn sửa test có sẵn, chạy đúng lệnh trong Nghiệm thu; e2e mỗi worker một cổng (`E2E_PORT`), giới hạn luồng bằng `E2E_WORKERS` khi chạy song song.
+
+## BLOCKED
+
+Worker gặp luật mâu thuẫn/thiếu hoặc test bắt buộc trái luật → kết thúc bằng `BLOCKED: <câu hỏi>`. Script: dừng ngay, **không leo thang model, không tính trượt**, mã thoát 3, task sang `tasks/blocked/`, câu hỏi đứng đầu report. Lead trả lời (hỏi Curtis nếu là luật nghiệp vụ), sửa mục Luật/Hợp đồng của task, xoá worktree cũ (`git worktree remove ../wt-<ID> && git branch -D agent/<ID>`), đưa lại vào `tasks/queue/`.
+
+## Lead review (trước khi merge task loại code)
+
+Gate xanh ≠ đúng. Đọc diff theo thứ tự, **chỉ chặn khi vi phạm xương sống**:
+1. Luật nghiệp vụ + số chuẩn đúng không; có luật nào worker tự bịa không.
+2. Hợp đồng, phạm vi, hàng rào có bị phá không.
+3. Test có kiểm thật không (không pass rỗng).
+4. Đọc "quyết định thiết kế" trong `logs/<ID>-<n>.report.md`; chấp nhận nếu hợp lý dù khác cách Lead làm.
+
+Không loại vì khác phong cách. Góp ý nhỏ ghi `docs/factory-metrics.md`, không chạy lại task.
+
+## Luật đã học
+
+1. Đối chiếu yêu cầu với repo trước khi giao; dùng module có sẵn.
+2. Kiểm ca test bắt buộc với luật nghiệp vụ — đặc tả mâu thuẫn là lý do số 1 khiến worker bẻ luật.
+3. Task test-only phải chạy trên code cũ và thấy trượt rồi mới merge.
+4. Đồng bộ/offline/nhiều máy: đặc tả ghi rõ lúc gửi bù, lúc máy khác nhận; e2e 2 browser context + `setOffline`.
+5. Migration, kiến trúc, dữ liệu/đồng bộ/auth: Lead làm hoặc ghi hợp đồng rất rõ; migration cần Curtis duyệt, có backup + rollback.
+6. UI/UX: Lead mô tả mục tiêu + ràng buộc (Design System, nhãn, 360px + desktop, sáng/tối); bố cục lớn thì Curtis duyệt trước. Chi tiết giao diện để worker tự làm.
+7. Test chập chờn ở file worker không đụng → chạy lại 1 lần (script đã làm).
+8. Danh sách nghiệm thu cho Curtis ghi rõ dữ liệu nhập; số kỳ vọng do Lead chạy ra từ đúng dữ liệu đó.
+9. Không push/merge `main` khi Curtis chưa duyệt.
+10. Tính năng có số tiền: hiện rõ khi máy tự giới hạn đầu vào.
+11. Không bịa task để lấp hàng đợi.
+12. (Repo này) Chữ hiển thị nằm ở `src/domain`/`src/config` thì đặc tả phải nói rõ — worker có thể che bằng regex ở UI (M1-03).
+
+## Chạy qua đêm
+
+```bash
+node scripts/factory-batch.mjs --dry-run                       # kiểm định dạng task, chưa tốn tiền
+nohup caffeinate -dimsu node scripts/factory-batch.mjs > logs/overnight-$(date +%F).log 2>&1 &
+cat "$(ls -t reports/overnight-*.md | head -1)"                 # xem tiến độ / kết quả
+node --test scripts/                                            # test của chính script Factory
+```
+
+Không merge, không push. Task xong → `tasks/done/`, `tasks/blocked/` hoặc `tasks/failed/`. Giờ thấp điểm DeepSeek (giá 1/2): ngoài 01–04h và 06–10h UTC thứ Hai–Sáu — batch qua đêm giờ Việt Nam nằm trong giờ thấp điểm.
+
+## Buổi sáng
+
+1. Đọc report. ĐẠT → review → merge vào `factory`. BLOCKED → gom câu hỏi. TRƯỢT → phân loại lỗi đặc tả / lỗi worker / test chập chờn; sửa mục tiêu hoặc hàng rào (không thêm chỉ dẫn cách code), xếp lại.
+2. Gửi Curtis: bảng task (đạt/trượt/BLOCKED/chi phí), tiến độ milestone, câu hỏi cần quyết, lệnh push `factory`, link preview, danh sách nghiệm thu ngắn.
+3. Ghi `docs/factory-metrics.md`.
+
+## Điều kiện dừng Factory (báo Curtis ngay)
+
+- Worker sửa ngoài phạm vi, phá hợp đồng hoặc bẻ luật nghiệp vụ mà lọt qua Lead review.
+- Trung vị nghiệm thu > 20 phút/task.
+- Lead phải loại > 2 lần chạy trên 5 task liên tiếp.
+
+## Sự thật kỹ thuật (OpenCode 2.x, đã kiểm chứng)
+
+- Không có `--dir`: chạy trong worktree **và đặt `PWD` = worktree** (script đã làm).
+- Chốt chặn: `git status --porcelain` repo chính trước/sau mỗi lần thử, khác thì dừng.
+- `opencode run --standalone --format json --auto --model <model>`; chi phí = cộng `cost` ở `step_finish`; câu trả lời cuối = phần `text` cuối.
+- Model: `deepseek/deepseek-flash` (lần 1–2), `deepseek/deepseek-v4-pro` (lần 3). DeepSeek có thể đổi model ngầm sau cùng tên: theo dõi tỉ lệ đạt trong metrics.

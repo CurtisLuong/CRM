@@ -1,7 +1,7 @@
 # Runbook — Nhật ký thay đổi khách `customer_changes` (T0.2)
 
 > **Mục đích:** mọi lần **sửa** hoặc **xoá** khách trên server (từ app v1, v2, landing page, Worker Facebook, SQL Editor) đều lưu lại **giá trị cũ** → cứu được dữ liệu khi có lỗi. Bảng chỉ-thêm: không ai (kể cả service role) sửa/xoá được.
-> **File:** `SQL/v2/001_customer_audit.sql` · Test: `tests/sql/001_customer_audit.test.sql` · Quyết định: D-012 · `architecture.md` §3.1.6.
+> **File:** `SQL/v2/001_customer_audit.sql` · Test: `tests/sql/001_customer_audit.test.sql` · Quyết định: D-012 · `ARCHITECTURE.md` §3.1.6.
 > Migration **chỉ thêm** bảng + trigger mới, không đổi cột/dữ liệu `customers`.
 
 ## 1. Chạy (chủ dự án)

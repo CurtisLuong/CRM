@@ -66,9 +66,9 @@ Tính từ màn đang đứng tới khi dữ liệu đã lưu local. "Gõ" khôn
 ## 4. Hôm nay — chuẩn màn
 
 1. **Header gọn:** lời chào + 1 dòng tóm tắt ("12 việc · ~95 phút · 2 quá hạn"). Không 4 KPI lớn.
-2. **Next Best Action:** việc đứng đầu registry tín hiệu (D-015): *khách · hành động · lý do + bằng chứng · hạn · Brief 20 giây · Gọi/Zalo/Xong/Dời*. Hết việc → "Đã xử lý các việc ưu tiên" + gợi ý hữu ích (tệp retarget, khách nguội), không tạo việc giả.
-3. **Sức làm:** khung `callSlots` hiện tại còn X phút; việc trong hàng ước Y phút (phút/loại việc ở `config/capacity.ts`). Y > X → đề xuất "Dời N việc P2 sang khung kế" (1 chạm, giữ `due_original`, có Hoàn tác). Hẹn có giờ cụ thể với khách không bao giờ bị dời tự động.
-4. **Hàng đợi:** 3–7 dòng, mỗi khách 1 dòng (lý do chính + chip lý do phụ), lọc `Ưu tiên · Khách mới · Lời hứa · Cơ hội`. Tổng số ≠ mức khẩn.
+2. **Gọi tiếp (D-023):** không còn thẻ NBA riêng — thẻ đầu tiên của nhóm gấp nhất chính là việc đứng đầu registry tín hiệu (D-015); `SessionBar` "Gọi lần lượt N khách" ngay trên. Hết việc → "Đã xử lý các việc ưu tiên" + gợi ý hữu ích (tệp retarget, khách nguội), không tạo việc giả.
+3. **Sức làm:** 1 dòng gọn dưới tóm tắt, **chỉ hiện khi Y > X** (D-023). Khung `callSlots` hiện tại còn X phút; việc trong hàng ước Y phút (phút/loại việc ở `config/capacity.ts`). Y > X → đề xuất "Dời N việc P2 sang khung kế" (1 chạm, giữ `due_original`, có Hoàn tác). Hẹn có giờ cụ thể với khách không bao giờ bị dời tự động.
+4. **Hàng đợi (D-023):** chia theo nhóm tín hiệu `SIGNAL_GROUPS` (quá giờ hẹn, khách mới chưa gọi, gọi lại, việc hôm nay, chưa ghi kết quả…), mỗi nhóm có tiêu đề + số. Nhóm gấp nhất hiện thẻ đầy đủ (tên + nút Gọi; lần gọi gần nhất, số lần gọi, ghi chú cuối, SLA), nhóm sau hiện thẻ gọn; nhóm ít gấp thu thành dòng link. Bỏ 4 tab lọc cũ và nhãn P0 trên giao diện (mức P0/P1/P2 vẫn dùng để **sắp xếp**). Tổng số ≠ mức khẩn.
 5. **Phiên gọi:** "Bắt đầu phiên gọi (N khách · ~M phút)" → lần lượt Brief → Gọi → Sheet sau gọi → Tiếp; có Bỏ qua (chọn lý do) và Dừng.
 6. **Một tín hiệu cơ hội** (S12/S13/S14…) dạng SignalCard, không chen trên việc gấp.
 7. **Tối (sau khung cuối):** Tổng kết ngày — lời hứa giữ/trễ, cuộc gọi chưa ghi, ghi chú chưa đồng bộ, việc mai.
@@ -77,7 +77,7 @@ Tính từ màn đang đứng tới khi dữ liệu đã lưu local. "Gõ" khôn
 
 **Thời hạn (D-010) — một định nghĩa:** mọi màn đọc `countdownTag`. Việc có giờ: từ mốc tới mốc +30 phút là "đến hạn", sau đó "quá hạn". Hẹn gọi: tới hết khung +30 phút (không có giờ kết thúc dùng giờ bắt đầu). Việc cả ngày: đến hạn suốt ngày, quá hạn từ 00:00 hôm sau. Đây là thời hạn công việc, khác hạn mức SLA phễu.
 
-**Row contract:** chạm dòng = mở ngữ cảnh (sheet Brief/hồ sơ); nút Gọi = gọi; tránh gọi nhầm khi chạm dòng. Sau thao tác: phản hồi → cập nhật hàng → giữ vị trí cuộn.
+**Card contract (D-023):** mỗi thẻ 1 nút hành động hiện ra; chạm thẻ = mở ngữ cảnh (sheet Brief/hồ sơ); nút Gọi = gọi; tránh gọi nhầm khi chạm dòng. Sau thao tác: phản hồi → cập nhật hàng → giữ vị trí cuộn.
 
 ## 5. Hồ sơ khách — quan hệ + trí nhớ
 

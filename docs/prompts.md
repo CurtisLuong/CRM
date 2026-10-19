@@ -195,7 +195,7 @@ Mỗi phiên tự merge qua cổng; merge chen nhau được cổng tự xếp h
 ### B.3 Kiểm tra an toàn dữ liệu (chạy trước khi merge task chạm data/schema)
 
 ```text
-Rà soát diff của nhánh {branch} theo docs/architecture.md §3 (Hợp đồng dữ liệu):
+Rà soát diff của nhánh {branch} theo docs/ARCHITECTURE.md §3 (Hợp đồng dữ liệu):
 - Có migration nào drop/rename/đổi kiểu/update hàng loạt không?
 - Có chỗ nào ghi cả hàng thay vì patch, hoặc làm rơi trường/thuộc tính JSONB lạ không?
 - Có đổi nghĩa/xoá mã đã lưu (care_stage, call result, source, reason, kind) không?

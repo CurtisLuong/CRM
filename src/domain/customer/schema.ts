@@ -1,5 +1,5 @@
 /**
- * Zod schema cho bản ghi khách (bảng customers) + phần tử JSONB — hợp đồng dữ liệu D-012 (architecture.md §3).
+ * Zod schema cho bản ghi khách (bảng customers) + phần tử JSONB — hợp đồng dữ liệu D-012 (ARCHITECTURE.md §3).
  *
  * Luật:
  *  - `.passthrough()` ở MỌI object: thuộc tính lạ (cột mới, khoá do v1/thiết bị khác ghi) được giữ nguyên.
@@ -27,7 +27,7 @@ export const CallAttemptSchema = z
   })
   .passthrough();
 
-/** Phần tử next_tasks (+ trường v2 tuỳ chọn cho lời hứa 2 chiều — architecture.md §3.4). */
+/** Phần tử next_tasks (+ trường v2 tuỳ chọn cho lời hứa 2 chiều — ARCHITECTURE.md §3.4). */
 export const TaskSchema = z
   .object({
     at: str,
@@ -121,7 +121,7 @@ export const FieldMetaSchema = z.record(
   z.object({ at: str, by: str, confirmed: z.boolean().nullish() }).passthrough(),
 );
 
-/** Một hàng customers (aggregate theo khách — architecture.md §3.3). */
+/** Một hàng customers (aggregate theo khách — ARCHITECTURE.md §3.3). */
 export const CustomerSchema = z
   .object({
     // Định danh

@@ -122,8 +122,8 @@ export function MarketingSection({
       </header>
       <div className="rounded-control bg-surface-2 p-3 text-small text-text-2">
         <strong className="text-text">Định nghĩa funnel:</strong> Hợp lệ = không có lý do “Số sai” hoặc “Phá campaign”;
-        Liên lạc được = có cuộc gọi kết quả talked; Đạt = qualified_at; các mốc sau = lịch sử/bậc hiện tại. Mỗi ô là
-        tử/mẫu cùng kỳ dữ liệu đã lưu.
+        Liên lạc được = có cuộc gọi kết quả Nói chuyện được; Đạt = khách đã được xác nhận đạt yêu cầu; các mốc sau =
+        lịch sử/bậc hiện tại. Mỗi ô là tử/mẫu cùng kỳ dữ liệu đã lưu.
       </div>
       <div role="tablist" aria-label="Phân tích theo chiều" className="flex flex-wrap gap-2">
         {(['source', 'campaign', 'form'] as const).map((key) => (

@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 for (const colorScheme of ['light', 'dark'] as const) {
-  test(`T5.3a NBA bằng chứng Booking đọc được (${colorScheme})`, async ({ page }, testInfo) => {
+  test(`T5.3a bằng chứng Booking đọc được trên thẻ khách (${colorScheme})`, async ({ page }, testInfo) => {
     await page.emulateMedia({ colorScheme });
     await page.clock.install({ time: new Date('2026-10-17T02:00:00+07:00') });
     await page.route('http://127.0.0.1:54321/**', (route) =>
@@ -67,12 +67,17 @@ for (const colorScheme of ['light', 'dark'] as const) {
       db.close();
     });
     await page.goto('/today');
-    const nba = page.getByRole('region', { name: /Chị Hường Nguyễn/ });
-    const evidence = nba.getByText(/^Bằng chứng:/);
-    await expect(evidence).toContainText('Bước hồ sơ: Xác nhận cư trú');
-    await expect(evidence).toContainText('Cập nhật bậc: 10:54 7/10/26');
-    await expect(evidence).toContainText('Hạn: 10:54 12/10/26');
-    await expect(evidence).not.toContainText(/\[object Object\]|\d{4}-\d{2}-\d{2}T|\b\d{13}\b|booking_steps|cu_tru/);
+    // v3 (D-023): không còn thẻ NBA riêng — bằng chứng nằm ở lưới cấp 2 của thẻ khách (nhóm SLA).
+    const card = page.locator('[data-card]').filter({ hasText: 'Chị Hường Nguyễn' });
+    await expect(card).toHaveAttribute('data-tone', /over|soon/);
+    const facts = card.locator('dl');
+    await expect(facts).toContainText('Bước hồ sơ');
+    await expect(facts).toContainText('Xác nhận cư trú');
+    await expect(facts).toContainText('Cập nhật bậc');
+    await expect(facts).toContainText('10:54 7/10/26');
+    await expect(facts).toContainText('Hạn');
+    await expect(facts).toContainText('10:54 12/10/26');
+    await expect(card).not.toContainText(/\[object Object\]|\d{4}-\d{2}-\d{2}T|\b\d{13}\b|booking_steps|cu_tru/);
     await expect(page.locator('html')).toHaveAttribute('data-theme', colorScheme);
     const widths = await page.evaluate(() => ({ viewport: innerWidth, content: document.documentElement.scrollWidth }));
     expect(widths.content).toBeLessThanOrEqual(widths.viewport);

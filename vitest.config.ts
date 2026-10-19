@@ -12,6 +12,8 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: 'jsdom',
+    // Test tính vay (500 ca) có lúc > 5s khi máy bận (chập chờn ở cổng worker) — nới giới hạn, không đổi logic.
+    testTimeout: 20_000,
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
     // Chỉ test v2 (.ts/.tsx). Test v1 (tests/*.test.js|cjs) chạy bằng node riêng.

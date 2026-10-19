@@ -171,7 +171,7 @@ export function fullCareMetrics(customers: readonly Customer[], now: number) {
       targetExceeded: warn.length,
       limitExceeded: over.length,
       customerIds: rows.map((customer) => customer.id),
-      definition: `Tuổi bậc hiện tại theo D-008; mục tiêu ${phase.targetText}, hạn mức ${phase.maxText}.`,
+      definition: `Tuổi bậc hiện tại; mục tiêu ${phase.targetText}, hạn mức ${phase.maxText}.`,
     };
   });
   const activeTouched = active.map((customer) => ({ customer, at: recordedTouchMs(customer) }));
@@ -302,7 +302,7 @@ export function fullCareMetrics(customers: readonly Customer[], now: number) {
         percent: pct(fast.length, firstCalls.length),
         customerIds: firstCallCustomerIds,
         definition:
-          'Khách đăng ký trong 30 ngày; thời gian tính theo giờ làm SLA D-008. Trung vị chỉ tính khách đã có cuộc gọi hợp lệ.',
+          'Khách đăng ký trong 30 ngày; thời gian chỉ tính trong giờ làm. Trung vị chỉ tính khách đã có cuộc gọi hợp lệ.',
       },
       eligible: firstCalls.length,
       called: firstValid.length,
@@ -312,7 +312,7 @@ export function fullCareMetrics(customers: readonly Customer[], now: number) {
       denominator: calledLeadRows.length,
       percent: pct(contactedLeadRows.length, calledLeadRows.length),
       customerIds: calledLeadRows.map((customer) => customer.id),
-      definition: 'Lead chưa đạt/loại có ít nhất một cuộc gọi trong kỳ; tử số là lead có kết quả talked.',
+      definition: 'Lead chưa đạt/loại có ít nhất một cuộc gọi trong kỳ; tử số là lead có kết quả Nói chuyện được.',
     },
     slots,
     coverage: {
@@ -328,14 +328,14 @@ export function fullCareMetrics(customers: readonly Customer[], now: number) {
         denominator: duePromises.length,
         percent: pct(keptPromises.length, duePromises.length),
         customerIds: duePromises.map(({ customer }) => customer.id),
-        definition: 'Lời hứa “Em hứa” có hạn gốc trong kỳ, hoàn tất không muộn hơn hạn gốc theo D-010.',
+        definition: 'Lời hứa “Em hứa” có hạn gốc trong kỳ, hoàn tất không muộn hơn hạn gốc.',
       },
       overdue: {
         numerator: openOverdue.length,
         denominator: openPromises.length,
         percent: pct(openOverdue.length, openPromises.length),
         customerIds: openOverdue.map(({ customer }) => customer.id),
-        definition: 'Lời hứa “Em hứa” đang mở, quá hạn gốc theo countdownTag/D-010 / tổng lời hứa “Em hứa” đang mở.',
+        definition: 'Lời hứa “Em hứa” đang mở, quá hạn gốc / tổng lời hứa “Em hứa” đang mở.',
       },
     },
     stages: stageGroups,

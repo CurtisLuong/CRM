@@ -1,6 +1,6 @@
 # Tasks — Kế hoạch đại tu Sổ Khách v2
 
-> **Version:** 1.0 · 2026-10-16. Phạm vi: `PRD.md`. Kỹ thuật: `architecture.md`. Quyết định: D-011…D-015.
+> **Version:** 1.0 · 2026-10-16. Phạm vi: `PRD.md`. Kỹ thuật: `ARCHITECTURE.md`. Quyết định: D-011…D-015.
 > **Cách dùng:** chọn task có trạng thái ☐ mà mọi phụ thuộc đã ☑ → mở phiên agent với prompt `prompts.md` B.1. Task cùng **sóng** và cùng **nhóm song song** chạy cùng lúc được (mỗi phiên 1 worktree/bản clone + 1 nhánh `task/…`; tự merge qua cổng — §0 luật 7).
 
 ## 0. Luật làm task (cho agent)
@@ -136,7 +136,7 @@ Ký hiệu: ☐ chưa · ◐ đang làm (ghi nhánh) · ☑ xong (ghi ngày) · 
 | T5.2a | Test tự động đổi tài khoản khi còn thao tác offline (E5) | Cutover | S | T5.2 | Agent | ☑ 2026-10-17 (tự merge 795530d) |
 | T5.3a | Sửa lỗi QA: cuộn danh sách khách, Bằng chứng thô, lối vào khách lưu trữ, báo lỗi nhóm | Cutover | S | T5.2 | Agent | ☑ 2026-10-17 (tự merge fe0cb80) |
 | T5.3 | QA thiết bị thật + offline | Cutover | M | T5.2 | Chủ dự án + agent | ☑ 2026-10-17 (tự merge 34664c5) |
-| T5.4 | Cutover production + rollback plan | Cutover | S | T5.3 | Chủ dự án + agent | ☐ |
+| T5.4 | Cutover production + rollback plan | Cutover | S | T5.3 | Chủ dự án + agent | ☑ 2026-10-17 (tự merge 4a291c6) |
 | T5.4a | Chuẩn bị runbook cutover (chỉ tài liệu) | Cutover | S | T5.2 | Agent | ☑ 2026-10-17 (tự merge bd7dee9) |
 | T5.4b | APK 1.5: quyền ghi âm (lỗi L4 T5.3) + sửa đường dẫn script build/upload APK trên v2 | Cutover | S | T5.3 | Agent | ☑ 2026-10-17 (tự merge 4252c2b) |
 | T5.5 | Dọn dẹp + tài liệu "as built" | Cutover | S | T5.4 | Agent | ☐ |
@@ -157,7 +157,7 @@ Ký hiệu: ☐ chưa · ◐ đang làm (ghi nhánh) · ☑ xong (ghi ngày) · 
 
 #### T0.1 — Backup toàn bộ + diễn tập khôi phục
 - **Mục tiêu:** có bản sao đầy đủ, khôi phục được, trước mọi thay đổi.
-- **Đọc:** `architecture.md` §3.
+- **Đọc:** `ARCHITECTURE.md` §3.
 - **Sở hữu:** `scripts/backup/*`, `docs/runbooks/backup.md` (mới).
 - **Làm:** (1) script `scripts/backup/dump.sh` dùng `pg_dump` với chuỗi kết nối trong `.env.backup` (không commit; thêm vào `.gitignore`) → file `.sql` + `customers.json` (đủ JSONB); (2) script tải danh sách + file Storage (`customer-docs`, `customer-avatars`); (3) runbook từng bước cho chủ dự án (lấy connection string ở Supabase Dashboard); (4) khôi phục thử vào project **staging** (T0.5) và so số dòng từng bảng.
 - **Xong khi:** runbook chạy được; staging có đủ số dòng như production (bảng so sánh trong báo cáo); file backup lưu ngoài repo.
@@ -165,7 +165,7 @@ Ký hiệu: ☐ chưa · ◐ đang làm (ghi nhánh) · ☑ xong (ghi ngày) · 
 - **Đã làm (2026-10-16):** `scripts/backup/{dump,storage,restore-staging}.sh` + `lib.sh`, `row-counts.sql` (số dòng + md5 nội dung từng bảng), `env.backup.example`, `.gitignore` chặn `.env.backup`; runbook `docs/runbooks/backup.md`. Diễn tập 2026-10-16 (backup `20261016-120548` → staging `mksjmpcsfawsiabfhoxe`): 88 khách, 59 tài liệu, 76 file Storage, 2 tài khoản — mọi bảng ✓ (số dòng + md5). Sau đó sửa script: bucket ngoài `BACKUP_BUCKETS` báo "bỏ qua" thay vì ✗, tắt NOTICE, tự bật realtime staging theo production.
 
 #### T0.2 — Audit trigger `customer_changes`
-- **Đọc:** `architecture.md` §3.1–3.4, `pitfalls.md` (RLS/GRANT).
+- **Đọc:** `ARCHITECTURE.md` §3.1–3.4, `pitfalls.md` (RLS/GRANT).
 - **Sở hữu:** `SQL/v2/001_customer_audit.sql`, `SQL/schema.sql` (thêm cuối), `tests/sql/` (nếu có).
 - **Làm:** bảng append-only `customer_changes(id bigserial, customer_id uuid, changed_at, changed_by uuid default auth.uid(), op text, old jsonb, new_keys text[])`; trigger `after update or delete on customers` ghi giá trị cũ của **các cột thay đổi** (update) hoặc cả hàng (delete). RLS: select cho owner của khách/admin; **không** grant update/delete; insert chỉ qua trigger (security definer). Index `(customer_id, changed_at desc)`. Ghi chú dung lượng + truy vấn khôi phục mẫu trong runbook.
 - **Xong khi:** chạy trên staging: sửa 1 khách bằng app v1 → có dòng audit đúng; xoá khách → có bản sao; user sale không xoá được audit. Chủ dự án chạy production sau backup.
@@ -173,7 +173,7 @@ Ký hiệu: ☐ chưa · ◐ đang làm (ghi nhánh) · ☑ xong (ghi ngày) · 
 - **Đã làm (2026-10-16):** `SQL/v2/001_customer_audit.sql` (thêm cột `owner_id`, `changed_role` để RLS còn đúng sau khi xoá/giao khách; trigger chặn update/delete/truncate nhật ký), `tests/sql/001_customer_audit.test.sql` (12 kiểm tra, tự rollback), runbook `docs/runbooks/audit.md` (cách chạy, dung lượng, truy vấn khôi phục). Đã chạy trên PGlite + lớp giả lập Supabase: migration chạy 2 lần được, test 12/12, câu khôi phục mẫu đúng. Staging (`mksjmpcsfawsiabfhoxe`): migration + test 12/12. Production (`nrqccwamwctihivpxjww`) 2026-10-16: migration chạy, `trigger_count = 3`, `rls = true`; thêm ghi chú bằng app v1 → 1 dòng `UPDATE`, `new_keys` có `notes_manual`, `changed_role = authenticated`.
 
 #### T0.3 — Đối soát schema/migration production
-- **Sở hữu:** `docs/architecture.md` §3.2 (cập nhật kết quả), `scripts/sql/inspect.sql`.
+- **Sở hữu:** `docs/ARCHITECTURE.md` §3.2 (cập nhật kết quả), `scripts/sql/inspect.sql`.
 - **Làm:** câu SQL liệt kê cột/kiểu/default/constraint, policy, trigger, function, bucket của production (chủ dự án chạy ở SQL Editor, dán kết quả). So với `SQL/` → xác định migration nào **chưa chạy** (ghi nhớ hiện ghi: `add_zalo_templates`, `add_team_assign`, `add_ai_settings`, `add_realtime_customers` có thể chưa chạy). Đề xuất thứ tự chạy cần thiết trước v2.
 - **Xong khi:** bảng "đã chạy / chưa chạy / lệch" trong architecture §3.2; chủ dự án quyết định chạy gì (không tự chạy).
 - **Đã làm (2026-10-16):** `scripts/sql/inspect.sql` (mục `0 migration` tự kết luận từng file; không trả dữ liệu khách; đọc khách qua `to_jsonb` nên chạy được cả khi production thiếu cột); khung bảng + thứ tự đề xuất + lệch trong repo ở architecture §3.2. Kết quả production 2026-10-16 đã ghi vào architecture §3.2: mọi migration v1 đã chạy, chỉ còn `v2/001_customer_audit.sql`.
@@ -196,7 +196,7 @@ Ký hiệu: ☐ chưa · ◐ đang làm (ghi nhánh) · ☑ xong (ghi ngày) · 
 ### Sóng 1 — Khung
 
 #### T1.1 — Scaffold v2
-- **Đọc:** `architecture.md` §2, §8; D-011.
+- **Đọc:** `ARCHITECTURE.md` §2, §8; D-011.
 - **Sở hữu:** root config (`package.json`, `vite.config.ts`, `tsconfig*.json`, `biome.json`, `index.html`, `public/`), `src/main.tsx`, `src/app/*`, `.github/` (nếu thêm CI), `legacy/` (di chuyển).
 - **Làm:** trên nhánh `v2`: `git mv` toàn bộ file v1 (index.html, css/, js/, sw.js, manifest.json, icons/, dev/, android-app-version.json) vào `legacy/` **trừ** `SQL/`, `worker/`, `android-app/`, `docs/`, `tests/`; giữ `android-app-version.json` và `icons/` cần cho runtime → copy sang `public/`. Cài Vite + React 19 + TS strict + Tailwind v4 + Radix + Zod + Vitest + Playwright + Biome + vite-plugin-pwa + fake-indexeddb. Router (`react-router` v7, data router) với auto-register `src/features/*/route.tsx`. `public/_redirects`. Scripts: `dev`, `build`, `preview`, `check` (tsc + biome + vitest), `e2e`. SW v2 xoá cache `crm-khach-hang-v*`.
 - **Xong khi:** `npm run check` + `npm run build` xanh; deploy `crm-v2` hiện trang "Sổ Khách v2"; `legacy/` còn nguyên nội dung (so `git diff --stat -M`).
@@ -211,13 +211,13 @@ Ký hiệu: ☐ chưa · ◐ đang làm (ghi nhánh) · ☑ xong (ghi ngày) · 
 ### Sóng 2 — Nền (3 làn)
 
 #### T2.A1 — Types + Zod + normalize legacy
-- **Đọc:** `architecture.md` §3.
+- **Đọc:** `ARCHITECTURE.md` §3.
 - **Sở hữu:** `src/domain/customer/types.ts`, `schema.ts`, `normalize.ts`, `tests/domain/customer/*`.
 - **Làm:** type + Zod `.passthrough()` cho Customer và phần tử JSONB (CallAttempt, Task, Note, StageHistory, BookingSteps, Advanced, + trường v2 tuỳ chọn); hàm thuần `normStage`, `sourceListOf`, `isQualified`, `leadStatus`, `inFunnel`, `callAttemptsOf`, `openTasksOf`, `dob` parse. Không biến đổi dữ liệu khi parse (chỉ đọc chuẩn hoá ở getter).
 - **Xong khi:** mọi bản ghi fixture parse được; `serialize(parse(x)) deepEqual x` cho 100% fixture (round-trip không diff).
 
 #### T2.A2 — LocalDB + queue tương thích v1
-- **Đọc:** `legacy/js/db.js` (toàn bộ), `architecture.md` §4.
+- **Đọc:** `legacy/js/db.js` (toàn bộ), `ARCHITECTURE.md` §4.
 - **Sở hữu:** `src/data/localdb.ts`, `queue.ts`, `legacyImport.ts`, `tests/data/*`.
 - **Làm:** port 1-1: tên DB `crm_khach_hang__<uid>`, stores/keyPath/version, nhập một lần từ DB gốc, cấu trúc op queue, `assertWritable`, `sameRecord`. Không đổi tên DB/store/định dạng op.
 - **Xong khi (fake-indexeddb):** (1) DB do v1 tạo (fixture dựng bằng code v1 trong harness) mở được bằng v2, dữ liệu nguyên vẹn; (2) op v1 trong queue được v2 flush đúng; (3) op v2 đọc được bằng code v1; (4) đổi tài khoản không lẫn dữ liệu.
@@ -233,7 +233,7 @@ Ký hiệu: ☐ chưa · ◐ đang làm (ghi nhánh) · ☑ xong (ghi ngày) · 
 - **Xong khi:** test parity với golden thao tác v1 (cùng input → cùng payload queue); không có `update` ghi cả hàng.
 
 #### T2.A5 — SQL v2 (chỉ thêm)
-- **Đọc:** `architecture.md` §3.4; checklist B.3.
+- **Đọc:** `ARCHITECTURE.md` §3.4; checklist B.3.
 - **Sở hữu:** `SQL/v2/002_customer_memory.sql`, `003_campaign_costs.sql`, `004_user_settings_ui_state.sql`, `005_units_verified_at.sql`, `SQL/schema.sql` (đồng bộ baseline), `src/domain/customer/types.ts` (chỉ thêm trường v2 — phối hợp với A1 đã xong).
 - **Xong khi:** chạy staging 2 lần không lỗi (idempotent); v1 trên staging vẫn tạo/sửa khách bình thường; RLS/GRANT cho bảng mới đúng (test bằng user sale). Chủ dự án chạy production sau backup — ghi vào `project-status.md`.
 
@@ -281,7 +281,7 @@ Ký hiệu: ☐ chưa · ◐ đang làm (ghi nhánh) · ☑ xong (ghi ngày) · 
 ### Sóng 3 — Tính năng cốt lõi
 
 #### T3.1 — Quick actions + Sheet sau gọi + cầu Android
-- **Đọc:** `UX_GUIDELINES.md` §3, §7; `architecture.md` §7; `legacy/js/calls.js`, phần Zalo của `legacy/js/app.js`.
+- **Đọc:** `UX_GUIDELINES.md` §3, §7; `ARCHITECTURE.md` §7; `legacy/js/calls.js`, phần Zalo của `legacy/js/app.js`.
 - **Sở hữu:** `src/features/quick-actions/*`, `src/data/callSource.ts`.
 - **Làm:** `useCall(c)` (tel: / `CallLog.dial`), theo dõi rời/quay lại app → mở Sheet sau gọi; Android: `crm:resume` → `CRMCalls.sync()` đọc nhật ký, chống trùng `device_id`; `OutcomePicker` → ghi chú → bước tiếp (`FOLLOWUP`) → Lưu 1 lần; Zalo flow (mẫu gợi ý, điền biến, sao chép & mở, picker nhiều số, chặn "không liên hệ" khi có T6.1); Ghi chú nhanh; Hẹn (SlotPicker); `window.CRMCalls.ingest`.
 - **Xong khi:** đạt ngân sách chạm §3 (e2e đếm chạm); payload ghi khớp v1 (golden); thử trên vỏ Android APK 1.4 với `crm-v2` (cấu hình tạm URL hoặc Chrome Android).
@@ -361,7 +361,7 @@ Ký hiệu: ☐ chưa · ◐ đang làm (ghi nhánh) · ☑ xong (ghi ngày) · 
 - **Xong khi:** ghi chú hồ sơ và ghi chú trong lịch sử bậc sửa được; quyền owner/read-only được giữ; trường JSON lạ và lịch sử không liên quan không bị ghi đè. Không thêm thao tác xóa trong task này. Gap xóa ghi chú vẫn mở do v1 không hiểu tombstone và D-012 cấm mất dữ liệu.
 
 #### T5.7 — Sửa công việc
-- **Đọc:** `PRD.md` F-04, `architecture.md` §3, `DESIGN_SYSTEM.md`, `UX_GUIDELINES.md`.
+- **Đọc:** `PRD.md` F-04, `ARCHITECTURE.md` §3, `DESIGN_SYSTEM.md`, `UX_GUIDELINES.md`.
 - **Sở hữu:** `src/features/tasks/**`, `tests/features/tasks/**`, `tests/e2e/tasks*`.
 - **Xong khi:** việc đang mở sửa nội dung/hạn; giữ `due_original`, lời hứa, trạng thái, lịch sử và thuộc tính lạ; quyền owner/read-only được giữ. Không thêm thao tác xóa trong task này. Gap xóa việc vẫn mở do v1 không hiểu tombstone và D-012 cấm mất dữ liệu.
 
@@ -380,8 +380,8 @@ Ký hiệu: ☐ chưa · ◐ đang làm (ghi nhánh) · ☑ xong (ghi ngày) · 
 - **Xong khi:** báo cáo có số liệu trước/sau; 0 mất dữ liệu.
 
 #### T5.9 — Gộp mảng khi đồng bộ + bỏ thao tác bị từ chối (task con của T5.2)
-- **Đọc:** `architecture.md` §3–§4, `prompts.md` B.3, `decisions.md` D-012, D-020.
-- **Sở hữu:** `src/data/queue.ts`, `src/data/sync.ts`, `src/data/supabase.ts`, `src/data/syncStatus.ts`, `src/data/arrayMerge.ts`, `src/data/hooks/index.ts`, `src/data/repositories/customers.ts` (chỉ ghi bản gốc mảng vào op), `src/features/sync/**`, `src/app/layout.tsx` (chỉ gắn sheet trạng thái đồng bộ), `tests/data/**`, `tests/features/sync/**`, `tests/e2e/sync*`, `docs/decisions.md`, `docs/architecture.md`, `SQL/v2/007_*.sql`.
+- **Đọc:** `ARCHITECTURE.md` §3–§4, `prompts.md` B.3, `decisions.md` D-012, D-020.
+- **Sở hữu:** `src/data/queue.ts`, `src/data/sync.ts`, `src/data/supabase.ts`, `src/data/syncStatus.ts`, `src/data/arrayMerge.ts`, `src/data/hooks/index.ts`, `src/data/repositories/customers.ts` (chỉ ghi bản gốc mảng vào op), `src/features/sync/**`, `src/app/layout.tsx` (chỉ gắn sheet trạng thái đồng bộ), `tests/data/**`, `tests/features/sync/**`, `tests/e2e/sync*`, `docs/decisions.md`, `docs/ARCHITECTURE.md`, `SQL/v2/007_*.sql`.
 - **Làm:** (1) T5.2 E2 mất ghi chú khi 2 máy cùng sửa một khách: khi đẩy op `update` có cột mảng JSONB, gộp với hàng hiện tại trên server theo danh tính phần tử, không làm sống lại phần tử đã bỏ, giữ thuộc tính lạ, an toàn race đọc/ghi. (2) Op bị server từ chối vĩnh viễn (vd. `23514`) không chặn mãi hàng đợi: hiện lý do dễ hiểu + "Bỏ thao tác này" có xác nhận, hoàn tác local về giá trị server; lỗi tạm thời vẫn thử lại.
 - **Xong khi:** test 2 thiết bị cùng thêm phần tử offline → server đủ cả hai; sửa phần tử + máy khác thêm → giữ cả hai; op `23514` không chặn op sau khi đã bỏ; queue chéo v1↔v2 vẫn pass. T5.2 chạy lại E2 trên staging.
 
@@ -410,7 +410,7 @@ Ký hiệu: ☐ chưa · ◐ đang làm (ghi nhánh) · ☑ xong (ghi ngày) · 
 - **Rollback:** Cloudflare "Rollback to previous deployment" + trả build settings; dữ liệu không cần khôi phục (migration chỉ thêm) trừ khi audit cho thấy ghi sai → khôi phục từ `customer_changes`.
 
 #### T5.5 — Dọn dẹp + tài liệu
-- **Xong khi:** `architecture.md` "as built", `project-status.md`, `CHANGELOG.md`, cập nhật đường dẫn trong `funnel-velocity.md`, `huong-dan-follow-up.md`, `gio-hang.md`, `loan-module.md` sang `src/config/*`; lịch xoá `legacy/` sau 30 ngày ổn định (task riêng, cần chủ dự án đồng ý).
+- **Xong khi:** `ARCHITECTURE.md` "as built", `project-status.md`, `CHANGELOG.md`, cập nhật đường dẫn trong `funnel-velocity.md`, `huong-dan-follow-up.md`, `gio-hang.md`, `loan-module.md` sang `src/config/*`; lịch xoá `legacy/` sau 30 ngày ổn định (task riêng, cần chủ dự án đồng ý).
 
 ### Sóng 6 — Mới P1 (không chặn cutover)
 

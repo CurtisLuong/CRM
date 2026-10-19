@@ -55,9 +55,12 @@ async function seedCustomers(page: Page) {
     db.close();
   });
   await page.goto('/khach-hang');
+  // v3 (D-023): bộ lọc nằm trong sheet "Lọc"; đóng sheet bằng nút "Xem N khách".
+  await page.getByRole('button', { name: /^Lọc/ }).click();
   await expect(page.getByLabel('Lọc trạng thái')).toBeVisible();
   await page.getByLabel('Lọc trạng thái').selectOption('all');
-  await expect(page.getByRole('button', { name: 'Xuất 500' })).toBeVisible();
+  await page.getByRole('button', { name: 'Xem 500 khách' }).click();
+  await expect(page.getByText('500 khách', { exact: true })).toBeVisible();
 }
 
 async function wheelToBoundary(page: Page, direction: 1 | -1) {
@@ -77,13 +80,15 @@ async function wheelToBoundary(page: Page, direction: 1 | -1) {
 for (const theme of ['light', 'dark'] as const) {
   // Explicit 375x812 reproduction plus the mobile acceptance bounds and desktop.
   for (const width of [360, 375, 430, 1280]) {
-    test(`customer list scroll reaches filters with 500 customers (${width}px, ${theme})`, async ({ page }, info) => {
+    test(`customer list scroll reaches search + Lọc with 500 customers (${width}px, ${theme})`, async ({
+      page,
+    }, info) => {
       test.skip(info.project.name !== 'phone-360', 'Viewport matrix is covered once, independently of projects.');
       await page.setViewportSize({ width, height: 812 });
       await page.emulateMedia({ colorScheme: theme });
       await seedCustomers(page);
       const list = page.getByRole('region', { name: 'Danh sách khách', exact: true });
-      const heading = page.getByRole('heading', { name: 'Danh sách khách', exact: true });
+      const search = page.getByRole('textbox', { name: 'Tìm khách' });
       const items = list.getByRole('listitem');
       await expect(items.first()).toBeAttached();
       expect(await items.count()).toBeLessThan(25);
@@ -126,11 +131,12 @@ for (const theme of ['light', 'dark'] as const) {
       await info.attach('last customer', { path: lastScreenshot, contentType: 'image/png' });
       await page.mouse.move(width / 2, 200);
       await wheelToBoundary(page, -1);
-      await expect(heading).toBeInViewport();
-      await expect(page.getByLabel('Lọc trạng thái')).toBeInViewport();
+      await expect(search).toBeInViewport();
+      await expect(page.getByRole('button', { name: /^Lọc/ })).toBeInViewport();
       await expect(list.getByText('Nguyễn Thị Ánh 000', { exact: true })).toBeAttached();
       expect(await items.count()).toBeLessThan(25);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+      await page.getByRole('button', { name: 'Thêm thao tác' }).click();
       const archive = page.getByRole('link', { name: 'Khách đã lưu trữ', exact: true });
       await expect(archive).toBeAttached();
       await archive.click();

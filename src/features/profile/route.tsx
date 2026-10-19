@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router';
 import type { FeatureRoute } from '@/app/routes';
 import { ADVANCED_GROUPS } from '@/config/advanced';
 import { OCCUPATIONS } from '@/config/occupations';
-import { CARE_STAGE_BOOKING, CARE_STAGE_DISPLAY, CARE_STAGE_OPTIONS } from '@/config/stages';
+import { CARE_STAGE_BOOKING, CARE_STAGE_DISPLAY } from '@/config/stages';
 import { VELOCITY_CONFIG } from '@/config/velocity';
 import { useCustomer, useRepositoryAccount } from '@/data/hooks';
 import type { Customer } from '@/domain/customer';
@@ -11,16 +11,46 @@ import { customerBrief } from '@/domain/customer/brief';
 import { factPatch } from '@/domain/customer/facts';
 import { callAttemptsOf, normStage, openTasksOf, sourceListOf } from '@/domain/customer/normalize';
 import { customerTimeline } from '@/domain/customer/timeline';
+import { taskDueInfo } from '@/domain/deadlines';
 import { forStage } from '@/domain/followup';
 import { planSlaUndo } from '@/domain/velocity/automation';
 import { bookingSteps, status as slaStatus } from '@/domain/velocity/engine';
 import { AiBrief } from '@/features/ai/AiBrief';
 import { customerUnit, loanPath } from '@/features/loan/model';
 import { openQuickAction } from '@/features/quick-actions/store';
-import { ActionBar, Avatar, Badge, Button, DeadlineTag, HealthDot, SlaRing, StageChip, Tabs, useToast } from '@/ui';
+import { slaBarOf } from '@/features/today/model';
+import {
+  ActionBar,
+  Avatar,
+  Badge,
+  Button,
+  cn,
+  DeadlineTag,
+  displayDateTime,
+  displayText,
+  HealthDot,
+  Icon,
+  Sheet,
+  SlaBar,
+  StageChip,
+  sourceLabel,
+  Tabs,
+  useToast,
+} from '@/ui';
 import { ArchiveCustomerSection, ArchivedBanner } from './archive';
 import { CustomerMemory } from './memory';
-import { bookingStepPatch } from './model';
+import {
+  bookingStepPatch,
+  dueTone,
+  extraFacts,
+  filterTimeline,
+  lastTouchOf,
+  splitBrief,
+  stageChoicesFor,
+  TIMELINE_FILTERS,
+  type TimelineFilter,
+  timelineCounts,
+} from './model';
 
 const FIELD =
   'min-h-11 w-full rounded-control border border-border-strong bg-surface px-3 text-body text-text focus-visible:outline-2 focus-visible:outline-focus disabled:opacity-60';
@@ -35,7 +65,7 @@ const MARITAL_STATUS_OPTIONS = [
 ];
 const PURPOSE_OPTIONS = ['Ở', 'Đầu tư', 'Cho tặng'].map((value) => ({ value, label: value }));
 type DocumentRow = { id: string; label?: string | null; kind?: string; storage_path: string; mime?: string };
-const fmtValue = (value: unknown) => (value == null || value === '' ? 'Chưa biết' : String(value));
+const fmtValue = (value: unknown) => displayText(value);
 
 export function editedTimelineNotePatch(
   customer: Customer,
@@ -76,6 +106,9 @@ function Profile() {
   const [busy, setBusy] = useState(false);
   const [editingTimelineId, setEditingTimelineId] = useState<string | null>(null);
   const [timelineDraft, setTimelineDraft] = useState('');
+  const [timelineFilter, setTimelineFilter] = useState<TimelineFilter>('all');
+  const [stageOpen, setStageOpen] = useState(false);
+  const [missingKey, setMissingKey] = useState('');
   const [docs, setDocs] = useState<DocumentRow[]>([]);
   const [docError, setDocError] = useState('');
   const writable = !!customer && !!account && customer.owner_id === account.sync.local.userId && !customer.archived_at;
@@ -275,59 +308,89 @@ function Profile() {
       setBusy(false);
     }
   };
+  const timelineCount = timelineCounts(timeline);
+  const visibleTimeline = filterTimeline(timeline, timelineFilter);
   const timelineContent = (
-    <div className="space-y-3">
-      {timeline.length ? (
-        timeline.map((entry) => (
-          <article key={entry.id} className="border-l-2 border-border pl-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-body-strong">{entry.title}</span>
-              {entry.automatic && <Badge>Tự động · SLA</Badge>}
-            </div>
-            {entry.detail && (entry.kind === 'note' || entry.kind === 'stage') && editingTimelineId === entry.id ? (
-              <div className="mt-2 space-y-2">
-                <textarea
-                  aria-label="Sửa ghi chú"
-                  value={timelineDraft}
-                  disabled={busy}
-                  onChange={(event) => setTimelineDraft(event.target.value)}
-                  className={`${FIELD} min-h-20 py-2`}
-                />
-                <div className="flex gap-2">
-                  <Button
-                    variant="primary"
-                    disabled={busy || timelineDraft.length === 0}
-                    onClick={() => void saveTimelineEntry(entry.id)}
-                  >
-                    Lưu ghi chú
-                  </Button>
-                  <Button disabled={busy} onClick={() => setEditingTimelineId(null)}>
-                    Huỷ
-                  </Button>
-                </div>
-              </div>
-            ) : entry.detail ? (
-              <div className="mt-1 flex flex-wrap items-start justify-between gap-2">
-                <p className="min-w-0 flex-1 whitespace-pre-wrap text-body text-text-2">{entry.detail}</p>
-                {writable && (entry.kind === 'note' || entry.kind === 'stage') && (
-                  <Button
-                    aria-label={`Sửa ghi chú ${entry.kind === 'stage' ? 'lịch sử bậc' : 'hồ sơ'}`}
-                    disabled={busy}
-                    onClick={() => editTimelineEntry(entry.id, entry.detail || '')}
-                  >
-                    Sửa
-                  </Button>
+    <div className="space-y-4">
+      {/* Hồ sơ đã lưu trữ là bản ghi lịch sử: giữ dòng thời gian đầy đủ, không cần bộ lọc. */}
+      {!c.archived_at && (
+        <div className="flex flex-wrap gap-1.5">
+          {TIMELINE_FILTERS.map((filter) => {
+            const active = timelineFilter === filter.key;
+            const count = timelineCount[filter.key];
+            return (
+              <button
+                key={filter.key}
+                type="button"
+                aria-pressed={active}
+                onClick={() => setTimelineFilter(filter.key)}
+                className={cn(
+                  'inline-flex min-h-9 items-center gap-1 rounded-full border px-3 text-small transition-colors',
+                  active
+                    ? 'border-accent bg-accent-soft text-accent'
+                    : 'border-border bg-surface text-text-2 hover:bg-surface-2',
                 )}
-              </div>
-            ) : null}
-            <time className="mt-1 block font-data text-small text-text-3">
-              {new Date(entry.at).toLocaleString('vi-VN')}
-            </time>
-          </article>
-        ))
-      ) : (
-        <p className="text-body text-text-2">Chưa có hoạt động để hiển thị.</p>
+              >
+                {filter.label}
+                {filter.key !== 'all' && count > 0 && (
+                  <span className="font-data text-mono-data text-text-3">{count}</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
       )}
+      <div className="space-y-3">
+        {visibleTimeline.length ? (
+          visibleTimeline.map((entry) => (
+            <article key={entry.id} className="border-l-2 border-border pl-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-body-strong">{entry.title}</span>
+                {entry.automatic && <Badge>Tự động · SLA</Badge>}
+              </div>
+              {entry.detail && (entry.kind === 'note' || entry.kind === 'stage') && editingTimelineId === entry.id ? (
+                <div className="mt-2 space-y-2">
+                  <textarea
+                    aria-label="Sửa ghi chú"
+                    value={timelineDraft}
+                    disabled={busy}
+                    onChange={(event) => setTimelineDraft(event.target.value)}
+                    className={`${FIELD} min-h-20 py-2`}
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      variant="primary"
+                      disabled={busy || timelineDraft.length === 0}
+                      onClick={() => void saveTimelineEntry(entry.id)}
+                    >
+                      Lưu ghi chú
+                    </Button>
+                    <Button disabled={busy} onClick={() => setEditingTimelineId(null)}>
+                      Huỷ
+                    </Button>
+                  </div>
+                </div>
+              ) : entry.detail ? (
+                <div className="mt-1 flex flex-wrap items-start justify-between gap-2">
+                  <p className="min-w-0 flex-1 whitespace-pre-wrap text-body text-text-2">{entry.detail}</p>
+                  {writable && (entry.kind === 'note' || entry.kind === 'stage') && (
+                    <Button
+                      aria-label={`Sửa ghi chú ${entry.kind === 'stage' ? 'lịch sử bậc' : 'hồ sơ'}`}
+                      disabled={busy}
+                      onClick={() => editTimelineEntry(entry.id, entry.detail || '')}
+                    >
+                      Sửa
+                    </Button>
+                  )}
+                </div>
+              ) : null}
+              <time className="mt-1 block font-data text-small text-text-3">{displayDateTime(entry.at)}</time>
+            </article>
+          ))
+        ) : (
+          <p className="text-body text-text-2">Chưa có hoạt động để hiển thị.</p>
+        )}
+      </div>
     </div>
   );
   const memoryContent = (
@@ -634,43 +697,61 @@ function Profile() {
     },
   ];
 
+  const slas = slaBarOf(c, now);
+  const briefParts = splitBrief(brief);
+  const lastTouch = lastTouchOf(c, now);
+  const extra = extraFacts(c, now);
+  const stageLabel = CARE_STAGE_DISPLAY[stage] || stage || 'Chưa có bậc';
+  const stageOptions = stageChoicesFor(stage);
+  // Việc đến hạn/quá hạn đứng đầu hồ sơ, vạch đỏ để không bỏ quên (D-010).
+  const tones = tasks.map((task) => dueTone(taskDueInfo(task, now)));
+  const nextTone = tones.includes('over') ? 'over' : tones.includes('soon') ? 'soon' : undefined;
+  const asked = briefParts.missing.find((item) => item.key === missingKey) ?? null;
+  const undoPlan = account ? planSlaUndo(c, now, account.sync.local.userId) : null;
+  const sourceText = sourceListOf(c.source).map(sourceLabel).filter(Boolean).join(' · ');
+
   return (
-    <main className="mx-auto w-full max-w-5xl space-y-5 p-4 pb-4 lg:p-6" data-testid="customer-profile">
-      <div className="flex items-center justify-between">
-        <Button onClick={() => navigate(-1)}>← Quay lại</Button>
-        {readOnly && <Badge>Chỉ xem</Badge>}
-      </div>
-      <header className="relative overflow-hidden rounded-card border border-border bg-surface">
-        {c.cover_path && account?.remote.coverUrl(c.cover_path) && (
-          <img src={account.remote.coverUrl(c.cover_path) || ''} alt="" className="h-24 w-full object-cover" />
-        )}
-        <div className="flex flex-wrap items-center gap-3 p-4">
-          {c.avatar_path && account?.remote.avatarUrl(c.avatar_path) ? (
-            <img
-              src={account.remote.avatarUrl(c.avatar_path) || ''}
-              alt={`Ảnh đại diện ${c.full_name}`}
-              className="size-14 shrink-0 rounded-full object-cover"
-            />
-          ) : (
-            <Avatar name={c.full_name} size={56} />
+    <main
+      className="mx-auto w-full max-w-5xl space-y-4 p-4 pb-[calc(92px+env(safe-area-inset-bottom))] lg:p-6 lg:pb-6"
+      data-testid="customer-profile"
+    >
+      <ArchivedBanner customer={c} />
+      <div className="space-y-4 lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start lg:gap-6 lg:space-y-0">
+        <header className="relative overflow-hidden rounded-card border border-border bg-surface lg:col-start-1 lg:row-start-1">
+          {c.cover_path && account?.remote.coverUrl(c.cover_path) && (
+            <img src={account.remote.coverUrl(c.cover_path) || ''} alt="" className="h-24 w-full object-cover" />
           )}
-          <div className="min-w-0 flex-1">
-            <h1 className="truncate text-title">{c.full_name}</h1>
-            <p className="font-data text-mono-data text-text-2">{c.phone}</p>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              <StageChip
-                stage={stage || 'idle'}
-                label={CARE_STAGE_DISPLAY[stage] || stage || 'Chưa có bậc'}
-                sla={
-                  sla
-                    ? {
-                        value: sla.elapsed / sla.max,
-                        target: sla.target / sla.max,
-                        label: `${sla.text} ở ${sla.label}`,
-                      }
-                    : undefined
-                }
-              />
+          <div className="space-y-3 p-4">
+            <div className="flex items-start gap-3">
+              {c.avatar_path && account?.remote.avatarUrl(c.avatar_path) ? (
+                <img
+                  src={account.remote.avatarUrl(c.avatar_path) || ''}
+                  alt={`Ảnh đại diện ${c.full_name}`}
+                  className="size-14 shrink-0 rounded-full object-cover"
+                />
+              ) : (
+                <Avatar name={c.full_name} size={56} />
+              )}
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="min-w-0 truncate text-title">{c.full_name}</h1>
+                  {readOnly && <Badge>Chỉ xem</Badge>}
+                </div>
+                <p className="font-data text-mono-data text-text-2">{c.phone}</p>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                aria-haspopup="dialog"
+                aria-label={`Đổi bậc · ${stageLabel}`}
+                disabled={!writable || busy}
+                onClick={() => setStageOpen(true)}
+                className="inline-flex min-h-9 items-center gap-1 rounded-full text-left disabled:opacity-60"
+              >
+                <StageChip stage={stage || 'idle'} label={stageLabel} />
+                <Icon name="expand" size={16} className="text-text-3" />
+              </button>
               <HealthDot
                 health={
                   calls.length || c.next_call_at
@@ -683,128 +764,196 @@ function Profile() {
                 }
                 showText
               />
-              <Badge>{sourceListOf(c.source).join(' · ') || 'Chưa rõ nguồn'}</Badge>
+              <Badge>{sourceText || 'Chưa rõ nguồn'}</Badge>
             </div>
+            {slas && <SlaBar label="SLA bậc" state={slas.state} ratio={slas.ratio} text={slas.text} />}
+            <div className="-mx-4 lg:mx-0">{actionBar}</div>
+            {otherOwner && <p className="text-small text-text-2">Người phụ trách khác · hồ sơ chỉ xem.</p>}
+            {undoPlan && (
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-card border border-border bg-surface-2 p-3">
+                <p className="text-body">Ứng dụng đã tự chuyển khách theo SLA.</p>
+                <Button disabled={!writable || busy} onClick={() => void undo()}>
+                  Hoàn tác
+                </Button>
+              </div>
+            )}
           </div>
-        </div>
-        <div className="flex flex-wrap items-center gap-2 border-t border-border p-3">
-          <label className="text-small text-text-2">
-            Bậc
-            <select
-              aria-label="Đổi bậc khách"
-              value={stage}
-              disabled={!writable || busy}
-              onChange={(e) => void onStage(e.target.value)}
-              className={`${FIELD} mt-1 min-w-52`}
-            >
-              <option value="">Chưa có bậc</option>
-              {CARE_STAGE_OPTIONS.filter((option) => option !== VELOCITY_CONFIG.stageWon && option !== 'Loại').map(
-                (option) => (
-                  <option key={option} value={option}>
-                    {CARE_STAGE_DISPLAY[option] || option}
-                  </option>
-                ),
-              )}
-            </select>
-          </label>
-          {sla && (
-            <div className="flex items-center gap-2 text-small text-text-2">
-              <SlaRing value={sla.elapsed / sla.max} target={sla.target / sla.max} size={28} label={sla.text} />
-              {sla.label} · {sla.text}
-            </div>
+        </header>
+
+        <section
+          aria-label="Việc tiếp theo"
+          data-tone={nextTone}
+          className="relative overflow-hidden rounded-card border border-border bg-surface p-4 lg:col-start-1 lg:row-start-2"
+        >
+          {nextTone === 'over' && (
+            <span aria-hidden className="absolute inset-y-3 left-0 w-[3px] rounded-r-[3px] bg-danger" />
           )}
-          {otherOwner && <p className="text-small text-text-2">Người phụ trách khác · hồ sơ chỉ xem.</p>}
-        </div>
-      </header>
-      <ArchivedBanner customer={c} />
-      {(() => {
-        const undoPlan = account ? planSlaUndo(c, now, account.sync.local.userId) : null;
-        return undoPlan ? (
-          <div className="flex flex-wrap items-center justify-between gap-2 rounded-card border border-border bg-surface-2 p-3">
-            <p className="text-body">Ứng dụng đã tự chuyển khách theo SLA.</p>
-            <Button disabled={!writable || busy} onClick={() => void undo()}>
-              Hoàn tác
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-label text-text-2">Việc tiếp theo</h2>
+            <Button disabled={!writable} onClick={() => void addPromise()}>
+              Thêm việc
             </Button>
           </div>
-        ) : null;
-      })()}
-      <section className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-section">Bước tiếp theo / lời hứa</h2>
-          <Button disabled={!writable} onClick={() => void addPromise()}>
-            Thêm việc
-          </Button>
+          {tasks.length ? (
+            <ul className="mt-2 space-y-3">
+              {tasks.map((task) => {
+                const due = taskDueInfo(task, now);
+                const tag = due
+                  ? due.state === 'overdue'
+                    ? { state: 'missed' as const, text: due.label }
+                    : due.state === 'due'
+                      ? { state: 'due' as const, text: due.label }
+                      : due.state === 'today'
+                        ? { state: 'soon' as const, text: due.label }
+                        : { state: 'far' as const, text: due.label }
+                  : null;
+                return (
+                  <li key={task.at} className="flex items-start gap-3">
+                    <input
+                      aria-label={`Hoàn thành ${task.text}`}
+                      type="checkbox"
+                      disabled={!writable}
+                      onChange={() => void completeTask(task.at || '')}
+                      className="mt-1"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-body-strong">{task.text}</p>
+                      <div className="mt-1 flex flex-wrap items-center gap-2 text-small text-text-2">
+                        <span>{task.side === 'customer' ? 'Khách hẹn' : 'Em hứa'}</span>
+                        <DeadlineTag tag={tag} />
+                      </div>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <p className="mt-2 text-body text-text-2">
+              Chưa có bước tiếp theo. Ghi lại việc cần làm hoặc lời hứa để không bỏ quên khách.
+            </p>
+          )}
+        </section>
+
+        <section
+          aria-label="Lần trước"
+          className="rounded-card border border-border bg-surface p-4 lg:col-start-1 lg:row-start-3"
+        >
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="text-label text-text-2">Lần trước{lastTouch?.when ? ` · ${lastTouch.when}` : ''}</h2>
+            {lastTouch && <span className="text-small text-text-2">{lastTouch.meta}</span>}
+          </div>
+          {lastTouch ? (
+            <p className="mt-2 text-body">
+              {lastTouch.headline && <b className="font-semibold">{lastTouch.headline}. </b>}
+              {lastTouch.text}
+            </p>
+          ) : (
+            <p className="mt-2 text-body text-text-2">Chưa có liên hệ nào được ghi.</p>
+          )}
+        </section>
+
+        <section
+          aria-label="Đã biết"
+          className="rounded-card border border-border bg-surface p-4 lg:col-start-2 lg:row-start-1"
+        >
+          <h2 className="text-label text-text-2">Đã biết</h2>
+          {briefParts.known.length ? (
+            <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-3">
+              {briefParts.known.map((item) => (
+                <div key={item.key} className="min-w-0">
+                  <dt className="text-small text-text-3">{item.label}</dt>
+                  <dd className="text-body">{item.value}</dd>
+                </div>
+              ))}
+            </dl>
+          ) : (
+            <p className="mt-2 text-body text-text-2">Chưa có thông tin nào được ghi.</p>
+          )}
+          {briefParts.missing.length > 0 && (
+            <div className="mt-3 flex flex-wrap items-center gap-1.5">
+              <span className="text-small text-text-2">Còn thiếu:</span>
+              {briefParts.missing.map((item) => (
+                <button
+                  key={item.key}
+                  type="button"
+                  aria-expanded={missingKey === item.key}
+                  onClick={() => setMissingKey(missingKey === item.key ? '' : item.key)}
+                  className="inline-flex min-h-9 items-center rounded-full border border-dashed border-border-strong px-3 text-small text-text-2 hover:bg-surface-2"
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          )}
+          {asked && <p className="mt-2 text-small text-text-2">Có thể hỏi: {asked.question}</p>}
+        </section>
+
+        <div className="lg:col-start-1 lg:row-start-4">
+          <Tabs
+            items={tabs}
+            label="Nội dung hồ sơ khách"
+            sticky
+            className="[&_[role=tab]]:scroll-mt-14 [&_[role=tablist]]:top-14"
+          />
         </div>
-        {tasks.length ? (
-          tasks.map((task) => (
-            <div key={task.at} className="flex items-center gap-3 border-b border-border py-2">
+
+        <section
+          aria-label="Thông tin thêm"
+          className="rounded-card border border-border bg-surface p-4 lg:col-start-2 lg:row-start-2"
+        >
+          <h2 className="text-section">Thông tin thêm</h2>
+          {extra.length ? (
+            <dl className="mt-3 grid grid-cols-2 gap-3 text-small sm:grid-cols-3 lg:grid-cols-1">
+              {extra.map((row) => (
+                <div key={row.label} className="min-w-0">
+                  <dt className="text-text-3">{row.label}</dt>
+                  <dd className="whitespace-pre-wrap text-body">{row.value}</dd>
+                </div>
+              ))}
+            </dl>
+          ) : (
+            <p className="mt-2 text-body text-text-2">Chưa có thông tin bổ sung.</p>
+          )}
+        </section>
+
+        <div className="lg:col-start-2 lg:row-start-3">
+          <AiBrief customer={c} />
+        </div>
+
+        <div className="lg:col-start-1 lg:row-start-5">
+          <ArchiveCustomerSection customer={c} />
+        </div>
+      </div>
+
+      <Sheet
+        open={stageOpen}
+        onOpenChange={setStageOpen}
+        title="Đổi bậc khách"
+        description="Chọn bậc chăm sóc mới. Lịch gợi ý và SLA sẽ theo bậc mới."
+      >
+        <fieldset className="space-y-1">
+          <legend className="sr-only">Bậc chăm sóc</legend>
+          {stageOptions.map((option) => (
+            <label
+              key={option}
+              className="flex min-h-12 cursor-pointer items-center gap-3 rounded-control px-2 hover:bg-surface-2"
+            >
               <input
-                aria-label={`Hoàn thành ${task.text}`}
-                type="checkbox"
-                disabled={!writable}
-                onChange={() => void completeTask(task.at || '')}
+                type="radio"
+                name="profile-care-stage"
+                value={option}
+                checked={option === stage}
+                disabled={busy}
+                onChange={() => {
+                  setStageOpen(false);
+                  void onStage(option);
+                }}
               />
-              <div className="min-w-0 flex-1">
-                <p className="text-body-strong">{task.text}</p>
-                <p className="text-small text-text-2">
-                  {task.side === 'customer' ? 'Khách hẹn' : 'Em hứa'}
-                  {task.due ? ` · ${new Date(task.due).toLocaleString('vi-VN')}` : ''}
-                </p>
-              </div>
-            </div>
-          ))
-        ) : (
-          <p className="text-body text-text-2">
-            Chưa có bước tiếp theo. Ghi lại việc cần làm hoặc lời hứa để không bỏ quên khách.
-          </p>
-        )}
-      </section>
-      <section className="rounded-card border border-border bg-surface p-4">
-        <h2 className="mb-3 text-section">Brief · 20 giây</h2>
-        <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
-          {brief.map((item) => (
-            <div key={item.key}>
-              <p className="text-label text-text-3">{item.label}</p>
-              <p className={item.value === 'Chưa biết' ? 'text-body text-text-3' : 'text-body'}>{item.value}</p>
-              {item.value === 'Chưa biết' && <p className="text-small text-text-2">Có thể hỏi: {item.question}</p>}
-            </div>
+              <span className="text-body">{CARE_STAGE_DISPLAY[option] || option}</span>
+            </label>
           ))}
-        </div>
-      </section>
-      <AiBrief customer={c} />
-      <Tabs
-        items={tabs}
-        label="Nội dung hồ sơ khách"
-        sticky
-        className="[&_[role=tab]]:scroll-mt-14 [&_[role=tablist]]:top-14"
-      />
-      <section className="space-y-2">
-        <h2 className="text-section">Thông tin thêm</h2>
-        <dl className="grid grid-cols-2 gap-2 text-small sm:grid-cols-3">
-          <Fact label="Trạng thái liên hệ" value={c.contact_status} />
-          <Fact label="Số lần gọi" value={calls.length} />
-          <Fact
-            label="Lần gọi cuối"
-            value={calls.at(-1)?.at ? new Date(calls.at(-1)?.at || '').toLocaleString('vi-VN') : null}
-          />
-          <Fact label="Chiến dịch" value={c.campaign} />
-          <Fact label="Nguồn" value={sourceListOf(c.source).join(' · ')} />
-          <Fact label="Cách nhập" value={c.intake_method} />
-          <Fact label="Mức quan tâm" value={c.interest_level} />
-          <Fact label="Lý do loại" value={c.disqualify_reason} />
-          <Fact label="Ghi chú kết thúc" value={c.disqualify_note || c.close_note} />
-          <Fact label="Điều kiện retarget" value={c.retarget_hint?.note} />
-          <Fact
-            label="Không liên hệ"
-            value={c.contact_prefs?.do_not_contact ? c.contact_prefs.dnc_reason || 'Đã yêu cầu' : 'Không'}
-          />
-          <Fact label="Ngày tạo" value={c.created_at} />
-          <Fact label="Ghi chú đăng ký" value={c.notes} />
-          <Fact label="Ngày đăng ký" value={c.registered_at || c.created_at} />
-        </dl>
-      </section>
-      <ArchiveCustomerSection customer={c} />
-      {actionBar}
+        </fieldset>
+      </Sheet>
     </main>
   );
 }
@@ -823,10 +972,11 @@ function Field({
   onSave: (value: string) => void;
 }) {
   const id = `profile-field-${label.toLocaleLowerCase('vi').replace(/[^\p{L}\p{N}]+/gu, '-')}`;
-  const [draft, setDraft] = useState(fmtValue(value) === 'Chưa biết' ? '' : String(value));
-  useEffect(() => setDraft(fmtValue(value) === 'Chưa biết' ? '' : String(value)), [value]);
+  const raw = typeof value === 'string' || typeof value === 'number' ? String(value) : displayText(value);
+  const [draft, setDraft] = useState(raw);
+  useEffect(() => setDraft(raw), [raw]);
   const save = () => {
-    if (draft !== String(value ?? '')) onSave(draft);
+    if (draft !== raw) onSave(draft);
   };
   return (
     <div className="block space-y-1 text-small text-text-2">
@@ -882,7 +1032,7 @@ function ChoiceField({
         }}
         className={FIELD}
       >
-        <option value="">— Chưa biết —</option>
+        <option value="">— Chưa chọn —</option>
         {preservesUnknown && <option value={current}>{current} (giá trị hiện có)</option>}
         {options.map((option) => (
           <option key={option.value} value={option.value}>
@@ -894,13 +1044,8 @@ function ChoiceField({
   );
 }
 
-function Fact({ label, value }: { label: string; value: unknown }) {
-  return (
-    <div>
-      <dt className="text-text-3">{label}</dt>
-      <dd className="whitespace-pre-wrap text-text">{fmtValue(value)}</dd>
-    </div>
-  );
-}
-
-export const route: FeatureRoute = { path: '/ho-so/:id', element: <Profile />, handle: { title: 'Hồ sơ khách' } };
+export const route: FeatureRoute = {
+  path: '/ho-so/:id',
+  element: <Profile />,
+  handle: { title: 'Hồ sơ khách', hideNav: true },
+};

@@ -23,7 +23,7 @@ Lựa chọn nền tảng ban đầu (Supabase, Cloudflare Pages, local-first) k
 | D-011 | v2 dùng build step: Vite + React + TS + Tailwind + Radix | Đã duyệt hướng 2026-10-16 | Áp dụng từ T1.1 |
 | D-012 | Hợp đồng bảo toàn dữ liệu, migration chỉ thêm | Đã duyệt hướng 2026-10-16 | Áp dụng ngay (cả v1) |
 | D-013 | IA/UX v2: Hôm nay · Khách hàng · Công việc · Hiệu quả | Đã duyệt hướng 2026-10-16 | Áp dụng cho v2 |
-| D-014 | Design System v3 "Signal" (sáng + tối) | Đã duyệt hướng 2026-10-16 | Áp dụng cho v2 |
+| D-014 | Design System v3 "Signal" (sáng + tối) | Lịch sử | Thay bởi D-023 (giữ ngữ nghĩa màu, font, icon) |
 | D-015 | Bộ máy Tín hiệu là nguồn duy nhất cho ưu tiên/gợi ý/thông báo | Đã duyệt hướng 2026-10-16 | Áp dụng cho v2 |
 | D-016 | T2.B5 dùng thứ tự UX; giữ parity v1 riêng | Ngoại lệ cục bộ đã duyệt 2026-10-16 | Chỉ nghiệm thu T2.B5 |
 | D-017 | T3.6 được dùng react-hook-form cùng Zod | Ngoại lệ cục bộ đã duyệt 2026-10-16 | Chỉ T3.6 |
@@ -32,6 +32,8 @@ Lựa chọn nền tảng ban đầu (Supabase, Cloudflare Pages, local-first) k
 | D-020 | Hoãn ba thao tác xóa nested record trong cutover v2 | Ngoại lệ cục bộ đã duyệt 2026-10-17 | Chỉ chấp nhận gap T5.1; giữ D-012 và v1 |
 | D-021 | Đồng bộ v2 gộp cột mảng theo phần tử + bỏ được op bị server từ chối | Đã duyệt hướng 2026-10-17 (sửa trước cutover) | Hàng đợi v2; v1 giữ ghi đè tới cutover |
 | D-022 | T6.7 nghiệm thu không cần bộ đánh giá 50–100 ghi chú thật; theo dõi trên production | Ngoại lệ cục bộ đã duyệt 2026-10-17 | Chỉ T6.7 |
+| D-023 | Design System v4 "Precision Tonal" + 5 luật UI đo được | Đã duyệt 2026-10-19 | Áp dụng cho v3 (nhánh `factory`) |
+| D-024 | Đợt v3 chạy bằng AI Factory trên nhánh `factory`; task cũ T5.5, T6.3 tạm hoãn | Đã duyệt 2026-10-18 | Áp dụng tới khi v3 lên production |
 
 ## Ba loại kết quả
 
@@ -80,7 +82,7 @@ Ví dụ và mẫu trong bộ tài liệu không phải sự chấp thuận cho 
 
 - Ngày: 2026-10-06
 - Loại: Quy ước dữ liệu toàn dự án (không xung đột nguyên tắc: vẫn một bảng `customers`, local-first, RLS như cũ)
-- Nguyên tắc liên quan: `CLAUDE.md` §2 (dữ liệu khách, field bắt buộc); `docs/architecture.md` mục "Lớp khách và nguồn khách"
+- Nguyên tắc liên quan: `CLAUDE.md` §2 (dữ liệu khách, field bắt buộc); `docs/ARCHITECTURE.md` mục "Lớp khách và nguồn khách"
 - Quyết định:
   1. **Hai lớp trên cùng bảng `customers`**, phân biệt bằng `qualified_at`. Lớp 1 "Khách mới" (trống): mọi khách mới nhập theo bất kỳ kênh nào, chỉ ghi cuộc gọi (`call_attempts`), Đạt hoặc Loại. Lớp 2 (có giá trị): trang chủ + hồ sơ đầy đủ. Không tách bảng `leads` riêng (tránh luồng đồng bộ thứ hai, sao chép khi Đạt, chống trùng trên 2 bảng).
   2. **Tiêu chí Đạt:** có ≥1 cuộc gọi kết quả `talked` và sale bấm Đạt → `qualified_at` + bậc `Đang chăm sóc`. Bậc `Đăng kí mới`/`Đang tiếp cận` thuộc lớp 1, không hiện ở trang chủ. Khách cũ ở 2 bậc này chuyển hết xuống lớp 1.
@@ -94,7 +96,7 @@ Ví dụ và mẫu trong bộ tài liệu không phải sự chấp thuận cho 
 - Phạm vi: bảng `customers`, `js/app.js`, form khách, tab "Khách mới"; API landing page (repo Marquee_Homes) giữ nguyên vì đã ghi `source: ["website"]`.
 - Lý do và đánh đổi: tập trung trang chủ vào khách có giá trị; dữ liệu lớp 1 phục vụ phân tích ngược campaign. Đánh đổi: bảng `customers` có thêm vài cột chỉ dùng ở lớp 1.
 - Chấp thuận: người dùng duyệt phương án 2 lớp, chọn chuyển hết khách bậc 1–2 xuống lớp 1, đưa danh sách lý do và 3 kênh chính, yêu cầu thiết kế nguồn rõ ràng để mở rộng (chat 2026-10-06).
-- Tài liệu đã cập nhật: `docs/architecture.md`, `docs/CHANGELOG.md`, `SQL/add_lead_layer.sql`, `SQL/schema.sql`
+- Tài liệu đã cập nhật: `docs/ARCHITECTURE.md`, `docs/CHANGELOG.md`, `SQL/add_lead_layer.sql`, `SQL/schema.sql`
 - Trạng thái: Đang áp dụng
 
 ### D-002 — Vỏ Android (Capacitor) để tự ghi nhật ký cuộc gọi
@@ -107,7 +109,7 @@ Ví dụ và mẫu trong bộ tài liệu không phải sự chấp thuận cho 
 - Lý do và đánh đổi: iOS không cho app nào đọc lịch sử cuộc gọi; web không có API này. Chủ dự án dùng Android nên ưu tiên tự động hoá trên Android. Đánh đổi: phải cài Android Studio, giữ khoá ký APK, build lại APK khi đổi phần native.
 - Quy tắc gợi ý kết quả cuộc gọi (cùng ngày): 0s / dưới 30s / từ 30s, khác nhau giữa Khách mới và Tiềm năng (`CALL_RESULT_SETS` trong `js/calls.js`). Cuộc ≥30s chỉ gợi ý ghi chú, KHÔNG tự Đạt — chuyển Tiềm năng vẫn bấm tay. Cuộc gọi khách Tiềm năng ghi thêm 1 mốc vào dòng thời gian chăm sóc.
 - Chấp thuận: người dùng chọn "Ngoại lệ cục bộ" và đề xuất desktop/iOS web, Android Capacitor (chat 2026-10-07).
-- Tài liệu đã cập nhật: `CLAUDE.md`, `AGENTS.md`, `docs/architecture.md`, `docs/FEATURE_IDEAS.md`, `docs/CHANGELOG.md`
+- Tài liệu đã cập nhật: `CLAUDE.md`, `AGENTS.md`, `docs/ARCHITECTURE.md`, `docs/FEATURE_IDEAS.md`, `docs/CHANGELOG.md`
 - Trạng thái: Đang áp dụng (giai đoạn 1 web + vỏ Android đã build 2026-10-07; chưa thử trên máy thật)
 - Bổ sung 2026-10-13 (chủ dự án yêu cầu): vỏ thêm GỌI THẲNG — `CallLogPlugin.dial` + quyền `CALL_PHONE` (APK 1.4). Vẫn trong phạm vi ngoại lệ (chỉ `android-app/` có build); web chỉ gọi plugin khi có `window.Capacitor`, thiếu plugin → dùng link `tel:` như cũ.
 
@@ -126,7 +128,7 @@ Ví dụ và mẫu trong bộ tài liệu không phải sự chấp thuận cho 
 - Phạm vi: `SQL/add_team_assign.sql`, `js/team.js`, `js/db.js`, `js/app.js`, `js/calls.js`. Tài liệu đính kèm (bảng `documents` + file `customer-docs`) ai xem được khách thì xem được. Báo giá vay (`loan_quotes`) vẫn theo người tạo.
 - Lý do và đánh đổi: giữ 1 bảng `customers` + RLS, không cần backend riêng; last-write-wins vẫn đủ vì mỗi khách chỉ 1 người ghi. Đánh đổi: SĐT unique theo người phụ trách → giao cho người đã có cùng SĐT sẽ bị từ chối; lead landing page vẫn vào tài khoản trưởng nhóm rồi chia tay.
 - Chấp thuận: người dùng chọn (chat 2026-10-08): thêm đồng nghiệp bằng email; trưởng nhóm xem hết; theo dõi = chỉ xem; nhắc việc chỉ cho người phụ trách.
-- Tài liệu đã cập nhật: `CLAUDE.md`, `AGENTS.md`, `docs/architecture.md`, `docs/design.md`, `docs/huong-dan-nhom.md`, `docs/CHANGELOG.md`
+- Tài liệu đã cập nhật: `CLAUDE.md`, `AGENTS.md`, `docs/ARCHITECTURE.md`, `docs/design.md`, `docs/huong-dan-nhom.md`, `docs/CHANGELOG.md`
 - Trạng thái: Đã code 2026-10-08; chưa chạy SQL trên Supabase, chưa thử với tài khoản thật
 
 ### D-004 — Điều hướng 2 tab: Tổng quan · Khách hàng (3 nhóm khách)
@@ -189,7 +191,7 @@ Ví dụ và mẫu trong bộ tài liệu không phải sự chấp thuận cho 
 - Lý do: phễu 7 bậc dàn trải, không đo được tốc độ; cần mốc rõ để biết khách nào đang ứ và tự dọn khách nguội khỏi phễu.
 - Chấp thuận: người dùng gửi đặc tả (chat 2026-10-09) và chọn: Xem dự án 7 / 14 ngày; tự chuyển có ghi lịch sử + hoàn tác; khách cũ Hỗ trợ hồ sơ + Booking → Booking & Làm hồ sơ; 1 khách = 1 căn.
 - Phạm vi: `SQL/add_funnel_velocity.sql` (ràng buộc bậc, cột `booking_steps`, `sla_anchor_at`), `SQL/schema.sql`, `js/velocity.js` (mới), `js/app.js`, `js/db.js` (`historyMeta`), `js/notifications.js` (rule `sla_over`), `js/followup.js`, `js/icons.js` (`nurture`, `sla`), `index.html`, `css/style.css`.
-- Tài liệu đã cập nhật: `CLAUDE.md`, `AGENTS.md`, `docs/funnel-velocity.md`, `docs/architecture.md`, `docs/design.md`, `docs/huong-dan-follow-up.md`, `docs/CHANGELOG.md`
+- Tài liệu đã cập nhật: `CLAUDE.md`, `AGENTS.md`, `docs/funnel-velocity.md`, `docs/ARCHITECTURE.md`, `docs/design.md`, `docs/huong-dan-follow-up.md`, `docs/CHANGELOG.md`
 - Trạng thái: Đang áp dụng (chưa chạy SQL, chưa deploy lúc ghi)
 
 
@@ -232,18 +234,18 @@ Ví dụ và mẫu trong bộ tài liệu không phải sự chấp thuận cho 
 - Phương án đã cân nhắc: giữ không build + tách ES modules (rẻ nhưng không có kiểu dữ liệu/component, khó làm UI mới); Svelte/Vue (gọn nhưng agent kém quen hơn, ít component truy cập sẵn).
 - Phạm vi: toàn bộ web app v2. Không đổi Supabase, Worker, vỏ Android (D-002 vẫn hiệu lực cho `android-app/`).
 - Chấp thuận: người dùng cho phép "có thể đổi luôn nguyên tắc no build thành build nếu các thư viện nền tảng sẵn có tối ưu hơn" (chat 2026-10-16); agent đánh giá là tối ưu hơn và chọn stack trên. Chủ dự án có thể đổi stack trước khi bắt đầu T1.1.
-- Tài liệu: `CLAUDE.md`, `AGENTS.md`, `docs/architecture.md`, `docs/tasks.md`.
+- Tài liệu: `CLAUDE.md`, `AGENTS.md`, `docs/ARCHITECTURE.md`, `docs/tasks.md`.
 - Trạng thái: Đã duyệt hướng; chưa triển khai.
 
 ### D-012 — Hợp đồng bảo toàn dữ liệu cho đại tu
 
 - Ngày: 2026-10-16
 - Loại: Nguyên tắc toàn dự án (áp dụng ngay, cả v1)
-- Quyết định: (1) migration chỉ **thêm**, cấm drop/rename/đổi kiểu/đổi nghĩa mã đã lưu; (2) giữ mô hình `customers` aggregate (mảng JSONB trên hàng) cho v2; (3) ghi theo trường (patch), không làm rơi trường/thuộc tính lạ; (4) audit trigger append-only `customer_changes` trước mọi việc khác; (5) xoá mềm `archived_at`; (6) backup + diễn tập khôi phục trước migration production và trước cutover; (7) v2 đọc/ghi được DB IndexedDB và queue của v1. Chi tiết: `architecture.md` §3.
+- Quyết định: (1) migration chỉ **thêm**, cấm drop/rename/đổi kiểu/đổi nghĩa mã đã lưu; (2) giữ mô hình `customers` aggregate (mảng JSONB trên hàng) cho v2; (3) ghi theo trường (patch), không làm rơi trường/thuộc tính lạ; (4) audit trigger append-only `customer_changes` trước mọi việc khác; (5) xoá mềm `archived_at`; (6) backup + diễn tập khôi phục trước migration production và trước cutover; (7) v2 đọc/ghi được DB IndexedDB và queue của v1. Chi tiết: `ARCHITECTURE.md` §3.
 - Lý do: người dùng yêu cầu "mọi dữ liệu phải được bảo toàn"; chuẩn hoá bảng (interactions/opportunities riêng) đem lại ít lợi ích ở quy mô hiện tại nhưng rủi ro chuyển dữ liệu và đồng bộ offline lớn.
 - Đánh đổi: phân tích nặng chạy ở client; mảng JSONB có thể mất phần tử nếu 2 máy sửa cùng mảng cùng lúc (rủi ro đã chấp nhận từ v1, giảm nhờ audit).
 - Chấp thuận: yêu cầu trực tiếp của người dùng (chat 2026-10-16).
-- Tài liệu: `docs/architecture.md`, `CLAUDE.md`, `AGENTS.md`.
+- Tài liệu: `docs/ARCHITECTURE.md`, `CLAUDE.md`, `AGENTS.md`.
 - Trạng thái: Đã duyệt hướng; audit/backup làm ở Phase 0.
 
 ### D-013 — Kiến trúc thông tin và UX v2
@@ -262,7 +264,7 @@ Ví dụ và mẫu trong bộ tài liệu không phải sự chấp thuận cho 
 - Quyết định: phong cách hiện đại / công nghệ / tương lai bằng cấu trúc và chuyển động chứ không bằng trang trí: nền lạnh, bề mặt phân tầng, chữ số đơn cách cho dữ liệu, chế độ **sáng + tối** ngang hàng (mặc định theo hệ thống), font **Be Vietnam Pro**, CTA chính dùng **accent Signal Blue** (thay graphite). Giữ từ D-009: đỏ/vàng/xanh lá chỉ cho thời hạn/kết quả, violet chỉ cho AI, không neon/glow, không card lồng card, một CTA chính mỗi vùng.
 - Lý do: người dùng yêu cầu giao diện "hiện đại, công nghệ, tương lai" và phân cấp thị giác tốt (chat 2026-10-16).
 - Tài liệu: `docs/DESIGN_SYSTEM.md` (v3).
-- Trạng thái: Đã duyệt hướng; áp dụng cho v2 (v1 giữ D-009 đến cutover).
+- Trạng thái: Thay bởi D-023 (2026-10-19). Giữ ngữ nghĩa màu, font, icon.
 
 ### D-015 — Bộ máy Tín hiệu (signals) là nguồn duy nhất cho ưu tiên việc và gợi ý
 
@@ -270,7 +272,7 @@ Ví dụ và mẫu trong bộ tài liệu không phải sự chấp thuận cho 
 - Loại: Nguyên tắc toàn dự án (v2)
 - Quyết định: mọi "việc nên làm", gợi ý, thông báo trong app và gợi ý ở Hiệu quả sinh từ registry rule `src/domain/signals/rules/*` (mỗi rule 1 file: điều kiện, bằng chứng, mức P0–P2, hành động, điều kiện dừng, ngưỡng dữ liệu). Ngưỡng/tham số ở `src/config/signals.ts`. Hôm nay, chuông, hồ sơ, Hiệu quả chỉ đọc kết quả registry; không tự viết logic ưu tiên riêng. AI chỉ giải thích/soạn nháp cho tín hiệu, không đổi mức ưu tiên. Thời hạn theo D-010; tự chuyển SLA theo D-008/D-010 không đổi.
 - Lý do: v1 có 3 nơi tự tính ưu tiên (`dashActionGroups`, `notifications.js`, `analyticsInsightsHtml`) → dễ lệch nhau; registry cho phép nhiều agent thêm rule song song.
-- Tài liệu: `docs/PRD.md` F-04, `docs/UX_GUIDELINES.md` §6, `docs/architecture.md` §2.
+- Tài liệu: `docs/PRD.md` F-04, `docs/UX_GUIDELINES.md` §6, `docs/ARCHITECTURE.md` §2.
 - Trạng thái: Đã duyệt hướng; áp dụng cho v2.
 
 ### D-016 — Ngoại lệ parity thứ tự ưu tiên của T2.B5
@@ -339,7 +341,7 @@ Ví dụ và mẫu trong bộ tài liệu không phải sự chấp thuận cho 
 
 - Ngày: 2026-10-17
 - Loại: Đổi cách giải xung đột cho cột mảng JSONB của `customers` (trong v2); giữ D-012.
-- Nguyên tắc liên quan: `docs/architecture.md` §3.1.4, §4 ("last-write-wins theo `updated_at`"); D-012; D-020.
+- Nguyên tắc liên quan: `docs/ARCHITECTURE.md` §3.1.4, §4 ("last-write-wins theo `updated_at`"); D-012; D-020.
 - Bối cảnh: T5.2 (staging, khách d063bb16…) chứng minh mất ghi chú: Mac online thêm ghi chú; điện thoại offline thêm ghi chú khác rồi online → op `update` gửi nguyên mảng `notes_manual` cũ → ghi chú của Mac bị ghi đè. Ảnh hưởng mọi mảng (`call_attempts`, `next_tasks`, `notes_manual`, `care_stage_history`, `interactions`, `interests`, `household`). Cùng đợt: 1 op bị server từ chối (vd. `23514`) làm `flushQueue` dừng mãi, chỉ hiện "Lỗi đồng bộ". Chủ dự án chọn **sửa trước cutover** (không chấp nhận như v1).
 - Quyết định:
   1. **Gộp 3 chiều phía client, ghi có điều kiện** (không cần SQL/RPC). Khi tạo op `update` có cột mảng, repository lưu `arrayBase` = mảng local ngay trước khi sửa (metadata chỉ ở máy như `assignmentRollback`; không gửi server; v1 bỏ qua). Khi flush: đọc `updated_at` + các cột mảng của hàng trên server → gộp theo danh tính phần tử (`id`, không có thì `at`) → `PATCH … where id = … and updated_at = <giá trị vừa đọc>`; máy khác ghi chen giữa (0 hàng khớp) → đọc lại, gộp lại (tối đa 3 lần), rồi ghi thường với bản gộp mới nhất. Không đổi định dạng op, không đổi cột khác (vẫn patch theo trường).
@@ -353,7 +355,7 @@ Ví dụ và mẫu trong bộ tài liệu không phải sự chấp thuận cho 
   - Op `insert` (upsert cả hàng) không gộp — id khách là UUID mới nên chỉ trùng khi cùng 1 op bị đẩy 2 lần.
 - Phạm vi: `src/data/{arrayMerge,queue,sync,supabase,syncStatus}.ts`, `src/data/repositories/customers.ts` (chỉ gắn `arrayBase`), sheet `src/features/sync/`, chỉ báo đồng bộ trên header. Không migration, không đổi schema, không đổi v1.
 - Chấp thuận: chủ dự án quyết định "sửa trước cutover" sau báo cáo T5.2 ngày 2026-10-17 (task T5.9); phương án kỹ thuật do agent chọn trong phạm vi đó, không xung đột D-012.
-- Tài liệu đã cập nhật: `docs/decisions.md`, `docs/architecture.md` §3.1, §4.
+- Tài liệu đã cập nhật: `docs/decisions.md`, `docs/ARCHITECTURE.md` §3.1, §4.
 - Trạng thái: Đã duyệt hướng; T5.2 chạy lại kịch bản E2 trên staging để nghiệm thu.
 
 ### D-022 — T6.7 nghiệm thu không cần bộ đánh giá ghi chú thật; theo dõi trên production
@@ -370,3 +372,26 @@ Ví dụ và mẫu trong bộ tài liệu không phải sự chấp thuận cho 
 - Chấp thuận: Curtis trong phiên điều phối 2026-10-17: "Tôi sẽ quan sát tính năng này trên production luôn. Bạn ghi chú bước này và cho phép pass."
 - Tài liệu đã cập nhật: `docs/decisions.md`, `docs/tasks.md` (T6.7 "Xong khi", việc chủ dự án Sóng 6), `scripts/agents/ownership.json`.
 - Trạng thái: Đã duyệt; chỉ áp dụng cho T6.7.
+
+### D-023 — Design System v4 "Precision Tonal"
+
+- Ngày: 2026-10-19
+- Loại: Đổi nguyên tắc toàn dự án (phần giao diện)
+- Nguyên tắc liên quan: `docs/DESIGN_SYSTEM.md` (v3 → v4), D-014, CLAUDE.md §3.9.
+- Quyết định: Thay DS v3 "Signal" bằng v4 "Precision Tonal" = cách phân cấp của Material 3 Expressive + vẻ ngoài gần đơn sắc, số liệu đơn cách kiểu Linear / Geist / Carbon. Mỗi khách một thẻ; cấp 1 = tên + một nút hành động lớn có chữ; cấp 2–3 = lần gọi gần nhất, số lần gọi, ghi chú cuối, thanh SLA 7 đoạn; vạch trái 3px mang màu thời hạn. Nhóm gấp ở Hôm nay hiện thẻ đầy đủ, nhóm sau hiện thẻ gọn. Thêm 5 luật đo được L1–L5 (màn đầu, 1 hành động/thẻ, không mã thô, không ô trống, không trắng màn).
+- Phạm vi: toàn bộ giao diện v2/v3 (`src/ui`, `src/styles`, `src/features`). Giữ: ngữ nghĩa màu (đỏ/vàng/xanh lá cho thời hạn, tím cho AI), font Be Vietnam Pro + JetBrains Mono, registry icon D-006. Không đổi logic, dữ liệu, cấu hình nghiệp vụ.
+- Lý do và đánh đổi: Curtis 2026-10-18/19: bản v2 rối, mã lạ, thẩm mĩ chưa ổn; tiêu chí dễ đọc → phân cấp rõ, tách từng khách → công nghệ/tối giản. Liquid Glass/kính mờ bị loại vì tương phản thấp. Đánh đổi: thẻ đầy đủ cao, màn đầu Hôm nay thấy ~2–3 khách (đã chọn "nhóm gấp đầy đủ, còn lại gọn").
+- Chấp thuận: Curtis chọn hướng D và cách xử lý mật độ (2026-10-19), rồi "Duyệt Design System v4 Precision Tonal và 4 bản mẫu".
+- Tài liệu đã cập nhật: `docs/DESIGN_SYSTEM.md`, `docs/v3/design-language.md`, `docs/v3/mockups/`, `CLAUDE.md` + `AGENTS.md` §3.9.
+- Trạng thái: Đang áp dụng cho v3; code app chuyển dần theo `docs/ROADMAP.md` M1–M5.
+
+### D-024 — Đợt v3 chạy bằng AI Factory trên nhánh `factory`
+
+- Ngày: 2026-10-18
+- Loại: Đổi quy trình (ngoại lệ có thời hạn cho `docs/tasks.md` §0)
+- Nguyên tắc liên quan: `docs/tasks.md` §0 (nhánh `task/…` → tự merge vào `v2`), CLAUDE.md §2, §4.
+- Quyết định: Thiết kế lại UI/UX (v3) làm theo `docs/factory-playbook.md`: nhánh phát triển `factory` (tách từ `v2`), Lead (Claude) viết đặc tả + task `tasks/queue/`, worker (DeepSeek qua OpenCode) làm trong worktree riêng, push bị khoá **chỉ trong worktree worker**; Lead đọc diff rồi merge vào `factory`; Curtis tự push và quyết lên production. Task chưa xong T5.5, T6.3 tạm hoãn, xét lại khi có thiết kế v3. Cổng `merge-to-v2.mjs` giữ nguyên, không dùng cho v3.
+- Phạm vi: đợt v3 đến khi lên production.
+- Chấp thuận: Curtis 2026-10-18 chọn "Dựng AI Factory mới", "Task cũ tạm hoãn", "Khoá riêng trong worktree worker".
+- Tài liệu đã cập nhật: `CLAUDE.md`, `AGENTS.md` (dòng AI Factory), `docs/factory-playbook.md`, `docs/STATE.md`, `docs/ROADMAP.md`.
+- Trạng thái: Đang áp dụng.

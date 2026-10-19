@@ -23,6 +23,7 @@ export function AppShell({
   onToggleRail,
   aside,
   asideRef,
+  hideNav,
   children,
 }: {
   title: string;
@@ -39,6 +40,8 @@ export function AppShell({
   menu?: ReactNode;
   railExpanded: boolean;
   onToggleRail: () => void;
+  /** Ẩn thanh điều hướng dưới (mobile) — màn tự có thanh hành động đáy, vd. Hồ sơ (D-023). */
+  hideNav?: boolean;
   /** Có nội dung panel phải (desktop) hay không. */
   aside?: boolean;
   /** Phần tử đích cho panel phải (feature portal nội dung vào đây). */
@@ -74,20 +77,22 @@ export function AppShell({
             ref={asideRef}
             aria-label="Ngữ cảnh"
             className={cn(
-              'sticky top-14 hidden h-[calc(100dvh-56px)] w-[360px] shrink-0 overflow-y-auto border-l border-border bg-surface',
+              'sticky top-14 hidden h-[calc(100dvh-56px)] w-[360px] shrink-0 overflow-y-auto border-l border-hairline bg-surface',
               aside && 'lg:block',
             )}
           />
         </div>
       </div>
-      <BottomNav
-        tabs={tabs}
-        active={active ?? ''}
-        onSelect={onNavigate}
-        onAdd={onAdd}
-        addLabel="Ghi nhanh"
-        className="lg:hidden"
-      />
+      {!hideNav && (
+        <BottomNav
+          tabs={tabs}
+          active={active ?? ''}
+          onSelect={onNavigate}
+          onAdd={onAdd}
+          addLabel="Ghi nhanh"
+          className="lg:hidden"
+        />
+      )}
     </div>
   );
 }
@@ -113,7 +118,7 @@ function Rail({
     <nav
       aria-label="Điều hướng chính"
       className={cn(
-        'sticky top-0 hidden h-dvh shrink-0 flex-col gap-1 border-r border-border bg-surface px-2 py-3 lg:flex',
+        'sticky top-0 hidden h-dvh shrink-0 flex-col gap-1 border-r border-hairline bg-surface px-2 py-3 lg:flex',
         'transition-[width] duration-(--dur-base) ease-standard',
         expanded ? 'w-60' : 'w-[72px]',
       )}

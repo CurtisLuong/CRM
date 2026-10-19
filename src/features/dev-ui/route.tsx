@@ -10,6 +10,8 @@ import {
   BottomNav,
   BriefCard,
   Button,
+  CardGroup,
+  CustomerCard,
   DeadlineTag,
   EmptyState,
   ErrorState,
@@ -27,12 +29,15 @@ import {
   QueueRow,
   RowList,
   SegmentedControl,
+  SessionBar,
   Sheet,
   SignalCard,
   Skeleton,
+  SlaBar,
   SlaRing,
   SlotPicker,
   StageChip,
+  StatTile,
   SyncIndicator,
   Tabs,
   Timeline,
@@ -529,7 +534,97 @@ function FeedbackDemo() {
   );
 }
 
+function V4Demo() {
+  return (
+    <Section id="v4" title="v4 Precision Tonal · CustomerCard · SlaBar · SessionBar · StatTile">
+      <div className="grid gap-6 lg:grid-cols-2">
+        <div>
+          <SessionBar title="Gọi lần lượt 9 khách" sub="~35 phút · tự sang khách kế" onStart={noop} />
+          <CardGroup title="Quá giờ hẹn gọi" count={2}>
+            <CustomerCard
+              name="Bùi Thị Hồng Nhung"
+              sub={
+                <>
+                  <span className="font-semibold text-danger">Quá 1 giờ</span> · hẹn{' '}
+                  <span className="font-data">08:30</span>
+                </>
+              }
+              tone="over"
+              action={{ label: 'Gọi', icon: 'call', onClick: noop }}
+              onOpen={noop}
+              facts={[
+                { label: 'Gọi gần nhất', value: 'Hôm qua 15:00 · Không nghe máy' },
+                { label: 'Đã gọi', value: '3 lần' },
+              ]}
+              note="Hỏi giá căn 2PN, muốn vay 70%"
+              sla={{ label: 'Đang chăm sóc', state: 'ok', ratio: 5 / 7, text: 'còn 2 ngày' }}
+            />
+            <CustomerCard
+              name="Hoàng Đức Thắng"
+              sub="Quá 40 phút · hẹn 09:00"
+              tone="over"
+              action={{ label: 'Gọi', icon: 'call', onClick: noop }}
+              onOpen={noop}
+              facts={[
+                { label: 'Gọi gần nhất', value: '16/10 10:00 · Nói chuyện được' },
+                { label: 'Đã gọi', value: '5 lần' },
+              ]}
+              sla={{ label: 'Xem dự án', state: 'warn', ratio: 6 / 7, text: 'quá mục tiêu · còn 1 ngày' }}
+            />
+          </CardGroup>
+          <CardGroup title="Gọi lại — chưa liên lạc được" count={1}>
+            <CustomerCard
+              compact
+              name="Lê Minh Tuấn"
+              sub="10:00 · lần 2/5 · hôm qua không nghe"
+              action={{ label: 'Gọi', icon: 'call', onClick: noop }}
+              onOpen={noop}
+            />
+            <CustomerCard
+              compact
+              name="Gửi bảng giá + chính sách vay"
+              sub="16:00 · Lý Thị Mai · em hứa"
+              tone="soon"
+              action={{ label: 'Xong', icon: 'done', onClick: noop }}
+            />
+          </CardGroup>
+        </div>
+        <div className="flex flex-col gap-3">
+          <SlaBar label="Bậc quá hạn" state="over" ratio={1.4} text="quá hạn 2 ngày" />
+          <div className="grid grid-cols-2 gap-2">
+            <StatTile
+              label="Gọi khách mới"
+              value={18}
+              unit="phút"
+              sub="trung vị từ lúc đăng ký"
+              trend={{ dir: 'down', text: 'nhanh hơn 6 phút', tone: 'good' }}
+              onClick={noop}
+            />
+            <StatTile
+              label="Nói chuyện được"
+              value={42}
+              unit="%"
+              sub="63/150 cuộc gọi"
+              trend={{ dir: 'up', text: 'tăng 3 điểm', tone: 'good' }}
+              onClick={noop}
+            />
+            <StatTile
+              label="Chăm đúng nhịp"
+              value={71}
+              unit="%"
+              sub="34/48 khách"
+              trend={{ dir: 'down', text: 'giảm 5 điểm', tone: 'bad' }}
+            />
+            <StatTile label="Booking / Kí" value={null} />
+          </div>
+        </div>
+      </div>
+    </Section>
+  );
+}
+
 const SECTIONS = [
+  ['v4', 'v4'],
   ['button', 'Button'],
   ['status', 'Trạng thái'],
   ['nav', 'Điều hướng'],
@@ -548,7 +643,9 @@ function Gallery() {
       <main className="mx-auto flex max-w-5xl flex-col gap-8 px-4 pt-6 pb-28">
         <header className="flex flex-col gap-3">
           <h1 className="text-title">Component src/ui</h1>
-          <p className="text-small text-text-2">Gallery Design System v3 — mọi biến thể và trạng thái, sáng và tối.</p>
+          <p className="text-small text-text-2">
+            Gallery Design System v4 Precision Tonal (D-023) — mọi biến thể và trạng thái, sáng và tối.
+          </p>
           <SegmentedControl<ThemePref>
             label="Giao diện"
             options={THEME_OPTIONS}
@@ -564,6 +661,7 @@ function Gallery() {
             ))}
           </nav>
         </header>
+        <V4Demo />
         <ButtonsDemo />
         <StatusDemo />
         <NavDemo />

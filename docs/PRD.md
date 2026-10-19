@@ -1,7 +1,7 @@
 # PRD — Sổ Khách CRM v2 (đại tu)
 
 > **Phiên bản:** 1.0 · 2026-10-16 · **Trạng thái:** Đã duyệt hướng (chat 2026-10-16), chưa code.
-> **Đọc khi:** chọn/thiết kế tính năng, viết task, nghiệm thu. Chi tiết giao diện: `DESIGN_SYSTEM.md`; hành vi: `UX_GUIDELINES.md`; kỹ thuật: `architecture.md`; thứ tự làm: `tasks.md`.
+> **Đọc khi:** chọn/thiết kế tính năng, viết task, nghiệm thu. Chi tiết giao diện: `DESIGN_SYSTEM.md`; hành vi: `UX_GUIDELINES.md`; kỹ thuật: `ARCHITECTURE.md`; thứ tự làm: `tasks.md`.
 > **Nguồn:** codebase v1 (2026-10-16), `docs/CRM bất động sản 2026.md` (nghiên cứu thị trường), `docs/sale-focus-roadmap.md`, `docs/FEATURE_IDEAS.md`.
 
 ## 1. Bối cảnh và mục tiêu
@@ -16,7 +16,7 @@ v1 đã có nền nghiệp vụ tốt (2 lớp khách, phễu 5 giai đoạn + S
 
 ## 2. Ràng buộc không thương lượng
 
-1. **Bảo toàn 100% dữ liệu.** Không xoá/đổi tên cột, không đổi nghĩa mã đã lưu (`care_stage`, `CALL_RESULTS`, `source`, `disqualify_reason`, kind việc…), migration chỉ **thêm**. Chi tiết: `architecture.md` §3.
+1. **Bảo toàn 100% dữ liệu.** Không xoá/đổi tên cột, không đổi nghĩa mã đã lưu (`care_stage`, `CALL_RESULTS`, `source`, `disqualify_reason`, kind việc…), migration chỉ **thêm**. Chi tiết: `ARCHITECTURE.md` §3.
 2. **Local-first + offline** giữ nguyên: đọc IndexedDB trước, ghi local + hàng đợi, last-write-wins theo trường.
 3. **Quyền dữ liệu**: RLS + GRANT như hiện có; D-003 (owner/followers/admin).
 4. **AI chỉ đề xuất**, không tự ghi/gửi/gọi/đổi stage. Automation chỉ chạy theo quy tắc đã duyệt (D-008, D-010).

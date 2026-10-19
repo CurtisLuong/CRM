@@ -6,6 +6,14 @@ Ghi lại các thay đổi đáng kể theo thời gian. Mới nhất ở trên 
 
 ---
 
+## 2026-10-17 — T5.4: Cutover v2 lên production (crm-cop)
+
+- Backup production mới đạt checksum + bản sao 2; migration SQL/v2/002–006 chạy production, xác minh cột/bảng
+- Cloudflare crm-cop build Vite (dist) + biến VITE_* production; merge v2@66fc241 → main f63bf7d; bundle trỏ production, không trỏ staging
+- APK 1.5 lên Storage production (checksum khớp); Mac + Android đạt (chủ dự án); bắt đầu theo dõi customer_changes 48 giờ
+- docs/project-status.md
+- File: `docs/project-status.md`
+
 ## 2026-10-17 — T6.7: Nghiệm thu AI v2 theo ngoại lệ D-022 (theo dõi trên production)
 
 - Chủ dự án bỏ bước đánh giá 50–100 ghi chú thật; T6.7 xong dựa trên phần mã T6.7a (6feeb97) đã kiểm bằng ghi chú giả.

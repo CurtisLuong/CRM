@@ -3,7 +3,7 @@
 > **Ai làm:** chủ dự án, trên MacBook, bằng ứng dụng **Terminal**. Mỗi bước có lệnh để dán + kết quả mong đợi.
 > **Khi nào:** lần đầu ngay bây giờ; sau đó **trước mọi migration production**, **trước cutover** (T5.4), và mỗi tuần trong thời gian xây v2.
 > **An toàn:** script chỉ **đọc** production. Khôi phục chỉ ghi vào project **staging** và tự từ chối nếu trỏ nhầm production.
-> Script: `scripts/backup/` · Quyết định: D-012 · Hợp đồng dữ liệu: `architecture.md` §3.
+> Script: `scripts/backup/` · Quyết định: D-012 · Hợp đồng dữ liệu: `ARCHITECTURE.md` §3.
 
 **Backup chứa dữ liệu khách thật và mã băm mật khẩu đăng nhập.** Chỉ để trên máy của anh (mặc định `~/CRM-backups`) + 1 ổ ngoài/iCloud riêng tư. Không đưa vào repo, không gửi qua chat/email, không dán nội dung cho AI.
 

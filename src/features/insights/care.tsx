@@ -69,9 +69,7 @@ export function CareSection({ customers, now }: { customers: readonly Customer[]
                 : undefined
             }
           />
-          <p className="text-small text-text-2">
-            Trung vị chỉ tính lead đã gọi; SLA tính trong giờ làm 06:00–22:00 theo D-008.
-          </p>
+          <p className="text-small text-text-2">Trung vị chỉ tính lead đã gọi; SLA tính trong giờ làm 06:00–22:00.</p>
           <Button
             className="self-start"
             variant="secondary"
@@ -103,7 +101,7 @@ export function CareSection({ customers, now }: { customers: readonly Customer[]
         <article className="flex flex-col gap-2 rounded-card border border-border bg-surface p-3 shadow-e1 sm:col-span-2 lg:col-span-3">
           <h3 className="text-body-strong">Nghe máy theo khung</h3>
           <p className="text-small text-text-2">
-            Cuộc có kết quả `talked` / mọi cuộc có kết quả trong khung; cửa sổ 30 ngày. Cỡ mẫu nhỏ hơn{' '}
+            Cuộc có kết quả Nói chuyện được / mọi cuộc có kết quả trong khung; cửa sổ 30 ngày. Cỡ mẫu nhỏ hơn{' '}
             {CARE_METRIC_CONFIG.slotSample} vẫn hiển thị nhưng không dùng làm bài học.
           </p>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
@@ -157,7 +155,7 @@ export function CareSection({ customers, now }: { customers: readonly Customer[]
         <article className="flex flex-col gap-2 rounded-card border border-border bg-surface p-3 shadow-e1 sm:col-span-2 lg:col-span-3">
           <h3 className="text-body-strong">Tuổi bậc so với SLA</h3>
           <p className="text-small text-text-2">
-            Số khách trong từng bậc; trạng thái so với mục tiêu/hạn mức D-008. Nhấn để xem khách ở bậc.
+            Số khách trong từng bậc; trạng thái so với mục tiêu/hạn mức của bậc. Nhấn để xem khách ở bậc.
           </p>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-5">
             {metrics.stages.map((stage) => (

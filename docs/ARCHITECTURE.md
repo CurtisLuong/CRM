@@ -1,7 +1,49 @@
-# Kiến trúc và dữ liệu — Sổ Khách v2
+# Kiến trúc và dữ liệu — Sổ Khách (v2, đang làm v3)
 
 > **Phiên bản:** 2.0 · 2026-10-16 · Thay bản v1 (lịch sử: git). **Đọc khi:** sửa dữ liệu, đồng bộ, auth, schema, cấu trúc code, build/deploy, Android shell.
 > §3 (Hợp đồng dữ liệu) là phần **bắt buộc đọc** cho mọi task chạm dữ liệu. Quyết định liên quan: D-011 (stack build), D-012 (bảo toàn dữ liệu), D-001, D-002, D-003, D-008.
+
+## 0. Bản đồ cho worker — module, hợp đồng, vùng cấm (đọc trước mọi task)
+
+> Thêm 2026-10-19 theo skill ai-factory-lead (Lead vạch xương sống, worker tự do trong hàng rào). Mục này là **hợp đồng**; §1–§10 bên dưới là chi tiết. Hàng rào chung cho mọi task: `AGENTS.md`.
+
+### 0.1 Module và trách nhiệm
+
+| Module | Trách nhiệm | Được phụ thuộc vào | Không được |
+|---|---|---|---|
+| `src/config/*` | **Nguồn duy nhất** của nhãn, mã, ngưỡng, khung giờ, SLA, icon (CLAUDE.md §3.5) | — | Đổi nghĩa mã đã lưu (D-012); để màn khác tự định nghĩa lại |
+| `src/domain/*` | Logic thuần: khách (normalize, timeline, brief), thời hạn D-010, follow-up D-005, SLA/tự chuyển D-008, tín hiệu D-015, chỉ số, tìm kiếm, vay | `config` | Import React, IndexedDB, Supabase, `src/ui`, `src/features` |
+| `src/data/*` | IndexedDB, hàng đợi, đồng bộ, realtime, auth, repository, hooks | `config`, `domain` | Bị feature gọi vòng qua (feature chỉ dùng repository + hooks) |
+| `src/ui/*` | Component Design System v4 (D-023) + định dạng hiển thị `display.ts` | `config` (nhãn, icon) | Tự tính nghiệp vụ (thời hạn, SLA, nhóm) — chỉ nhận giá trị đã tính |
+| `src/features/<tên>/` | Một màn/tính năng: `route.tsx` (tự đăng ký), `model.ts` (hàm thuần của màn), component riêng | `config`, `domain`, `data/hooks`, `ui`, `features/quick-actions/store` | Sửa file của feature khác; đổi luật trong `domain` |
+| `src/app/*` | Khung app, router (gom `features/*/route.tsx`), layout, theme, lệnh | mọi module | Chứa logic nghiệp vụ |
+| `worker/` | Cloudflare Worker (OCR, AI, Facebook leads) | — | Deploy bởi agent |
+| `android-app/` | Vỏ Capacitor (D-002), cầu nối §7 | — | Đổi hợp đồng cầu nối |
+| `legacy/` | Code v1 tham chiếu | — | Sửa, serve |
+
+### 0.2 Hợp đồng không được đổi (trừ khi task ghi rõ)
+
+| Hợp đồng | Ở đâu | Ai dùng |
+|---|---|---|
+| Kiểu `Customer` + schema Zod (trường lạ được giữ nguyên) | `src/domain/customer/schema.ts`, `types.ts` | mọi nơi |
+| Định dạng IndexedDB + hàng đợi tương thích v1 (DB `crm_khach_hang__<userId>` v2, store `customers` / `queue` / `meta`) | `src/data/localdb.ts`, `queue.ts` | v1, v2, e2e |
+| `RepositoryAccount { customers, remote, catalog, sync }`; `CustomerRepository` (`create`, `update` theo trường, `addNote`, `addTask`, `completeTask`, `reopenTask`, `logCall`, `assign`, `remove` xoá mềm, `restore`, …) | `src/data/repositories/*` | features |
+| Hooks `useCustomers(filter?)`, `useCustomer(id)`, `useSyncStatus()`, `useRepositoryAccount()` | `src/data/hooks` | features |
+| Mở hành động nhanh: `openQuickAction(customerId, 'call' \| 'zalo' \| 'note' \| 'schedule' \| 'outcome')` | `src/features/quick-actions/store.ts` | mọi màn có nút Gọi/Zalo/Ghi chú/Hẹn |
+| Thời hạn: `countdownTag`, `taskDueInfo`, `callReminder` (D-010) | `src/domain/deadlines` | mọi màn hiện hạn |
+| SLA: `status(customer, now)` (D-008) | `src/domain/velocity/engine.ts` | Hôm nay, Hồ sơ, Hiệu quả |
+| Tín hiệu: `computeSignals(customers, ctx)` → `Signal` (nhóm `SIGNALS_CONFIG.groupOrder`, tín hiệu phụ trong `secondaryReasons`) | `src/domain/signals` | Hôm nay, thông báo |
+| Route: `export const route: FeatureRoute` trong `src/features/*/route.tsx`; `handle: { title?, hideNav? }` | `src/app/routes.ts`, `layout.tsx` | router |
+| Hiển thị: `displayText`, `displayDate`, `displayDateTime`, `callResultLabel`, `sourceLabel`, `intakeLabel` (D-023 L3) | `src/ui/display.ts` | mọi màn |
+| Component v4: `CustomerCard`, `CardGroup`, `SlaBar`, `SessionBar`, `StatTile`, `ActionBar`, `Button` (`primary` / `secondary` tonal / `accent` / `ghost` / `danger` / `ai`) | `src/ui/*`, `docs/DESIGN_SYSTEM.md` §3 | mọi màn |
+
+### 0.3 Luồng dữ liệu (tóm tắt — chi tiết §4)
+
+Màn đọc `useCustomers()` (IndexedDB, local trước) → hàm thuần `domain` / `features/*/model.ts` tính trạng thái → component `ui` hiển thị. Ghi: màn gọi `CustomerRepository` → ghi IndexedDB ngay + đưa vào hàng đợi → `sync` đẩy Supabase, gộp mảng theo phần tử (D-021), xung đột last-write-wins theo `updated_at`. Realtime + probe kéo thay đổi từ máy khác. **Đọc lỗi ≠ dữ liệu trống**: không bao giờ ghi đè khi không đọc được từ server.
+
+### 0.4 Vùng cấm (worker không sửa trừ khi task mở rõ và Lead ghi hợp đồng)
+
+`src/data/**` · `SQL/**` · `supabase/**` · `legacy/**` · `android-app/**` · `worker/**` · `src/domain/**` (luật nghiệp vụ) · `src/config/**` (chỉ được thêm nhãn khi task cho phép) · `package.json`, lockfile, `vite.config.ts`, `tsconfig*.json`, `biome.json`, `playwright.config.ts`, `vitest.config.ts` · `tests/golden/**`, `tests/fixtures/**` · `scripts/**`, `docs/**`, `tasks/**`, `AGENTS.md`, `CLAUDE.md` · mọi `.env*`.
 
 ## 1. Tổng quan
 

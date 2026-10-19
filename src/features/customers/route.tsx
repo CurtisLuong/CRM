@@ -8,6 +8,7 @@ import { useCustomers, useRepositoryAccount, useSyncStatus } from '@/data/hooks'
 import type { Customer } from '@/domain/customer';
 import { callAttemptsOf, isQualified, normStage, sourceListOf } from '@/domain/customer/normalize';
 import { apartmentGroup } from '@/domain/search/search';
+import { openQuickAction } from '@/features/quick-actions/store';
 import {
   type AssignmentMode,
   assignmentFollowers,
@@ -15,12 +16,14 @@ import {
   canAssignCustomer,
   type TeamMember,
 } from '@/features/team/model';
-import { Avatar, Badge, Button, ListRow, RowList, SegmentedControl, Sheet, useToast } from '@/ui';
+import { Avatar, Badge, Button, CustomerCard, cn, IconButton, Sheet, useToast } from '@/ui';
 import {
   type CustomerFilters,
   type CustomerGroup,
+  customerGroupCounts,
   DEFAULT_FILTERS,
   DEFAULT_SORT,
+  listCardSub,
   type SortRule,
   sortCustomers,
   v1FilterCustomers,
@@ -45,11 +48,15 @@ type TeamPerson = {
   is_me?: boolean;
 };
 const STORE = 'crm_v2_customer_segments';
-const GROUPS = [
-  { value: 'potential' as const, label: 'Tiềm năng' },
-  { value: 'new' as const, label: 'Khách mới' },
-  { value: 'team' as const, label: 'Khách nhóm' },
-];
+// Thẻ gọn cao 64px + khe 8px = 72px; virtualWindow cần đúng nhịp này.
+const CARD_HEIGHT = 64;
+const CARD_GAP = 8;
+const ITEM_HEIGHT = CARD_HEIGHT + CARD_GAP;
+
+const CHIP =
+  'inline-flex min-h-11 shrink-0 items-center rounded-full border px-3.5 text-small font-semibold transition-colors duration-(--dur-fast) focus-visible:outline-2 focus-visible:outline-focus';
+const chipClass = (active: boolean) =>
+  cn(CHIP, active ? 'border-accent bg-accent text-accent-fg' : 'border-border bg-surface text-text hover:bg-surface-2');
 
 function loadSaved(userId: string): SavedSegment[] {
   try {
@@ -58,6 +65,7 @@ function loadSaved(userId: string): SavedSegment[] {
     return [];
   }
 }
+
 function Customers() {
   const params = useParams();
   const navigate = useNavigate();
@@ -84,9 +92,11 @@ function Customers() {
   const [segmentName, setSegmentName] = useState('');
   const [scrollTop, setScrollTop] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(560);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const scrollRef = useRef<HTMLElement>(null);
 
-  // One page scroll surface: list gestures can always reach the filters above it.
+  // One page scroll surface: list gestures can always reach the search chips above it.
   // Keep rendering bounded to the viewport, relative to the list's page position.
   useEffect(() => {
     const list = scrollRef.current;
@@ -172,6 +182,7 @@ function Customers() {
     setSort(item.sort);
     setView(item.view);
     setActiveSaved(item.id);
+    setScrollTop(0);
   };
   const persistSegments = async (next: SavedSegment[]) => {
     setSaved(next);
@@ -233,10 +244,7 @@ function Customers() {
     setScrollTop(0);
   };
 
-  const ownRows = rows.filter((c) => c.owner_id === userId);
-  const leadsCount = ownRows.filter((c) => !isQualified(c)).length;
-  const potentialCount = ownRows.filter((c) => isQualified(c)).length;
-  const teamCount = rows.filter((c) => c.owner_id && c.owner_id !== userId).length;
+  const counts = customerGroupCounts(rows, userId);
   const teamMembers = team
     .map((person) => ({
       user_id: person.user_id || person.id || '',
@@ -434,37 +442,61 @@ function Customers() {
     </div>
   );
 
-  const itemHeight = view === 'list' ? 72 : 120;
+  const groupOptions: { value: CustomerGroup; label: string; count: number }[] = [
+    { value: 'potential', label: 'Tiềm năng', count: counts.potential },
+    { value: 'new', label: 'Khách mới', count: counts.leads },
+    ...(team.length || counts.team ? [{ value: 'team' as const, label: 'Khách nhóm', count: counts.team }] : []),
+  ];
+  const now = Date.now();
   const range = virtualWindow(
     visible.length,
-    Math.min(scrollTop, Math.max(0, (visible.length - 1) * itemHeight)),
+    Math.min(scrollTop, Math.max(0, (visible.length - 1) * ITEM_HEIGHT)),
     viewportHeight,
-    itemHeight,
+    ITEM_HEIGHT,
   );
   const slice = visible.slice(range.start, range.end);
+
   const list = (
-    <section ref={scrollRef} aria-label="Danh sách khách">
+    <section ref={scrollRef} aria-label="Danh sách khách" className="mt-2">
       <div style={{ height: range.totalHeight, position: 'relative' }}>
-        <div style={{ position: 'absolute', insetInline: 0, top: range.offset }}>
-          {view === 'list' ? (
-            <RowList label="Khách hàng" className="[&>li]:h-[72px]">
-              {slice.map((c) => (
-                <CustomerRow
-                  key={c.id}
-                  customer={c}
-                  owner={team.find((p) => (p.user_id || p.id) === c.owner_id)}
-                  onOpen={() => navigate(`/khach-hang/${c.id}`)}
+        <ul className="flex flex-col gap-2" style={{ position: 'absolute', insetInline: 0, top: range.offset }}>
+          {slice.map((customer) => {
+            const sub = listCardSub(customer, now);
+            const subNode =
+              sub.lead || sub.rest ? (
+                <>
+                  {sub.lead && (
+                    <span
+                      className={
+                        sub.lead.tone === 'over'
+                          ? 'font-semibold text-danger'
+                          : sub.lead.tone === 'soon'
+                            ? 'font-semibold text-warning'
+                            : undefined
+                      }
+                    >
+                      {sub.lead.text}
+                    </span>
+                  )}
+                  {sub.lead && sub.rest ? ' · ' : ''}
+                  {sub.rest}
+                </>
+              ) : undefined;
+            return (
+              <li key={customer.id} className="h-16">
+                <CustomerCard
+                  compact
+                  className="h-full"
+                  name={customer.full_name}
+                  sub={subNode}
+                  tone={sub.lead?.tone}
+                  onOpen={() => navigate(`/khach-hang/${customer.id}`)}
+                  action={{ label: 'Gọi', icon: 'call', onClick: () => openQuickAction(customer.id, 'call') }}
                 />
-              ))}
-            </RowList>
-          ) : (
-            <div className="grid gap-2 p-2">
-              {slice.map((c) => (
-                <CustomerCard key={c.id} customer={c} onOpen={() => navigate(`/khach-hang/${c.id}`)} />
-              ))}
-            </div>
-          )}
-        </div>
+              </li>
+            );
+          })}
+        </ul>
       </div>
       {visible.length === 0 && (
         <div className="p-8 text-center text-body text-text-2">Không tìm thấy khách khớp bộ lọc.</div>
@@ -473,102 +505,148 @@ function Customers() {
   );
 
   return (
-    <main className="mx-auto w-full max-w-5xl space-y-4 p-4 pb-24 lg:p-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-label text-text-3">KHÁCH HÀNG</p>
-          <h2 className="text-title">Danh sách khách</h2>
+    <main className="mx-auto w-full max-w-5xl p-4 pb-24 lg:p-6">
+      <div className="flex items-center gap-2">
+        <input
+          aria-label="Tìm khách"
+          value={filters.query}
+          onChange={(e) => setFilter('query', e.target.value)}
+          placeholder="Tên, SĐT, dự án, ghi chú…"
+          className="min-h-11 min-w-0 flex-1 rounded-control border border-border-strong bg-surface px-3 text-body text-text placeholder:text-text-3 focus-visible:outline-2 focus-visible:outline-focus"
+        />
+        <IconButton icon="more" label="Thêm thao tác" variant="ghost" onClick={() => setMoreOpen(true)} />
+      </div>
+
+      <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
+        <Button icon="filter" onClick={() => setFilterOpen(true)} className="shrink-0 rounded-full">
+          Lọc
+        </Button>
+        {groupOptions.map((item) => (
+          <button
+            key={item.value}
+            type="button"
+            aria-pressed={group === item.value}
+            onClick={() => {
+              setGroup(item.value);
+              setFilters(item.value === 'new' ? { ...DEFAULT_FILTERS, status: 'open' } : DEFAULT_FILTERS);
+              setActiveSaved('');
+              setScrollTop(0);
+            }}
+            className={chipClass(group === item.value)}
+          >
+            {item.label} {item.count}
+          </button>
+        ))}
+        {saved.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            aria-pressed={activeSaved === item.id}
+            onClick={() => applySaved(item)}
+            className={chipClass(activeSaved === item.id)}
+          >
+            {item.name}
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-2 flex min-h-5 items-center justify-between gap-3">
+        <p aria-live="polite" className="text-small text-text-2">
+          <span className="text-body-strong text-text">{visible.length.toLocaleString('vi-VN')} khách</span>
+        </p>
+      </div>
+
+      {list}
+
+      <Sheet
+        open={filterOpen}
+        onOpenChange={setFilterOpen}
+        title="Lọc khách"
+        footer={
+          <>
+            <Button onClick={reset}>Xoá lọc</Button>
+            <Button variant="primary" className="flex-1" onClick={() => setFilterOpen(false)}>
+              Xem {visible.length.toLocaleString('vi-VN')} khách
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          {controls}
+          <div className="space-y-2 border-hairline border-t pt-4">
+            <p className="text-body-strong">Lưu tệp</p>
+            <div className="flex gap-2">
+              <input
+                aria-label="Tên tệp mới"
+                value={segmentName}
+                onChange={(e) => setSegmentName(e.target.value)}
+                placeholder="Tên tệp khách"
+                className="min-h-11 min-w-0 flex-1 rounded-control border border-border-strong bg-surface px-3 text-body text-text"
+              />
+              <Button onClick={() => void saveSegment()} disabled={!segmentName.trim()} loading={saving} icon="segment">
+                Lưu tệp
+              </Button>
+            </div>
+            {saved.length > 0 && (
+              <ul className="space-y-2">
+                {saved.map((item) => (
+                  <li key={item.id} className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      aria-pressed={activeSaved === item.id}
+                      onClick={() => applySaved(item)}
+                      className={cn(chipClass(activeSaved === item.id), 'min-w-0 flex-1 justify-start')}
+                    >
+                      <span className="truncate">{item.name}</span>
+                    </button>
+                    <Button aria-label={`Xoá tệp ${item.name}`} onClick={() => void deleteSegment(item.id)}>
+                      Xoá
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button onClick={() => navigate('/khach-hang/retarget')} icon="retarget">
+      </Sheet>
+
+      <Sheet open={moreOpen} onOpenChange={setMoreOpen} title="Thêm thao tác">
+        <div className="flex flex-col gap-2">
+          <Button
+            icon="retarget"
+            onClick={() => {
+              setMoreOpen(false);
+              navigate('/khach-hang/retarget');
+            }}
+          >
             Tệp &amp; Retarget
           </Button>
-          <Button onClick={() => navigate('/dong-nghiep')} icon="team">
+          <Button
+            icon="team"
+            onClick={() => {
+              setMoreOpen(false);
+              navigate('/dong-nghiep');
+            }}
+          >
             Đồng nghiệp
           </Button>
           <Button
-            onClick={() => setView(view === 'list' ? 'cards' : 'list')}
-            icon={view === 'list' ? 'customers' : 'task'}
+            icon="segment"
+            onClick={() => {
+              setMoreOpen(false);
+              exportRows();
+            }}
           >
-            {view === 'list' ? 'Xem thẻ' : 'Xem danh sách'}
+            Xuất {visible.length.toLocaleString('vi-VN')} khách
           </Button>
-          <Button variant="primary" onClick={exportRows}>
-            Xuất {visible.length}
+          <Button asChild>
+            <Link to="/khach-hang/luu-tru" onClick={() => setMoreOpen(false)}>
+              Khách đã lưu trữ
+            </Link>
           </Button>
         </div>
-      </div>
-      <SegmentedControl
-        label="Nhóm khách"
-        value={group}
-        onValueChange={(v) => {
-          setGroup(v);
-          setFilters(v === 'new' ? { ...DEFAULT_FILTERS, status: 'open' } : DEFAULT_FILTERS);
-          setActiveSaved('');
-          setScrollTop(0);
-        }}
-        options={GROUPS.filter((g) => g.value !== 'team' || team.length || teamCount)}
-      />
-      <div className="rounded-card border border-border bg-surface p-3 sm:p-4">
-        <label className="block text-small text-text-2" htmlFor="customer-search">
-          Tìm trong danh sách
-        </label>
-        <input
-          id="customer-search"
-          value={filters.query}
-          onChange={(e) => setFilter('query', e.target.value)}
-          placeholder="Tên, số điện thoại, dự án, ghi chú…"
-          className="mt-1 min-h-11 w-full rounded-control border border-border-strong bg-surface px-3 text-body text-text placeholder:text-text-3 focus-visible:outline-2 focus-visible:outline-focus"
-        />
-        <div className="mt-3">{controls}</div>
-      </div>
-      {saved.length > 0 && (
-        <section className="space-y-2">
-          <h2 className="text-section">Tệp đã lưu</h2>
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            {saved.map((item) => (
-              <span key={item.id} className="inline-flex shrink-0 items-center gap-1">
-                <Button variant={activeSaved === item.id ? 'primary' : 'secondary'} onClick={() => applySaved(item)}>
-                  {item.name}
-                </Button>
-                <Button aria-label={`Xoá tệp ${item.name}`} onClick={() => void deleteSegment(item.id)}>
-                  Xoá
-                </Button>
-              </span>
-            ))}
-          </div>
-        </section>
-      )}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p aria-live="polite" className="text-body-strong">
-          {visible.length.toLocaleString('vi-VN')} khách{' '}
-          <span className="text-small font-normal text-text-2">· xuất theo đúng bộ lọc</span>
-        </p>
-        <div className="flex flex-wrap gap-2">
-          <input
-            aria-label="Tên tệp mới"
-            value={segmentName}
-            onChange={(e) => setSegmentName(e.target.value)}
-            placeholder="Tên tệp khách"
-            className="min-h-11 min-w-36 rounded-control border border-border-strong bg-surface px-3 text-body text-text"
-          />
-          <Button onClick={() => void saveSegment()} disabled={!segmentName.trim()} loading={saving} icon="segment">
-            Lưu tệp
-          </Button>
-          <Button onClick={reset}>Xoá lọc</Button>
-        </div>
-      </div>
-      <Link
-        to="/khach-hang/luu-tru"
-        className="inline-flex min-h-11 items-center rounded-control text-small text-text-2 underline underline-offset-4 hover:text-text focus-visible:outline-2 focus-visible:outline-focus"
-      >
-        Khách đã lưu trữ
-      </Link>
-      <section aria-label="Kết quả lọc" className="overflow-hidden rounded-card border border-border bg-surface">
-        {list}
-      </section>
-      <p className="text-small text-text-3">
-        {rows.length.toLocaleString('vi-VN')} khách đã nạp · danh sách chỉ dựng các dòng gần vị trí cuộn.
-      </p>
+      </Sheet>
+
       <Sheet
         open={!!selected}
         onOpenChange={(open) => !open && (params.id ? navigate('/khach-hang') : setSelectedLocal(null))}
@@ -605,12 +683,14 @@ function Customers() {
               <dt className="text-text-2">Người phụ trách</dt>
               <dd>{team.find((p) => (p.user_id || p.id) === selected.owner_id)?.name || 'Tôi'}</dd>
             </dl>
-            <a
-              className="inline-flex min-h-11 items-center rounded-control bg-accent px-4 text-body-strong text-accent-fg"
-              href={`tel:${selected.phone}`}
+            <Button
+              className="w-full"
+              variant="primary"
+              icon="call"
+              onClick={() => openQuickAction(selected.id, 'call')}
             >
               Gọi {selected.full_name}
-            </a>
+            </Button>
             <Button className="w-full" onClick={() => navigate(`/ho-so/${selected.id}`)}>
               Mở hồ sơ đầy đủ
             </Button>
@@ -709,54 +789,7 @@ function Customers() {
           </div>
         )}
       </Sheet>
-      <div className="sr-only" aria-hidden>
-        {potentialCount} tiềm năng, {leadsCount} khách mới, {teamCount} khách nhóm
-      </div>
     </main>
-  );
-}
-
-function CustomerRow({ customer, owner, onOpen }: { customer: Customer; owner?: TeamPerson; onOpen: () => void }) {
-  const stage = normStage(customer.care_stage) || undefined;
-  const source = sourceListOf(customer.source)
-    .map((s) => SOURCES[s] || s)
-    .join(' + ');
-  const apt = customer.apt_type || '';
-  return (
-    <ListRow
-      name={customer.full_name}
-      stage={stage}
-      stageLabel={stage ? CARE_STAGE_DISPLAY[stage] || stage : undefined}
-      meta={[apt, source, owner?.name].filter(Boolean).join(' · ')}
-      onOpen={onOpen}
-      onCall={() => {
-        window.location.href = `tel:${customer.phone}`;
-      }}
-      onZalo={() => {
-        if (customer.phone)
-          window.open(`https://zalo.me/${customer.phone.replace(/\D/g, '')}`, '_blank', 'noopener,noreferrer');
-      }}
-    />
-  );
-}
-function CustomerCard({ customer, onOpen }: { customer: Customer; onOpen: () => void }) {
-  const stage = normStage(customer.care_stage) || 'Chưa có bậc';
-  return (
-    <button
-      type="button"
-      onClick={onOpen}
-      className="flex min-h-28 items-start gap-3 rounded-card border border-border bg-surface p-3 text-left hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-focus"
-    >
-      <Avatar name={customer.full_name} />
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-body-strong">{customer.full_name}</span>
-        <span className="mt-1 block font-data text-mono-data text-text-2">{customer.phone}</span>
-        <span className="mt-2 flex flex-wrap gap-1">
-          <Badge>{CARE_STAGE_DISPLAY[stage] || stage}</Badge>
-          {customer.apt_type && <Badge>{customer.apt_type}</Badge>}
-        </span>
-      </span>
-    </button>
   );
 }
 
