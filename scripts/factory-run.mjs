@@ -219,6 +219,12 @@ function main() {
   const branch = `agent/${task.id}`;
   if (existsSync(wt)) throw new Error(`Worktree đã tồn tại: ${wt}. Xoá bằng: git worktree remove ${wt} && git branch -D ${branch}`);
 
+  // Cổng e2e riêng theo task → nhiều worker chạy song song không dùng nhầm server build của nhau.
+  if (!process.env.E2E_PORT) {
+    let h = 0;
+    for (const ch of task.id) h = (h * 31 + ch.charCodeAt(0)) % 997;
+    process.env.E2E_PORT = String(4300 + h);
+  }
   must('git', ['worktree', 'add', wt, '-b', branch, base], { cwd: ROOT });
   // Khoá push chỉ trong worktree worker (cần extensions.worktreeConfig=true); repo chính + merge-to-v2.mjs vẫn push được.
   must('git', ['config', '--worktree', 'remote.origin.pushurl', 'DISABLED'], { cwd: wt });
