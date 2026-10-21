@@ -11,6 +11,7 @@ Chỉ đọc file này khi cần tiếp nối công việc hoặc task phụ thu
 ## Tìm có dấu + chuông + tìm toàn app PF-05/06 lên production (2026-10-21)
 
 - Curtis duyệt push. `main` = `15e3849` (merge `factory` @ `850b64b`). Kiểm trước: 1052 unit + 372 e2e xanh.
+- **GitHub sự cố (webhook sang Cloudflare chậm/mất)** → Cloudflare không build `15e3849`/`9593ccc` (commit rỗng kích lại). Curtis duyệt tải thẳng: build `main` @ `9593ccc` trên máy với 3 biến công khai lấy từ bundle production đang chạy (`VITE_SUPABASE_URL` = production `nrqccwamwctihivpxjww`, `VITE_SUPABASE_ANON_KEY` = khoá publishable, `VITE_WORKER_URL` = `intake-worker`) rồi `npx wrangler pages deploy dist --project-name crm --branch main --commit-hash 9593ccc` → deployment `940a9a3c`. Đã thấy bundle mới trên `crm-cop.pages.dev`. Khi GitHub hồi phục Cloudflare có thể build lại cùng commit — nội dung giống hệt.
 - Không đổi dữ liệu/SQL/Worker/APK. **Rollback:** Cloudflare Pages → `crm` → Deployments → bản `6582212`.
 
 ## Menu có nhóm PF-04 lên production (2026-10-21)
