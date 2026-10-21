@@ -6,7 +6,7 @@ import type { BriefFact } from '@/domain/customer/brief';
 import { interactionTitle } from '@/domain/customer/interactions';
 import { callAttemptsOf, sourceListOf } from '@/domain/customer/normalize';
 import { fmtClock, type TaskDueInfo, taskDayLabel } from '@/domain/deadlines';
-import { callResultLabel, displayDate, displayText, intakeLabel, sourceLabel } from '@/ui/display';
+import { callResultLabel, displayDateTime, displayText, intakeLabel, sourceLabel } from '@/ui/display';
 
 /** Checklist state belongs to booking_steps; it must never move the stage SLA clock. */
 export function bookingStepPatch(customer: Customer, key: string, checked: boolean, at: string) {
@@ -93,7 +93,7 @@ export function extraFacts(customer: Customer, now: number): { label: string; va
       'Không liên hệ',
       customer.contact_prefs?.do_not_contact ? displayText(customer.contact_prefs.dnc_reason) || 'Đã yêu cầu' : '',
     ],
-    ['Ngày đăng ký', displayDate(customer.registered_at || customer.created_at)],
+    ['Ngày đăng ký', displayDateTime(customer.registered_at || customer.created_at)],
     ['Ghi chú đăng ký', displayText(customer.notes)],
   ];
   return rows.filter(([, v]) => v).map(([label, value]) => ({ label, value }));

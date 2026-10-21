@@ -238,7 +238,7 @@ describe('map dữ liệu lead', () => {
     expect(parseFieldData([{ name: 'full_name', values: ['  Trần B  '] }]).full_name).toBe('Trần B');
   });
 
-  it('ghi khách mới đúng luật 1: notes, campaign, không apt_type, không qualified_at', async () => {
+  it('ghi khách mới đúng luật 1: kênh, cách nhập, chiến dịch, giờ đăng ký, bậc, không qualified_at', async () => {
     const world = installWorld();
     const response = await handleFb(
       manualRequest({
@@ -266,9 +266,7 @@ describe('map dữ liệu lead', () => {
     expect(customer.care_stage_history).toEqual([
       { stage: 'Đăng kí mới', note: 'Lead Facebook: Form A', at: '2026-10-15T02:00:00.000Z' },
     ]);
-    expect(String(customer.notes)).toContain('Bạn quan tâm loại căn nào?: 2 ngủ');
-    expect(String(customer.notes).split('\n')[0]).toContain('Form A');
-    expect(customer).not.toHaveProperty('apt_type');
+    // Luật ghi chú/loại căn đổi 2026-10-21 (Curtis) — kiểm ở test ML-03, không khoá ở đây.
     expect(customer).not.toHaveProperty('qualified_at');
   });
 

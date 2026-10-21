@@ -5,6 +5,14 @@ export type InteractionKind = 'sent' | 'meeting' | 'project_view';
 /** Khách tự gửi form quảng cáo (Worker Meta Lead Ads ghi, origin 'meta_lead_ads') — không phải sale liên hệ. */
 export const LEAD_FORM_KIND = 'lead_form';
 
+/** Ghi chú (notes_manual) do Worker Meta Lead Ads tạo từ câu trả lời form mang origin này. */
+export const LEAD_FORM_ORIGIN = 'meta_lead_ads';
+
+/** Ghi chú khách tự khai qua form không phải lần sale chạm khách. */
+export function isSaleNote(note: Record<string, unknown> | null | undefined): boolean {
+  return !!note && note.origin !== LEAD_FORM_ORIGIN;
+}
+
 /** Mốc "lần cuối sale chạm khách" chỉ tính tương tác do sale làm; khách tự đăng ký lại không làm mất tín hiệu chăm sóc. */
 export function isSaleTouch(interaction: Pick<Interaction, 'kind'> | null | undefined): boolean {
   return !!interaction && interaction.kind !== LEAD_FORM_KIND;

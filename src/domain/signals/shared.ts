@@ -1,7 +1,7 @@
 import { SIGNALS_CONFIG as C, SIGNAL_GROUPS, type SignalGroup } from '@/config/signals';
 import { DAY, HOUR } from '@/config/velocity';
 import { type Customer, callAttemptsOf, inFunnel, isQualified, type Task } from '@/domain/customer';
-import { isSaleTouch } from '@/domain/customer/interactions';
+import { isSaleNote, isSaleTouch } from '@/domain/customer/interactions';
 import type { RuleId, Signal, SignalAction } from './types';
 
 export { C, DAY, HOUR };
@@ -13,7 +13,7 @@ export function lastInteractionAt(c: Customer): number | null {
   const values = [
     c.care_stage_updated_at,
     ...(Array.isArray(c.care_stage_history) ? c.care_stage_history : []).map((h) => h?.at),
-    ...(Array.isArray(c.notes_manual) ? c.notes_manual : []).map((n) => n?.at),
+    ...(Array.isArray(c.notes_manual) ? c.notes_manual : []).filter(isSaleNote).map((n) => n?.at),
     ...(Array.isArray(c.interactions) ? c.interactions : []).filter(isSaleTouch).map((interaction) => interaction?.at),
   ]
     .map((t) => Date.parse(t || ''))

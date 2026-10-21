@@ -215,3 +215,4 @@ on conflict (name, owner_id) do nothing;
 --      SQL/v2/007_meta_lead_ads.sql          → Meta Lead Ads: cột mới fb_leads, bảng fb_lead_queue + integration_health,
 --                                              hàm fb_attach_lead (cần SQL/add_fb_leads.sql)
 --      SQL/v2/008_fb_leads_service_grant.sql → service_role được select/insert/update fb_leads (Worker Meta Lead Ads)
+--      SQL/v2/009_lead_campaign_projects.sql → bảng quy tắc tên chiến dịch → dự án (người nhận lead sửa, Worker đọc)
