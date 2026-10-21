@@ -151,7 +151,8 @@ function Profile() {
         { icon: 'note', label: 'Ghi chú', disabled: !writable, onClick: () => openQuickAction(c.id, 'note') },
         { icon: 'call_sched', label: 'Hẹn', disabled: !writable, onClick: () => openQuickAction(c.id, 'schedule') },
       ]}
-      className="-mx-4 lg:-mx-6"
+      // Desktop: thanh nút nằm trong thẻ đầu hồ sơ → thẳng lề nội dung thẻ, không lấn ra mép.
+      className="-mx-4 lg:mx-0"
     />
   );
   const onStage = async (next: string) => {

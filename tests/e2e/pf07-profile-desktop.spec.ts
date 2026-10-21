@@ -19,7 +19,7 @@ const customer = {
   source: 'facebook_ads',
   campaign: 'NOXH Hưng Yên T10',
   intake_method: 'ocr',
-  contact_status: 'talked',
+  contact_status: 'Phản hồi tốt',
   registered_at: iso(4, 9),
   created_at: iso(4, 9),
   updated_at: iso(18, 15),
@@ -263,6 +263,8 @@ test('Ảnh bố cục desktop cho báo cáo', async ({ page }, info) => {
   await open(page);
   for (const scheme of ['light', 'dark'] as const) {
     await page.emulateMedia({ colorScheme: scheme });
+    // Chờ hiệu ứng chuyển màu (transition-colors) xong, kẻo ảnh chụp giữa chừng.
+    await page.waitForTimeout(600);
     for (const size of DESKTOP) {
       await page.setViewportSize(size);
       await page.evaluate(() => window.scrollTo(0, 0));

@@ -24,6 +24,7 @@ Nguồn: báo cáo `scripts/factory-run.mjs` / `reports/overnight-*.md` + nghi�
 | PF-02 | code | 2026-10-21 | deepseek-flash | 1 | $0.0394 | — | ĐẠT | Đạt | — | ~4 | Tên bậc suy từ tiêu đề "Bậc: …" (chấp nhận; nếu đổi tiêu đề thì thêm trường `stage`) | |
 | PF-03 | code | 2026-10-21 | deepseek-flash | 1 | $0.0379 | — | ĐẠT | Đạt, vá 1 (lỗi có sẵn) | — | ~6 | Worker phát hiện lỗi có sẵn: lưu khách xong vẫn hỏi "Bản nháp chưa lưu" → Lead sửa (`savedRef` trong `useBlocker`) + e2e `pf03-lead-saved` | Báo cáo mục 3 hữu ích — worker báo lỗi ngoài phạm vi thay vì tự sửa |
 | PF-04 | code | 2026-10-21 | deepseek-flash | 2 (1 BLOCKED) | $0.0585 | — | ĐẠT | Đạt | — | ~6 | — | BLOCKED đúng: icon mới cần đăng ký glyph ở `src/ui/Icon.tsx` (vùng cấm) → Lead thêm sẵn. Đặc tả nên nhớ: thêm khái niệm icon = sửa cả `icons.ts` + `Icon.tsx`. Test vitest đỏ giả ở thư mục chính do cache glob (`commands.ts` mới) → xoá `node_modules/.vitest-cache` |
+| PF-07 | code | 2026-10-21 | deepseek-flash | 1 | $0.0518 | 2 | ĐẠT (hết giờ, gate xanh) | Đạt, vá 1 (lỗi có sẵn) | — | ~25 | Trước khi giao: khung app `wide` (gốc của nút xuống dòng + tab bị cắt là trần 760px của AppShell), ngày đăng ký cùng kiểu, e2e bố cục 9 ca + ảnh mẫu điện thoại. Sau: nút Gọi lấn mép thẻ (`lg:-mx-6` có sẵn) | Nguyên nhân gốc nằm ngoài phạm vi feature → Lead sửa khung trước, worker chỉ còn bố cục trong màn. Ảnh tối chụp ngay sau `emulateMedia` dính hiệu ứng chuyển màu → chờ 600ms |
 
 Loại: `code` / `test-only` / `lead` (Lead tự làm) / `đối chứng` (làm bằng Claude Code thuần để so sánh).
 
