@@ -72,6 +72,11 @@ export const ICONS = {
   up: 'ChevronUp', // Xu hướng tăng
   copy: 'Copy', // Sao chép
   back: 'ArrowLeft', // Quay lại
+  // ── Menu có nhóm (PF-04, 2026-10-21) ──
+  archive: 'Archive', // Khách đã lưu trữ
+  quick: 'Zap', // Thao tác nhanh
+  import_export: 'ArrowDownUp', // Nhập / Xuất dữ liệu
+  theme: 'SunMoon', // Giao diện sáng / tối
 } as const satisfies Record<string, LucideName>;
 
 export type IconName = keyof typeof ICONS;
