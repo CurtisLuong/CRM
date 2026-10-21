@@ -68,6 +68,10 @@
   --text-label--line-height: 16px;
   --text-label--font-weight: 500;
   --text-label--letter-spacing: 0.02em;
+  /* Số đếm trên icon (chuông header): ~0,7 chiều cao icon 20px, như tỉ lệ badge/chuông của Facebook. */
+  --text-badge: 10px;
+  --text-badge--line-height: 12px;
+  --text-badge--font-weight: 600;
   --text-mono-data: 13px;
   --text-mono-data--line-height: 18px;
   --text-mono-data--font-weight: 500;
