@@ -132,3 +132,33 @@ export function timelineCounts(entries: readonly { kind: string }[]): Record<Tim
   for (const e of entries) if (e.kind in out && e.kind !== 'all') out[e.kind as TimelineFilter]++;
   return out;
 }
+
+/** Sửa ghi chú trên dòng thời gian: chỉ ghi chú tay và ghi chú bậc; giữ nguyên trường lạ (D-012). */
+export function editedTimelineNotePatch(
+  customer: Customer,
+  entryId: string,
+  text: string,
+  editedAt: string,
+): Record<string, unknown> | null {
+  const separator = entryId.lastIndexOf(':');
+  const index = Number(entryId.slice(separator + 1));
+  if (separator < 0 || !Number.isInteger(index) || index < 0 || text.length === 0) return null;
+
+  if (entryId.startsWith('note:')) {
+    const notes = Array.isArray(customer.notes_manual) ? customer.notes_manual.slice() : [];
+    const note = notes[index];
+    if (!note || note.text === text) return null;
+    notes[index] = { ...note, text, edited_at: editedAt };
+    return { notes_manual: notes };
+  }
+
+  if (entryId.startsWith('stage:')) {
+    const history = Array.isArray(customer.care_stage_history) ? customer.care_stage_history.slice() : [];
+    const entry = history[index];
+    if (!entry || entry.note === text) return null;
+    history[index] = { ...entry, note: text, edited_at: editedAt };
+    return { care_stage_history: history };
+  }
+
+  return null;
+}
