@@ -10,7 +10,7 @@ Chỉ đọc file này khi cần tiếp nối công việc hoặc task phụ thu
 
 ## Badge chuông nhỏ lên production (2026-10-21)
 
-- Curtis duyệt đưa **riêng** sửa badge (không kèm PF-07 hồ sơ desktop đang ở `factory`). `main` = `e14bb45` = cherry-pick `eed5505` lên `9593ccc`. Kiểm: 1052 unit + e2e header/shell xanh. **Rollback:** deployment `9593ccc`/`15e3849`.
+- Curtis duyệt đưa **riêng** sửa badge (không kèm PF-07 hồ sơ desktop đang ở `factory`). `main` = `e14bb45` = cherry-pick `eed5505` lên `9593ccc`. Kiểm: 1052 unit + e2e header/shell xanh. GitHub sự cố → tải thẳng bằng wrangler (deployment `2150314d`), đã thấy bundle mới trên trang thật. **Rollback:** deployment `9593ccc`/`15e3849`.
 - Lưu ý: `main` giờ có commit không qua merge `factory` — lần merge `factory → main` sau sẽ gộp bình thường (cùng nội dung).
 
 ## Tìm có dấu + chuông + tìm toàn app PF-05/06 lên production (2026-10-21)
