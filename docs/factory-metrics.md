@@ -22,6 +22,7 @@ Nguồn: báo cáo `scripts/factory-run.mjs` / `reports/overnight-*.md` + nghi�
 | ML-04 | code | 2026-10-21 | deepseek-flash | 1 | $0.0488 | 5 | ĐẠT | Đạt | — | ~4 | — | |
 | PF-01 | code | 2026-10-21 | deepseek-flash | 1 | $0.0468 | — | ĐẠT | Đạt, vá 1 | — | ~8 | Ô Tài sản `type=number` làm ghi cũ dạng chữ hiện trống → Lead thêm dòng "Đang lưu: …"; Lead thêm 2 khoá gộp vào ngữ cảnh AI (`aiContext.ts`) | Chạy song song với PF-02 nhờ Lead tách `timeline.tsx` trước |
 | PF-02 | code | 2026-10-21 | deepseek-flash | 1 | $0.0394 | — | ĐẠT | Đạt | — | ~4 | Tên bậc suy từ tiêu đề "Bậc: …" (chấp nhận; nếu đổi tiêu đề thì thêm trường `stage`) | |
+| PF-03 | code | 2026-10-21 | deepseek-flash | 1 | $0.0379 | — | ĐẠT | Đạt, vá 1 (lỗi có sẵn) | — | ~6 | Worker phát hiện lỗi có sẵn: lưu khách xong vẫn hỏi "Bản nháp chưa lưu" → Lead sửa (`savedRef` trong `useBlocker`) + e2e `pf03-lead-saved` | Báo cáo mục 3 hữu ích — worker báo lỗi ngoài phạm vi thay vì tự sửa |
 
 Loại: `code` / `test-only` / `lead` (Lead tự làm) / `đối chứng` (làm bằng Claude Code thuần để so sánh).
 

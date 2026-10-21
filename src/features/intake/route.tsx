@@ -122,7 +122,9 @@ function IntakePage() {
     ? selectedDuplicate.map((id) => customers.find((row) => row.id === id)).filter((row): row is Customer => !!row)
     : [];
   const dirty = formState.isDirty || JSON.stringify(manualNotes) !== initialManualNotes || !!newManualNote.trim();
-  const blocker = useBlocker(dirty);
+  // Lưu xong thì rời màn không hỏi bỏ nháp (form vẫn "dirty" tới khi màn đóng).
+  const savedRef = useRef(false);
+  const blocker = useBlocker(() => dirty && !savedRef.current);
 
   useEffect(() => {
     if (!account) return;
@@ -274,6 +276,7 @@ function IntakePage() {
       try {
         localStorage.setItem(LAST_SOURCE_KEY, checked.data.source_channel);
       } catch {}
+      savedRef.current = true;
       navigate('/khach-hang');
     } catch (raw) {
       setError(raw instanceof Error ? raw.message : 'Không lưu được khách.');
