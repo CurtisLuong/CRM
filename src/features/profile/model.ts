@@ -1,9 +1,10 @@
+import { ICON_FALLBACK, type IconName, STAGE_ICON, STAGE_ICON_FALLBACK } from '@/config/icons';
 import { CLOSE_REASONS, LEAD_DROP_REASONS } from '@/config/reasons';
 import { CARE_STAGE_OPTIONS, INTEREST_TIERS } from '@/config/stages';
 import { VELOCITY_CONFIG } from '@/config/velocity';
 import type { Customer } from '@/domain/customer';
 import type { BriefFact } from '@/domain/customer/brief';
-import { interactionTitle } from '@/domain/customer/interactions';
+import { interactionTitle, LEAD_FORM_KIND } from '@/domain/customer/interactions';
 import { callAttemptsOf, sourceListOf } from '@/domain/customer/normalize';
 import { fmtClock, type TaskDueInfo, taskDayLabel } from '@/domain/deadlines';
 import { callResultLabel, displayDateTime, displayText, intakeLabel, sourceLabel } from '@/ui/display';
@@ -131,6 +132,136 @@ export function timelineCounts(entries: readonly { kind: string }[]): Record<Tim
   const out: Record<TimelineFilter, number> = { all: entries.length, call: 0, note: 0, interaction: 0, stage: 0 };
   for (const e of entries) if (e.kind in out && e.kind !== 'all') out[e.kind as TimelineFilter]++;
   return out;
+}
+
+// ── PF-02: dòng thời gian phân cấp theo bậc. Mốc bậc = đầu nhóm, mục khác thuộc bậc gần nhất trước nó. ──
+
+type TimelineEntryLike = { id: string; at: string; kind: string; title: string; interactionKind?: string };
+
+export type TimelineRow<T> = { entry: T; icon: IconName };
+
+export type TimelineGroup<T> = {
+  id: string;
+  /** Mốc bậc mở nhóm; null = nhóm "Trước khi có mốc bậc". */
+  stage: T | null;
+  title: string;
+  at: string;
+  icon: IconName;
+  rows: TimelineRow<T>[];
+};
+
+export type TimelineView<T> = {
+  /** false = khách chưa có mốc bậc → danh sách phẳng như cũ (không tiêu đề nhóm, không thụt). */
+  grouped: boolean;
+  flat: TimelineRow<T>[];
+  groups: TimelineGroup<T>[];
+};
+
+export const BEFORE_STAGE_TITLE = 'Trước khi có mốc bậc';
+
+const newestFirst = (a: { at: string }, b: { at: string }) => b.at.localeCompare(a.at);
+
+/** Tên bậc đã lưu nằm sau tiền tố "Bậc: " của customerTimeline (domain giữ nguyên tiêu đề hiển thị). */
+const stageNameOf = (entry: TimelineEntryLike) =>
+  entry.title.startsWith('Bậc: ') ? entry.title.slice('Bậc: '.length) : entry.title;
+
+/** Khái niệm icon theo loại mục (D-006); ánh xạ glyph vẫn chỉ ở src/config/icons.ts. */
+export function timelineIcon(entry: TimelineEntryLike): IconName {
+  switch (entry.kind) {
+    case 'stage':
+      return STAGE_ICON[stageNameOf(entry)] ?? STAGE_ICON_FALLBACK;
+    case 'call':
+      return 'call';
+    case 'note':
+      return 'note';
+    case 'interaction':
+      switch (entry.interactionKind) {
+        case 'sent':
+          return 'message';
+        case 'meeting':
+          return 'cafe';
+        case 'project_view':
+          return 'visit';
+        case LEAD_FORM_KIND:
+          return 'new_lead';
+        default:
+          return 'message';
+      }
+    case 'task':
+      return 'task';
+    case 'approved':
+      return 'ai';
+    default:
+      return ICON_FALLBACK;
+  }
+}
+
+/** Ghi chú của mốc bậc chỉ hiện ở "Tất cả" / "Bậc" (lọc "Cuộc gọi" không được lộ chữ ghi chú). */
+export function showsStageDetail(filter: TimelineFilter): boolean {
+  return filter === 'all' || filter === 'stage';
+}
+
+/**
+ * Nhóm mục theo mốc bậc: nhóm mới nhất trước, mục con mới nhất trước.
+ * Mục cũ hơn mọi mốc bậc → nhóm cuối "Trước khi có mốc bậc". Không có mốc bậc → [].
+ */
+export function timelineGroups<T extends TimelineEntryLike>(entries: readonly T[]): TimelineGroup<T>[] {
+  const stages = entries.filter((e) => e.kind === 'stage').sort(newestFirst);
+  if (!stages.length) return [];
+  const groups: TimelineGroup<T>[] = stages.map((stage) => ({
+    id: stage.id,
+    stage,
+    title: stage.title,
+    at: stage.at,
+    icon: timelineIcon(stage),
+    rows: [],
+  }));
+  const before: TimelineGroup<T> = {
+    id: 'before',
+    stage: null,
+    title: BEFORE_STAGE_TITLE,
+    at: '',
+    icon: 'history',
+    rows: [],
+  };
+  // groups xếp mới nhất trước → nhóm đầu tiên có at <= mục là bậc gần nhất; cùng thời điểm thuộc bậc đó.
+  for (const entry of entries.filter((e) => e.kind !== 'stage').sort(newestFirst)) {
+    const group = groups.find((g) => g.at <= entry.at) ?? before;
+    group.rows.push({ entry, icon: timelineIcon(entry) });
+  }
+  return before.rows.length ? [...groups, before] : groups;
+}
+
+/** Cấu trúc nhóm + lọc cho tab Dòng thời gian, kèm tên icon từng mục. */
+export function timelineView<T extends TimelineEntryLike>(
+  entries: readonly T[],
+  filter: TimelineFilter,
+): TimelineView<T> {
+  const groups = timelineGroups(entries);
+  if (!groups.length) {
+    return {
+      grouped: false,
+      flat: filterTimeline(entries, filter).map((entry) => ({ entry, icon: timelineIcon(entry) })),
+      groups: [],
+    };
+  }
+  if (filter === 'all') return { grouped: true, flat: [], groups };
+  // "Bậc" = chỉ các đầu nhóm (nhóm "Trước khi có mốc bậc" không phải một bậc nên không hiện).
+  if (filter === 'stage') {
+    return {
+      grouped: true,
+      flat: [],
+      groups: groups.filter((g) => g.stage).map((g) => ({ ...g, rows: [] })),
+    };
+  }
+  return {
+    grouped: true,
+    flat: [],
+    groups: groups.flatMap((g) => {
+      const rows = g.rows.filter((r) => r.entry.kind === filter);
+      return rows.length ? [{ ...g, rows }] : [];
+    }),
+  };
 }
 
 /** Sửa ghi chú trên dòng thời gian: chỉ ghi chú tay và ghi chú bậc; giữ nguyên trường lạ (D-012). */
