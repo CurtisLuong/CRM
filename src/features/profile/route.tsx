@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import type { FeatureRoute } from '@/app/routes';
-import { ADVANCED_GROUPS } from '@/config/advanced';
+import { PREF_CONDITIONS_LEGACY, PROFILE_PREF_CONDITIONS, PROFILE_PREF_FIELDS } from '@/config/advanced';
 import { OCCUPATIONS } from '@/config/occupations';
 import { CARE_STAGE_BOOKING, CARE_STAGE_DISPLAY } from '@/config/stages';
 import { VELOCITY_CONFIG } from '@/config/velocity';
@@ -25,7 +25,6 @@ import {
   Badge,
   Button,
   DeadlineTag,
-  displayText,
   HealthDot,
   Icon,
   Sheet,
@@ -35,7 +34,9 @@ import {
   Tabs,
   useToast,
 } from '@/ui';
+import { ProfileTextField as Field, LegacyAssistField, ProfileAdvanced } from './advanced';
 import { ArchiveCustomerSection, ArchivedBanner } from './archive';
+import { advancedPatch, legacyValues } from './fields';
 import { CustomerMemory } from './memory';
 import { bookingStepPatch, dueTone, extraFacts, lastTouchOf, splitBrief, stageChoicesFor } from './model';
 import { ProfileTimeline } from './timeline';
@@ -53,7 +54,6 @@ const MARITAL_STATUS_OPTIONS = [
 ];
 const PURPOSE_OPTIONS = ['Ở', 'Đầu tư', 'Cho tặng'].map((value) => ({ value, label: value }));
 type DocumentRow = { id: string; label?: string | null; kind?: string; storage_path: string; mime?: string };
-const fmtValue = (value: unknown) => displayText(value);
 
 // Giữ export cũ (test + nơi khác import từ route).
 export { editedTimelineNotePatch } from './model';
@@ -141,6 +141,8 @@ function Profile() {
     }
   };
   const setField = (key: keyof Customer, value: unknown) => void save(factPatch(c, String(key), value));
+  const setAdvancedField = (key: string, value: unknown) =>
+    setField('advanced', advancedPatch(c.advanced, key, value).advanced);
   const actionBar = (
     <ActionBar
       actions={[
@@ -256,7 +258,7 @@ function Profile() {
   const memoryContent = (
     <div className="space-y-5">
       <section className="space-y-3">
-        <h2 className="text-section">Định danh & liên hệ</h2>
+        <h2 className="text-section">Thông tin chính</h2>
         <Field
           label="Họ tên"
           value={c.full_name}
@@ -269,7 +271,6 @@ function Profile() {
           disabled={!writable}
           onSave={(value) => setField('phone', value)}
         />
-        <Field label="Ngày sinh" value={c.dob} disabled={!writable} onSave={(value) => setField('dob', value)} />
         <ChoiceField
           label="Giới tính"
           value={c.gender}
@@ -299,36 +300,18 @@ function Profile() {
           onSave={(value) => setField('residence', value)}
         />
       </section>
-      <section className="space-y-3">
-        <h2 className="text-section">Hồ sơ nâng cao</h2>
-        {ADVANCED_GROUPS.map((group) => (
-          <fieldset key={group.title} className="space-y-2">
-            <legend className="text-body-strong">{group.title}</legend>
-            {group.fields.map((field) => (
-              <Field
-                key={field.key}
-                label={field.label}
-                value={c.advanced?.[field.key]}
-                disabled={!writable}
-                multiline={field.type === 'textarea'}
-                onSave={(value) => setField('advanced', { ...(c.advanced || {}), [field.key]: value })}
-              />
-            ))}
-          </fieldset>
-        ))}
-        {Object.entries(c.advanced || {})
-          .filter(([key]) => !ADVANCED_GROUPS.some((group) => group.fields.some((field) => field.key === key)))
-          .map(([key, value]) => (
-            <p key={key} className="text-small text-text-2">
-              {key}: {fmtValue(value)} <span className="text-text-3">(trường cũ được giữ nguyên)</span>
-            </p>
-          ))}
-      </section>
       <CustomerMemory
         customer={c}
         writable={writable}
         onSave={(patch, message) => void save(patch, message)}
         now={now}
+      />
+      <ProfileAdvanced
+        customer={c}
+        writable={writable}
+        now={now}
+        onSaveField={(field, value) => setField(field as keyof Customer, value)}
+        onSaveAdvanced={setAdvancedField}
       />
     </div>
   );
@@ -408,6 +391,31 @@ function Profile() {
         <Button variant="primary" onClick={() => navigate(loanPath({ customerId: c.id, ...customerUnit(c) }))}>
           Tính vay cho khách này
         </Button>
+      </section>
+      <section className="space-y-3">
+        <h2 className="text-section">Sở thích bất động sản</h2>
+        {PROFILE_PREF_FIELDS.map((field) =>
+          field.key === PROFILE_PREF_CONDITIONS.key ? (
+            <LegacyAssistField
+              key={field.key}
+              label={field.label}
+              value={c.advanced?.[field.key]}
+              disabled={!writable}
+              placeholder={field.ph}
+              legacy={legacyValues(c.advanced || {}, PREF_CONDITIONS_LEGACY)}
+              onSave={(value) => setAdvancedField(field.key, value)}
+            />
+          ) : (
+            <Field
+              key={field.key}
+              label={field.label}
+              value={c.advanced?.[field.key]}
+              disabled={!writable}
+              placeholder={field.ph}
+              onSave={(value) => setAdvancedField(field.key, value)}
+            />
+          ),
+        )}
       </section>
       {stage === CARE_STAGE_BOOKING && (
         <section className="space-y-3">
@@ -818,51 +826,6 @@ function Profile() {
   );
 }
 
-function Field({
-  label,
-  value,
-  disabled,
-  multiline,
-  onSave,
-}: {
-  label: string;
-  value: unknown;
-  disabled: boolean;
-  multiline?: boolean;
-  onSave: (value: string) => void;
-}) {
-  const id = `profile-field-${label.toLocaleLowerCase('vi').replace(/[^\p{L}\p{N}]+/gu, '-')}`;
-  const raw = typeof value === 'string' || typeof value === 'number' ? String(value) : displayText(value);
-  const [draft, setDraft] = useState(raw);
-  useEffect(() => setDraft(raw), [raw]);
-  const save = () => {
-    if (draft !== raw) onSave(draft);
-  };
-  return (
-    <div className="block space-y-1 text-small text-text-2">
-      <label htmlFor={id}>{label}</label>
-      {multiline ? (
-        <textarea
-          id={id}
-          value={draft}
-          disabled={disabled}
-          onChange={(e) => setDraft(e.target.value)}
-          onBlur={save}
-          className={`${FIELD} min-h-20 py-2`}
-        />
-      ) : (
-        <input
-          id={id}
-          value={draft}
-          disabled={disabled}
-          onChange={(e) => setDraft(e.target.value)}
-          onBlur={save}
-          className={FIELD}
-        />
-      )}
-    </div>
-  );
-}
 function ChoiceField({
   label,
   value,
