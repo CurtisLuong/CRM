@@ -127,7 +127,7 @@ export function createStore(env, { budget, now = () => new Date() } = {}) {
   /** Một lượt đọc đủ để đếm lead đang chờ / đã dừng tự thử (không phân trang vì số này nhỏ). */
   async function queueSnapshot() {
     const data = await request(
-      'fb_lead_queue?done_at=is.null&select=lead_id,next_attempt_at,created_at&order=created_at.asc&limit=500',
+      'fb_lead_queue?done_at=is.null&select=lead_id,next_attempt_at,created_at,updated_at,attempts,last_error&order=created_at.asc&limit=500',
     );
     return Array.isArray(data) ? data : [];
   }

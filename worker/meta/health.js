@@ -128,6 +128,14 @@ export async function runHealthCheck(env, ctx, { force = false, forcedError = nu
       return Number.isNaN(time) ? min : Math.min(min, time);
     }, Number.POSITIVE_INFINITY);
     const waitingOverHour = Number.isFinite(oldest) && nowMs - oldest > 3600 * 1000;
+    // Lỗi gần nhất của lead đang tự thử lại — hiện ra để biết vì sao lead chưa vào CRM (vd. thiếu quyền DB).
+    const failing = snapshot.pending
+      .filter((row) => row && Number(row.attempts) > 0 && row.last_error)
+      .sort((a, b) => String(b.updated_at || '').localeCompare(String(a.updated_at || '')));
+    const lastError = failing.length ? String(failing[0].last_error).slice(0, 160) : '';
+    // Meta vừa gọi webhook (trong 24 giờ) = webhook đang chạy, dù lượt kiểm subscribed_apps cũ nói chưa đăng ký.
+    const webhookAt = Date.parse(String((existing && existing.last_webhook_at) || ''));
+    const webhookRecent = Number.isFinite(webhookAt) && nowMs - webhookAt < DAY_MS;
 
     const valid = token ? token.is_valid !== false : true;
     const scopes = token && Array.isArray(token.scopes) ? token.scopes : null;
@@ -158,12 +166,14 @@ export async function runHealthCheck(env, ctx, { force = false, forcedError = nu
     } else if (expiringSoon) {
       status = 'warning';
       message = expiryWarning(daysLeft, expiresMs);
-    } else if (webhookSubscribed === false) {
+    } else if (waitingOverHour) {
+      status = failing.length ? 'error' : 'warning';
+      message = failing.length
+        ? `Có ${failing.length} lead chưa ghi được vào CRM, đang tự thử lại. Lỗi gần nhất: ${lastError}`
+        : 'Có lead đang chờ quá 1 giờ — kiểm tra kết nối Facebook.';
+    } else if (webhookSubscribed === false && !webhookRecent) {
       status = 'warning';
       message = 'Page chưa đăng ký nhận lead qua webhook — bật leadgen trong cài đặt Meta để lead về ngay.';
-    } else if (waitingOverHour) {
-      status = 'warning';
-      message = 'Có lead đang chờ quá 1 giờ — kiểm tra kết nối Facebook.';
     }
   }
 

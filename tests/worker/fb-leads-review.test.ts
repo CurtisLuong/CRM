@@ -127,3 +127,38 @@ describe('Make/Zapier không gửi lead_id', () => {
     expect(world.db.customers).toHaveLength(1);
   });
 });
+
+describe('cảnh báo nói đúng lý do lead chưa vào CRM', () => {
+  it('lead lỗi chờ quá 1 giờ → error kèm lỗi gần nhất, che cảnh báo webhook khi Meta vẫn đang gọi', async () => {
+    const old = new Date(Date.now() - 2 * 3600 * 1000).toISOString();
+    const world = createWorld({
+      health: {
+        id: 'meta_lead_ads',
+        status: 'warning',
+        last_webhook_at: new Date(Date.now() - 600 * 1000).toISOString(),
+        details: {
+          token_checked_at: new Date().toISOString(),
+          token: { is_valid: true, scopes: ['leads_retrieval'], expires_at: 0 },
+          webhook_subscribed: false,
+        },
+      },
+      queue: [
+        {
+          lead_id: 'L1',
+          via: 'webhook',
+          attempts: 3,
+          next_attempt_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+          last_error: 'permission denied for table fb_leads',
+          created_at: old,
+          updated_at: old,
+        },
+      ],
+    });
+    vi.stubGlobal('fetch', world.fetch);
+    await runCron({ ...ENV, FB_PAGE_ACCESS_TOKEN: 'page-token' });
+    const health = world.db.integration_health[0];
+    expect(health?.status).toBe('error');
+    expect(String(health?.message)).toContain('permission denied for table fb_leads');
+    expect(String(health?.message)).not.toContain('webhook');
+  });
+});
