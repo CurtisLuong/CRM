@@ -8,6 +8,11 @@ Bộ tài liệu được biên soạn ngày 06/10/2026; đây không phải ng�
 
 Chỉ đọc file này khi cần tiếp nối công việc hoặc task phụ thuộc trạng thái triển khai/test.
 
+## Badge chuông nhỏ lên production (2026-10-21)
+
+- Curtis duyệt đưa **riêng** sửa badge (không kèm PF-07 hồ sơ desktop đang ở `factory`). `main` = `e14bb45` = cherry-pick `eed5505` lên `9593ccc`. Kiểm: 1052 unit + e2e header/shell xanh. **Rollback:** deployment `9593ccc`/`15e3849`.
+- Lưu ý: `main` giờ có commit không qua merge `factory` — lần merge `factory → main` sau sẽ gộp bình thường (cùng nội dung).
+
 ## Tìm có dấu + chuông + tìm toàn app PF-05/06 lên production (2026-10-21)
 
 - Curtis duyệt push. `main` = `15e3849` (merge `factory` @ `850b64b`). Kiểm trước: 1052 unit + 372 e2e xanh.
