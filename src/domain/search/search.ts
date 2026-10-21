@@ -52,6 +52,127 @@ export const normalize = (v: unknown): string =>
     .replace(/\s+/g, ' ')
     .trim();
 
+/**
+ * Luật dấu (PF-05): ký tự KHÔNG dấu khớp mọi biến thể có dấu của cùng chữ gốc (a ↔ á/ă/â…, d ↔ đ,
+ * u ↔ ư…); ký tự CÓ dấu chỉ khớp đúng ký tự đó. Mọi so sánh chạy trên NFC đã lower-case.
+ */
+const plainChar = (c: string): string => (/\s/.test(c) ? ' ' : normalize(c));
+
+interface Folded {
+  text: string;
+  /** `accented[i]` = ký tự gốc ở vị trí i có dấu (kể cả đ) → phải khớp đúng. */
+  accented: boolean[];
+}
+
+/** Lower-case + NFC, gộp khoảng trắng; giữ nguyên dấu (khác `normalize`) và cờ dấu từng ký tự. */
+function foldChars(v: unknown): Folded {
+  const s = String(v == null ? '' : v)
+    .toLowerCase()
+    .normalize('NFC');
+  let text = '';
+  const accented: boolean[] = [];
+  for (const c of s) {
+    if (/\s/.test(c)) {
+      if (!text || text.endsWith(' ')) continue;
+      text += ' ';
+      accented.push(false);
+      continue;
+    }
+    const n = normalize(c);
+    if (!n) continue;
+    // Giữ chữ gốc đã lower-case (có dấu) — deaccent() mới là bản bỏ dấu.
+    text += c;
+    accented.push(n !== c);
+  }
+  if (text.endsWith(' ')) {
+    text = text.slice(0, -1);
+    accented.pop();
+  }
+  return { text, accented };
+}
+
+/** Chuỗi không dấu (giữ khoảng trắng) — cùng luật với `normalize` nhưng không trim/gộp. */
+const deaccent = (text: string): string => {
+  let out = '';
+  for (const c of text) out += /\s/.test(c) ? ' ' : normalize(c);
+  return out;
+};
+
+/** Thay thế theo regex trên bản bỏ dấu nhưng giữ dấu ở kết quả (độ dài luôn 1:1). */
+function replaceFolded(folded: Folded, re: RegExp, repl: (m: RegExpExecArray) => string): Folded {
+  const text = folded.text;
+  const plain = deaccent(text);
+  let out = '';
+  const accented: boolean[] = [];
+  let last = 0;
+  for (const m of plain.matchAll(re)) {
+    const start = m.index as number;
+    const end = start + m[0].length;
+    out += text.slice(last, start);
+    for (let k = last; k < start; k++) accented.push(folded.accented[k] as boolean);
+    const rep = repl(m);
+    out += rep;
+    for (let k = 0; k < rep.length; k++) accented.push(false);
+    last = end;
+  }
+  out += text.slice(last);
+  for (let k = last; k < text.length; k++) accented.push(folded.accented[k] as boolean);
+  return { text: out, accented };
+}
+
+/**
+ * Như `aliases` nhưng giữ dấu để biết ký tự nào phải khớp đúng.
+ * Bất biến: `deaccent(text)` luôn bằng `aliases(raw)`.
+ */
+function aliasMarked(raw: unknown): Folded {
+  const folded = foldChars(raw);
+  const chars = [...folded.text];
+  // Dấu thập phân 53,6 → 53.6 (số không dấu)
+  for (let i = 1; i < chars.length - 1; i++) {
+    const c = chars[i] as string;
+    if ((c === '.' || c === ',') && /\d/.test(chars[i - 1] as string) && /\d/.test(chars[i + 1] as string))
+      chars[i] = '.';
+  }
+  // Bí danh căn giống `aliases`: 2 phòng ngủ / 2PN / 2BR → 2N; 2N+, 2WC → 2N-2WC
+  const rooms = replaceFolded(
+    { text: chars.join(''), accented: folded.accented },
+    /(\d+)\s*(?:phong ngu|pn|br)\b/g,
+    (m) => `${m[1]}n`,
+  );
+  return replaceFolded(rooms, /(\d+n\+?)\s*[,/-]\s*(\d+wc)\b/g, (m) => `${m[1]}-${m[2]}`);
+}
+
+/** Từ khoá có dấu → phần tử khác null là chữ có dấu phải khớp đúng (cùng độ dài với `term.text`). */
+const termStrict = new WeakMap<SearchQuery, (string | null)[]>();
+/** Bản giữ dấu + bản bỏ dấu (cùng độ dài) của từng field, tính một lần cho mỗi field. */
+const fieldFold = new WeakMap<SearchField, { text: string; plain: string }>();
+
+const fieldText = (f: SearchField) => {
+  let folded = fieldFold.get(f);
+  if (!folded) {
+    const text = foldChars(f.value).text;
+    folded = { text, plain: deaccent(text) };
+    fieldFold.set(f, folded);
+  }
+  return folded;
+};
+
+/** Tìm `term` trong field theo luật dấu; `exact` là bản giữ dấu cùng độ dài với bản bỏ dấu `q`. */
+function accentHit(f: SearchField, q: string, exact: string): boolean {
+  const { text, plain } = fieldText(f);
+  const n = q.length;
+  const strict: boolean[] = [];
+  for (let j = 0; j < n; j++) strict.push(plainChar(exact[j] as string) !== exact[j]);
+  for (let i = 0; i + n <= text.length; i++) {
+    let ok = true;
+    for (let j = 0; j < n && ok; j++)
+      // Có dấu → đúng ký tự đó; không dấu → so bản bỏ dấu (đã tính sẵn), nhanh cho vài nghìn hồ sơ.
+      ok = strict[j] ? text[i + j] === exact[j] : plain[i + j] === (q[j] as string);
+    if (ok) return true;
+  }
+  return false;
+}
+
 export const aliases = (v: unknown): string =>
   normalize(v)
     .replace(/(\d)[.,](?=\d)/g, '$1.')
@@ -91,7 +212,39 @@ export function compile(raw: unknown, scope: SearchScope = 'all'): SearchQuery {
     text: (m[1] || m[2]) as string,
     phrase: !!m[1],
   }));
-  return { raw: String(raw || '').trim(), text, scope, numeric, digits, phoneOnly, terms, active: !!terms.length };
+  const marked = aliasMarked(raw);
+  // Giữ dấu từng ký tự của từ khoá; lệch bất thường → coi như không dấu (giữ hành vi cũ).
+  const positions = new Map<SearchTerm, number>();
+  if (deaccent(marked.text) === text) {
+    let at = 0;
+    for (const term of terms) {
+      const i = text.indexOf(term.text, at);
+      if (i < 0) continue;
+      at = i + term.text.length;
+      positions.set(term, i);
+    }
+  }
+  const query: SearchQuery = {
+    raw: String(raw || '').trim(),
+    text,
+    scope,
+    numeric,
+    digits,
+    phoneOnly,
+    terms,
+    active: !!terms.length,
+  };
+  termStrict.set(
+    query,
+    terms.map((term) => {
+      const i = positions.get(term);
+      if (i == null) return null;
+      const slice = marked.text.slice(i, i + term.text.length);
+      const flags = marked.accented.slice(i, i + term.text.length);
+      return flags.some(Boolean) ? slice : null;
+    }),
+  );
+  return query;
 }
 
 const groups: Record<string, string[]> = {
@@ -177,12 +330,16 @@ export function match(doc: SearchDoc, ctx: SearchQuery): SearchMatch {
   let score = 0;
   let fuzzy = false;
   const highlights: string[] = [];
-  for (const term of ctx.terms) {
+  const strictTerms = termStrict.get(ctx);
+  for (let ti = 0; ti < ctx.terms.length; ti++) {
+    const term = ctx.terms[ti] as SearchTerm;
+    const strict = strictTerms?.[ti] ?? null;
     let best = 0;
     for (const f of fields) {
       if (f.label === 'SĐT' && /^\d+$/.test(term.text) && !phoneMatch(doc.phone, term.text)) continue;
-      if (f.norm.includes(term.text))
-        best = Math.max(best, f.weight + (f.norm === term.text ? 30 : f.norm.startsWith(term.text) ? 10 : 0));
+      if (!f.norm.includes(term.text)) continue;
+      if (strict && !accentHit(f, term.text, strict)) continue;
+      best = Math.max(best, f.weight + (f.norm === term.text ? 30 : f.norm.startsWith(term.text) ? 10 : 0));
     }
     if (best) {
       score += best;
@@ -190,7 +347,7 @@ export function match(doc: SearchDoc, ctx: SearchQuery): SearchMatch {
       continue;
     }
     const canFuzzy =
-      !term.phrase && /^(?:[a-z]{4,12})$/.test(term.text) && (ctx.scope === 'all' || ctx.scope === 'name');
+      !term.phrase && !strict && /^(?:[a-z]{4,12})$/.test(term.text) && (ctx.scope === 'all' || ctx.scope === 'name');
     const corrected = canFuzzy && doc.nameWords.find((word) => oneEdit(term.text, word));
     if (!corrected) return { match: false, score: 0, fuzzy: false, highlights: [] };
     fuzzy = true;
@@ -209,41 +366,73 @@ function escapeHtml(v: unknown): string {
 }
 
 // NFC giữ mỗi chữ tiếng Việt thành 1 ký tự. Ánh xạ vị trí trong chuỗi chuẩn hoá về ký tự gốc;
-// gộp khoảng trắng đúng như normalize() để vẫn hiển thị chữ gốc.
+// gộp khoảng trắng đúng như normalize() để vẫn hiển thị chữ gốc. `fold` giữ dấu, cùng độ dài `norm`.
 function mapped(text: unknown) {
   const original = String(text || '').normalize('NFC');
   let norm = '';
+  let fold = '';
   const starts: number[] = [];
   const ends: number[] = [];
   for (let i = 0; i < original.length; i++) {
     const c = original[i] as string;
     const n = normalize(c);
+    const f = c.toLowerCase();
     if (/\s/.test(c)) {
       if (norm && !norm.endsWith(' ')) {
         norm += ' ';
+        fold += ' ';
         starts.push(i);
         ends.push(i + 1);
       } else if (norm.endsWith(' ')) ends[ends.length - 1] = i + 1;
     } else
       for (const ch of n) {
         norm += ch;
+        fold += f;
         starts.push(i);
         ends.push(i + 1);
       }
   }
-  return { original, norm, starts, ends };
+  // Dấu thập phân đổi ở cả hai bản (cùng vị trí) để giữ ánh xạ ký tự.
+  return {
+    original,
+    norm: norm.replace(/(\d)[.,](?=\d)/g, '$1.'),
+    fold: fold.replace(/(\d)[.,](?=\d)/g, '$1.'),
+    starts,
+    ends,
+  };
+}
+
+/** Từ khoá highlight giữ dấu (khác `normalize`), chỉ đổi dấu thập phân. */
+function markedQuery(raw: unknown): Folded {
+  const folded = foldChars(raw);
+  const chars = [...folded.text];
+  for (let i = 1; i < chars.length - 1; i++) {
+    const c = chars[i] as string;
+    if ((c === '.' || c === ',') && /\d/.test(chars[i - 1] as string) && /\d/.test(chars[i + 1] as string))
+      chars[i] = '.';
+  }
+  return { text: chars.join(''), accented: folded.accented };
 }
 
 /** HTML đã escape, phần khớp bọc `<mark>`; `maxLen` > 0 → cắt đoạn quanh chỗ khớp đầu tiên, thêm "…". */
 export function highlight(text: unknown, terms: unknown, maxLen = 0): string {
-  const { original, norm: mappedNorm, starts, ends } = mapped(text);
-  const norm = mappedNorm.replace(/(\d)[.,](?=\d)/g, '$1.');
+  const { original, norm, fold, starts, ends } = mapped(text);
   const ranges: [number, number][] = [];
   for (const raw of Array.isArray(terms) ? terms : [terms]) {
-    const q = normalize(raw).replace(/(\d)[.,](?=\d)/g, '$1.');
-    if (!q) continue;
-    for (let i = norm.indexOf(q); i >= 0; i = norm.indexOf(q, i + q.length))
-      ranges.push([starts[i] as number, ends[i + q.length - 1] as number]);
+    const q = markedQuery(raw);
+    if (!q.text) continue;
+    if (!q.accented.some(Boolean)) {
+      for (let i = norm.indexOf(q.text); i >= 0; i = norm.indexOf(q.text, i + q.text.length))
+        ranges.push([starts[i] as number, ends[i + q.text.length - 1] as number]);
+      continue;
+    }
+    // Từ khoá có dấu: tìm theo luật dấu để không bôi lệch chữ gốc.
+    for (let i = 0; i + q.text.length <= fold.length; i++) {
+      let ok = true;
+      for (let j = 0; j < q.text.length && ok; j++)
+        ok = q.accented[j] ? fold[i + j] === q.text[j] : norm[i + j] === q.text[j];
+      if (ok) ranges.push([starts[i] as number, ends[i + q.text.length - 1] as number]);
+    }
   }
   ranges.sort((a, b) => a[0] - b[0]);
   const merged: [number, number][] = [];

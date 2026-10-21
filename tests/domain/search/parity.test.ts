@@ -8,6 +8,16 @@ import { canon, golden, randomText, rng, V1Search } from './legacy';
 
 const SCOPES: SearchScope[] = ['all', 'name', 'phone', 'unit', 'year', 'property', 'notes'];
 
+// PF-05 (Curtis 2026-10-21): từ khoá CÓ dấu thu hẹp kết quả → chỉ còn đúng v1 khi từ khoá không dấu.
+// Từ khoá có dấu: kết quả phải là TẬP CON của v1 (dấu chỉ thu hẹp, không bao giờ thêm khách).
+const hasMark = (s: unknown) =>
+  [
+    ...String(s ?? '')
+      .normalize('NFC')
+      .toLowerCase(),
+  ].some((c) => !/\s/.test(c) && S.normalize(c) !== c);
+const unmark = (html: string) => html.replace(/<\/?mark>/g, '');
+
 describe('golden search', () => {
   it('cùng tập khách, điểm, fuzzy, highlight cho mọi truy vấn', () => {
     const g = golden('search');
@@ -24,7 +34,14 @@ describe('golden search', () => {
         .sort((a, b) => b.score - a.score || a.id.localeCompare(b.id));
       return { q, scope, phoneOnly: ctx.phoneOnly, numeric: ctx.numeric, terms: ctx.terms, hits };
     });
-    expect(canon(results)).toStrictEqual(g.results);
+    const expected = g.results as { q: string; hits: { id: string }[] }[];
+    const plain = (rows: { q: string }[]) => rows.filter((row) => !hasMark(row.q));
+    expect(canon(plain(results))).toStrictEqual(plain(expected));
+    for (const [i, row] of results.entries()) {
+      if (!hasMark(row.q)) continue;
+      const old = new Set((expected[i]?.hits ?? []).map((h) => h.id));
+      for (const hit of row.hits) expect(old.has(hit.id), `${row.q} → ${hit.id}`).toBe(true);
+    }
   });
 });
 
@@ -89,7 +106,10 @@ describe('parity TS ↔ v1 (ngẫu nhiên, seed cố định)', () => {
         ];
         const q = pool[Math.floor(r() * pool.length)] as string;
         const scope = SCOPES[Math.floor(r() * SCOPES.length)] as SearchScope;
-        expect(S.match(tsDoc, S.compile(q, scope))).toStrictEqual(V1Search.match(tsDoc, V1Search.compile(q, scope)));
+        const ts = S.match(tsDoc, S.compile(q, scope));
+        const v1 = V1Search.match(tsDoc, V1Search.compile(q, scope));
+        if (!hasMark(q)) expect(ts).toStrictEqual(v1);
+        else if (ts.match) expect(v1.match, q).toBe(true);
       }
     }
   });
@@ -104,8 +124,14 @@ describe('parity TS ↔ v1 (ngẫu nhiên, seed cố định)', () => {
           : randomText(r, 4),
       );
       const maxLen = r() < 0.5 ? 0 : Math.floor(r() * 40);
-      expect(S.highlight(text, terms, maxLen)).toBe(V1Search.highlight(text, terms, maxLen));
-      expect(S.highlight(text, terms[0])).toBe(V1Search.highlight(text, terms[0]));
+      if (!terms.some(hasMark)) {
+        expect(S.highlight(text, terms, maxLen)).toBe(V1Search.highlight(text, terms, maxLen));
+        expect(S.highlight(text, terms[0])).toBe(V1Search.highlight(text, terms[0]));
+      } else {
+        // Có dấu: chỉ bôi ít hơn hoặc bằng v1, chữ hiển thị giữ nguyên.
+        // (maxLen cắt quanh chỗ khớp đầu tiên — chỗ đó có thể khác v1, nên so bản không cắt.)
+        expect(unmark(S.highlight(text, terms))).toBe(unmark(V1Search.highlight(text, terms)));
+      }
     }
     expect(S.highlight(null, ['a'])).toBe(V1Search.highlight(null, ['a']));
   });
