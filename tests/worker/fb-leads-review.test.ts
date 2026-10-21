@@ -162,3 +162,28 @@ describe('cảnh báo nói đúng lý do lead chưa vào CRM', () => {
     expect(String(health?.message)).not.toContain('webhook');
   });
 });
+
+describe('form đặt tên trường tiếng Việt (form thật của Curtis)', () => {
+  it('nhận số_điện_thoại / tên_đầy_đủ như phone_number / full_name', async () => {
+    // @ts-expect-error Worker source is JavaScript.
+    const { parseFieldData } = await import('../../worker/meta/mapping.js');
+    const parsed = parseFieldData([
+      { name: 'anh/chị_quan_tâm_căn_mấy_phòng_ngủ_ạ?', values: ['2 phòng ngủ'] },
+      { name: 'tên_đầy_đủ', values: ['Nguyễn Văn A'] },
+      { name: 'số_điện_thoại', values: ['+84912345678'] },
+      { name: 'inbox_url', values: [''] },
+    ]);
+    expect(parsed.full_name).toBe('Nguyễn Văn A');
+    expect(parsed.phone).toBe('0912345678');
+    expect(parsed.lines).toContain('anh/chị quan tâm căn mấy phòng ngủ ạ?: 2 phòng ngủ');
+    expect(
+      parseFieldData([
+        { name: 'Họ và tên', values: ['B'] },
+        { name: 'SĐT', values: ['0987 654 321'] },
+      ]),
+    ).toMatchObject({
+      full_name: 'B',
+      phone: '0987654321',
+    });
+  });
+});

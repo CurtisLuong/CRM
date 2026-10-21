@@ -25,16 +25,36 @@ function labelFor(name) {
   return FIELD_LABELS[raw] || raw.replace(/_/g, ' ').trim() || raw;
 }
 
+// Tên trường do người tạo form đặt có thể là tiếng Việt ("số_điện_thoại", "tên_đầy_đủ") thay vì mã chuẩn của Meta
+// ("phone_number", "full_name") → so khớp trên tên đã bỏ dấu, gạch dưới → khoảng trắng.
+function fieldKey(name) {
+  return text(name)
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/[_\-./?:]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+const PHONE_KEYS = ['phone number', 'phone', 'so dien thoai', 'dien thoai', 'sdt', 'so dt', 'mobile', 'zalo'];
+const FULL_NAME_KEYS = ['full name', 'ten day du', 'ho va ten', 'ho ten', 'ten', 'name', 'ten cua ban', 'ten anh chi'];
+
 /** field_data của Meta → { full_name, phone, email, lines }. Không suy ra apt_type hay hồ sơ khác. */
 export function parseFieldData(fieldData) {
   const list = Array.isArray(fieldData) ? fieldData : [];
-  const get = (name) => {
-    const field = list.find((item) => item && item.name === name);
-    const first = field && Array.isArray(field.values) ? field.values[0] : '';
-    return text(first);
+  const valueOf = (field) => text(field && Array.isArray(field.values) ? field.values[0] : '');
+  const byKeys = (keys) => {
+    for (const key of keys) {
+      const field = list.find((item) => item && fieldKey(item.name) === key);
+      if (field && valueOf(field)) return valueOf(field);
+    }
+    return '';
   };
-  const fullName = get('full_name') || [get('last_name'), get('first_name')].filter(Boolean).join(' ').trim();
-  const rawPhone = get('phone_number') || get('phone');
+  const get = (name) => valueOf(list.find((item) => item && item.name === name));
+  const fullName =
+    byKeys(FULL_NAME_KEYS) || [get('last_name'), get('first_name')].filter(Boolean).join(' ').trim();
+  const rawPhone = byKeys(PHONE_KEYS);
   const lines = [];
   for (const field of list) {
     if (!field) continue;
