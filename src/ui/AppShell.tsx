@@ -25,6 +25,7 @@ export function AppShell({
   aside,
   asideRef,
   hideNav,
+  wide,
   children,
 }: {
   title: string;
@@ -45,6 +46,8 @@ export function AppShell({
   onToggleRail: () => void;
   /** Ẩn thanh điều hướng dưới (mobile) — màn tự có thanh hành động đáy, vd. Hồ sơ (D-023). */
   hideNav?: boolean;
+  /** Màn cần khổ rộng trên desktop (vd. Hồ sơ 2 cột); mobile vẫn 760px. */
+  wide?: boolean;
   /** Có nội dung panel phải (desktop) hay không. */
   aside?: boolean;
   /** Phần tử đích cho panel phải (feature portal nội dung vào đây). */
@@ -73,7 +76,10 @@ export function AppShell({
         <div className="flex min-h-0 flex-1">
           <main
             id="main"
-            className="mx-auto w-full max-w-[760px] min-w-0 flex-1 pb-[calc(64px+env(safe-area-inset-bottom)+16px)] lg:pb-8"
+            className={cn(
+              'mx-auto w-full max-w-[760px] min-w-0 flex-1 pb-[calc(64px+env(safe-area-inset-bottom)+16px)] lg:pb-8',
+              wide && 'lg:max-w-[1360px]',
+            )}
           >
             {children}
           </main>

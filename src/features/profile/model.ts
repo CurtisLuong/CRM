@@ -7,7 +7,7 @@ import type { BriefFact } from '@/domain/customer/brief';
 import { interactionTitle, LEAD_FORM_KIND } from '@/domain/customer/interactions';
 import { callAttemptsOf, sourceListOf } from '@/domain/customer/normalize';
 import { fmtClock, type TaskDueInfo, taskDayLabel } from '@/domain/deadlines';
-import { callResultLabel, displayDateTime, displayText, intakeLabel, sourceLabel } from '@/ui/display';
+import { callResultLabel, displayText, intakeLabel, sourceLabel } from '@/ui/display';
 
 /** Checklist state belongs to booking_steps; it must never move the stage SLA clock. */
 export function bookingStepPatch(customer: Customer, key: string, checked: boolean, at: string) {
@@ -26,9 +26,13 @@ export function contactPrefsPatch(customer: Customer, key: 'channel' | 'slot', v
 
 export type LastTouch = { when: string; meta: string; headline: string; text: string };
 
+// Mọi mốc giờ trong hồ sơ cùng một kiểu "CN 4/10 09:00"; khác năm thì thêm năm để khỏi nhầm khách cũ.
 const dayClock = (iso: string, now: number) => {
   const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? '' : `${taskDayLabel(d, now)} ${fmtClock(d.getTime())}`;
+  if (Number.isNaN(d.getTime())) return '';
+  const day = taskDayLabel(d, now);
+  const year = day.includes('/') && d.getFullYear() !== new Date(now).getFullYear() ? `/${d.getFullYear()}` : '';
+  return `${day}${year} ${fmtClock(d.getTime())}`;
 };
 
 /** Lần tương tác gần nhất (cuộc gọi / ghi chú / Zalo-gặp). Không có → null. */
@@ -94,7 +98,7 @@ export function extraFacts(customer: Customer, now: number): { label: string; va
       'Không liên hệ',
       customer.contact_prefs?.do_not_contact ? displayText(customer.contact_prefs.dnc_reason) || 'Đã yêu cầu' : '',
     ],
-    ['Ngày đăng ký', displayDateTime(customer.registered_at || customer.created_at)],
+    ['Ngày đăng ký', dayClock(String(customer.registered_at || customer.created_at || ''), now)],
     ['Ghi chú đăng ký', displayText(customer.notes)],
   ];
   return rows.filter(([, v]) => v).map(([label, value]) => ({ label, value }));

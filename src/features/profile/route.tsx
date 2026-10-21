@@ -870,5 +870,5 @@ function ChoiceField({
 export const route: FeatureRoute = {
   path: '/ho-so/:id',
   element: <Profile />,
-  handle: { title: 'Hồ sơ khách', hideNav: true },
+  handle: { title: 'Hồ sơ khách', hideNav: true, wide: true },
 };

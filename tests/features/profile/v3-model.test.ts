@@ -68,14 +68,19 @@ describe('extraFacts (D-023 L3 + L4)', () => {
       { label: 'Nguồn', value: 'Facebook Ads' },
       { label: 'Cách nhập', value: 'Từ ảnh chụp' },
       { label: 'Mức quan tâm', value: 'Rất nóng' },
-      { label: 'Ngày đăng ký', value: '09:00 04/10/2026' },
+      { label: 'Ngày đăng ký', value: 'CN 4/10 09:00' },
       { label: 'Ghi chú đăng ký', value: 'object cũ' },
     ]);
   });
 
   it('khách gần như trống → chỉ ngày đăng ký', () => {
-    expect(extraFacts(c({ created_at: at(1, 9) }), now)).toEqual([
-      { label: 'Ngày đăng ký', value: '09:00 01/10/2026' },
+    expect(extraFacts(c({ created_at: at(1, 9) }), now)).toEqual([{ label: 'Ngày đăng ký', value: 'T5 1/10 09:00' }]);
+  });
+
+  // PF-07: mọi mốc giờ trong hồ sơ cùng kiểu với "Lần gọi cuối"; khác năm thì thêm năm.
+  it('ngày đăng ký năm trước có năm', () => {
+    expect(extraFacts(c({ registered_at: new Date(2025, 11, 20, 14, 5).toISOString() }), now)).toEqual([
+      { label: 'Ngày đăng ký', value: 'T7 20/12/2025 14:05' },
     ]);
   });
 });
