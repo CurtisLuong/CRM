@@ -6,6 +6,7 @@ export const commands: AppCommand[] = [
     label: 'Mở Khách mới',
     icon: 'customers',
     tools: true,
+    menu: { group: 'customers', label: 'Khách mới', icon: 'new_lead', order: 10 },
     keywords: 'lead khách mới trong phễu',
     order: 22,
     run: ({ navigate }) => navigate('/khach-moi'),

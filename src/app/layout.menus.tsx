@@ -1,59 +1,148 @@
-import { Check, EllipsisVertical } from 'lucide-react';
-import { DropdownMenu } from 'radix-ui';
-import { THEME_OPTIONS, type ThemePref, useThemePref } from '@/app/theme';
-import { EmptyState, Icon, Sheet } from '@/ui';
+import { type ReactNode, useState } from 'react';
+import { THEME_OPTIONS, useThemePref } from '@/app/theme';
+import { MENU_GROUPS, MENU_THEME_GROUP } from '@/config/menu';
+import { EmptyState, Icon, SegmentedControl, Sheet } from '@/ui';
 import type { AppCommand, CommandContext } from './commands';
+import { buildMenu, type MenuItem, type MenuSection } from './menu.model';
 
-const ITEM =
-  'flex min-h-11 cursor-pointer select-none items-center gap-3 rounded-control px-3 text-body text-text outline-none data-[highlighted]:bg-surface-2';
+/** Nền icon thống nhất toàn menu: ô lưới 44px, hàng 40px, cùng token surface-2. */
+const ICON_TILE = 'inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-surface-2 text-text-2';
+const ICON_ROW = 'inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-surface-2 text-text-2';
 
-/** Menu Tiện ích (D-013): lệnh có `tools` + chọn Giao diện. Header (mobile) và chân rail (desktop). */
-export function ToolsMenu({ commands, ctx }: { commands: AppCommand[]; ctx: CommandContext }) {
-  const [pref, setPref] = useThemePref();
-  const tools = commands.filter((c) => c.tools);
+function GridItem({ item, onSelect }: { item: MenuItem; onSelect: (item: MenuItem) => void }) {
   return (
-    <DropdownMenu.Root>
-      <DropdownMenu.Trigger
-        aria-label="Tiện ích"
-        className="inline-flex size-11 shrink-0 items-center justify-center rounded-control text-text-2 hover:bg-surface-2 data-[state=open]:bg-surface-2"
+    <button
+      type="button"
+      onClick={() => onSelect(item)}
+      className="flex min-h-24 w-full flex-col items-center justify-center gap-2 rounded-card border border-hairline bg-surface px-2 py-3 text-center hover:bg-surface-2"
+    >
+      <span className={ICON_TILE}>
+        <Icon name={item.icon} size={24} />
+      </span>
+      <span className="text-small leading-snug font-medium">{item.label}</span>
+    </button>
+  );
+}
+
+function RowItem({ item, onSelect }: { item: MenuItem; onSelect: (item: MenuItem) => void }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(item)}
+      className="flex min-h-12 w-full items-center gap-3 px-3 py-1.5 text-left hover:bg-surface-2"
+    >
+      <span className={ICON_ROW}>
+        <Icon name={item.icon} size={20} />
+      </span>
+      <span className="min-w-0 flex-1 truncate text-body-strong">{item.label}</span>
+      <Icon name="open" size={20} className="shrink-0 text-text-3" />
+    </button>
+  );
+}
+
+/** Hàng cuối nhóm Cài đặt: chọn Sáng | Tối | Tự động ngay trong menu, không đóng sheet. */
+function ThemeRow() {
+  const [pref, setPref] = useThemePref();
+  return (
+    <li className="flex min-h-12 items-center gap-2 py-1.5 pr-2 pl-3">
+      <span className={ICON_ROW}>
+        <Icon name="theme" size={20} />
+      </span>
+      <div className="flex min-w-0 flex-1 items-center gap-1">
+        <span className="min-w-0 flex-1 truncate text-body-strong">Giao diện</span>
+        {/* Nút phân đoạn thu về một hàng; mỗi lựa chọn chạm đủ 44×44. */}
+        <SegmentedControl
+          options={THEME_OPTIONS}
+          value={pref}
+          onValueChange={setPref}
+          label="Giao diện"
+          className="shrink-0 [&>button]:min-h-11 [&>button]:min-w-11 [&>button]:px-2 [&>button]:text-small"
+        />
+      </div>
+    </li>
+  );
+}
+
+function Section({
+  section,
+  onSelect,
+  extra,
+}: {
+  section: MenuSection;
+  onSelect: (item: MenuItem) => void;
+  extra?: ReactNode;
+}) {
+  return (
+    <section aria-labelledby={`menu-group-${section.key}`} className="flex flex-col gap-2">
+      <h3 id={`menu-group-${section.key}`} className="px-1 text-label text-text-2">
+        {section.title}
+      </h3>
+      {section.kind === 'grid' ? (
+        <ul className="grid grid-cols-2 gap-2">
+          {section.items.map((item) => (
+            <li key={item.id}>
+              <GridItem item={item} onSelect={onSelect} />
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <ul className="divide-y divide-hairline overflow-hidden rounded-card border border-hairline bg-surface">
+          {section.items.map((item) => (
+            <li key={item.id}>
+              <RowItem item={item} onSelect={onSelect} />
+            </li>
+          ))}
+          {extra}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+/** Menu ⋮ (PF-04): sheet có nhóm — lối tắt dạng ô (Khách hàng, Công cụ) + hàng (Cài đặt, Giao diện). */
+export function ToolsMenu({ commands, ctx }: { commands: AppCommand[]; ctx: CommandContext }) {
+  const [open, setOpen] = useState(false);
+  const sections = buildMenu(commands);
+  const themeGroup = MENU_GROUPS.find((g) => g.key === MENU_THEME_GROUP);
+
+  // Chọn mục → đóng sheet rồi điều hướng (Sheet giữ focus, trả focus về nút Menu).
+  const select = (item: MenuItem) => {
+    setOpen(false);
+    item.run(ctx);
+  };
+
+  return (
+    <>
+      <button
+        type="button"
+        aria-label="Menu"
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        onClick={() => setOpen(true)}
+        className="inline-flex size-11 shrink-0 items-center justify-center rounded-control text-text-2 hover:bg-surface-2"
       >
-        <EllipsisVertical size={20} strokeWidth={1.75} aria-hidden />
-      </DropdownMenu.Trigger>
-      <DropdownMenu.Portal>
-        <DropdownMenu.Content
-          align="end"
-          sideOffset={6}
-          collisionPadding={8}
-          className="z-50 min-w-56 rounded-card border border-border bg-surface-3 p-1 text-text shadow-e3"
-        >
-          {tools.length > 0 && (
-            <>
-              <DropdownMenu.Label className="px-3 pt-2 pb-1 text-label text-text-2">Tiện ích</DropdownMenu.Label>
-              {tools.map((c) => (
-                <DropdownMenu.Item key={c.id} className={ITEM} onSelect={() => c.run(ctx)}>
-                  <Icon name={c.icon ?? 'apps'} size={20} />
-                  {c.label}
-                </DropdownMenu.Item>
-              ))}
-              <DropdownMenu.Separator className="my-1 h-px bg-border" />
-            </>
+        <Icon name="more" size={20} />
+      </button>
+      <Sheet open={open} onOpenChange={setOpen} title="Menu">
+        <div className="flex flex-col gap-5 pt-1 pb-2">
+          {sections.map((section) => (
+            <Section
+              key={section.key}
+              section={section}
+              onSelect={select}
+              extra={section.key === MENU_THEME_GROUP ? <ThemeRow /> : undefined}
+            />
+          ))}
+          {!sections.some((s) => s.key === MENU_THEME_GROUP) && themeGroup && (
+            <Section
+              section={{ key: themeGroup.key, title: themeGroup.title, kind: themeGroup.kind, items: [] }}
+              onSelect={select}
+              extra={<ThemeRow />}
+            />
           )}
-          <DropdownMenu.Label className="px-3 pt-2 pb-1 text-label text-text-2">Giao diện</DropdownMenu.Label>
-          <DropdownMenu.RadioGroup value={pref} onValueChange={(v) => setPref(v as ThemePref)}>
-            {THEME_OPTIONS.map((o) => (
-              <DropdownMenu.RadioItem key={o.value} value={o.value} className={ITEM}>
-                <span className="inline-flex size-5 items-center justify-center text-accent">
-                  <DropdownMenu.ItemIndicator>
-                    <Check size={16} strokeWidth={2} aria-hidden />
-                  </DropdownMenu.ItemIndicator>
-                </span>
-                {o.label}
-              </DropdownMenu.RadioItem>
-            ))}
-          </DropdownMenu.RadioGroup>
-        </DropdownMenu.Content>
-      </DropdownMenu.Portal>
-    </DropdownMenu.Root>
+        </div>
+      </Sheet>
+    </>
   );
 }
 

@@ -5,6 +5,7 @@ export const commands: AppCommand[] = [
     label: 'Mở thao tác nhanh',
     icon: 'call',
     tools: true,
+    menu: { group: 'tools', label: 'Thao tác nhanh', icon: 'quick', order: 30 },
     order: 10,
     run: ({ navigate }) => navigate('/thao-tac-nhanh'),
   },

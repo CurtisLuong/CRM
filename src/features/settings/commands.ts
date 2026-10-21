@@ -6,6 +6,7 @@ export const commands: AppCommand[] = [
     icon: 'settings',
     tools: true,
     group: 'Tiện ích',
+    menu: { group: 'settings', label: 'Cài đặt', icon: 'settings', order: 30 },
     keywords: 'mẫu zalo ai giao diện apk tài khoản',
     run: ({ navigate }) => navigate('/cai-dat'),
   },
