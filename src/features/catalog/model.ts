@@ -1,4 +1,4 @@
-import { normalize } from '@/domain/search';
+import { compile, match, normalize, prepare } from '@/domain/search';
 
 const HEADER_ALIASES: Record<string, string[]> = {
   buildingPrice: ['gia toa', 'gia dien hinh toa', 'gia duyet', 'gia trung binh', 'don gia toa'],
@@ -187,4 +187,10 @@ export async function downloadCatalogTemplate(): Promise<void> {
   anchor.download = 'mau-gio-hang.xlsx';
   anchor.click();
   URL.revokeObjectURL(url);
+}
+
+/** Ô tìm Giỏ hàng dùng chung luật tìm của app (không dấu tìm rộng, có dấu thu hẹp — PF-05). */
+export function unitMatchesQuery(fields: ReadonlyArray<readonly [string, unknown]>, query: string): boolean {
+  const ctx = compile(query);
+  return !ctx.active || match(prepare(fields.map(([label, value]) => [label, value ?? ''] as const)), ctx).match;
 }

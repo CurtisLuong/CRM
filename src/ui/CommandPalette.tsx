@@ -17,6 +17,10 @@ export type PaletteItem = {
   /** Từ khoá tìm thêm (không hiển thị). */
   keywords?: string;
   shortcut?: string[];
+  /** Nhãn dạng HTML đã escape (highlight của domain/search bọc `<mark>` chỗ khớp). */
+  labelHtml?: string;
+  /** Dòng ẩn tới khi bấm "Xem thêm N khách" của nhóm (PF-06 luật 6). */
+  collapsed?: boolean;
   onSelect: () => void;
 };
 
@@ -54,6 +58,8 @@ export function CommandPalette({
   const [query, setQuery] = useState('');
   const [found, setFound] = useState<PaletteItem[]>([]);
   const [active, setActive] = useState(0);
+  // Nhóm đã bấm "Xem thêm" — mở ngay trong danh sách, không đóng Bảng lệnh.
+  const [expanded, setExpanded] = useState<string[]>([]);
   const listId = useId();
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -61,6 +67,7 @@ export function CommandPalette({
     if (!open) {
       setQuery('');
       setFound([]);
+      setExpanded([]);
     }
   }, [open]);
 
@@ -88,14 +95,38 @@ export function CommandPalette({
   }
 
   const groups = useMemo(() => {
-    const map = new Map<string, Array<{ item: PaletteItem; index: number }>>();
-    results.forEach((item, index) => {
-      const g = map.get(item.group) ?? [];
-      g.push({ item, index });
-      map.set(item.group, g);
-    });
+    const map = new Map<string, PaletteItem[]>();
+    for (const item of results) {
+      const g = map.get(item.group);
+      if (g) g.push(item);
+      else map.set(item.group, [item]);
+    }
     return [...map.entries()];
   }, [results]);
+
+  type PaletteRow =
+    | { kind: 'item'; item: PaletteItem; index: number }
+    | { kind: 'more'; group: string; count: number; index: number };
+
+  // Dòng đang hiện (bỏ dòng `collapsed` của nhóm chưa mở) + dòng "Xem thêm N khách" cuối nhóm.
+  const { options, sections } = useMemo(() => {
+    const flat: PaletteRow[] = [];
+    const out: Array<{ group: string; rows: PaletteRow[] }> = [];
+    for (const [group, entries] of groups) {
+      const shown = entries.filter((item) => !item.collapsed || expanded.includes(group));
+      const start = flat.length;
+      const rows: PaletteRow[] = shown.map((item, i) => ({ kind: 'item', item, index: start + i }));
+      flat.push(...rows);
+      const hidden = entries.length - shown.length;
+      if (hidden > 0) {
+        const more: PaletteRow = { kind: 'more', group, count: hidden, index: flat.length };
+        rows.push(more);
+        flat.push(more);
+      }
+      out.push({ group, rows });
+    }
+    return { options: flat, sections: out };
+  }, [groups, expanded]);
 
   const run = (item: PaletteItem | undefined) => {
     if (!item) return;
@@ -103,16 +134,26 @@ export function CommandPalette({
     item.onSelect();
   };
 
+  const expand = (group: string) => {
+    setExpanded((prev) => (prev.includes(group) ? prev : [...prev, group]));
+  };
+
+  const runRow = (row: PaletteRow | undefined) => {
+    if (!row) return;
+    if (row.kind === 'more') expand(row.group);
+    else run(row.item);
+  };
+
   const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       e.preventDefault();
-      if (!results.length) return;
-      const next = (active + (e.key === 'ArrowDown' ? 1 : -1) + results.length) % results.length;
+      if (!options.length) return;
+      const next = (active + (e.key === 'ArrowDown' ? 1 : -1) + options.length) % options.length;
       setActive(next);
       listRef.current?.querySelector(`[data-index="${next}"]`)?.scrollIntoView?.({ block: 'nearest' });
     } else if (e.key === 'Enter') {
       e.preventDefault();
-      run(results[active]);
+      runRow(options[active]);
     }
   };
 
@@ -137,13 +178,17 @@ export function CommandPalette({
               role="combobox"
               aria-expanded="true"
               aria-controls={listId}
-              aria-activedescendant={results.length ? optionId(active) : undefined}
+              aria-activedescendant={options.length ? optionId(active) : undefined}
               aria-autocomplete="list"
               aria-label="Tìm khách, lệnh, màn"
               autoComplete="off"
               spellCheck={false}
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                // Gõ từ khoá mới → thu lại các nhóm đã "Xem thêm".
+                setExpanded([]);
+              }}
               onKeyDown={onKeyDown}
               placeholder={placeholder}
               className="h-14 min-w-0 flex-1 bg-transparent text-body outline-none placeholder:text-text-3"
@@ -160,41 +205,73 @@ export function CommandPalette({
             aria-label="Kết quả"
             className="min-h-0 flex-1 overflow-y-auto p-2"
           >
-            {groups.map(([group, rows]) => (
+            {sections.map(({ group, rows }) => (
               // biome-ignore lint/a11y/useSemanticElements: nhóm trong listbox ARIA, không phải form (<fieldset>).
               <div key={group} role="group" aria-label={group} className="pb-2">
                 <div className="px-2 pt-2 pb-1 text-label text-text-2" aria-hidden>
                   {group}
                 </div>
-                {rows.map(({ item, index }) => (
-                  // biome-ignore lint/a11y/useKeyWithClickEvents: phím do ô combobox xử lý (aria-activedescendant).
-                  <div
-                    key={item.id}
-                    id={optionId(index)}
-                    role="option"
-                    tabIndex={-1}
-                    aria-selected={index === active}
-                    data-index={index}
-                    onMouseMove={() => setActive(index)}
-                    onClick={() => run(item)}
-                    className={cn(
-                      'flex min-h-11 cursor-pointer items-center gap-3 rounded-control px-2 py-1.5',
-                      index === active && 'bg-surface-2',
-                    )}
-                  >
-                    <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-surface-2 text-text-2">
-                      <Icon name={item.icon ?? 'task'} size={16} />
-                    </span>
-                    <span className="flex min-w-0 flex-1 flex-col">
-                      <span className="truncate text-body-strong">{item.label}</span>
-                      {item.sub && <span className="truncate text-small text-text-2">{item.sub}</span>}
-                    </span>
-                    {item.shortcut && <Kbd keys={item.shortcut} />}
-                  </div>
-                ))}
+                {rows.map((row) =>
+                  row.kind === 'more' ? (
+                    // biome-ignore lint/a11y/useKeyWithClickEvents: phím do ô combobox xử lý (aria-activedescendant).
+                    <div
+                      key={`more:${row.group}`}
+                      id={optionId(row.index)}
+                      role="option"
+                      tabIndex={-1}
+                      aria-selected={row.index === active}
+                      data-index={row.index}
+                      onMouseMove={() => setActive(row.index)}
+                      onClick={() => expand(row.group)}
+                      className={cn(
+                        'flex min-h-11 cursor-pointer items-center gap-3 rounded-control px-2 py-1.5 text-accent',
+                        row.index === active && 'bg-surface-2',
+                      )}
+                    >
+                      <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-surface-2 text-text-2">
+                        <Icon name="expand" size={16} />
+                      </span>
+                      <span className="text-body-strong">Xem thêm {row.count} khách</span>
+                    </div>
+                  ) : (
+                    // biome-ignore lint/a11y/useKeyWithClickEvents: phím do ô combobox xử lý (aria-activedescendant).
+                    <div
+                      key={row.item.id}
+                      id={optionId(row.index)}
+                      role="option"
+                      tabIndex={-1}
+                      aria-selected={row.index === active}
+                      data-index={row.index}
+                      onMouseMove={() => setActive(row.index)}
+                      onClick={() => run(row.item)}
+                      className={cn(
+                        'flex min-h-11 cursor-pointer items-center gap-3 rounded-control px-2 py-1.5',
+                        row.index === active && 'bg-surface-2',
+                      )}
+                    >
+                      <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-surface-2 text-text-2">
+                        <Icon name={row.item.icon ?? 'task'} size={16} />
+                      </span>
+                      <span className="flex min-w-0 flex-1 flex-col">
+                        {row.item.labelHtml ? (
+                          <span
+                            className="truncate text-body-strong [&_mark]:rounded-[3px] [&_mark]:bg-accent-soft [&_mark]:text-accent"
+                            // highlight() của domain/search đã escape HTML trước khi bọc <mark>.
+                            // biome-ignore lint/security/noDangerouslySetInnerHtml: chuỗi đã escape ở domain.
+                            dangerouslySetInnerHTML={{ __html: row.item.labelHtml }}
+                          />
+                        ) : (
+                          <span className="truncate text-body-strong">{row.item.label}</span>
+                        )}
+                        {row.item.sub && <span className="truncate text-small text-text-2">{row.item.sub}</span>}
+                      </span>
+                      {row.item.shortcut && <Kbd keys={row.item.shortcut} />}
+                    </div>
+                  ),
+                )}
               </div>
             ))}
-            {!results.length && (
+            {!options.length && (
               <p role="status" className="px-2 py-8 text-center text-small text-text-2">
                 {query.trim() ? `Không thấy “${query.trim()}”` : 'Gõ để tìm khách, lệnh hoặc màn'}
               </p>

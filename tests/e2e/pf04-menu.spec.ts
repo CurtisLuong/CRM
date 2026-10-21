@@ -24,13 +24,14 @@ test('Menu: 3 nhóm đúng thứ tự, mục có nhãn ngắn; chọn mục đó
     'Tính khoản vay',
     'Thao tác nhanh',
     'Nhập / Xuất dữ liệu',
-    'Thông báo',
     'Đồng nghiệp',
     'Cài đặt',
   ]) {
     await expect(dialog.getByRole('button', { name: label, exact: true })).toBeVisible();
   }
 
+  // Curtis 2026-10-21: Thông báo chuyển lên header (chuông) → không còn trong Menu.
+  await expect(dialog.getByRole('button', { name: 'Thông báo', exact: true })).toHaveCount(0);
   await dialog.getByRole('button', { name: 'Tính khoản vay', exact: true }).click();
   await expect(page).toHaveURL('/tinh-vay');
   await expect(page.getByRole('dialog', { name: 'Menu' })).toBeHidden();
