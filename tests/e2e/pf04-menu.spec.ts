@@ -50,6 +50,8 @@ test('Menu: chọn Tối đổi giao diện ngay, menu vẫn mở và radio đan
 test('Menu: sheet không cuộn ngang, mọi ô/hàng chạm được ≥ 44px', async ({ page }) => {
   await page.goto('/');
   const dialog = await openMenu(page);
+  // Đo sau khi sheet trượt lên xong — đo giữa hiệu ứng làm lệch toạ độ khi máy bận (Lead vá, chập chờn ở phone-390).
+  await dialog.evaluate((el) => Promise.all(el.getAnimations({ subtree: true }).map((a) => a.finished)));
 
   const fit = await dialog.evaluate((el) => {
     const rect = el.getBoundingClientRect();
