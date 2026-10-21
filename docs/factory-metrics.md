@@ -18,6 +18,8 @@ Nguồn: báo cáo `scripts/factory-run.mjs` / `reports/overnight-*.md` + nghi�
 | ML-L | lead | 2026-10-19 | — | — | — | SQL/v2/007 + test, `domain` (`lead_form`, `isSaleTouch`), hook `useIntegrationHealth`, factory-run mở vùng cấm theo Phạm vi | xanh | — | — | — | Migration chạy thử Postgres 17 cục bộ (gắn lead, chống gắn trùng, RLS/GRANT) | Lead làm vì là vùng dữ liệu/migration |
 | ML-01 | code | 2026-10-19 | deepseek-flash | 1 | $0.0858 | 14 | ĐẠT (hết giờ 25′, gate xanh) | Đạt, vá 4 | — | ~20 | Phân trang Graph (kéo bù > 100 lead/form bị sót); token hỏng ở lượt quét không báo + health nhấp nháy ok/lỗi; mã lead Make chứa SĐT (lộ vào log); câu báo trỏ tới "nhật ký lead trong Cài đặt" không tồn tại | Không có báo cáo cuối (hết giờ). Đặc tả nên nói rõ "đọc hết các trang" |
 | ML-02 | code | 2026-10-19 | deepseek-flash | 1 | $0.0372 | 9 | ĐẠT (hết giờ 20′, gate xanh) | Đạt, vá 1 | — | ~5 | `leads` import `features/settings/model` (phá ranh giới module) → chuyển mã/ngưỡng/nhãn sang `src/config/integrations.ts` + `src/domain/integrations.ts` | Đặc tả nên chỉ sẵn nơi đặt luật dùng chung giữa 2 feature |
+| ML-03 | code | 2026-10-21 | deepseek-flash | 1 | $0.0479 | 7 | ĐẠT | Đạt | — | ~6 | — | Có báo cáo cuối; đặc tả dùng mẫu field_data thật của form → làm đúng ngay lần 1 |
+| ML-04 | code | 2026-10-21 | deepseek-flash | 1 | $0.0488 | 5 | ĐẠT | Đạt | — | ~4 | — | |
 
 Loại: `code` / `test-only` / `lead` (Lead tự làm) / `đối chứng` (làm bằng Claude Code thuần để so sánh).
 
