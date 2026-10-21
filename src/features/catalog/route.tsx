@@ -6,7 +6,14 @@ import { useCustomers, useRepositoryAccount } from '@/data/hooks';
 import type { Customer } from '@/domain/customer';
 import { customersForUnit, match as matchCustomer, price as totalPrice } from '@/domain/matching/property';
 import { Button, useToast } from '@/ui';
-import { downloadCatalogTemplate, formatPricePerM2, parseCatalogCsv, parseCatalogMatrix, parsePrice } from './model';
+import {
+  downloadCatalogTemplate,
+  formatPricePerM2,
+  parseCatalogCsv,
+  parseCatalogMatrix,
+  parsePrice,
+  unitMatchesQuery,
+} from './model';
 
 const DIRECTIONS = ['Đông', 'Tây', 'Nam', 'Bắc', 'Đông Bắc', 'Đông Nam', 'Tây Bắc', 'Tây Nam'];
 const fieldClass = 'mt-1 min-h-11 w-full rounded-control border border-border bg-surface px-3 text-body text-text';
@@ -118,7 +125,6 @@ function CatalogPage() {
   const building = buildingId ? catalog?.building(buildingId) : null;
   const visibleUnits = (() => {
     if (!catalog) return [];
-    const needle = query.trim().toLocaleLowerCase('vi');
     return catalog.units().filter((unit) => {
       if (status && unit.status !== status) return false;
       if (projectId && unit.project_id !== projectId) return false;
@@ -146,11 +152,16 @@ function CatalogPage() {
       if (!inRange(price == null ? null : Number(price) / 1_000_000, priceMin, priceMax)) return false;
       const p = catalog.project(unit.project_id);
       const b = catalog.building(unit.building_id);
-      const haystack =
-        `${unit.code} ${unit.apt_type || ''} ${unit.note || ''} ${b?.code || ''} ${p?.name || ''}`.toLocaleLowerCase(
-          'vi',
-        );
-      return !needle || haystack.includes(needle);
+      return unitMatchesQuery(
+        [
+          ['Mã căn', unit.code],
+          ['Loại căn', unit.apt_type],
+          ['Ghi chú', unit.note],
+          ['Mã toà', b?.code],
+          ['Dự án', p?.name],
+        ],
+        query,
+      );
     });
   })();
   const customerForMatch = customers.find((row) => row.id === matchingCustomer) as Customer | undefined;

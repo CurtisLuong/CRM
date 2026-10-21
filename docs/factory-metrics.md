@@ -24,6 +24,8 @@ Nguồn: báo cáo `scripts/factory-run.mjs` / `reports/overnight-*.md` + nghi�
 | PF-02 | code | 2026-10-21 | deepseek-flash | 1 | $0.0394 | — | ĐẠT | Đạt | — | ~4 | Tên bậc suy từ tiêu đề "Bậc: …" (chấp nhận; nếu đổi tiêu đề thì thêm trường `stage`) | |
 | PF-03 | code | 2026-10-21 | deepseek-flash | 1 | $0.0379 | — | ĐẠT | Đạt, vá 1 (lỗi có sẵn) | — | ~6 | Worker phát hiện lỗi có sẵn: lưu khách xong vẫn hỏi "Bản nháp chưa lưu" → Lead sửa (`savedRef` trong `useBlocker`) + e2e `pf03-lead-saved` | Báo cáo mục 3 hữu ích — worker báo lỗi ngoài phạm vi thay vì tự sửa |
 | PF-04 | code | 2026-10-21 | deepseek-flash | 2 (1 BLOCKED) | $0.0585 | — | ĐẠT | Đạt | — | ~6 | — | BLOCKED đúng: icon mới cần đăng ký glyph ở `src/ui/Icon.tsx` (vùng cấm) → Lead thêm sẵn. Đặc tả nên nhớ: thêm khái niệm icon = sửa cả `icons.ts` + `Icon.tsx`. Test vitest đỏ giả ở thư mục chính do cache glob (`commands.ts` mới) → xoá `node_modules/.vitest-cache` |
+| PF-05 | code | 2026-10-21 | deepseek-flash | 1 (BLOCKED) | $0.0708 | — | BLOCKED → Lead hoàn tất | Đạt | — | ~10 | Worker cài xong nhưng BLOCKED đúng: parity v1/golden trái luật dấu mới → Lead sửa `parity.test.ts` (chỉ so v1 khi từ khoá không dấu; có dấu phải là tập con v1), commit bản worker. Lead thêm: ô tìm Giỏ hàng dùng chung luật (`unitMatchesQuery`) | Đặc tả đổi luật domain cần nói trước test parity nào bị thay |
+| PF-06 | code | 2026-10-21 | deepseek-flash | 1 | $0.0707 | — | ĐẠT | Đạt | — | ~5 | — | Chuông + màn Thông báo chung hook `useNotificationSignals`; tìm khách nối qua `setCustomerSearch` (cổng cắm có sẵn) |
 
 Loại: `code` / `test-only` / `lead` (Lead tự làm) / `đối chứng` (làm bằng Claude Code thuần để so sánh).
 
