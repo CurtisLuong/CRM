@@ -1,4 +1,6 @@
-// Chuyển dữ liệu lead Meta → dòng khách / phần tử interaction theo đúng luật nghiệp vụ ML-01.
+// Chuyển dữ liệu lead Meta → dòng khách / phần tử interaction theo đúng luật nghiệp vụ ML-01 + ML-03.
+import { LEAD_FORM_ORIGIN } from '../../src/domain/customer/interactions';
+import { fieldNameKey, formAnswers } from './leadFields.js';
 import { normalizePhoneVN } from './phone.js';
 
 export const LEAD_FORM_KIND = 'lead_form';
@@ -26,27 +28,17 @@ function labelFor(name) {
 }
 
 // Tên trường do người tạo form đặt có thể là tiếng Việt ("số_điện_thoại", "tên_đầy_đủ") thay vì mã chuẩn của Meta
-// ("phone_number", "full_name") → so khớp trên tên đã bỏ dấu, gạch dưới → khoảng trắng.
-function fieldKey(name) {
-  return text(name)
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/đ/g, 'd')
-    .replace(/[_\-./?:]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
+// ("phone_number", "full_name") → so khớp trên tên đã bỏ dấu, gạch dưới → khoảng trắng (dùng chung với leadFields).
 const PHONE_KEYS = ['phone number', 'phone', 'so dien thoai', 'dien thoai', 'sdt', 'so dt', 'mobile', 'zalo'];
 const FULL_NAME_KEYS = ['full name', 'ten day du', 'ho va ten', 'ho ten', 'ten', 'name', 'ten cua ban', 'ten anh chi'];
 
-/** field_data của Meta → { full_name, phone, email, lines }. Không suy ra apt_type hay hồ sơ khác. */
+/** field_data của Meta → { full_name, phone, email, lines, apt_type, bullets }. */
 export function parseFieldData(fieldData) {
   const list = Array.isArray(fieldData) ? fieldData : [];
   const valueOf = (field) => text(field && Array.isArray(field.values) ? field.values[0] : '');
   const byKeys = (keys) => {
     for (const key of keys) {
-      const field = list.find((item) => item && fieldKey(item.name) === key);
+      const field = list.find((item) => item && fieldNameKey(item.name) === key);
       if (field && valueOf(field)) return valueOf(field);
     }
     return '';
@@ -65,12 +57,16 @@ export function parseFieldData(fieldData) {
     if (!value) continue;
     lines.push(`${labelFor(field.name)}: ${value}`);
   }
+  const { aptType, bullets } = formAnswers(list);
   return {
     full_name: fullName,
     // Không có chữ số nào → coi như không có SĐT (tránh normalizePhoneVN('') trả '0').
     phone: /\d/.test(rawPhone) ? normalizePhoneVN(rawPhone) : '',
     email: get('email'),
+    // Giữ cho tương thích nơi khác; khách mới dùng `bullets` (ML-03), không dùng `lines`.
     lines,
+    apt_type: aptType,
+    bullets,
   };
 }
 
@@ -81,9 +77,14 @@ export function campaignFor(lead, formName) {
   return text(formName) || null;
 }
 
-export function buildNotes({ formName, adName, lines }) {
-  const head = `Facebook Lead Ads${formName ? ` — form "${formName}"` : ''}${adName ? ` — QC "${adName}"` : ''}`;
-  return [head, ...(Array.isArray(lines) ? lines : [])].join('\n');
+/** Mỗi gạch đầu dòng = 1 phần tử notes_manual; origin đánh dấu để app không tính là sale chạm khách. */
+export function buildNotesManual({ bullets, at, leadId }) {
+  return (Array.isArray(bullets) ? bullets : []).map((line) => ({
+    text: line,
+    at,
+    origin: LEAD_FORM_ORIGIN,
+    lead_id: leadId,
+  }));
 }
 
 /** Phần tử interaction cho khách ĐÃ CÓ — bỏ trường trống, khớp hợp đồng `src/domain`. */
@@ -104,9 +105,9 @@ export function buildInteraction({ leadId, formId, formName, adName, platform, c
   return interaction;
 }
 
-/** Dòng customers cho khách MỚI — chỉ các trường luật 1 cho phép. */
-export function buildCustomerRow({ ownerId, parsed, campaign, at, formName, notes }) {
-  return {
+/** Dòng customers cho khách MỚI — chỉ các trường luật 1 + ML-03 cho phép; KHÔNG ghi `notes`. */
+export function buildCustomerRow({ ownerId, parsed, campaign, at, formName, projects, leadId }) {
+  const row = {
     owner_id: ownerId,
     full_name: parsed.full_name || 'Khách Facebook',
     phone: parsed.phone,
@@ -123,8 +124,13 @@ export function buildCustomerRow({ ownerId, parsed, campaign, at, formName, note
         at,
       },
     ],
-    notes,
   };
+  // Chỉ ghi khi có giá trị: đọc lỗi/không nhận ra thì để trống, không đoán.
+  if (parsed.apt_type) row.apt_type = parsed.apt_type;
+  const notesManual = buildNotesManual({ bullets: parsed.bullets, at, leadId });
+  if (notesManual.length) row.notes_manual = notesManual;
+  if (Array.isArray(projects) && projects.length) row.projects = projects;
+  return row;
 }
 
 /** Nhận cả epoch giây và chuỗi ISO của Meta. */
