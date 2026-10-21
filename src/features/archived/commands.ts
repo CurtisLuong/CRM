@@ -8,6 +8,7 @@ export const commands: AppCommand[] = [
     icon: 'history',
     group: 'Khách hàng',
     tools: true,
+    menu: { group: 'customers', label: 'Khách đã lưu trữ', icon: 'archive', order: 30 },
     keywords: 'lưu trữ đã xoá xoá khách khôi phục thùng rác ẩn',
     run: ({ navigate }) => navigate('/khach-hang/luu-tru'),
   },

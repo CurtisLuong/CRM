@@ -8,6 +8,7 @@ export const commands: AppCommand[] = [
     icon: 'retarget',
     group: 'Khách hàng',
     tools: true,
+    menu: { group: 'customers', label: 'Tệp & Retarget', icon: 'retarget', order: 20 },
     keywords: 'tệp khách retarget chiến dịch phản hồi zalo',
     run: ({ navigate }) => navigate('/khach-hang/retarget'),
   },
