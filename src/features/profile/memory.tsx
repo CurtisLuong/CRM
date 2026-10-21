@@ -27,6 +27,28 @@ const FACT_LABELS: Record<string, string> = {
   contact_prefs: 'Tuỳ chọn liên hệ',
 };
 
+/**
+ * "Nguồn và độ mới của dữ kiện" — PF-01 chuyển nguyên khối này vào khu "Nâng cao".
+ * Tách khỏi CustomerMemory để giữ nguyên chữ ký props của form Trí nhớ.
+ */
+export function FactFreshnessSection({ customer, now = Date.now() }: { customer: Customer; now?: number }) {
+  return (
+    <section className="space-y-2">
+      <h2 className="text-section">Nguồn và độ mới của dữ kiện</h2>
+      {Object.entries(FACT_LABELS).map(([field, label]) => {
+        const meta = customer.field_meta?.[field];
+        const age = factFreshness(meta?.at, now);
+        return (
+          <p key={field} className="text-small text-text-2">
+            {label}: {sourceName[meta?.by || ''] || 'Nguồn chưa ghi'} · {age.label}
+          </p>
+        );
+      })}
+      <p className="text-small text-text-3">Dữ kiện quá 90 ngày cần xác nhận lại.</p>
+    </section>
+  );
+}
+
 export function CustomerMemory({ customer, writable, onSave, now = Date.now() }: Props) {
   const [project, setProject] = useState('');
   const [interestType, setInterestType] = useState('');
@@ -314,20 +336,6 @@ export function CustomerMemory({ customer, writable, onSave, now = Date.now() }:
             Thêm người
           </Button>
         </div>
-      </section>
-
-      <section className="space-y-2">
-        <h2 className="text-section">Nguồn và độ mới của dữ kiện</h2>
-        {Object.entries(FACT_LABELS).map(([field, label]) => {
-          const meta = customer.field_meta?.[field];
-          const age = factFreshness(meta?.at, now);
-          return (
-            <p key={field} className="text-small text-text-2">
-              {label}: {sourceName[meta?.by || ''] || 'Nguồn chưa ghi'} · {age.label}
-            </p>
-          );
-        })}
-        <p className="text-small text-text-3">Dữ kiện quá 90 ngày cần xác nhận lại.</p>
       </section>
 
       {terminated && (

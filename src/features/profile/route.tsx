@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import type { FeatureRoute } from '@/app/routes';
-import { ADVANCED_GROUPS } from '@/config/advanced';
+import { PREF_CONDITIONS_LEGACY, PROFILE_PREF_CONDITIONS, PROFILE_PREF_FIELDS } from '@/config/advanced';
 import { OCCUPATIONS } from '@/config/occupations';
 import { CARE_STAGE_BOOKING, CARE_STAGE_DISPLAY } from '@/config/stages';
 import { VELOCITY_CONFIG } from '@/config/velocity';
@@ -24,10 +24,7 @@ import {
   Avatar,
   Badge,
   Button,
-  cn,
   DeadlineTag,
-  displayDateTime,
-  displayText,
   HealthDot,
   Icon,
   Sheet,
@@ -37,20 +34,12 @@ import {
   Tabs,
   useToast,
 } from '@/ui';
+import { ProfileTextField as Field, LegacyAssistField, ProfileAdvanced } from './advanced';
 import { ArchiveCustomerSection, ArchivedBanner } from './archive';
+import { advancedPatch, legacyValues } from './fields';
 import { CustomerMemory } from './memory';
-import {
-  bookingStepPatch,
-  dueTone,
-  extraFacts,
-  filterTimeline,
-  lastTouchOf,
-  splitBrief,
-  stageChoicesFor,
-  TIMELINE_FILTERS,
-  type TimelineFilter,
-  timelineCounts,
-} from './model';
+import { bookingStepPatch, dueTone, extraFacts, lastTouchOf, splitBrief, stageChoicesFor } from './model';
+import { ProfileTimeline } from './timeline';
 
 const FIELD =
   'min-h-11 w-full rounded-control border border-border-strong bg-surface px-3 text-body text-text focus-visible:outline-2 focus-visible:outline-focus disabled:opacity-60';
@@ -65,36 +54,9 @@ const MARITAL_STATUS_OPTIONS = [
 ];
 const PURPOSE_OPTIONS = ['Ở', 'Đầu tư', 'Cho tặng'].map((value) => ({ value, label: value }));
 type DocumentRow = { id: string; label?: string | null; kind?: string; storage_path: string; mime?: string };
-const fmtValue = (value: unknown) => displayText(value);
 
-export function editedTimelineNotePatch(
-  customer: Customer,
-  entryId: string,
-  text: string,
-  editedAt: string,
-): Record<string, unknown> | null {
-  const separator = entryId.lastIndexOf(':');
-  const index = Number(entryId.slice(separator + 1));
-  if (separator < 0 || !Number.isInteger(index) || index < 0 || text.length === 0) return null;
-
-  if (entryId.startsWith('note:')) {
-    const notes = Array.isArray(customer.notes_manual) ? customer.notes_manual.slice() : [];
-    const note = notes[index];
-    if (!note || note.text === text) return null;
-    notes[index] = { ...note, text, edited_at: editedAt };
-    return { notes_manual: notes };
-  }
-
-  if (entryId.startsWith('stage:')) {
-    const history = Array.isArray(customer.care_stage_history) ? customer.care_stage_history.slice() : [];
-    const entry = history[index];
-    if (!entry || entry.note === text) return null;
-    history[index] = { ...entry, note: text, edited_at: editedAt };
-    return { care_stage_history: history };
-  }
-
-  return null;
-}
+// Giữ export cũ (test + nơi khác import từ route).
+export { editedTimelineNotePatch } from './model';
 
 function Profile() {
   const { id = '' } = useParams();
@@ -104,9 +66,6 @@ function Profile() {
   const toast = useToast();
   const [now, setNow] = useState(Date.now());
   const [busy, setBusy] = useState(false);
-  const [editingTimelineId, setEditingTimelineId] = useState<string | null>(null);
-  const [timelineDraft, setTimelineDraft] = useState('');
-  const [timelineFilter, setTimelineFilter] = useState<TimelineFilter>('all');
   const [stageOpen, setStageOpen] = useState(false);
   const [missingKey, setMissingKey] = useState('');
   const [docs, setDocs] = useState<DocumentRow[]>([]);
@@ -182,6 +141,8 @@ function Profile() {
     }
   };
   const setField = (key: keyof Customer, value: unknown) => void save(factPatch(c, String(key), value));
+  const setAdvancedField = (key: string, value: unknown) =>
+    setField('advanced', advancedPatch(c.advanced, key, value).advanced);
   const actionBar = (
     <ActionBar
       actions={[
@@ -251,23 +212,6 @@ function Profile() {
   const completeTask = async (at: string) => {
     if (account && writable) await account.customers.completeTask(c.id, at);
   };
-  const editTimelineEntry = (entryId: string, value: string) => {
-    setTimelineDraft(value);
-    setEditingTimelineId(entryId);
-  };
-  const saveTimelineEntry = async (entryId: string) => {
-    if (!writable || !account) return;
-    if (timelineDraft.length === 0) {
-      toast({ title: 'Ghi chú không được để trống', tone: 'error' });
-      return;
-    }
-    const patch = editedTimelineNotePatch(c, entryId, timelineDraft, new Date().toISOString());
-    if (patch) {
-      const message = entryId.startsWith('stage:') ? 'Đã cập nhật ghi chú lịch sử bậc' : 'Đã cập nhật ghi chú';
-      if (!(await save(patch, message))) return;
-    }
-    setEditingTimelineId(null);
-  };
   const uploadDoc = async (file?: File) => {
     if (!file || !account || !writable) return;
     setBusy(true);
@@ -308,95 +252,13 @@ function Profile() {
       setBusy(false);
     }
   };
-  const timelineCount = timelineCounts(timeline);
-  const visibleTimeline = filterTimeline(timeline, timelineFilter);
   const timelineContent = (
-    <div className="space-y-4">
-      {/* Hồ sơ đã lưu trữ là bản ghi lịch sử: giữ dòng thời gian đầy đủ, không cần bộ lọc. */}
-      {!c.archived_at && (
-        <div className="flex flex-wrap gap-1.5">
-          {TIMELINE_FILTERS.map((filter) => {
-            const active = timelineFilter === filter.key;
-            const count = timelineCount[filter.key];
-            return (
-              <button
-                key={filter.key}
-                type="button"
-                aria-pressed={active}
-                onClick={() => setTimelineFilter(filter.key)}
-                className={cn(
-                  'inline-flex min-h-9 items-center gap-1 rounded-full border px-3 text-small transition-colors',
-                  active
-                    ? 'border-accent bg-accent-soft text-accent'
-                    : 'border-border bg-surface text-text-2 hover:bg-surface-2',
-                )}
-              >
-                {filter.label}
-                {filter.key !== 'all' && count > 0 && (
-                  <span className="font-data text-mono-data text-text-3">{count}</span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      )}
-      <div className="space-y-3">
-        {visibleTimeline.length ? (
-          visibleTimeline.map((entry) => (
-            <article key={entry.id} className="border-l-2 border-border pl-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-body-strong">{entry.title}</span>
-                {entry.automatic && <Badge>Tự động · SLA</Badge>}
-              </div>
-              {entry.detail && (entry.kind === 'note' || entry.kind === 'stage') && editingTimelineId === entry.id ? (
-                <div className="mt-2 space-y-2">
-                  <textarea
-                    aria-label="Sửa ghi chú"
-                    value={timelineDraft}
-                    disabled={busy}
-                    onChange={(event) => setTimelineDraft(event.target.value)}
-                    className={`${FIELD} min-h-20 py-2`}
-                  />
-                  <div className="flex gap-2">
-                    <Button
-                      variant="primary"
-                      disabled={busy || timelineDraft.length === 0}
-                      onClick={() => void saveTimelineEntry(entry.id)}
-                    >
-                      Lưu ghi chú
-                    </Button>
-                    <Button disabled={busy} onClick={() => setEditingTimelineId(null)}>
-                      Huỷ
-                    </Button>
-                  </div>
-                </div>
-              ) : entry.detail ? (
-                <div className="mt-1 flex flex-wrap items-start justify-between gap-2">
-                  <p className="min-w-0 flex-1 whitespace-pre-wrap text-body text-text-2">{entry.detail}</p>
-                  {writable && (entry.kind === 'note' || entry.kind === 'stage') && (
-                    <Button
-                      aria-label={`Sửa ghi chú ${entry.kind === 'stage' ? 'lịch sử bậc' : 'hồ sơ'}`}
-                      disabled={busy}
-                      onClick={() => editTimelineEntry(entry.id, entry.detail || '')}
-                    >
-                      Sửa
-                    </Button>
-                  )}
-                </div>
-              ) : null}
-              <time className="mt-1 block font-data text-small text-text-3">{displayDateTime(entry.at)}</time>
-            </article>
-          ))
-        ) : (
-          <p className="text-body text-text-2">Chưa có hoạt động để hiển thị.</p>
-        )}
-      </div>
-    </div>
+    <ProfileTimeline customer={c} entries={timeline} writable={writable} busy={busy} onSave={save} />
   );
   const memoryContent = (
     <div className="space-y-5">
       <section className="space-y-3">
-        <h2 className="text-section">Định danh & liên hệ</h2>
+        <h2 className="text-section">Thông tin chính</h2>
         <Field
           label="Họ tên"
           value={c.full_name}
@@ -409,7 +271,6 @@ function Profile() {
           disabled={!writable}
           onSave={(value) => setField('phone', value)}
         />
-        <Field label="Ngày sinh" value={c.dob} disabled={!writable} onSave={(value) => setField('dob', value)} />
         <ChoiceField
           label="Giới tính"
           value={c.gender}
@@ -439,36 +300,18 @@ function Profile() {
           onSave={(value) => setField('residence', value)}
         />
       </section>
-      <section className="space-y-3">
-        <h2 className="text-section">Hồ sơ nâng cao</h2>
-        {ADVANCED_GROUPS.map((group) => (
-          <fieldset key={group.title} className="space-y-2">
-            <legend className="text-body-strong">{group.title}</legend>
-            {group.fields.map((field) => (
-              <Field
-                key={field.key}
-                label={field.label}
-                value={c.advanced?.[field.key]}
-                disabled={!writable}
-                multiline={field.type === 'textarea'}
-                onSave={(value) => setField('advanced', { ...(c.advanced || {}), [field.key]: value })}
-              />
-            ))}
-          </fieldset>
-        ))}
-        {Object.entries(c.advanced || {})
-          .filter(([key]) => !ADVANCED_GROUPS.some((group) => group.fields.some((field) => field.key === key)))
-          .map(([key, value]) => (
-            <p key={key} className="text-small text-text-2">
-              {key}: {fmtValue(value)} <span className="text-text-3">(trường cũ được giữ nguyên)</span>
-            </p>
-          ))}
-      </section>
       <CustomerMemory
         customer={c}
         writable={writable}
         onSave={(patch, message) => void save(patch, message)}
         now={now}
+      />
+      <ProfileAdvanced
+        customer={c}
+        writable={writable}
+        now={now}
+        onSaveField={(field, value) => setField(field as keyof Customer, value)}
+        onSaveAdvanced={setAdvancedField}
       />
     </div>
   );
@@ -548,6 +391,31 @@ function Profile() {
         <Button variant="primary" onClick={() => navigate(loanPath({ customerId: c.id, ...customerUnit(c) }))}>
           Tính vay cho khách này
         </Button>
+      </section>
+      <section className="space-y-3">
+        <h2 className="text-section">Sở thích bất động sản</h2>
+        {PROFILE_PREF_FIELDS.map((field) =>
+          field.key === PROFILE_PREF_CONDITIONS.key ? (
+            <LegacyAssistField
+              key={field.key}
+              label={field.label}
+              value={c.advanced?.[field.key]}
+              disabled={!writable}
+              placeholder={field.ph}
+              legacy={legacyValues(c.advanced || {}, PREF_CONDITIONS_LEGACY)}
+              onSave={(value) => setAdvancedField(field.key, value)}
+            />
+          ) : (
+            <Field
+              key={field.key}
+              label={field.label}
+              value={c.advanced?.[field.key]}
+              disabled={!writable}
+              placeholder={field.ph}
+              onSave={(value) => setAdvancedField(field.key, value)}
+            />
+          ),
+        )}
       </section>
       {stage === CARE_STAGE_BOOKING && (
         <section className="space-y-3">
@@ -958,51 +826,6 @@ function Profile() {
   );
 }
 
-function Field({
-  label,
-  value,
-  disabled,
-  multiline,
-  onSave,
-}: {
-  label: string;
-  value: unknown;
-  disabled: boolean;
-  multiline?: boolean;
-  onSave: (value: string) => void;
-}) {
-  const id = `profile-field-${label.toLocaleLowerCase('vi').replace(/[^\p{L}\p{N}]+/gu, '-')}`;
-  const raw = typeof value === 'string' || typeof value === 'number' ? String(value) : displayText(value);
-  const [draft, setDraft] = useState(raw);
-  useEffect(() => setDraft(raw), [raw]);
-  const save = () => {
-    if (draft !== raw) onSave(draft);
-  };
-  return (
-    <div className="block space-y-1 text-small text-text-2">
-      <label htmlFor={id}>{label}</label>
-      {multiline ? (
-        <textarea
-          id={id}
-          value={draft}
-          disabled={disabled}
-          onChange={(e) => setDraft(e.target.value)}
-          onBlur={save}
-          className={`${FIELD} min-h-20 py-2`}
-        />
-      ) : (
-        <input
-          id={id}
-          value={draft}
-          disabled={disabled}
-          onChange={(e) => setDraft(e.target.value)}
-          onBlur={save}
-          className={FIELD}
-        />
-      )}
-    </div>
-  );
-}
 function ChoiceField({
   label,
   value,

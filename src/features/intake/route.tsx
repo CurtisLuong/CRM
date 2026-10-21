@@ -2,14 +2,12 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useBlocker, useNavigate, useParams } from 'react-router';
 import type { FeatureRoute } from '@/app/routes';
-import { ADVANCED_GROUPS } from '@/config/advanced';
 import { APT_TYPES } from '@/config/aptTypes';
 import { SOURCE_DEFAULT, SOURCES } from '@/config/sources';
 import { CARE_STAGE_DEFAULT, CARE_STAGE_OPTIONS, CONTACT_STATUSES } from '@/config/stages';
 import { useCustomers, useRepositoryAccount } from '@/data/hooks';
 import type { Customer } from '@/domain/customer';
 import { detectDuplicatePairs, findDuplicateCandidates } from '@/domain/customer/merge';
-import { calcCungFromDOB, calcMenhFromSolarDOB } from '@/domain/lunar/lunar';
 import { Button } from '@/ui';
 import {
   addOcrNote,
@@ -19,7 +17,9 @@ import {
   mergeOcrValues,
   toCustomerPayload,
 } from './model';
+import { IntakeMore } from './more';
 import { IntakeSchema, type IntakeValues } from './schema';
+import { countMoreFilled, dobToIso, MORE_FIELD_KEYS } from './view';
 
 const LAST_SOURCE_KEY = 'crm_last_source';
 
@@ -86,32 +86,6 @@ function makeValues(customer: Customer | null, source: string): IntakeValues {
   };
 }
 
-function dobToIso(raw: string): string | undefined {
-  const value = raw.trim();
-  if (!value) return undefined;
-  const parts = value.split(/[/.-]/).map((part) => part.trim());
-  if (parts.length !== 2 && parts.length !== 3) throw new Error('Ngày sinh dùng dạng ngày/tháng hoặc ngày/tháng/năm.');
-  const day = Number(parts[0]);
-  const month = Number(parts[1]);
-  const year = parts.length === 3 ? Number(parts[2]) : undefined;
-  const maxDay =
-    month === 2
-      ? year && ((year % 4 === 0 && year % 100 !== 0) || year % 400 === 0)
-        ? 29
-        : 29
-      : [4, 6, 9, 11].includes(month)
-        ? 30
-        : 31;
-  if (!Number.isInteger(day) || !Number.isInteger(month) || day < 1 || day > maxDay || month < 1 || month > 12)
-    throw new Error('Ngày sinh không hợp lệ.');
-  if (!year) return `--${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-  if (!Number.isInteger(year) || year < 1900 || year > new Date().getFullYear())
-    throw new Error('Năm sinh không hợp lệ.');
-  const date = new Date(Date.UTC(year, month - 1, day));
-  if (date.getUTCDate() !== day || date.getUTCMonth() !== month - 1) throw new Error('Ngày sinh không hợp lệ.');
-  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-}
-
 function IntakePage() {
   const account = useRepositoryAccount();
   const customers = useCustomers();
@@ -133,6 +107,7 @@ function IntakePage() {
   const [ocrImage, setOcrImage] = useState(false);
   const [ocrPhoto, setOcrPhoto] = useState<Blob | null>(null);
   const [customAptType, setCustomAptType] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const [selectedDuplicate, setSelectedDuplicate] = useState<[string, string] | null>(null);
   const [keeperId, setKeeperId] = useState('');
   const [mergeBusy, setMergeBusy] = useState(false);
@@ -147,7 +122,9 @@ function IntakePage() {
     ? selectedDuplicate.map((id) => customers.find((row) => row.id === id)).filter((row): row is Customer => !!row)
     : [];
   const dirty = formState.isDirty || JSON.stringify(manualNotes) !== initialManualNotes || !!newManualNote.trim();
-  const blocker = useBlocker(dirty);
+  // Lưu xong thì rời màn không hỏi bỏ nháp (form vẫn "dirty" tới khi màn đóng).
+  const savedRef = useRef(false);
+  const blocker = useBlocker(() => dirty && !savedRef.current);
 
   useEffect(() => {
     if (!account) return;
@@ -162,6 +139,7 @@ function IntakePage() {
     const source = customer ? undefined : readLastSource() || lastUsedSource(customers);
     const next = makeValues(customer, source || SOURCE_DEFAULT);
     setCustomAptType(!!next.apt_type && !APT_TYPES.includes(next.apt_type as (typeof APT_TYPES)[number]));
+    setMoreOpen(false);
     reset(next);
     const notes = Array.isArray(customer?.notes_manual)
       ? customer.notes_manual.filter((note): note is Record<string, unknown> => !!note && typeof note === 'object')
@@ -214,6 +192,8 @@ function IntakePage() {
       const body = await response.json().catch(() => ({}));
       if (!response.ok || body.error) throw new Error(body.error || `Worker trả lỗi ${response.status}.`);
       const updated = mergeOcrValues(watch(), body.data || {});
+      // OCR điền vào trường đang ẩn → mở khu "Thêm thông tin" để sale thấy và sửa trước khi lưu.
+      if (countMoreFilled(updated) > countMoreFilled(watch())) setMoreOpen(true);
       reset(updated, { keepDefaultValues: true });
       setCustomAptType(!!updated.apt_type && !APT_TYPES.includes(updated.apt_type as (typeof APT_TYPES)[number]));
       if (typeof body.data?.note === 'string' && body.data.note.trim()) {
@@ -236,6 +216,7 @@ function IntakePage() {
       dob = dobToIso(rawValues.dob);
     } catch (raw) {
       setFieldErrors((prev) => ({ ...prev, dob: raw instanceof Error ? raw.message : 'Ngày sinh không hợp lệ.' }));
+      setMoreOpen(true);
       return;
     }
     const checked = IntakeSchema.safeParse(rawValues);
@@ -244,7 +225,12 @@ function IntakePage() {
       for (const issue of checked.error.issues) errors[String(issue.path[0])] = issue.message;
       setFieldErrors(errors);
       setError('Kiểm tra lại các trường được đánh dấu.');
-      document.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
+      // Lỗi ở trường đang ẩn thì mở khu để thấy câu báo; lỗi bắt buộc vẫn như cũ.
+      const hiddenError = Object.keys(errors).some((key) => (MORE_FIELD_KEYS as readonly string[]).includes(key));
+      if (hiddenError) setMoreOpen(true);
+      const focusFirst = () => document.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
+      if (hiddenError) requestAnimationFrame(focusFirst);
+      else focusFirst();
       return;
     }
     if (!account) {
@@ -290,6 +276,7 @@ function IntakePage() {
       try {
         localStorage.setItem(LAST_SOURCE_KEY, checked.data.source_channel);
       } catch {}
+      savedRef.current = true;
       navigate('/khach-hang');
     } catch (raw) {
       setError(raw instanceof Error ? raw.message : 'Không lưu được khách.');
@@ -364,6 +351,16 @@ function IntakePage() {
       {fieldErrors[name] && <span className="text-small text-danger">{fieldErrors[name]}</span>}
     </label>
   );
+
+  const catalog = account?.catalog;
+  const unitCodes: string[] = catalog
+    ? catalog
+        .units()
+        .filter((unit: Record<string, unknown>) =>
+          values.projects.includes(String(catalog.project(unit.project_id)?.name)),
+        )
+        .map((unit: Record<string, unknown>) => String(unit.code))
+    : [];
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-5 px-4 py-6 pb-24">
@@ -500,17 +497,6 @@ function IntakePage() {
           <div className="grid gap-3 sm:grid-cols-2">
             {input('Họ tên *', 'full_name')}
             {input('Số điện thoại *', 'phone', 'tel', { autoComplete: 'tel' })}
-            {select('Giới tính', 'gender', ['nam', 'nữ', 'khác'])}
-            {input('Ngày sinh (ngày/tháng/năm)', 'dob', 'text', { placeholder: '15/08/1988' })}
-            <p className="text-small text-text-2">
-              Mệnh: {values.dob ? calcMenhFromSolarDOB(safeDob(values.dob)) || 'Chưa xác định' : 'Chưa biết'} · Cung:{' '}
-              {values.dob ? calcCungFromDOB(safeDob(values.dob)) || 'Chưa xác định' : 'Chưa biết'}
-            </p>
-            {select('Tình trạng hôn nhân', 'marital_status', ['đã kết hôn', 'chưa kết hôn'])}
-            {select('Công việc', 'occupation', ['Tự do', 'Công ty, DN', 'Công, viên chức', 'Công an, Bộ đội'])}
-            {input('Thu nhập', 'income')}
-            {input('Thường trú', 'residence')}
-            {input('Thời gian đăng ký', 'registered_at', 'datetime-local')}
           </div>
         </section>
         <section className="flex flex-col gap-3 rounded-card border border-border bg-surface p-4 shadow-e1">
@@ -530,7 +516,6 @@ function IntakePage() {
                 ))}
               </select>
             </label>
-            {input('Chiến dịch', 'campaign')}
           </div>
         </section>
         <section className="flex flex-col gap-3 rounded-card border border-border bg-surface p-4 shadow-e1">
@@ -592,33 +577,6 @@ function IntakePage() {
               </select>
             </label>
             {customAptType ? input('Loại căn khác', 'apt_type') : null}
-            {input('Diện tích (m²)', 'apt_area', 'number', { min: 0, step: 'any' })}
-            {input('Mã toà', 'building_code')}
-            {input('Mã căn', 'apt_code', 'text', { list: 'intake-units' })}
-            <datalist id="intake-units">
-              {account?.catalog
-                .units()
-                .filter((unit: Record<string, unknown>) =>
-                  values.projects.includes(String(account.catalog.project(unit.project_id)?.name)),
-                )
-                .map((unit: Record<string, unknown>) => (
-                  <option key={String(unit.id)} value={String(unit.code)} />
-                ))}
-            </datalist>
-            {select('Hướng căn', 'apt_direction', [
-              'Đông',
-              'Tây',
-              'Nam',
-              'Bắc',
-              'Đông Bắc',
-              'Đông Nam',
-              'Tây Bắc',
-              'Tây Nam',
-            ])}
-            {input('Tầng', 'apt_floor', 'number', { min: 1, step: 1 })}
-            {input('Giá căn (VNĐ)', 'apt_price', 'number', { min: 0, step: 'any' })}
-            {input('Vốn sẵn có (VNĐ)', 'finance', 'number', { min: 0, step: 'any' })}
-            {select('Mục đích', 'purpose', ['Ở', 'Đầu tư', 'Cho tặng'])}
           </div>
         </section>
         <section className="flex flex-col gap-3 rounded-card border border-border bg-surface p-4 shadow-e1">
@@ -655,15 +613,6 @@ function IntakePage() {
                 </label>
               </>
             )}
-            <label className="flex flex-col gap-1 text-small text-text-2 sm:col-span-2">
-              Ghi chú đăng ký
-              <textarea
-                value={values.notes}
-                onChange={(e) => set('notes', e.target.value)}
-                rows={3}
-                className="rounded-control border border-border-strong bg-surface px-3 py-2 text-body text-text"
-              />
-            </label>
             <div className="flex flex-col gap-2 sm:col-span-2">
               <h3 className="text-body-strong text-text">Ghi chú chăm sóc</h3>
               {manualNotes.map((note, index) => (
@@ -706,43 +655,16 @@ function IntakePage() {
             </div>
           </div>
         </section>
-        {ADVANCED_GROUPS.map((group) => (
-          <details key={group.title} className="rounded-card border border-border bg-surface p-4 shadow-e1">
-            <summary className="cursor-pointer text-section">{group.title}</summary>
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              {group.fields.map((field) => (
-                <div key={field.key} className="flex flex-col gap-1 text-small text-text-2">
-                  <label htmlFor={`advanced-${field.key}`}>{field.label}</label>
-                  {field.type === 'textarea' ? (
-                    <textarea
-                      id={`advanced-${field.key}`}
-                      value={String(values.advanced[field.key] ?? '')}
-                      onChange={(e) => set('advanced', { ...values.advanced, [field.key]: e.target.value })}
-                      placeholder={field.ph}
-                      rows={2}
-                      className="rounded-control border border-border-strong bg-surface px-3 py-2 text-body text-text"
-                    />
-                  ) : (
-                    <input
-                      id={`advanced-${field.key}`}
-                      type={field.type === 'number' ? 'number' : 'text'}
-                      value={String(values.advanced[field.key] ?? '')}
-                      onChange={(e) =>
-                        set('advanced', {
-                          ...values.advanced,
-                          [field.key]:
-                            field.type === 'number' && e.target.value ? Number(e.target.value) : e.target.value,
-                        })
-                      }
-                      placeholder={field.ph}
-                      className="min-h-11 rounded-control border border-border-strong bg-surface px-3 text-body text-text"
-                    />
-                  )}
-                </div>
-              ))}
-            </div>
-          </details>
-        ))}
+        <IntakeMore
+          open={moreOpen}
+          onToggle={() => setMoreOpen((current) => !current)}
+          values={values}
+          register={register}
+          set={set}
+          fieldErrors={fieldErrors}
+          unitCodes={unitCodes}
+          filledCount={countMoreFilled(values)}
+        />
         {phoneMatches.map((match) => (
           <aside
             key={match.id}
@@ -766,14 +688,6 @@ function IntakePage() {
       </form>
     </main>
   );
-}
-
-function safeDob(value: string): string {
-  try {
-    return dobToIso(value) || '';
-  } catch {
-    return '';
-  }
 }
 
 async function resizeImage(file: File, maxDimension: number): Promise<{ base64: string; mime: string; blob: Blob }> {

@@ -144,6 +144,7 @@ export function buildAiContext(customer: Customer) {
     }));
 
   const memoryKeys = [
+    'life_context', // ô gộp "Bối cảnh sống" (PF-01)
     'life_stage',
     'pain_points',
     'housing_status',
@@ -154,6 +155,7 @@ export function buildAiContext(customer: Customer) {
     'pref_product',
     'must_have',
     'deal_breakers',
+    'pref_conditions', // ô gộp "Điều kiện" (PF-01)
     'asset_value',
     'capital',
     'loan_need',

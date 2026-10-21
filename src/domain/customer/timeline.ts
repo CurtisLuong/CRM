@@ -14,6 +14,8 @@ export type CustomerTimelineEntry = {
   title: string;
   detail?: string;
   automatic?: boolean;
+  /** Loại tương tác đã lưu (sent | meeting | project_view | lead_form …) — chỉ mục tương tác mang trường này, dùng để chọn icon (PF-02). */
+  interactionKind?: string;
 };
 
 /** Merge the existing aggregate histories without mutating or normalizing the stored customer. */
@@ -41,6 +43,7 @@ export function customerTimeline(customer: Customer): CustomerTimelineEntry[] {
       kind: 'interaction',
       title: interactionTitle(item),
       detail: item.note || (item.template ? `Mẫu: ${item.template}` : undefined),
+      ...(item.kind ? { interactionKind: item.kind } : {}),
     });
   }
   for (const [index, stage] of (customer.care_stage_history ?? []).entries()) {
