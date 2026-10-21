@@ -8,6 +8,14 @@ Bộ tài liệu được biên soạn ngày 06/10/2026; đây không phải ng�
 
 Chỉ đọc file này khi cần tiếp nối công việc hoặc task phụ thuộc trạng thái triển khai/test.
 
+## Hồ sơ gọn PF-01/02/03 lên production (2026-10-21)
+
+- **Curtis duyệt push (2026-10-21, qua remote control).** `main` = `b8f73d6` (merge `factory`, gồm cả Meta Lead Ads `ae52e3a` đã có trước). Cloudflare project `crm` (domain `crm-cop.pages.dev`) build production `b8f73d6`, deployment `4610001c`; đã thấy chữ mới trong bundle trang thật.
+- Kiểm trước push: 1008 unit + 350 e2e (360/390/1280) xanh trên `factory`; cây `main` giống hệt `factory`.
+- **Không đổi** SQL, Supabase, Worker, vỏ Android. Dữ liệu chỉ thêm khoá JSONB `advanced.life_context`, `advanced.pref_conditions` khi người dùng gõ.
+- **Chưa xác minh:** thử trên điện thoại thật.
+- **Rollback:** Cloudflare Pages → `crm` → Deployments → deployment `ae52e3a` → *Rollback to this deployment*; rồi `git revert -m 1 b8f73d6` trên `main` nếu muốn bỏ hẳn.
+
 ## Phát hành v3 — thiết kế lại UI/UX (2026-10-19)
 
 - **Curtis duyệt "merge và deploy" 2026-10-19.** `main` = `53a9fc5` (merge `factory` @ `17229dd`, D-023/D-024); push → Cloudflare `crm-cop` tự build production. Cây code giống hệt bản `factory` đã kiểm (902 unit + e2e 360/390/1280 sáng/tối; build production chạy thử đạt).
