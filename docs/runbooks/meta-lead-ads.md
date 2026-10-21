@@ -35,6 +35,7 @@
 1. Backup trước theo `docs/runbooks/backup.md` (hoặc nhờ Claude chạy script backup).
 2. Mở https://supabase.com/dashboard → chọn project **`nrqccwamwctihivpxjww`** (production) → **SQL Editor** → **New query**.
 3. Mở file `SQL/v2/007_meta_lead_ads.sql` trong repo, chép **toàn bộ**, dán vào → **Run**. Thấy "Success. No rows returned" là xong. Chạy lại lần nữa cũng không sao.
+   Sau đó làm y hệt với `SQL/v2/008_fb_leads_service_grant.sql` (1 dòng: cho Worker quyền ghi nhật ký lead — thiếu dòng này mọi lead kẹt ở hàng chờ với lỗi "permission denied for table fb_leads").
 4. Kiểm (dán, Run — chỉ đọc):
    ```sql
    select (select count(*) from information_schema.tables where table_schema='public' and table_name in ('fb_lead_queue','integration_health')) as bang_moi,

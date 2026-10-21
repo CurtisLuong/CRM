@@ -25,7 +25,7 @@ Chỉ đọc file này khi cần tiếp nối công việc hoặc task phụ thu
 - **APK 1.5** (versionCode 6, quyền RECORD_AUDIO + MODIFY_AUDIO_SETTINGS — lỗi L4 T5.3): đã tải lên Storage production `app-releases/SoKhach-1.5.apk` (checksum khớp), cùng chứng chỉ ký với 1.4; `/android-app-version.json` báo 1.5.
 - Kiểm tra sau cutover (chủ dự án, 2026-10-17): **Mac và Android đạt** — đăng nhập, danh sách, hồ sơ, tìm kiếm, ghi chú, đồng bộ, Gọi/Zalo/Back; APK 1.5 cài đè được, ghi chú giọng nói chạy.
 - **Đang theo dõi 48 giờ** (đến ~2026-10-19 23:40): lỗi đăng nhập/đồng bộ và nhật ký `customer_changes` (không có DELETE cứng, mảng ghi chú/việc/cuộc gọi không bị ngắn lại ngoài ý muốn).
-- Còn lại: Worker AI v2 (T6.7, D-022) **chưa deploy** — chủ dự án deploy khi sẵn sàng; nếu rollback app thì rollback Worker kèm. Dọn dẹp + tài liệu as-built: T5.5.
+- Worker `intake-worker` deploy 2026-10-21 (version `b1910971`, Curtis duyệt khi bật Meta Lead Ads) — **gồm AI v2 (T6.7, D-022)** + Meta Lead Ads (`docs/runbooks/meta-lead-ads.md`). Rollback Worker: `cd worker && wrangler rollback be650b75` (code 13/10, giữ secret). Nếu rollback app về v1 thì rollback Worker kèm. Dọn dẹp + tài liệu as-built: T5.5.
 
 ## Đại tu v2 (cập nhật 2026-10-16)
 
