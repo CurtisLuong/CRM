@@ -1,8 +1,8 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import type { Customer } from '@/domain/customer';
 import { buildAiContext } from '@/domain/customer/aiContext';
-import { ProfileTextField } from '@/features/profile/advanced';
+import { ProfileAdvanced, ProfileTextField } from '@/features/profile/advanced';
 
 // Lead vá sau review PF-01.
 describe('PF-01 Lead', () => {
@@ -28,5 +28,19 @@ describe('PF-01 Lead', () => {
       '- Mới cưới, ở nhà thuê',
       'Không chấp nhận tầng thấp',
     ]);
+  });
+
+  it('Nâng cao không còn hiện "Nguồn và độ mới" (Curtis cho ẩn 2026-10-21)', () => {
+    const customer = {
+      id: 'c1',
+      owner_id: 'u1',
+      full_name: 'Lan',
+      phone: '0901234567',
+      field_meta: { income: { by: 'sale', at: '2026-10-01T00:00:00Z', confirmed: true } },
+    } as Customer;
+    render(<ProfileAdvanced customer={customer} writable onSaveField={() => {}} onSaveAdvanced={() => {}} />);
+    fireEvent.click(screen.getByRole('button', { name: /Nâng cao/ }));
+    expect(screen.getByLabelText('Bối cảnh sống')).toBeTruthy();
+    expect(screen.queryByText(/Nguồn và độ mới/)).toBeNull();
   });
 });

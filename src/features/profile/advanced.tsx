@@ -9,7 +9,6 @@ import {
 import type { Customer } from '@/domain/customer';
 import { Button, displayText, Icon } from '@/ui';
 import { legacyDraft, legacyValues, showLegacy } from './fields';
-import { FactFreshnessSection } from './memory';
 
 const FIELD =
   'min-h-11 w-full rounded-control border border-border-strong bg-surface px-3 text-body text-text focus-visible:outline-2 focus-visible:outline-focus disabled:opacity-60';
@@ -156,9 +155,9 @@ type Props = {
 
 /**
  * Khu "Nâng cao" cuối tab Trí nhớ: mặc định đóng mỗi lần mở hồ sơ.
- * Gồm Ngày sinh, Bối cảnh sống (ô gộp), Tài sản (3 ô), Nguồn/độ mới, trường cũ khác.
+ * Gồm Ngày sinh, Bối cảnh sống (ô gộp), Tài sản (3 ô), trường cũ khác.
  */
-export function ProfileAdvanced({ customer, writable, now = Date.now(), onSaveField, onSaveAdvanced }: Props) {
+export function ProfileAdvanced({ customer, writable, onSaveField, onSaveAdvanced }: Props) {
   const [open, setOpen] = useState(false);
   const panelId = useId();
   const advanced = customer.advanced || {};
@@ -212,7 +211,7 @@ export function ProfileAdvanced({ customer, writable, now = Date.now(), onSaveFi
               </p>
             ))}
           </fieldset>
-          <FactFreshnessSection customer={customer} now={now} />
+          {/* "Nguồn và độ mới" (field_meta) Curtis cho ẩn 2026-10-21: dữ liệu vẫn ghi cho AI/độ mới, không hiện. */}
           {unknown.length > 0 && (
             <div className="space-y-1">
               <h2 className="text-section">Trường cũ khác</h2>
