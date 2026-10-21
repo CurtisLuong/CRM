@@ -8,6 +8,13 @@ Bộ tài liệu được biên soạn ngày 06/10/2026; đây không phải ng�
 
 Chỉ đọc file này khi cần tiếp nối công việc hoặc task phụ thuộc trạng thái triển khai/test.
 
+## Phát hành v3 — thiết kế lại UI/UX (2026-10-19)
+
+- **Curtis duyệt "merge và deploy" 2026-10-19.** `main` = `53a9fc5` (merge `factory` @ `17229dd`, D-023/D-024); push → Cloudflare `crm-cop` tự build production. Cây code giống hệt bản `factory` đã kiểm (902 unit + e2e 360/390/1280 sáng/tối; build production chạy thử đạt).
+- **Không đổi** SQL, Supabase, Worker, vỏ Android, `src/data` → không migration, không cần APK mới (vỏ mở `crm-cop`). Người dùng PWA thấy lời nhắc cập nhật khi Service Worker mới về.
+- **Chưa xác minh:** thử trên điện thoại thật / Mac với dữ liệu production (danh sách thử: `docs/v3/release/README.md`). Nhánh `factory` **chưa push** (preview Cloudflare chưa kiểm key theo `docs/runbooks/factory-preview.md`).
+- **Rollback:** Cloudflare Pages → `crm-cop` → Deployments → deployment của commit `f63bf7d` → *Rollback to this deployment* (cấu hình build giữ nguyên; dữ liệu không ảnh hưởng vì v3 không đổi dữ liệu). Sau đó `git revert -m 1 53a9fc5` trên `main` nếu muốn bỏ hẳn.
+
 ## Cutover v2 → production (T5.4, 2026-10-17)
 
 - **v2 đang chạy production** tại `https://crm-cop.pages.dev` từ 2026-10-17 ~23:39 +07: `main` = `f63bf7d` (merge `v2` @ `66fc241`). Vỏ Android vẫn trỏ `crm-cop` (không đổi `server.url`).
@@ -18,7 +25,7 @@ Chỉ đọc file này khi cần tiếp nối công việc hoặc task phụ thu
 - **APK 1.5** (versionCode 6, quyền RECORD_AUDIO + MODIFY_AUDIO_SETTINGS — lỗi L4 T5.3): đã tải lên Storage production `app-releases/SoKhach-1.5.apk` (checksum khớp), cùng chứng chỉ ký với 1.4; `/android-app-version.json` báo 1.5.
 - Kiểm tra sau cutover (chủ dự án, 2026-10-17): **Mac và Android đạt** — đăng nhập, danh sách, hồ sơ, tìm kiếm, ghi chú, đồng bộ, Gọi/Zalo/Back; APK 1.5 cài đè được, ghi chú giọng nói chạy.
 - **Đang theo dõi 48 giờ** (đến ~2026-10-19 23:40): lỗi đăng nhập/đồng bộ và nhật ký `customer_changes` (không có DELETE cứng, mảng ghi chú/việc/cuộc gọi không bị ngắn lại ngoài ý muốn).
-- Còn lại: Worker AI v2 (T6.7, D-022) **chưa deploy** — chủ dự án deploy khi sẵn sàng; nếu rollback app thì rollback Worker kèm. Dọn dẹp + tài liệu as-built: T5.5.
+- Worker `intake-worker` deploy 2026-10-21 (version `b1910971`, Curtis duyệt khi bật Meta Lead Ads) — **gồm AI v2 (T6.7, D-022)** + Meta Lead Ads (`docs/runbooks/meta-lead-ads.md`). Rollback Worker: `cd worker && wrangler rollback be650b75` (code 13/10, giữ secret). Nếu rollback app về v1 thì rollback Worker kèm. Dọn dẹp + tài liệu as-built: T5.5.
 
 ## Đại tu v2 (cập nhật 2026-10-16)
 

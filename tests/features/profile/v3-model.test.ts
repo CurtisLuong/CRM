@@ -68,13 +68,15 @@ describe('extraFacts (D-023 L3 + L4)', () => {
       { label: 'Nguồn', value: 'Facebook Ads' },
       { label: 'Cách nhập', value: 'Từ ảnh chụp' },
       { label: 'Mức quan tâm', value: 'Rất nóng' },
-      { label: 'Ngày đăng ký', value: '04/10/2026' },
+      { label: 'Ngày đăng ký', value: '09:00 04/10/2026' },
       { label: 'Ghi chú đăng ký', value: 'object cũ' },
     ]);
   });
 
   it('khách gần như trống → chỉ ngày đăng ký', () => {
-    expect(extraFacts(c({ created_at: at(1, 9) }), now)).toEqual([{ label: 'Ngày đăng ký', value: '01/10/2026' }]);
+    expect(extraFacts(c({ created_at: at(1, 9) }), now)).toEqual([
+      { label: 'Ngày đăng ký', value: '09:00 01/10/2026' },
+    ]);
   });
 });
 

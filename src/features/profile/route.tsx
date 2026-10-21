@@ -862,7 +862,7 @@ function Profile() {
               {briefParts.known.map((item) => (
                 <div key={item.key} className="min-w-0">
                   <dt className="text-small text-text-3">{item.label}</dt>
-                  <dd className="text-body">{item.value}</dd>
+                  <dd className="text-body [overflow-wrap:anywhere]">{item.value}</dd>
                 </div>
               ))}
             </dl>
@@ -907,7 +907,7 @@ function Profile() {
               {extra.map((row) => (
                 <div key={row.label} className="min-w-0">
                   <dt className="text-text-3">{row.label}</dt>
-                  <dd className="whitespace-pre-wrap text-body">{row.value}</dd>
+                  <dd className="whitespace-pre-wrap text-body [overflow-wrap:anywhere]">{row.value}</dd>
                 </div>
               ))}
             </dl>

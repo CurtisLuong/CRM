@@ -7,6 +7,7 @@ import { type Customer, callAttemptsOf } from '@/domain/customer';
 import { firstCall } from '@/domain/followup';
 import { openQuickAction } from '@/features/quick-actions/store';
 import { Button, EmptyState, Sheet } from '@/ui';
+import { MetaLeadAdsBanner } from './meta-lead-ads-banner';
 import {
   disqualifyLead,
   filterLeads,
@@ -217,6 +218,7 @@ function LeadsPage() {
         <h1 className="text-title">Khách mới</h1>
         <p className="mt-1 text-small text-text-2">Khách vừa đăng ký · gọi và phân loại</p>
       </header>
+      <MetaLeadAdsBanner />
       <label className="flex flex-col gap-1 text-small">
         Lọc khách
         <select className={FIELD} value={filter} onChange={(event) => setFilter(event.target.value as LeadFilter)}>

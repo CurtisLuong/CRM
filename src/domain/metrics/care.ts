@@ -1,6 +1,7 @@
 import { VELOCITY_CONFIG } from '@/config/velocity';
 import type { Customer, Task } from '@/domain/customer';
 import { callAttemptsOf, inFunnel, isQualified, openTasksOf } from '@/domain/customer';
+import { isSaleNote, isSaleTouch } from '@/domain/customer/interactions';
 import { countdownTag } from '@/domain/deadlines';
 import { callSlots, slotOfTime } from '@/domain/followup';
 import { newLeadStart, status as slaStatus } from '@/domain/velocity/engine';
@@ -38,8 +39,8 @@ const stageLabel = (customer: Customer) => customer.care_stage || 'Chưa rõ b�
 function recordedTouchMs(customer: Customer): number | null {
   const dates = [
     ...callAttemptsOf(customer).map((call) => call.at),
-    ...(customer.interactions || []).map((item) => item?.at),
-    ...(customer.notes_manual || []).map((note) => note?.at),
+    ...(customer.interactions || []).filter(isSaleTouch).map((item) => item?.at),
+    ...(customer.notes_manual || []).filter(isSaleNote).map((note) => note?.at),
   ]
     .map(parsed)
     .filter(Number.isFinite);

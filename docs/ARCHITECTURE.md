@@ -131,6 +131,7 @@ Giai đoạn chuyển đổi: v1 vẫn chạy ở `main`. v2 phát triển trên
 | `testimonials` + RPC `submit_testimonial` | Đánh giá khách trên landing page | **Không thuộc CRM** — v2 không đọc/ghi |
 | `team_members` | Đồng nghiệp (D-003) | RPC `team_list/add/remove/set_my_name` |
 | `fb_leads` | Nhật ký + chống trùng lead Facebook | `status` created/merged/error |
+| `fb_lead_queue`, `integration_health` | Hàng chờ lead Meta (không mất lead) + tình trạng kết nối | `SQL/v2/007_meta_lead_ads.sql`; chỉ service role ghi, admin/người nhận lead đọc |
 | bucket `app-releases` | APK Android | `android-app-version.json` |
 
 #### Đối soát production (T0.3)
@@ -225,7 +226,7 @@ Xung đột: last-write-wins theo updated_at cho cột thường; insert dùng u
 
 ## 5. Nghiệp vụ cốt lõi giữ nguyên (tóm tắt + nguồn)
 
-- **Lớp khách & nguồn (D-001):** `qualified_at` trống = lớp 1 Khách mới (chỉ ghi cuộc gọi, Đạt/Loại); Đạt cần ≥1 `talked` + sale bấm. Nguồn 3 trục `source`/`intake_method`/`campaign`; danh mục kênh ở `config/sources.ts` (v1: `SOURCES` trong `js/app.js`). Lead landing ghi thẳng bằng service role (`source ["website"]`, `web_*`), owner = `WEB_OWNER_ID` (tài khoản sale của chủ dự án). Lead Facebook: Worker `worker/fb-leads.js` (webhook `/fb/webhook`, cron 5 phút, `/fb/manual`), owner = `FB_LEAD_OWNER_ID`, trùng SĐT → gộp vào khách cũ, nhật ký `fb_leads`; cài đặt `worker/README.md`.
+- **Lớp khách & nguồn (D-001):** `qualified_at` trống = lớp 1 Khách mới (chỉ ghi cuộc gọi, Đạt/Loại); Đạt cần ≥1 `talked` + sale bấm. Nguồn 3 trục `source`/`intake_method`/`campaign`; danh mục kênh ở `config/sources.ts` (v1: `SOURCES` trong `js/app.js`). Lead landing ghi thẳng bằng service role (`source ["website"]`, `web_*`), owner = `WEB_OWNER_ID` (tài khoản sale của chủ dự án). Lead Facebook/Instagram (Meta Lead Ads): Worker `worker/fb-leads.js` + `worker/meta/` — mọi mã lead vào `fb_lead_queue` trước (webhook chỉ trả 200 khi đã ghi; lỗi → tự thử lại lùi dần), cron 5 phút quét 48h + xử lý hàng chờ, `/fb/backfill` kéo bù, owner = `FB_LEAD_OWNER_ID`; trùng mã lead → bỏ qua; trùng SĐT → RPC `fb_attach_lead` thêm 1 phần tử `interactions` kind `lead_form` (không tính là sale chạm khách — `isSaleTouch`) + kênh `facebook_ads`, không ghi đè trường nào; nhật ký `fb_leads`; tình trạng kết nối `integration_health` (Worker ghi, app đọc qua `useIntegrationHealth`, hiện ở Cài đặt + Khách mới). Thiết lập: `docs/runbooks/meta-lead-ads.md`.
 - **Phễu & SLA (D-008, D-010):** `config/velocity.ts` (v1 `js/velocity.js`), hướng dẫn `funnel-velocity.md`.
 - **Nhịp follow-up & khung giờ (D-005):** `config/followup.ts` (v1 `js/followup.js`), hướng dẫn `huong-dan-follow-up.md`.
 - **Nhóm (D-003):** `owner_id` = người phụ trách, `followers` = chỉ xem, admin xem hết; trigger `guard_customer_assignment`; `SQL/add_team_assign.sql`; hướng dẫn `huong-dan-nhom.md`.
