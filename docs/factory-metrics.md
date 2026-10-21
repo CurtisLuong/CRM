@@ -40,3 +40,4 @@ Loại: `code` / `test-only` / `lead` (Lead tự làm) / `đối chứng` (làm 
 - Trung vị nghiệm thu tay ≤ 10 phút/task (mục tiêu); > 20 phút trên 5 task code liên tiếp = DỪNG.
 - Lead loại > 2 lần chạy trên 5 task liên tiếp (đặc tả sai) = DỪNG.
 - 2026-10-19 (ML-01/02 song song, trần 25′/20′): cả 2 hết giờ lần 1 nhưng gate xanh → ĐẠT, lại mất báo cáo cuối. Task Worker lớn (14 file) nên trần 35′.
+- 2026-10-21 (ML production): 2 lỗi lọt qua test vì đặc tả/test dựa trên giả định: (1) `SQL/add_fb_leads.sql` không cấp quyền cho service_role — test SQL chỉ chạy trên Postgres cục bộ nơi service_role có quyền mặc định; (2) form thật đặt tên trường tiếng Việt, đặc tả chỉ nêu `phone_number`/`full_name`. Bài học: tích hợp ngoài phải lấy **1 mẫu dữ liệu thật** trước khi viết đặc tả; kiểm quyền bằng `has_table_privilege('service_role', …)` trên production (chỉ đọc) trước deploy.
