@@ -8,6 +8,7 @@ export const commands: AppCommand[] = [
     icon: 'apartment',
     group: 'Tiện ích',
     tools: true,
+    menu: { group: 'tools', label: 'Giỏ hàng', icon: 'apartment', order: 10 },
     keywords: 'catalog căn hộ dự án toà căn inventory',
     run: ({ navigate }) => navigate('/gio-hang'),
   },

@@ -88,10 +88,11 @@ test('Back Android: deep link không có lịch sử → về Hôm nay; Bảng l
   await expect(page).toHaveURL('/');
 });
 
-test('menu Tiện ích: đổi giao diện sang Tối', async ({ page }) => {
+// Curtis 2026-10-21 (PF-04): menu "Menu" kiểu nhóm; Giao diện = một hàng chọn Sáng/Tối/Tự động.
+test('Menu: đổi giao diện sang Tối', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('button', { name: 'Tiện ích' }).filter({ visible: true }).first().click();
-  await page.getByRole('menuitemradio', { name: 'Tối' }).click();
+  await page.getByRole('button', { name: 'Menu', exact: true }).filter({ visible: true }).first().click();
+  await page.getByRole('radiogroup', { name: 'Giao diện' }).getByRole('radio', { name: 'Tối' }).click();
   expect(await page.evaluate(() => document.documentElement.dataset.theme)).toBe('dark');
 });
 

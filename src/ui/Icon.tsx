@@ -1,5 +1,7 @@
 import {
   AlarmClock,
+  Archive,
+  ArrowDownUp,
   ArrowLeft,
   ArrowLeftRight,
   Bell,
@@ -51,6 +53,7 @@ import {
   Sparkles,
   Sprout,
   SquareCheckBig,
+  SunMoon,
   Target,
   Timer,
   TriangleAlert,
@@ -58,12 +61,15 @@ import {
   UserPlus,
   Users,
   UsersRound,
+  Zap,
 } from 'lucide-react';
 import { ICON_FALLBACK, ICONS, type IconName } from '@/config/icons';
 
 // Glyph → component. Import từng glyph (tree-shake); TS bắt buộc đủ mọi glyph mà src/config/icons.ts dùng.
 const GLYPHS: Record<(typeof ICONS)[IconName], LucideIcon> = {
   AlarmClock,
+  Archive,
+  ArrowDownUp,
   ArrowLeft,
   ArrowLeftRight,
   Bell,
@@ -114,6 +120,7 @@ const GLYPHS: Record<(typeof ICONS)[IconName], LucideIcon> = {
   Sparkles,
   Sprout,
   SquareCheckBig,
+  SunMoon,
   Target,
   Timer,
   TriangleAlert,
@@ -121,6 +128,7 @@ const GLYPHS: Record<(typeof ICONS)[IconName], LucideIcon> = {
   UserPlus,
   Users,
   UsersRound,
+  Zap,
 };
 
 export type IconSize = 16 | 20 | 24;
