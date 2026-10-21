@@ -1,6 +1,8 @@
 import { ZALO_TEMPLATES_DEFAULT, type ZaloTemplate } from '@/config/followup';
 import { HEALTH_STALE_TEXT, type IntegrationLevel } from '@/config/integrations';
 import type { IntegrationHealth } from '@/data/hooks';
+import type { Customer } from '@/domain/customer';
+import { sourceListOf } from '@/domain/customer';
 import { integrationHealthLevel, isIntegrationHealthStale } from '@/domain/integrations';
 import { displayDate, displayDateTime } from '@/ui/display';
 
@@ -80,6 +82,81 @@ export type IntegrationHealthSummary = {
   stale: boolean;
   staleText: string | null;
 };
+
+const text = (value: unknown) => (typeof value === 'string' ? value.trim() : '');
+
+/** Một dòng public.lead_campaign_projects (SQL/v2/009). archived_at có giá trị = quy tắc đã bỏ gán. */
+export type CampaignProjectRule = {
+  id?: string;
+  campaign: string;
+  project: string;
+  updated_at?: string | null;
+  archived_at?: string | null;
+};
+
+export type CampaignProjectRow = {
+  campaign: string;
+  customerCount: number;
+  /** Dự án đang gán (chỉ quy tắc chưa lưu trữ); null = chưa gán. */
+  project: string | null;
+};
+
+const isFacebookAds = (customer: Customer) => sourceListOf(customer.source).includes('facebook_ads');
+const isArchived = (customer: Customer) => !!customer.archived_at;
+
+/** Khách chưa có dự án: không có mảng, mảng rỗng, hoặc toàn phần tử rỗng. */
+export function hasNoProjects(customer: Customer): boolean {
+  const projects = Array.isArray(customer.projects) ? customer.projects : [];
+  return !projects.some((project) => text(project) !== '');
+}
+
+/** Dự án đang gán cho một chiến dịch (bỏ qua quy tắc đã lưu trữ). */
+export function activeCampaignProject(rules: readonly CampaignProjectRule[], campaign: string): string | null {
+  const target = text(campaign);
+  if (!target) return null;
+  const rule = rules.find((row) => text(row.campaign) === target && !row.archived_at && text(row.project));
+  return rule ? text(rule.project) : null;
+}
+
+/**
+ * Luật 1: chiến dịch của khách mình phụ trách có kênh facebook_ads + chiến dịch đã có quy tắc chưa lưu trữ.
+ * Số khách đếm trong cùng tập khách facebook_ads của chiến dịch; chiến dịch chỉ có quy tắc → 0 khách.
+ */
+export function campaignProjectRows(
+  customers: readonly Customer[],
+  rules: readonly CampaignProjectRule[],
+): CampaignProjectRow[] {
+  const counts = new Map<string, number>();
+  for (const customer of customers) {
+    if (isArchived(customer) || !isFacebookAds(customer)) continue;
+    const campaign = text(customer.campaign);
+    if (!campaign) continue;
+    counts.set(campaign, (counts.get(campaign) ?? 0) + 1);
+  }
+  for (const rule of rules) {
+    const campaign = text(rule.campaign);
+    if (campaign && !rule.archived_at && text(rule.project) && !counts.has(campaign)) counts.set(campaign, 0);
+  }
+  return [...counts.entries()]
+    .sort(([a], [b]) => a.localeCompare(b, 'vi'))
+    .map(([campaign, customerCount]) => ({
+      campaign,
+      customerCount,
+      project: activeCampaignProject(rules, campaign),
+    }));
+}
+
+/**
+ * Luật 3: khách mình phụ trách (danh sách truyền vào đã lọc chủ sở hữu), cùng chiến dịch,
+ * projects rỗng/không có, chưa lưu trữ. Không bao giờ trả khách đã có dự án.
+ */
+export function campaignFillCandidates(customers: readonly Customer[], campaign: string): Customer[] {
+  const target = text(campaign);
+  if (!target) return [];
+  return customers.filter(
+    (customer) => !isArchived(customer) && text(customer.campaign) === target && hasNoProjects(customer),
+  );
+}
 
 /** Toàn bộ chữ của thẻ Cài đặt; màn chỉ việc hiển thị, không tự ghép chuỗi. */
 export function integrationHealthSummary(row: IntegrationHealth, now: number): IntegrationHealthSummary {
