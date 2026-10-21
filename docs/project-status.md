@@ -8,6 +8,11 @@ Bộ tài liệu được biên soạn ngày 06/10/2026; đây không phải ng�
 
 Chỉ đọc file này khi cần tiếp nối công việc hoặc task phụ thuộc trạng thái triển khai/test.
 
+## Menu có nhóm PF-04 lên production (2026-10-21)
+
+- Curtis duyệt "Push menu mới lên app thật". `main` = `6582212` (merge `factory` @ `b9a86ea`). Kiểm trước: 1013 unit + 359 e2e xanh (Lead vá 1 e2e chập chờn của PF-04).
+- Không đổi dữ liệu/SQL/Worker/APK. **Rollback:** Cloudflare Pages → `crm` → Deployments → bản `b8f73d6`.
+
 ## Hồ sơ gọn PF-01/02/03 lên production (2026-10-21)
 
 - **Curtis duyệt push (2026-10-21, qua remote control).** `main` = `b8f73d6` (merge `factory`, gồm cả Meta Lead Ads `ae52e3a` đã có trước). Cloudflare project `crm` (domain `crm-cop.pages.dev`) build production `b8f73d6`, deployment `4610001c`; đã thấy chữ mới trong bundle trang thật.
