@@ -39,6 +39,11 @@ function useHideNav(): boolean {
   return useMatches().some((m) => (m.handle as { hideNav?: boolean } | undefined)?.hideNav === true);
 }
 
+/** Route cần khổ rộng trên desktop: `handle: { wide: true }`. */
+function useWide(): boolean {
+  return useMatches().some((m) => (m.handle as { wide?: boolean } | undefined)?.wide === true);
+}
+
 function toPaletteItem(c: AppCommand, ctx: CommandContext): PaletteItem {
   return {
     id: c.id,
@@ -61,6 +66,7 @@ export function RootLayout() {
   const active = tabForPath(pathname);
   const title = useTitle(NAV_TABS.find((t) => t.value === active)?.label ?? 'Sổ Khách');
   const hideNav = useHideNav();
+  const wide = useWide();
   const sync = useShellSync();
   const search = useCustomerSearch();
   const aside = useAsideVisible();
@@ -113,6 +119,7 @@ export function RootLayout() {
       <AppShell
         title={title}
         hideNav={hideNav}
+        wide={wide}
         tabs={TABS}
         active={active}
         onNavigate={(v) => {

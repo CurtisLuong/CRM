@@ -151,7 +151,8 @@ function Profile() {
         { icon: 'note', label: 'Ghi chú', disabled: !writable, onClick: () => openQuickAction(c.id, 'note') },
         { icon: 'call_sched', label: 'Hẹn', disabled: !writable, onClick: () => openQuickAction(c.id, 'schedule') },
       ]}
-      className="-mx-4 lg:-mx-6"
+      // Desktop: thanh nút nằm trong thẻ đầu hồ sơ → thẳng lề nội dung thẻ, không lấn ra mép.
+      className="-mx-4 lg:mx-0"
     />
   );
   const onStage = async (next: string) => {
@@ -580,216 +581,223 @@ function Profile() {
 
   return (
     <main
-      className="mx-auto w-full max-w-5xl space-y-4 p-4 pb-[calc(92px+env(safe-area-inset-bottom))] lg:p-6 lg:pb-6"
+      className="mx-auto w-full max-w-[1360px] space-y-4 p-4 pb-[calc(92px+env(safe-area-inset-bottom))] lg:p-6 lg:pb-6"
       data-testid="customer-profile"
     >
       <ArchivedBanner customer={c} />
-      <div className="space-y-4 lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start lg:gap-6 lg:space-y-0">
-        <header className="relative overflow-hidden rounded-card border border-border bg-surface lg:col-start-1 lg:row-start-1">
-          {c.cover_path && account?.remote.coverUrl(c.cover_path) && (
-            <img src={account.remote.coverUrl(c.cover_path) || ''} alt="" className="h-24 w-full object-cover" />
-          )}
-          <div className="space-y-3 p-4">
-            <div className="flex items-start gap-3">
-              {c.avatar_path && account?.remote.avatarUrl(c.avatar_path) ? (
-                <img
-                  src={account.remote.avatarUrl(c.avatar_path) || ''}
-                  alt={`Ảnh đại diện ${c.full_name}`}
-                  className="size-14 shrink-0 rounded-full object-cover"
-                />
-              ) : (
-                <Avatar name={c.full_name} size={56} />
-              )}
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="min-w-0 truncate text-title">{c.full_name}</h1>
-                  {readOnly && <Badge>Chỉ xem</Badge>}
+      {/*
+        Desktop: 2 cột độc lập (cột chính đọc liền mạch + cột phụ dính), không lưới hàng ghép cặp thẻ.
+        Mobile (<1200): hai khối `contents` để thứ tự đọc giữ nguyên như cũ (order bên dưới).
+      */}
+      <div className="flex flex-col gap-4 xl:grid xl:grid-cols-[minmax(0,1fr)_320px] xl:items-start xl:gap-6">
+        <div className="contents xl:flex xl:min-w-0 xl:flex-col xl:gap-4">
+          <header className="relative overflow-hidden rounded-card border border-border bg-surface max-xl:order-1">
+            {c.cover_path && account?.remote.coverUrl(c.cover_path) && (
+              <img src={account.remote.coverUrl(c.cover_path) || ''} alt="" className="h-24 w-full object-cover" />
+            )}
+            <div className="space-y-3 p-4">
+              <div className="flex items-start gap-3">
+                {c.avatar_path && account?.remote.avatarUrl(c.avatar_path) ? (
+                  <img
+                    src={account.remote.avatarUrl(c.avatar_path) || ''}
+                    alt={`Ảnh đại diện ${c.full_name}`}
+                    className="size-14 shrink-0 rounded-full object-cover"
+                  />
+                ) : (
+                  <Avatar name={c.full_name} size={56} />
+                )}
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h1 className="min-w-0 truncate text-title">{c.full_name}</h1>
+                    {readOnly && <Badge>Chỉ xem</Badge>}
+                  </div>
+                  <p className="font-data text-mono-data text-text-2">{c.phone}</p>
                 </div>
-                <p className="font-data text-mono-data text-text-2">{c.phone}</p>
               </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  aria-haspopup="dialog"
+                  aria-label={`Đổi bậc · ${stageLabel}`}
+                  disabled={!writable || busy}
+                  onClick={() => setStageOpen(true)}
+                  className="inline-flex min-h-9 items-center gap-1 rounded-full text-left disabled:opacity-60"
+                >
+                  <StageChip stage={stage || 'idle'} label={stageLabel} />
+                  <Icon name="expand" size={16} className="text-text-3" />
+                </button>
+                <HealthDot
+                  health={
+                    calls.length || c.next_call_at
+                      ? sla?.state === 'over'
+                        ? 'risk'
+                        : sla?.state === 'warn'
+                          ? 'late'
+                          : 'ok'
+                      : 'unknown'
+                  }
+                  showText
+                />
+                <Badge>{sourceText || 'Chưa rõ nguồn'}</Badge>
+              </div>
+              {slas && <SlaBar label="SLA bậc" state={slas.state} ratio={slas.ratio} text={slas.text} />}
+              <div className="-mx-4 lg:mx-0">{actionBar}</div>
+              {otherOwner && <p className="text-small text-text-2">Người phụ trách khác · hồ sơ chỉ xem.</p>}
+              {undoPlan && (
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-card border border-border bg-surface-2 p-3">
+                  <p className="text-body">Ứng dụng đã tự chuyển khách theo SLA.</p>
+                  <Button disabled={!writable || busy} onClick={() => void undo()}>
+                    Hoàn tác
+                  </Button>
+                </div>
+              )}
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                aria-haspopup="dialog"
-                aria-label={`Đổi bậc · ${stageLabel}`}
-                disabled={!writable || busy}
-                onClick={() => setStageOpen(true)}
-                className="inline-flex min-h-9 items-center gap-1 rounded-full text-left disabled:opacity-60"
-              >
-                <StageChip stage={stage || 'idle'} label={stageLabel} />
-                <Icon name="expand" size={16} className="text-text-3" />
-              </button>
-              <HealthDot
-                health={
-                  calls.length || c.next_call_at
-                    ? sla?.state === 'over'
-                      ? 'risk'
-                      : sla?.state === 'warn'
-                        ? 'late'
-                        : 'ok'
-                    : 'unknown'
-                }
-                showText
-              />
-              <Badge>{sourceText || 'Chưa rõ nguồn'}</Badge>
+          </header>
+
+          <section
+            aria-label="Việc tiếp theo"
+            data-tone={nextTone}
+            className="relative overflow-hidden rounded-card border border-border bg-surface p-4 max-xl:order-2"
+          >
+            {nextTone === 'over' && (
+              <span aria-hidden className="absolute inset-y-3 left-0 w-[3px] rounded-r-[3px] bg-danger" />
+            )}
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="text-label text-text-2">Việc tiếp theo</h2>
+              <Button disabled={!writable} onClick={() => void addPromise()}>
+                Thêm việc
+              </Button>
             </div>
-            {slas && <SlaBar label="SLA bậc" state={slas.state} ratio={slas.ratio} text={slas.text} />}
-            <div className="-mx-4 lg:mx-0">{actionBar}</div>
-            {otherOwner && <p className="text-small text-text-2">Người phụ trách khác · hồ sơ chỉ xem.</p>}
-            {undoPlan && (
-              <div className="flex flex-wrap items-center justify-between gap-2 rounded-card border border-border bg-surface-2 p-3">
-                <p className="text-body">Ứng dụng đã tự chuyển khách theo SLA.</p>
-                <Button disabled={!writable || busy} onClick={() => void undo()}>
-                  Hoàn tác
-                </Button>
+            {tasks.length ? (
+              <ul className="mt-2 space-y-3">
+                {tasks.map((task) => {
+                  const due = taskDueInfo(task, now);
+                  const tag = due
+                    ? due.state === 'overdue'
+                      ? { state: 'missed' as const, text: due.label }
+                      : due.state === 'due'
+                        ? { state: 'due' as const, text: due.label }
+                        : due.state === 'today'
+                          ? { state: 'soon' as const, text: due.label }
+                          : { state: 'far' as const, text: due.label }
+                    : null;
+                  return (
+                    <li key={task.at} className="flex items-start gap-3">
+                      <input
+                        aria-label={`Hoàn thành ${task.text}`}
+                        type="checkbox"
+                        disabled={!writable}
+                        onChange={() => void completeTask(task.at || '')}
+                        className="mt-1"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-body-strong">{task.text}</p>
+                        <div className="mt-1 flex flex-wrap items-center gap-2 text-small text-text-2">
+                          <span>{task.side === 'customer' ? 'Khách hẹn' : 'Em hứa'}</span>
+                          <DeadlineTag tag={tag} />
+                        </div>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <p className="mt-2 text-body text-text-2">
+                Chưa có bước tiếp theo. Ghi lại việc cần làm hoặc lời hứa để không bỏ quên khách.
+              </p>
+            )}
+          </section>
+
+          <section aria-label="Lần trước" className="rounded-card border border-border bg-surface p-4 max-xl:order-3">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <h2 className="text-label text-text-2">Lần trước{lastTouch?.when ? ` · ${lastTouch.when}` : ''}</h2>
+              {lastTouch && <span className="text-small text-text-2">{lastTouch.meta}</span>}
+            </div>
+            {lastTouch ? (
+              <p className="mt-2 text-body">
+                {lastTouch.headline && <b className="font-semibold">{lastTouch.headline}. </b>}
+                {lastTouch.text}
+              </p>
+            ) : (
+              <p className="mt-2 text-body text-text-2">Chưa có liên hệ nào được ghi.</p>
+            )}
+          </section>
+
+          <div className="max-xl:order-5">
+            <Tabs
+              items={tabs}
+              label="Nội dung hồ sơ khách"
+              sticky
+              className="[&_[role=tab]]:scroll-mt-14 [&_[role=tablist]]:top-14"
+            />
+          </div>
+
+          <div className="max-xl:order-8">
+            <ArchiveCustomerSection customer={c} />
+          </div>
+        </div>
+
+        {/*
+          Cột phụ: cùng một khối dính dưới thanh tiêu đề (56px). Cao đúng phần còn lại của màn hình
+          (trừ thêm 56px lề dưới của khung) để khi cuộn hết trang cột vẫn nằm ngay dưới tiêu đề;
+          nội dung dài hơn thì tự cuộn bên trong, không bị cắt.
+        */}
+        <div className="contents xl:sticky xl:top-14 xl:flex xl:h-[calc(100dvh-112px)] xl:flex-col xl:gap-4 xl:overflow-y-auto">
+          <section aria-label="Đã biết" className="rounded-card border border-border bg-surface p-4 max-xl:order-4">
+            <h2 className="text-label text-text-2">Đã biết</h2>
+            {briefParts.known.length ? (
+              <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-3">
+                {briefParts.known.map((item) => (
+                  <div key={item.key} className="min-w-0">
+                    <dt className="text-small text-text-3">{item.label}</dt>
+                    <dd className="text-body [overflow-wrap:anywhere]">{item.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            ) : (
+              <p className="mt-2 text-body text-text-2">Chưa có thông tin nào được ghi.</p>
+            )}
+            {briefParts.missing.length > 0 && (
+              <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                <span className="text-small text-text-2">Còn thiếu:</span>
+                {briefParts.missing.map((item) => (
+                  <button
+                    key={item.key}
+                    type="button"
+                    aria-expanded={missingKey === item.key}
+                    onClick={() => setMissingKey(missingKey === item.key ? '' : item.key)}
+                    className="inline-flex min-h-9 items-center rounded-full border border-dashed border-border-strong px-3 text-small text-text-2 hover:bg-surface-2"
+                  >
+                    {item.label}
+                  </button>
+                ))}
               </div>
             )}
+            {asked && <p className="mt-2 text-small text-text-2">Có thể hỏi: {asked.question}</p>}
+          </section>
+
+          <section
+            aria-label="Thông tin thêm"
+            className="rounded-card border border-border bg-surface p-4 max-xl:order-6"
+          >
+            <h2 className="text-section">Thông tin thêm</h2>
+            {extra.length ? (
+              <dl className="mt-3 grid grid-cols-2 gap-3 text-small sm:max-xl:grid-cols-3">
+                {extra.map((row) => (
+                  <div key={row.label} className="min-w-0">
+                    <dt className="text-text-3">{row.label}</dt>
+                    <dd className="whitespace-pre-wrap text-body [overflow-wrap:anywhere]">{row.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            ) : (
+              <p className="mt-2 text-body text-text-2">Chưa có thông tin bổ sung.</p>
+            )}
+          </section>
+
+          <div className="max-xl:order-7">
+            <AiBrief customer={c} />
           </div>
-        </header>
-
-        <section
-          aria-label="Việc tiếp theo"
-          data-tone={nextTone}
-          className="relative overflow-hidden rounded-card border border-border bg-surface p-4 lg:col-start-1 lg:row-start-2"
-        >
-          {nextTone === 'over' && (
-            <span aria-hidden className="absolute inset-y-3 left-0 w-[3px] rounded-r-[3px] bg-danger" />
-          )}
-          <div className="flex items-center justify-between gap-2">
-            <h2 className="text-label text-text-2">Việc tiếp theo</h2>
-            <Button disabled={!writable} onClick={() => void addPromise()}>
-              Thêm việc
-            </Button>
-          </div>
-          {tasks.length ? (
-            <ul className="mt-2 space-y-3">
-              {tasks.map((task) => {
-                const due = taskDueInfo(task, now);
-                const tag = due
-                  ? due.state === 'overdue'
-                    ? { state: 'missed' as const, text: due.label }
-                    : due.state === 'due'
-                      ? { state: 'due' as const, text: due.label }
-                      : due.state === 'today'
-                        ? { state: 'soon' as const, text: due.label }
-                        : { state: 'far' as const, text: due.label }
-                  : null;
-                return (
-                  <li key={task.at} className="flex items-start gap-3">
-                    <input
-                      aria-label={`Hoàn thành ${task.text}`}
-                      type="checkbox"
-                      disabled={!writable}
-                      onChange={() => void completeTask(task.at || '')}
-                      className="mt-1"
-                    />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-body-strong">{task.text}</p>
-                      <div className="mt-1 flex flex-wrap items-center gap-2 text-small text-text-2">
-                        <span>{task.side === 'customer' ? 'Khách hẹn' : 'Em hứa'}</span>
-                        <DeadlineTag tag={tag} />
-                      </div>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          ) : (
-            <p className="mt-2 text-body text-text-2">
-              Chưa có bước tiếp theo. Ghi lại việc cần làm hoặc lời hứa để không bỏ quên khách.
-            </p>
-          )}
-        </section>
-
-        <section
-          aria-label="Lần trước"
-          className="rounded-card border border-border bg-surface p-4 lg:col-start-1 lg:row-start-3"
-        >
-          <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h2 className="text-label text-text-2">Lần trước{lastTouch?.when ? ` · ${lastTouch.when}` : ''}</h2>
-            {lastTouch && <span className="text-small text-text-2">{lastTouch.meta}</span>}
-          </div>
-          {lastTouch ? (
-            <p className="mt-2 text-body">
-              {lastTouch.headline && <b className="font-semibold">{lastTouch.headline}. </b>}
-              {lastTouch.text}
-            </p>
-          ) : (
-            <p className="mt-2 text-body text-text-2">Chưa có liên hệ nào được ghi.</p>
-          )}
-        </section>
-
-        <section
-          aria-label="Đã biết"
-          className="rounded-card border border-border bg-surface p-4 lg:col-start-2 lg:row-start-1"
-        >
-          <h2 className="text-label text-text-2">Đã biết</h2>
-          {briefParts.known.length ? (
-            <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-3">
-              {briefParts.known.map((item) => (
-                <div key={item.key} className="min-w-0">
-                  <dt className="text-small text-text-3">{item.label}</dt>
-                  <dd className="text-body [overflow-wrap:anywhere]">{item.value}</dd>
-                </div>
-              ))}
-            </dl>
-          ) : (
-            <p className="mt-2 text-body text-text-2">Chưa có thông tin nào được ghi.</p>
-          )}
-          {briefParts.missing.length > 0 && (
-            <div className="mt-3 flex flex-wrap items-center gap-1.5">
-              <span className="text-small text-text-2">Còn thiếu:</span>
-              {briefParts.missing.map((item) => (
-                <button
-                  key={item.key}
-                  type="button"
-                  aria-expanded={missingKey === item.key}
-                  onClick={() => setMissingKey(missingKey === item.key ? '' : item.key)}
-                  className="inline-flex min-h-9 items-center rounded-full border border-dashed border-border-strong px-3 text-small text-text-2 hover:bg-surface-2"
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-          )}
-          {asked && <p className="mt-2 text-small text-text-2">Có thể hỏi: {asked.question}</p>}
-        </section>
-
-        <div className="lg:col-start-1 lg:row-start-4">
-          <Tabs
-            items={tabs}
-            label="Nội dung hồ sơ khách"
-            sticky
-            className="[&_[role=tab]]:scroll-mt-14 [&_[role=tablist]]:top-14"
-          />
-        </div>
-
-        <section
-          aria-label="Thông tin thêm"
-          className="rounded-card border border-border bg-surface p-4 lg:col-start-2 lg:row-start-2"
-        >
-          <h2 className="text-section">Thông tin thêm</h2>
-          {extra.length ? (
-            <dl className="mt-3 grid grid-cols-2 gap-3 text-small sm:grid-cols-3 lg:grid-cols-1">
-              {extra.map((row) => (
-                <div key={row.label} className="min-w-0">
-                  <dt className="text-text-3">{row.label}</dt>
-                  <dd className="whitespace-pre-wrap text-body [overflow-wrap:anywhere]">{row.value}</dd>
-                </div>
-              ))}
-            </dl>
-          ) : (
-            <p className="mt-2 text-body text-text-2">Chưa có thông tin bổ sung.</p>
-          )}
-        </section>
-
-        <div className="lg:col-start-2 lg:row-start-3">
-          <AiBrief customer={c} />
-        </div>
-
-        <div className="lg:col-start-1 lg:row-start-5">
-          <ArchiveCustomerSection customer={c} />
         </div>
       </div>
 
@@ -870,5 +878,5 @@ function ChoiceField({
 export const route: FeatureRoute = {
   path: '/ho-so/:id',
   element: <Profile />,
-  handle: { title: 'Hồ sơ khách', hideNav: true },
+  handle: { title: 'Hồ sơ khách', hideNav: true, wide: true },
 };
