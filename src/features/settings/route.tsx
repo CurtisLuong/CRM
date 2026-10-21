@@ -5,6 +5,7 @@ import { THEME_OPTIONS, type ThemePref, useThemePref } from '@/app/theme';
 import { useCustomers, useRepositoryAccount } from '@/data/hooks';
 import { Button, EmptyState, useToast } from '@/ui';
 import { CampaignCostsSection } from './campaign-costs';
+import { CampaignProjectsSection } from './campaign-projects';
 import { MetaLeadAdsSection } from './meta-lead-ads';
 import {
   AI_DEFAULT_STYLE,
@@ -203,6 +204,7 @@ export function SettingsPage() {
       {!account ? <EmptyState title="Chưa đăng nhập" hint="Đăng nhập để đồng bộ cài đặt tài khoản." /> : null}
       {/* Chỉ khi tài khoản có client máy chủ mới có dòng tình trạng để đọc; chưa đăng nhập không hiện thẻ. */}
       {account?.sync?.client ? <MetaLeadAdsSection /> : null}
+      <CampaignProjectsSection customers={customers} account={account} />
       <CampaignCostsSection customers={customers} account={account} />
       <section className="rounded-card border border-border bg-surface p-4">
         <h2 className="text-section">Giao diện</h2>
