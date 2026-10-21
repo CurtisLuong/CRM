@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Outlet, useLocation, useMatches, useNavigate } from 'react-router';
+import { NotificationBell } from '@/features/notifications/Bell';
 import { QuickActionsHost } from '@/features/quick-actions/QuickActions';
+import { CustomerSearchBridge } from '@/features/search/SearchBridge';
 import { SyncIssuesSheet } from '@/features/sync/SyncIssuesSheet';
 import { BlockBoundary, ToastProvider } from '@/ui';
 import { AppShell } from '@/ui/AppShell';
@@ -119,6 +121,7 @@ export function RootLayout() {
         }}
         onAdd={() => setQuickOpen(true)}
         onSearch={() => setPaletteOpen(true)}
+        notifications={<NotificationBell />}
         sync={sync}
         onSyncOpen={() => setSyncOpen(true)}
         menu={<ToolsMenu commands={appCommands} ctx={ctx} />}
@@ -131,6 +134,7 @@ export function RootLayout() {
           <Outlet />
         </BlockBoundary>
       </AppShell>
+      <CustomerSearchBridge />
       <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} items={items} search={search} />
       <QuickAddSheet open={quickOpen} onOpenChange={setQuickOpen} commands={appCommands} ctx={ctx} />
       <UpdatePrompt />

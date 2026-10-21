@@ -97,10 +97,11 @@ export function SyncIndicator({
   );
 }
 
-/** Header màn: tiêu đề · ô tìm/lệnh (⌘K) · SyncIndicator · avatar. `compact` khi đã cuộn. */
+/** Header màn: tiêu đề · ô tìm/lệnh (⌘K) · chuông thông báo · SyncIndicator · avatar. `compact` khi đã cuộn. */
 export function Header({
   title,
   onSearch,
+  notifications,
   sync,
   trailing,
   compact,
@@ -108,6 +109,8 @@ export function Header({
 }: {
   title: string;
   onSearch?: () => void;
+  /** Chuông Thông báo (PF-06) — đứng giữa Tìm và Đồng bộ theo thứ tự cụm phải. */
+  notifications?: ReactNode;
   sync?: ReactNode;
   trailing?: ReactNode;
   compact?: boolean;
@@ -134,6 +137,7 @@ export function Header({
           <Kbd keys={['⌘', 'K']} />
         </button>
       )}
+      {notifications}
       {sync}
       {trailing}
     </header>
