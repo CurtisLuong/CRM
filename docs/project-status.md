@@ -8,6 +8,17 @@ Bộ tài liệu được biên soạn ngày 06/10/2026; đây không phải ng�
 
 Chỉ đọc file này khi cần tiếp nối công việc hoặc task phụ thuộc trạng thái triển khai/test.
 
+## Badge chuông nhỏ lên production (2026-10-21)
+
+- Curtis duyệt đưa **riêng** sửa badge (không kèm PF-07 hồ sơ desktop đang ở `factory`). `main` = `e14bb45` = cherry-pick `eed5505` lên `9593ccc`. Kiểm: 1052 unit + e2e header/shell xanh. GitHub sự cố → tải thẳng bằng wrangler (deployment `2150314d`), đã thấy bundle mới trên trang thật. **Rollback:** deployment `9593ccc`/`15e3849`.
+- Lưu ý: `main` giờ có commit không qua merge `factory` — lần merge `factory → main` sau sẽ gộp bình thường (cùng nội dung).
+
+## Tìm có dấu + chuông + tìm toàn app PF-05/06 lên production (2026-10-21)
+
+- Curtis duyệt push. `main` = `15e3849` (merge `factory` @ `850b64b`). Kiểm trước: 1052 unit + 372 e2e xanh.
+- **GitHub sự cố (webhook sang Cloudflare chậm/mất)** → Cloudflare không build `15e3849`/`9593ccc` (commit rỗng kích lại). Curtis duyệt tải thẳng: build `main` @ `9593ccc` trên máy với 3 biến công khai lấy từ bundle production đang chạy (`VITE_SUPABASE_URL` = production `nrqccwamwctihivpxjww`, `VITE_SUPABASE_ANON_KEY` = khoá publishable, `VITE_WORKER_URL` = `intake-worker`) rồi `npx wrangler pages deploy dist --project-name crm --branch main --commit-hash 9593ccc` → deployment `940a9a3c`. Đã thấy bundle mới trên `crm-cop.pages.dev`. Khi GitHub hồi phục Cloudflare có thể build lại cùng commit — nội dung giống hệt.
+- Không đổi dữ liệu/SQL/Worker/APK. **Rollback:** Cloudflare Pages → `crm` → Deployments → bản `6582212`.
+
 ## Menu có nhóm PF-04 lên production (2026-10-21)
 
 - Curtis duyệt "Push menu mới lên app thật". `main` = `6582212` (merge `factory` @ `b9a86ea`). Kiểm trước: 1013 unit + 359 e2e xanh (Lead vá 1 e2e chập chờn của PF-04).
