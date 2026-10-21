@@ -16,7 +16,7 @@ describe('buildMenu (PF-04)', () => {
     expect(itemLabels(appCommands)).toEqual([
       { key: 'customers', kind: 'grid', items: ['Khách mới', 'Tệp & Retarget', 'Khách đã lưu trữ'] },
       { key: 'tools', kind: 'grid', items: ['Giỏ hàng', 'Tính khoản vay', 'Thao tác nhanh', 'Nhập / Xuất dữ liệu'] },
-      { key: 'settings', kind: 'rows', items: ['Thông báo', 'Đồng nghiệp', 'Cài đặt'] },
+      { key: 'settings', kind: 'rows', items: ['Đồng nghiệp', 'Cài đặt'] },
     ]);
   });
 
