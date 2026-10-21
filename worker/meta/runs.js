@@ -1,6 +1,7 @@
 // Điều phối một lượt chạy: quét lead mới → xử lý hàng chờ → ghi tình trạng kết nối.
 // Mọi lượt đều có ngân sách fetch riêng (≤45) để không vượt giới hạn gói Cloudflare miễn phí.
 import { createBudget, MAX_FETCHES_PER_RUN } from './budget.js';
+import { createProjectRules } from './campaignProjects.js';
 import { createGraph } from './graph.js';
 import { runHealthCheck } from './health.js';
 import { connectionMessage, processQueueItem, redactError } from './process.js';
@@ -14,7 +15,16 @@ export function createRun(env, { now, maxFetches = MAX_FETCHES_PER_RUN } = {}) {
   const budget = createBudget(maxFetches);
   const store = createStore(env, { budget, now: clock });
   const graph = createGraph(env, { budget, now: clock });
-  return { env, budget, store, graph, now: clock, lastLeadAt: null, healthError: null };
+  return {
+    env,
+    budget,
+    store,
+    graph,
+    now: clock,
+    projectFor: createProjectRules(store, env.FB_LEAD_OWNER_ID),
+    lastLeadAt: null,
+    healthError: null,
+  };
 }
 
 export function batchSize(env) {

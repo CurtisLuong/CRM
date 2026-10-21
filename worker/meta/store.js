@@ -102,6 +102,14 @@ export function createStore(env, { budget, now = () => new Date() } = {}) {
     return firstRow(data);
   }
 
+  /** Quy tắc chiến dịch → dự án của người nhận lead (chỉ đọc; service role không có quyền ghi). */
+  async function campaignProjects(ownerId) {
+    const data = await request(
+      `lead_campaign_projects?owner_id=eq.${encoded(ownerId)}&archived_at=is.null&select=campaign,project&limit=200`,
+    );
+    return Array.isArray(data) ? data : [];
+  }
+
   async function attachLead(customerId, interaction) {
     const data = await request('rpc/fb_attach_lead', {
       method: 'POST',
@@ -177,6 +185,7 @@ export function createStore(env, { budget, now = () => new Date() } = {}) {
     customersByPhone,
     createCustomer,
     attachLead,
+    campaignProjects,
     updateQueue,
     finishQueue,
     queueSnapshot,

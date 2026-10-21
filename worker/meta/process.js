@@ -4,7 +4,6 @@ import { INTEGRATION_ID } from './health.js';
 import {
   buildCustomerRow,
   buildInteraction,
-  buildNotes,
   campaignFor,
   createdTimeIso,
   parseFieldData,
@@ -68,9 +67,20 @@ async function attachToCustomer(ctx, { target, interaction, baseLog, leadId, now
   return { status: 'merged', lead_id: leadId, customer_id: target.id };
 }
 
-async function createCustomer(ctx, options) {
-  const { parsed, campaign, at, formName, notes, interaction, baseLog, leadId, nowIso } = options;
+/** Dự án theo chiến dịch (luật 6): đọc lỗi/không có quy tắc → null, không chặn việc tạo khách. */
+async function projectForCampaign(ctx, campaign) {
+  if (typeof ctx.projectFor !== 'function') return null;
   try {
+    return await ctx.projectFor(campaign);
+  } catch {
+    return null;
+  }
+}
+
+async function createCustomer(ctx, options) {
+  const { parsed, campaign, at, formName, interaction, baseLog, leadId, nowIso } = options;
+  try {
+    const project = await projectForCampaign(ctx, campaign);
     const created = await ctx.store.createCustomer(
       buildCustomerRow({
         ownerId: ctx.env.FB_LEAD_OWNER_ID,
@@ -78,7 +88,8 @@ async function createCustomer(ctx, options) {
         campaign,
         at,
         formName,
-        notes,
+        projects: project ? [project] : [],
+        leadId,
       }),
     );
     const customerId = (created && created.id) || null;
@@ -188,7 +199,6 @@ export async function processQueueItem(ctx, row) {
     const parsed = parseFieldData(lead.field_data);
     const at = createdTimeIso(lead.created_time != null ? lead.created_time : row.payload && row.payload.created_time, nowIso);
     const campaign = campaignFor(lead, formName);
-    const notes = buildNotes({ formName, adName: lead.ad_name, lines: parsed.lines });
 
     Object.assign(baseLog, {
       page_id: lead.page_id || baseLog.page_id || ctx.env.FB_PAGE_ID || null,
@@ -221,7 +231,8 @@ export async function processQueueItem(ctx, row) {
       platform: lead.platform,
       campaign,
       at,
-      note: notes,
+      // Khách đã có: chỉ các gạch đầu dòng, nối bằng " · " (luật 7) — không tiêu đề form, tên, SĐT, link.
+      note: parsed.bullets.join(' · '),
     });
 
     const target = pickCustomer(await ctx.store.customersByPhone(parsed.phone), ctx.env.FB_LEAD_OWNER_ID);
@@ -235,7 +246,6 @@ export async function processQueueItem(ctx, row) {
       campaign,
       at,
       formName,
-      notes,
       interaction,
       baseLog,
       leadId,
