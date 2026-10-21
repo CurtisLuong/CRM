@@ -20,6 +20,8 @@ Nguồn: báo cáo `scripts/factory-run.mjs` / `reports/overnight-*.md` + nghi�
 | ML-02 | code | 2026-10-19 | deepseek-flash | 1 | $0.0372 | 9 | ĐẠT (hết giờ 20′, gate xanh) | Đạt, vá 1 | — | ~5 | `leads` import `features/settings/model` (phá ranh giới module) → chuyển mã/ngưỡng/nhãn sang `src/config/integrations.ts` + `src/domain/integrations.ts` | Đặc tả nên chỉ sẵn nơi đặt luật dùng chung giữa 2 feature |
 | ML-03 | code | 2026-10-21 | deepseek-flash | 1 | $0.0479 | 7 | ĐẠT | Đạt | — | ~6 | — | Có báo cáo cuối; đặc tả dùng mẫu field_data thật của form → làm đúng ngay lần 1 |
 | ML-04 | code | 2026-10-21 | deepseek-flash | 1 | $0.0488 | 5 | ĐẠT | Đạt | — | ~4 | — | |
+| PF-01 | code | 2026-10-21 | deepseek-flash | 1 | $0.0468 | — | ĐẠT | Đạt, vá 1 | — | ~8 | Ô Tài sản `type=number` làm ghi cũ dạng chữ hiện trống → Lead thêm dòng "Đang lưu: …"; Lead thêm 2 khoá gộp vào ngữ cảnh AI (`aiContext.ts`) | Chạy song song với PF-02 nhờ Lead tách `timeline.tsx` trước |
+| PF-02 | code | 2026-10-21 | deepseek-flash | 1 | $0.0394 | — | ĐẠT | Đạt | — | ~4 | Tên bậc suy từ tiêu đề "Bậc: …" (chấp nhận; nếu đổi tiêu đề thì thêm trường `stage`) | |
 
 Loại: `code` / `test-only` / `lead` (Lead tự làm) / `đối chứng` (làm bằng Claude Code thuần để so sánh).
 

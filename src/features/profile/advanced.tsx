@@ -48,9 +48,12 @@ export function ProfileTextField({
   const save = () => {
     if (draft !== raw) onSave(draft);
   };
+  // Ô số không hiện được ghi cũ dạng chữ (vd. "2 tỷ") → hiện chỉ đọc để không tưởng là trống (D-012).
+  const textInNumber = type === 'number' && raw.trim() !== '' && !Number.isFinite(Number(raw));
   return (
     <div className="block space-y-1 text-small text-text-2">
       <label htmlFor={id}>{label}</label>
+      {textInNumber && <p className="text-text-3 [overflow-wrap:anywhere]">Đang lưu: {raw}</p>}
       {multiline ? (
         <textarea
           id={id}
