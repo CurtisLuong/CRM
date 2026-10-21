@@ -8,6 +8,11 @@ Bộ tài liệu được biên soạn ngày 06/10/2026; đây không phải ng�
 
 Chỉ đọc file này khi cần tiếp nối công việc hoặc task phụ thuộc trạng thái triển khai/test.
 
+## Tìm có dấu + chuông + tìm toàn app PF-05/06 lên production (2026-10-21)
+
+- Curtis duyệt push. `main` = `15e3849` (merge `factory` @ `850b64b`). Kiểm trước: 1052 unit + 372 e2e xanh.
+- Không đổi dữ liệu/SQL/Worker/APK. **Rollback:** Cloudflare Pages → `crm` → Deployments → bản `6582212`.
+
 ## Menu có nhóm PF-04 lên production (2026-10-21)
 
 - Curtis duyệt "Push menu mới lên app thật". `main` = `6582212` (merge `factory` @ `b9a86ea`). Kiểm trước: 1013 unit + 359 e2e xanh (Lead vá 1 e2e chập chờn của PF-04).
