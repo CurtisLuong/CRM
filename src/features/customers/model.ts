@@ -43,7 +43,8 @@ export function virtualWindow(total: number, scroll: number, viewport: number, i
   return { start, end, offset: start * itemHeight, totalHeight: total * itemHeight };
 }
 
-const searchable = (c: Customer): SearchDoc => {
+/** Tài liệu tìm của một khách (PF-06: Bảng lệnh tính 1 lần cho mỗi danh sách, không mỗi phím). */
+export const searchable = (c: Customer): SearchDoc => {
   const interests = Array.isArray(c.interests) ? c.interests : [];
   const projects = Array.isArray(c.projects) ? c.projects.join(' ') : '';
   const notes = [

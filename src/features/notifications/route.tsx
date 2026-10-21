@@ -1,59 +1,13 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useNavigate } from 'react-router';
 import type { FeatureRoute } from '@/app/routes';
-import { useCustomers, useRepositoryAccount } from '@/data/hooks';
-import { computeSignals, type SignalUiState } from '@/domain/signals';
 import { Badge, Button, EmptyState, SignalCard } from '@/ui';
-
-const keyFor = (userId: string) => `crm_signal_ui_state:${userId}`;
+import { useNotificationSignals } from './use-signals';
 
 export function NotificationsPage() {
-  const account = useRepositoryAccount();
-  const customers = useCustomers();
   const navigate = useNavigate();
-  const [uiState, setUiState] = useState<SignalUiState>({});
-  const [now, setNow] = useState(() => Date.now());
-  const [status, setStatus] = useState('');
-  const userId = account?.sync.local.userId || '';
-
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 60_000);
-    return () => window.clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
-    if (!account || !userId) {
-      setUiState({});
-      return;
-    }
-    let active = true;
-    try {
-      const cached = localStorage.getItem(keyFor(userId));
-      if (cached) setUiState(JSON.parse(cached) as SignalUiState);
-    } catch {
-      setUiState({});
-    }
-    void account.remote
-      .getUiStateRemote()
-      .then((raw) => {
-        if (!active || !raw || typeof raw !== 'object') return;
-        const signals = (raw as { signals?: SignalUiState['signals'] }).signals;
-        const next = { signals };
-        setUiState(next);
-        localStorage.setItem(keyFor(userId), JSON.stringify(next));
-      })
-      .catch(() => {
-        if (active) setStatus('Đang hiển thị tín hiệu đã lưu trên thiết bị.');
-      });
-    return () => {
-      active = false;
-    };
-  }, [account, userId]);
-
-  const signals = useMemo(
-    () => (account ? computeSignals(customers, { now, ownerId: userId, ui_state: uiState }) : []),
-    [account, customers, now, userId, uiState],
-  );
+  // Cùng hook với chuông header → số trên chuông luôn bằng số thẻ dưới đây.
+  const { account, customers, signals, status } = useNotificationSignals();
   const byId = useMemo(() => new Map(customers.map((customer) => [customer.id, customer])), [customers]);
 
   return (

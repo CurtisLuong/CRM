@@ -16,6 +16,7 @@ export function AppShell({
   onNavigate,
   onAdd,
   onSearch,
+  notifications,
   sync,
   onSyncOpen,
   menu,
@@ -33,6 +34,8 @@ export function AppShell({
   onNavigate: (value: string) => void;
   onAdd: () => void;
   onSearch: () => void;
+  /** Chuông Thông báo ở header (PF-06): Tìm · Thông báo · Đồng bộ · Menu. */
+  notifications?: ReactNode;
   /** null = chưa nối nguồn trạng thái đồng bộ → không hiện. */
   sync: SyncState | null;
   onSyncOpen?: () => void;
@@ -63,6 +66,7 @@ export function AppShell({
         <Header
           title={title}
           onSearch={onSearch}
+          notifications={notifications}
           sync={sync && <SyncIndicator state={sync} onOpen={onSyncOpen} className="max-w-[40vw]" />}
           trailing={<span className="lg:hidden">{menu}</span>}
         />
