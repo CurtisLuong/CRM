@@ -24,6 +24,17 @@ export function lastTouchMs(c: Customer): number | null {
   const last = callAttemptsOf(c).at(-1);
   return Math.max(lastInteractionAt(c) || 0, last ? Date.parse(last.at) || 0 : 0) || null;
 }
+/**
+ * Sale đã từng chạm khách chưa (Curtis 2026-10-22): cuộc gọi, ghi chú của sale, Zalo/gặp/xem dự án.
+ * Không tính form quảng cáo và mốc đổi bậc — mọi khách đều có mốc bậc từ lúc tạo.
+ */
+export function hasSaleTouch(c: Customer): boolean {
+  return (
+    callAttemptsOf(c).length > 0 ||
+    (Array.isArray(c.notes_manual) ? c.notes_manual : []).some((n) => isSaleNote(n) && !!n?.at) ||
+    (Array.isArray(c.interactions) ? c.interactions : []).some((i) => isSaleTouch(i) && !!i?.at)
+  );
+}
 export const idleDays = (c: Customer, now: number) => Math.floor((now - (lastTouchMs(c) || now)) / DAY);
 export function taskEvidence(t: Task) {
   return { at: t.at, key: t.key, due: t.due, due_allday: t.due_allday, text: t.text, side: t.side };

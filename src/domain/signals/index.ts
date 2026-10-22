@@ -7,7 +7,7 @@ import { startOfDayMs } from '@/domain/deadlines';
 import { lastTouchMs } from './shared';
 import type { Signal, SignalContext, SignalRule } from './types';
 
-export { lastInteractionAt, lastTouchMs } from './shared';
+export { hasSaleTouch, lastInteractionAt, lastTouchMs } from './shared';
 export type * from './types';
 
 const modules = import.meta.glob<{ default: SignalRule }>('./rules/*.ts', { eager: true });

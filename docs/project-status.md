@@ -8,6 +8,12 @@ Bộ tài liệu được biên soạn ngày 06/10/2026; đây không phải ng�
 
 Chỉ đọc file này khi cần tiếp nối công việc hoặc task phụ thuộc trạng thái triển khai/test.
 
+## Hồ sơ desktop 2 cột PF-07 lên production (2026-10-21)
+
+- Curtis duyệt merge + deploy. `main` = `516867f` (merge `factory` @ `6b111f5`, cây file giống hệt `factory`). Kiểm trước: 1053 unit + 390 e2e xanh (worktree Lead); sau merge `factory` 387/390 khi máy quá tải (3 test hồ sơ 360 hết giờ tải trang), chạy lại nhóm hồ sơ 41/41 xanh.
+- GitHub sự cố → tải thẳng: build `main` @ `516867f` với 3 biến công khai lấy từ bundle production (Supabase production `nrqccwamwctihivpxjww`, khoá publishable, `intake-worker`) rồi `npx wrangler pages deploy dist --project-name crm --branch main --commit-hash 516867f` → deployment `32126d97`. Đã thấy bundle mới (`index-CRTz-t-Q.js`) trên `crm-cop.pages.dev`. Khi GitHub hồi phục Cloudflare có thể build lại cùng commit — nội dung giống hệt.
+- Không đổi dữ liệu/SQL/Worker/APK. **Rollback:** Cloudflare Pages → `crm` → Deployments → deployment `2150314d` (badge, `e14bb45`).
+
 ## Badge chuông nhỏ lên production (2026-10-21)
 
 - Curtis duyệt đưa **riêng** sửa badge (không kèm PF-07 hồ sơ desktop đang ở `factory`). `main` = `e14bb45` = cherry-pick `eed5505` lên `9593ccc`. Kiểm: 1052 unit + e2e header/shell xanh. GitHub sự cố → tải thẳng bằng wrangler (deployment `2150314d`), đã thấy bundle mới trên trang thật. **Rollback:** deployment `9593ccc`/`15e3849`.
