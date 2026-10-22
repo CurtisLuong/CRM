@@ -373,7 +373,7 @@ function main() {
   }
   if (!existsSync(DENY_CONFIG)) throw new Error(`Thiếu ${DENY_CONFIG} (danh sách deny cho worker).`);
   const task = parseTask(resolve(taskFile));
-  // Curtis chỉ định mỗi đợt bằng --worker/--fallback (batch truyền xuống); dòng "Worker:" trong task dùng khi không chỉ định.
+  // Product Owner chỉ định mỗi đợt bằng --worker/--fallback (batch truyền xuống); dòng "Worker:" trong task dùng khi không chỉ định.
   let worker = workerOf(opt('--worker') || task.worker || 'deepseek');
   const fallbackName = opt('--fallback') || task.fallback || '';
   const fallback = fallbackName && fallbackName !== worker.name ? workerOf(fallbackName) : null;

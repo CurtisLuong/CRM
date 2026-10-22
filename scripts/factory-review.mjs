@@ -69,9 +69,12 @@ export function parseReview(text) {
   return { verdict, flags, summary: String(raw.summary ?? '').trim() };
 }
 
-function prompt(task) {
+function prompt(task, reviewer) {
   return [
-    'Bạn là REVIEWER của AI Factory. Chỉ đọc, không sửa file, không chạy lệnh. Các file trong thư mục hiện tại:',
+    // luna (Codex) chỉ đọc file được bằng lệnh shell; sandbox read-only nên cho phép lệnh đọc. Reviewer khác có tool Read riêng.
+    reviewer === 'luna'
+      ? 'Bạn là REVIEWER của AI Factory. Chỉ đọc, không sửa file. Được chạy lệnh shell CHỈ để đọc file (cat, sed -n, rg, ls); sandbox chỉ đọc. Các file trong thư mục hiện tại:'
+      : 'Bạn là REVIEWER của AI Factory. Chỉ đọc, không sửa file, không chạy lệnh. Các file trong thư mục hiện tại:',
     '- task.md: đặc tả task (mục tiêu, luật nghiệp vụ + số chuẩn, hợp đồng, phạm vi, PHẢI/CẤM, nghiệm thu).',
     '- AGENTS.md: hàng rào chung cho mọi task. ARCHITECTURE.md (nếu có): module, hợp đồng, vùng cấm.',
     '- diff.patch: toàn bộ thay đổi của worker so với base.',
@@ -133,7 +136,7 @@ function main() {
     const tried = [];
     for (const name of reviewersFor(worker)) {
       reviewer = name;
-      r = workerOf(name).review({ dir, prompt: prompt(task), title: `${task.id} review`, timeoutMs: TIMEOUT_MS });
+      r = workerOf(name).review({ dir, prompt: prompt(task, name), title: `${task.id} review`, timeoutMs: TIMEOUT_MS });
       mkdirSync(LOG_DIR, { recursive: true });
       writeFileSync(join(LOG_DIR, `${task.id}-review.jsonl`), r.stdout);
       if (!isQuotaError(name, { ...r, timedOut: r.error?.code === 'ETIMEDOUT' })) break;

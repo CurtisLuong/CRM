@@ -2,7 +2,7 @@
 //   deepseek: OpenCode + deepseek/deepseek-flash (trả theo API).       Suy luận: variant `#high`/`#max`.
 //   haiku:    Claude Code `claude -p` + claude-haiku-5-5 (gói claude.ai). Suy luận: `--effort high|max`.
 //   luna:     Codex `codex exec` + gpt-6-luna (gói ChatGPT).             Suy luận: `-c model_reasoning_effort=high|xhigh`.
-// Kiểm chứng trên máy Curtis 2026-10-22 (claude 2.1.308, codex-cli 0.162.1, opencode 2.0.29) — chi tiết docs/factory-playbook.md.
+// Kiểm chứng trên máy Lead 2026-10-22 (claude 2.1.308, codex-cli 0.162.1, opencode 2.0.29) — chi tiết docs/factory-playbook.md.
 // Mỗi adapter: plan(task) → các mức suy luận 3 lần thử · run(ctx) → kết quả chuẩn · login() → đã đăng nhập chưa ·
 //   quota(text) → có phải hết hạn mức/hết tiền không (không tính worker trượt).
 import { spawnSync } from 'node:child_process';
@@ -179,7 +179,7 @@ const haiku = {
         'Bash,Read,Edit,Write,Glob,Grep',
         '--settings',
         settings,
-        // Không nạp settings/hook/plugin cá nhân của Curtis; chỉ settings dự án + file trên. (--bare không dùng được: bắt API key, không nhận gói.)
+        // Không nạp settings/hook/plugin cá nhân của người dùng; chỉ settings dự án + file trên. (--bare không dùng được: bắt API key, không nhận gói.)
         '--setting-sources',
         'project',
         '--strict-mcp-config',

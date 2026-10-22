@@ -1,5 +1,6 @@
 # <ID> — <tên ngắn>
 Loại: code | test-only. Rủi ro: thấp | vừa | cao. Khó: có | không. Base: factory. Milestone: <M#>.
+<!-- Tuỳ chọn: "Worker: deepseek | haiku | luna. Dự phòng: <mã>." — chỉ dùng khi batch không truyền --worker/--fallback. -->
 
 <!--
 Mẫu task AI Factory (skill ai-factory-lead). Lead vạch XƯƠNG SỐNG + HÀNG RÀO; worker tự quyết cách cài đặt.

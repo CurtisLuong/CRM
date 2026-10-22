@@ -2,7 +2,7 @@
 // AI Factory — chạy LẦN LƯỢT mọi tasks/queue/*.md bằng scripts/factory-run.mjs (qua đêm). KHÔNG push.
 // Dùng: node scripts/factory-batch.mjs [--worker deepseek|haiku|luna] [--fallback <mã>] [--base factory] [--max-cost 5]
 //        [--task-timeout 30] [--no-merge] [--dry-run]
-// - Worker mỗi đợt do Curtis chỉ định: --worker / --fallback (mặc định: dòng "Worker:"/"Dự phòng:" trong task, rồi deepseek).
+// - Worker mỗi đợt do Product Owner chỉ định: --worker / --fallback (mặc định: dòng "Worker:"/"Dự phòng:" trong task, rồi deepseek).
 // - Trước khi chạy: kiểm worker + dự phòng của mọi task đã đăng nhập (lệnh trạng thái ngắn, không tốn hạn mức).
 //   Chưa đăng nhập → dừng ngay, in lệnh đăng nhập, không chạy task nào.
 // - Hết hạn mức/hết tiền (factory-run mã 4, đã thử cả dự phòng) → TẠM DỪNG cả batch, không tính trượt: task để lại
