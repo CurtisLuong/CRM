@@ -1,8 +1,14 @@
 #!/usr/bin/env node
 // AI Factory — chạy LẦN LƯỢT mọi tasks/queue/*.md bằng scripts/factory-run.mjs (qua đêm). KHÔNG push.
-// Dùng: node scripts/factory-batch.mjs [--base factory] [--max-cost 5] [--task-timeout 30] [--no-merge] [--dry-run]
+// Dùng: node scripts/factory-batch.mjs [--worker deepseek|haiku|luna] [--fallback <mã>] [--base factory] [--max-cost 5]
+//        [--task-timeout 30] [--no-merge] [--dry-run]
+// - Worker mỗi đợt do Curtis chỉ định: --worker / --fallback (mặc định: dòng "Worker:"/"Dự phòng:" trong task, rồi deepseek).
+// - Trước khi chạy: kiểm worker + dự phòng của mọi task đã đăng nhập (lệnh trạng thái ngắn, không tốn hạn mức).
+//   Chưa đăng nhập → dừng ngay, in lệnh đăng nhập, không chạy task nào.
+// - Hết hạn mức/hết tiền (factory-run mã 4, đã thử cả dự phòng) → TẠM DỪNG cả batch, không tính trượt: task để lại
+//   tasks/queue/, worktree dở bị xoá (log giữ trong logs/). Đăng nhập/nạp tiền xong chạy lại đúng lệnh cũ.
 // - Mỗi task tối đa --task-timeout phút (cả 3 lần thử). Tổng chi phí (worker + review) > --max-cost → dừng hẳn.
-// - Task ĐẠT → scripts/factory-review.mjs (flash#max). Rủi ro "thấp" + review không cờ → scripts/factory-merge.mjs
+// - Task ĐẠT → scripts/factory-review.mjs (reviewer khác worker: deepseek → luna; haiku/luna → deepseek#max). Rủi ro "thấp" + review không cờ → scripts/factory-merge.mjs
 //   tự rebase + check + e2e + merge vào --base, rồi xoá worktree/nhánh worker. Còn lại để Lead review tay.
 //   --no-merge: vẫn review, không tự merge.
 // - Task trượt / lỗi / hết giờ → ghi log, chạy task tiếp. Chỉ dừng cả batch khi chốt chặn repo chính kích hoạt
@@ -15,6 +21,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, writeFile
 import { basename, dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseTask } from './factory-run.mjs';
+import { WORKERS, workerOf } from './factory-workers.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const RUN = join(ROOT, 'scripts', 'factory-run.mjs');
@@ -28,6 +35,15 @@ const maxCost = Number(opt('--max-cost', '5')) || 5;
 const taskTimeoutMs = (Number(opt('--task-timeout', '30')) || 30) * 60 * 1000;
 const dryRun = args.includes('--dry-run');
 const autoMerge = !args.includes('--no-merge');
+const cliWorker = opt('--worker', '');
+const cliFallback = opt('--fallback', '');
+try {
+  if (cliWorker) workerOf(cliWorker);
+  if (cliFallback) workerOf(cliFallback);
+} catch (e) {
+  console.error(`LỖI: ${e.message}`);
+  process.exit(2);
+}
 const now = () => new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' }).slice(0, 16);
 
 for (const d of [...Object.values(DIRS), join(ROOT, 'logs'), join(ROOT, 'reports')]) mkdirSync(d, { recursive: true });
@@ -47,17 +63,32 @@ function inspect(file) {
     const problems = [];
     if (/CHƯA CHẠY|CHỜ CHỐT/i.test(t.md)) problems.push('đặc tả còn ghi CHƯA CHẠY / CHỜ CHỐT');
     if (existsSync(resolve(ROOT, '..', `wt-${t.id}`))) problems.push(`worktree ../wt-${t.id} đã có`);
-    return { file, id: t.id, title: t.title, risk: t.risk, hard: t.hard, kind: t.kind, problems };
+    const worker = cliWorker || t.worker || 'deepseek';
+    const fallbackName = cliFallback || t.fallback || '';
+    const fallback = fallbackName && fallbackName !== worker ? fallbackName : '';
+    return { file, id: t.id, title: t.title, risk: t.risk, hard: t.hard, kind: t.kind, worker, fallback, problems };
   } catch (e) {
     return { file, id: basename(file, '.md'), title: '', problems: [e.message] };
   }
 }
 const tasks = files.map(inspect);
-console.log(`Batch: ${tasks.length} task · base ${base} · trần $${maxCost} · ${taskTimeoutMs / 60000} phút/task`);
+console.log(`Batch: ${tasks.length} task · base ${base} · trần $${maxCost} (chỉ tiền API) · ${taskTimeoutMs / 60000} phút/task`);
 for (const t of tasks)
   console.log(
-    `  ${t.problems.length ? '✗' : '✓'} ${t.id}${t.risk ? ` · ${t.kind} · rủi ro ${t.risk} · khó ${t.hard ? 'có' : 'không'}` : ''} ${t.problems.join('; ')}`,
+    `  ${t.problems.length ? '✗' : '✓'} ${t.id}${t.risk ? ` · ${t.kind} · rủi ro ${t.risk} · khó ${t.hard ? 'có' : 'không'} · worker ${t.worker}${t.fallback ? ` (dự phòng ${t.fallback})` : ''}` : ''} ${t.problems.join('; ')}`,
   );
+
+// Kiểm đăng nhập worker + dự phòng TRƯỚC khi tốn tiền/hạn mức. Thiếu → dừng, in cách đăng nhập.
+const needed = [...new Set([cliWorker, cliFallback, ...tasks.filter((t) => t.worker).flatMap((t) => [t.worker, t.fallback])].filter(Boolean))];
+const logins = needed.map((name) => ({ name, ...WORKERS[name].login() }));
+for (const l of logins) console.log(`  ${l.ok ? '✓' : '✗'} đăng nhập ${l.name}${l.ok ? ` — ${l.detail}` : ''}`);
+const missing = logins.filter((l) => !l.ok);
+if (missing.length) {
+  console.error('\nDỪNG: worker chưa đăng nhập — chưa chạy task nào. Mở Terminal, chạy:');
+  for (const l of missing) console.error(`  ${l.name}:  ${l.hint}`);
+  console.error('Đăng nhập xong chạy lại đúng lệnh batch này.');
+  process.exit(2);
+}
 if (dryRun) process.exit(tasks.some((t) => t.problems.length) ? 1 : 0);
 
 // --- Báo cáo (ghi lại sau mỗi task) -------------------------------------------
@@ -74,20 +105,20 @@ function writeReport(final) {
   const lines = [
     `# Overnight ${day} — base \`${base}\``,
     '',
-    `Bắt đầu ${started} · ${final ? `xong ${now()}` : `**đang chạy** (cập nhật ${now()})`} · tổng chi phí worker **$${cost.toFixed(4)}** / trần $${maxCost}`,
+    `Bắt đầu ${started} · ${final ? `xong ${now()}` : `**đang chạy** (cập nhật ${now()})`} · tổng chi phí API **$${cost.toFixed(4)}** / trần $${maxCost} · worker chạy bằng gói: tính token + phút, không tính tiền`,
     '',
-    `Không push. Task ĐẠT → review tự động (flash#max). ${autoMerge ? `Rủi ro thấp + không cờ → tự merge vào \`${base}\` (rebase + check + e2e).` : 'Không tự merge (--no-merge).'} Còn lại Lead đọc diff.`,
+    `Không push. Task ĐẠT → review tự động (reviewer khác worker). ${autoMerge ? `Rủi ro thấp + không cờ → tự merge vào \`${base}\` (rebase + check + e2e).` : 'Không tự merge (--no-merge).'} Còn lại Lead đọc diff.`,
     stopped ? `\n**DỪNG:** ${stopped}.` : '',
     ...(rows.some((r) => r.status === 'BLOCKED')
       ? ['', '## Cần Lead trả lời (BLOCKED)', ...rows.filter((r) => r.status === 'BLOCKED').map((r) => `- **${r.id}:** ${r.question}`)]
       : []),
     pending.length ? `\nChưa chạy: ${pending.join(', ')}` : '',
     '',
-    '| Task | Kết quả | Rủi ro | Suy luận | Số lần thử | Chi phí | Review | Auto-merge | Nhánh | File đổi | Log | Phút |',
-    '|---|---|---|---|---|---|---|---|---|---|---|---|',
+    '| Task | Kết quả | Rủi ro | Worker | Reviewer | Suy luận | Số lần thử | Chi phí API | Token | Phút worker | Review | Auto-merge | Nhánh | File đổi | Log | Phút |',
+    '|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|',
     ...rows.map(
       (r) =>
-        `| ${cell(r.id)} | ${r.status} | ${cell(r.risk)} | ${cell(r.effort)} | ${r.attempts} | $${r.cost.toFixed(4)} | ${cell(r.review)} | ${cell(r.merged)} | ${cell(r.branch)} | ${cell(r.files)} | ${cell(r.log)} | ${r.minutes} |`,
+        `| ${cell(r.id)} | ${r.status} | ${cell(r.risk)} | ${cell(r.worker)} | ${cell(r.reviewer)} | ${cell(r.effort)} | ${r.attempts} | $${r.cost.toFixed(4)} | ${cell(r.tokens)} | ${cell(r.workerMinutes)} | ${cell(r.review)} | ${cell(r.merged)} | ${cell(r.branch)} | ${cell(r.files)} | ${cell(r.log)} | ${r.minutes} |`,
     ),
     '',
     ...rows
@@ -104,6 +135,7 @@ function writeReport(final) {
   writeFileSync(reportPath, lines.filter((l, i) => l !== '' || lines[i - 1] !== '').join('\n'));
 }
 function moveTask(t, status) {
+  if (status === 'TẠM DỪNG') return; // hết hạn mức: để lại hàng đợi, chạy lại sau
   const dest = join(status === 'ĐẠT' ? DIRS.done : status === 'BLOCKED' ? DIRS.blocked : DIRS.failed, basename(t.file));
   try {
     renameSync(t.file, dest);
@@ -145,7 +177,7 @@ function runScript(script, argv, timeoutMs) {
 // ĐẠT → review (flash#max). Rủi ro thấp + không cờ → factory-merge (rebase + check + e2e) → xoá worktree/nhánh worker.
 async function reviewAndMerge(t, r) {
   console.log(`  review ${t.id}…`);
-  const rv = await runScript(REVIEW, [t.file, '--branch', `agent/${t.id}`, '--base', base], 15 * 60 * 1000);
+  const rv = await runScript(REVIEW, [t.file, '--branch', `agent/${t.id}`, '--base', base, '--worker', r.worker.split(' → ').at(-1)], 15 * 60 * 1000);
   let review = null;
   try {
     review = JSON.parse(readFileSync(join(ROOT, 'logs', `${t.id}-review.json`), 'utf8'));
@@ -156,6 +188,7 @@ async function reviewAndMerge(t, r) {
     return;
   }
   r.cost += review.cost || 0;
+  r.reviewer = review.reviewer ? `${review.reviewer}${review.skipped ? ` (${review.skipped.join(', ')})` : ''}` : '—';
   r.flags = review.flags ?? [];
   r.review = review.verdict === 'ok' ? 'ok · 0 cờ' : `${review.verdict} · ${r.flags.length} cờ`;
   if (!autoMerge) r.merged = 'không (--no-merge)';
@@ -197,13 +230,21 @@ async function main() {
         minutes: 0,
         tail: t.problems.join('\n'),
         risk: t.risk ?? '—',
+        worker: t.worker ?? '—',
+        reviewer: '—',
+        tokens: '—',
+        workerMinutes: '—',
         effort: '—',
         review: '—',
         merged: '—',
         flags: [],
       };
     } else {
-      const res = await runScript(RUN, [t.file, '--base', base], taskTimeoutMs);
+      const res = await runScript(
+        RUN,
+        [t.file, '--base', base, '--worker', t.worker, ...(t.fallback ? ['--fallback', t.fallback] : [])],
+        taskTimeoutMs,
+      );
       const outFile = join(ROOT, 'logs', `batch-${t.id}.out.txt`);
       try {
         writeFileSync(outFile, res.out);
@@ -221,7 +262,9 @@ async function main() {
               ? 'TRƯỢT'
               : res.code === 3
                 ? 'BLOCKED'
-                : 'LỖI',
+                : res.code === 4
+                  ? 'TẠM DỪNG'
+                  : 'LỖI',
         question: field(res.out, 'Câu hỏi'),
         attempts: attemptsField.split(' ')[0] || '—',
         model: res.code === 0 ? lastModel : models || '—',
@@ -232,12 +275,23 @@ async function main() {
         minutes: res.minutes,
         tail: res.out.trim().split('\n').slice(-15).join('\n'),
         risk: field(res.out, 'Rủi ro') || t.risk,
+        worker: field(res.out, 'Worker') || t.worker,
+        reviewer: '—',
+        tokens: field(res.out, 'Token').split(' (')[0] || '—',
+        workerMinutes: field(res.out, 'Phút worker') || '—',
         effort: field(res.out, 'Suy luận') || '—',
         review: '—',
         merged: '—',
         flags: [],
       };
       if (res.code === 0) await reviewAndMerge(t, r);
+      if (res.code === 4) {
+        // Hết hạn mức: dừng cả batch (task sau cũng sẽ hết), xoá worktree dở để chạy lại được.
+        stopped = `${field(res.out, 'Trạng thái').replace(/^TẠM DỪNG — /, '')} — đăng nhập/nạp tiền rồi chạy lại lệnh batch`;
+        spawnSync('git', ['worktree', 'remove', '--force', resolve(ROOT, '..', `wt-${t.id}`)], { cwd: ROOT });
+        spawnSync('git', ['branch', '-D', `agent/${t.id}`], { cwd: ROOT });
+        r.branch = '— (đã xoá, chạy lại sau)';
+      }
       if (res.code === 2 && /repo chính/.test(res.out)) stopped = `chốt chặn repo chính kích hoạt ở ${t.id} — kiểm tra \`git status\` repo chính`;
     }
     cost += r.cost;
