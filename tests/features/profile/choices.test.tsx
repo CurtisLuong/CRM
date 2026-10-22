@@ -104,7 +104,9 @@ describe('schema-compatible profile choices', () => {
     },
   );
 
-  it.each([{ owner_id: 'u2' }, { archived_at: '2026-10-17T00:00:00.000Z' }])(
+  // D-025 (2026-10-22): khách đồng nghiệp chưa lưu trữ nay sửa được thông tin (tests/e2e/d025-team-info-edit.spec.ts);
+  // khách đã lưu trữ — của mình hay của đồng nghiệp — vẫn chỉ xem.
+  it.each([{ archived_at: '2026-10-17T00:00:00.000Z' }, { owner_id: 'u2', archived_at: '2026-10-17T00:00:00.000Z' }])(
     'keeps choices read-only for %j',
     async (overrides) => {
       customer = { ...customer, ...overrides };

@@ -10,6 +10,7 @@ import type { Customer } from '@/domain/customer';
 import { customerBrief } from '@/domain/customer/brief';
 import { factPatch } from '@/domain/customer/facts';
 import { callAttemptsOf, normStage, openTasksOf, sourceListOf } from '@/domain/customer/normalize';
+import { canEditTeamInfo, isTeamInfoPatch } from '@/domain/customer/teamEdit';
 import { customerTimeline } from '@/domain/customer/timeline';
 import { taskDueInfo } from '@/domain/deadlines';
 import { forStage } from '@/domain/followup';
@@ -71,7 +72,10 @@ function Profile() {
   const [docs, setDocs] = useState<DocumentRow[]>([]);
   const [docError, setDocError] = useState('');
   const writable = !!customer && !!account && customer.owner_id === account.sync.local.userId && !customer.archived_at;
-  const readOnly = !!customer && !writable;
+  // Khách nhóm (D-025): người đang thấy khách sửa được thông tin hồ sơ + ghi chú; việc chăm sóc vẫn của người phụ trách.
+  const teamInfo = !writable && !!account && canEditTeamInfo(customer, account.sync.local.userId);
+  const infoWritable = writable || teamInfo;
+  const readOnly = !!customer && !infoWritable;
   const otherOwner = !!customer?.owner_id && !!account && customer.owner_id !== account.sync.local.userId;
   const stage = normStage(customer?.care_stage) || '';
   const sla = customer ? slaStatus(customer, now) : null;
@@ -115,7 +119,7 @@ function Profile() {
   }
   const c: Customer = customer;
   const save = async (patch: Record<string, unknown>, message = 'Đã lưu trên thiết bị'): Promise<boolean> => {
-    if (!writable || !account || busy) return false;
+    if (!account || busy || !(writable || (teamInfo && isTeamInfoPatch(patch)))) return false;
     if ('phone' in patch && !String(patch.phone || '').trim()) {
       toast({ title: 'Số điện thoại là thông tin bắt buộc', tone: 'error' });
       return false;
@@ -148,7 +152,7 @@ function Profile() {
       actions={[
         { icon: 'call', label: 'Gọi', disabled: !writable, onClick: () => openQuickAction(c.id, 'call') },
         { icon: 'message', label: 'Zalo', disabled: !writable, onClick: () => openQuickAction(c.id, 'zalo') },
-        { icon: 'note', label: 'Ghi chú', disabled: !writable, onClick: () => openQuickAction(c.id, 'note') },
+        { icon: 'note', label: 'Ghi chú', disabled: !infoWritable, onClick: () => openQuickAction(c.id, 'note') },
         { icon: 'call_sched', label: 'Hẹn', disabled: !writable, onClick: () => openQuickAction(c.id, 'schedule') },
       ]}
       // Desktop: thanh nút nằm trong thẻ đầu hồ sơ → thẳng lề nội dung thẻ, không lấn ra mép.
@@ -263,53 +267,58 @@ function Profile() {
         <Field
           label="Họ tên"
           value={c.full_name}
-          disabled={!writable}
+          disabled={!infoWritable}
           onSave={(value) => setField('full_name', value)}
         />
         <Field
           label="Số điện thoại"
           value={c.phone}
-          disabled={!writable}
+          disabled={!infoWritable}
           onSave={(value) => setField('phone', value)}
         />
         <ChoiceField
           label="Giới tính"
           value={c.gender}
-          disabled={!writable || busy}
+          disabled={!infoWritable || busy}
           options={GENDER_OPTIONS}
           onSave={(value) => setField('gender', value)}
         />
         <ChoiceField
           label="Tình trạng hôn nhân"
           value={c.marital_status}
-          disabled={!writable || busy}
+          disabled={!infoWritable || busy}
           options={MARITAL_STATUS_OPTIONS}
           onSave={(value) => setField('marital_status', value)}
         />
         <ChoiceField
           label="Nghề nghiệp"
           value={c.occupation}
-          disabled={!writable || busy}
+          disabled={!infoWritable || busy}
           options={OCCUPATIONS.map((value) => ({ value, label: value }))}
           onSave={(value) => setField('occupation', value)}
         />
-        <Field label="Thu nhập" value={c.income} disabled={!writable} onSave={(value) => setField('income', value)} />
+        <Field
+          label="Thu nhập"
+          value={c.income}
+          disabled={!infoWritable}
+          onSave={(value) => setField('income', value)}
+        />
         <Field
           label="Nơi ở"
           value={c.residence}
-          disabled={!writable}
+          disabled={!infoWritable}
           onSave={(value) => setField('residence', value)}
         />
       </section>
       <CustomerMemory
         customer={c}
-        writable={writable}
+        writable={infoWritable}
         onSave={(patch, message) => void save(patch, message)}
         now={now}
       />
       <ProfileAdvanced
         customer={c}
-        writable={writable}
+        writable={infoWritable}
         now={now}
         onSaveField={(field, value) => setField(field as keyof Customer, value)}
         onSaveAdvanced={setAdvancedField}
@@ -323,14 +332,14 @@ function Profile() {
         <ChoiceField
           label="Mục đích mua"
           value={c.purpose}
-          disabled={!writable || busy}
+          disabled={!infoWritable || busy}
           options={PURPOSE_OPTIONS}
           onSave={(value) => setField('purpose', value)}
         />
         <Field
           label="Dự án quan tâm"
           value={(c.projects || []).join(', ')}
-          disabled={!writable}
+          disabled={!infoWritable}
           onSave={(value) =>
             setField(
               'projects',
@@ -344,20 +353,20 @@ function Profile() {
         <Field
           label="Loại căn"
           value={c.apt_type}
-          disabled={!writable}
+          disabled={!infoWritable}
           onSave={(value) => setField('apt_type', value)}
         />
         <div className="grid grid-cols-2 gap-3">
           <Field
             label="Diện tích (m²)"
             value={c.apt_area}
-            disabled={!writable}
+            disabled={!infoWritable}
             onSave={(value) => setField('apt_area', value === '' ? null : Number(value))}
           />
           <Field
             label="Tài chính sẵn có (VNĐ)"
             value={c.finance}
-            disabled={!writable}
+            disabled={!infoWritable}
             onSave={(value) => setField('finance', value === '' ? null : Number(value))}
           />
         </div>
@@ -365,13 +374,13 @@ function Profile() {
           <Field
             label="Mã toà"
             value={c.building_code}
-            disabled={!writable}
+            disabled={!infoWritable}
             onSave={(value) => setField('building_code', value)}
           />
           <Field
             label="Mã căn"
             value={c.apt_code}
-            disabled={!writable}
+            disabled={!infoWritable}
             onSave={(value) => setField('apt_code', value)}
           />
         </div>
@@ -379,13 +388,13 @@ function Profile() {
           <Field
             label="Hướng"
             value={c.apt_direction}
-            disabled={!writable}
+            disabled={!infoWritable}
             onSave={(value) => setField('apt_direction', value)}
           />
           <Field
             label="Tầng"
             value={c.apt_floor}
-            disabled={!writable}
+            disabled={!infoWritable}
             onSave={(value) => setField('apt_floor', value === '' ? null : Number(value))}
           />
         </div>
@@ -401,7 +410,7 @@ function Profile() {
               key={field.key}
               label={field.label}
               value={c.advanced?.[field.key]}
-              disabled={!writable}
+              disabled={!infoWritable}
               placeholder={field.ph}
               legacy={legacyValues(c.advanced || {}, PREF_CONDITIONS_LEGACY)}
               onSave={(value) => setAdvancedField(field.key, value)}
@@ -411,7 +420,7 @@ function Profile() {
               key={field.key}
               label={field.label}
               value={c.advanced?.[field.key]}
-              disabled={!writable}
+              disabled={!infoWritable}
               placeholder={field.ph}
               onSave={(value) => setAdvancedField(field.key, value)}
             />
@@ -543,6 +552,12 @@ function Profile() {
         </label>
       </div>
       {readOnly && <p className="text-small text-text-2">Bạn chỉ có quyền xem; thao tác sửa và tải lên đã khoá.</p>}
+      {teamInfo && (
+        <p className="text-small text-text-2">
+          Khách của đồng nghiệp: bạn sửa được thông tin và thêm ghi chú; bậc, cuộc gọi, lịch, ảnh và tài liệu do người
+          phụ trách quản lý.
+        </p>
+      )}
     </section>
   );
   const tabs = [
@@ -611,6 +626,7 @@ function Profile() {
                   <div className="flex flex-wrap items-center gap-2">
                     <h1 className="min-w-0 truncate text-title">{c.full_name}</h1>
                     {readOnly && <Badge>Chỉ xem</Badge>}
+                    {teamInfo && <Badge>Khách nhóm · sửa thông tin</Badge>}
                   </div>
                   <p className="font-data text-mono-data text-text-2">{c.phone}</p>
                 </div>

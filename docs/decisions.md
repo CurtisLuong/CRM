@@ -34,7 +34,7 @@ Lựa chọn nền tảng ban đầu (Supabase, Cloudflare Pages, local-first) k
 | D-022 | T6.7 nghiệm thu không cần bộ đánh giá 50–100 ghi chú thật; theo dõi trên production | Ngoại lệ cục bộ đã duyệt 2026-10-17 | Chỉ T6.7 |
 | D-023 | Design System v4 "Precision Tonal" + 5 luật UI đo được | Đã duyệt 2026-10-19 | Áp dụng cho v3 (nhánh `factory`) |
 | D-024 | Đợt v3 chạy bằng AI Factory trên nhánh `factory`; task cũ T5.5, T6.3 tạm hoãn | Đã duyệt 2026-10-18 | Áp dụng tới khi v3 lên production |
-| D-025 | Khách nhóm: người đang thấy được sửa thông tin + thêm ghi chú; không SLA/nhắc việc | Đã duyệt 2026-10-22, chưa code phần quyền | Nới D-003 |
+| D-025 | Khách nhóm: người đang thấy được sửa thông tin + thêm ghi chú; không SLA/nhắc việc | Đã duyệt + code 2026-10-22; SQL 010 đã chạy staging, chưa production | Nới D-003 |
 
 ## Ba loại kết quả
 
@@ -406,5 +406,6 @@ Ví dụ và mẫu trong bộ tài liệu không phải sự chấp thuận cho 
   - **Được:** sửa thông tin hồ sơ và thêm ghi chú. **Không được:** đổi bậc, ghi cuộc gọi, đặt lịch/việc, giao khách, lưu trữ — vẫn là việc của người phụ trách.
   - Khách nhóm **không tính SLA** với người xem: không ghim, không chữ "Quá SLA", không thanh SLA, không hoàn tác SLA (CL-01, CL-02). Nhắc việc vẫn chỉ cho người phụ trách (giữ D-003).
 - Cần làm (rủi ro cao, Lead làm): migration chỉ-thêm `SQL/v2/010_*` (policy update + trigger chặn cột ngoài danh sách cho người không phụ trách), nới `assertWritable`/đồng bộ ở `src/data/**` theo đúng danh sách cột, hồ sơ mở khoá các ô thông tin. Hai người cùng sửa: ghi theo trường + mảng gộp theo phần tử (D-021), last-write-wins từng trường.
-- Trạng thái: CL-01/CL-02 (phần SLA) xếp hàng 2026-10-22; phần quyền sửa chưa code, chưa có SQL.
+- Trạng thái: CL-01/CL-02 (phần SLA) đã merge `factory` 2026-10-22. Phần quyền: Lead code 2026-10-22 — `src/domain/customer/teamEdit.ts`, `CustomerRepository.write`, hồ sơ (ô thông tin + nút Ghi chú mở cho khách nhóm; Gọi/Zalo/Hẹn/đổi bậc/việc/ảnh/tài liệu/lưu trữ vẫn khoá). `SQL/v2/010_team_info_edit.sql` đã chạy **staging** + `tests/sql/010_team_info_edit.test.sql` đạt 6/6. Production: Curtis chạy 010 (sau backup) **trước** khi deploy app — nếu app lên trước, sửa của người theo dõi bị server bỏ qua im lặng (RLS trả 0 dòng).
+- Tài liệu đã cập nhật: `AGENTS.md`, `CLAUDE.md`, `docs/ARCHITECTURE.md`, `docs/huong-dan-nhom.md`.
 

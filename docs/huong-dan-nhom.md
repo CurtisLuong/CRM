@@ -18,7 +18,7 @@ Mở hồ sơ khách (hoặc hộp Khách mới) → **👥 Giao khách** → ch
 
 | Chọn | Kết quả |
 |---|---|
-| **Tôi vẫn theo dõi** | Đồng nghiệp phụ trách. Khách chuyển sang nhóm **Khách nhóm** với nhãn `👤 Tên`, bạn **chỉ xem** (không sửa, không ghi cuộc gọi). |
+| **Tôi vẫn theo dõi** | Đồng nghiệp phụ trách. Khách chuyển sang nhóm **Khách nhóm** với nhãn `👤 Tên`, bạn **sửa được thông tin hồ sơ và thêm ghi chú** (D-025); đổi bậc, ghi cuộc gọi, hẹn lịch vẫn là việc của người phụ trách. Không tính SLA cho bạn. |
 | **Giao hẳn** | Đồng nghiệp phụ trách. Khách biến khỏi danh sách của bạn. Là trưởng nhóm, bạn vẫn xem được ở nhóm **Khách nhóm**. |
 
 - Có ô ghi chú cho người nhận (vd "khách hẹn xem nhà mẫu thứ 7"). Việc giao được ghi vào dòng thời gian chăm sóc của khách.
@@ -30,7 +30,7 @@ Mở hồ sơ khách (hoặc hộp Khách mới) → **👥 Giao khách** → ch
 Tab **Khách hàng** chia 3 nhóm (dải tab ngay dưới thanh tìm kiếm):
 - **Tiềm năng**: khách bạn đang phụ trách (đã Đạt).
 - **Khách mới**: khách mới bạn đang phụ trách (chưa Đạt).
-- **Khách nhóm**: khách đồng nghiệp phụ trách mà bạn thấy được — khách đã giao nhưng bạn vẫn theo dõi; trưởng nhóm thấy thêm mọi khách của nhóm (kể cả khách đã giao hẳn). Thẻ có nhãn `👤 Tên người phụ trách`; mở ra chỉ xem.
+- **Khách nhóm**: khách đồng nghiệp phụ trách mà bạn thấy được — khách đã giao nhưng bạn vẫn theo dõi; trưởng nhóm thấy thêm mọi khách của nhóm (kể cả khách đã giao hẳn). Thẻ có nhãn `👤 Tên người phụ trách`; mở ra sửa được thông tin + ghi chú, việc chăm sóc vẫn khoá.
   - Trưởng nhóm: Bộ lọc (icon phễu) → **Người phụ trách**: Tất cả · Tôi đang theo dõi · từng đồng nghiệp.
 
 ## Ai được làm gì

@@ -216,3 +216,4 @@ on conflict (name, owner_id) do nothing;
 --                                              hàm fb_attach_lead (cần SQL/add_fb_leads.sql)
 --      SQL/v2/008_fb_leads_service_grant.sql → service_role được select/insert/update fb_leads (Worker Meta Lead Ads)
 --      SQL/v2/009_lead_campaign_projects.sql → bảng quy tắc tên chiến dịch → dự án (người nhận lead sửa, Worker đọc)
+--      SQL/v2/010_team_info_edit.sql        → khách nhóm (D-025): người theo dõi được UPDATE, trigger chỉ cho đổi cột thông tin hồ sơ (cần SQL/add_team_assign.sql)
