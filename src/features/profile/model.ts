@@ -1,7 +1,13 @@
 import { ICON_FALLBACK, type IconName, STAGE_ICON, STAGE_ICON_FALLBACK } from '@/config/icons';
 import { CLOSE_REASONS, LEAD_DROP_REASONS } from '@/config/reasons';
-import { CARE_STAGE_OPTIONS, INTEREST_TIERS } from '@/config/stages';
-import { VELOCITY_CONFIG } from '@/config/velocity';
+import {
+  CARE_STAGE_BRANCH,
+  CARE_STAGE_DISPLAY,
+  CARE_STAGE_DROPPED,
+  CARE_STAGE_PICKER_ORDER,
+  CARE_STAGE_WON,
+  INTEREST_TIERS,
+} from '@/config/stages';
 import type { Customer } from '@/domain/customer';
 import type { BriefFact } from '@/domain/customer/brief';
 import { interactionTitle, LEAD_FORM_KIND } from '@/domain/customer/interactions';
@@ -104,12 +110,27 @@ export function extraFacts(customer: Customer, now: number): { label: string; va
   return rows.filter(([, v]) => v).map(([label, value]) => ({ label, value }));
 }
 
-/** Bậc được chọn trong sheet: giữ nguyên danh sách cũ, thêm bậc hiện tại nếu nằm ngoài phễu. */
+/**
+ * Bậc trong sheet đổi bậc: thứ tự CARE_STAGE_PICKER_ORDER (Nuôi dài hạn là nhánh của Đang chăm sóc,
+ * đứng ngay sau bậc đó — Curtis 2026-10-22). Kí HĐMB / Loại không chọn tay ở đây; bậc hiện tại nằm
+ * ngoài danh sách (đã chốt/loại) vẫn đứng đầu để radio checked.
+ */
 export function stageChoicesFor(current: string): string[] {
-  const options = CARE_STAGE_OPTIONS.filter(
-    (option) => option !== VELOCITY_CONFIG.stageWon && option !== 'Loại',
+  const options = CARE_STAGE_PICKER_ORDER.filter(
+    (option) => option !== CARE_STAGE_WON && option !== CARE_STAGE_DROPPED,
   ) as string[];
   return current && !options.includes(current) ? [current, ...options] : options;
+}
+
+export type StageChoiceRow = { stage: string; label: string; hint?: string };
+
+/** Dòng bậc cho sheet: nhãn hiển thị + lời giải thích nhánh (CARE_STAGE_BRANCH) để vẽ dấu nhánh. */
+export function stageChoiceRows(current: string): StageChoiceRow[] {
+  return stageChoicesFor(current).map((stage) => ({
+    stage,
+    label: CARE_STAGE_DISPLAY[stage] || stage,
+    hint: CARE_STAGE_BRANCH[stage]?.hint,
+  }));
 }
 
 /** Vạch trái của việc theo taskDueInfo (D-010, DS v4): quá hạn → đỏ, đến hạn (trong 30 phút ân hạn) → vàng. */

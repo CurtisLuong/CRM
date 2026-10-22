@@ -1,6 +1,6 @@
 import { ADVANCED_FIELDS } from '@/config/advanced';
 import { SOURCE_DEFAULT, SOURCES } from '@/config/sources';
-import { CARE_STAGE_DEFAULT, INTEREST_DEFAULT_NEW, QUALIFIED_STAGE } from '@/config/stages';
+import { CARE_STAGE_BRANCH, CARE_STAGE_DEFAULT, INTEREST_DEFAULT_NEW, QUALIFIED_STAGE } from '@/config/stages';
 import type { Customer } from '@/domain/customer';
 import { sourceListOf } from '@/domain/customer';
 import { canonicalAptType } from '@/domain/customer/aptType';
@@ -14,6 +14,15 @@ export function lastUsedSource(rows: readonly Customer[]): string {
   );
   const code = latest.flatMap((customer) => sourceListOf(customer.source))[0];
   return code && SOURCES[code] ? code : SOURCE_DEFAULT;
+}
+
+/**
+ * Nhãn ô Tiến độ: Nuôi dài hạn là nhánh của Đang chăm sóc (Curtis 2026-10-22) — thêm dấu nhánh và
+ * lời giải thích CARE_STAGE_BRANCH. Giá trị lưu (care_stage) vẫn là tên bậc, không đổi.
+ */
+export function stageOptionLabel(stage: string): string {
+  const branch = CARE_STAGE_BRANCH[stage];
+  return branch ? `↳ ${stage} · ${branch.hint}` : stage;
 }
 
 export function defaultIntakeValues(source = SOURCE_DEFAULT): IntakeValues {
