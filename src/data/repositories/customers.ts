@@ -2,6 +2,7 @@
 // biome-ignore-all lint/suspicious/noExplicitAny: Preserve unknown legacy and future JSON fields without projecting the aggregate.
 import type { Customer } from '@/domain/customer';
 import { buildCustomerMerge } from '@/domain/customer/merge';
+import { canEditTeamInfo, isTeamInfoPatch } from '@/domain/customer/teamEdit';
 import { captureArrayBase } from '../arrayMerge';
 import { ReadOnlyError, STORE_CUSTOMERS, STORE_QUEUE, sameRecord } from '../localdb';
 import { type AssignmentRollback, type QueueOp, queueCount } from '../queue';
@@ -64,9 +65,13 @@ export class CustomerRepository {
         try {
           local.assertOpen();
           const existing = read.result as Data | undefined;
-          if (!assign && existing?.owner_id && existing.owner_id !== local.userId) throw new ReadOnlyError();
+          const otherOwner = !assign && !!existing?.owner_id && existing.owner_id !== local.userId;
+          // Khách đồng nghiệp: chỉ được vá cột thông tin hồ sơ (D-025); còn lại vẫn chỉ người phụ trách (D-003).
+          if (otherOwner && !canEditTeamInfo(existing, local.userId)) throw new ReadOnlyError();
           const mutation = change(existing);
           if (!mutation) return;
+          if (otherOwner && (mutation.op.type !== 'update' || !isTeamInfoPatch(mutation.op.payload as Data)))
+            throw new ReadOnlyError();
           store.put(mutation.record);
           tx.objectStore(STORE_QUEUE).add(withArrayBase(mutation.op, existing));
           result = mutation.record as Customer;

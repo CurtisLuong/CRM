@@ -164,7 +164,9 @@ describe('repository operations match real v1 payloads and local records', () =>
       owner_id: { present: true, value: UID },
       followers: { present: false },
     });
-    await expect(p.repo.addNote(ID, 'bad')).rejects.toMatchObject({ code: 'READ_ONLY' });
+    // D-025 (2026-10-22): ghi chú/thông tin của khách đồng nghiệp được phép (tests/data/team-edit.test.ts);
+    // việc chăm sóc như đổi bậc vẫn chỉ người phụ trách.
+    await expect(p.repo.update(ID, { care_stage: 'Xem dự án' })).rejects.toMatchObject({ code: 'READ_ONLY' });
     await p.repo.assign(ID, UID);
     await p.repo.remove(ID);
     expect(await p.repo.list()).toEqual([]);

@@ -25,7 +25,7 @@ Code: `src/` — Vite + React 19 + TypeScript strict + Tailwind v4 + Radix (D-01
 
 1. **Bảo toàn dữ liệu (D-012) — ưu tiên cao nhất.** Migration chỉ *thêm* (cấm drop/rename/đổi kiểu/đổi nghĩa mã đã lưu/update hàng loạt). Ghi theo trường (patch), không làm rơi trường hoặc thuộc tính JSONB lạ. Xoá mềm. Đọc/ghi được IndexedDB và hàng đợi của v1. Chi tiết: `docs/ARCHITECTURE.md` §3.
 2. **Local-first:** đọc IndexedDB trước; ghi local ngay + hàng đợi đồng bộ lên Supabase; xung đột last-write-wins theo `updated_at`. **Đọc lỗi ≠ dữ liệu trống.**
-3. **Quyền:** RLS **và** GRANT, không bỏ lớp nào. Chỉ người phụ trách ghi khách (D-003). Không đưa service-role key vào frontend.
+3. **Quyền:** RLS **và** GRANT, không bỏ lớp nào. Chỉ người phụ trách ghi khách (D-003); người đang thấy khách nhóm chỉ sửa thông tin hồ sơ + thêm ghi chú (D-025, `src/domain/customer/teamEdit.ts`). Không đưa service-role key vào frontend.
 4. **Field bắt buộc:** `phone`, `full_name`, `owner_id`; thông tin khác thu thập dần (nullable).
 5. **Một nguồn cấu hình — sửa 1 nơi là đổi toàn app:** khung giờ gọi, nhịp follow-up, mẫu Zalo (D-005) `src/config/followup.ts` · bậc phễu, SLA, tự chuyển, checklist Booking (D-008) `src/config/velocity.ts` · icon (D-006) `src/config/icons.ts` · đến hạn/quá hạn (D-010) `src/domain/deadlines` · ưu tiên việc, gợi ý, thông báo (D-015) `src/domain/signals` + `src/config/signals.ts` · bậc, nguồn, kết quả gọi, lý do, loại việc, loại căn `src/config/*` · nhãn hiển thị `src/ui/display.ts`.
 6. **Tự động hoá theo quy tắc đã duyệt (D-008, D-010):** quá hạn mức SLA ở giai đoạn có cấu hình tự chuyển → app tự chuyển + tạo lịch kèm theo; giữ lịch sử, thông báo, Hoàn tác. Không mở rộng automation sang giai đoạn/hành động chưa duyệt.
@@ -62,11 +62,12 @@ BLOCKED: <câu hỏi cụ thể cho Lead, kèm 1–2 phương án và hệ quả
 
 BLOCKED không bị tính là trượt; Lead trả lời rồi xếp lại task.
 
-## 6. Báo cáo cuối (bắt buộc, đúng 3 mục)
+## 6. Báo cáo cuối (bắt buộc, đúng 4 mục)
 
 1. **Đã làm gì** — hành vi người dùng thấy, file chính đã đổi, test đã thêm.
 2. **Quyết định thiết kế tự đưa ra + lý do** — chỗ nào bạn chọn một trong nhiều cách.
 3. **Điều chưa chắc / đề xuất ngoài phạm vi** — kể cả lỗi thấy được nhưng không thuộc task.
+4. **Checklist nghiệm thu** — mỗi mục trong "## Nghiệm thu" của task một dòng `✓`/`✗` kèm bằng chứng: lệnh đã chạy + kết quả, hoặc tên test kiểm mục đó. Mục chưa đạt ghi rõ vì sao.
 
 ## 7. Lệnh và quy ước code
 

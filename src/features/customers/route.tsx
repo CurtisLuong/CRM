@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router';
 import type { FeatureRoute } from '@/app/routes';
 import { APT_TYPES } from '@/config/aptTypes';
 import { SOURCES } from '@/config/sources';
-import { CARE_STAGE_DISPLAY, CARE_STAGE_OPTIONS } from '@/config/stages';
+import { CARE_STAGE_BRANCH, CARE_STAGE_DISPLAY, CARE_STAGE_PICKER_ORDER } from '@/config/stages';
 import { useCustomers, useRepositoryAccount, useSyncStatus } from '@/data/hooks';
 import type { Customer } from '@/domain/customer';
 import { callAttemptsOf, isQualified, normStage, sourceListOf } from '@/domain/customer/normalize';
@@ -17,13 +17,21 @@ import {
   type TeamMember,
 } from '@/features/team/model';
 import { Avatar, Badge, Button, CustomerCard, cn, IconButton, Sheet, useToast } from '@/ui';
+import { CalendarRange } from './CalendarRange';
 import {
   type CustomerFilters,
   type CustomerGroup,
+  customDateLabel,
   customerGroupCounts,
+  type DatePreset,
   DEFAULT_FILTERS,
   DEFAULT_SORT,
+  dayKey,
+  defaultFiltersFor,
+  isFilterDirty,
   listCardSub,
+  normalizeFilters,
+  parseDayKey,
   parseSortChoice,
   type SortChoice,
   sortCustomers,
@@ -51,6 +59,9 @@ type TeamPerson = {
 const STORE = 'crm_v2_customer_segments';
 // Chiều sắp xếp 3 tầng nhớ theo người dùng trên thiết bị (L4).
 const SORT_STORE = 'crm_v2_customer_sort';
+// Nhóm + bộ lọc + ô tìm nhớ trong phiên tab: rời màn (mở hồ sơ) rồi quay lại vẫn đúng chỗ (CL-01 L7).
+// sessionStorage: tab mới = phiên mới → về Tiềm năng như trước.
+const VIEW_STORE = 'crm_v2_customer_view';
 // Thẻ gọn cao 64px + khe 8px = 72px; virtualWindow cần đúng nhịp này.
 const CARD_HEIGHT = 64;
 const CARD_GAP = 8;
@@ -86,45 +97,74 @@ function saveSort(userId: string, choice: SortChoice) {
   }
 }
 
+type StoredView = { group: CustomerGroup; filters: CustomerFilters };
+
+/** Đọc nhóm + bộ lọc của phiên này; dữ liệu hỏng/thiếu → null (về mặc định). */
+function loadView(userId: string): StoredView | null {
+  try {
+    const raw = JSON.parse(sessionStorage.getItem(`${VIEW_STORE}:${userId}`) || 'null') as unknown;
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+    const value = raw as { group?: unknown; filters?: unknown };
+    const group =
+      value.group === 'new' || value.group === 'team' || value.group === 'potential' ? value.group : 'potential';
+    return { group, filters: normalizeFilters(value.filters) };
+  } catch {
+    return null;
+  }
+}
+
+function saveView(userId: string, group: CustomerGroup, filters: CustomerFilters) {
+  if (!userId) return;
+  try {
+    sessionStorage.setItem(`${VIEW_STORE}:${userId}`, JSON.stringify({ group, filters }));
+  } catch {
+    // Không nhớ được thì chỉ mất vị trí khi quay lại, danh sách vẫn chạy.
+  }
+}
+
 type SortToggleProps<K extends keyof SortChoice> = {
   label: string;
   value: SortChoice[K];
-  /** Hai chiều, chiều mặc định đứng trước (aria-pressed = đang ở chiều mặc định). */
-  choices: readonly [{ value: SortChoice[K]; text: string }, { value: SortChoice[K]; text: string }];
+  /** Hai chiều: phần tử [0] là mặc định (aria-pressed = đang ở chiều mặc định). */
+  choices: readonly [
+    { value: SortChoice[K]; text: string; arrow: '↑' | '↓' },
+    { value: SortChoice[K]; text: string; arrow: '↑' | '↓' },
+  ];
   onChange: (value: SortChoice[K]) => void;
 };
 
 /**
- * Một nút đổi chiều cho một tầng: hiện cả hai chiều, chiều đang dùng sáng lên; bấm là chiều kia sáng
- * (Curtis 2026-10-22). Vùng chạm 44px, aria-pressed đọc được.
+ * Một hàng cho một tầng sắp xếp (Curtis 2026-10-22): tên tầng + hai mũi tên ngược chiều,
+ * chiều đang dùng sáng, chiều kia mờ. Cả hàng là một nút đổi chiều, vùng chạm 44px.
  */
 function SortToggle<K extends keyof SortChoice>({ label, value, choices, onChange }: SortToggleProps<K>) {
   const atFirst = choices[0].value === value;
   const current = atFirst ? choices[0] : choices[1];
   const next = atFirst ? choices[1] : choices[0];
+  const activeArrow = current.arrow;
   return (
-    <div className="space-y-1">
-      <span className="block text-small text-text-2">{label}</span>
-      <button
-        type="button"
-        aria-label={`${label}: ${current.text}`}
-        aria-pressed={atFirst}
-        onClick={() => onChange(next.value)}
-        className="flex min-h-11 w-full gap-1 rounded-control border border-border bg-surface-2 p-1 focus-visible:outline-2 focus-visible:outline-focus"
-      >
-        {choices.map((choice) => (
+    <button
+      type="button"
+      aria-label={`${label}: ${current.text}`}
+      aria-pressed={atFirst}
+      onClick={() => onChange(next.value)}
+      className="flex min-h-11 w-full items-center justify-between gap-3 rounded-control border border-border bg-surface px-3 text-left transition-colors duration-(--dur-fast) focus-visible:outline-2 focus-visible:outline-focus"
+    >
+      <span className="min-w-0 truncate text-body">{label}</span>
+      <span aria-hidden className="flex shrink-0 items-center gap-1">
+        {(['↑', '↓'] as const).map((arrow) => (
           <span
-            key={choice.value}
+            key={arrow}
             className={cn(
-              'flex min-w-0 flex-1 items-center justify-center truncate rounded-[8px] px-2 text-small font-semibold transition-colors duration-(--dur-fast)',
-              choice.value === value ? 'bg-accent-soft text-accent' : 'text-text-2',
+              'flex size-8 items-center justify-center rounded-[8px] text-body-strong',
+              arrow === activeArrow ? 'bg-accent-soft text-accent' : 'text-text-3',
             )}
           >
-            {choice.text}
+            {arrow}
           </span>
         ))}
-      </button>
-    </div>
+      </span>
+    </button>
   );
 }
 
@@ -158,6 +198,10 @@ function Customers() {
   const [viewportHeight, setViewportHeight] = useState(560);
   const [filterOpen, setFilterOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [dateDraft, setDateDraft] = useState<{ from: string; to: string } | null>(null);
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  // Chỉ lưu vị trí sau khi đã khôi phục xong, tránh ghi đè bằng mặc định lúc màn vừa dựng.
+  const [hydrated, setHydrated] = useState(false);
   const scrollRef = useRef<HTMLElement>(null);
 
   // One page scroll surface: list gestures can always reach the search chips above it.
@@ -190,6 +234,20 @@ function Customers() {
   useEffect(() => {
     if (userId) setSort(loadSort(userId));
   }, [userId]);
+
+  // Khôi phục nhóm + bộ lọc + ô tìm của phiên này (CL-01 L7); chỉ chạy khi biết người dùng.
+  useEffect(() => {
+    if (!userId) return;
+    const stored = loadView(userId);
+    setGroup(stored?.group ?? 'potential');
+    setFilters(stored?.filters ?? DEFAULT_FILTERS);
+    setHydrated(true);
+  }, [userId]);
+
+  useEffect(() => {
+    if (!userId || !hydrated) return;
+    saveView(userId, group, filters);
+  }, [userId, hydrated, group, filters]);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 60_000);
@@ -247,6 +305,7 @@ function Customers() {
         sort,
         now,
         filters.query.trim() !== '',
+        userId,
       ),
     [rows, group, filters, userId, sort, now],
   );
@@ -261,14 +320,64 @@ function Customers() {
     setFilters((prev) => ({ ...prev, [key]: value }));
     setScrollTop(0);
   };
+  /** Chọn preset ngày (trừ Tuỳ chọn): áp ngay, bỏ khoảng cũ. */
+  const applyDatePreset = (value: Exclude<DatePreset, 'custom'>) => {
+    setActiveSaved('');
+    setFilters((prev) => ({ ...prev, date: value, dateFrom: undefined, dateTo: undefined }));
+    setCalendarOpen(false);
+    setDateDraft(null);
+    setScrollTop(0);
+  };
+  /** Mở khung lịch với khoảng đang dùng (hoặc hôm nay) — chưa áp dụng. */
+  const openCalendar = () => {
+    const oldFrom = filters.date === 'custom' && parseDayKey(filters.dateFrom) ? filters.dateFrom : undefined;
+    const oldTo = filters.date === 'custom' && parseDayKey(filters.dateTo) ? filters.dateTo : undefined;
+    const from = oldFrom ?? dayKey(now);
+    setDateDraft({ from, to: oldTo ?? from });
+    setCalendarOpen(true);
+  };
+  const cancelCalendar = () => {
+    setCalendarOpen(false);
+    setDateDraft(null);
+  };
+  const confirmCalendar = () => {
+    if (!dateDraft) return;
+    const a = parseDayKey(dateDraft.from);
+    if (!a) return;
+    const b = parseDayKey(dateDraft.to) ?? a;
+    const from = dayKey(Math.min(a.getTime(), b.getTime()));
+    const to = dayKey(Math.max(a.getTime(), b.getTime()));
+    setActiveSaved('');
+    setFilters((prev) => ({ ...prev, date: 'custom', dateFrom: from, dateTo: to }));
+    setCalendarOpen(false);
+    setDateDraft(null);
+    setScrollTop(0);
+  };
+  /** "Xoá lọc" cạnh phễu: về mặc định của nhóm, giữ nguyên sắp xếp và ô tìm (CL-01 L3). */
+  const clearFilters = () => {
+    setFilters((prev) => ({ ...defaultFiltersFor(group), query: prev.query }));
+    setActiveSaved('');
+    setScrollTop(0);
+  };
+  /** Đóng sheet Lọc thì bỏ bản nháp lịch (chưa Xác nhận = chưa áp dụng). */
+  const handleFilterOpen = (open: boolean) => {
+    setFilterOpen(open);
+    if (!open) {
+      setCalendarOpen(false);
+      setDateDraft(null);
+    }
+  };
   const applySaved = (item: SavedSegment) => {
     setGroup(item.group);
-    setFilters(item.filters);
+    // Tệp lưu từ bản cũ thiếu trường mới → đọc như mặc định, không lỗi (CL-01).
+    setFilters(normalizeFilters(item.filters));
     const next = parseSortChoice(item.sort);
     setSort(next);
     saveSort(userId, next);
     setView(item.view);
     setActiveSaved(item.id);
+    setCalendarOpen(false);
+    setDateDraft(null);
     setScrollTop(0);
   };
   const persistSegments = async (next: SavedSegment[]) => {
@@ -328,6 +437,8 @@ function Customers() {
     setFilters(DEFAULT_FILTERS);
     setSort(DEFAULT_SORT);
     saveSort(userId, DEFAULT_SORT);
+    setCalendarOpen(false);
+    setDateDraft(null);
     setActiveSaved('');
     setScrollTop(0);
   };
@@ -419,33 +530,46 @@ function Customers() {
           </select>
         </label>
         <label className="text-small text-text-2">
-          Bậc
+          Bậc chăm sóc
           <select
-            aria-label="Lọc bậc"
+            aria-label="Lọc bậc chăm sóc"
             value={filters.stage}
             onChange={(e) => setFilter('stage', e.target.value)}
             className="mt-1 min-h-11 w-full rounded-control border border-border-strong bg-surface px-3 text-body text-text"
           >
-            <option value="">Tất cả bậc</option>
-            {CARE_STAGE_OPTIONS.map((s) => (
-              <option key={s} value={s}>
-                {CARE_STAGE_DISPLAY[s] || s}
-              </option>
-            ))}
+            <option value="">Tất cả bậc chăm sóc</option>
+            {CARE_STAGE_PICKER_ORDER.map((s) => {
+              const branch = CARE_STAGE_BRANCH[s];
+              return (
+                <option key={s} value={s}>
+                  {branch ? `↳ ${CARE_STAGE_DISPLAY[s] || s} · ${branch.hint}` : CARE_STAGE_DISPLAY[s] || s}
+                </option>
+              );
+            })}
           </select>
         </label>
         <label className="text-small text-text-2">
           Ngày đăng ký
           <select
             aria-label="Lọc ngày đăng ký"
-            value={filters.date}
-            onChange={(e) => setFilter('date', e.target.value as CustomerFilters['date'])}
+            value={calendarOpen ? 'custom' : filters.date}
+            onChange={(e) => {
+              const value = e.target.value as DatePreset;
+              if (value === 'custom') openCalendar();
+              else applyDatePreset(value);
+            }}
             className="mt-1 min-h-11 w-full rounded-control border border-border-strong bg-surface px-3 text-body text-text"
           >
             <option value="all">Mọi thời điểm</option>
+            <option value="yesterday">Hôm qua</option>
             <option value="today">Hôm nay</option>
             <option value="week">Tuần này</option>
             <option value="month">Tháng này</option>
+            <option value="custom">
+              {filters.date === 'custom'
+                ? customDateLabel(filters.dateFrom, filters.dateTo, new Date(now))
+                : 'Tuỳ chọn…'}
+            </option>
           </select>
         </label>
         <label className="text-small text-text-2">
@@ -503,17 +627,32 @@ function Customers() {
           </label>
         )}
       </div>
-      <fieldset className="space-y-2 rounded-card border border-hairline p-3">
+      {calendarOpen && dateDraft && (
+        <div className="space-y-1">
+          <p className="text-body-strong">Chọn ngày đăng ký</p>
+          <CalendarRange
+            from={dateDraft.from}
+            to={dateDraft.to}
+            now={new Date(now)}
+            onPick={(from, to) => setDateDraft({ from, to })}
+            onConfirm={confirmCalendar}
+            onCancel={cancelCalendar}
+          />
+        </div>
+      )}
+      {filters.date === 'custom' && !calendarOpen && (
+        <Button variant="ghost" icon="calendar" className="self-start" onClick={openCalendar}>
+          Chọn lại ngày
+        </Button>
+      )}
+      <fieldset className="space-y-1 rounded-card border border-hairline p-3">
         <legend className="px-1 text-body-strong">Sắp xếp</legend>
-        <p className="text-small text-text-2">
-          Ba tầng: ngày đăng ký → lần tương tác → tên. Khách cần gọi hoặc quá SLA luôn ở trên, trừ khi đang tìm.
-        </p>
         <SortToggle<'registered'>
           label="Ngày đăng ký"
           value={sort.registered}
           choices={[
-            { value: 'desc', text: 'Mới nhất' },
-            { value: 'asc', text: 'Cũ nhất' },
+            { value: 'desc', text: 'Mới nhất', arrow: '↓' },
+            { value: 'asc', text: 'Cũ nhất', arrow: '↑' },
           ]}
           onChange={(value) => changeSort({ ...sort, registered: value })}
         />
@@ -521,8 +660,8 @@ function Customers() {
           label="Lần tương tác"
           value={sort.touch}
           choices={[
-            { value: 'untouched', text: 'Chưa tương tác trước' },
-            { value: 'recent', text: 'Gần nhất trước' },
+            { value: 'untouched', text: 'Chưa tương tác trước', arrow: '↑' },
+            { value: 'recent', text: 'Gần nhất trước', arrow: '↓' },
           ]}
           onChange={(value) => changeSort({ ...sort, touch: value })}
         />
@@ -530,8 +669,8 @@ function Customers() {
           label="Tên"
           value={sort.name}
           choices={[
-            { value: 'asc', text: 'A–Z' },
-            { value: 'desc', text: 'Z–A' },
+            { value: 'asc', text: 'A–Z', arrow: '↑' },
+            { value: 'desc', text: 'Z–A', arrow: '↓' },
           ]}
           onChange={(value) => changeSort({ ...sort, name: value })}
         />
@@ -539,10 +678,10 @@ function Customers() {
     </div>
   );
 
-  const groupOptions: { value: CustomerGroup; label: string; count: number }[] = [
-    { value: 'potential', label: 'Tiềm năng', count: counts.potential },
-    { value: 'new', label: 'Khách mới', count: counts.leads },
-    ...(team.length || counts.team ? [{ value: 'team' as const, label: 'Khách nhóm', count: counts.team }] : []),
+  const groupOptions: { value: CustomerGroup; label: string }[] = [
+    { value: 'potential', label: 'Tiềm năng' },
+    { value: 'new', label: 'Khách mới' },
+    ...(team.length || counts.team ? [{ value: 'team' as const, label: 'Khách nhóm' }] : []),
   ];
   const range = virtualWindow(
     visible.length,
@@ -553,11 +692,11 @@ function Customers() {
   const slice = visible.slice(range.start, range.end);
 
   const list = (
-    <section ref={scrollRef} aria-label="Danh sách khách" className="mt-2">
+    <section ref={scrollRef} aria-label="Danh sách khách" className="mt-1">
       <div style={{ height: range.totalHeight, position: 'relative' }}>
         <ul className="flex flex-col gap-2" style={{ position: 'absolute', insetInline: 0, top: range.offset }}>
           {slice.map((customer) => {
-            const sub = listCardSub(customer, now);
+            const sub = listCardSub(customer, now, userId);
             const subNode =
               sub.lead || sub.rest ? (
                 <>
@@ -601,7 +740,7 @@ function Customers() {
   );
 
   return (
-    <main className="mx-auto w-full max-w-5xl p-4 pb-24 lg:p-6">
+    <main className="mx-auto w-full max-w-5xl px-4 pt-2 pb-24 lg:p-6">
       <div className="flex items-center gap-2">
         <input
           aria-label="Tìm khách"
@@ -614,9 +753,6 @@ function Customers() {
       </div>
 
       <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
-        <Button icon="filter" onClick={() => setFilterOpen(true)} className="shrink-0 rounded-full">
-          Lọc
-        </Button>
         {groupOptions.map((item) => (
           <button
             key={item.value}
@@ -624,44 +760,41 @@ function Customers() {
             aria-pressed={group === item.value}
             onClick={() => {
               setGroup(item.value);
-              setFilters(item.value === 'new' ? { ...DEFAULT_FILTERS, status: 'open' } : DEFAULT_FILTERS);
+              setFilters(defaultFiltersFor(item.value));
+              setCalendarOpen(false);
+              setDateDraft(null);
               setActiveSaved('');
               setScrollTop(0);
             }}
             className={chipClass(group === item.value)}
           >
-            {item.label} {item.count}
-          </button>
-        ))}
-        {saved.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            aria-pressed={activeSaved === item.id}
-            onClick={() => applySaved(item)}
-            className={chipClass(activeSaved === item.id)}
-          >
-            {item.name}
+            {item.label}
           </button>
         ))}
       </div>
 
-      <div className="mt-2 flex min-h-5 items-center justify-between gap-3">
-        <p aria-live="polite" className="text-small text-text-2">
+      <div className="mt-1 flex min-h-11 items-center gap-2">
+        <IconButton icon="filter" label="Lọc khách" variant="ghost" onClick={() => setFilterOpen(true)} />
+        <p aria-live="polite" className="min-w-0 flex-1 text-small text-text-2">
           <span className="text-body-strong text-text">{visible.length.toLocaleString('vi-VN')} khách</span>
         </p>
+        {isFilterDirty(group, filters) && (
+          <Button variant="ghost" className="shrink-0" onClick={clearFilters}>
+            Xoá lọc
+          </Button>
+        )}
       </div>
 
       {list}
 
       <Sheet
         open={filterOpen}
-        onOpenChange={setFilterOpen}
+        onOpenChange={handleFilterOpen}
         title="Lọc khách"
         footer={
           <>
             <Button onClick={reset}>Xoá lọc</Button>
-            <Button variant="primary" className="flex-1" onClick={() => setFilterOpen(false)}>
+            <Button variant="primary" className="flex-1" onClick={() => handleFilterOpen(false)}>
               Xem {visible.length.toLocaleString('vi-VN')} khách
             </Button>
           </>

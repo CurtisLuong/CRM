@@ -4,7 +4,16 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
-import { blockedQuestion, finalText, inScope, parseTask, workerPermissions } from './factory-run.mjs';
+import {
+  attemptPlan,
+  blockedQuestion,
+  effortOf,
+  finalText,
+  inScope,
+  parseTask,
+  taskMeta,
+  workerPermissions,
+} from './factory-run.mjs';
 
 test('inScope: thư mục, glob nhiều cấp, file cụ thể', () => {
   const scope = ['src/features/profile/**', 'tests/e2e/', 'src/ui/display.ts', 'src/features/today', 'src/**/*.test.ts'];
@@ -106,4 +115,36 @@ test('workerPermissions: chỉ mở vùng cấm mà Phạm vi task nằm trong, 
   assert.deepEqual(out.permission.bash, { '*': 'allow' });
   assert.equal(base.permission.edit['worker/**'], 'deny'); // không sửa object gốc
   assert.deepEqual(workerPermissions(base, ['src/features/settings/**']).permission.edit, base.permission.edit);
+});
+
+test('taskMeta: đọc Loại / Rủi ro / Khó ở dòng đầu; thiếu → an toàn (code, vừa, không khó)', () => {
+  assert.deepEqual(taskMeta('Loại: code. Rủi ro: thấp. Khó: có. Base: factory.'), { kind: 'code', risk: 'thấp', hard: true });
+  assert.deepEqual(taskMeta('Loại: test-only. Rủi ro: **cao**. Khó: không.'), { kind: 'test-only', risk: 'cao', hard: false });
+  assert.deepEqual(taskMeta('Loại: code | test-only. Rủi ro: thấp | vừa | cao. Khó: có | không.'), { kind: 'code', risk: 'thấp', hard: true });
+  assert.deepEqual(taskMeta('Base: factory.'), { kind: 'code', risk: 'vừa', hard: false });
+});
+
+test('attemptPlan: chỉ flash; high → high → max; khó → max cả 3; FACTORY_MODELS ghi đè', () => {
+  assert.deepEqual(attemptPlan({ hard: false }, {}), [
+    'deepseek/deepseek-flash#high',
+    'deepseek/deepseek-flash#high',
+    'deepseek/deepseek-flash#max',
+  ]);
+  assert.deepEqual(attemptPlan({ hard: true }, {}), Array(3).fill('deepseek/deepseek-flash#max'));
+  assert.deepEqual(attemptPlan({ hard: false }, { FACTORY_MODELS: 'a#x, b' }), ['a#x', 'b']);
+  assert.equal(effortOf('deepseek/deepseek-flash#max'), 'max');
+  assert.equal(effortOf('x/y'), 'mặc định');
+});
+
+test('parseTask: meta có trong kết quả', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'fr-meta-'));
+  const f = join(dir, 'X-01.md');
+  writeFileSync(
+    f,
+    '# X-01 — thử\nLoại: test-only. Rủi ro: thấp. Khó: có. Base: factory.\n\n## Phạm vi\n`tests/x/`\n\n## Nghiệm thu\n```bash\nnpx tsc -b\n```\n',
+  );
+  const t = parseTask(f);
+  assert.equal(t.kind, 'test-only');
+  assert.equal(t.risk, 'thấp');
+  assert.equal(t.hard, true);
 });

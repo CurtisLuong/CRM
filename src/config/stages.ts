@@ -32,6 +32,24 @@ export const CARE_STAGE_LEGACY: Readonly<Record<string, string>> = {
 // Danh sách cho ô chọn: 5 bậc + 3 trạng thái ngoài phễu.
 export const CARE_STAGE_OPTIONS = [...CARE_STAGES, CARE_STAGE_NURTURE, CARE_STAGE_WON, CARE_STAGE_DROPPED] as const;
 
+// Thứ tự HIỂN THỊ ở ô chọn/lọc bậc (Curtis 2026-10-22): Nuôi dài hạn là nhánh rẽ của Đang chăm sóc
+// (cùng cấp, không tính SLA), không phải bậc sau Booking. CARE_STAGE_OPTIONS giữ thứ tự cũ để khớp v1.
+export const CARE_STAGE_PICKER_ORDER = [
+  'Đăng kí mới',
+  'Đang tiếp cận',
+  'Đang chăm sóc',
+  CARE_STAGE_NURTURE,
+  'Xem dự án',
+  CARE_STAGE_BOOKING,
+  CARE_STAGE_WON,
+  CARE_STAGE_DROPPED,
+] as const;
+
+// Bậc nhánh: hiện ngay dưới bậc gốc, thụt vào, kèm dòng giải thích.
+export const CARE_STAGE_BRANCH: Readonly<Record<string, { of: string; hint: string }>> = {
+  [CARE_STAGE_NURTURE]: { of: 'Đang chăm sóc', hint: 'Nhánh của Đang chăm sóc · không tính SLA' },
+};
+
 // "Chăm sóc đã xong" — mặc định ẩn khỏi dashboard.
 export const CARE_DONE_STAGES = [CARE_STAGE_WON, CARE_STAGE_DROPPED] as const;
 

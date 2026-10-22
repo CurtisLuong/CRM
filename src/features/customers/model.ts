@@ -13,10 +13,15 @@ import { hasSaleTouch, lastTouchMs } from '@/domain/signals';
 import { fmt, status } from '@/domain/velocity';
 
 export type CustomerGroup = 'potential' | 'new' | 'team';
+/** Preset ngày đăng ký; `custom` đọc thêm `dateFrom`/`dateTo` (CL-01 L4). */
+export type DatePreset = 'all' | 'yesterday' | 'today' | 'week' | 'month' | 'custom';
 export type CustomerFilters = {
   status: 'active' | 'nurture' | 'won' | 'dropped' | 'done' | 'all' | 'open' | 'new' | 'calling' | 'team';
   stage: string;
-  date: 'all' | 'today' | 'week' | 'month';
+  date: DatePreset;
+  /** Tuỳ chọn ngày đăng ký: 'YYYY-MM-DD' theo giờ máy (chỉ dùng khi `date = 'custom'`). */
+  dateFrom?: string;
+  dateTo?: string;
   apt: string;
   source: string;
   owner: string;
@@ -31,6 +36,70 @@ export const DEFAULT_FILTERS: CustomerFilters = {
   owner: '',
   query: '',
 };
+
+const FILTER_STATUSES = new Set<string>([
+  'active',
+  'nurture',
+  'won',
+  'dropped',
+  'done',
+  'all',
+  'open',
+  'new',
+  'calling',
+  'team',
+]);
+const DATE_PRESETS = new Set<string>(['all', 'yesterday', 'today', 'week', 'month', 'custom']);
+
+/**
+ * Đọc bộ lọc đã lưu (tệp khách cũ thiếu `dateFrom`/`dateTo` hoặc trường mới) → bộ lọc hợp lệ.
+ * Trường lạ/không hiểu → mặc định, không ném lỗi (CL-01, D-012: dữ liệu cũ vẫn đọc được).
+ */
+export function normalizeFilters(value: unknown): CustomerFilters {
+  const raw = value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
+  const text = (key: string) => (typeof raw[key] === 'string' ? (raw[key] as string) : '');
+  const date = typeof raw.date === 'string' && DATE_PRESETS.has(raw.date) ? (raw.date as DatePreset) : 'all';
+  const from = text('dateFrom');
+  const to = text('dateTo');
+  return {
+    status:
+      typeof raw.status === 'string' && FILTER_STATUSES.has(raw.status)
+        ? (raw.status as CustomerFilters['status'])
+        : DEFAULT_FILTERS.status,
+    stage: text('stage'),
+    date,
+    ...(from ? { dateFrom: from } : {}),
+    ...(to ? { dateTo: to } : {}),
+    apt: text('apt'),
+    source: text('source'),
+    owner: text('owner'),
+    query: text('query'),
+  };
+}
+
+/** Bộ lọc mặc định của từng nhóm — đúng như khi bấm chip nhóm (CL-01 L3). */
+export function defaultFiltersFor(group: CustomerGroup): CustomerFilters {
+  return group === 'new' ? { ...DEFAULT_FILTERS, status: 'open' } : { ...DEFAULT_FILTERS };
+}
+
+/**
+ * "Xoá lọc" ở hàng đếm chỉ hiện khi bộ lọc khác mặc định của nhóm.
+ * Không tính ô tìm và sắp xếp (Curtis chọn 2026-10-22).
+ */
+export function isFilterDirty(group: CustomerGroup, filters: CustomerFilters): boolean {
+  const current = normalizeFilters(filters);
+  const base = defaultFiltersFor(group);
+  return (
+    current.status !== base.status ||
+    current.stage !== base.stage ||
+    current.date !== base.date ||
+    (current.dateFrom ?? '') !== (base.dateFrom ?? '') ||
+    (current.dateTo ?? '') !== (base.dateTo ?? '') ||
+    current.apt !== base.apt ||
+    current.source !== base.source ||
+    current.owner !== base.owner
+  );
+}
 /**
  * Sắp xếp 3 tầng cố định (PF-08, Curtis duyệt 2026-10-22): ngày đăng ký → lần tương tác → tên.
  * Mỗi tầng một chiều; tầng trên quyết trước, bằng nhau mới xét tầng dưới.
@@ -114,7 +183,7 @@ export function v1FilterCustomers(
   now = new Date(),
 ): Customer[] {
   const search = compile(filters.query);
-  const range = dateRange(filters.date, now);
+  const range = dateRange(filters.date, now, filters.dateFrom, filters.dateTo);
   return customers.filter((c) => {
     if (
       group === 'new'
@@ -161,10 +230,13 @@ export function sortCustomers(
   choice: SortChoice,
   now: number,
   searching: boolean,
+  /** Người dùng hiện tại: khách của người khác không ghim cần gọi/quá SLA (CL-01 L8). */
+  ownerId?: string,
 ): Customer[] {
   const prepared = rows.map((c) => {
-    const reminder = callReminder(c, now);
-    const sla = status(c, now);
+    const mine = !ownerId || !c.owner_id || c.owner_id === ownerId;
+    const reminder = mine ? callReminder(c, now) : null;
+    const sla = mine ? status(c, now) : null;
     const registered = Date.parse(c.registered_at || c.created_at || '');
     const last = hasSaleTouch(c) ? lastTouchMs(c) : null;
     const touch = last !== null && Number.isFinite(last) ? last : null;
@@ -241,10 +313,79 @@ export function customerGroupCounts(customers: readonly Customer[], ownerId: str
   };
 }
 
-export function dateRange(preset: CustomerFilters['date'], now: Date): { start: number; end: number } | null {
-  if (preset === 'all') return null;
+function startOfDay(now: Date): Date {
   const start = new Date(now);
   start.setHours(0, 0, 0, 0);
+  return start;
+}
+
+/** 'YYYY-MM-DD' (giờ máy) → mốc 00:00 cùng ngày; sai định dạng/không tồn tại → null. */
+export function parseDayKey(value?: string): Date | null {
+  if (!value) return null;
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return null;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(year, month - 1, day);
+  date.setHours(0, 0, 0, 0);
+  // Chặn 2026-02-31 (JS tự nhảy sang tháng sau).
+  if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) return null;
+  return date;
+}
+
+/** Mốc ngày của một thời điểm → 'YYYY-MM-DD' theo giờ máy (giá trị cho `dateFrom`/`dateTo`). */
+export function dayKey(value: Date | number): string {
+  const date = new Date(value);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+/** Ngày kiểu Việt Nam: "15/10"; khác năm hiện tại thì thêm năm ("15/10/2025"). */
+function shortDay(date: Date, now: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const base = `${pad(date.getDate())}/${pad(date.getMonth() + 1)}`;
+  return date.getFullYear() === now.getFullYear() ? base : `${base}/${date.getFullYear()}`;
+}
+
+/** Chữ hiển thị cho khoảng Tuỳ chọn: "15/10" hoặc "10/10 – 15/10" (đã đổi chỗ nếu ngược). */
+export function customDateLabel(from: string | undefined, to: string | undefined, now: Date): string {
+  const a = parseDayKey(from);
+  if (!a) return '';
+  const b = parseDayKey(to) ?? a;
+  const start = a <= b ? a : b;
+  const end = a <= b ? b : a;
+  return start.getTime() === end.getTime() ? shortDay(start, now) : `${shortDay(start, now)} – ${shortDay(end, now)}`;
+}
+
+/**
+ * Khoảng `[start, end)` của preset ngày đăng ký (CL-01 L4). Tuần bắt đầu Thứ Hai, tháng từ ngày 1.
+ * `custom` nhận một ngày (from = to) hoặc một khoảng; chọn ngược thì tự đổi chỗ; gồm trọn cả hai ngày.
+ */
+export function dateRange(
+  preset: CustomerFilters['date'],
+  now: Date,
+  from?: string,
+  to?: string,
+): { start: number; end: number } | null {
+  if (preset === 'all') return null;
+  if (preset === 'custom') {
+    const a = parseDayKey(from);
+    if (!a) return null;
+    const b = parseDayKey(to) ?? a;
+    const start = a <= b ? a : b;
+    const last = a <= b ? b : a;
+    const end = new Date(last);
+    end.setDate(end.getDate() + 1);
+    return { start: start.getTime(), end: end.getTime() };
+  }
+  const today = startOfDay(now);
+  if (preset === 'yesterday') {
+    const start = new Date(today);
+    start.setDate(start.getDate() - 1);
+    return { start: start.getTime(), end: today.getTime() };
+  }
+  const start = new Date(today);
   if (preset === 'week') start.setDate(start.getDate() - ((start.getDay() + 6) % 7));
   if (preset === 'month') start.setDate(1);
   const end = new Date(start);
@@ -281,14 +422,21 @@ export type ListCardSub = {
 };
 
 /** Dòng phụ thẻ khách trong danh sách. Không có gì → rest có thể rỗng. */
-export function listCardSub(c: Customer, now: number): ListCardSub {
+export function listCardSub(c: Customer, now: number, ownerId?: string): ListCardSub {
+  const mine = !ownerId || !c.owner_id || c.owner_id === ownerId;
   const reminder = callReminder(c, now);
-  const sla = status(c, now);
+  // Khách đồng nghiệp không thuộc phạm vi chăm sóc của mình: không SLA, không nhắc việc (D-003).
+  const sla = mine ? status(c, now) : null;
   const last = lastTouchMs(c);
   let lead: ListCardSub['lead'];
   let keepTouch = false;
   // Thứ tự ưu tiên L3: quên gọi > đến giờ gọi > quá SLA > hẹn gọi > lần liên hệ cuối.
-  if (reminder?.state === 'missed') lead = { text: `Quên gọi ${reminder.text.replace('quên gọi ', '')}`, tone: 'over' };
+  if (!mine) {
+    if (reminder && reminder.state !== 'missed' && reminder.state !== 'due')
+      lead = { text: `Hẹn gọi ${fmtClock(reminder.sort)}` };
+    else if (last) lead = { text: relativeAgo(last, now) };
+  } else if (reminder?.state === 'missed')
+    lead = { text: `Quên gọi ${reminder.text.replace('quên gọi ', '')}`, tone: 'over' };
   else if (reminder?.state === 'due') lead = { text: 'Đến giờ gọi', tone: 'soon' };
   else if (sla?.state === 'over') {
     lead = { text: `Quá SLA ${fmt(sla.elapsed - sla.max)}`, tone: 'over' };
