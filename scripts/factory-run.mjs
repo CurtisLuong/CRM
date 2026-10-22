@@ -1,17 +1,22 @@
 #!/usr/bin/env node
-// AI Factory — chạy MỘT task bằng worker OpenCode/DeepSeek trong worktree riêng. Không merge, không push.
-// Dùng: node scripts/factory-run.mjs tasks/queue/<ID>.md [--base factory]
+// AI Factory — chạy MỘT task bằng một worker (deepseek | haiku | luna — scripts/factory-workers.mjs) trong worktree riêng.
+// Không merge, không push.
+// Dùng: node scripts/factory-run.mjs tasks/queue/<ID>.md [--base factory] [--worker <mã>] [--fallback <mã>]
+//   Worker: --worker > dòng "Worker: <mã>" trong task > deepseek. Dự phòng: --fallback > "Dự phòng: <mã>" trong task > không có.
 // Đạt → commit trong worktree ../wt-<ID>, nhánh agent/<ID>. Lead đọc diff rồi merge vào `factory` bằng cách của repo.
-// Mã thoát: 0 ĐẠT · 1 TRƯỢT · 2 LỖI · 3 BLOCKED (worker hỏi Lead — không tăng mức suy luận, không tính trượt).
-// Chỉ dùng deepseek-flash; mức suy luận qua variant của OpenCode (`provider/model#variant`, đã kiểm 2026-10-22):
-//   lần 1–2 = #high, lần 3 = #max; task ghi "Khó: có" → #max từ lần 1.
+// Mã thoát: 0 ĐẠT · 1 TRƯỢT · 2 LỖI · 3 BLOCKED (worker hỏi Lead — không tăng mức suy luận, không tính trượt)
+//   · 4 TẠM DỪNG (hết hạn mức/hết tiền, không còn dự phòng — không tính trượt, task giữ nguyên trong hàng đợi).
+// Hết hạn mức giữa chừng + có dự phòng → chuyển sang worker dự phòng, chạy lại kế hoạch 3 lần của nó trên cùng worktree.
+// Mức suy luận mỗi worker: lần 1–2 = high, lần 3 = max (luna: xhigh); task ghi "Khó: có" → mức cao nhất từ lần 1.
 // Task "Loại: test-only": test mới chạy trên code base PHẢI trượt (chứng minh nó kiểm hành vi chưa có).
 // Biến môi trường (tuỳ chọn): FACTORY_MODEL=deepseek/deepseek-flash · FACTORY_MODELS="m#high,m#high,m#max" (ghi đè cả kế hoạch)
 //   · FACTORY_ATTEMPT_TIMEOUT_MIN=10
-import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { isQuotaError, opencodeFinalText, sh, WORKER_NAMES, workerOf } from './factory-workers.mjs';
+
+export { sh };
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const DENY_CONFIG = join(ROOT, 'scripts', 'opencode.worker.json');
@@ -20,12 +25,6 @@ const ATTEMPT_TIMEOUT_MS = (Number(process.env.FACTORY_ATTEMPT_TIMEOUT_MIN) || 1
 export const TEST_FILE = /(^|\/)(tests?|__tests__)\/|\.(test|spec)\.[cm]?[jt]sx?$|(^|\/)test_[^/]+\.py$|_test\.(py|go)$/;
 const IGNORED = new Set(['opencode.json']);
 
-export function sh(cmd, args, opts = {}) {
-  // OpenCode 2.x lấy thư mục dự án từ $PWD, không từ cwd: phải đặt PWD = cwd, nếu không worker sửa nhầm repo chính.
-  const env = opts.cwd ? { ...process.env, PWD: opts.cwd } : process.env;
-  const r = spawnSync(cmd, args, { encoding: 'utf8', maxBuffer: 256 * 1024 * 1024, env, ...opts });
-  return { code: r.status ?? (r.error ? 1 : 0), out: `${r.stdout ?? ''}${r.stderr ?? ''}`, stdout: r.stdout ?? '', error: r.error };
-}
 export function must(cmd, args, opts) {
   const r = sh(cmd, args, opts);
   if (r.code !== 0) throw new Error(`${cmd} ${args.join(' ')} thất bại:\n${r.out}`);
@@ -66,14 +65,15 @@ export function parseTask(file) {
     const labelled = lines.flatMap((l) => (/lệnh kiểm tra/i.test(l) ? [...l.matchAll(/`([^`]+)`/g)].map((m) => m[1]) : []));
     return labelled.length ? labelled : lines.map((l) => l.match(/^\s*[-*]\s+`(.+)`/)?.[1]).filter(Boolean);
   };
-  const head = md.match(/^#\s+([A-Za-z0-9._-]+)\s*(?:[—–-]\s*(.+))?$/m);
-  const id = head?.[1] ?? basename(file, '.md');
-  const title = head?.[2]?.trim() || id;
+  const heading = md.match(/^#\s+([A-Za-z0-9._-]+)\s*(?:[—–-]\s*(.+))?$/m);
+  const id = heading?.[1] ?? basename(file, '.md');
+  const title = heading?.[2]?.trim() || id;
   const allowed = patterns(find(/phạm vi|được phép|allowed/));
   const checks = commands(find(/nghiệm thu|kiểm tra|check/));
   if (!allowed.length) throw new Error('Task thiếu phạm vi ("## Phạm vi" với glob/thư mục bọc `...`).');
   if (!checks.length) throw new Error('Task thiếu lệnh kiểm tra (code block trong "## Nghiệm thu").');
-  return { id, title, md, allowed, checks, ...taskMeta((sections._head ?? []).join('\n')) };
+  const head = (sections._head ?? []).join('\n');
+  return { id, title, md, allowed, checks, ...taskMeta(head), ...taskWorkers(head) };
 }
 
 /**
@@ -90,7 +90,14 @@ export function taskMeta(head) {
   };
 }
 
-/** Kế hoạch các lần thử: chỉ deepseek-flash, mức suy luận high → high → max; task khó: max cả 3 lần. */
+/** Dòng đầu task: "Worker: haiku. Dự phòng: luna." (tuỳ chọn; mã ngoài danh sách → bỏ qua). */
+export function taskWorkers(head) {
+  const pick = (labels) =>
+    head.match(new RegExp(`(?:${labels})\\s*:\\s*[*_\`]*\\s*(${WORKER_NAMES.join('|')})\\b`, 'iu'))?.[1]?.toLowerCase() ?? '';
+  return { worker: pick('Worker'), fallback: pick('Dự phòng|Fallback') };
+}
+
+/** Kế hoạch các lần thử của deepseek: deepseek-flash, mức suy luận high → high → max; task khó: max cả 3 lần. */
 export function attemptPlan(task, env = process.env) {
   if (env.FACTORY_MODELS)
     return env.FACTORY_MODELS.split(',')
@@ -149,17 +156,13 @@ export function workerPermissions(config, allowed) {
   return { ...config, permission: { ...config.permission, edit } };
 }
 
-/** Câu trả lời cuối của worker = phần "text" cuối cùng trong log JSON của OpenCode. */
-export function finalText(jsonl) {
-  let last = '';
-  for (const line of jsonl.split('\n')) {
-    if (!line.includes('"text"')) continue;
-    try {
-      const e = JSON.parse(line);
-      if (e.type === 'text' && typeof e.part?.text === 'string' && e.part.text.trim()) last = e.part.text;
-    } catch {}
-  }
-  return last;
+/** Câu trả lời cuối của OpenCode (giữ tên cũ cho factory-review + test). */
+export const finalText = opencodeFinalText;
+
+/** Kế hoạch 3 lần của một worker: nhãn model@mức. deepseek giữ attemptPlan (ghi đè được bằng FACTORY_MODELS). */
+export function workerPlan(worker, task, env = process.env) {
+  if (worker.name === 'deepseek') return attemptPlan(task, env).map((label) => ({ label, effort: effortOf(label) }));
+  return worker.plan(task).map((effort) => ({ label: worker.label(effort), effort }));
 }
 
 /** Dòng "BLOCKED: <câu hỏi>" trong câu trả lời cuối (cho phép bọc **, `, >, -). Không có → ''. */
@@ -269,14 +272,18 @@ export function unitRunner(wt) {
 export function retryUntouched(wt, cmd, out, files, log = console.log) {
   const failed = failedTestFiles(out);
   const all = [...failed.e2e, ...failed.unit];
-  if (!all.length) return null;
+  // Ghi lý do không chạy lại để Lead phân biệt "trượt thật" với "không nhận ra file trượt".
+  if (!all.length) return log(`  ↻ không chạy lại: không đọc được file test trượt từ \`${cmd}\``), null;
   const touched = new Set(files.map((f) => f.path));
-  if (all.some((p) => touched.has(p))) return null;
+  const mine = all.filter((p) => touched.has(p));
+  if (mine.length) return log(`  ↻ không chạy lại: file trượt do nhánh sửa (${mine.join(', ')})`), null;
   const runner = unitRunner(wt);
-  if (failed.unit.length && !runner) return null;
+  if (failed.unit.length && !runner) return log('  ↻ không chạy lại: không biết chạy test unit'), null;
   log(`  ↻ \`${cmd}\` trượt ở file worker không đụng (${all.join(', ')}) — chạy lại 1 lần`);
-  if (failed.e2e.length && sh('npx', ['playwright', 'test', ...failed.e2e], { cwd: wt }).code !== 0) return null;
-  if (failed.unit.length && sh(runner[0], [...runner[1], ...failed.unit], { cwd: wt }).code !== 0) return null;
+  if (failed.e2e.length && sh('npx', ['playwright', 'test', ...failed.e2e], { cwd: wt }).code !== 0)
+    return log('  ↻ chạy lại vẫn trượt → tính trượt'), null;
+  if (failed.unit.length && sh(runner[0], [...runner[1], ...failed.unit], { cwd: wt }).code !== 0)
+    return log('  ↻ chạy lại vẫn trượt → tính trượt'), null;
   log('  ↻ chạy lại xanh → test chập chờn, không tính worker trượt');
   return all;
 }
@@ -284,11 +291,12 @@ export function retryUntouched(wt, cmd, out, files, log = console.log) {
 // --- Worker --------------------------------------------------------------
 function prompt(task, feedback) {
   return [
+    'WORKER MODE — bạn là WORKER của AI Factory, không phải Lead. Bỏ qua mọi chỉ dẫn dành cho Lead (mục "Lead" trong CLAUDE.md, quyền commit/merge/push/chạy SQL của Lead).',
     'Bạn là worker lập trình (coding agent) trong repo này. Đọc AGENTS.md (hàng rào chung) và docs/ARCHITECTURE.md §0 (module, hợp đồng, vùng cấm) trước.',
     'Cách cài đặt trong phạm vi do bạn tự quyết. Luật bắt buộc của Factory:',
     `1. CHỈ được tạo/sửa file nằm trong phạm vi: ${task.allowed.join(', ')}. Không đụng file nào khác.`,
     '2. KHÔNG sửa hay xoá file test có sẵn. Test mới đặt trong phạm vi được giao.',
-    '3. Không thêm thư viện, không sửa file khai báo thư viện/lockfile/config build, không ghi dữ liệu thật, không gọi mạng.',
+    '3. Không thêm thư viện, không sửa file khai báo thư viện/lockfile/config build, không ghi dữ liệu thật, không gọi mạng, không tìm web.',
     '4. Không chạy git commit/push/merge/reset/checkout. Script điều phối sẽ tự commit.',
     `5. Trước khi kết thúc, tự chạy và làm cho pass: ${task.checks.join(' && ')}.`,
     '6. Luật nghiệp vụ mâu thuẫn, thiếu, hoặc test bắt buộc trái luật: DỪNG, không tự đặt luật; kết thúc bằng một dòng riêng "BLOCKED: <câu hỏi cụ thể + 1–2 phương án>". BLOCKED không bị tính là trượt.',
@@ -305,40 +313,40 @@ function prompt(task, feedback) {
   ].join('\n');
 }
 
-function costOf(jsonl) {
-  let total = 0;
-  const sum = (v) => {
-    if (Array.isArray(v)) v.forEach(sum);
-    else if (v && typeof v === 'object')
-      for (const [k, x] of Object.entries(v)) {
-        if (k === 'cost' && typeof x === 'number') total += x;
-        else sum(x);
-      }
-  };
-  for (const line of jsonl.split('\n')) {
-    if (!line.includes('step_finish')) continue;
-    try {
-      sum(JSON.parse(line));
-    } catch {}
-  }
-  return total;
-}
-
-function runWorker(wt, task, n, model, feedback) {
+function runWorker(worker, wt, task, n, step, feedback, config) {
   mkdirSync(LOG_DIR, { recursive: true });
-  const log = join(LOG_DIR, `${task.id}-${n}.jsonl`);
-  // --standalone: server riêng chạy tại worktree (cùng PWD) → chắc chắn nạp opencode.json (danh sách deny) của worktree.
-  const r = sh(
-    'opencode',
-    ['run', '--standalone', '--model', model, '--format', 'json', '--auto', '--title', `${task.id} #${n}`, prompt(task, feedback)],
-    { cwd: wt, timeout: ATTEMPT_TIMEOUT_MS },
-  );
+  const logBase = join(LOG_DIR, `${task.id}-${n}`);
+  const log = `${logBase}.jsonl`;
+  const t0 = Date.now();
+  const r = worker.run({
+    wt,
+    task,
+    title: `${task.id} #${n}`,
+    prompt: prompt(task, feedback),
+    model: step.label,
+    effort: step.effort,
+    timeoutMs: ATTEMPT_TIMEOUT_MS,
+    config,
+    logBase,
+  });
   writeFileSync(log, r.stdout);
   if (r.code !== 0 || r.error) writeFileSync(`${log}.stderr.txt`, r.out);
-  const text = finalText(r.stdout);
-  const report = join(LOG_DIR, `${task.id}-${n}.report.md`);
-  writeFileSync(report, text || '(worker không có câu trả lời cuối)');
-  return { log, report, text, cost: costOf(r.stdout), code: r.code, timedOut: r.error?.code === 'ETIMEDOUT' };
+  const report = `${logBase}.report.md`;
+  writeFileSync(report, r.text || '(worker không có câu trả lời cuối)');
+  return {
+    log,
+    report,
+    text: r.text,
+    out: r.out,
+    cost: r.cost || 0,
+    listCost: r.listCost || 0,
+    tokens: r.tokens ?? { input: 0, output: 0 },
+    minutes: (Date.now() - t0) / 60000,
+    code: r.code,
+    isError: r.isError,
+    timedOut: r.error?.code === 'ETIMEDOUT',
+    quota: isQuotaError(worker.name, { ...r, timedOut: r.error?.code === 'ETIMEDOUT' }),
+  };
 }
 
 export function installDeps(wt) {
@@ -359,14 +367,20 @@ export function installDeps(wt) {
 // --- Chính ---------------------------------------------------------------
 function main() {
   const args = process.argv.slice(2);
-  const taskFile = args.find((a, i) => !a.startsWith('--') && args[i - 1] !== '--base');
-  const base = args.includes('--base') ? args[args.indexOf('--base') + 1] : 'factory';
+  const valued = ['--base', '--worker', '--fallback'];
+  const opt = (name) => (args.includes(name) ? args[args.indexOf(name) + 1] : undefined);
+  const taskFile = args.find((a, i) => !a.startsWith('--') && !valued.includes(args[i - 1]));
+  const base = opt('--base') ?? 'factory';
   if (!taskFile) {
-    console.error('Dùng: node scripts/factory-run.mjs tasks/queue/<ID>.md [--base factory]');
+    console.error('Dùng: node scripts/factory-run.mjs tasks/queue/<ID>.md [--base factory] [--worker deepseek|haiku|luna] [--fallback <mã>]');
     process.exit(2);
   }
   if (!existsSync(DENY_CONFIG)) throw new Error(`Thiếu ${DENY_CONFIG} (danh sách deny cho worker).`);
   const task = parseTask(resolve(taskFile));
+  // Product Owner chỉ định mỗi đợt bằng --worker/--fallback (batch truyền xuống); dòng "Worker:" trong task dùng khi không chỉ định.
+  let worker = workerOf(opt('--worker') || task.worker || 'deepseek');
+  const fallbackName = opt('--fallback') || task.fallback || '';
+  const fallback = fallbackName && fallbackName !== worker.name ? workerOf(fallbackName) : null;
   const wt = resolve(ROOT, '..', `wt-${task.id}`);
   const branch = `agent/${task.id}`;
   if (existsSync(wt)) throw new Error(`Worktree đã tồn tại: ${wt}. Xoá bằng: git worktree remove ${wt} && git branch -D ${branch}`);
@@ -385,8 +399,9 @@ function main() {
   must('git', ['config', '--worktree', 'remote.origin.pushurl', 'DISABLED'], { cwd: wt });
   const baseSha = must('git', ['rev-parse', 'HEAD'], { cwd: wt });
   installDeps(wt);
-  const denyConfig = JSON.parse(readFileSync(DENY_CONFIG, 'utf8'));
-  writeFileSync(join(wt, 'opencode.json'), `${JSON.stringify(workerPermissions(denyConfig, task.allowed), null, 2)}\n`);
+  // Danh sách deny (đã mở đúng phạm vi task): OpenCode đọc opencode.json trong worktree; haiku đổi sang settings Claude Code.
+  const config = workerPermissions(JSON.parse(readFileSync(DENY_CONFIG, 'utf8')), task.allowed);
+  writeFileSync(join(wt, 'opencode.json'), `${JSON.stringify(config, null, 2)}\n`);
 
   // Chốt chặn: repo chính không được đổi trong lúc worker chạy.
   const mainState = () => must('git', ['status', '--porcelain'], { cwd: ROOT });
@@ -395,36 +410,59 @@ function main() {
   let feedback = '';
   let result = { ok: false, problems: [], files: [] };
   let blocked = '';
-  const MODELS = attemptPlan(task);
-  console.log(`[${task.id}] Loại ${task.kind} · rủi ro ${task.risk} · khó ${task.hard ? 'có' : 'không'} · suy luận ${MODELS.map(effortOf).join(' → ')}`);
-  for (let i = 0; i < MODELS.length; i++) {
-    const n = i + 1;
-    const model = MODELS[i];
-    console.log(`\n[${task.id}] Lần ${n}/${MODELS.length} — ${model}`);
-    const w = runWorker(wt, task, n, model, feedback);
+  let paused = '';
+  let plan = workerPlan(worker, task);
+  let n = 0;
+  console.log(
+    `[${task.id}] Loại ${task.kind} · rủi ro ${task.risk} · khó ${task.hard ? 'có' : 'không'} · worker ${worker.name}${fallback ? ` (dự phòng ${fallback.name})` : ''} · suy luận ${plan.map((p) => p.effort).join(' → ')}`,
+  );
+  for (let i = 0; i < plan.length; i++) {
+    n++;
+    const step = plan[i];
+    console.log(`\n[${task.id}] Lần ${i + 1}/${plan.length} — ${worker.name} ${step.label}`);
+    const w = runWorker(worker, wt, task, n, step, feedback, config);
     if (mainState() !== mainBefore) throw new Error(`Worker đã sửa repo chính ${ROOT}! Dừng ngay. Kiểm tra: git -C ${ROOT} status`);
+    const entry = { n, worker: worker.name, model: step.label, cost: w.cost, listCost: w.listCost, tokens: w.tokens, minutes: w.minutes, log: w.log, report: w.report, exit: w.code, timedOut: w.timedOut, ok: false, flaky: [] };
+    if (w.quota) {
+      // Hết hạn mức/hết tiền: không phải lỗi worker → không tính trượt, không tăng mức suy luận.
+      history.push({ ...entry, quota: true });
+      console.log(`  ${worker.name} hết hạn mức / hết tiền (exit=${w.code})`);
+      if (fallback && worker !== fallback) {
+        worker = fallback;
+        plan = workerPlan(worker, task);
+        i = -1;
+        console.log(`  → chuyển sang dự phòng ${worker.name}, làm tiếp trên cùng worktree`);
+        continue;
+      }
+      paused = `${worker.name} hết hạn mức / hết tiền${fallback ? ` (dự phòng ${fallback.name} cũng hết)` : ' và không có dự phòng'}`;
+      break;
+    }
     const question = blockedQuestion(w.text);
     if (question) {
       // Worker hỏi Lead về luật/test: dừng, không tăng mức suy luận, không tính trượt.
       blocked = question;
-      history.push({ n, model, cost: w.cost, log: w.log, report: w.report, exit: w.code, timedOut: w.timedOut, ok: false, flaky: [] });
+      history.push(entry);
       console.log(`  worker exit=${w.code} · cost=$${w.cost.toFixed(4)} · BLOCKED`);
       break;
     }
     result = verify(wt, baseSha, task);
-    history.push({ n, model, cost: w.cost, log: w.log, report: w.report, exit: w.code, timedOut: w.timedOut, ok: result.ok, flaky: result.flaky ?? [] });
-    console.log(`  worker exit=${w.code}${w.timedOut ? ' (hết giờ)' : ''} · cost=$${w.cost.toFixed(4)} · ${result.ok ? 'ĐẠT' : 'TRƯỢT'}`);
+    history.push({ ...entry, ok: result.ok, flaky: result.flaky ?? [] });
+    console.log(`  worker exit=${w.code}${w.timedOut ? ' (hết giờ)' : ''} · cost=$${w.cost.toFixed(4)} · ${fmtTokens(w.tokens)} token · ${w.minutes.toFixed(1)} phút · ${result.ok ? 'ĐẠT' : 'TRƯỢT'}`);
     if (result.ok) break;
     result.problems.forEach((p) => console.log(`  - ${p.split('\n')[0]}`));
     feedback = result.problems.join('\n\n');
   }
 
   const total = history.reduce((s, h) => s + h.cost, 0);
+  const listTotal = history.reduce((s, h) => s + h.listCost, 0);
+  const tokens = history.reduce((s, h) => ({ input: s.input + h.tokens.input, output: s.output + h.tokens.output }), { input: 0, output: 0 });
+  const workerMinutes = history.reduce((s, h) => s + h.minutes, 0);
+  const used = [...new Set(history.map((h) => h.worker))];
   let commit = '';
   if (result.ok) {
     const last = history.at(-1);
     must('git', ['add', '--', ...result.files.map((f) => f.path)], { cwd: wt });
-    const body = `Worker: ${last.model}, lần ${last.n}/${MODELS.length}, chi phí $${total.toFixed(4)}. Task: ${basename(taskFile)}. Chưa merge — Lead đọc diff.`;
+    const body = `Worker: ${last.worker} (${last.model}), lần ${history.length}, chi phí $${total.toFixed(4)}. Task: ${basename(taskFile)}. Chưa merge — Lead đọc diff.`;
     must('git', ['commit', '-q', '-m', `feat(${task.id}): ${task.title}`, '-m', body], { cwd: wt });
     commit = must('git', ['rev-parse', '--short', 'HEAD'], { cwd: wt });
   }
@@ -433,11 +471,13 @@ function main() {
   console.log(`Task:       ${task.id} — ${task.title}`);
   console.log(
     `Trạng thái: ${
-      blocked
-        ? 'BLOCKED — worker cần Lead trả lời (không tính trượt)'
-        : result.ok
-          ? `ĐẠT — commit ${commit} trên ${branch} (chưa merge, chưa push)`
-          : `TRƯỢT — dừng sau ${history.length} lần`
+      paused
+        ? `TẠM DỪNG — ${paused} (không tính trượt; task để lại hàng đợi)`
+        : blocked
+          ? 'BLOCKED — worker cần Lead trả lời (không tính trượt)'
+          : result.ok
+            ? `ĐẠT — commit ${commit} trên ${branch} (chưa merge, chưa push)`
+            : `TRƯỢT — dừng sau ${history.length} lần`
     }`,
   );
   if (blocked) console.log(`Câu hỏi:    ${blocked}`);
@@ -445,16 +485,27 @@ function main() {
   console.log(`Loại:       ${task.kind}`);
   console.log(`Rủi ro:     ${task.risk}`);
   console.log(`Khó:        ${task.hard ? 'có' : 'không'}`);
-  console.log(`Suy luận:   ${history.map((h) => effortOf(h.model)).join(' → ') || '—'}`);
-  console.log(`Số lần thử: ${history.length} (${history.map((h) => `${h.model}${h.ok ? ' ✓' : ' ✗'}`).join(', ')})`);
+  console.log(`Worker:     ${used.join(' → ') || worker.name}`);
+  console.log(`Trả bằng:   ${used.map((u) => workerOf(u).billing).join(' → ') || worker.billing}`);
+  console.log(`Suy luận:   ${history.map((h) => h.model.split(/[#@]/)[1] ?? effortOf(h.model)).join(' → ') || '—'}`);
+  console.log(`Số lần thử: ${history.length} (${history.map((h) => `${h.model}${h.quota ? ' ⏸' : h.ok ? ' ✓' : ' ✗'}`).join(', ')})`);
   console.log(`File đổi:   ${result.files.map((f) => `${f.status} ${f.path}`).join(', ') || '(không)'}`);
   console.log(`Chi phí:    $${total.toFixed(4)}`);
+  if (listTotal) console.log(`Giá gói:    $${listTotal.toFixed(4)} (giá niêm yết tương đương, chạy bằng gói — không tính vào trần)`);
+  console.log(`Token:      ${fmtTokens(tokens)} (vào ${tokens.input} · ra ${tokens.output})`);
+  console.log(`Phút worker: ${workerMinutes.toFixed(1)}`);
   const flaky = [...new Set(history.flatMap((h) => h.flaky))];
   if (flaky.length) console.log(`Chập chờn:  ${flaky.join(', ')} (trượt rồi xanh khi chạy lại; file worker không đụng)`);
   console.log(`Log:        ${history.map((h) => h.log).join(', ')}`);
   console.log(`Báo cáo:    ${history.map((h) => h.report).join(', ')}`);
-  if (!result.ok && !blocked) console.log(`\nLỗi lần cuối:\n${result.problems.join('\n\n')}`);
-  process.exit(blocked ? 3 : result.ok ? 0 : 1);
+  if (!result.ok && !blocked && !paused) console.log(`\nLỗi lần cuối:\n${result.problems.join('\n\n')}`);
+  process.exit(paused ? 4 : blocked ? 3 : result.ok ? 0 : 1);
+}
+
+/** 123456 → "123k". */
+export function fmtTokens(t) {
+  const n = (t?.input || 0) + (t?.output || 0);
+  return n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `${Math.round(n / 1e3)}k` : String(n);
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

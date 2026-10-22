@@ -1,19 +1,21 @@
 #!/usr/bin/env node
-// AI Factory — review tự động 1 nhánh worker bằng deepseek-flash#max (chỉ đọc, không sửa, không merge).
-// Dùng: node scripts/factory-review.mjs tasks/<thư mục>/<ID>.md [--branch agent/<ID>] [--base factory]
+// AI Factory — review tự động 1 nhánh worker (chỉ đọc, không sửa, không merge). Reviewer luôn KHÁC worker:
+//   worker deepseek → luna (gpt-6-luna@xhigh; hết hạn mức → haiku@max) · worker haiku/luna → deepseek-flash#max.
+// Dùng: node scripts/factory-review.mjs tasks/<thư mục>/<ID>.md [--branch agent/<ID>] [--base factory] [--worker <mã>]
+//   --worker thiếu → đọc dòng "Worker: <mã>" trong commit của nhánh (factory-run ghi).
 // Đầu vào cho reviewer: diff (base...nhánh) + file task + AGENTS.md + docs/ARCHITECTURE.md + báo cáo cuối của worker.
 // Đầu ra: logs/<ID>-review.json = {verdict, flags:[{point, severity, file, detail}], summary, cost}; in 1 dòng + JSON.
 //   verdict: "ok" (không cờ) · "flag" (có điểm cần Lead xem) · "block" (vi phạm xương sống).
-// Mã thoát: 0 ok · 1 flag/block · 2 lỗi. Biến môi trường: FACTORY_REVIEW_MODEL (mặc định deepseek/deepseek-flash#max).
+// Mã thoát: 0 ok · 1 flag/block · 2 lỗi. Biến môi trường: FACTORY_REVIEW_MODEL (model reviewer deepseek, mặc định deepseek/deepseek-flash#max).
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { finalText, must, parseTask, sh } from './factory-run.mjs';
+import { must, parseTask } from './factory-run.mjs';
+import { isQuotaError, reviewersFor, workerFromCommit, workerOf } from './factory-workers.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const LOG_DIR = join(ROOT, 'logs');
-const MODEL = process.env.FACTORY_REVIEW_MODEL || 'deepseek/deepseek-flash#max';
 const TIMEOUT_MS = (Number(process.env.FACTORY_REVIEW_TIMEOUT_MIN) || 10) * 60 * 1000;
 const POINTS = [
   'Luật nghiệp vụ + số chuẩn của task có làm đúng không; worker có tự bịa luật mới, hoặc che lỗi bằng điều kiện/chuỗi đặc biệt chỉ để test xanh không.',
@@ -67,9 +69,12 @@ export function parseReview(text) {
   return { verdict, flags, summary: String(raw.summary ?? '').trim() };
 }
 
-function prompt(task) {
+function prompt(task, reviewer) {
   return [
-    'Bạn là REVIEWER của AI Factory. Chỉ đọc, không sửa file, không chạy lệnh. Các file trong thư mục hiện tại:',
+    // luna (Codex) chỉ đọc file được bằng lệnh shell; sandbox read-only nên cho phép lệnh đọc. Reviewer khác có tool Read riêng.
+    reviewer === 'luna'
+      ? 'Bạn là REVIEWER của AI Factory. Chỉ đọc, không sửa file. Được chạy lệnh shell CHỈ để đọc file (cat, sed -n, rg, ls); sandbox chỉ đọc. Các file trong thư mục hiện tại:'
+      : 'Bạn là REVIEWER của AI Factory. Chỉ đọc, không sửa file, không chạy lệnh. Các file trong thư mục hiện tại:',
     '- task.md: đặc tả task (mục tiêu, luật nghiệp vụ + số chuẩn, hợp đồng, phạm vi, PHẢI/CẤM, nghiệm thu).',
     '- AGENTS.md: hàng rào chung cho mọi task. ARCHITECTURE.md (nếu có): module, hợp đồng, vùng cấm.',
     '- diff.patch: toàn bộ thay đổi của worker so với base.',
@@ -91,18 +96,6 @@ function prompt(task) {
   ].join('\n');
 }
 
-function costOf(jsonl) {
-  let total = 0;
-  for (const line of jsonl.split('\n')) {
-    if (!line.includes('step_finish')) continue;
-    try {
-      const c = JSON.parse(line).part?.cost;
-      if (typeof c === 'number') total += c;
-    } catch {}
-  }
-  return total;
-}
-
 function latestWorkerReport(id) {
   if (!existsSync(LOG_DIR)) return '';
   const reports = readdirSync(LOG_DIR)
@@ -114,7 +107,7 @@ function latestWorkerReport(id) {
 function main() {
   const args = process.argv.slice(2);
   const opt = (name) => (args.includes(name) ? args[args.indexOf(name) + 1] : undefined);
-  const taskFile = args.find((a, i) => !a.startsWith('--') && !['--branch', '--base'].includes(args[i - 1]));
+  const taskFile = args.find((a, i) => !a.startsWith('--') && !['--branch', '--base', '--worker'].includes(args[i - 1]));
   if (!taskFile) {
     console.error('Dùng: node scripts/factory-review.mjs tasks/<thư mục>/<ID>.md [--branch agent/<ID>] [--base factory]');
     return 2;
@@ -123,6 +116,7 @@ function main() {
   const branch = opt('--branch') ?? `agent/${task.id}`;
   const base = opt('--base') ?? 'factory';
   const diff = must('git', ['diff', '-U10', `${base}...${branch}`], { cwd: ROOT });
+  const worker = opt('--worker') || workerFromCommit(must('git', ['log', '-1', '--format=%B', branch], { cwd: ROOT })) || 'deepseek';
   if (!diff.trim()) throw new Error(`Không có diff giữa ${base} và ${branch}.`);
 
   // Thư mục tạm, quyền chỉ đọc: reviewer không thể sửa repo hay chạy lệnh.
@@ -136,25 +130,36 @@ function main() {
       ['docs/ARCHITECTURE.md', 'ARCHITECTURE.md'],
     ])
       if (existsSync(join(ROOT, src))) writeFileSync(join(dir, dest), readFileSync(join(ROOT, src)));
-    const readOnly = {
-      $schema: 'https://opencode.ai/config.json',
-      permission: { edit: { '*': 'deny' }, bash: { '*': 'deny' }, webfetch: 'deny', websearch: 'deny', external_directory: 'deny' },
+    // Thử lần lượt reviewer khác worker; hết hạn mức → reviewer kế tiếp. Lỗi khác → dừng (Lead review tay).
+    let r = null;
+    let reviewer = '';
+    const tried = [];
+    for (const name of reviewersFor(worker)) {
+      reviewer = name;
+      r = workerOf(name).review({ dir, prompt: prompt(task, name), title: `${task.id} review`, timeoutMs: TIMEOUT_MS });
+      mkdirSync(LOG_DIR, { recursive: true });
+      writeFileSync(join(LOG_DIR, `${task.id}-review.jsonl`), r.stdout);
+      if (!isQuotaError(name, { ...r, timedOut: r.error?.code === 'ETIMEDOUT' })) break;
+      tried.push(`${name} hết hạn mức`);
+      r = null;
+    }
+    if (!r) throw new Error(`Không còn reviewer: ${tried.join(', ')}.`);
+    if (r.error?.code === 'ETIMEDOUT') throw new Error(`Reviewer ${reviewer} hết giờ (${TIMEOUT_MS / 60000} phút).`);
+    if (!r.text) throw new Error(`Reviewer ${reviewer} không có câu trả lời (exit ${r.code}).\n${r.out.slice(-2000)}`);
+    const review = {
+      task: task.id,
+      branch,
+      base,
+      worker,
+      reviewer,
+      model: r.model,
+      ...parseReview(r.text),
+      cost: r.cost || 0,
+      tokens: r.tokens ?? { input: 0, output: 0 },
+      ...(tried.length ? { skipped: tried } : {}),
     };
-    writeFileSync(join(dir, 'opencode.json'), JSON.stringify(readOnly, null, 2));
-
-    const r = sh(
-      'opencode',
-      ['run', '--standalone', '--model', MODEL, '--format', 'json', '--auto', '--title', `${task.id} review`, prompt(task)],
-      { cwd: dir, timeout: TIMEOUT_MS },
-    );
-    mkdirSync(LOG_DIR, { recursive: true });
-    writeFileSync(join(LOG_DIR, `${task.id}-review.jsonl`), r.stdout);
-    if (r.error?.code === 'ETIMEDOUT') throw new Error(`Reviewer hết giờ (${TIMEOUT_MS / 60000} phút).`);
-    const text = finalText(r.stdout);
-    if (!text) throw new Error(`Reviewer không có câu trả lời (exit ${r.code}).\n${r.out.slice(-2000)}`);
-    const review = { task: task.id, branch, base, model: MODEL, ...parseReview(text), cost: costOf(r.stdout) };
     writeFileSync(join(LOG_DIR, `${task.id}-review.json`), `${JSON.stringify(review, null, 2)}\n`);
-    console.log(`REVIEW ${task.id}: ${review.verdict} · ${review.flags.length} cờ · $${review.cost.toFixed(4)}`);
+    console.log(`REVIEW ${task.id} (worker ${worker} → reviewer ${reviewer}): ${review.verdict} · ${review.flags.length} cờ · $${review.cost.toFixed(4)}`);
     console.log(JSON.stringify(review));
     return review.verdict === 'ok' ? 0 : 1;
   } finally {

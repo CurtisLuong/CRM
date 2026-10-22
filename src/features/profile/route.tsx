@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import type { FeatureRoute } from '@/app/routes';
 import { PREF_CONDITIONS_LEGACY, PROFILE_PREF_CONDITIONS, PROFILE_PREF_FIELDS } from '@/config/advanced';
-import { OCCUPATIONS } from '@/config/occupations';
 import { CARE_STAGE_BOOKING, CARE_STAGE_DISPLAY } from '@/config/stages';
 import { VELOCITY_CONFIG } from '@/config/velocity';
 import { useCustomer, useRepositoryAccount } from '@/data/hooks';
@@ -37,23 +36,17 @@ import {
 } from '@/ui';
 import { ProfileTextField as Field, LegacyAssistField, ProfileAdvanced } from './advanced';
 import { ArchiveCustomerSection, ArchivedBanner } from './archive';
-import { advancedPatch, legacyValues } from './fields';
-import { CustomerMemory } from './memory';
+import { dobSavePatch } from './dob';
+import { advancedPatch, LONG_FIELD, legacyValues, SHORT_FIELD } from './fields';
+import { ChoiceField, infoHiddenCount, ProfileInfoFields } from './info';
+import { CustomerMemory, CustomerNeedsAdvanced, contactPrefsHiddenCount } from './memory';
 import { bookingStepPatch, dueTone, extraFacts, lastTouchOf, splitBrief, stageChoiceRows } from './model';
 import { ProfileTimeline } from './timeline';
 
 const FIELD =
   'min-h-11 w-full rounded-control border border-border-strong bg-surface px-3 text-body text-text focus-visible:outline-2 focus-visible:outline-focus disabled:opacity-60';
-const GENDER_OPTIONS = [
-  { value: 'nam', label: 'Nam' },
-  { value: 'nữ', label: 'Nữ' },
-  { value: 'khác', label: 'Khác' },
-];
-const MARITAL_STATUS_OPTIONS = [
-  { value: 'đã kết hôn', label: 'Đã kết hôn' },
-  { value: 'chưa kết hôn', label: 'Chưa kết hôn' },
-];
 const PURPOSE_OPTIONS = ['Ở', 'Đầu tư', 'Cho tặng'].map((value) => ({ value, label: value }));
+
 type DocumentRow = { id: string; label?: string | null; kind?: string; storage_path: string; mime?: string };
 
 // Giữ export cũ (test + nơi khác import từ route).
@@ -67,6 +60,8 @@ function Profile() {
   const toast = useToast();
   const [now, setNow] = useState(Date.now());
   const [busy, setBusy] = useState(false);
+  // CL-03 L2: ô trống của Trí nhớ ẩn sau nút "Bổ sung"; mặc định đóng mỗi lần mở hồ sơ.
+  const [supplementOpen, setSupplementOpen] = useState(false);
   const [stageOpen, setStageOpen] = useState(false);
   const [missingKey, setMissingKey] = useState('');
   const [docs, setDocs] = useState<DocumentRow[]>([]);
@@ -264,50 +259,14 @@ function Profile() {
     <div className="space-y-5">
       <section className="space-y-3">
         <h2 className="text-section">Thông tin chính</h2>
-        <Field
-          label="Họ tên"
-          value={c.full_name}
-          disabled={!infoWritable}
-          onSave={(value) => setField('full_name', value)}
-        />
-        <Field
-          label="Số điện thoại"
-          value={c.phone}
-          disabled={!infoWritable}
-          onSave={(value) => setField('phone', value)}
-        />
-        <ChoiceField
-          label="Giới tính"
-          value={c.gender}
-          disabled={!infoWritable || busy}
-          options={GENDER_OPTIONS}
-          onSave={(value) => setField('gender', value)}
-        />
-        <ChoiceField
-          label="Tình trạng hôn nhân"
-          value={c.marital_status}
-          disabled={!infoWritable || busy}
-          options={MARITAL_STATUS_OPTIONS}
-          onSave={(value) => setField('marital_status', value)}
-        />
-        <ChoiceField
-          label="Nghề nghiệp"
-          value={c.occupation}
-          disabled={!infoWritable || busy}
-          options={OCCUPATIONS.map((value) => ({ value, label: value }))}
-          onSave={(value) => setField('occupation', value)}
-        />
-        <Field
-          label="Thu nhập"
-          value={c.income}
-          disabled={!infoWritable}
-          onSave={(value) => setField('income', value)}
-        />
-        <Field
-          label="Nơi ở"
-          value={c.residence}
-          disabled={!infoWritable}
-          onSave={(value) => setField('residence', value)}
+        <ProfileInfoFields
+          customer={c}
+          writable={infoWritable}
+          busy={busy}
+          now={now}
+          showEmpty={supplementOpen}
+          onSaveField={setField}
+          onSaveDob={(dob) => void save(dobSavePatch(c, dob), dob ? 'Đã lưu ngày sinh' : 'Đã xoá ngày sinh')}
         />
       </section>
       <CustomerMemory
@@ -315,88 +274,107 @@ function Profile() {
         writable={infoWritable}
         onSave={(patch, message) => void save(patch, message)}
         now={now}
+        hideEmpty={!supplementOpen}
+        sections={{ interests: false, household: false }}
+        supplement={
+          infoWritable
+            ? {
+                open: supplementOpen,
+                count: infoHiddenCount(c) + contactPrefsHiddenCount(c),
+                onToggle: () => setSupplementOpen(!supplementOpen),
+              }
+            : undefined
+        }
       />
-      <ProfileAdvanced
-        customer={c}
-        writable={infoWritable}
-        now={now}
-        onSaveField={(field, value) => setField(field as keyof Customer, value)}
-        onSaveAdvanced={setAdvancedField}
-      />
+      <ProfileAdvanced customer={c} writable={infoWritable} now={now} onSaveAdvanced={setAdvancedField} />
     </div>
   );
   const needsContent = (
     <div className="space-y-4">
       <section className="space-y-3">
         <h2 className="text-section">Nhu cầu hiện tại</h2>
-        <ChoiceField
-          label="Mục đích mua"
-          value={c.purpose}
-          disabled={!infoWritable || busy}
-          options={PURPOSE_OPTIONS}
-          onSave={(value) => setField('purpose', value)}
-        />
-        <Field
-          label="Dự án quan tâm"
-          value={(c.projects || []).join(', ')}
-          disabled={!infoWritable}
-          onSave={(value) =>
-            setField(
-              'projects',
-              value
-                .split(',')
-                .map((x) => x.trim())
-                .filter(Boolean),
-            )
-          }
-        />
-        <Field
-          label="Loại căn"
-          value={c.apt_type}
-          disabled={!infoWritable}
-          onSave={(value) => setField('apt_type', value)}
-        />
-        <div className="grid grid-cols-2 gap-3">
-          <Field
-            label="Diện tích (m²)"
-            value={c.apt_area}
-            disabled={!infoWritable}
-            onSave={(value) => setField('apt_area', value === '' ? null : Number(value))}
-          />
-          <Field
-            label="Tài chính sẵn có (VNĐ)"
-            value={c.finance}
-            disabled={!infoWritable}
-            onSave={(value) => setField('finance', value === '' ? null : Number(value))}
-          />
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <Field
-            label="Mã toà"
-            value={c.building_code}
-            disabled={!infoWritable}
-            onSave={(value) => setField('building_code', value)}
-          />
-          <Field
-            label="Mã căn"
-            value={c.apt_code}
-            disabled={!infoWritable}
-            onSave={(value) => setField('apt_code', value)}
-          />
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <Field
-            label="Hướng"
-            value={c.apt_direction}
-            disabled={!infoWritable}
-            onSave={(value) => setField('apt_direction', value)}
-          />
-          <Field
-            label="Tầng"
-            value={c.apt_floor}
-            disabled={!infoWritable}
-            onSave={(value) => setField('apt_floor', value === '' ? null : Number(value))}
-          />
+        <div className="flex flex-wrap gap-3">
+          <div className={SHORT_FIELD}>
+            <ChoiceField
+              label="Mục đích mua"
+              value={c.purpose}
+              disabled={!infoWritable || busy}
+              options={PURPOSE_OPTIONS}
+              onSave={(value) => setField('purpose', value)}
+            />
+          </div>
+          <div className={SHORT_FIELD}>
+            <Field
+              label="Loại căn"
+              value={c.apt_type}
+              disabled={!infoWritable}
+              onSave={(value) => setField('apt_type', value)}
+            />
+          </div>
+          <div className={LONG_FIELD}>
+            <Field
+              label="Dự án quan tâm"
+              value={(c.projects || []).join(', ')}
+              disabled={!infoWritable}
+              onSave={(value) =>
+                setField(
+                  'projects',
+                  value
+                    .split(',')
+                    .map((x) => x.trim())
+                    .filter(Boolean),
+                )
+              }
+            />
+          </div>
+          <div className={SHORT_FIELD}>
+            <Field
+              label="Diện tích (m²)"
+              value={c.apt_area}
+              disabled={!infoWritable}
+              onSave={(value) => setField('apt_area', value === '' ? null : Number(value))}
+            />
+          </div>
+          <div className={SHORT_FIELD}>
+            <Field
+              label="Tài chính sẵn có (VNĐ)"
+              value={c.finance}
+              disabled={!infoWritable}
+              onSave={(value) => setField('finance', value === '' ? null : Number(value))}
+            />
+          </div>
+          <div className={SHORT_FIELD}>
+            <Field
+              label="Mã toà"
+              value={c.building_code}
+              disabled={!infoWritable}
+              onSave={(value) => setField('building_code', value)}
+            />
+          </div>
+          <div className={SHORT_FIELD}>
+            <Field
+              label="Mã căn"
+              value={c.apt_code}
+              disabled={!infoWritable}
+              onSave={(value) => setField('apt_code', value)}
+            />
+          </div>
+          <div className={SHORT_FIELD}>
+            <Field
+              label="Hướng"
+              value={c.apt_direction}
+              disabled={!infoWritable}
+              onSave={(value) => setField('apt_direction', value)}
+            />
+          </div>
+          <div className={SHORT_FIELD}>
+            <Field
+              label="Tầng"
+              value={c.apt_floor}
+              disabled={!infoWritable}
+              onSave={(value) => setField('apt_floor', value === '' ? null : Number(value))}
+            />
+          </div>
         </div>
         <Button variant="primary" onClick={() => navigate(loanPath({ customerId: c.id, ...customerUnit(c) }))}>
           Tính vay cho khách này
@@ -464,6 +442,12 @@ function Profile() {
           </Button>
         </section>
       )}
+      <CustomerNeedsAdvanced
+        customer={c}
+        writable={infoWritable}
+        onSave={(patch, message) => void save(patch, message)}
+        now={now}
+      />
     </div>
   );
   const docsContent = (
@@ -858,47 +842,6 @@ function Profile() {
         </fieldset>
       </Sheet>
     </main>
-  );
-}
-
-function ChoiceField({
-  label,
-  value,
-  disabled,
-  options,
-  onSave,
-}: {
-  label: string;
-  value: unknown;
-  disabled: boolean;
-  options: readonly { value: string; label: string }[];
-  onSave: (value: string | null) => void;
-}) {
-  const id = `profile-field-${label.toLocaleLowerCase('vi').replace(/[^\p{L}\p{N}]+/gu, '-')}`;
-  const current = value == null ? '' : String(value);
-  const preservesUnknown = current !== '' && !options.some((option) => option.value === current);
-  return (
-    <div className="block space-y-1 text-small text-text-2">
-      <label htmlFor={id}>{label}</label>
-      <select
-        id={id}
-        value={current}
-        disabled={disabled}
-        onChange={(event) => {
-          const next = event.target.value;
-          if (next !== current) onSave(next || null);
-        }}
-        className={FIELD}
-      >
-        <option value="">— Chưa chọn —</option>
-        {preservesUnknown && <option value={current}>{current} (giá trị hiện có)</option>}
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-    </div>
   );
 }
 
