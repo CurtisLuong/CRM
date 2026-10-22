@@ -1,5 +1,11 @@
 import type { AdvancedLegacy } from '@/config/advanced';
 
+// CL-03 L4: ô ngắn chiếm nửa hàng ở 360px; màn rộng chia 3–4 cột. Ô lẻ cuối tự giãn kín hàng
+// nhờ flex-grow, không để lại khoảng trống lớn. Ô dài luôn chiếm cả hàng.
+export const SHORT_FIELD =
+  'min-w-0 flex-1 basis-[calc(50%_-_0.375rem)] sm:basis-[calc(33.333%_-_0.5rem)] xl:basis-[calc(25%_-_0.5625rem)]';
+export const LONG_FIELD = 'min-w-0 basis-full';
+
 /** Một ghi cũ khác rỗng, đã có nhãn tiếng Việt để hiện chỉ đọc. */
 export type LegacyValue = { key: string; label: string; value: string };
 

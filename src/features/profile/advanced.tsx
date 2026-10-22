@@ -147,17 +147,17 @@ type Props = {
   customer: Customer;
   writable: boolean;
   now?: number;
-  /** Lưu trường thường của khách (vd. dob) qua factPatch ở route. */
-  onSaveField: (field: string, value: unknown) => void;
+  /** Giữ trong chữ ký cũ; Ngày sinh đã chuyển lên Thông tin chính (CL-03). */
+  onSaveField?: (field: string, value: unknown) => void;
   /** Lưu một khoá trong cột JSONB advanced, luôn giữ khoá cũ + khoá lạ. */
   onSaveAdvanced: (key: string, value: unknown) => void;
 };
 
 /**
  * Khu "Nâng cao" cuối tab Trí nhớ: mặc định đóng mỗi lần mở hồ sơ.
- * Gồm Ngày sinh, Bối cảnh sống (ô gộp), Tài sản (3 ô), trường cũ khác.
+ * Gồm Bối cảnh sống (ô gộp), Tài sản (3 ô), trường cũ khác. Ngày sinh không còn ở đây (CL-03).
  */
-export function ProfileAdvanced({ customer, writable, onSaveField, onSaveAdvanced }: Props) {
+export function ProfileAdvanced({ customer, writable, onSaveAdvanced }: Props) {
   const [open, setOpen] = useState(false);
   const panelId = useId();
   const advanced = customer.advanced || {};
@@ -177,12 +177,6 @@ export function ProfileAdvanced({ customer, writable, onSaveField, onSaveAdvance
       </Button>
       {open && (
         <div id={panelId} className="space-y-4">
-          <ProfileTextField
-            label="Ngày sinh"
-            value={customer.dob}
-            disabled={!writable}
-            onSave={(value) => onSaveField('dob', value)}
-          />
           <LegacyAssistField
             label={PROFILE_LIFE_CONTEXT.label}
             value={advanced[PROFILE_LIFE_CONTEXT.key]}
