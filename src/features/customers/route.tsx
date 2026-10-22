@@ -24,7 +24,8 @@ import {
   DEFAULT_FILTERS,
   DEFAULT_SORT,
   listCardSub,
-  type SortRule,
+  parseSortChoice,
+  type SortChoice,
   sortCustomers,
   v1FilterCustomers,
   virtualWindow,
@@ -35,7 +36,7 @@ type SavedSegment = {
   name: string;
   group: CustomerGroup;
   filters: CustomerFilters;
-  sort: SortRule[];
+  sort: SortChoice;
   view: 'list' | 'cards';
 };
 type TeamPerson = {
@@ -48,6 +49,8 @@ type TeamPerson = {
   is_me?: boolean;
 };
 const STORE = 'crm_v2_customer_segments';
+// Chiều sắp xếp 3 tầng nhớ theo người dùng trên thiết bị (L4).
+const SORT_STORE = 'crm_v2_customer_sort';
 // Thẻ gọn cao 64px + khe 8px = 72px; virtualWindow cần đúng nhịp này.
 const CARD_HEIGHT = 64;
 const CARD_GAP = 8;
@@ -66,6 +69,43 @@ function loadSaved(userId: string): SavedSegment[] {
   }
 }
 
+function loadSort(userId: string): SortChoice {
+  try {
+    return parseSortChoice(JSON.parse(localStorage.getItem(`${SORT_STORE}:${userId}`) || 'null'));
+  } catch {
+    return { ...DEFAULT_SORT };
+  }
+}
+
+type SortToggleProps<K extends keyof SortChoice> = {
+  label: string;
+  value: SortChoice[K];
+  /** Hai chiều, chiều mặc định đứng trước (aria-pressed = đang ở chiều mặc định). */
+  choices: readonly [{ value: SortChoice[K]; text: string }, { value: SortChoice[K]; text: string }];
+  onChange: (value: SortChoice[K]) => void;
+};
+
+/** Một nút đổi chiều cho một tầng: bấm là sang chiều kia, vùng chạm 44px, aria-pressed đọc được. */
+function SortToggle<K extends keyof SortChoice>({ label, value, choices, onChange }: SortToggleProps<K>) {
+  const atFirst = choices[0].value === value;
+  const current = atFirst ? choices[0] : choices[1];
+  const next = atFirst ? choices[1] : choices[0];
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <span className="min-w-0 text-small text-text-2">{label}</span>
+      <Button
+        variant="secondary"
+        aria-label={`${label}: ${current.text}`}
+        aria-pressed={atFirst}
+        onClick={() => onChange(next.value)}
+        className="min-h-11 min-w-0 shrink-0 lg:min-h-11"
+      >
+        <span className="truncate">{current.text}</span>
+      </Button>
+    </div>
+  );
+}
+
 function Customers() {
   const params = useParams();
   const navigate = useNavigate();
@@ -76,7 +116,9 @@ function Customers() {
   const userId = account?.sync.local.userId || '';
   const [group, setGroup] = useState<CustomerGroup>('potential');
   const [filters, setFilters] = useState<CustomerFilters>(DEFAULT_FILTERS);
-  const [sort, setSort] = useState<SortRule[]>(DEFAULT_SORT);
+  const [sort, setSort] = useState<SortChoice>(DEFAULT_SORT);
+  // Đồng hồ dùng cho sắp xếp + dòng phụ: cập nhật mỗi phút, không đổi theo mỗi lần cuộn (memo ổn định).
+  const [now, setNow] = useState(() => Date.now());
   const [view, setView] = useState<'list' | 'cards'>('list');
   const [saved, setSaved] = useState<SavedSegment[]>([]);
   const [activeSaved, setActiveSaved] = useState('');
@@ -124,6 +166,15 @@ function Customers() {
   }, []);
 
   useEffect(() => {
+    if (userId) setSort(loadSort(userId));
+  }, [userId]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
     if (!userId) {
       setSaved([]);
       return;
@@ -168,9 +219,21 @@ function Customers() {
   }, [account, syncStatus.assignError, toast]);
 
   const visible = useMemo(
-    () => sortCustomers(v1FilterCustomers(rows, group, filters, userId), sort),
-    [rows, group, filters, userId, sort],
+    () =>
+      sortCustomers(
+        v1FilterCustomers(rows, group, filters, userId, new Date(now)),
+        sort,
+        now,
+        filters.query.trim() !== '',
+      ),
+    [rows, group, filters, userId, sort, now],
   );
+  const changeSort = (next: SortChoice) => {
+    setSort(next);
+    if (userId) localStorage.setItem(`${SORT_STORE}:${userId}`, JSON.stringify(next));
+    setActiveSaved('');
+    setScrollTop(0);
+  };
   const setFilter = <K extends keyof CustomerFilters>(key: K, value: CustomerFilters[K]) => {
     setActiveSaved('');
     setFilters((prev) => ({ ...prev, [key]: value }));
@@ -179,7 +242,9 @@ function Customers() {
   const applySaved = (item: SavedSegment) => {
     setGroup(item.group);
     setFilters(item.filters);
-    setSort(item.sort);
+    const next = parseSortChoice(item.sort);
+    setSort(next);
+    if (userId) localStorage.setItem(`${SORT_STORE}:${userId}`, JSON.stringify(next));
     setView(item.view);
     setActiveSaved(item.id);
     setScrollTop(0);
@@ -195,7 +260,7 @@ function Customers() {
     if (!name) return;
     setSaving(true);
     const id = crypto.randomUUID();
-    const next = [...saved, { id, name, group, filters: { ...filters }, sort: [...sort], view }];
+    const next = [...saved, { id, name, group, filters: { ...filters }, sort: { ...sort }, view }];
     const synced = await persistSegments(next);
     setSaving(false);
     setSegmentName('');
@@ -240,6 +305,7 @@ function Customers() {
   const reset = () => {
     setFilters(DEFAULT_FILTERS);
     setSort(DEFAULT_SORT);
+    if (userId) localStorage.setItem(`${SORT_STORE}:${userId}`, JSON.stringify(DEFAULT_SORT));
     setActiveSaved('');
     setScrollTop(0);
   };
@@ -415,30 +481,39 @@ function Customers() {
           </label>
         )}
       </div>
-      <label className="block text-small text-text-2">
-        Sắp xếp nhiều khoá
-        <select
-          aria-label="Sắp xếp danh sách"
-          value={sort.map((s) => `${s.key}:${s.direction}`).join(',')}
-          onChange={(e) => {
-            const next = e.target.value.split(',').map((rule) => {
-              const [key, direction] = rule.split(':');
-              return { key, direction } as SortRule;
-            });
-            setSort(next);
-            setActiveSaved('');
-          }}
-          className="mt-1 min-h-11 w-full rounded-control border border-border-strong bg-surface px-3 text-body text-text"
-        >
-          <option value="updated:desc,name:asc">Cập nhật mới · tên A–Z</option>
-          <option value="name:asc">Tên A–Z</option>
-          <option value="name:desc">Tên Z–A</option>
-          <option value="registered:desc,name:asc">Đăng ký mới · tên</option>
-          <option value="registered:asc,name:asc">Đăng ký cũ · tên</option>
-          <option value="stage:asc,interest:desc">Bậc · mức quan tâm</option>
-          <option value="interest:desc,name:asc">Quan tâm cao · tên</option>
-        </select>
-      </label>
+      <fieldset className="space-y-2 rounded-card border border-hairline p-3">
+        <legend className="px-1 text-body-strong">Sắp xếp</legend>
+        <p className="text-small text-text-2">
+          Ba tầng: ngày đăng ký → lần tương tác → tên. Khách cần gọi hoặc quá SLA luôn ở trên.
+        </p>
+        <SortToggle<'registered'>
+          label="Ngày đăng ký"
+          value={sort.registered}
+          choices={[
+            { value: 'desc', text: 'Mới nhất' },
+            { value: 'asc', text: 'Cũ nhất' },
+          ]}
+          onChange={(value) => changeSort({ ...sort, registered: value })}
+        />
+        <SortToggle<'touch'>
+          label="Lần tương tác"
+          value={sort.touch}
+          choices={[
+            { value: 'untouched', text: 'Chưa tương tác trước' },
+            { value: 'recent', text: 'Gần nhất trước' },
+          ]}
+          onChange={(value) => changeSort({ ...sort, touch: value })}
+        />
+        <SortToggle<'name'>
+          label="Tên"
+          value={sort.name}
+          choices={[
+            { value: 'asc', text: 'A–Z' },
+            { value: 'desc', text: 'Z–A' },
+          ]}
+          onChange={(value) => changeSort({ ...sort, name: value })}
+        />
+      </fieldset>
     </div>
   );
 
@@ -447,7 +522,6 @@ function Customers() {
     { value: 'new', label: 'Khách mới', count: counts.leads },
     ...(team.length || counts.team ? [{ value: 'team' as const, label: 'Khách nhóm', count: counts.team }] : []),
   ];
-  const now = Date.now();
   const range = virtualWindow(
     visible.length,
     Math.min(scrollTop, Math.max(0, (visible.length - 1) * ITEM_HEIGHT)),
