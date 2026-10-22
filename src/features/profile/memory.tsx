@@ -119,6 +119,8 @@ export function CustomerContactPrefs({
   const showSlot = !hideEmpty || initiallyFilled.slot;
   const showDoNotContact = !hideEmpty || initiallyFilled.dnc || !!prefs.do_not_contact;
   const showDncReason = !!prefs.do_not_contact && (!hideEmpty || initiallyFilled.reason);
+  // Mọi ô đều trống và đang ẩn → bỏ luôn tiêu đề, tránh một mục rỗng giữa trang (Curtis 2026-10-22: hồ sơ gọn).
+  if (!showChannel && !showSlot && !showDoNotContact && !showDncReason) return null;
 
   return (
     <section className="space-y-3">

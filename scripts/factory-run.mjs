@@ -272,14 +272,18 @@ export function unitRunner(wt) {
 export function retryUntouched(wt, cmd, out, files, log = console.log) {
   const failed = failedTestFiles(out);
   const all = [...failed.e2e, ...failed.unit];
-  if (!all.length) return null;
+  // Ghi lý do không chạy lại để Lead phân biệt "trượt thật" với "không nhận ra file trượt".
+  if (!all.length) return log(`  ↻ không chạy lại: không đọc được file test trượt từ \`${cmd}\``), null;
   const touched = new Set(files.map((f) => f.path));
-  if (all.some((p) => touched.has(p))) return null;
+  const mine = all.filter((p) => touched.has(p));
+  if (mine.length) return log(`  ↻ không chạy lại: file trượt do nhánh sửa (${mine.join(', ')})`), null;
   const runner = unitRunner(wt);
-  if (failed.unit.length && !runner) return null;
+  if (failed.unit.length && !runner) return log('  ↻ không chạy lại: không biết chạy test unit'), null;
   log(`  ↻ \`${cmd}\` trượt ở file worker không đụng (${all.join(', ')}) — chạy lại 1 lần`);
-  if (failed.e2e.length && sh('npx', ['playwright', 'test', ...failed.e2e], { cwd: wt }).code !== 0) return null;
-  if (failed.unit.length && sh(runner[0], [...runner[1], ...failed.unit], { cwd: wt }).code !== 0) return null;
+  if (failed.e2e.length && sh('npx', ['playwright', 'test', ...failed.e2e], { cwd: wt }).code !== 0)
+    return log('  ↻ chạy lại vẫn trượt → tính trượt'), null;
+  if (failed.unit.length && sh(runner[0], [...runner[1], ...failed.unit], { cwd: wt }).code !== 0)
+    return log('  ↻ chạy lại vẫn trượt → tính trượt'), null;
   log('  ↻ chạy lại xanh → test chập chờn, không tính worker trượt');
   return all;
 }
