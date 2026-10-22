@@ -34,6 +34,7 @@ Lựa chọn nền tảng ban đầu (Supabase, Cloudflare Pages, local-first) k
 | D-022 | T6.7 nghiệm thu không cần bộ đánh giá 50–100 ghi chú thật; theo dõi trên production | Ngoại lệ cục bộ đã duyệt 2026-10-17 | Chỉ T6.7 |
 | D-023 | Design System v4 "Precision Tonal" + 5 luật UI đo được | Đã duyệt 2026-10-19 | Áp dụng cho v3 (nhánh `factory`) |
 | D-024 | Đợt v3 chạy bằng AI Factory trên nhánh `factory`; task cũ T5.5, T6.3 tạm hoãn | Đã duyệt 2026-10-18 | Áp dụng tới khi v3 lên production |
+| D-025 | Khách nhóm: người đang thấy được sửa thông tin + thêm ghi chú; không SLA/nhắc việc | Đã duyệt 2026-10-22, chưa code phần quyền | Nới D-003 |
 
 ## Ba loại kết quả
 
@@ -395,3 +396,15 @@ Ví dụ và mẫu trong bộ tài liệu không phải sự chấp thuận cho 
 - Chấp thuận: Curtis 2026-10-18 chọn "Dựng AI Factory mới", "Task cũ tạm hoãn", "Khoá riêng trong worktree worker".
 - Tài liệu đã cập nhật: `CLAUDE.md`, `AGENTS.md` (dòng AI Factory), `docs/factory-playbook.md`, `docs/STATE.md`, `docs/ROADMAP.md`.
 - Trạng thái: Đang áp dụng.
+
+### D-025 — Khách nhóm: được sửa thông tin, không tính SLA
+
+- Ngày: 2026-10-22
+- Loại: Đổi nguyên tắc (nới D-003 "chỉ người phụ trách ghi")
+- Quyết định (Curtis chọn trong chat 2026-10-22):
+  - **Ai:** người đang thấy khách trong tab Khách nhóm = trưởng nhóm (admin) + người có tên trong `followers`.
+  - **Được:** sửa thông tin hồ sơ và thêm ghi chú. **Không được:** đổi bậc, ghi cuộc gọi, đặt lịch/việc, giao khách, lưu trữ — vẫn là việc của người phụ trách.
+  - Khách nhóm **không tính SLA** với người xem: không ghim, không chữ "Quá SLA", không thanh SLA, không hoàn tác SLA (CL-01, CL-02). Nhắc việc vẫn chỉ cho người phụ trách (giữ D-003).
+- Cần làm (rủi ro cao, Lead làm): migration chỉ-thêm `SQL/v2/010_*` (policy update + trigger chặn cột ngoài danh sách cho người không phụ trách), nới `assertWritable`/đồng bộ ở `src/data/**` theo đúng danh sách cột, hồ sơ mở khoá các ô thông tin. Hai người cùng sửa: ghi theo trường + mảng gộp theo phần tử (D-021), last-write-wins từng trường.
+- Trạng thái: CL-01/CL-02 (phần SLA) xếp hàng 2026-10-22; phần quyền sửa chưa code, chưa có SQL.
+
