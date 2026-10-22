@@ -77,6 +77,15 @@ function loadSort(userId: string): SortChoice {
   }
 }
 
+function saveSort(userId: string, choice: SortChoice) {
+  if (!userId) return;
+  try {
+    localStorage.setItem(`${SORT_STORE}:${userId}`, JSON.stringify(choice));
+  } catch {
+    // Chế độ riêng tư / bộ nhớ đầy: chỉ mất phần nhớ lựa chọn, danh sách vẫn sắp đúng.
+  }
+}
+
 type SortToggleProps<K extends keyof SortChoice> = {
   label: string;
   value: SortChoice[K];
@@ -85,23 +94,36 @@ type SortToggleProps<K extends keyof SortChoice> = {
   onChange: (value: SortChoice[K]) => void;
 };
 
-/** Một nút đổi chiều cho một tầng: bấm là sang chiều kia, vùng chạm 44px, aria-pressed đọc được. */
+/**
+ * Một nút đổi chiều cho một tầng: hiện cả hai chiều, chiều đang dùng sáng lên; bấm là chiều kia sáng
+ * (Curtis 2026-10-22). Vùng chạm 44px, aria-pressed đọc được.
+ */
 function SortToggle<K extends keyof SortChoice>({ label, value, choices, onChange }: SortToggleProps<K>) {
   const atFirst = choices[0].value === value;
   const current = atFirst ? choices[0] : choices[1];
   const next = atFirst ? choices[1] : choices[0];
   return (
-    <div className="flex items-center justify-between gap-3">
-      <span className="min-w-0 text-small text-text-2">{label}</span>
-      <Button
-        variant="secondary"
+    <div className="space-y-1">
+      <span className="block text-small text-text-2">{label}</span>
+      <button
+        type="button"
         aria-label={`${label}: ${current.text}`}
         aria-pressed={atFirst}
         onClick={() => onChange(next.value)}
-        className="min-h-11 min-w-0 shrink-0 lg:min-h-11"
+        className="flex min-h-11 w-full gap-1 rounded-control border border-border bg-surface-2 p-1 focus-visible:outline-2 focus-visible:outline-focus"
       >
-        <span className="truncate">{current.text}</span>
-      </Button>
+        {choices.map((choice) => (
+          <span
+            key={choice.value}
+            className={cn(
+              'flex min-w-0 flex-1 items-center justify-center truncate rounded-[8px] px-2 text-small font-semibold transition-colors duration-(--dur-fast)',
+              choice.value === value ? 'bg-accent-soft text-accent' : 'text-text-2',
+            )}
+          >
+            {choice.text}
+          </span>
+        ))}
+      </button>
     </div>
   );
 }
@@ -230,7 +252,7 @@ function Customers() {
   );
   const changeSort = (next: SortChoice) => {
     setSort(next);
-    if (userId) localStorage.setItem(`${SORT_STORE}:${userId}`, JSON.stringify(next));
+    saveSort(userId, next);
     setActiveSaved('');
     setScrollTop(0);
   };
@@ -244,7 +266,7 @@ function Customers() {
     setFilters(item.filters);
     const next = parseSortChoice(item.sort);
     setSort(next);
-    if (userId) localStorage.setItem(`${SORT_STORE}:${userId}`, JSON.stringify(next));
+    saveSort(userId, next);
     setView(item.view);
     setActiveSaved(item.id);
     setScrollTop(0);
@@ -305,7 +327,7 @@ function Customers() {
   const reset = () => {
     setFilters(DEFAULT_FILTERS);
     setSort(DEFAULT_SORT);
-    if (userId) localStorage.setItem(`${SORT_STORE}:${userId}`, JSON.stringify(DEFAULT_SORT));
+    saveSort(userId, DEFAULT_SORT);
     setActiveSaved('');
     setScrollTop(0);
   };
@@ -484,7 +506,7 @@ function Customers() {
       <fieldset className="space-y-2 rounded-card border border-hairline p-3">
         <legend className="px-1 text-body-strong">Sắp xếp</legend>
         <p className="text-small text-text-2">
-          Ba tầng: ngày đăng ký → lần tương tác → tên. Khách cần gọi hoặc quá SLA luôn ở trên.
+          Ba tầng: ngày đăng ký → lần tương tác → tên. Khách cần gọi hoặc quá SLA luôn ở trên, trừ khi đang tìm.
         </p>
         <SortToggle<'registered'>
           label="Ngày đăng ký"

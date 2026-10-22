@@ -28,6 +28,7 @@ Nguồn: báo cáo `scripts/factory-run.mjs` / `reports/overnight-*.md` + nghi�
 | PF-06 | code | 2026-10-21 | deepseek-flash | 1 | $0.0707 | — | ĐẠT | Đạt | — | ~5 | — | Chuông + màn Thông báo chung hook `useNotificationSignals`; tìm khách nối qua `setCustomerSearch` (cổng cắm có sẵn) |
 | PF-07 | code | 2026-10-21 | deepseek-flash | 1 | $0.0518 | 2 | ĐẠT (hết giờ, gate xanh) | Đạt, vá 1 (lỗi có sẵn) | — | ~25 | Trước khi giao: khung app `wide` (gốc của nút xuống dòng + tab bị cắt là trần 760px của AppShell), ngày đăng ký cùng kiểu, e2e bố cục 9 ca + ảnh mẫu điện thoại. Sau: nút Gọi lấn mép thẻ (`lg:-mx-6` có sẵn) | Nguyên nhân gốc nằm ngoài phạm vi feature → Lead sửa khung trước, worker chỉ còn bố cục trong màn. Ảnh tối chụp ngay sau `emulateMedia` dính hiệu ứng chuyển màu → chờ 600ms |
 
+| PF-08 | code | 2026-10-22 | deepseek-flash | 2 (1 BLOCKED) | $0.1354 | — | ĐẠT (hết giờ, gate xanh) | Đạt, vá 1 | — | ~10 | BLOCKED đúng: e2e m5 có sẵn đòi thẻ quá SLA vẫn có "N ngày trước" → Lead: giữ lần liên hệ cuối sau "Quá SLA". Sau: nút đổi chiều chỉ hiện chiều đang chọn → Lead đổi thành hiện cả hai chiều (đúng lời Curtis); ghi localStorage bọc try/catch | Lead thêm `hasSaleTouch` trước khi giao (mốc bậc có ở mọi khách lúc tạo nên không dùng được để biết "chưa tương tác"). Đặc tả UI nên trích nguyên lời Curtis về cách bấm |
 Loại: `code` / `test-only` / `lead` (Lead tự làm) / `đối chứng` (làm bằng Claude Code thuần để so sánh).
 
 ## Phát hiện
