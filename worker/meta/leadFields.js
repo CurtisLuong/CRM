@@ -39,6 +39,27 @@ const SKIP_KEYS = new Set([
   'zalo',
 ]);
 
+// Câu hỏi SĐT/họ tên do người tạo form tự đặt ("Số điện thoại liên hệ", "SĐT/Zalo", "Họ và tên của anh/chị")
+// → không khớp đúng tên chuẩn nên dò theo cụm chữ chứa trong tên trường.
+const PHONE_HINTS = ['dien thoai', 'sdt', 'so dt', 'phone', 'mobile', 'zalo'];
+const NAME_HINTS = ['ho ten', 'ho va ten', 'full name', 'ten day du', 'your name'];
+
+export function phoneHint(key) {
+  return PHONE_HINTS.some((hint) => key.includes(hint));
+}
+
+export function nameHint(key) {
+  return NAME_HINTS.some((hint) => key.includes(hint));
+}
+
+/** Câu trả lời chỉ gồm chữ số + ký tự ngăn cách, 9–12 chữ số → trông như SĐT (không nhầm "2_tỷ", "có"). */
+export function looksLikePhone(value) {
+  const raw = String(value == null ? '' : value).trim();
+  if (!/^[\d\s+().-]+$/.test(raw)) return false;
+  const digits = raw.replace(/\D/g, '').length;
+  return digits >= 9 && digits <= 12;
+}
+
 // Luật 1 — câu hỏi về loại căn.
 const APT_HINTS = ['phong ngu', 'may ngu', 'loai can', 'can ho may', 'bedroom'];
 // Luật 2 — câu hỏi về thời điểm dự kiến mua.
@@ -83,6 +104,8 @@ export function formAnswers(fieldData) {
 
     const key = fieldNameKey(name);
     if (SKIP_KEYS.has(key) || key.includes('inbox')) continue;
+    // SĐT/họ tên đặt tên tự do đã vào cột riêng (parseFieldData) — không chép lại thành ghi chú.
+    if ((phoneHint(key) && looksLikePhone(value)) || nameHint(key)) continue;
 
     if (APT_HINTS.some((hint) => key.includes(hint))) {
       const canonical = canonicalAptType(value);

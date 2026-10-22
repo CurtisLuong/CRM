@@ -9,6 +9,26 @@ import { createStore } from './store.js';
 
 const VN_OFFSET_SECONDS = 7 * 3600;
 const POLL_LOOKBACK_H = 48;
+// Lượt gọi mạng giữ lại cho bước ghi tình trạng kết nối cuối lượt cron (đọc, đếm hàng chờ, kiểm token, webhook, ghi).
+const HEALTH_RESERVE = 5;
+
+const POLL_SLOT_MS = 5 * 60 * 1000;
+const POLL_STRIDE = 30;
+
+/**
+ * Thứ tự đọc form khi quét: form đang chạy (ACTIVE) trước, form cũ sau. Page nhiều form hơn số lượt gọi mạng
+ * của một lượt cron → điểm bắt đầu trong nhóm ACTIVE xoay 30 form mỗi 5 phút, để form nào cũng được đọc
+ * sau vài lượt (trước đây lượt nào cũng chỉ đọc cùng các form đầu danh sách, lead form cuối không bao giờ vào).
+ */
+export function pollOrder(forms, nowMs) {
+  const list = Array.isArray(forms) ? forms.filter(Boolean) : [];
+  const isActive = (form) => String(form.status || '').toUpperCase() === 'ACTIVE';
+  const active = list.filter(isActive);
+  const others = list.filter((form) => !isActive(form));
+  if (!active.length) return others;
+  const offset = ((Math.floor(nowMs / POLL_SLOT_MS) * POLL_STRIDE) % active.length + active.length) % active.length;
+  return [...active.slice(offset), ...active.slice(0, offset), ...others];
+}
 
 export function createRun(env, { now, maxFetches = MAX_FETCHES_PER_RUN } = {}) {
   const clock = now || (() => new Date());
@@ -92,12 +112,15 @@ export async function pollRecentLeads(ctx) {
   if (!env.FB_PAGE_ID || !env.FB_PAGE_ACCESS_TOKEN) return { forms: 0, found: 0, queued: 0, skipped: true };
   const since = Math.floor(ctx.now().getTime() / 1000) - POLL_LOOKBACK_H * 3600;
   const data = await ctx.graph.listForms();
-  const forms = Array.isArray(data && data.data) ? data.data : [];
+  const forms = pollOrder(Array.isArray(data && data.data) ? data.data : [], ctx.now().getTime());
   const rows = [];
   let found = 0;
   let truncated = false;
   for (const form of forms) {
-    if (ctx.budget.left() < 4) break;
+    if (ctx.budget.left() < 4 + HEALTH_RESERVE) {
+      truncated = true;
+      break;
+    }
     const { leads, more } = await ctx.graph.leadsOfForm(form.id, since, null, { reserve: 3 });
     if (more) truncated = true; // trang còn lại: lượt cron sau đọc tiếp (lead đã vào hàng chờ được bỏ qua)
     found += leads.length;
@@ -125,13 +148,17 @@ export async function processDueBatch(ctx, limit) {
   const due = await ctx.store.dueQueue(limit, ctx.now().toISOString());
   const results = [];
   for (const row of due) {
-    if (ctx.budget.left() < 6) break; // giữ chỗ cho lượt ghi tình trạng kết nối
+    if (ctx.budget.left() < 6 + HEALTH_RESERVE) break; // ~6 lượt/lead + giữ chỗ ghi tình trạng kết nối
     results.push(await processQueueItem(ctx, row));
   }
   return results;
 }
 
-/** Cron 5 phút và POST /fb/poll. */
+/**
+ * Cron 5 phút và POST /fb/poll.
+ * Thứ tự: xử lý hàng chờ → quét lead mới → xử lý tiếp lead vừa quét (nếu còn lượt) → tình trạng kết nối.
+ * Trước đây quét trước: Page nhiều form thì lượt quét tiêu hết 45 lượt gọi mạng, hàng chờ không bao giờ được ghi.
+ */
 export async function runCron(env, options = {}) {
   const ctx = createRun(env, options);
   const summary = {
@@ -149,6 +176,27 @@ export async function runCron(env, options = {}) {
     health: null,
   };
 
+  const tally = (results) => {
+    summary.processed += results.length;
+    for (const result of results) {
+      const key = result && result.status;
+      if (key && Object.hasOwn(summary, key)) summary[key] += 1;
+    }
+  };
+  const processBatch = async (limit) => {
+    if (limit <= 0) return;
+    try {
+      tally(await processDueBatch(ctx, limit));
+    } catch (error) {
+      if (!error || error.code !== 'budget') {
+        console.error('fb hàng chờ lỗi', JSON.stringify({ error: redactError(error, env) }));
+      }
+    }
+  };
+
+  const limit = batchSize(env);
+  await processBatch(limit);
+
   try {
     const poll = await pollRecentLeads(ctx);
     summary.forms = poll.forms;
@@ -162,18 +210,8 @@ export async function runCron(env, options = {}) {
     if (error && (error.kind === 'token' || error.kind === 'permission')) ctx.healthError = connectionMessage(error.kind);
   }
 
-  try {
-    const results = await processDueBatch(ctx, batchSize(env));
-    summary.processed = results.length;
-    for (const result of results) {
-      const key = result && result.status;
-      if (key && Object.hasOwn(summary, key)) summary[key] += 1;
-    }
-  } catch (error) {
-    if (!error || error.code !== 'budget') {
-      console.error('fb hàng chờ lỗi', JSON.stringify({ error: redactError(error, env) }));
-    }
-  }
+  // Lead vừa quét được ghi ngay trong lượt này khi còn lượt gọi mạng (không phải chờ cron sau).
+  if (summary.queued > 0) await processBatch(limit - summary.processed);
 
   try {
     const health = await runHealthCheck(env, ctx, { forcedError: ctx.healthError || null });

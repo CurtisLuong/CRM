@@ -1,6 +1,6 @@
 // Chuyển dữ liệu lead Meta → dòng khách / phần tử interaction theo đúng luật nghiệp vụ ML-01 + ML-03.
 import { LEAD_FORM_ORIGIN } from '../../src/domain/customer/interactions';
-import { fieldNameKey, formAnswers } from './leadFields.js';
+import { fieldNameKey, formAnswers, looksLikePhone, nameHint, phoneHint } from './leadFields.js';
 import { normalizePhoneVN } from './phone.js';
 
 export const LEAD_FORM_KIND = 'lead_form';
@@ -43,10 +43,21 @@ export function parseFieldData(fieldData) {
     }
     return '';
   };
+  const byTest = (test) => {
+    const field = list.find((item) => item && valueOf(item) && test(fieldNameKey(item.name), valueOf(item)));
+    return field ? valueOf(field) : '';
+  };
   const get = (name) => valueOf(list.find((item) => item && item.name === name));
   const fullName =
-    byKeys(FULL_NAME_KEYS) || [get('last_name'), get('first_name')].filter(Boolean).join(' ').trim();
-  const rawPhone = byKeys(PHONE_KEYS);
+    byKeys(FULL_NAME_KEYS) ||
+    [get('last_name'), get('first_name')].filter(Boolean).join(' ').trim() ||
+    byTest((key) => nameHint(key));
+  // Tên chuẩn → tên chứa cụm "điện thoại/SĐT/phone/zalo" có câu trả lời dạng số → câu trả lời bất kỳ dạng số.
+  // Trước đây chỉ so khớp đúng tên: form đặt "Số điện thoại liên hệ" bị coi là không SĐT và lead bị bỏ im lặng.
+  const rawPhone =
+    byKeys(PHONE_KEYS) ||
+    byTest((key, value) => phoneHint(key) && looksLikePhone(value)) ||
+    byTest((key, value) => key !== 'email' && looksLikePhone(value));
   const lines = [];
   for (const field of list) {
     if (!field) continue;

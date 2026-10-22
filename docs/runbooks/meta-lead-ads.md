@@ -197,3 +197,25 @@ Cùng luật chống trùng/hàng chờ như webhook.
 | Khách trùng SĐT đang **lưu trữ** đăng ký lại | Gắn dòng "Đăng ký qua form quảng cáo" vào hồ sơ lưu trữ, **không** tự mở lại; nhật ký ghi chú để tra | Tự mở lưu trữ (cần duyệt vì là tự động hoá mới) |
 | Khách cũ đăng ký lại có được nhắc gọi ở **Hôm nay** không | Chưa (lần đăng ký lại không tính là "sale đã liên hệ", nên nhắc chăm sóc cũ vẫn giữ) | Thêm tín hiệu "Khách vừa đăng ký lại" ở Hôm nay (task riêng) |
 | Ai nhận lead | 1 người (`FB_LEAD_OWNER_ID`), chia bằng "Giao khách" | Chia theo form/chiến dịch (task riêng) |
+
+## 15. Lead có trên Meta nhưng không vào CRM (kiểm 2026-10-22)
+
+Chạy 3 câu ở mục 9 trên **production** `nrqccwamwctihivpxjww` (chỉ đọc), đọc kết quả theo bảng:
+
+| Thấy gì | Nghĩa | Làm gì |
+|---|---|---|
+| Lead hôm nay **không có dòng nào** ở `fb_leads` và `fb_lead_queue` | Worker chưa đọc được lead (webhook không tới + quét không tới form đó) | Kiểm `integration_health.checked_at` có mới trong 5 phút không; Page có nhiều form → bản Worker sửa 2026-10-22 (xoay vòng form) |
+| `fb_leads.status = error`, lỗi "Lead không có số điện thoại", nhưng khách **có** điền SĐT | Ô SĐT trong form đặt tên tự do — bản cũ không nhận ra | Deploy Worker bản 2026-10-22 rồi chạy câu "đưa lại hàng chờ" dưới đây |
+| `fb_lead_queue` có `last_error` | Ghi lỗi (database/token) | Gửi Claude nội dung `last_error` |
+| Có dòng `status = created` nhưng app không thấy | Lead đã vào database, app chưa tải về | Kéo xuống làm mới ở **Khách mới**; vẫn không thấy → báo Claude |
+
+**Đưa lại hàng chờ các lead bị nhận nhầm "không SĐT" trong 3 ngày** (chạy **sau** khi Worker mới đã deploy, **production**). Chỉ sửa bảng hàng chờ của tích hợp, không đụng khách; lead đã thành khách không bị ghi lại:
+```sql
+update public.fb_lead_queue q
+set done_at = null, next_attempt_at = now(), attempts = 0, updated_at = now()
+from public.fb_leads l
+where l.lead_id = q.lead_id
+  and l.status = 'error' and l.error = 'Lead không có số điện thoại'
+  and l.received_at > now() - interval '3 days';
+```
+Trong ≤ 10 phút các lead này vào **Khách mới**. Lead vẫn không có SĐT thật sẽ lại hiện lỗi như cũ (đúng).
