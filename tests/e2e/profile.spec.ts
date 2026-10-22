@@ -157,7 +157,7 @@ for (const theme of ['light', 'dark'] as const) {
     await expect(page.getByRole('navigation', { name: 'Hành động nhanh' })).toBeVisible();
     await page.getByRole('tab', { name: 'Trí nhớ' }).click();
     await expect(page.getByLabel('Giới tính')).toHaveValue('Nữ');
-    await expect(page.getByLabel('Tình trạng hôn nhân')).toHaveValue('Độc thân');
+    await expect(page.getByLabel('Hôn nhân')).toHaveValue('Độc thân');
     await expect(page.getByLabel('Nghề nghiệp')).toHaveValue('Giáo viên');
     const profileViewport = page.viewportSize();
     for (const width of testInfo.project.name === 'phone-390' ? [390, 430] : [profileViewport?.width || 1280]) {
@@ -178,7 +178,7 @@ for (const theme of ['light', 'dark'] as const) {
     await page.getByLabel('Giới tính').selectOption('nữ');
     await expect(savedToast).toBeVisible();
     await page.waitForTimeout(300);
-    await page.getByLabel('Tình trạng hôn nhân').selectOption('đã kết hôn');
+    await page.getByLabel('Hôn nhân').selectOption('đã kết hôn');
     await expect(savedToast).toBeVisible();
     await page.waitForTimeout(300);
     await page.getByLabel('Nghề nghiệp').selectOption('Công ty, DN');
@@ -197,6 +197,9 @@ for (const theme of ['light', 'dark'] as const) {
     await page.getByLabel('Khung giờ liên hệ').fill('Sáng');
     await page.getByLabel('Khung giờ liên hệ').press('Tab');
     await expect(page.getByText('Đã lưu trên thiết bị', { exact: true }).first()).toBeVisible();
+    // 2026-10-22 (Curtis): Nhu cầu theo đợt + Người cùng quyết định chuyển sang tab Nhu cầu & căn, khu Nâng cao.
+    await page.getByRole('tab', { name: 'Nhu cầu & căn' }).click();
+    await page.getByRole('button', { name: 'Nâng cao' }).click();
     await page.getByLabel('Dự án quan tâm mới').fill('Dự án thứ hai');
     await page.getByRole('button', { name: 'Thêm đợt' }).click();
     await expect(page.getByText('Đã thêm đợt quan tâm', { exact: true })).toBeVisible();
@@ -206,6 +209,9 @@ for (const theme of ['light', 'dark'] as const) {
     await page.getByRole('button', { name: 'Thêm người' }).click();
     await expect(page.getByText('Đã thêm người cùng quyết định', { exact: true })).toBeVisible();
     await page.waitForTimeout(300);
+    // Trí nhớ ẩn ô chưa có giá trị dưới nút "Bổ sung" (Curtis 2026-10-22); "Không liên hệ" đang tắt → nằm trong Bổ sung.
+    await page.getByRole('tab', { name: 'Trí nhớ' }).click();
+    await page.getByRole('button', { name: /^Bổ sung/ }).click();
     const doNotContact = page.getByRole('checkbox', { name: /Không liên hệ/ });
     await doNotContact.click();
     await expect(doNotContact).toBeChecked();

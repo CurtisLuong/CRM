@@ -56,7 +56,8 @@ describe('PF-01 — khu Nâng cao mặc định đóng', () => {
     await user.click(toggle);
     expect(toggle.getAttribute('aria-expanded')).toBe('true');
     expect(screen.getByLabelText('Bối cảnh sống')).toBeTruthy();
-    expect(screen.getByLabelText('Ngày sinh')).toBeTruthy();
+    // 2026-10-22 (Curtis): Ngày sinh chuyển lên Thông tin chính, không còn trong Nâng cao.
+    expect(screen.queryByRole('region', { name: 'Hồ sơ nâng cao' })?.textContent ?? '').not.toContain('Ngày sinh');
 
     await user.click(toggle);
     expect(toggle.getAttribute('aria-expanded')).toBe('false');

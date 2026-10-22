@@ -21,7 +21,7 @@ vi.mock('@/data/hooks', () => ({
 const fields = [
   { label: 'Giới tính', key: 'gender', old: 'Nữ', values: ['nam', 'nữ', 'khác'], tab: 'Trí nhớ' },
   {
-    label: 'Tình trạng hôn nhân',
+    label: 'Hôn nhân',
     key: 'marital_status',
     old: 'Độc thân',
     values: ['đã kết hôn', 'chưa kết hôn'],
