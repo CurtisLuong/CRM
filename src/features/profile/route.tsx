@@ -38,7 +38,7 @@ import { ProfileTextField as Field, LegacyAssistField, ProfileAdvanced } from '.
 import { ArchiveCustomerSection, ArchivedBanner } from './archive';
 import { advancedPatch, legacyValues } from './fields';
 import { CustomerMemory } from './memory';
-import { bookingStepPatch, dueTone, extraFacts, lastTouchOf, splitBrief, stageChoicesFor } from './model';
+import { bookingStepPatch, dueTone, extraFacts, lastTouchOf, splitBrief, stageChoiceRows } from './model';
 import { ProfileTimeline } from './timeline';
 
 const FIELD =
@@ -571,12 +571,13 @@ function Profile() {
   const lastTouch = lastTouchOf(c, now);
   const extra = extraFacts(c, now);
   const stageLabel = CARE_STAGE_DISPLAY[stage] || stage || 'Chưa có bậc';
-  const stageOptions = stageChoicesFor(stage);
+  const stageOptions = stageChoiceRows(stage);
   // Việc đến hạn/quá hạn đứng đầu hồ sơ, vạch đỏ để không bỏ quên (D-010).
   const tones = tasks.map((task) => dueTone(taskDueInfo(task, now)));
   const nextTone = tones.includes('over') ? 'over' : tones.includes('soon') ? 'soon' : undefined;
   const asked = briefParts.missing.find((item) => item.key === missingKey) ?? null;
-  const undoPlan = account ? planSlaUndo(c, now, account.sync.local.userId) : null;
+  // Khách của đồng nghiệp: SLA không thuộc phạm vi chăm sóc của mình → không hiện nút hoàn tác (L3).
+  const undoPlan = account && !otherOwner ? planSlaUndo(c, now, account.sync.local.userId) : null;
   const sourceText = sourceListOf(c.source).map(sourceLabel).filter(Boolean).join(' · ');
 
   return (
@@ -628,19 +629,20 @@ function Profile() {
                 </button>
                 <HealthDot
                   health={
-                    calls.length || c.next_call_at
-                      ? sla?.state === 'over'
+                    // Khách đồng nghiệp: như khách chưa có tín hiệu SLA — không báo trễ/rủi ro vì SLA (L3).
+                    otherOwner || !(calls.length || c.next_call_at)
+                      ? 'unknown'
+                      : sla?.state === 'over'
                         ? 'risk'
                         : sla?.state === 'warn'
                           ? 'late'
                           : 'ok'
-                      : 'unknown'
                   }
                   showText
                 />
                 <Badge>{sourceText || 'Chưa rõ nguồn'}</Badge>
               </div>
-              {slas && <SlaBar label="SLA bậc" state={slas.state} ratio={slas.ratio} text={slas.text} />}
+              {!otherOwner && slas && <SlaBar label="SLA bậc" state={slas.state} ratio={slas.ratio} text={slas.text} />}
               <div className="-mx-4 lg:mx-0">{actionBar}</div>
               {otherOwner && <p className="text-small text-text-2">Người phụ trách khác · hồ sơ chỉ xem.</p>}
               {undoPlan && (
@@ -811,21 +813,30 @@ function Profile() {
           <legend className="sr-only">Bậc chăm sóc</legend>
           {stageOptions.map((option) => (
             <label
-              key={option}
-              className="flex min-h-12 cursor-pointer items-center gap-3 rounded-control px-2 hover:bg-surface-2"
+              key={option.stage}
+              className={`flex min-h-12 cursor-pointer items-center gap-3 rounded-control px-2 hover:bg-surface-2 ${
+                option.hint ? 'ml-4 border-l-2 border-border-strong pl-3' : ''
+              }`}
             >
               <input
                 type="radio"
                 name="profile-care-stage"
-                value={option}
-                checked={option === stage}
+                value={option.stage}
+                checked={option.stage === stage}
                 disabled={busy}
+                aria-label={option.label}
                 onChange={() => {
                   setStageOpen(false);
-                  void onStage(option);
+                  void onStage(option.stage);
                 }}
               />
-              <span className="text-body">{CARE_STAGE_DISPLAY[option] || option}</span>
+              <span className="min-w-0">
+                <span className="block text-body">
+                  {option.hint && <span aria-hidden>↳ </span>}
+                  {option.label}
+                </span>
+                {option.hint && <span className="block text-small text-text-3">{option.hint}</span>}
+              </span>
             </label>
           ))}
         </fieldset>

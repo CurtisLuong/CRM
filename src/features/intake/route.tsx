@@ -4,7 +4,7 @@ import { useBlocker, useNavigate, useParams } from 'react-router';
 import type { FeatureRoute } from '@/app/routes';
 import { APT_TYPES } from '@/config/aptTypes';
 import { SOURCE_DEFAULT, SOURCES } from '@/config/sources';
-import { CARE_STAGE_DEFAULT, CARE_STAGE_OPTIONS, CONTACT_STATUSES } from '@/config/stages';
+import { CARE_STAGE_DEFAULT, CARE_STAGE_PICKER_ORDER, CONTACT_STATUSES } from '@/config/stages';
 import { useCustomers, useRepositoryAccount } from '@/data/hooks';
 import type { Customer } from '@/domain/customer';
 import { detectDuplicatePairs, findDuplicateCandidates } from '@/domain/customer/merge';
@@ -15,6 +15,7 @@ import {
   findPhoneMatches,
   lastUsedSource,
   mergeOcrValues,
+  stageOptionLabel,
   toCustomerPayload,
 } from './model';
 import { IntakeMore } from './more';
@@ -331,20 +332,25 @@ function IntakePage() {
       {fieldErrors[name] && <span className="text-small text-danger">{fieldErrors[name]}</span>}
     </label>
   );
-  const select = (label: string, name: keyof IntakeValues, options: readonly string[]) => (
-    <label className="flex flex-col gap-1 text-small text-text-2" key={name}>
+  const select = (
+    label: string,
+    name: keyof IntakeValues,
+    options: readonly string[],
+    optionLabel: (option: string) => string = (option) => option,
+  ) => (
+    <label className="flex min-w-0 flex-col gap-1 text-small text-text-2" key={name}>
       {label}
       <select
         {...register(name)}
         value={String(values[name] ?? '')}
         onChange={(e) => set(name, e.target.value)}
         aria-invalid={!!fieldErrors[name]}
-        className="min-h-11 rounded-control border border-border-strong bg-surface px-3 text-body text-text focus-visible:outline-2 focus-visible:outline-focus"
+        className="min-h-11 w-full min-w-0 rounded-control border border-border-strong bg-surface px-3 text-body text-text focus-visible:outline-2 focus-visible:outline-focus"
       >
         <option value="">— Chưa rõ —</option>
         {options.map((option) => (
           <option key={option} value={option}>
-            {option}
+            {optionLabel(option)}
           </option>
         ))}
       </select>
@@ -598,7 +604,7 @@ function IntakePage() {
             )}
             {(!!customer?.qualified_at || values.qualify_now) && (
               <>
-                {select('Tiến độ', 'care_stage', CARE_STAGE_OPTIONS)}
+                {select('Tiến độ', 'care_stage', CARE_STAGE_PICKER_ORDER, stageOptionLabel)}
                 {select('Trạng thái liên lạc', 'contact_status', CONTACT_STATUSES)}
                 {input('Ghi chú cho lần đổi tiến độ', 'care_stage_note')}
                 <label className="flex flex-col gap-2 text-small text-text-2 sm:col-span-2">
