@@ -242,8 +242,10 @@ export function runTests(wt, paths) {
     out += r.out;
     code ||= r.code;
   }
-  // Trượt "thật" = có ca test báo failed (vitest: "Tests  1 failed", playwright: "1 failed"), không phải lỗi biên dịch.
-  const testsFailed = /\b\d+\s+failed\b/i.test(out.replace(/\x1b\[[0-9;]*m/g, ''));
+  // Trượt "thật" = có CA TEST báo failed — vitest: dòng "Tests  1 failed" (không tính "Test Files 1 failed" khi file
+  // hỏng cú pháp, lúc đó dòng Tests là "no tests"); playwright: dòng tổng kết "  1 failed".
+  const plain = out.replace(/\x1b\[[0-9;]*m/g, '');
+  const testsFailed = /^\s*Tests\s+\d+\s+failed/m.test(plain) || /^\s*\d+\s+failed\s*$/m.test(plain);
   return { ran: true, code, out, testsFailed };
 }
 
