@@ -62,11 +62,12 @@ BLOCKED: <câu hỏi cụ thể cho Lead, kèm 1–2 phương án và hệ quả
 
 BLOCKED không bị tính là trượt; Lead trả lời rồi xếp lại task.
 
-## 6. Báo cáo cuối (bắt buộc, đúng 3 mục)
+## 6. Báo cáo cuối (bắt buộc, đúng 4 mục)
 
 1. **Đã làm gì** — hành vi người dùng thấy, file chính đã đổi, test đã thêm.
 2. **Quyết định thiết kế tự đưa ra + lý do** — chỗ nào bạn chọn một trong nhiều cách.
 3. **Điều chưa chắc / đề xuất ngoài phạm vi** — kể cả lỗi thấy được nhưng không thuộc task.
+4. **Checklist nghiệm thu** — mỗi mục trong "## Nghiệm thu" của task một dòng `✓`/`✗` kèm bằng chứng: lệnh đã chạy + kết quả, hoặc tên test kiểm mục đó. Mục chưa đạt ghi rõ vì sao.
 
 ## 7. Lệnh và quy ước code
 
