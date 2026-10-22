@@ -10,6 +10,7 @@ Chỉ đọc file này khi cần tiếp nối công việc hoặc task phụ thu
 
 ## Hồ sơ desktop 2 cột PF-07 lên production (2026-10-21)
 
+- 2026-10-22: PF-08 (sắp xếp danh sách khách 3 tầng + ghim cần gọi/quá SLA). Curtis duyệt merge. `main` = `da659fa` (merge `factory` @ `9cde3e9`, cây file giống hệt `factory`; 1069 unit + 396 e2e xanh, build xanh). Push GitHub → Cloudflare tự build, deployment `348bbeb3`; trang thật có bundle mới. Rollback: deployment `012f16f2` (516867f).
 - Curtis duyệt merge + deploy. `main` = `516867f` (merge `factory` @ `6b111f5`, cây file giống hệt `factory`). Kiểm trước: 1053 unit + 390 e2e xanh (worktree Lead); sau merge `factory` 387/390 khi máy quá tải (3 test hồ sơ 360 hết giờ tải trang), chạy lại nhóm hồ sơ 41/41 xanh.
 - GitHub sự cố → tải thẳng: build `main` @ `516867f` với 3 biến công khai lấy từ bundle production (Supabase production `nrqccwamwctihivpxjww`, khoá publishable, `intake-worker`) rồi `npx wrangler pages deploy dist --project-name crm --branch main --commit-hash 516867f` → deployment `32126d97`. Đã thấy bundle mới (`index-CRTz-t-Q.js`) trên `crm-cop.pages.dev`. Khi GitHub hồi phục Cloudflare có thể build lại cùng commit — nội dung giống hệt.
 - Không đổi dữ liệu/SQL/Worker/APK. **Rollback:** Cloudflare Pages → `crm` → Deployments → deployment `2150314d` (badge, `e14bb45`).
