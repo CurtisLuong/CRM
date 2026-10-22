@@ -75,7 +75,7 @@ node scripts/factory-merge.mjs agent/<ID> [agent/<ID2> ...]   # rebase lên fact
 2. Kiểm ca test bắt buộc với luật nghiệp vụ — đặc tả mâu thuẫn là lý do số 1 khiến worker bẻ luật.
 3. Task test-only phải chạy trên code cũ và thấy trượt rồi mới merge.
 4. Đồng bộ/offline/nhiều máy: đặc tả ghi rõ lúc gửi bù, lúc máy khác nhận; e2e 2 browser context + `setOffline`.
-5. Migration, kiến trúc, dữ liệu/đồng bộ/auth: Lead làm hoặc ghi hợp đồng rất rõ; migration cần Curtis duyệt, có backup + rollback.
+5. Migration, kiến trúc, dữ liệu/đồng bộ/auth: Lead làm hoặc ghi hợp đồng rất rõ; migration theo D-026: chỉ thêm + staging đạt → Lead tự chạy production, có rollback; xoá/sửa dữ liệu hàng loạt hoặc đổi cấu trúc lớn → Curtis duyệt, sau backup.
 6. UI/UX: Lead mô tả mục tiêu + ràng buộc (Design System, nhãn, 360px + desktop, sáng/tối); bố cục lớn thì Curtis duyệt trước. Chi tiết giao diện để worker tự làm.
 7. Test chập chờn ở file worker không đụng → chạy lại 1 lần (script đã làm).
 8. Danh sách nghiệm thu cho Curtis ghi rõ dữ liệu nhập; số kỳ vọng do Lead chạy ra từ đúng dữ liệu đó.
