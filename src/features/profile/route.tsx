@@ -392,10 +392,10 @@ function Profile() {
   const docsContent = (
     <div className="space-y-3">
       {account && (
-        <div className="grid grid-cols-2 gap-3" aria-label="Ảnh hồ sơ">
+        <section className="grid grid-cols-2 gap-3" aria-label="Ảnh hồ sơ">
           <ProfilePhotoFrame kind="avatar" customer={c} remote={account.remote} writable={writable} busy={busy} />
           <ProfilePhotoFrame kind="cover" customer={c} remote={account.remote} writable={writable} busy={busy} />
-        </div>
+        </section>
       )}
       <DocumentsSection
         customerId={c.id}
