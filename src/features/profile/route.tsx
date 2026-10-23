@@ -391,6 +391,12 @@ function Profile() {
   );
   const docsContent = (
     <div className="space-y-3">
+      {account && (
+        <div className="grid grid-cols-2 gap-3" aria-label="Ảnh hồ sơ">
+          <ProfilePhotoFrame kind="avatar" customer={c} remote={account.remote} writable={writable} busy={busy} />
+          <ProfilePhotoFrame kind="cover" customer={c} remote={account.remote} writable={writable} busy={busy} />
+        </div>
+      )}
       <DocumentsSection
         customerId={c.id}
         remote={account?.remote ?? null}
@@ -455,18 +461,16 @@ function Profile() {
       <div className="flex flex-col gap-4 xl:grid xl:grid-cols-[minmax(0,1fr)_320px] xl:items-start xl:gap-6">
         <div className="contents xl:flex xl:min-w-0 xl:flex-col xl:gap-4">
           <header className="relative overflow-hidden rounded-card border border-border bg-surface max-xl:order-1">
-            {account && (
-              <ProfilePhotoFrame kind="cover" customer={c} remote={account.remote} writable={writable} busy={busy} />
+            {c.cover_path && account?.remote.coverUrl(c.cover_path) && (
+              <img src={account.remote.coverUrl(c.cover_path) || ''} alt="" className="h-24 w-full object-cover" />
             )}
             <div className="space-y-3 p-4">
               <div className="flex items-start gap-3">
-                {account ? (
-                  <ProfilePhotoFrame
-                    kind="avatar"
-                    customer={c}
-                    remote={account.remote}
-                    writable={writable}
-                    busy={busy}
+                {c.avatar_path && account?.remote.avatarUrl(c.avatar_path) ? (
+                  <img
+                    src={account.remote.avatarUrl(c.avatar_path) || ''}
+                    alt={`Ảnh đại diện ${c.full_name}`}
+                    className="size-14 shrink-0 rounded-full object-cover"
                   />
                 ) : (
                   <Avatar name={c.full_name} size={56} />

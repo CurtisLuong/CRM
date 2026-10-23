@@ -181,6 +181,7 @@ async function readCustomer(page: Page, userId: string, customerId: string) {
 for (const theme of ['light', 'dark'] as const) {
   test(`CP-02 ${theme}: khung ảnh trống có dấu cộng, đủ 44px, hộp thoại đúng hai nguồn`, async ({ page }, info) => {
     await openProfile(page, info, theme, emptyId);
+    await page.getByRole('tab', { name: /Tài liệu/ }).click();
     const avatar = page.getByRole('button', { name: 'Ảnh đại diện' });
     const cover = page.getByRole('button', { name: 'Ảnh bìa' });
     await expect(avatar).toBeVisible();
@@ -212,6 +213,7 @@ for (const theme of ['light', 'dark'] as const) {
 
   test(`CP-02 ${theme}: chọn từ máy chỉ tải sau thao tác, lưu vào hồ sơ`, async ({ page }, info) => {
     const userId = await openProfile(page, info, theme, emptyId);
+    await page.getByRole('tab', { name: /Tài liệu/ }).click();
     let uploads = 0;
     page.on('request', (request) => {
       if (request.url().includes('/storage/v1/object/customer-avatars/')) uploads += 1;
@@ -235,6 +237,7 @@ for (const theme of ['light', 'dark'] as const) {
 
   test(`CP-02 ${theme}: có ảnh xem object-contain; Đổi ảnh mở hai nguồn; Xoá cần xác nhận`, async ({ page }, info) => {
     await openProfile(page, info, theme, fullId);
+    await page.getByRole('tab', { name: /Tài liệu/ }).click();
     await page.getByRole('button', { name: 'Ảnh bìa' }).click();
     const viewer = page.getByRole('dialog', { name: 'Ảnh bìa' });
     await expect(viewer).toBeVisible();
@@ -269,6 +272,7 @@ for (const theme of ['light', 'dark'] as const) {
 
   test(`CP-02 ${theme}: tài liệu nhóm theo loại, chỉ nhóm có tệp, không lộ storage_path`, async ({ page }, info) => {
     await openProfile(page, info, theme, fullId);
+    await page.getByRole('tab', { name: /Tài liệu/ }).click();
     await page.getByRole('tab', { name: /Tài liệu/ }).click();
     await expect(page.getByText('Sổ đỏ.jpg')).toBeVisible();
     await expect(page.getByRole('heading', { level: 3, name: /^Ảnh chụp/ })).toBeVisible();
