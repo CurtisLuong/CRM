@@ -8,6 +8,13 @@ for (const theme of ['light', 'dark'] as const) {
     await page.route('http://127.0.0.1:54321/**', (route) =>
       route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }),
     );
+    await page.route('http://127.0.0.1:54321/rest/v1/projects?*', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([{ id: 'project-second', name: 'Dự án thứ hai', owner_id: userId }]),
+      }),
+    );
     await page.route('https://worker.test/ai', async (route) => {
       const body = JSON.parse(route.request().postData() || '{}');
       expect(body.customer).not.toHaveProperty('phone');
@@ -103,8 +110,8 @@ for (const theme of ['light', 'dark'] as const) {
     );
     await page.goto(`/ho-so/${customerId}`);
     await expect(page.getByRole('heading', { name: 'Nguyễn Thị Hưởng' })).toBeVisible();
-    await expect(page.getByText('16/10/2026', { exact: false }).first()).toBeVisible();
     await page.getByRole('tab', { name: 'Dòng thời gian' }).click();
+    await expect(page.getByText('16/10/2026', { exact: false }).first()).toBeVisible();
     await expect(page.getByText('Đã xem dự án', { exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Sửa ghi chú hồ sơ' }).click();
     await page.getByRole('textbox', { name: 'Sửa ghi chú' }).fill('Ghi chú hồ sơ đã sửa');
@@ -200,7 +207,7 @@ for (const theme of ['light', 'dark'] as const) {
     // 2026-10-22 (Curtis): Nhu cầu theo đợt + Người cùng quyết định chuyển sang tab Nhu cầu & căn, khu Nâng cao.
     await page.getByRole('tab', { name: 'Nhu cầu & căn' }).click();
     await page.getByRole('button', { name: 'Nâng cao' }).click();
-    await page.getByLabel('Dự án quan tâm mới').fill('Dự án thứ hai');
+    await page.getByLabel('Dự án quan tâm mới').selectOption('Dự án thứ hai');
     await page.getByRole('button', { name: 'Thêm đợt' }).click();
     await expect(page.getByText('Đã thêm đợt quan tâm', { exact: true })).toBeVisible();
     await page.waitForTimeout(300);
