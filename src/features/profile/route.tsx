@@ -38,14 +38,13 @@ import { ProfileTextField as Field, LegacyAssistField, ProfileAdvanced } from '.
 import { ArchiveCustomerSection, ArchivedBanner } from './archive';
 import { dobSavePatch } from './dob';
 import { DocumentsSection } from './documents';
-import { advancedPatch, LONG_FIELD, legacyValues, SHORT_FIELD } from './fields';
-import { ChoiceField, infoHiddenCount, ProfileInfoFields } from './info';
+import { advancedPatch, legacyValues } from './fields';
+import { infoHiddenCount, ProfileInfoFields } from './info';
 import { CustomerMemory, CustomerNeedsAdvanced, contactPrefsHiddenCount } from './memory';
 import { bookingStepPatch, dueTone, extraFacts, lastTouchOf, splitBrief, stageChoiceRows } from './model';
+import { hasNeedValue, NEEDS_FIELDS, ProfileNeedsFields, type ProjectCatalog } from './needs';
 import { ProfilePhotoFrame } from './photos';
 import { ProfileTimeline } from './timeline';
-
-const PURPOSE_OPTIONS = ['Ở', 'Đầu tư', 'Cho tặng'].map((value) => ({ value, label: value }));
 
 // Giữ export cũ (test + nơi khác import từ route).
 export { editedTimelineNotePatch } from './model';
@@ -58,11 +57,17 @@ function Profile() {
   const toast = useToast();
   const [now, setNow] = useState(Date.now());
   const [busy, setBusy] = useState(false);
+  // CP-01: Nhu cầu & căn là tab đầu/mặc định; mở khách khác quay lại tab này.
+  const [tab, setTab] = useState('needs');
   // CL-03 L2: ô trống của Trí nhớ ẩn sau nút "Bổ sung"; mặc định đóng mỗi lần mở hồ sơ.
   const [supplementOpen, setSupplementOpen] = useState(false);
+  // CP-01: ô trống của Nhu cầu hiện tại dùng nút "Bổ sung" riêng.
+  const [needsSupplementOpen, setNeedsSupplementOpen] = useState(false);
   const [stageOpen, setStageOpen] = useState(false);
   const [missingKey, setMissingKey] = useState('');
   const [docCount, setDocCount] = useState(0);
+  const [, bumpCatalog] = useState(0);
+  const [browserOnline, setBrowserOnline] = useState(() => typeof navigator === 'undefined' || navigator.onLine);
   const writable = !!customer && !!account && customer.owner_id === account.sync.local.userId && !customer.archived_at;
   // Khách nhóm (D-025): người đang thấy khách sửa được thông tin hồ sơ + ghi chú; việc chăm sóc vẫn của người phụ trách.
   const teamInfo = !writable && !!account && canEditTeamInfo(customer, account.sync.local.userId);
@@ -80,6 +85,75 @@ function Profile() {
     const timer = window.setInterval(() => setNow(Date.now()), 60_000);
     return () => window.clearInterval(timer);
   }, []);
+
+  // Mạng đổi trong lúc mở hồ sơ → nút thêm/lưu trữ dự án khoá lại ngay.
+  useEffect(() => {
+    const refresh = () => setBrowserOnline(navigator.onLine);
+    window.addEventListener('online', refresh);
+    window.addEventListener('offline', refresh);
+    return () => {
+      window.removeEventListener('online', refresh);
+      window.removeEventListener('offline', refresh);
+    };
+  }, []);
+
+  // Mở một khách khác: tab về Nhu cầu & căn, mọi khu Bổ sung/Nâng cao đóng lại.
+  const customerId = customer?.id ?? '';
+  // Ô nhu cầu đã có giá trị lúc mở khách vẫn hiện dù bị xoá trắng; giữ qua lần đổi tab, chỉ reset khi sang khách khác.
+  const [needsVisible, setNeedsVisible] = useState<{ id: string; keys: Set<string> }>(() => ({
+    id: customerId,
+    keys: new Set(NEEDS_FIELDS.filter((key) => hasNeedValue(customer?.[key]))),
+  }));
+  if (needsVisible.id !== customerId) {
+    setNeedsVisible({
+      id: customerId,
+      keys: new Set(NEEDS_FIELDS.filter((key) => hasNeedValue(customer?.[key]))),
+    });
+  }
+  useEffect(() => {
+    if (!customerId) return;
+    setTab('needs');
+    setSupplementOpen(false);
+    setNeedsSupplementOpen(false);
+    setStageOpen(false);
+  }, [customerId]);
+
+  // Catalog dùng chung: đọc cache local + nghe thay đổi; lỗi load thì giữ nguyên danh mục đang có.
+  const catalog = useMemo<ProjectCatalog | null>(() => {
+    if (!account?.catalog) return null;
+    const source = account.catalog;
+    return {
+      projects: () =>
+        source.projects().map((row) => ({
+          ...row,
+          id: String(row.id ?? ''),
+          name: String(row.name ?? ''),
+          archived_at: row.archived_at ?? null,
+        })),
+      load: () => source.load(),
+      onChange: (fn) => source.onChange(fn),
+      addProject: (name) =>
+        source.addProject(name, undefined).then((row) => ({
+          ...row,
+          id: String(row.id ?? ''),
+          name: String(row.name ?? ''),
+          archived_at: row.archived_at ?? null,
+        })),
+      archiveProject: (id) => source.archiveProject(id),
+    };
+  }, [account]);
+  useEffect(() => {
+    if (!catalog) return;
+    let alive = true;
+    const unsubscribe = catalog.onChange(() => {
+      if (alive) bumpCatalog((value) => value + 1);
+    });
+    void catalog.load().catch(() => false);
+    return () => {
+      alive = false;
+      unsubscribe?.();
+    };
+  }, [catalog]);
 
   if (!customer) {
     return (
@@ -121,6 +195,13 @@ function Profile() {
   const setField = (key: keyof Customer, value: unknown) => void save(factPatch(c, String(key), value));
   const setAdvancedField = (key: string, value: unknown) =>
     setField('advanced', advancedPatch(c.advanced, key, value).advanced);
+  // Ô vừa xoá trắng vẫn nằm trong form tới khi mở khách khác.
+  const keepNeedVisible = (key: string) =>
+    setNeedsVisible((prev) => (prev.id === customerId ? { ...prev, keys: new Set(prev.keys).add(key) } : prev));
+  const setNeedField = (key: keyof Customer, value: unknown) => {
+    if (!hasNeedValue(value)) keepNeedVisible(String(key));
+    setField(key, value);
+  };
   const actionBar = (
     <ActionBar
       actions={[
@@ -195,7 +276,7 @@ function Profile() {
     <ProfileTimeline customer={c} entries={timeline} writable={writable} busy={busy} onSave={save} />
   );
   const memoryContent = (
-    <div className="space-y-5">
+    <div key={c.id} className="space-y-5">
       <section className="space-y-3">
         <h2 className="text-section">Thông tin chính</h2>
         <ProfileInfoFields
@@ -229,120 +310,27 @@ function Profile() {
     </div>
   );
   const needsContent = (
-    <div className="space-y-4">
+    <div key={c.id} className="space-y-4">
       <section className="space-y-3">
         <h2 className="text-section">Nhu cầu hiện tại</h2>
-        <div className="flex flex-wrap gap-3">
-          <div className={SHORT_FIELD}>
-            <ChoiceField
-              label="Mục đích mua"
-              value={c.purpose}
-              disabled={!infoWritable || busy}
-              options={PURPOSE_OPTIONS}
-              onSave={(value) => setField('purpose', value)}
-            />
-          </div>
-          <div className={SHORT_FIELD}>
-            <Field
-              label="Loại căn"
-              value={c.apt_type}
-              disabled={!infoWritable}
-              onSave={(value) => setField('apt_type', value)}
-            />
-          </div>
-          <div className={LONG_FIELD}>
-            <Field
-              label="Dự án quan tâm"
-              value={(c.projects || []).join(', ')}
-              disabled={!infoWritable}
-              onSave={(value) =>
-                setField(
-                  'projects',
-                  value
-                    .split(',')
-                    .map((x) => x.trim())
-                    .filter(Boolean),
-                )
-              }
-            />
-          </div>
-          <div className={SHORT_FIELD}>
-            <Field
-              label="Diện tích (m²)"
-              value={c.apt_area}
-              disabled={!infoWritable}
-              onSave={(value) => setField('apt_area', value === '' ? null : Number(value))}
-            />
-          </div>
-          <div className={SHORT_FIELD}>
-            <Field
-              label="Tài chính sẵn có (VNĐ)"
-              value={c.finance}
-              disabled={!infoWritable}
-              onSave={(value) => setField('finance', value === '' ? null : Number(value))}
-            />
-          </div>
-          <div className={SHORT_FIELD}>
-            <Field
-              label="Mã toà"
-              value={c.building_code}
-              disabled={!infoWritable}
-              onSave={(value) => setField('building_code', value)}
-            />
-          </div>
-          <div className={SHORT_FIELD}>
-            <Field
-              label="Mã căn"
-              value={c.apt_code}
-              disabled={!infoWritable}
-              onSave={(value) => setField('apt_code', value)}
-            />
-          </div>
-          <div className={SHORT_FIELD}>
-            <Field
-              label="Hướng"
-              value={c.apt_direction}
-              disabled={!infoWritable}
-              onSave={(value) => setField('apt_direction', value)}
-            />
-          </div>
-          <div className={SHORT_FIELD}>
-            <Field
-              label="Tầng"
-              value={c.apt_floor}
-              disabled={!infoWritable}
-              onSave={(value) => setField('apt_floor', value === '' ? null : Number(value))}
-            />
-          </div>
-        </div>
+        <ProfileNeedsFields
+          customer={c}
+          writable={infoWritable}
+          busy={busy}
+          showEmpty={needsSupplementOpen}
+          stayVisible={needsVisible.keys}
+          onToggleSupplement={() => setNeedsSupplementOpen(!needsSupplementOpen)}
+          onSaveField={setNeedField}
+          onSaveProjects={(names, message) => {
+            if (!hasNeedValue(names)) keepNeedVisible('projects');
+            return save(factPatch(c, 'projects', names), message || 'Đã cập nhật dự án quan tâm');
+          }}
+          catalog={catalog}
+          online={browserOnline && !!account?.sync.isOnline()}
+        />
         <Button variant="primary" onClick={() => navigate(loanPath({ customerId: c.id, ...customerUnit(c) }))}>
           Tính vay cho khách này
         </Button>
-      </section>
-      <section className="space-y-3">
-        <h2 className="text-section">Sở thích bất động sản</h2>
-        {PROFILE_PREF_FIELDS.map((field) =>
-          field.key === PROFILE_PREF_CONDITIONS.key ? (
-            <LegacyAssistField
-              key={field.key}
-              label={field.label}
-              value={c.advanced?.[field.key]}
-              disabled={!infoWritable}
-              placeholder={field.ph}
-              legacy={legacyValues(c.advanced || {}, PREF_CONDITIONS_LEGACY)}
-              onSave={(value) => setAdvancedField(field.key, value)}
-            />
-          ) : (
-            <Field
-              key={field.key}
-              label={field.label}
-              value={c.advanced?.[field.key]}
-              disabled={!infoWritable}
-              placeholder={field.ph}
-              onSave={(value) => setAdvancedField(field.key, value)}
-            />
-          ),
-        )}
       </section>
       {stage === CARE_STAGE_BOOKING && (
         <section className="space-y-3">
@@ -386,7 +374,34 @@ function Profile() {
         writable={infoWritable}
         onSave={(patch, message) => void save(patch, message)}
         now={now}
-      />
+        projectCatalog={catalog}
+      >
+        <section className="space-y-3">
+          <h2 className="text-section">Sở thích bất động sản</h2>
+          {PROFILE_PREF_FIELDS.map((field) =>
+            field.key === PROFILE_PREF_CONDITIONS.key ? (
+              <LegacyAssistField
+                key={field.key}
+                label={field.label}
+                value={c.advanced?.[field.key]}
+                disabled={!infoWritable}
+                placeholder={field.ph}
+                legacy={legacyValues(c.advanced || {}, PREF_CONDITIONS_LEGACY)}
+                onSave={(value) => setAdvancedField(field.key, value)}
+              />
+            ) : (
+              <Field
+                key={field.key}
+                label={field.label}
+                value={c.advanced?.[field.key]}
+                disabled={!infoWritable}
+                placeholder={field.ph}
+                onSave={(value) => setAdvancedField(field.key, value)}
+              />
+            ),
+          )}
+        </section>
+      </CustomerNeedsAdvanced>
     </div>
   );
   const docsContent = (
@@ -414,9 +429,9 @@ function Profile() {
     </div>
   );
   const tabs = [
-    { value: 'timeline', label: 'Dòng thời gian', count: timeline.length, content: timelineContent },
-    { value: 'memory', label: 'Trí nhớ', content: memoryContent },
     { value: 'needs', label: 'Nhu cầu & căn', content: needsContent },
+    { value: 'memory', label: 'Trí nhớ', content: memoryContent },
+    { value: 'timeline', label: 'Dòng thời gian', count: timeline.length, content: timelineContent },
     { value: 'docs', label: 'Tài liệu', count: docCount, content: docsContent },
     {
       value: 'loan',
@@ -597,6 +612,8 @@ function Profile() {
           <div className="max-xl:order-5">
             <Tabs
               items={tabs}
+              value={tab}
+              onValueChange={setTab}
               label="Nội dung hồ sơ khách"
               sticky
               className="[&_[role=tab]]:scroll-mt-14 [&_[role=tablist]]:top-14"

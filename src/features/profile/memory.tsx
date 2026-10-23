@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { type ReactNode, useState } from 'react';
 import { CLOSE_REASONS } from '@/config/reasons';
 import type { Customer } from '@/domain/customer';
 import { factFreshness, factPatch } from '@/domain/customer/facts';
@@ -189,8 +189,23 @@ export function CustomerContactPrefs({
   );
 }
 
+/** Nguồn tên dự án cho đợt quan tâm mới; route truyền catalog, nơi dùng cũ bỏ trống để giữ ô gõ tay. */
+export type InterestProjectCatalog = { projects: () => readonly { name?: unknown }[] };
+
+/** Tên dự án đang hoạt động, bỏ tên rỗng/trùng để combobox không có lựa chọn giả. */
+function catalogProjectNames(catalog: InterestProjectCatalog): string[] {
+  const names = catalog.projects().map((row) => String(row?.name ?? '').trim());
+  return [...new Set(names.filter(Boolean))];
+}
+
 /** Nhu cầu theo đợt: thêm/sửa từng đợt, giữ nguyên thuộc tính lạ của mỗi phần tử. */
-export function CustomerInterests({ customer, writable, onSave, now }: BaseProps) {
+export function CustomerInterests({
+  customer,
+  writable,
+  onSave,
+  now,
+  projectCatalog,
+}: BaseProps & { projectCatalog?: InterestProjectCatalog | null }) {
   const [project, setProject] = useState('');
   const [interestType, setInterestType] = useState('');
   const [interestBudget, setInterestBudget] = useState('');
@@ -286,14 +301,31 @@ export function CustomerInterests({ customer, writable, onSave, now }: BaseProps
         );
       })}
       <div className="grid gap-2 sm:grid-cols-2">
-        <input
-          aria-label="Dự án quan tâm mới"
-          className="min-h-11 rounded-control border border-border-strong bg-surface px-3 text-body"
-          disabled={!writable}
-          value={project}
-          onChange={(e) => setProject(e.target.value)}
-          placeholder="Dự án mới — tạo đợt riêng"
-        />
+        {projectCatalog ? (
+          <select
+            aria-label="Dự án quan tâm mới"
+            className="min-h-11 w-full min-w-0 rounded-control border border-border-strong bg-surface px-3 text-body"
+            disabled={!writable}
+            value={project}
+            onChange={(e) => setProject(e.target.value)}
+          >
+            <option value="">— Chọn dự án —</option>
+            {catalogProjectNames(projectCatalog).map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <input
+            aria-label="Dự án quan tâm mới"
+            className="min-h-11 w-full min-w-0 rounded-control border border-border-strong bg-surface px-3 text-body"
+            disabled={!writable}
+            value={project}
+            onChange={(e) => setProject(e.target.value)}
+            placeholder="Dự án mới — tạo đợt riêng"
+          />
+        )}
         <input
           aria-label="Loại căn đợt mới"
           className="min-h-11 rounded-control border border-border-strong bg-surface px-3 text-body"
@@ -544,10 +576,17 @@ export function CustomerMemory({
 }
 
 /**
- * Khu "Nâng cao" của tab Nhu cầu & căn: Nhu cầu theo đợt + Người cùng quyết định,
- * mặc định đóng mỗi lần mở tab (CL-03 L5).
+ * Khu "Nâng cao" duy nhất của tab Nhu cầu & căn: Sở thích BĐS + Nhu cầu theo đợt + Người cùng quyết định,
+ * mặc định đóng mỗi lần mở tab (CL-03 L5, CP-01).
  */
-export function CustomerNeedsAdvanced({ customer, writable, onSave, now = Date.now() }: BaseProps) {
+export function CustomerNeedsAdvanced({
+  customer,
+  writable,
+  onSave,
+  now = Date.now(),
+  projectCatalog,
+  children,
+}: BaseProps & { projectCatalog?: InterestProjectCatalog | null; children?: ReactNode }) {
   const [open, setOpen] = useState(false);
   return (
     <section aria-label="Nhu cầu nâng cao" className="space-y-3">
@@ -557,7 +596,14 @@ export function CustomerNeedsAdvanced({ customer, writable, onSave, now = Date.n
       </Button>
       {open && (
         <div className="space-y-5">
-          <CustomerInterests customer={customer} writable={writable} onSave={onSave} now={now} />
+          {children}
+          <CustomerInterests
+            customer={customer}
+            writable={writable}
+            onSave={onSave}
+            now={now}
+            projectCatalog={projectCatalog}
+          />
           <CustomerHousehold customer={customer} writable={writable} onSave={onSave} now={now} />
         </div>
       )}
