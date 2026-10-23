@@ -297,6 +297,7 @@ for (const theme of ['light', 'dark'] as const) {
 
   test(`CP-02 ${theme}: khách lưu trữ chỉ xem ảnh và tài liệu`, async ({ page }, info) => {
     await openProfile(page, info, theme, fullId, { archived: true });
+    await page.getByRole('tab', { name: /Tài liệu/ }).click();
     await page.getByRole('button', { name: 'Ảnh đại diện' }).click();
     const viewer = page.getByRole('dialog', { name: 'Ảnh đại diện' });
     await expect(viewer).toBeVisible();

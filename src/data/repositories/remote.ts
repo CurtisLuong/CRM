@@ -23,8 +23,7 @@ export function createRemoteRepository(sync: CustomerSync, customers: CustomerRe
         _supabase.from('documents').select('*').eq('customer_id', customerId).order('created_at', { ascending: true }),
       );
       if (error) {
-        console.warn('listDocuments lỗi:', error);
-        return [];
+        throw error;
       }
       return data || [];
     },
