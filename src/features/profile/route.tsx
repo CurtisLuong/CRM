@@ -127,6 +127,7 @@ function Profile() {
   useEffect(() => {
     if (!customerId) return;
     setTab('needs');
+    setAddOpen(false);
     setSupplementOpen(false);
     setNeedsSupplementOpen(false);
     setStageOpen(false);
@@ -707,6 +708,7 @@ function Profile() {
       </div>
 
       <AddTaskSheet
+        key={c.id}
         open={addOpen}
         customerName={c.full_name}
         onOpenChange={setAddOpen}

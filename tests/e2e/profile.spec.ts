@@ -6,7 +6,7 @@ for (const theme of ['light', 'dark'] as const) {
     const userId = `t35-${testInfo.project.name}-${theme}`;
     const customerId = `customer-${testInfo.project.name}-${theme}`;
     await page.route('http://127.0.0.1:54321/**', (route) =>
-      route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }),
+      route.fulfill({ status: 200, contentType: 'application/json', headers: { 'Content-Range': '*/0' }, body: '[]' }),
     );
     await page.route('http://127.0.0.1:54321/rest/v1/projects?*', (route) =>
       route.fulfill({

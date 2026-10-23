@@ -31,6 +31,9 @@ async function open(
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
+          headers: {
+            'Content-Range': `0-${Math.max(0, serverProjects.filter((row) => !row.archived_at).length - 1)}/${serverProjects.filter((row) => !row.archived_at).length}`,
+          },
           body: JSON.stringify(serverProjects.filter((row) => !row.archived_at)),
         });
         return;
@@ -77,6 +80,7 @@ async function open(
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
+      headers: { 'Content-Range': '*/0' },
       body: url.includes('/rest/v1/') ? '[]' : '{}',
     });
   });
@@ -310,7 +314,7 @@ for (const theme of ['light', 'dark'] as const) {
     await page.getByRole('button', { name: 'Thêm mới' }).click();
     await page.getByRole('textbox', { name: 'Tên dự án mới' }).fill('Dự án C');
     await page.getByRole('button', { name: 'Thêm dự án' }).click();
-    await expect(page.getByRole('alert')).toContainText('RLS');
+    await expect(page.getByRole('alert').filter({ hasText: 'RLS' })).toBeVisible();
     expect((await readCustomer(page, userId, customerId)).projects).toEqual(['Dự án A', 'D cũ', 'Dự án B']);
     await noHorizontalScroll(page);
     await page.screenshot({ path: info.outputPath(`cp01-projects-error-${theme}.png`) });

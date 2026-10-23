@@ -37,7 +37,7 @@ export const TASK_ACTION_KINDS = ['call', 'message', 'cafe', 'visit', 'docs'] as
 export type TaskActionKind = (typeof TASK_ACTION_KINDS)[number];
 
 /** Lịch hẹn gọi (next_call_at) — cam kết riêng, không phải việc trong next_tasks. */
-export const CALL_APPOINTMENT = { label: 'Hẹn gọi', icon: 'call_sched' } as const satisfies {
+export const CALL_APPOINTMENT = TASK_KINDS.call as const satisfies {
   label: string;
   icon: IconName;
 };
