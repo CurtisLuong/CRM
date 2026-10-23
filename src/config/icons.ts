@@ -36,7 +36,7 @@ export const ICONS = {
   message: 'MessageSquareText', // Nhắn tin / Zalo
   cafe: 'Coffee', // Hẹn cafe
   docs: 'FileText', // Hồ sơ · Tài liệu
-  visit: 'Eye', // Xem dự án · Tham quan
+  visit: 'MapPinHouse', // Xem dự án · Tham quan (CP-03: cùng bộ nét với Gọi/Zalo/Cafe/Hồ sơ)
   booking: 'Handshake', // Booking
   contract: 'FileSignature', // Kí HĐMB · Kí HĐ · Chốt
   task: 'SquareCheckBig', // Việc · Việc tiếp theo

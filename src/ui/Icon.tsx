@@ -22,7 +22,6 @@ import {
   Command,
   Copy,
   Ellipsis,
-  Eye,
   File,
   FileSignature,
   FileText,
@@ -42,6 +41,7 @@ import {
   ListFilter,
   LogOut,
   type LucideIcon,
+  MapPinHouse,
   MessageSquareText,
   Mic,
   NotebookPen,
@@ -94,7 +94,6 @@ const GLYPHS: Record<(typeof ICONS)[IconName], LucideIcon> = {
   Command,
   Copy,
   Ellipsis,
-  Eye,
   File,
   FileSignature,
   FileText,
@@ -113,6 +112,7 @@ const GLYPHS: Record<(typeof ICONS)[IconName], LucideIcon> = {
   Lightbulb,
   ListFilter,
   LogOut,
+  MapPinHouse,
   MessageSquareText,
   Mic,
   NotebookPen,
@@ -163,6 +163,7 @@ export function Icon({
       size={size}
       strokeWidth={1.75}
       className={className}
+      data-icon={key}
       aria-hidden={label ? undefined : true}
       aria-label={label}
       role={label ? 'img' : undefined}

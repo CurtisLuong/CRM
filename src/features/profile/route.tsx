@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router';
 import type { FeatureRoute } from '@/app/routes';
 import { PREF_CONDITIONS_LEGACY, PROFILE_PREF_CONDITIONS, PROFILE_PREF_FIELDS } from '@/config/advanced';
 import { CARE_STAGE_BOOKING, CARE_STAGE_DISPLAY } from '@/config/stages';
+import { type TaskActionKind, taskKindOf } from '@/config/taskKinds';
 import { VELOCITY_CONFIG } from '@/config/velocity';
 import { useCustomer, useRepositoryAccount } from '@/data/hooks';
 import type { Customer } from '@/domain/customer';
@@ -34,6 +35,7 @@ import {
   Tabs,
   useToast,
 } from '@/ui';
+import { AddTaskSheet } from './add-task';
 import { ProfileTextField as Field, LegacyAssistField, ProfileAdvanced } from './advanced';
 import { ArchiveCustomerSection, ArchivedBanner } from './archive';
 import { dobSavePatch } from './dob';
@@ -41,7 +43,16 @@ import { DocumentsSection } from './documents';
 import { advancedPatch, legacyValues } from './fields';
 import { infoHiddenCount, ProfileInfoFields } from './info';
 import { CustomerMemory, CustomerNeedsAdvanced, contactPrefsHiddenCount } from './memory';
-import { bookingStepPatch, dueTone, extraFacts, lastTouchOf, splitBrief, stageChoiceRows } from './model';
+import {
+  bookingStepPatch,
+  dueTone,
+  extraFacts,
+  lastTouchOf,
+  splitBrief,
+  stageChoiceRows,
+  type TaskDueValue,
+  withTaskKinds,
+} from './model';
 import { hasNeedValue, NEEDS_FIELDS, ProfileNeedsFields, type ProjectCatalog } from './needs';
 import { ProfilePhotoFrame } from './photos';
 import { ProfileTimeline } from './timeline';
@@ -69,6 +80,8 @@ function Profile() {
   const [, bumpCatalog] = useState(0);
   const [catalogLoadFailed, setCatalogLoadFailed] = useState(false);
   const [browserOnline, setBrowserOnline] = useState(() => typeof navigator === 'undefined' || navigator.onLine);
+  // CP-03: Thêm việc mở danh sách 5 loại trước, không dùng window.prompt.
+  const [addOpen, setAddOpen] = useState(false);
   const writable = !!customer && !!account && customer.owner_id === account.sync.local.userId && !customer.archived_at;
   // Khách nhóm (D-025): người đang thấy khách sửa được thông tin hồ sơ + ghi chú; việc chăm sóc vẫn của người phụ trách.
   const teamInfo = !writable && !!account && canEditTeamInfo(customer, account.sync.local.userId);
@@ -77,7 +90,7 @@ function Profile() {
   const otherOwner = !!customer?.owner_id && !!account && customer.owner_id !== account.sync.local.userId;
   const stage = normStage(customer?.care_stage) || '';
   const sla = customer ? slaStatus(customer, now) : null;
-  const timeline = useMemo(() => (customer ? customerTimeline(customer) : []), [customer]);
+  const timeline = useMemo(() => (customer ? withTaskKinds(customer, customerTimeline(customer)) : []), [customer]);
   const brief = useMemo(() => (customer ? customerBrief(customer) : []), [customer]);
   const tasks = customer ? openTasksOf(customer) : [];
   const calls = customer ? callAttemptsOf(customer) : [];
@@ -256,25 +269,11 @@ function Profile() {
   const toggleBooking = async (key: string, checked: boolean) => {
     await save(bookingStepPatch(c, key, checked, new Date().toISOString()), 'Đã cập nhật checklist hồ sơ');
   };
-  const addPromise = async () => {
-    const text = window.prompt('Việc tiếp theo / lời hứa');
-    if (!text?.trim() || !account || !writable) return;
-    let due: { due?: string; due_allday?: boolean } | null = null;
-    const dueValue = window.prompt('Hạn (YYYY-MM-DD), để trống nếu chưa có hạn');
-    if (dueValue?.trim()) {
-      const parsed = new Date(`${dueValue}T09:00:00`);
-      if (Number.isNaN(parsed.getTime())) {
-        toast({ title: 'Ngày hạn không hợp lệ', tone: 'error' });
-        return;
-      }
-      due = { due: parsed.toISOString(), due_allday: true };
-    }
-    try {
-      await account.customers.addTask(c.id, text.trim(), due, 'other');
-      toast({ title: 'Đã lưu bước tiếp theo' });
-    } catch (error) {
-      toast({ title: 'Chưa lưu được', description: String(error), tone: 'error' });
-    }
+  // CP-03: nội dung bắt buộc; hạn do form quyết định, không tự bịa nội dung hay hạn.
+  const saveNewTask = async (kind: Exclude<TaskActionKind, 'call'>, text: string, due: TaskDueValue) => {
+    if (!account || !writable) throw new Error('Khách chỉ được xem.');
+    await account.customers.addTask(c.id, text, due, kind);
+    toast({ title: 'Đã thêm việc', description: `${text} · ${c.full_name}` });
   };
   const completeTask = async (at: string) => {
     if (account && writable) await account.customers.completeTask(c.id, at);
@@ -563,7 +562,7 @@ function Profile() {
             )}
             <div className="flex items-center justify-between gap-2">
               <h2 className="text-label text-text-2">Việc tiếp theo</h2>
-              <Button disabled={!writable} onClick={() => void addPromise()}>
+              <Button disabled={!writable} onClick={() => setAddOpen(true)}>
                 Thêm việc
               </Button>
             </div>
@@ -571,6 +570,7 @@ function Profile() {
               <ul className="mt-2 space-y-3">
                 {tasks.map((task) => {
                   const due = taskDueInfo(task, now);
+                  const kindInfo = taskKindOf(task.kind);
                   const tag = due
                     ? due.state === 'overdue'
                       ? { state: 'missed' as const, text: due.label }
@@ -592,6 +592,10 @@ function Profile() {
                       <div className="min-w-0 flex-1">
                         <p className="text-body-strong">{task.text}</p>
                         <div className="mt-1 flex flex-wrap items-center gap-2 text-small text-text-2">
+                          <span className="inline-flex items-center gap-1">
+                            <Icon name={kindInfo.icon} size={16} />
+                            {kindInfo.label}
+                          </span>
                           <span>{task.side === 'customer' ? 'Khách hẹn' : 'Em hứa'}</span>
                           <DeadlineTag tag={tag} />
                         </div>
@@ -701,6 +705,17 @@ function Profile() {
           </div>
         </div>
       </div>
+
+      <AddTaskSheet
+        open={addOpen}
+        customerName={c.full_name}
+        onOpenChange={setAddOpen}
+        onScheduleCall={() => {
+          setAddOpen(false);
+          openQuickAction(c.id, 'schedule');
+        }}
+        onSave={saveNewTask}
+      />
 
       <Sheet
         open={stageOpen}
