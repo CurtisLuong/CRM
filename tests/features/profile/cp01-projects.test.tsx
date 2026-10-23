@@ -200,3 +200,17 @@ describe('CP-01 — Dự án quan tâm chọn nhiều từ catalog', () => {
     expect(screen.queryByRole('button', { name: 'Thêm mới' })).toBeNull();
   });
 });
+
+it('giữ nguyên tên cũ khi chọn thêm và báo lỗi tải danh mục', async () => {
+  customer = base({ projects: ['  Tên cũ  ', 'Dự án A'] });
+  catalog.load.mockResolvedValueOnce(false);
+  wrap();
+  await screen.findByRole('alert');
+  await userEvent.setup().click(screen.getByRole('checkbox', { name: 'Dự án B' }));
+  await waitFor(() =>
+    expect(update).toHaveBeenCalledWith(
+      'c1',
+      expect.objectContaining({ projects: ['  Tên cũ  ', 'Dự án A', 'Dự án B'] }),
+    ),
+  );
+});

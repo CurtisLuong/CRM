@@ -80,9 +80,7 @@ function ProjectPicker({ customer, writable, online, catalog, onSave }: PickerPr
   const [saving, setSaving] = useState(false);
   const [archiving, setArchiving] = useState('');
 
-  const rawNames = (Array.isArray(customer.projects) ? customer.projects : [])
-    .map((name) => String(name ?? '').trim())
-    .filter(Boolean);
+  const rawNames = Array.isArray(customer.projects) ? customer.projects : [];
   const selectedKeys = new Set(rawNames.map(projectKey));
   const active = new Map<string, ProjectRow>();
   for (const row of catalog?.projects() || []) {

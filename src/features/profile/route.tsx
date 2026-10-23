@@ -67,6 +67,7 @@ function Profile() {
   const [missingKey, setMissingKey] = useState('');
   const [docCount, setDocCount] = useState(0);
   const [, bumpCatalog] = useState(0);
+  const [catalogLoadFailed, setCatalogLoadFailed] = useState(false);
   const [browserOnline, setBrowserOnline] = useState(() => typeof navigator === 'undefined' || navigator.onLine);
   const writable = !!customer && !!account && customer.owner_id === account.sync.local.userId && !customer.archived_at;
   // Khách nhóm (D-025): người đang thấy khách sửa được thông tin hồ sơ + ghi chú; việc chăm sóc vẫn của người phụ trách.
@@ -148,7 +149,13 @@ function Profile() {
     const unsubscribe = catalog.onChange(() => {
       if (alive) bumpCatalog((value) => value + 1);
     });
-    void catalog.load().catch(() => false);
+    setCatalogLoadFailed(false);
+    void catalog
+      .load()
+      .catch(() => false)
+      .then((loaded) => {
+        if (alive) setCatalogLoadFailed(!loaded);
+      });
     return () => {
       alive = false;
       unsubscribe?.();
@@ -313,6 +320,12 @@ function Profile() {
     <div key={c.id} className="space-y-4">
       <section className="space-y-3">
         <h2 className="text-section">Nhu cầu hiện tại</h2>
+        {catalogLoadFailed && (
+          <p role="alert" className="text-small text-danger">
+            Chưa tải được danh mục dự án. Đang giữ dữ liệu trên máy; các tên chưa có trong danh mục có thể chưa được tải
+            về.
+          </p>
+        )}
         <ProfileNeedsFields
           customer={c}
           writable={infoWritable}

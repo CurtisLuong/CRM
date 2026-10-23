@@ -12,6 +12,7 @@ for (const theme of ['light', 'dark'] as const) {
       route.fulfill({
         status: 200,
         contentType: 'application/json',
+        headers: { 'Content-Range': '0-0/1' },
         body: JSON.stringify([{ id: 'project-second', name: 'Dự án thứ hai', owner_id: userId }]),
       }),
     );
