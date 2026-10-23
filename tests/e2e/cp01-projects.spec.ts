@@ -32,6 +32,7 @@ async function open(
           status: 200,
           contentType: 'application/json',
           headers: {
+            'Access-Control-Expose-Headers': 'Content-Range',
             'Content-Range': `0-${Math.max(0, serverProjects.filter((row) => !row.archived_at).length - 1)}/${serverProjects.filter((row) => !row.archived_at).length}`,
           },
           body: JSON.stringify(serverProjects.filter((row) => !row.archived_at)),
@@ -80,7 +81,9 @@ async function open(
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      headers: { 'Content-Range': '*/0' },
+      headers: /\/rest\/v1\/(buildings|units|project_apt_types|building_apt_types)\?/.test(url)
+        ? { 'Access-Control-Expose-Headers': 'Content-Range', 'Content-Range': '*/0' }
+        : {},
       body: url.includes('/rest/v1/') ? '[]' : '{}',
     });
   });
