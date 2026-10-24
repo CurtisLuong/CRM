@@ -8,10 +8,12 @@ import {
   CARE_STAGE_WON,
   INTEREST_TIERS,
 } from '@/config/stages';
+import { taskKindOf } from '@/config/taskKinds';
 import type { Customer } from '@/domain/customer';
 import type { BriefFact } from '@/domain/customer/brief';
 import { interactionTitle, LEAD_FORM_KIND } from '@/domain/customer/interactions';
 import { callAttemptsOf, sourceListOf } from '@/domain/customer/normalize';
+import type { CustomerTimelineEntry } from '@/domain/customer/timeline';
 import { fmtClock, type TaskDueInfo, taskDayLabel } from '@/domain/deadlines';
 import { callResultLabel, displayText, intakeLabel, sourceLabel } from '@/ui/display';
 
@@ -26,6 +28,53 @@ export function bookingStepPatch(customer: Customer, key: string, checked: boole
 /** Contact preference updates are field patches and retain extension keys in the JSON object. */
 export function contactPrefsPatch(customer: Customer, key: 'channel' | 'slot', value: string) {
   return { contact_prefs: { ...(customer.contact_prefs || {}), [key]: value } };
+}
+
+// ── CP-03: Thêm việc theo 5 hành động, hạn giờ / cả ngày / không hạn (D-010). ──
+
+export type TaskDueValue = { due?: string; due_allday?: boolean } | null;
+export type TaskDueResult = { ok: true; due: TaskDueValue } | { ok: false; error: string };
+
+const DAY_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
+const TIME_RE = /^(\d{2}):(\d{2})$/;
+
+/**
+ * Ngày + giờ trên form → giá trị lưu `next_tasks`. Không có ngày = không hạn (như hành vi cũ).
+ * Cả ngày giữ mốc 09:00 local như bản cũ; có giờ thì lưu đúng giờ người dùng chọn.
+ */
+export function taskDueFromInput(input: { day?: string; time?: string; allDay?: boolean }): TaskDueResult {
+  const day = (input.day || '').trim();
+  if (!day) return { ok: true, due: null };
+  const dayMatch = DAY_RE.exec(day);
+  if (!dayMatch) return { ok: false, error: 'Chọn ngày hạn hợp lệ.' };
+  const year = Number(dayMatch[1]);
+  const month = Number(dayMatch[2]);
+  const date = Number(dayMatch[3]);
+  const base = new Date(year, month - 1, date, 9, 0, 0, 0);
+  if (base.getFullYear() !== year || base.getMonth() !== month - 1 || base.getDate() !== date)
+    return { ok: false, error: 'Ngày hạn không có thật. Kiểm tra lại ngày.' };
+  if (input.allDay) return { ok: true, due: { due: base.toISOString(), due_allday: true } };
+  const time = (input.time || '').trim();
+  const timeMatch = TIME_RE.exec(time);
+  if (!timeMatch) return { ok: false, error: 'Chọn giờ hạn hoặc chọn Cả ngày.' };
+  const hours = Number(timeMatch[1]);
+  const minutes = Number(timeMatch[2]);
+  if (hours > 23 || minutes > 59) return { ok: false, error: 'Giờ hạn không hợp lệ.' };
+  const at = new Date(year, month - 1, date, hours, minutes, 0, 0);
+  return { ok: true, due: { due: at.toISOString() } };
+}
+
+/** Dòng thời gian: việc đã xong mang thêm mã loại để dùng đúng icon loại việc. */
+export type ProfileTimelineEntry = CustomerTimelineEntry & { taskKind?: string };
+
+export function withTaskKinds(customer: Customer, entries: readonly CustomerTimelineEntry[]): ProfileTimelineEntry[] {
+  const tasks = Array.isArray(customer.next_tasks) ? customer.next_tasks : [];
+  return entries.map((entry) => {
+    if (!entry.id.startsWith('task:')) return entry;
+    const index = Number(entry.id.split(':').at(-1));
+    const kind = Number.isInteger(index) ? tasks[index]?.kind : undefined;
+    return kind ? { ...entry, taskKind: kind } : entry;
+  });
 }
 
 // ── Hồ sơ v3 (D-023): dữ liệu trình bày, chỉ đọc domain/config. ──
@@ -161,7 +210,15 @@ export function timelineCounts(entries: readonly { kind: string }[]): Record<Tim
 
 // ── PF-02: dòng thời gian phân cấp theo bậc. Mốc bậc = đầu nhóm, mục khác thuộc bậc gần nhất trước nó. ──
 
-type TimelineEntryLike = { id: string; at: string; kind: string; title: string; interactionKind?: string };
+type TimelineEntryLike = {
+  id: string;
+  at: string;
+  kind: string;
+  title: string;
+  interactionKind?: string;
+  /** CP-03: mã loại của việc đã xong (profile bơm vào từ next_tasks). */
+  taskKind?: string;
+};
 
 export type TimelineRow<T> = { entry: T; icon: IconName };
 
@@ -213,7 +270,7 @@ export function timelineIcon(entry: TimelineEntryLike): IconName {
           return 'message';
       }
     case 'task':
-      return 'task';
+      return entry.taskKind ? taskKindOf(entry.taskKind).icon : 'task';
     case 'approved':
       return 'ai';
     default:

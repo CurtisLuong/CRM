@@ -36,7 +36,7 @@ export const ICONS = {
   message: 'MessageSquareText', // Nhắn tin / Zalo
   cafe: 'Coffee', // Hẹn cafe
   docs: 'FileText', // Hồ sơ · Tài liệu
-  visit: 'Eye', // Xem dự án · Tham quan
+  visit: 'MapPinHouse', // Xem dự án · Tham quan (CP-03: cùng bộ nét với Gọi/Zalo/Cafe/Hồ sơ)
   booking: 'Handshake', // Booking
   contract: 'FileSignature', // Kí HĐMB · Kí HĐ · Chốt
   task: 'SquareCheckBig', // Việc · Việc tiếp theo
@@ -72,6 +72,10 @@ export const ICONS = {
   up: 'ChevronUp', // Xu hướng tăng
   copy: 'Copy', // Sao chép
   back: 'ArrowLeft', // Quay lại
+  add: 'Plus', // Thêm ảnh / thêm mục
+  delete: 'Trash2', // Xoá ảnh / tài liệu
+  image: 'Image', // Ảnh đại diện / ảnh bìa
+  file: 'File', // Tệp đính kèm
   // ── Menu có nhóm (PF-04, 2026-10-21) ──
   archive: 'Archive', // Khách đã lưu trữ
   quick: 'Zap', // Thao tác nhanh

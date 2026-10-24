@@ -1,9 +1,10 @@
 import { useState } from 'react';
+import { taskKindOf } from '@/config/taskKinds';
 import type { Customer } from '@/domain/customer';
-import type { CustomerTimelineEntry } from '@/domain/customer/timeline';
 import { Badge, Button, cn, displayDateTime, Icon, useToast } from '@/ui';
 import {
   editedTimelineNotePatch,
+  type ProfileTimelineEntry,
   showsStageDetail,
   TIMELINE_FILTERS,
   type TimelineFilter,
@@ -17,7 +18,7 @@ const FIELD =
 
 type Props = {
   customer: Customer;
-  entries: readonly CustomerTimelineEntry[];
+  entries: readonly ProfileTimelineEntry[];
   writable: boolean;
   busy: boolean;
   /** Lưu patch theo trường qua route (kiểm quyền + toast); trả false khi chưa lưu được. */
@@ -56,7 +57,7 @@ export function ProfileTimeline({ customer, entries, writable, busy, onSave }: P
     setEditingId(null);
   };
 
-  const noteEditor = (entry: CustomerTimelineEntry) => (
+  const noteEditor = (entry: ProfileTimelineEntry) => (
     <div className="mt-2 space-y-2">
       <textarea
         aria-label="Sửa ghi chú"
@@ -76,7 +77,7 @@ export function ProfileTimeline({ customer, entries, writable, busy, onSave }: P
     </div>
   );
 
-  const entryDetail = (entry: CustomerTimelineEntry) => {
+  const entryDetail = (entry: ProfileTimelineEntry) => {
     if (!entry.detail) return null;
     const editable = entry.kind === 'note' || entry.kind === 'stage';
     if (editable && editingId === entry.id) return noteEditor(entry);
@@ -96,7 +97,7 @@ export function ProfileTimeline({ customer, entries, writable, busy, onSave }: P
     );
   };
 
-  const entryText = (entry: CustomerTimelineEntry, options: { detail: boolean; heading?: boolean }) => (
+  const entryText = (entry: ProfileTimelineEntry, options: { detail: boolean; heading?: boolean }) => (
     <>
       <div className="flex flex-wrap items-center gap-2">
         {options.heading ? (
@@ -105,6 +106,7 @@ export function ProfileTimeline({ customer, entries, writable, busy, onSave }: P
           <span className="text-body-strong">{entry.title}</span>
         )}
         {entry.automatic && <Badge>Tự động · SLA</Badge>}
+        {entry.kind === 'task' && entry.taskKind && <Badge>{taskKindOf(entry.taskKind).label}</Badge>}
       </div>
       {options.detail ? entryDetail(entry) : null}
       <time className="mt-1 block font-data text-small text-text-3">{displayDateTime(entry.at)}</time>
@@ -112,14 +114,14 @@ export function ProfileTimeline({ customer, entries, writable, busy, onSave }: P
   );
 
   // Danh sách phẳng (khách chưa có mốc bậc): giữ dáng cũ, không tiêu đề nhóm / không thụt.
-  const flatRow = (row: TimelineRow<CustomerTimelineEntry>) => (
+  const flatRow = (row: TimelineRow<ProfileTimelineEntry>) => (
     <article key={row.entry.id} data-timeline-entry="" className="flex items-start gap-2 border-l-2 border-border pl-3">
       <Icon name={row.icon} size={20} className="mt-0.5 shrink-0 text-text-3" />
       <div className="min-w-0 flex-1">{entryText(row.entry, { detail: true })}</div>
     </article>
   );
 
-  const groupedRow = (row: TimelineRow<CustomerTimelineEntry>) => (
+  const groupedRow = (row: TimelineRow<ProfileTimelineEntry>) => (
     <article key={row.entry.id} data-timeline-entry="" className="flex items-start gap-2">
       <Icon name={row.icon} size={20} className="mt-0.5 shrink-0 text-text-3" />
       <div className="min-w-0 flex-1">{entryText(row.entry, { detail: true })}</div>
