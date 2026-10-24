@@ -2,11 +2,11 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import type { FeatureRoute } from '@/app/routes';
 import { useAppSession } from '@/app/session';
-import { TASK_KINDS } from '@/config/taskKinds';
+import { CALL_APPOINTMENT, TASK_KINDS, taskKindOf } from '@/config/taskKinds';
 import { useCustomers, useRepositoryAccount, useSyncStatus } from '@/data/hooks';
 import { appendPromise, promiseTaskKey, snoozePromise, undoPromiseSnooze } from '@/domain/deadlines/promises';
 import { openQuickAction } from '@/features/quick-actions/store';
-import { Badge, Button, cn, EmptyState, Loading, Skeleton, useToast } from '@/ui';
+import { Badge, Button, cn, EmptyState, Icon, Loading, Skeleton, useToast } from '@/ui';
 import { TASK_GROUPS, type TaskGroupId, type TaskRow, type TaskSideFilter, taskRows, taskTiming } from './model';
 
 const FIELD = 'min-h-11 rounded-control border border-border-strong bg-surface px-3 text-body text-text';
@@ -75,12 +75,7 @@ function TaskCard({
   const task = row.type === 'task' ? row.task : null;
   const ownPromise = task ? (task.side || 'me') === 'me' : null;
   const deadline = deadlineLabel(row, group, now);
-  const kind =
-    row.type === 'call'
-      ? TASK_KINDS.call.label
-      : task?.kind && task.kind in TASK_KINDS
-        ? TASK_KINDS[task.kind as keyof typeof TASK_KINDS].label
-        : 'Việc';
+  const kind = row.type === 'call' ? CALL_APPOINTMENT : taskKindOf(task?.kind);
   const text =
     row.type === 'call'
       ? `Hẹn gọi${row.appointment.reason ? ` · ${row.appointment.reason}` : ''}`
@@ -131,7 +126,10 @@ function TaskCard({
             {customer.full_name || 'Khách chưa có tên'}
           </Link>
           <span aria-hidden="true">·</span>
-          <span>{kind}</span>
+          <span className="inline-flex items-center gap-1">
+            <Icon name={kind.icon} size={16} />
+            {kind.label}
+          </span>
           {ownPromise !== null && (
             <>
               <span aria-hidden="true">·</span>
@@ -498,7 +496,7 @@ function TasksPage() {
             <option value="all">Tất cả loại</option>
             {Object.entries(TASK_KINDS).map(([key, value]) => (
               <option key={key} value={key}>
-                {value.label}
+                {key === 'call' ? CALL_APPOINTMENT.label : value.label}
               </option>
             ))}
           </select>

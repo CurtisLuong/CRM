@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router';
 import type { FeatureRoute } from '@/app/routes';
 import { PREF_CONDITIONS_LEGACY, PROFILE_PREF_CONDITIONS, PROFILE_PREF_FIELDS } from '@/config/advanced';
 import { CARE_STAGE_BOOKING, CARE_STAGE_DISPLAY } from '@/config/stages';
+import { type TaskActionKind, taskKindOf } from '@/config/taskKinds';
 import { VELOCITY_CONFIG } from '@/config/velocity';
 import { useCustomer, useRepositoryAccount } from '@/data/hooks';
 import type { Customer } from '@/domain/customer';
@@ -34,20 +35,27 @@ import {
   Tabs,
   useToast,
 } from '@/ui';
+import { AddTaskSheet } from './add-task';
 import { ProfileTextField as Field, LegacyAssistField, ProfileAdvanced } from './advanced';
 import { ArchiveCustomerSection, ArchivedBanner } from './archive';
 import { dobSavePatch } from './dob';
-import { advancedPatch, LONG_FIELD, legacyValues, SHORT_FIELD } from './fields';
-import { ChoiceField, infoHiddenCount, ProfileInfoFields } from './info';
+import { DocumentsSection } from './documents';
+import { advancedPatch, legacyValues } from './fields';
+import { infoHiddenCount, ProfileInfoFields } from './info';
 import { CustomerMemory, CustomerNeedsAdvanced, contactPrefsHiddenCount } from './memory';
-import { bookingStepPatch, dueTone, extraFacts, lastTouchOf, splitBrief, stageChoiceRows } from './model';
+import {
+  bookingStepPatch,
+  dueTone,
+  extraFacts,
+  lastTouchOf,
+  splitBrief,
+  stageChoiceRows,
+  type TaskDueValue,
+  withTaskKinds,
+} from './model';
+import { hasNeedValue, NEEDS_FIELDS, ProfileNeedsFields, type ProjectCatalog } from './needs';
+import { ProfilePhotoFrame } from './photos';
 import { ProfileTimeline } from './timeline';
-
-const FIELD =
-  'min-h-11 w-full rounded-control border border-border-strong bg-surface px-3 text-body text-text focus-visible:outline-2 focus-visible:outline-focus disabled:opacity-60';
-const PURPOSE_OPTIONS = ['Ở', 'Đầu tư', 'Cho tặng'].map((value) => ({ value, label: value }));
-
-type DocumentRow = { id: string; label?: string | null; kind?: string; storage_path: string; mime?: string };
 
 // Giữ export cũ (test + nơi khác import từ route).
 export { editedTimelineNotePatch } from './model';
@@ -60,12 +68,20 @@ function Profile() {
   const toast = useToast();
   const [now, setNow] = useState(Date.now());
   const [busy, setBusy] = useState(false);
+  // CP-01: Nhu cầu & căn là tab đầu/mặc định; mở khách khác quay lại tab này.
+  const [tab, setTab] = useState('needs');
   // CL-03 L2: ô trống của Trí nhớ ẩn sau nút "Bổ sung"; mặc định đóng mỗi lần mở hồ sơ.
   const [supplementOpen, setSupplementOpen] = useState(false);
+  // CP-01: ô trống của Nhu cầu hiện tại dùng nút "Bổ sung" riêng.
+  const [needsSupplementOpen, setNeedsSupplementOpen] = useState(false);
   const [stageOpen, setStageOpen] = useState(false);
   const [missingKey, setMissingKey] = useState('');
-  const [docs, setDocs] = useState<DocumentRow[]>([]);
-  const [docError, setDocError] = useState('');
+  const [docCount, setDocCount] = useState(0);
+  const [, bumpCatalog] = useState(0);
+  const [catalogLoadFailed, setCatalogLoadFailed] = useState(false);
+  const [browserOnline, setBrowserOnline] = useState(() => typeof navigator === 'undefined' || navigator.onLine);
+  // CP-03: Thêm việc mở danh sách 5 loại trước, không dùng window.prompt.
+  const [addOpen, setAddOpen] = useState(false);
   const writable = !!customer && !!account && customer.owner_id === account.sync.local.userId && !customer.archived_at;
   // Khách nhóm (D-025): người đang thấy khách sửa được thông tin hồ sơ + ghi chú; việc chăm sóc vẫn của người phụ trách.
   const teamInfo = !writable && !!account && canEditTeamInfo(customer, account.sync.local.userId);
@@ -74,33 +90,91 @@ function Profile() {
   const otherOwner = !!customer?.owner_id && !!account && customer.owner_id !== account.sync.local.userId;
   const stage = normStage(customer?.care_stage) || '';
   const sla = customer ? slaStatus(customer, now) : null;
-  const timeline = useMemo(() => (customer ? customerTimeline(customer) : []), [customer]);
+  const timeline = useMemo(() => (customer ? withTaskKinds(customer, customerTimeline(customer)) : []), [customer]);
   const brief = useMemo(() => (customer ? customerBrief(customer) : []), [customer]);
   const tasks = customer ? openTasksOf(customer) : [];
   const calls = customer ? callAttemptsOf(customer) : [];
-  const customerId = customer?.id;
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 60_000);
     return () => window.clearInterval(timer);
   }, []);
+
+  // Mạng đổi trong lúc mở hồ sơ → nút thêm/lưu trữ dự án khoá lại ngay.
   useEffect(() => {
+    const refresh = () => setBrowserOnline(navigator.onLine);
+    window.addEventListener('online', refresh);
+    window.addEventListener('offline', refresh);
+    return () => {
+      window.removeEventListener('online', refresh);
+      window.removeEventListener('offline', refresh);
+    };
+  }, []);
+
+  // Mở một khách khác: tab về Nhu cầu & căn, mọi khu Bổ sung/Nâng cao đóng lại.
+  const customerId = customer?.id ?? '';
+  // Ô nhu cầu đã có giá trị lúc mở khách vẫn hiện dù bị xoá trắng; giữ qua lần đổi tab, chỉ reset khi sang khách khác.
+  const [needsVisible, setNeedsVisible] = useState<{ id: string; keys: Set<string> }>(() => ({
+    id: customerId,
+    keys: new Set(NEEDS_FIELDS.filter((key) => hasNeedValue(customer?.[key]))),
+  }));
+  if (needsVisible.id !== customerId) {
+    setNeedsVisible({
+      id: customerId,
+      keys: new Set(NEEDS_FIELDS.filter((key) => hasNeedValue(customer?.[key]))),
+    });
+  }
+  useEffect(() => {
+    if (!customerId) return;
+    setTab('needs');
+    setAddOpen(false);
+    setSupplementOpen(false);
+    setNeedsSupplementOpen(false);
+    setStageOpen(false);
+  }, [customerId]);
+
+  // Catalog dùng chung: đọc cache local + nghe thay đổi; lỗi load thì giữ nguyên danh mục đang có.
+  const catalog = useMemo<ProjectCatalog | null>(() => {
+    if (!account?.catalog) return null;
+    const source = account.catalog;
+    return {
+      projects: () =>
+        source.projects().map((row) => ({
+          ...row,
+          id: String(row.id ?? ''),
+          name: String(row.name ?? ''),
+          archived_at: row.archived_at ?? null,
+        })),
+      load: () => source.load(),
+      onChange: (fn) => source.onChange(fn),
+      addProject: (name) =>
+        source.addProject(name, undefined).then((row) => ({
+          ...row,
+          id: String(row.id ?? ''),
+          name: String(row.name ?? ''),
+          archived_at: row.archived_at ?? null,
+        })),
+      archiveProject: (id) => source.archiveProject(id),
+    };
+  }, [account]);
+  useEffect(() => {
+    if (!catalog) return;
     let alive = true;
-    if (!account || !customerId) return;
-    setDocs([]);
-    setDocError('');
-    void account.remote
-      .listDocuments(customerId)
-      .then((rows: DocumentRow[]) => {
-        if (alive) setDocs(Array.isArray(rows) ? rows : []);
-      })
-      .catch((error: unknown) => {
-        if (alive) setDocError(error instanceof Error ? error.message : 'Chưa tải được tài liệu.');
+    const unsubscribe = catalog.onChange(() => {
+      if (alive) bumpCatalog((value) => value + 1);
+    });
+    setCatalogLoadFailed(false);
+    void catalog
+      .load()
+      .catch(() => false)
+      .then((loaded) => {
+        if (alive) setCatalogLoadFailed(!loaded);
       });
     return () => {
       alive = false;
+      unsubscribe?.();
     };
-  }, [account, customerId]);
+  }, [catalog]);
 
   if (!customer) {
     return (
@@ -142,6 +216,13 @@ function Profile() {
   const setField = (key: keyof Customer, value: unknown) => void save(factPatch(c, String(key), value));
   const setAdvancedField = (key: string, value: unknown) =>
     setField('advanced', advancedPatch(c.advanced, key, value).advanced);
+  // Ô vừa xoá trắng vẫn nằm trong form tới khi mở khách khác.
+  const keepNeedVisible = (key: string) =>
+    setNeedsVisible((prev) => (prev.id === customerId ? { ...prev, keys: new Set(prev.keys).add(key) } : prev));
+  const setNeedField = (key: keyof Customer, value: unknown) => {
+    if (!hasNeedValue(value)) keepNeedVisible(String(key));
+    setField(key, value);
+  };
   const actionBar = (
     <ActionBar
       actions={[
@@ -189,74 +270,20 @@ function Profile() {
   const toggleBooking = async (key: string, checked: boolean) => {
     await save(bookingStepPatch(c, key, checked, new Date().toISOString()), 'Đã cập nhật checklist hồ sơ');
   };
-  const addPromise = async () => {
-    const text = window.prompt('Việc tiếp theo / lời hứa');
-    if (!text?.trim() || !account || !writable) return;
-    let due: { due?: string; due_allday?: boolean } | null = null;
-    const dueValue = window.prompt('Hạn (YYYY-MM-DD), để trống nếu chưa có hạn');
-    if (dueValue?.trim()) {
-      const parsed = new Date(`${dueValue}T09:00:00`);
-      if (Number.isNaN(parsed.getTime())) {
-        toast({ title: 'Ngày hạn không hợp lệ', tone: 'error' });
-        return;
-      }
-      due = { due: parsed.toISOString(), due_allday: true };
-    }
-    try {
-      await account.customers.addTask(c.id, text.trim(), due, 'other');
-      toast({ title: 'Đã lưu bước tiếp theo' });
-    } catch (error) {
-      toast({ title: 'Chưa lưu được', description: String(error), tone: 'error' });
-    }
+  // CP-03: nội dung bắt buộc; hạn do form quyết định, không tự bịa nội dung hay hạn.
+  const saveNewTask = async (kind: Exclude<TaskActionKind, 'call'>, text: string, due: TaskDueValue) => {
+    if (!account || !writable) throw new Error('Khách chỉ được xem.');
+    await account.customers.addTask(c.id, text, due, kind);
+    toast({ title: 'Đã thêm việc', description: `${text} · ${c.full_name}` });
   };
   const completeTask = async (at: string) => {
     if (account && writable) await account.customers.completeTask(c.id, at);
-  };
-  const uploadDoc = async (file?: File) => {
-    if (!file || !account || !writable) return;
-    setBusy(true);
-    try {
-      const doc = await account.remote.uploadDocument(
-        c.id,
-        file,
-        file.type.startsWith('image/') ? 'anh' : 'khac',
-        file.name,
-      );
-      setDocs((prev) => [...prev, doc]);
-      toast({ title: 'Đã tải tài liệu lên' });
-    } catch (error) {
-      toast({ title: 'Chưa tải được tài liệu', description: String(error), tone: 'error' });
-    } finally {
-      setBusy(false);
-    }
-  };
-  const removeDoc = async (doc: DocumentRow) => {
-    if (!account || !writable || !window.confirm(`Xoá tài liệu “${doc.label || doc.storage_path}”?`)) return;
-    try {
-      await account.remote.deleteDocument(doc);
-      setDocs((prev) => prev.filter((item) => item.id !== doc.id));
-      toast({ title: 'Đã xoá tài liệu' });
-    } catch (error) {
-      toast({ title: 'Chưa xoá được tài liệu', description: String(error), tone: 'error' });
-    }
-  };
-  const changePhoto = async (kind: 'avatar' | 'cover', file?: File) => {
-    if (!file || !account || !writable) return;
-    setBusy(true);
-    try {
-      await (kind === 'avatar' ? account.remote.uploadAvatar(c.id, file) : account.remote.uploadCover(c.id, file));
-      toast({ title: `Đã đổi ${kind === 'avatar' ? 'ảnh đại diện' : 'ảnh bìa'}` });
-    } catch (error) {
-      toast({ title: 'Chưa tải được ảnh', description: String(error), tone: 'error' });
-    } finally {
-      setBusy(false);
-    }
   };
   const timelineContent = (
     <ProfileTimeline customer={c} entries={timeline} writable={writable} busy={busy} onSave={save} />
   );
   const memoryContent = (
-    <div className="space-y-5">
+    <div key={c.id} className="space-y-5">
       <section className="space-y-3">
         <h2 className="text-section">Thông tin chính</h2>
         <ProfileInfoFields
@@ -290,120 +317,33 @@ function Profile() {
     </div>
   );
   const needsContent = (
-    <div className="space-y-4">
+    <div key={c.id} className="space-y-4">
       <section className="space-y-3">
         <h2 className="text-section">Nhu cầu hiện tại</h2>
-        <div className="flex flex-wrap gap-3">
-          <div className={SHORT_FIELD}>
-            <ChoiceField
-              label="Mục đích mua"
-              value={c.purpose}
-              disabled={!infoWritable || busy}
-              options={PURPOSE_OPTIONS}
-              onSave={(value) => setField('purpose', value)}
-            />
-          </div>
-          <div className={SHORT_FIELD}>
-            <Field
-              label="Loại căn"
-              value={c.apt_type}
-              disabled={!infoWritable}
-              onSave={(value) => setField('apt_type', value)}
-            />
-          </div>
-          <div className={LONG_FIELD}>
-            <Field
-              label="Dự án quan tâm"
-              value={(c.projects || []).join(', ')}
-              disabled={!infoWritable}
-              onSave={(value) =>
-                setField(
-                  'projects',
-                  value
-                    .split(',')
-                    .map((x) => x.trim())
-                    .filter(Boolean),
-                )
-              }
-            />
-          </div>
-          <div className={SHORT_FIELD}>
-            <Field
-              label="Diện tích (m²)"
-              value={c.apt_area}
-              disabled={!infoWritable}
-              onSave={(value) => setField('apt_area', value === '' ? null : Number(value))}
-            />
-          </div>
-          <div className={SHORT_FIELD}>
-            <Field
-              label="Tài chính sẵn có (VNĐ)"
-              value={c.finance}
-              disabled={!infoWritable}
-              onSave={(value) => setField('finance', value === '' ? null : Number(value))}
-            />
-          </div>
-          <div className={SHORT_FIELD}>
-            <Field
-              label="Mã toà"
-              value={c.building_code}
-              disabled={!infoWritable}
-              onSave={(value) => setField('building_code', value)}
-            />
-          </div>
-          <div className={SHORT_FIELD}>
-            <Field
-              label="Mã căn"
-              value={c.apt_code}
-              disabled={!infoWritable}
-              onSave={(value) => setField('apt_code', value)}
-            />
-          </div>
-          <div className={SHORT_FIELD}>
-            <Field
-              label="Hướng"
-              value={c.apt_direction}
-              disabled={!infoWritable}
-              onSave={(value) => setField('apt_direction', value)}
-            />
-          </div>
-          <div className={SHORT_FIELD}>
-            <Field
-              label="Tầng"
-              value={c.apt_floor}
-              disabled={!infoWritable}
-              onSave={(value) => setField('apt_floor', value === '' ? null : Number(value))}
-            />
-          </div>
-        </div>
+        {catalogLoadFailed && (
+          <p role="alert" className="text-small text-danger">
+            Chưa tải được danh mục dự án. Đang giữ dữ liệu trên máy; các tên chưa có trong danh mục có thể chưa được tải
+            về.
+          </p>
+        )}
+        <ProfileNeedsFields
+          customer={c}
+          writable={infoWritable}
+          busy={busy}
+          showEmpty={needsSupplementOpen}
+          stayVisible={needsVisible.keys}
+          onToggleSupplement={() => setNeedsSupplementOpen(!needsSupplementOpen)}
+          onSaveField={setNeedField}
+          onSaveProjects={(names, message) => {
+            if (!hasNeedValue(names)) keepNeedVisible('projects');
+            return save(factPatch(c, 'projects', names), message || 'Đã cập nhật dự án quan tâm');
+          }}
+          catalog={catalog}
+          online={browserOnline && !!account?.sync.isOnline()}
+        />
         <Button variant="primary" onClick={() => navigate(loanPath({ customerId: c.id, ...customerUnit(c) }))}>
           Tính vay cho khách này
         </Button>
-      </section>
-      <section className="space-y-3">
-        <h2 className="text-section">Sở thích bất động sản</h2>
-        {PROFILE_PREF_FIELDS.map((field) =>
-          field.key === PROFILE_PREF_CONDITIONS.key ? (
-            <LegacyAssistField
-              key={field.key}
-              label={field.label}
-              value={c.advanced?.[field.key]}
-              disabled={!infoWritable}
-              placeholder={field.ph}
-              legacy={legacyValues(c.advanced || {}, PREF_CONDITIONS_LEGACY)}
-              onSave={(value) => setAdvancedField(field.key, value)}
-            />
-          ) : (
-            <Field
-              key={field.key}
-              label={field.label}
-              value={c.advanced?.[field.key]}
-              disabled={!infoWritable}
-              placeholder={field.ph}
-              onSave={(value) => setAdvancedField(field.key, value)}
-            />
-          ),
-        )}
       </section>
       {stage === CARE_STAGE_BOOKING && (
         <section className="space-y-3">
@@ -447,108 +387,65 @@ function Profile() {
         writable={infoWritable}
         onSave={(patch, message) => void save(patch, message)}
         now={now}
-      />
+        projectCatalog={catalog}
+      >
+        <section className="space-y-3">
+          <h2 className="text-section">Sở thích bất động sản</h2>
+          {PROFILE_PREF_FIELDS.map((field) =>
+            field.key === PROFILE_PREF_CONDITIONS.key ? (
+              <LegacyAssistField
+                key={field.key}
+                label={field.label}
+                value={c.advanced?.[field.key]}
+                disabled={!infoWritable}
+                placeholder={field.ph}
+                legacy={legacyValues(c.advanced || {}, PREF_CONDITIONS_LEGACY)}
+                onSave={(value) => setAdvancedField(field.key, value)}
+              />
+            ) : (
+              <Field
+                key={field.key}
+                label={field.label}
+                value={c.advanced?.[field.key]}
+                disabled={!infoWritable}
+                placeholder={field.ph}
+                onSave={(value) => setAdvancedField(field.key, value)}
+              />
+            ),
+          )}
+        </section>
+      </CustomerNeedsAdvanced>
     </div>
   );
   const docsContent = (
-    <section className="space-y-3">
-      <div className="flex items-center justify-between gap-2">
-        <h2 className="text-section">Tài liệu & ảnh</h2>
-        <label className="inline-flex min-h-11 cursor-pointer items-center rounded-control border border-border-strong px-3 text-body-strong">
-          Tải tài liệu
-          <input
-            className="sr-only"
-            type="file"
-            disabled={!writable || busy}
-            onChange={(e) => {
-              void uploadDoc(e.currentTarget.files?.[0]);
-              e.currentTarget.value = '';
-            }}
-          />
-        </label>
-      </div>
-      {docError && (
-        <p role="alert" className="text-small text-danger">
-          {docError}
-        </p>
+    <div className="space-y-3">
+      {account && (
+        <section className="grid grid-cols-2 gap-3" aria-label="Ảnh hồ sơ">
+          <ProfilePhotoFrame kind="avatar" customer={c} remote={account.remote} writable={writable} busy={busy} />
+          <ProfilePhotoFrame kind="cover" customer={c} remote={account.remote} writable={writable} busy={busy} />
+        </section>
       )}
-      {!docs.length && (
-        <p className="text-body text-text-2">
-          {account?.sync.isOnline() ? 'Chưa có tài liệu.' : 'Ngoại tuyến · tài liệu chỉ tải khi có mạng.'}
-        </p>
-      )}
-      {docs.map((doc) => (
-        <article key={doc.id} className="flex items-center justify-between gap-3 border-b border-border py-2">
-          <div>
-            <p className="text-body-strong">{doc.label || doc.kind || 'Tài liệu'}</p>
-            <p className="break-all text-small text-text-3">{doc.storage_path}</p>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              onClick={() =>
-                void account?.remote
-                  .signedDocUrl(doc.storage_path)
-                  .then((url: string | null) => url && window.open(url, '_blank', 'noopener,noreferrer'))
-              }
-            >
-              Mở
-            </Button>
-            {writable && <Button onClick={() => void removeDoc(doc)}>Xoá</Button>}
-          </div>
-        </article>
-      ))}
-      <div className="grid grid-cols-2 gap-3">
-        <label className="space-y-2 text-small">
-          Ảnh đại diện
-          {c.avatar_path && account?.remote.avatarUrl(c.avatar_path) && (
-            <img
-              alt="Ảnh đại diện khách"
-              src={account.remote.avatarUrl(c.avatar_path) || ''}
-              className="size-20 rounded-full object-cover"
-            />
-          )}
-          <input
-            aria-label="Đổi ảnh đại diện"
-            className={FIELD}
-            type="file"
-            accept="image/*"
-            disabled={!writable || busy}
-            onChange={(e) => void changePhoto('avatar', e.currentTarget.files?.[0])}
-          />
-        </label>
-        <label className="space-y-2 text-small">
-          Ảnh bìa
-          {c.cover_path && account?.remote.coverUrl(c.cover_path) && (
-            <img
-              alt="Ảnh bìa khách"
-              src={account.remote.coverUrl(c.cover_path) || ''}
-              className="h-20 w-full rounded-control object-cover"
-            />
-          )}
-          <input
-            aria-label="Đổi ảnh bìa"
-            className={FIELD}
-            type="file"
-            accept="image/*"
-            disabled={!writable || busy}
-            onChange={(e) => void changePhoto('cover', e.currentTarget.files?.[0])}
-          />
-        </label>
-      </div>
-      {readOnly && <p className="text-small text-text-2">Bạn chỉ có quyền xem; thao tác sửa và tải lên đã khoá.</p>}
+      <DocumentsSection
+        customerId={c.id}
+        remote={account?.remote ?? null}
+        writable={writable}
+        busy={busy}
+        online={account?.sync.isOnline() ?? false}
+        onCountChange={setDocCount}
+      />
       {teamInfo && (
         <p className="text-small text-text-2">
           Khách của đồng nghiệp: bạn sửa được thông tin và thêm ghi chú; bậc, cuộc gọi, lịch, ảnh và tài liệu do người
           phụ trách quản lý.
         </p>
       )}
-    </section>
+    </div>
   );
   const tabs = [
-    { value: 'timeline', label: 'Dòng thời gian', count: timeline.length, content: timelineContent },
-    { value: 'memory', label: 'Trí nhớ', content: memoryContent },
     { value: 'needs', label: 'Nhu cầu & căn', content: needsContent },
-    { value: 'docs', label: 'Tài liệu', count: docs.length, content: docsContent },
+    { value: 'memory', label: 'Trí nhớ', content: memoryContent },
+    { value: 'timeline', label: 'Dòng thời gian', count: timeline.length, content: timelineContent },
+    { value: 'docs', label: 'Tài liệu', count: docCount, content: docsContent },
     {
       value: 'loan',
       label: 'Tính vay',
@@ -666,7 +563,7 @@ function Profile() {
             )}
             <div className="flex items-center justify-between gap-2">
               <h2 className="text-label text-text-2">Việc tiếp theo</h2>
-              <Button disabled={!writable} onClick={() => void addPromise()}>
+              <Button disabled={!writable} onClick={() => setAddOpen(true)}>
                 Thêm việc
               </Button>
             </div>
@@ -674,6 +571,7 @@ function Profile() {
               <ul className="mt-2 space-y-3">
                 {tasks.map((task) => {
                   const due = taskDueInfo(task, now);
+                  const kindInfo = taskKindOf(task.kind);
                   const tag = due
                     ? due.state === 'overdue'
                       ? { state: 'missed' as const, text: due.label }
@@ -695,6 +593,10 @@ function Profile() {
                       <div className="min-w-0 flex-1">
                         <p className="text-body-strong">{task.text}</p>
                         <div className="mt-1 flex flex-wrap items-center gap-2 text-small text-text-2">
+                          <span className="inline-flex items-center gap-1">
+                            <Icon name={kindInfo.icon} size={16} />
+                            {kindInfo.label}
+                          </span>
                           <span>{task.side === 'customer' ? 'Khách hẹn' : 'Em hứa'}</span>
                           <DeadlineTag tag={tag} />
                         </div>
@@ -728,6 +630,8 @@ function Profile() {
           <div className="max-xl:order-5">
             <Tabs
               items={tabs}
+              value={tab}
+              onValueChange={setTab}
               label="Nội dung hồ sơ khách"
               sticky
               className="[&_[role=tab]]:scroll-mt-14 [&_[role=tablist]]:top-14"
@@ -802,6 +706,18 @@ function Profile() {
           </div>
         </div>
       </div>
+
+      <AddTaskSheet
+        key={c.id}
+        open={addOpen}
+        customerName={c.full_name}
+        onOpenChange={setAddOpen}
+        onScheduleCall={() => {
+          setAddOpen(false);
+          openQuickAction(c.id, 'schedule');
+        }}
+        onSave={saveNewTask}
+      />
 
       <Sheet
         open={stageOpen}

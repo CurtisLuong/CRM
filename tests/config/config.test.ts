@@ -148,9 +148,20 @@ describe('icons.ts (D-006)', () => {
 });
 
 describe('taskKinds.ts', () => {
-  it('nhãn + icon từng loại việc khớp TASK_KINDS v1', () => {
+  it('giữ mã v1, dùng nhãn và icon được duyệt cho 5 hành động', () => {
+    const approved: Record<string, { label: string; icon: string }> = {
+      call: { label: 'Gọi điện', icon: 'call' },
+      message: { label: 'Zalo', icon: 'message' },
+      cafe: { label: 'Cafe và Gặp', icon: 'cafe' },
+      visit: { label: 'Tham quan', icon: 'visit' },
+      docs: { label: 'Hồ sơ', icon: 'docs' },
+    };
     expect(Object.keys(TASK_KINDS)).toStrictEqual(v1('Object.keys(TASK_KINDS)'));
     for (const [k, t] of Object.entries(TASK_KINDS)) {
+      if (approved[k]) {
+        expect(t).toEqual(approved[k]);
+        continue;
+      }
       expect(t.label).toBe(v1raw(`TASK_KINDS.${k}.label`));
       // v1 lưu sẵn chuỗi <svg> = icon('<khái niệm>') → khái niệm v2 phải là đúng khái niệm đó.
       expect(v1raw(`icon('${t.icon}')`)).toBe(v1raw(`TASK_KINDS.${k}.icon`));

@@ -38,3 +38,7 @@ Chỉ viết task cho milestone đang làm. Thứ tự: M0 → M1 → M2 → M3 
 - FACT: e2e có sẵn cho Hôm nay, Hồ sơ, Khách hàng, Công việc, Hiệu quả (`tests/e2e/*.spec.ts`) + unit `npm run check`.
 - Vấn đề: thiết kế lại sẽ làm trượt e2e đang kiểm theo nhãn/vị trí cũ, trong khi luật worker là "không sửa test có sẵn". Cách làm: với mỗi màn, **Lead** viết lại e2e theo bản mẫu đã duyệt (giữ mọi hành vi: gọi, ghi kết quả, hẹn, lưu local, offline) **trước** khi giao worker; worker chỉ thêm test mới.
 - Luồng dữ liệu (ghi local + hàng đợi) không đổi → e2e `sync`, `archive`, `quick-actions` phải xanh nguyên trạng.
+
+## Hồ sơ CP — phản hồi Curtis 23/10/2026
+
+☑ 24/10 trên factory d2bd61f: CP-01 nhu cầu/dự án/ô gọn; CP-02 ảnh và nhóm tài liệu; CP-03 5 loại việc/icon. Đã kiểm local và browser giả, chờ duyệt phát hành production và thử clipboard Android thật. Chi tiết: reports/customer-profile-2026-10-23.md.

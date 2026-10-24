@@ -123,10 +123,11 @@ describe('PF-01 — khu Nâng cao mặc định đóng', () => {
 });
 
 describe('PF-01 — Sở thích bất động sản ở tab Nhu cầu & căn', () => {
-  it('hiện sẵn đúng 3 ô; sửa Khu vực giữ khoá lạ trong advanced', async () => {
+  it('mở Nâng cao thấy 3 ô; sửa Khu vực giữ khoá lạ trong advanced', async () => {
     const user = userEvent.setup();
     wrap();
     await user.click(screen.getByRole('tab', { name: 'Nhu cầu & căn' }));
+    await user.click(screen.getByRole('button', { name: 'Nâng cao' }));
     const section = screen.getByRole('heading', { name: 'Sở thích bất động sản' }).parentElement as HTMLElement;
     expect(within(section).getAllByRole('textbox')).toHaveLength(3);
     expect(within(section).getByLabelText('Khu vực')).toBeTruthy();
