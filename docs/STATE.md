@@ -4,6 +4,7 @@ Cập nhật: 2026-10-19 · Nhánh phát triển: `factory` (tách từ `v2` @ 4
 
 | Mục | Trạng thái |
 |---|---|
+| Hồ sơ CP (24/10/2026) | ☑ factory d2bd61f: nhu cầu/dự án catalog, ảnh/tài liệu, 5 loại việc/icon. Check 1162 test; e2e 489 đạt + 56 bỏ qua, PF-08 chập chờn chạy lại đạt. Chưa push/deploy hoặc thử Android thật. Báo cáo: reports/customer-profile-2026-10-23.md |
 | Luồng | **B** — nâng cấp v2 → v3: thiết kế lại lớn UI/UX, được đổi Design System |
 | Giai đoạn | M0–M5 ☑ · **v3 đã deploy production 2026-10-19** (`main` 53a9fc5) — chờ Curtis thử máy thật theo `docs/v3/release/README.md` |
 | Production | `main` 805c0c9 (2026-10-22: v3 + Meta Lead Ads + PF-01…08 + CL-01/02/03 + D-025) → `crm-cop.pages.dev` (Cloudflare project `crm`, GitHub tự build: deployment `fe7fa0b7`). Rollback: deployment `f9a969a2` (= be3b43f, trước CL-03), `348bbeb3` (= da659fa, trước CL/D-025), `012f16f2` (= 516867f, trước PF-08), `6582212` (trước tìm/chuông), `b8f73d6` (trước menu) hoặc `ae52e3a` (trước PF) (`docs/project-status.md`) |
