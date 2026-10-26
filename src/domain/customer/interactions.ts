@@ -1,6 +1,7 @@
 import type { Customer, Interaction } from './types';
 
 export type InteractionKind = 'sent' | 'meeting' | 'project_view';
+export type ArchiveInteractionKind = 'archived' | 'restored';
 
 /** Khách tự gửi form quảng cáo (Worker Meta Lead Ads ghi, origin 'meta_lead_ads') — không phải sale liên hệ. */
 export const LEAD_FORM_KIND = 'lead_form';
@@ -15,7 +16,12 @@ export function isSaleNote(note: Record<string, unknown> | null | undefined): bo
 
 /** Mốc "lần cuối sale chạm khách" chỉ tính tương tác do sale làm; khách tự đăng ký lại không làm mất tín hiệu chăm sóc. */
 export function isSaleTouch(interaction: Pick<Interaction, 'kind'> | null | undefined): boolean {
-  return !!interaction && interaction.kind !== LEAD_FORM_KIND;
+  return (
+    !!interaction &&
+    interaction.kind !== LEAD_FORM_KIND &&
+    interaction.kind !== 'archived' &&
+    interaction.kind !== 'restored'
+  );
 }
 
 /** Build an explicit, user-confirmed interaction record. Opening Zalo alone never creates one. */
