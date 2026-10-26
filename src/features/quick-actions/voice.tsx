@@ -65,7 +65,7 @@ export function VoiceNoteInput({
     setMessage('');
     const instance = new Constructor();
     instance.lang = 'vi-VN';
-    instance.interimResults = false;
+    instance.interimResults = true; // chữ tạm cho VN-01; onresult vẫn chỉ đẩy chữ chốt
     instance.continuous = false;
     instance.onresult = (event) => {
       const text = Array.from({ length: event.results.length }, (_, i) => event.results[i])
@@ -178,6 +178,7 @@ export function VoiceNoteInput({
           type="button"
           disabled={disabled || recording || transcribing}
           onClick={listening ? () => recognition.current?.stop() : startSpeech}
+          aria-label={listening ? 'Dừng nghe' : 'Nói để ghi chú'}
         >
           {listening ? 'Dừng đọc giọng nói' : '🎙 Đọc giọng nói'}
         </Button>
@@ -187,6 +188,7 @@ export function VoiceNoteInput({
           type="button"
           disabled={disabled || listening || transcribing}
           onClick={recording ? () => recorder.current?.stop() : () => void startWorkerRecording()}
+          aria-label={recording ? 'Dừng nghe' : transcribing ? undefined : 'Nói để ghi chú'}
         >
           {recording ? 'Dừng và chuyển văn bản' : transcribing ? 'Đang nhận dạng…' : '🎙 Ghi âm qua Worker'}
         </Button>
