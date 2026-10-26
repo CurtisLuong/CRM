@@ -107,7 +107,7 @@ export function lastTouchOf(customer: Customer, now: number): LastTouch | null {
       n?.at && displayText(n.text) ? [{ at: n.at, meta: 'Ghi chú', headline: '', text: displayText(n.text) }] : [],
     ),
     ...(Array.isArray(customer.interactions) ? customer.interactions : []).flatMap((i) =>
-      i?.at
+      i?.at && i.kind !== 'archived' && i.kind !== 'restored'
         ? [
             {
               at: i.at,
@@ -203,7 +203,13 @@ export function filterTimeline<T extends { kind: string }>(entries: readonly T[]
 
 /** Số mục mỗi loại để hiện trên chip; chip số 0 (trừ "Tất cả") không hiện. */
 export function timelineCounts(entries: readonly { kind: string }[]): Record<TimelineFilter, number> {
-  const out: Record<TimelineFilter, number> = { all: entries.length, call: 0, note: 0, interaction: 0, stage: 0 };
+  const out: Record<TimelineFilter, number> = {
+    all: entries.length,
+    call: 0,
+    note: 0,
+    interaction: 0,
+    stage: 0,
+  };
   for (const e of entries) if (e.kind in out && e.kind !== 'all') out[e.kind as TimelineFilter]++;
   return out;
 }
@@ -237,6 +243,8 @@ export type TimelineView<T> = {
   grouped: boolean;
   flat: TimelineRow<T>[];
   groups: TimelineGroup<T>[];
+  /** Dòng theo đúng thời gian; bậc và lưu trữ/khôi phục luôn đứng cấp trên cùng. */
+  ordered: { entry: T; icon: IconName; topLevel: boolean; nested: boolean }[];
 };
 
 export const BEFORE_STAGE_TITLE = 'Trước khi có mốc bậc';
@@ -273,6 +281,8 @@ export function timelineIcon(entry: TimelineEntryLike): IconName {
       return entry.taskKind ? taskKindOf(entry.taskKind).icon : 'task';
     case 'approved':
       return 'ai';
+    case 'archive':
+      return 'history';
     default:
       return ICON_FALLBACK;
   }
@@ -307,7 +317,7 @@ export function timelineGroups<T extends TimelineEntryLike>(entries: readonly T[
     rows: [],
   };
   // groups xếp mới nhất trước → nhóm đầu tiên có at <= mục là bậc gần nhất; cùng thời điểm thuộc bậc đó.
-  for (const entry of entries.filter((e) => e.kind !== 'stage').sort(newestFirst)) {
+  for (const entry of entries.filter((e) => e.kind !== 'stage' && e.kind !== 'archive').sort(newestFirst)) {
     const group = groups.find((g) => g.at <= entry.at) ?? before;
     group.rows.push({ entry, icon: timelineIcon(entry) });
   }
@@ -320,20 +330,32 @@ export function timelineView<T extends TimelineEntryLike>(
   filter: TimelineFilter,
 ): TimelineView<T> {
   const groups = timelineGroups(entries);
+  const orderedEntries = entries
+    .filter((entry) => filter === 'all' || entry.kind === filter)
+    .slice()
+    .sort(newestFirst);
+  const ordered = orderedEntries.map((entry) => ({
+    entry,
+    icon: timelineIcon(entry),
+    topLevel: entry.kind === 'stage' || entry.kind === 'archive',
+    nested: !!groups.length && entry.kind !== 'stage' && entry.kind !== 'archive',
+  }));
   if (!groups.length) {
     return {
       grouped: false,
       flat: filterTimeline(entries, filter).map((entry) => ({ entry, icon: timelineIcon(entry) })),
       groups: [],
+      ordered,
     };
   }
-  if (filter === 'all') return { grouped: true, flat: [], groups };
+  if (filter === 'all') return { grouped: true, flat: [], groups, ordered };
   // "Bậc" = chỉ các đầu nhóm (nhóm "Trước khi có mốc bậc" không phải một bậc nên không hiện).
   if (filter === 'stage') {
     return {
       grouped: true,
       flat: [],
       groups: groups.filter((g) => g.stage).map((g) => ({ ...g, rows: [] })),
+      ordered,
     };
   }
   return {
@@ -343,6 +365,7 @@ export function timelineView<T extends TimelineEntryLike>(
       const rows = g.rows.filter((r) => r.entry.kind === filter);
       return rows.length ? [{ ...g, rows }] : [];
     }),
+    ordered,
   };
 }
 
