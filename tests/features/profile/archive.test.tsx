@@ -8,9 +8,10 @@ import { ToastProvider } from '@/ui';
 
 const remove = vi.fn();
 const restore = vi.fn();
+const update = vi.fn();
 const account = {
   sync: { local: { userId: 'u1' }, isOnline: () => false },
-  customers: { remove, restore },
+  customers: { remove, restore, update },
 };
 vi.mock('@/data/hooks', () => ({ useRepositoryAccount: () => account }));
 
@@ -26,6 +27,7 @@ const wrap = (node: React.ReactNode) =>
 beforeEach(() => {
   remove.mockReset().mockResolvedValue(undefined);
   restore.mockReset().mockResolvedValue(undefined);
+  update.mockReset().mockResolvedValue(undefined);
 });
 
 describe('archive customer (soft delete)', () => {
@@ -47,8 +49,17 @@ describe('archive customer (soft delete)', () => {
     expect(remove).not.toHaveBeenCalled();
 
     await user.click(screen.getByRole('button', { name: 'Lưu trữ khách…' }));
+    // PC-03 (Curtis 26/10): bắt buộc lý do; lưu trữ + dòng nhật ký ghi trong một patch.
+    expect(screen.getByRole('button', { name: 'Lưu trữ khách' })).toHaveProperty('disabled', true);
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Lý do lưu trữ' }), 'so_sai');
     await user.click(screen.getByRole('button', { name: 'Lưu trữ khách' }));
-    expect(remove).toHaveBeenCalledExactlyOnceWith('c1');
+    expect(update).toHaveBeenCalledExactlyOnceWith(
+      'c1',
+      expect.objectContaining({
+        archived_at: expect.any(String),
+        interactions: [expect.objectContaining({ kind: 'archived', reason: 'so_sai' })],
+      }),
+    );
     expect(await screen.findByText('Đã lưu trữ khách')).toBeTruthy();
   });
 
@@ -71,7 +82,10 @@ describe('archive customer (soft delete)', () => {
     const { unmount } = wrap(<ArchivedBanner customer={archived} />);
     expect(screen.getByText(/Khách đã lưu trữ ngày/)).toBeTruthy();
     await user.click(screen.getByRole('button', { name: 'Khôi phục' }));
-    expect(restore).toHaveBeenCalledExactlyOnceWith('c1');
+    expect(update).toHaveBeenCalledExactlyOnceWith(
+      'c1',
+      expect.objectContaining({ archived_at: null, interactions: [expect.objectContaining({ kind: 'restored' })] }),
+    );
     unmount();
 
     wrap(<ArchivedBanner customer={{ ...archived, owner_id: 'u2' }} />);

@@ -101,6 +101,8 @@ for (const theme of ['light', 'dark'] as const) {
     const dialog = page.getByRole('dialog', { name: 'Lưu trữ khách Khách Thử Lưu Trữ?' });
     await expect(dialog.getByText(/Ghi chú, cuộc gọi, lịch sử và tài liệu được giữ nguyên/)).toBeVisible();
     await testInfo.attach(`archive-confirm-${theme}`, { body: await page.screenshot(), contentType: 'image/png' });
+    // PC-03 (Curtis 26/10): bắt buộc chọn lý do trước khi lưu trữ.
+    await dialog.getByRole('combobox', { name: 'Lý do lưu trữ' }).selectOption('so_sai');
     await dialog.getByRole('button', { name: 'Lưu trữ khách', exact: true }).click();
     await expect(page.getByText(/Khách đã lưu trữ ngày/)).toBeVisible();
     await expect(page.getByRole('button', { name: 'Gọi' })).toBeDisabled();
