@@ -423,15 +423,16 @@ export const VoiceNoteInput = forwardRef<
     <>
       <IconButton
         type="button"
-        icon={active ? 'task' : 'voice'}
+        icon={active ? 'voice_stop' : 'voice'}
         label={active ? 'Dừng nghe' : 'Nói để ghi chú'}
         variant="accent"
         disabled={disabled || starting || transcribing}
         aria-pressed={active}
         className={[
-          'absolute right-2 bottom-2 size-11 p-0 lg:size-11',
+          // Cùng ô lưới với ô ghi chú: neo góc phải dưới ô, không theo dòng thông báo bên dưới.
+          'col-start-1 row-start-1 m-2 self-end justify-self-end size-11 p-0 lg:size-11',
           active
-            ? 'rounded-control bg-danger-bg text-danger hover:bg-danger-bg motion-safe:animate-pulse [animation-duration:2s] motion-reduce:animate-none [&>svg>path+path]:hidden'
+            ? 'rounded-control bg-danger-bg text-danger hover:bg-danger-bg motion-safe:animate-pulse [animation-duration:2s] motion-reduce:animate-none'
             : 'rounded-full',
         ]
           .filter(Boolean)
@@ -439,7 +440,7 @@ export const VoiceNoteInput = forwardRef<
         onClick={() => (active ? void stop() : void start())}
       />
       {message && (
-        <p className="mt-1 text-small text-text-2" role="status">
+        <p className="col-start-1 row-start-2 mt-1 text-small text-text-2" role="status">
           {message}
         </p>
       )}

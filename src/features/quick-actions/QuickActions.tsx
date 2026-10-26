@@ -423,10 +423,11 @@ function ActionSheet({
       setBusy(false);
     }
   };
-  const save = async () => {
-    await voiceInput.current?.stop();
-    const savedNote = noteRef.current;
-    return run(async () => {
+  const save = () =>
+    run(async () => {
+      // Dừng nghe bên trong run: cờ busy bật trước nên bấm Lưu lần hai không tạo ghi chú trùng.
+      await voiceInput.current?.stop();
+      const savedNote = noteRef.current;
       if (kind === 'note') {
         if (!savedNote.trim()) throw new Error('Nhập ghi chú trước khi lưu.');
         return account.customers.addNote(c.id, savedNote);
@@ -460,7 +461,6 @@ function ActionSheet({
         account.customers.getSnapshot(),
       );
     });
-  };
   const title =
     kind === 'outcome'
       ? editingRecorded
@@ -519,11 +519,13 @@ function ActionSheet({
             <OutcomePicker value={result} onValueChange={setOutcome} />
             <div className="flex flex-col gap-1 text-small">
               <label htmlFor="call-note">Ghi chú cuộc gọi</label>
-              <div className="relative">
+              <div className="grid">
                 <textarea
                   id="call-note"
                   ref={noteInput}
-                  className={`${FIELD} pr-14 pb-14`}
+                  className={`${FIELD} col-start-1 row-start-1 pr-14 pb-14`}
+                  // Đang nghe thì khoá gõ: chữ tạm nằm trong ô, gõ vào sẽ chốt nó rồi bị nối lặp khi chữ chốt về.
+                  readOnly={!!interimNote}
                   aria-label="Ghi chú cuộc gọi"
                   rows={3}
                   value={voiceNotePreview(note, interimNote)}
@@ -620,10 +622,12 @@ function ActionSheet({
           <div className="flex flex-col gap-2">
             <div className="flex flex-col gap-1 text-small">
               <label htmlFor="quick-note">Nội dung</label>
-              <div className="relative">
+              <div className="grid">
                 <textarea
                   id="quick-note"
-                  className={`${FIELD} pr-14 pb-14`}
+                  className={`${FIELD} col-start-1 row-start-1 pr-14 pb-14`}
+                  // Đang nghe thì khoá gõ: chữ tạm nằm trong ô, gõ vào sẽ chốt nó rồi bị nối lặp khi chữ chốt về.
+                  readOnly={!!interimNote}
                   aria-label="Nội dung ghi chú"
                   rows={5}
                   value={voiceNotePreview(note, interimNote)}

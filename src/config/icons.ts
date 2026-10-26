@@ -52,6 +52,7 @@ export const ICONS = {
   birthday: 'Cake', // Sinh nhật
   // ── Khái niệm mới v2 (DESIGN_SYSTEM §2.5) ──
   voice: 'Mic', // Ghi chú giọng nói
+  voice_stop: 'Square', // Đang nghe giọng nói → bấm để dừng
   promise_me: 'HandHelping', // Lời hứa của mình với khách
   promise_customer: 'HeartHandshake', // Lời hứa của khách
   segment: 'Layers', // Phân khúc
