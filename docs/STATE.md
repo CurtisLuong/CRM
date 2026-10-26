@@ -1,10 +1,12 @@
 # STATE — AI Factory
 
-Cập nhật: 2026-10-19 · Nhánh phát triển: `factory` (tách từ `v2` @ 484cb37 = production + 2 commit tài liệu).
+Cập nhật: 2026-10-26 · Nhánh phát triển: `factory` (tách từ `v2` @ 484cb37 = production + 2 commit tài liệu).
 
 | Mục | Trạng thái |
 |---|---|
-| Hồ sơ CP (24/10/2026) | ☑ factory d2bd61f: nhu cầu/dự án catalog, ảnh/tài liệu, 5 loại việc/icon. Check 1162 test; e2e 489 đạt + 56 bỏ qua, PF-08 chập chờn chạy lại đạt. Chưa push/deploy hoặc thử Android thật. Báo cáo: reports/customer-profile-2026-10-23.md |
+| Hồ sơ CP (24/10/2026) | ☑ factory d2bd61f: nhu cầu/dự án catalog, ảnh/tài liệu, 5 loại việc/icon. Check 1162 test; e2e 489 đạt + 56 bỏ qua, PF-08 chập chờn chạy lại đạt. Đã lên `main` d6ddb57 (Curtis duyệt, đã push); chưa thử Android thật. Báo cáo: reports/customer-profile-2026-10-23.md |
+| Góp ý hồ sơ PC (26/10) | ☑ factory 8706775, worker luna, **chưa push**: PC-01 Dự án quan tâm thành ô gọn (bấm mới mở chọn/sửa/xoá), nút Bổ sung (n) ↔ Thu gọn · PC-02 nút "Đã gọi" (cạnh Đã gặp/Đã xem dự án) mở cổng Ghi cuộc gọi · PC-03 Lưu trữ bắt buộc lý do (`LEAD_DROP_REASONS`, Curtis chọn 1B), ghi `interactions` kind `archived`/`restored` một patch cùng `archived_at`, dòng nhật ký cấp trên cùng, bậc/SLA/lý do loại không đổi, không tính là lần chạm. Check 1172; e2e 495 + 1 chập chờn (PF-03 lưu khách, có sẵn). Việc tiếp: FL-01 điều tra e2e chập chờn trên VPS; Curtis duyệt gộp `main` |
+| Máy chủ Factory (VPS Ubuntu 24.04) | 26/10 Curtis mở userns (sandbox Codex) + cài thư viện Chromium; batch chạy với `E2E_WORKERS=2 npm_config_allow_remote=all`; OpenCode trên npm chỉ 1.19.4 → adapter tự đổi `--variant`; ảnh mẫu PF-07 thêm bản Linux (`docs/factory-playbook.md`) |
 | Luồng | **B** — nâng cấp v2 → v3: thiết kế lại lớn UI/UX, được đổi Design System |
 | Giai đoạn | M0–M5 ☑ · **v3 đã deploy production 2026-10-19** (`main` 53a9fc5) — chờ Curtis thử máy thật theo `docs/v3/release/README.md` |
 | Production | `main` 805c0c9 (2026-10-22: v3 + Meta Lead Ads + PF-01…08 + CL-01/02/03 + D-025) → `crm-cop.pages.dev` (Cloudflare project `crm`, GitHub tự build: deployment `fe7fa0b7`). Rollback: deployment `f9a969a2` (= be3b43f, trước CL-03), `348bbeb3` (= da659fa, trước CL/D-025), `012f16f2` (= 516867f, trước PF-08), `6582212` (trước tìm/chuông), `b8f73d6` (trước menu) hoặc `ae52e3a` (trước PF) (`docs/project-status.md`) |
