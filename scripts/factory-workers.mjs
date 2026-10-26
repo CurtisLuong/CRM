@@ -78,6 +78,18 @@ function opencodeTokens(jsonl) {
   return { input, output };
 }
 
+let opencodeHasStandalone;
+/**
+ * OpenCode 2.x: `--standalone` + model `provider/model#effort`. 1.x (npm mới nhất 1.19.4, VPS 2026-10-26) không có
+ * `--standalone` (mặc định đã chạy server riêng tại cwd) và nhận mức suy luận qua `--variant`.
+ */
+function opencodeModelArgs(label) {
+  opencodeHasStandalone ??= sh('opencode', ['run', '--help'], { input: '' }).out.includes('--standalone');
+  if (opencodeHasStandalone) return ['--standalone', '--model', label];
+  const [model, variant] = label.split('#');
+  return ['--model', model, ...(variant ? ['--variant', variant] : [])];
+}
+
 const deepseek = {
   name: 'deepseek',
   billing: 'api',
@@ -86,7 +98,7 @@ const deepseek = {
   run({ wt, title, prompt, model, effort, timeoutMs }) {
     // model = nhãn đầy đủ (vd. deepseek/deepseek-flash#high, ghi đè được bằng FACTORY_MODELS); thiếu → model mặc định#effort.
     // --standalone: server riêng tại worktree (PWD = worktree, sh() tự đặt) → nạp opencode.json (deny) của worktree.
-    const r = sh('opencode', ['run', '--standalone', '--model', model || `${DEEPSEEK_MODEL}#${effort}`, '--format', 'json', '--auto', '--title', title, prompt], {
+    const r = sh('opencode', ['run', ...opencodeModelArgs(model || `${DEEPSEEK_MODEL}#${effort}`), '--format', 'json', '--auto', '--title', title, prompt], {
       cwd: wt,
       timeout: timeoutMs,
       input: '',
@@ -101,7 +113,7 @@ const deepseek = {
       permission: { edit: { '*': 'deny' }, bash: { '*': 'deny' }, webfetch: 'deny', websearch: 'deny', external_directory: 'deny' },
     };
     writeFileSync(join(dir, 'opencode.json'), JSON.stringify(readOnly, null, 2));
-    const r = sh('opencode', ['run', '--standalone', '--model', model, '--format', 'json', '--auto', '--title', title, prompt], {
+    const r = sh('opencode', ['run', ...opencodeModelArgs(model), '--format', 'json', '--auto', '--title', title, prompt], {
       cwd: dir,
       timeout: timeoutMs,
       input: '',
