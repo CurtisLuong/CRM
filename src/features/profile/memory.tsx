@@ -561,9 +561,9 @@ export function CustomerMemory({
       {show.contact && (
         <CustomerContactPrefs customer={customer} writable={writable} onSave={onSave} now={now} hideEmpty={hideEmpty} />
       )}
-      {supplement && supplement.count > 0 && writable && (
+      {supplement && (supplement.count > 0 || supplement.open) && writable && (
         <Button variant="secondary" block aria-expanded={supplement.open} onClick={supplement.onToggle}>
-          Bổ sung ({supplement.count})
+          {supplement.open ? 'Thu gọn' : `Bổ sung (${supplement.count})`}
         </Button>
       )}
       {show.interests && <CustomerInterests customer={customer} writable={writable} onSave={onSave} now={now} />}

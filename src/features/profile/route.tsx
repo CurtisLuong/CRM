@@ -74,6 +74,7 @@ function Profile() {
   const [supplementOpen, setSupplementOpen] = useState(false);
   // CP-01: ô trống của Nhu cầu hiện tại dùng nút "Bổ sung" riêng.
   const [needsSupplementOpen, setNeedsSupplementOpen] = useState(false);
+  const [projectsOpen, setProjectsOpen] = useState(false);
   const [stageOpen, setStageOpen] = useState(false);
   const [missingKey, setMissingKey] = useState('');
   const [docCount, setDocCount] = useState(0);
@@ -130,6 +131,7 @@ function Profile() {
     setAddOpen(false);
     setSupplementOpen(false);
     setNeedsSupplementOpen(false);
+    setProjectsOpen(false);
     setStageOpen(false);
   }, [customerId]);
 
@@ -333,6 +335,8 @@ function Profile() {
           showEmpty={needsSupplementOpen}
           stayVisible={needsVisible.keys}
           onToggleSupplement={() => setNeedsSupplementOpen(!needsSupplementOpen)}
+          projectsOpen={projectsOpen}
+          onToggleProjects={() => setProjectsOpen(!projectsOpen)}
           onSaveField={setNeedField}
           onSaveProjects={(names, message) => {
             if (!hasNeedValue(names)) keepNeedVisible('projects');
