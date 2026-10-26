@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router';
 import type { FeatureRoute } from '@/app/routes';
 import { useRepositoryAccount } from '@/data/hooks';
 import type { Customer } from '@/domain/customer';
-import { ARCHIVED_PATH, archivedDate, canArchive, useArchiveActions } from '@/features/profile/archive';
+import { ARCHIVED_PATH, archivedDate, archiveReason, canArchive, useArchiveActions } from '@/features/profile/archive';
 import { Avatar, Button, EmptyState } from '@/ui';
 import { archivedCustomers } from './model';
 
@@ -80,6 +80,7 @@ function ArchivedRow({ customer, owner, onOpen }: { customer: Customer; owner: b
         <p className="text-small text-text-2">
           <span className="font-data">{customer.phone}</span>
           {date ? ` · lưu trữ ${date}` : ''}
+          {archiveReason(customer) ? ` · ${archiveReason(customer)}` : ''}
           {owner ? '' : ' · người phụ trách khác'}
         </p>
       </button>

@@ -41,6 +41,10 @@ const wrap = () =>
     </MemoryRouter>,
   );
 
+// PC-01 (Curtis 26/10): Dự án quan tâm là ô gọn, bấm mới mở phần chọn/sửa/xoá.
+const openProjects = async () =>
+  userEvent.setup().click(await screen.findByRole('button', { name: /^Dự án quan tâm/ }));
+
 const base = (overrides: Partial<Customer> = {}) =>
   ({
     id: 'c1',
@@ -73,6 +77,7 @@ describe('CP-01 — Dự án quan tâm chọn nhiều từ catalog', () => {
   it('chọn A + B lưu đúng mảng, giữ giá trị cũ và khoá lạ', async () => {
     const user = userEvent.setup();
     wrap();
+    await openProjects();
 
     expect(screen.getByRole('checkbox', { name: 'Dự án A' })).toHaveProperty('checked', true);
     const b = screen.getByRole('checkbox', { name: 'Dự án B' });
@@ -96,6 +101,7 @@ describe('CP-01 — Dự án quan tâm chọn nhiều từ catalog', () => {
   it('bỏ chọn giá trị cũ không đụng tới dự án khác', async () => {
     const user = userEvent.setup();
     wrap();
+    await openProjects();
     await user.click(screen.getByRole('button', { name: 'Bỏ chọn dự án D cũ (cũ/đã ngừng dùng)' }));
     await waitFor(() =>
       expect(update).toHaveBeenLastCalledWith(
@@ -113,6 +119,7 @@ describe('CP-01 — Dự án quan tâm chọn nhiều từ catalog', () => {
   it('Thêm mới: tên rỗng báo lỗi; tên mới gọi addProject rồi mới chọn và báo thành công', async () => {
     const user = userEvent.setup();
     wrap();
+    await openProjects();
     await user.click(screen.getByRole('button', { name: 'Thêm mới' }));
     await user.click(screen.getByRole('button', { name: 'Thêm dự án' }));
     expect(screen.getByRole('alert').textContent).toContain('không được để trống');
@@ -135,6 +142,7 @@ describe('CP-01 — Dự án quan tâm chọn nhiều từ catalog', () => {
     customer = base({ projects: ['Dự án A'] });
     const user = userEvent.setup();
     wrap();
+    await openProjects();
     catalog.addProject.mockResolvedValueOnce({ id: 'p-a', name: 'Dự án A' });
     await user.click(screen.getByRole('button', { name: 'Thêm mới' }));
     await user.type(screen.getByRole('textbox', { name: 'Tên dự án mới' }), 'Dự án A');
@@ -147,6 +155,7 @@ describe('CP-01 — Dự án quan tâm chọn nhiều từ catalog', () => {
     const user = userEvent.setup();
     const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
     wrap();
+    await openProjects();
 
     await user.click(screen.getByRole('button', { name: 'Lưu trữ dự án Dự án B' }));
     expect(confirm).toHaveBeenCalled();
@@ -166,6 +175,7 @@ describe('CP-01 — Dự án quan tâm chọn nhiều từ catalog', () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true);
     catalog.archiveProject.mockRejectedValueOnce(new Error('RLS từ chối'));
     wrap();
+    await openProjects();
     await user.click(screen.getByRole('button', { name: 'Lưu trữ dự án Dự án A' }));
     expect(await screen.findByText('Chưa lưu trữ được dự án', { exact: true })).toBeTruthy();
     expect(screen.getByText('RLS từ chối')).toBeTruthy();
@@ -176,6 +186,7 @@ describe('CP-01 — Dự án quan tâm chọn nhiều từ catalog', () => {
     online = false;
     const user = userEvent.setup();
     wrap();
+    await openProjects();
 
     expect(screen.getByText(/Cần mạng để thêm hoặc lưu trữ dự án/)).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Thêm mới' })).toHaveProperty('disabled', true);
@@ -205,6 +216,7 @@ it('giữ nguyên tên cũ khi chọn thêm và báo lỗi tải danh mục', as
   customer = base({ projects: ['  Tên cũ  ', 'Dự án A'] });
   catalog.load.mockResolvedValueOnce(false);
   wrap();
+  await openProjects();
   await screen.findByRole('alert');
   await userEvent.setup().click(screen.getByRole('checkbox', { name: 'Dự án B' }));
   await waitFor(() =>

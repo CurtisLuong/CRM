@@ -3,15 +3,18 @@ import type { RepositoryAccount } from '@/data/repositories/session';
 import type { Customer } from '@/domain/customer';
 import { appendInteractionPatch, createInteraction, type InteractionKind } from '@/domain/customer/interactions';
 import { Button, Sheet, useToast } from '@/ui';
+import { openQuickAction } from './store';
 
 export function InteractionRecorder({
   account,
   customer,
   trigger = false,
+  showCallAction = true,
 }: {
   account: RepositoryAccount;
   customer: Customer;
   trigger?: boolean;
+  showCallAction?: boolean;
 }) {
   const toast = useToast();
   const [open, setOpen] = useState(false);
@@ -64,6 +67,15 @@ export function InteractionRecorder({
           >
             Đã xem dự án
           </Button>
+          {showCallAction && (
+            <Button
+              className="min-h-9 px-3"
+              disabled={!writable || busy}
+              onClick={() => openQuickAction(customer.id, 'outcome')}
+            >
+              Đã gọi
+            </Button>
+          )}
           {error && (
             <p role="alert" className="w-full text-small text-danger">
               {error}
@@ -80,6 +92,17 @@ export function InteractionRecorder({
             <Button disabled={!writable || busy} loading={busy} onClick={() => void record('project_view')}>
               Đã xem dự án
             </Button>
+            {showCallAction && (
+              <Button
+                disabled={!writable || busy}
+                onClick={() => {
+                  setOpen(false);
+                  openQuickAction(customer.id, 'outcome');
+                }}
+              >
+                Đã gọi
+              </Button>
+            )}
             {error && (
               <p role="alert" className="w-full text-small text-danger">
                 {error}

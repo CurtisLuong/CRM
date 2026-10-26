@@ -1,4 +1,5 @@
 import { CALL_RESULTS } from '@/config/callResults';
+import { LEAD_DROP_REASONS } from '@/config/reasons';
 import { interactionTitle } from './interactions';
 import type { Customer } from './types';
 
@@ -10,7 +11,7 @@ const callTitle = (result: unknown) => {
 export type CustomerTimelineEntry = {
   id: string;
   at: string;
-  kind: 'call' | 'note' | 'interaction' | 'stage' | 'task' | 'approved';
+  kind: 'call' | 'note' | 'interaction' | 'stage' | 'task' | 'approved' | 'archive';
   title: string;
   detail?: string;
   automatic?: boolean;
@@ -37,11 +38,18 @@ export function customerTimeline(customer: Customer): CustomerTimelineEntry[] {
   }
   for (const [index, item] of (customer.interactions ?? []).entries()) {
     if (!item?.at) continue;
+    const archived = item.kind === 'archived';
+    const restored = item.kind === 'restored';
+    const reason = typeof item.reason === 'string' ? LEAD_DROP_REASONS[item.reason] : undefined;
     entries.push({
       id: `interaction:${item.at}:${index}`,
       at: item.at,
-      kind: 'interaction',
-      title: interactionTitle(item),
+      kind: archived || restored ? 'archive' : 'interaction',
+      title: archived
+        ? `Lưu trữ khách${reason ? ` · ${reason}` : ''}`
+        : restored
+          ? 'Khôi phục khách'
+          : interactionTitle(item),
       detail: item.note || (item.template ? `Mẫu: ${item.template}` : undefined),
       ...(item.kind ? { interactionKind: item.kind } : {}),
     });

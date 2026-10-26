@@ -693,7 +693,7 @@ function ActionSheet({
             )}
           </>
         )}
-        {kind !== 'zalo' && <InteractionRecorder account={account} customer={c} />}
+        {kind !== 'zalo' && <InteractionRecorder account={account} customer={c} showCallAction={kind !== 'outcome'} />}
         {error && (
           <p role="alert" className="text-small text-danger">
             {error}

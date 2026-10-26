@@ -212,19 +212,22 @@ for (const theme of ['light', 'dark'] as const) {
     await expect(page.getByLabel('Mục đích mua')).toHaveValue('Ở');
     await expect(page.getByLabel('Diện tích (m²)')).toHaveValue('0');
     await expect(page.getByLabel('Loại căn')).toHaveCount(0);
-    await expect(page.getByRole('list', { name: 'Dự án trong danh mục' })).toContainText(LONG_PROJECT);
+    // PC-01 (Curtis 26/10): Dự án quan tâm mặc định là ô gọn hiện tên đã chọn; danh mục chỉ xổ ra khi bấm.
+    const projectsBox = page.getByRole('button', { name: /^Dự án quan tâm/ });
+    await expect(projectsBox).toContainText(LONG_PROJECT);
+    await expect(page.getByRole('list', { name: 'Dự án trong danh mục' })).toHaveCount(0);
 
     // Ô ngắn 2 ô một hàng ở 360/390; 3 ô cùng hàng khi đủ chỗ desktop.
     const purpose = await page.getByLabel('Mục đích mua').boundingBox();
     const area = await page.getByLabel('Diện tích (m²)').boundingBox();
     expect(Math.abs((purpose?.y ?? -999) - (area?.y ?? 999))).toBeLessThanOrEqual(2);
-    const list = await page.getByRole('list', { name: 'Dự án trong danh mục' }).boundingBox();
+    const list = await projectsBox.boundingBox();
     expect(list?.width || 0).toBeGreaterThan((purpose?.width || 0) * 1.5);
 
     await page.getByLabel('Mục đích mua').scrollIntoViewIfNeeded();
     await page.screenshot({ path: info.outputPath(`cp01-needs-default-${theme}.png`) });
 
-    const supplement = page.getByRole('button', { name: /^Bổ sung/ });
+    const supplement = page.getByRole('button', { name: /^(Bổ sung|Thu gọn)/ });
     await expect(supplement).toHaveAttribute('aria-expanded', 'false');
     await supplement.click();
     await expect(supplement).toHaveAttribute('aria-expanded', 'true');
@@ -256,6 +259,7 @@ for (const theme of ['light', 'dark'] as const) {
 
   test(`CP-01 ${theme}: chọn A+B, thêm C, huỷ/xác nhận lưu trữ B`, async ({ page }, info) => {
     const { userId, customerId, writes } = await open(page, info, theme, ['Dự án A', 'Dự án B']);
+    await page.getByRole('button', { name: /^Dự án quan tâm/ }).click(); // PC-01: ô gọn, bấm mới mở
     await expect(page.getByRole('checkbox', { name: 'Dự án A' })).toBeChecked();
     await expect(page.getByRole('list', { name: 'Dự án cũ trong hồ sơ' })).toContainText('D cũ');
 
@@ -300,6 +304,7 @@ for (const theme of ['light', 'dark'] as const) {
 
   test(`CP-01 ${theme}: offline vẫn chọn/lưu; lỗi thêm dự án không mất dữ liệu`, async ({ page, context }, info) => {
     const { userId, customerId, failInsert } = await open(page, info, theme, ['Dự án A', 'Dự án B']);
+    await page.getByRole('button', { name: /^Dự án quan tâm/ }).click(); // PC-01: ô gọn, bấm mới mở
 
     await context.setOffline(true);
     await expect(page.getByText(/Cần mạng để thêm hoặc lưu trữ dự án/)).toBeVisible();

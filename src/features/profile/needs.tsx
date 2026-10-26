@@ -66,13 +66,15 @@ type PickerProps = {
   online: boolean;
   catalog: ProjectCatalog | null;
   onSave: (names: string[], message?: string) => Promise<boolean>;
+  open: boolean;
+  onToggle: () => void;
 };
 
 /**
  * Dự án quan tâm: chọn nhiều tên từ catalog đang hoạt động, không cho gõ dấu phẩy tự do.
  * Thêm/lưu trữ danh mục là thao tác server; lỗi server hiện nguyên nhân, không tạo dự án giả.
  */
-function ProjectPicker({ customer, writable, online, catalog, onSave }: PickerProps) {
+function ProjectPicker({ customer, writable, online, catalog, onSave, open, onToggle }: PickerProps) {
   const toast = useToast();
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState('');
@@ -189,105 +191,124 @@ function ProjectPicker({ customer, writable, online, catalog, onSave }: PickerPr
 
   return (
     <div className="space-y-2">
-      <p className="text-small text-text-2">Dự án quan tâm</p>
-      {active.size > 0 && (
-        <ul className="space-y-1" aria-label="Dự án trong danh mục">
-          {[...active.values()].map((row) => {
-            const key = projectKey(row.name);
-            return (
-              <li key={row.id} className="flex min-h-11 items-center gap-2">
-                <label className="flex min-h-11 min-w-0 flex-1 items-center gap-2 text-body">
+      <Button
+        variant="ghost"
+        block
+        aria-label={`Dự án quan tâm: ${rawNames.length ? rawNames.join(', ') : 'Chưa có dự án quan tâm'}`}
+        aria-expanded={open}
+        aria-controls="profile-project-picker"
+        onClick={onToggle}
+        className="min-h-11 w-full justify-start rounded-control border border-border-strong bg-surface px-3 text-left"
+      >
+        <span className="flex min-w-0 flex-col items-start gap-0.5 [overflow-wrap:anywhere]">
+          <span className="text-small text-text-2">Dự án quan tâm</span>
+          <span className={`text-body ${rawNames.length ? 'text-text' : 'text-text-2'}`}>
+            {rawNames.length ? rawNames.join(', ') : 'Chưa có dự án quan tâm.'}
+          </span>
+        </span>
+      </Button>
+      {open && (
+        <div id="profile-project-picker" className="space-y-2">
+          {active.size > 0 && (
+            <ul className="space-y-1" aria-label="Dự án trong danh mục">
+              {[...active.values()].map((row) => {
+                const key = projectKey(row.name);
+                return (
+                  <li key={row.id} className="flex min-h-11 items-center gap-2">
+                    <label className="flex min-h-11 min-w-0 flex-1 items-center gap-2 text-body">
+                      <input
+                        type="checkbox"
+                        checked={selectedKeys.has(key)}
+                        disabled={!canEdit}
+                        onChange={(event) => toggle(row, event.target.checked)}
+                      />
+                      <span className="min-w-0 [overflow-wrap:anywhere]">{row.name}</span>
+                    </label>
+                    {canEdit && (
+                      <IconButton
+                        icon="delete"
+                        variant="ghost"
+                        label={`Lưu trữ dự án ${row.name}`}
+                        disabled={!online || !!archiving}
+                        onClick={() => void archive(row)}
+                      />
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+          {legacy.length > 0 && (
+            <ul className="space-y-1" aria-label="Dự án cũ trong hồ sơ">
+              {legacy.map((name) => (
+                <li key={name} className="flex min-h-11 items-center gap-2">
+                  <span className="min-w-0 flex-1 text-body [overflow-wrap:anywhere]">
+                    {name} <span className="text-small text-text-3">(cũ/đã ngừng dùng)</span>
+                  </span>
+                  {canEdit && (
+                    <Button
+                      variant="ghost"
+                      aria-label={`Bỏ chọn dự án ${name} (cũ/đã ngừng dùng)`}
+                      onClick={() => void saveNames(rawNames.filter((item) => projectKey(item) !== projectKey(name)))}
+                    >
+                      Bỏ chọn
+                    </Button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+          {!active.size && !legacy.length && <p className="text-body text-text-2">Chưa có dự án nào trong danh mục.</p>}
+          {canEdit && !online && (
+            <p className="text-small text-text-2">
+              Cần mạng để thêm hoặc lưu trữ dự án; vẫn chọn được dự án đã có trên máy.
+            </p>
+          )}
+          {canEdit &&
+            (adding ? (
+              <div className="space-y-2 rounded-control border border-dashed border-border-strong bg-surface-2 p-3">
+                <label className="block space-y-1 text-small text-text-2">
+                  Tên dự án mới
                   <input
-                    type="checkbox"
-                    checked={selectedKeys.has(key)}
-                    disabled={!canEdit}
-                    onChange={(event) => toggle(row, event.target.checked)}
+                    aria-label="Tên dự án mới"
+                    className="min-h-11 w-full rounded-control border border-border-strong bg-surface px-3 text-body"
+                    value={draft}
+                    disabled={saving}
+                    onChange={(event) => {
+                      setDraft(event.target.value);
+                      if (error) setError('');
+                    }}
+                    placeholder="Ví dụ: NOXH Tràng Duệ"
                   />
-                  <span className="min-w-0 [overflow-wrap:anywhere]">{row.name}</span>
                 </label>
-                {canEdit && (
-                  <IconButton
-                    icon="delete"
-                    variant="ghost"
-                    label={`Lưu trữ dự án ${row.name}`}
-                    disabled={!online || !!archiving}
-                    onClick={() => void archive(row)}
-                  />
+                {error && (
+                  <p role="alert" className="text-small text-danger">
+                    {error}
+                  </p>
                 )}
-              </li>
-            );
-          })}
-        </ul>
-      )}
-      {legacy.length > 0 && (
-        <ul className="space-y-1" aria-label="Dự án cũ trong hồ sơ">
-          {legacy.map((name) => (
-            <li key={name} className="flex min-h-11 items-center gap-2">
-              <span className="min-w-0 flex-1 text-body [overflow-wrap:anywhere]">
-                {name} <span className="text-small text-text-3">(cũ/đã ngừng dùng)</span>
-              </span>
-              {canEdit && (
-                <Button
-                  variant="ghost"
-                  aria-label={`Bỏ chọn dự án ${name} (cũ/đã ngừng dùng)`}
-                  onClick={() => void saveNames(rawNames.filter((item) => projectKey(item) !== projectKey(name)))}
-                >
-                  Bỏ chọn
-                </Button>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
-      {!active.size && !legacy.length && <p className="text-body text-text-2">Chưa có dự án nào trong danh mục.</p>}
-      {canEdit && !online && (
-        <p className="text-small text-text-2">
-          Cần mạng để thêm hoặc lưu trữ dự án; vẫn chọn được dự án đã có trên máy.
-        </p>
-      )}
-      {canEdit &&
-        (adding ? (
-          <div className="space-y-2 rounded-control border border-dashed border-border-strong bg-surface-2 p-3">
-            <label className="block space-y-1 text-small text-text-2">
-              Tên dự án mới
-              <input
-                aria-label="Tên dự án mới"
-                className="min-h-11 w-full rounded-control border border-border-strong bg-surface px-3 text-body"
-                value={draft}
-                disabled={saving}
-                onChange={(event) => {
-                  setDraft(event.target.value);
-                  if (error) setError('');
-                }}
-                placeholder="Ví dụ: NOXH Tràng Duệ"
-              />
-            </label>
-            {error && (
-              <p role="alert" className="text-small text-danger">
-                {error}
-              </p>
-            )}
-            <div className="flex flex-wrap gap-2">
-              <Button variant="primary" loading={saving} disabled={!online} onClick={() => void add()}>
-                Thêm dự án
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="primary" loading={saving} disabled={!online} onClick={() => void add()}>
+                    Thêm dự án
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      setAdding(false);
+                      setDraft('');
+                      setError('');
+                    }}
+                  >
+                    Huỷ
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <Button variant="secondary" icon="add" disabled={!online} onClick={() => setAdding(true)}>
+                Thêm mới
               </Button>
-              <Button
-                variant="ghost"
-                onClick={() => {
-                  setAdding(false);
-                  setDraft('');
-                  setError('');
-                }}
-              >
-                Huỷ
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <Button variant="secondary" icon="add" disabled={!online} onClick={() => setAdding(true)}>
-            Thêm mới
-          </Button>
-        ))}
+            ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -304,6 +325,8 @@ type NeedsProps = {
   onSaveProjects: (names: string[], message?: string) => Promise<boolean>;
   catalog: ProjectCatalog | null;
   online: boolean;
+  projectsOpen: boolean;
+  onToggleProjects: () => void;
 };
 
 /**
@@ -321,6 +344,8 @@ export function ProfileNeedsFields({
   onSaveProjects,
   catalog,
   online,
+  projectsOpen,
+  onToggleProjects,
 }: NeedsProps) {
   const hidden = needsHiddenCount(customer, stayVisible);
 
@@ -410,6 +435,8 @@ export function ProfileNeedsFields({
             online={online}
             catalog={catalog}
             onSave={onSaveProjects}
+            open={projectsOpen}
+            onToggle={onToggleProjects}
           />
         );
     }
@@ -428,9 +455,9 @@ export function ProfileNeedsFields({
           </div>
         ))}
       </div>
-      {writable && hidden > 0 && (
+      {writable && (hidden > 0 || showEmpty) && (
         <Button variant="secondary" block aria-expanded={showEmpty} onClick={onToggleSupplement}>
-          Bổ sung ({hidden})
+          {showEmpty ? 'Thu gọn' : `Bổ sung (${hidden})`}
         </Button>
       )}
     </div>

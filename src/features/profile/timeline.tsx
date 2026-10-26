@@ -37,6 +37,7 @@ export function ProfileTimeline({ customer, entries, writable, busy, onSave }: P
   const counts = timelineCounts(entries);
   const view = timelineView(entries, filter);
   const stageDetail = showsStageDetail(filter);
+  const hasArchive = filter === 'all' && entries.some((entry) => entry.kind === 'archive');
   const isEmpty = view.grouped ? view.groups.length === 0 : view.flat.length === 0;
 
   const startEdit = (entryId: string, value: string) => {
@@ -113,7 +114,6 @@ export function ProfileTimeline({ customer, entries, writable, busy, onSave }: P
     </>
   );
 
-  // Danh sách phẳng (khách chưa có mốc bậc): giữ dáng cũ, không tiêu đề nhóm / không thụt.
   const flatRow = (row: TimelineRow<ProfileTimelineEntry>) => (
     <article key={row.entry.id} data-timeline-entry="" className="flex items-start gap-2 border-l-2 border-border pl-3">
       <Icon name={row.icon} size={20} className="mt-0.5 shrink-0 text-text-3" />
@@ -160,12 +160,41 @@ export function ProfileTimeline({ customer, entries, writable, busy, onSave }: P
       )}
       {isEmpty ? (
         <p className="text-body text-text-2">Chưa có hoạt động để hiển thị.</p>
+      ) : hasArchive ? (
+        <div className="space-y-3">
+          {view.ordered.map((row) => {
+            const entry = row.entry;
+            return (
+              <article
+                key={entry.id}
+                data-timeline-entry=""
+                data-timeline-header={row.topLevel ? '' : undefined}
+                className={cn(
+                  'flex items-start gap-2',
+                  row.nested && 'ml-2 border-l-2 border-border pl-3',
+                  !row.nested && !row.topLevel && 'border-l-2 border-border pl-3',
+                )}
+              >
+                <Icon
+                  name={row.icon}
+                  size={20}
+                  className={cn('mt-0.5 shrink-0', entry.kind === 'stage' ? 'text-accent' : 'text-text-3')}
+                />
+                <div className="min-w-0 flex-1">
+                  {entryText(entry, {
+                    detail: entry.kind === 'stage' ? stageDetail : true,
+                    heading: entry.kind === 'stage' || entry.kind === 'archive',
+                  })}
+                </div>
+              </article>
+            );
+          })}
+        </div>
       ) : view.grouped ? (
         <div className="space-y-4">
           {view.groups.map((group) => (
             <section key={group.id} data-timeline-group={group.id} className="space-y-2">
               {group.stage ? (
-                // Mốc bậc: đầu nhóm sát lề trái, không thụt.
                 <article data-timeline-header="" className="flex items-start gap-2">
                   <Icon name={group.icon} size={20} className="mt-0.5 shrink-0 text-accent" />
                   <div className="min-w-0 flex-1">{entryText(group.stage, { detail: stageDetail, heading: true })}</div>
@@ -177,7 +206,6 @@ export function ProfileTimeline({ customer, entries, writable, busy, onSave }: P
                 </article>
               )}
               {group.rows.length > 0 && (
-                // Thụt vào + đường dọc nối các mục trong cùng bậc.
                 <div className="ml-2 space-y-3 border-l-2 border-border pl-3">{group.rows.map(groupedRow)}</div>
               )}
             </section>
