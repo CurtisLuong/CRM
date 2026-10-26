@@ -54,7 +54,7 @@ public class SpeechInputPlugin extends Plugin {
     @PluginMethod
     public void available(PluginCall call) {
         JSObject result = new JSObject();
-        result.put("available", isOnDeviceRecognitionAvailable());
+        result.put("available", isRecognitionAvailable());
         call.resolve(result);
     }
 
@@ -65,12 +65,12 @@ public class SpeechInputPlugin extends Plugin {
 
     private void beginStart(PluginCall call) {
         if (listening || startPending) {
-            call.reject("busy");
+            call.reject("busy", "busy");
             notifyError("busy");
             return;
         }
-        if (!isOnDeviceRecognitionAvailable()) {
-            call.reject("unavailable");
+        if (!isRecognitionAvailable()) {
+            call.reject("unavailable", "unavailable");
             notifyError("unavailable");
             return;
         }
@@ -97,10 +97,15 @@ public class SpeechInputPlugin extends Plugin {
             } else {
                 startPending = false;
                 startCall = null;
-                call.reject("not_allowed");
+                call.reject("not_allowed", "not_allowed");
                 notifyError("not_allowed");
             }
         });
+    }
+
+    // Ưu tiên nhận dạng trên máy; không có thì dùng dịch vụ nhận giọng mặc định (Lead, review VN-02).
+    private boolean isRecognitionAvailable() {
+        return isOnDeviceRecognitionAvailable() || SpeechRecognizer.isRecognitionAvailable(getContext());
     }
 
     private boolean isOnDeviceRecognitionAvailable() {
@@ -125,7 +130,9 @@ public class SpeechInputPlugin extends Plugin {
         final int generation = ++recognizerGeneration;
         try {
             if (recognizer == null) {
-                recognizer = SpeechRecognizer.createOnDeviceSpeechRecognizer(getContext());
+                recognizer = isOnDeviceRecognitionAvailable()
+                    ? SpeechRecognizer.createOnDeviceSpeechRecognizer(getContext())
+                    : SpeechRecognizer.createSpeechRecognizer(getContext());
             }
             recognizer.setRecognitionListener(new RecognitionListener() {
                 private boolean childFinished;
@@ -166,7 +173,6 @@ public class SpeechInputPlugin extends Plugin {
                         notifyPartial();
                     } else {
                         commitPartial();
-                        notifyError("no_speech");
                     }
                     childStopped();
                 }
@@ -211,7 +217,6 @@ public class SpeechInputPlugin extends Plugin {
         if (error == SpeechRecognizer.ERROR_NO_MATCH
                 || error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT) {
             commitPartial();
-            notifyError("no_speech");
             childStopped();
             return;
         }
@@ -294,10 +299,15 @@ public class SpeechInputPlugin extends Plugin {
 
     private void stopListening(PluginCall call) {
         if (stopRequested || stopCall != null) {
-            call.reject("busy");
+            call.reject("busy", "busy");
             return;
         }
         if (!listening) {
+            if (startPending && startCall != null) {
+                startPending = false;
+                startCall.reject("busy", "busy");
+                startCall = null;
+            }
             resolveText(call);
             return;
         }
@@ -337,11 +347,15 @@ public class SpeechInputPlugin extends Plugin {
         }
         destroyRecognizer();
 
-        if (startCall != null) {
+        if (startCall != null && errorCode == null) {
+            // stop() trước khi máy kịp sẵn sàng: coi start() là xong, không báo lỗi giả.
+            startCall.resolve();
+            startCall = null;
+        } else if (startCall != null) {
             String rejection = errorCode;
             if (!"not_allowed".equals(rejection) && !"unavailable".equals(rejection)
                     && !"busy".equals(rejection)) rejection = "unavailable";
-            startCall.reject(rejection == null ? "unavailable" : rejection);
+            startCall.reject(rejection, rejection);
             startCall = null;
         }
         JSObject event = new JSObject();
