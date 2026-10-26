@@ -50,8 +50,7 @@ export function customerTimeline(customer: Customer): CustomerTimelineEntry[] {
         : restored
           ? 'Khôi phục khách'
           : interactionTitle(item),
-      detail:
-        archived && typeof item.note === 'string' ? item.note : item.template ? `Mẫu: ${item.template}` : undefined,
+      detail: item.note || (item.template ? `Mẫu: ${item.template}` : undefined),
       ...(item.kind ? { interactionKind: item.kind } : {}),
     });
   }

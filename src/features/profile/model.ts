@@ -11,7 +11,7 @@ import {
 import { taskKindOf } from '@/config/taskKinds';
 import type { Customer } from '@/domain/customer';
 import type { BriefFact } from '@/domain/customer/brief';
-import { interactionTitle, isSaleTouch, LEAD_FORM_KIND } from '@/domain/customer/interactions';
+import { interactionTitle, LEAD_FORM_KIND } from '@/domain/customer/interactions';
 import { callAttemptsOf, sourceListOf } from '@/domain/customer/normalize';
 import type { CustomerTimelineEntry } from '@/domain/customer/timeline';
 import { fmtClock, type TaskDueInfo, taskDayLabel } from '@/domain/deadlines';
@@ -107,7 +107,7 @@ export function lastTouchOf(customer: Customer, now: number): LastTouch | null {
       n?.at && displayText(n.text) ? [{ at: n.at, meta: 'Ghi chú', headline: '', text: displayText(n.text) }] : [],
     ),
     ...(Array.isArray(customer.interactions) ? customer.interactions : []).flatMap((i) =>
-      i?.at && isSaleTouch(i)
+      i?.at && i.kind !== 'archived' && i.kind !== 'restored'
         ? [
             {
               at: i.at,
