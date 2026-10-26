@@ -47,6 +47,15 @@ describe('insight chart data', () => {
     expect(funnelChartTitle(data)).toBe('Rơi nhiều nhất ở bậc Đang chăm sóc · giữ lại 40%');
   });
 
+  it('không nói "rơi" khi mọi bậc giữ đủ 100%', () => {
+    expect(
+      funnelChartTitle([
+        { label: 'Đăng kí mới', value: 5, retention: null },
+        { label: 'Đang tiếp cận', value: 5, retention: 100 },
+      ]),
+    ).toBe('Khách đã tới từng bậc trong phễu');
+  });
+
   it('prepares paired current and previous week values without recomputing metrics', () => {
     const data = weeklyChartData({
       current: { leads: 4, calls: 8, talked: 3, qualified: 1, milestones: 0 },

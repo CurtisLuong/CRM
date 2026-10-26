@@ -120,7 +120,8 @@ export function funnelChartTitle(data: ReturnType<typeof funnelChartData>) {
       (current, stage) => (current == null || (stage.retention ?? 0) < (current.retention ?? 0) ? stage : current),
       null,
     );
-  return weakest
+  // Mọi bậc giữ đủ 100% thì không có chỗ nào "rơi" để nói.
+  return weakest && (weakest.retention ?? 100) < 100
     ? `Rơi nhiều nhất ở bậc ${weakest.label} · giữ lại ${weakest.retention}%`
     : 'Khách đã tới từng bậc trong phễu';
 }
