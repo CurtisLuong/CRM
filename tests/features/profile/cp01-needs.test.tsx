@@ -129,7 +129,7 @@ describe('CP-01 — tab mặc định và ô nhu cầu', () => {
     wrap();
     expect(screen.getByRole('combobox', { name: 'Mục đích mua' })).toHaveProperty('disabled', true);
     expect(screen.queryByLabelText('Loại căn')).toBeNull();
-    expect(screen.queryByRole('button', { name: /^Bổ sung/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^(Bổ sung|Thu gọn)/ })).toBeNull();
   });
 
   it('mở khách khác reset tab needs và đóng Bổ sung/Nâng cao', async () => {
@@ -137,11 +137,11 @@ describe('CP-01 — tab mặc định và ô nhu cầu', () => {
     const user = userEvent.setup();
     const view = wrap();
 
-    await user.click(screen.getByRole('button', { name: /^Bổ sung/ }));
+    await user.click(screen.getByRole('button', { name: /^(Bổ sung|Thu gọn)/ }));
     await user.click(screen.getByRole('button', { name: 'Nâng cao' }));
     await user.click(screen.getByRole('tab', { name: 'Trí nhớ' }));
-    await user.click(screen.getByRole('button', { name: /^Bổ sung/ }));
-    expect(screen.getByRole('button', { name: /^Bổ sung/ }).getAttribute('aria-expanded')).toBe('true');
+    await user.click(screen.getByRole('button', { name: /^(Bổ sung|Thu gọn)/ }));
+    expect(screen.getByRole('button', { name: /^(Bổ sung|Thu gọn)/ }).getAttribute('aria-expanded')).toBe('true');
 
     customer = base({ id: 'c2', purpose: 'Ở' });
     rerenderProfile(view);
@@ -149,11 +149,11 @@ describe('CP-01 — tab mặc định và ô nhu cầu', () => {
     await waitFor(() =>
       expect(screen.getByRole('tab', { name: 'Nhu cầu & căn' }).getAttribute('aria-selected')).toBe('true'),
     );
-    expect(screen.getByRole('button', { name: /^Bổ sung/ }).getAttribute('aria-expanded')).toBe('false');
+    expect(screen.getByRole('button', { name: /^(Bổ sung|Thu gọn)/ }).getAttribute('aria-expanded')).toBe('false');
     expect(screen.getByRole('button', { name: 'Nâng cao' }).getAttribute('aria-expanded')).toBe('false');
 
     await user.click(screen.getByRole('tab', { name: 'Trí nhớ' }));
-    expect(screen.getByRole('button', { name: /^Bổ sung/ }).getAttribute('aria-expanded')).toBe('false');
+    expect(screen.getByRole('button', { name: /^(Bổ sung|Thu gọn)/ }).getAttribute('aria-expanded')).toBe('false');
   });
 
   it('một nút Nâng cao chứa Sở thích BĐS + Nhu cầu theo đợt + Người cùng quyết định, giữ khoá lạ advanced', async () => {

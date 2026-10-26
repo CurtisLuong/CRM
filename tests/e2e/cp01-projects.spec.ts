@@ -224,7 +224,7 @@ for (const theme of ['light', 'dark'] as const) {
     await page.getByLabel('Mục đích mua').scrollIntoViewIfNeeded();
     await page.screenshot({ path: info.outputPath(`cp01-needs-default-${theme}.png`) });
 
-    const supplement = page.getByRole('button', { name: /^Bổ sung/ });
+    const supplement = page.getByRole('button', { name: /^(Bổ sung|Thu gọn)/ });
     await expect(supplement).toHaveAttribute('aria-expanded', 'false');
     await supplement.click();
     await expect(supplement).toHaveAttribute('aria-expanded', 'true');

@@ -226,7 +226,7 @@ for (const theme of ['light', 'dark'] as const) {
     await page.waitForTimeout(300);
     // Trí nhớ ẩn ô chưa có giá trị dưới nút "Bổ sung" (Curtis 2026-10-22); "Không liên hệ" đang tắt → nằm trong Bổ sung.
     await page.getByRole('tab', { name: 'Trí nhớ' }).click();
-    await page.getByRole('button', { name: /^Bổ sung/ }).click();
+    await page.getByRole('button', { name: /^(Bổ sung|Thu gọn)/ }).click();
     const doNotContact = page.getByRole('checkbox', { name: /Không liên hệ/ });
     await doNotContact.click();
     await expect(doNotContact).toBeChecked();

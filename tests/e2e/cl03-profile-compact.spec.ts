@@ -127,7 +127,7 @@ test('CL-03: ô trống ẩn sau Bổ sung, ngày sinh ra tuổi/mệnh/cung, nh
   await expect(page.getByLabel('Nơi ở')).toHaveCount(0);
   await expect(page.getByRole('group', { name: 'Ngày sinh' })).toHaveCount(0);
 
-  const supplement = page.getByRole('button', { name: /^Bổ sung/ });
+  const supplement = page.getByRole('button', { name: /^(Bổ sung|Thu gọn)/ });
   await expect(supplement).toBeVisible();
   await expect(supplement).toHaveAttribute('aria-expanded', 'false');
   await supplement.click();

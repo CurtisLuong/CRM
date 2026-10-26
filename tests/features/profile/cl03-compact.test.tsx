@@ -54,7 +54,7 @@ describe('CL-03 — hồ sơ gọn', () => {
     expect(screen.queryByLabelText('Nơi ở')).toBeNull();
     expect(screen.queryByRole('group', { name: 'Ngày sinh' })).toBeNull();
 
-    const toggle = screen.getByRole('button', { name: /^Bổ sung/ });
+    const toggle = screen.getByRole('button', { name: /^(Bổ sung|Thu gọn)/ });
     expect(toggle.getAttribute('aria-expanded')).toBe('false');
     await user.click(toggle);
     expect(toggle.getAttribute('aria-expanded')).toBe('true');
@@ -76,7 +76,7 @@ describe('CL-03 — hồ sơ gọn', () => {
     expect(screen.queryByLabelText('Thu nhập')).toBeNull();
     expect(screen.queryByLabelText('Nơi ở')).toBeNull();
     expect(screen.queryByRole('group', { name: 'Ngày sinh' })).toBeNull();
-    expect(screen.queryByRole('button', { name: /^Bổ sung/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^(Bổ sung|Thu gọn)/ })).toBeNull();
   });
 
   it('Nhu cầu theo đợt + Người cùng quyết định chỉ hiện sau Nâng cao ở tab Nhu cầu & căn', async () => {
@@ -98,7 +98,7 @@ describe('CL-03 — hồ sơ gọn', () => {
     const user = userEvent.setup();
     wrap();
     await user.click(screen.getByRole('tab', { name: 'Trí nhớ' }));
-    await user.click(screen.getByRole('button', { name: /^Bổ sung/ }));
+    await user.click(screen.getByRole('button', { name: /^(Bổ sung|Thu gọn)/ }));
     await user.type(screen.getByRole('textbox', { name: 'Ngày sinh — ngày/tháng/năm' }), '15/08/1985');
     await user.tab();
     expect(update).toHaveBeenLastCalledWith(
