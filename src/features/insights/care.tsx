@@ -2,7 +2,15 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import type { Customer } from '@/domain/customer';
 import { CARE_METRIC_CONFIG, careHealth, fullCareMetrics } from '@/domain/metrics/care';
-import { Button, HealthDot, MetricTile } from '@/ui';
+import { Button, HealthDot, InsightChart, MetricTile } from '@/ui';
+import {
+  slotChartData,
+  slotChartTitle,
+  stageSlaChartData,
+  stageSlaChartTitle,
+  touchConversionChartData,
+  touchConversionChartTitle,
+} from './model';
 
 const fmt = (n: number) => n.toLocaleString('vi-VN');
 const percent = (n: number | null) => (n == null ? null : `${n}%`);
@@ -16,6 +24,9 @@ const ratio = (n: number, d: number) => `${fmt(n)}/${fmt(d)}`;
 export function CareSection({ customers, now }: { customers: readonly Customer[]; now: number }) {
   const navigate = useNavigate();
   const metrics = useMemo(() => fullCareMetrics(customers, now), [customers, now]);
+  const slotData = useMemo(() => slotChartData(metrics.slots), [metrics.slots]);
+  const stageData = useMemo(() => stageSlaChartData(metrics.stages), [metrics.stages]);
+  const touchData = useMemo(() => touchConversionChartData(metrics.conversion), [metrics.conversion]);
   const [selected, setSelected] = useState<{ title: string; ids: string[] } | null>(null);
   const rowsById = useMemo(() => new Map(customers.map((customer) => [customer.id, customer])), [customers]);
   const pick = (title: string, ids: string[]) => setSelected({ title, ids: [...new Set(ids)] });
@@ -56,7 +67,7 @@ export function CareSection({ customers, now }: { customers: readonly Customer[]
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-2">
         <article className="flex flex-col gap-2 rounded-card border border-border bg-surface p-3 shadow-e1">
           <MetricTile
             label="Tốc độ gọi lần đầu · trung vị"
@@ -98,12 +109,22 @@ export function CareSection({ customers, now }: { customers: readonly Customer[]
           '30 ngày gần nhất',
           'lead',
         )}
-        <article className="flex flex-col gap-2 rounded-card border border-border bg-surface p-3 shadow-e1 sm:col-span-2 lg:col-span-3">
+        <article className="flex flex-col gap-2 rounded-card border border-border bg-surface p-3 shadow-e1 sm:col-span-2 lg:col-span-2">
           <h3 className="text-body-strong">Nghe máy theo khung</h3>
           <p className="text-small text-text-2">
             Cuộc có kết quả Nói chuyện được / mọi cuộc có kết quả trong khung; cửa sổ 30 ngày. Cỡ mẫu nhỏ hơn{' '}
             {CARE_METRIC_CONFIG.slotSample} vẫn hiển thị nhưng không dùng làm bài học.
           </p>
+          <InsightChart
+            kind="rate"
+            title={slotChartTitle(slotData)}
+            data={slotData}
+            columns={[
+              { key: 'numerator', label: 'Nói chuyện được' },
+              { key: 'denominator', label: 'Cuộc có kết quả' },
+              { key: 'percent', label: 'Tỉ lệ', unit: '%' },
+            ]}
+          />
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
             {metrics.slots.map((slot) => (
               <div key={slot.key} className="rounded-control border border-border p-3">
@@ -152,11 +173,21 @@ export function CareSection({ customers, now }: { customers: readonly Customer[]
           'lời hứa',
         )}
 
-        <article className="flex flex-col gap-2 rounded-card border border-border bg-surface p-3 shadow-e1 sm:col-span-2 lg:col-span-3">
+        <article className="flex flex-col gap-2 rounded-card border border-border bg-surface p-3 shadow-e1 sm:col-span-2 lg:col-span-2">
           <h3 className="text-body-strong">Tuổi bậc so với SLA</h3>
           <p className="text-small text-text-2">
             Số khách trong từng bậc; trạng thái so với mục tiêu/hạn mức của bậc. Nhấn để xem khách ở bậc.
           </p>
+          <InsightChart
+            kind="sla"
+            title={stageSlaChartTitle(stageData)}
+            data={stageData}
+            columns={[
+              { key: 'onTime', label: 'Trong mục tiêu' },
+              { key: 'near', label: 'Sắp hạn' },
+              { key: 'overdue', label: 'Quá hạn' },
+            ]}
+          />
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-5">
             {metrics.stages.map((stage) => (
               <button
@@ -191,6 +222,16 @@ export function CareSection({ customers, now }: { customers: readonly Customer[]
             Cohort đăng ký 90 ngày; lần chạm là cuộc gọi hoặc tương tác Zalo/SMS/gặp/xem dự án trước khi đạt. Tử số là
             khách đã có `qualified_at`.
           </p>
+          <InsightChart
+            kind="rate"
+            title={touchConversionChartTitle(touchData)}
+            data={touchData}
+            columns={[
+              { key: 'numerator', label: 'Đạt' },
+              { key: 'denominator', label: 'Khách' },
+              { key: 'percent', label: 'Tỉ lệ', unit: '%' },
+            ]}
+          />
           <div className="grid grid-cols-2 gap-2">
             {metrics.conversion.map((bucket) => (
               <button

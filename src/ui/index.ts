@@ -17,6 +17,7 @@ export {
   type TimelineDay,
   type TimelineEntry,
 } from './cards';
+export { InsightChart, type InsightChartColumn, type InsightChartKind, type InsightChartRow } from './charts';
 export { ActionBar, type ActionItem, BottomNav, Header, type NavTab, SyncIndicator, type SyncState } from './chrome';
 export { cn } from './cn';
 export {
