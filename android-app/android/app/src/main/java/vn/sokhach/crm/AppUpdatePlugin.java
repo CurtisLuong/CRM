@@ -95,6 +95,9 @@ public class AppUpdatePlugin extends Plugin {
         try {
             File updateDirectory = new File(getContext().getFilesDir(), "updates");
             if (!updateDirectory.exists() && !updateDirectory.mkdirs()) throw new IllegalStateException();
+            // Xoá APK của các lần tải trước (đã cài hoặc bỏ dở) để không tích bộ nhớ máy qua mỗi bản.
+            File[] previous = updateDirectory.listFiles();
+            if (previous != null) for (File old : previous) deleteQuietly(old);
             temporary = new File(updateDirectory, "app-update-" + versionCode + ".apk.part");
             apk = new File(updateDirectory, "app-update-" + versionCode + ".apk");
             if (temporary.exists() && !temporary.delete()) throw new IllegalStateException();
