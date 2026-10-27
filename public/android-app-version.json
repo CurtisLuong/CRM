@@ -1,6 +1,7 @@
 {
-  "versionCode": 6,
-  "versionName": "1.5",
-  "url": "https://nrqccwamwctihivpxjww.supabase.co/storage/v1/object/public/app-releases/SoKhach-1.5.apk",
-  "notes": "Bật ghi chú bằng giọng nói. Lần đầu bấm nút micro, app hỏi quyền Micro → chọn Cho phép."
+  "versionCode": 8,
+  "versionName": "1.7",
+  "url": "https://nrqccwamwctihivpxjww.supabase.co/storage/v1/object/public/app-releases/SoKhach-1.7.apk",
+  "sha256": "26e6217ede4efa76a9324510ba432cce10400ab3934d8c8b9c99a3528b54ca5a",
+  "notes": "Cập nhật app ngay trong app: có bản mới thì app tự báo, bấm Cập nhật rồi Cài đặt."
 }
