@@ -54,4 +54,6 @@
     <!-- Ghi chú bằng giọng nói (Web Speech trong WebView) cần quyền micro; thiếu thì nút ghi âm không chạy (lỗi L4 T5.3). -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <!-- Chỉ mở hộp cài hệ thống sau khi người dùng bấm Cập nhật. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 </manifest>

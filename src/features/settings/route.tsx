@@ -1,4 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
+import {
+  appUpdateStatusMessage,
+  checkAppUpdate,
+  openAppUpdateSettings,
+  startAppUpdate,
+  useAppUpdateState,
+} from '@/app/appUpdate';
 import type { FeatureRoute } from '@/app/routes';
 import { useAppSession } from '@/app/session';
 import { THEME_OPTIONS, type ThemePref, useThemePref } from '@/app/theme';
@@ -19,13 +26,6 @@ import {
 } from './model';
 
 const FIELD = 'min-h-11 w-full rounded-control border border-border-strong bg-surface px-3 py-2 text-body text-text';
-type ApkInfo = { versionCode?: number; versionName?: string; url?: string; notes?: string };
-type NativeWindow = Window & {
-  Capacitor?: {
-    isNativePlatform?: () => boolean;
-    nativePromise?: (plugin: string, method: string, args: Record<string, unknown>) => Promise<Record<string, unknown>>;
-  };
-};
 
 export function SettingsPage() {
   const account = useRepositoryAccount();
@@ -40,7 +40,7 @@ export function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [apkState, setApkState] = useState('');
-  const [apk, setApk] = useState<ApkInfo | null>(null);
+  const appUpdate = useAppUpdateState();
   const [online, setOnline] = useState(() => typeof navigator === 'undefined' || navigator.onLine);
   const pendingSync = useRef(false);
   const syncBusy = useRef(false);
@@ -167,27 +167,20 @@ export function SettingsPage() {
   };
 
   const checkApk = async () => {
-    const native = (window as NativeWindow).Capacitor;
-    if (!native?.isNativePlatform?.() || !native.nativePromise) {
-      setApkState('Kiểm tra cập nhật APK chỉ khả dụng trong vỏ Android.');
-      return;
-    }
     setApkState('Đang kiểm tra…');
-    try {
-      const current = await native.nativePromise('AppInfo', 'get', {});
-      const response = await fetch(`/android-app-version.json?t=${Date.now()}`, { cache: 'no-store' });
-      if (!response.ok) throw new Error('Chưa tải được thông tin phiên bản.');
-      const latest = (await response.json()) as ApkInfo;
-      if (Number(latest.versionCode) <= Number(current.versionCode) || !latest.url) {
+    const result = await checkAppUpdate(true);
+    switch (result.status) {
+      case 'available':
+        setApkState('');
+        break;
+      case 'up-to-date':
         setApkState('Ứng dụng đang ở bản mới nhất.');
-        setApk(null);
-        return;
-      }
-      setApk(latest);
-      setApkState(`Có bản mới ${latest.versionName || ''}${latest.notes ? ` — ${latest.notes}` : ''}`);
-    } catch {
-      setApkState('Không kiểm tra được. Hãy thử lại khi có mạng.');
-      setApk(null);
+        break;
+      case 'not-native':
+        setApkState('Kiểm tra cập nhật APK chỉ khả dụng trong vỏ Android.');
+        break;
+      default:
+        setApkState('Không kiểm tra được. Hãy thử lại khi có mạng.');
     }
   };
 
@@ -318,18 +311,29 @@ export function SettingsPage() {
         <p className="mt-1 text-small text-text-2">Kiểm tra phiên bản APK khi mở bằng vỏ Android.</p>
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <Button onClick={() => void checkApk()}>Kiểm tra cập nhật</Button>
-          {apk?.url && (
-            <Button
-              variant="primary"
-              onClick={() => {
-                window.location.href = apk.url as string;
-              }}
-            >
-              Tải APK mới
-            </Button>
+          {appUpdate.release && (
+            <>
+              <Button
+                variant="primary"
+                loading={appUpdate.installState === 'checking' || appUpdate.installState === 'downloading'}
+                disabled={appUpdate.installState === 'checking' || appUpdate.installState === 'downloading'}
+                onClick={() => void startAppUpdate()}
+              >
+                {appUpdate.installState === 'error' ? 'Thử lại' : 'Cập nhật'}
+              </Button>
+              {appUpdate.installState === 'permission' && (
+                <Button onClick={() => void openAppUpdateSettings()}>Mở cài đặt</Button>
+              )}
+              <div className="min-w-0 basis-full text-small text-text-2">
+                <p className="text-body-strong text-text">Có bản app mới {appUpdate.release.versionName || ''}</p>
+                {appUpdate.release.notes && <p className="truncate">{appUpdate.release.notes}</p>}
+              </div>
+            </>
           )}
           <span role="status" className="text-small text-text-2">
-            {apkState}
+            {appUpdate.release && appUpdate.installState !== 'idle'
+              ? appUpdateStatusMessage(appUpdate)
+              : apkState || (appUpdate.release ? '' : appUpdate.checkMessage)}
           </span>
         </div>
       </section>

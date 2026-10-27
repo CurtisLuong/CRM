@@ -11,6 +11,7 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(CallLogPlugin.class); // đọc nhật ký cuộc gọi (phải đăng ký TRƯỚC super.onCreate)
         registerPlugin(AppInfoPlugin.class); // phiên bản APK → banner "Có bản app mới"
+        registerPlugin(AppUpdatePlugin.class); // tải APK và mở hộp cài của Android
         registerPlugin(ClipboardImagePlugin.class); // nút "Dán ảnh" (WebView không đọc được clipboard)
         registerPlugin(ExternalLinkPlugin.class); // link zalo.me → mở thẳng màn chat app Zalo
         registerPlugin(SpeechInputPlugin.class); // nhận giọng nói tiếng Việt, hiện chữ liên tục
