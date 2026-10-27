@@ -36,6 +36,7 @@ Lựa chọn nền tảng ban đầu (Supabase, Cloudflare Pages, local-first) k
 | D-024 | Đợt v3 chạy bằng AI Factory trên nhánh `factory`; task cũ T5.5, T6.3 tạm hoãn | Đã duyệt 2026-10-18 | Áp dụng tới khi v3 lên production |
 | D-025 | Khách nhóm: người đang thấy được sửa thông tin + thêm ghi chú; không SLA/nhắc việc | Đã duyệt + code 2026-10-22; SQL 010 đã chạy staging + production | Nới D-003 |
 | D-026 | Lead tự chạy SQL nhỏ trên production; Curtis chỉ duyệt khi xoá/sửa dữ liệu hoặc đổi cấu trúc lớn | Đã duyệt 2026-10-22 | Thay "migration production do Curtis chạy" |
+| D-027 | Bản UI mới dùng shadcn/ui (Radix) trên Tailwind v4 | Đã duyệt 2026-10-28; thư viện đã cài, chờ `systemdesign.md` để đặt token | Bổ sung D-011; D-023 sẽ được thay khi có design system mới |
 
 ## Ba loại kết quả
 
@@ -421,4 +422,16 @@ Ví dụ và mẫu trong bộ tài liệu không phải sự chấp thuận cho 
   - Nghi ngờ thuộc nhóm nào → coi là cần duyệt.
 - Không đổi: D-012 (migration chỉ thêm), RLS + GRANT.
 - Tài liệu đã cập nhật: `CLAUDE.md` (mục Lead 6), `docs/factory-playbook.md`.
+
+### D-027 — Bản UI mới dùng shadcn/ui trên Tailwind v4
+
+- Ngày: 2026-10-28
+- Loại: Đổi stack giao diện (Curtis yêu cầu: "chuẩn bị làm ver mới, thiết kế lại UI, chưa nói UX. Sẽ dùng tailwind và shadcn/ui").
+- Quyết định:
+  - Component nền lấy từ shadcn/ui (style `radix-nova`, Radix, icon lucide), cấu hình ở `components.json`. Bản gốc nằm ở `src/ui/shadcn/` (tạo bằng `npx shadcn add <tên>`, giữ gần bản gốc để cập nhật được); component riêng của app trong `src/ui/*` bọc lại khi cần tuỳ biến. Feature vẫn chỉ import từ `src/ui/**` (gồm `src/ui/shadcn`).
+  - Gộp class dùng `cn` của `@/ui/lib/utils` (gói `cn` của shadcn + khai báo cỡ chữ/bo góc/bóng riêng). Biome chặn import thẳng gói `cn`: bản mặc định xoá `text-small` khi gặp `text-text-2`.
+  - Thư viện đã thêm: `cn`, `class-variance-authority`, `tw-animate-css`, `cmdk`, `sonner`, `vaul`, `react-day-picker`, `date-fns`; dev: `shadcn` (CLI + `shadcn/tailwind.css`). Không dùng `next-themes`: Toaster theo `src/app/theme.ts`.
+  - Thêm component shadcn mới có thể kéo thêm thư viện → chỉ Lead làm, hoặc task mở rõ.
+- Chưa làm: đặt token cho shadcn (`background`, `primary`, `muted`, `popover`, `input`, `ring`…) — chờ `systemdesign.md`. Xung đột tên cần design system mới giải quyết: `accent` của app là màu chính, `accent` của shadcn là nền hover nhạt (đề xuất: màu chính đổi sang `primary`).
+- Không đổi: D-012, local-first, quyền, nguồn cấu hình; UX chưa đổi (Curtis: "chưa nói UX").
 

@@ -1,5 +1,8 @@
 /* Điểm vào Tailwind v4 + nối token Design System (src/styles/tokens.css) vào theme. Font: src/styles/fonts.css (nạp ở main.tsx). */
 @import "tailwindcss";
+/* shadcn/ui: hiệu ứng mở/đóng (animate-in…) + biến thể data-open/data-checked… cho Radix. */
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 @import "../styles/tokens.css";
 
 /* Biến thể dark: theo data-theme do src/app/theme.ts đặt (người dùng chọn được Sáng/Tối/Tự động). */

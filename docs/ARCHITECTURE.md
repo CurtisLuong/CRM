@@ -15,6 +15,7 @@
 | `src/domain/*` | Logic thuần: khách (normalize, timeline, brief), thời hạn D-010, follow-up D-005, SLA/tự chuyển D-008, tín hiệu D-015, chỉ số, tìm kiếm, vay | `config` | Import React, IndexedDB, Supabase, `src/ui`, `src/features` |
 | `src/data/*` | IndexedDB, hàng đợi, đồng bộ, realtime, auth, repository, hooks | `config`, `domain` | Bị feature gọi vòng qua (feature chỉ dùng repository + hooks) |
 | `src/ui/*` | Component Design System v4 (D-023) + định dạng hiển thị `display.ts` | `config` (nhãn, icon) | Tự tính nghiệp vụ (thời hạn, SLA, nhóm) — chỉ nhận giá trị đã tính |
+| `src/ui/shadcn/*`, `src/ui/lib/utils.ts` | Component gốc shadcn/ui (D-027, sinh bằng CLI, giữ gần bản gốc) + `cn` gộp class theo token | `radix-ui`, thư viện shadcn | Tự tính nghiệp vụ; sửa lệch bản gốc khi không cần (tuỳ biến đặt ở component bọc trong `src/ui/*`); import thẳng gói `cn` (Biome chặn) |
 | `src/features/<tên>/` | Một màn/tính năng: `route.tsx` (tự đăng ký), `model.ts` (hàm thuần của màn), component riêng | `config`, `domain`, `data/hooks`, `ui`, `features/quick-actions/store` | Sửa file của feature khác; đổi luật trong `domain` |
 | `src/app/*` | Khung app, router (gom `features/*/route.tsx`), layout, theme, lệnh | mọi module | Chứa logic nghiệp vụ |
 | `worker/` | Cloudflare Worker (OCR, AI, Facebook leads) | — | Deploy bởi agent |
