@@ -253,7 +253,8 @@ Vỏ `android-app/` (Capacitor, APK cài trực tiếp) mở `https://crm-cop.pa
 | `window.CRMBack()` trả true nếu web tự xử lý nút Back | native → web | Đóng sheet/hộp thoại trước khi thoát |
 | Sự kiện window `crm:resume` | native → web | Mở lại app → đồng bộ nhật ký gọi, mở sheet sau gọi |
 | `window.CRMCalls` (`sync`, `ingest`) | web | Cổng ghi cuộc gọi (D-002) |
-| `/android-app-version.json` | web | Nhắc cập nhật APK |
+| `app-releases/latest.json` (Storage production, công khai; CI `.github/workflows/android-apk.yml` ghi khi phát hành từ `main`): `{versionCode, versionName, url, sha256, size, notes, publishedAt}` · dự phòng `/android-app-version.json` (cũ, không có `sha256`) | web | Nhắc cập nhật APK |
+| `Capacitor.Plugins.AppUpdate` (APK ≥1.7, UP-01): `canInstall()` → `{allowed}` · `openInstallSettings()` (mở màn "Cho phép cài ứng dụng không rõ nguồn" của app) · `install({url, sha256?, versionCode})` tải APK vào bộ nhớ riêng của app, kiểm `sha256` nếu có, mở hộp cài của Android; resolve `{started: true}` khi hộp cài đã mở · sự kiện `progress {downloaded, total}` · reject mã `install_not_allowed` · `download_failed` · `checksum_mismatch` · `busy` | web → native | Cập nhật app ngay trong app; thiếu plugin → mở `url` (trình duyệt tải) như cũ |
 
 Web vẫn chạy đầy đủ khi không có vỏ. Lỗi Zalo trong vỏ chưa giải quyết: `docs/zalo-android-issue.md`, `pitfalls.md`.
 
