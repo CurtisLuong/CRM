@@ -1,0 +1,89 @@
+# Build APK RELEASE vỏ Android "Sổ Khách" (D-002) trên máy GitHub — thay cho android-app/build-apk.sh trên Mac.
+# Chạy khi push nhánh có sửa android-app/** (vd. factory), hoặc bấm tay (Actions › Android APK › Run workflow).
+# Khoá ký lấy từ GitHub Secrets — phải là ĐÚNG khoá đang ký app trên điện thoại, nếu không máy không cho cài đè
+# (gỡ app cài lại = mất dữ liệu chưa đồng bộ trong máy).
+#   ANDROID_KEYSTORE_BASE64  = base64 của android-app/sokhach-release.jks
+#   ANDROID_STORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD = các giá trị trong android-app/keystore.properties
+# Kết quả: tải file APK ở mục Artifacts của lần chạy. Chưa tự tải lên Supabase Storage (vẫn làm tay như cũ).
+name: Android APK
+
+on:
+  push:
+    paths:
+      - 'android-app/**'
+      - '.github/workflows/android-apk.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      # Gradle 8.14 chưa chạy được trên Java 25 → Java 21 như trên Mac.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: android-app/package-lock.json
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Cài Capacitor + đồng bộ plugin
+        working-directory: android-app
+        run: |
+          npm ci
+          echo "sdk.dir=$ANDROID_HOME" > android/local.properties
+          npx cap sync android
+
+      - name: Đặt khoá ký từ Secrets
+        working-directory: android-app
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "::error::Thiếu secret ANDROID_KEYSTORE_BASE64 — xem đầu file workflow."
+            exit 1
+          fi
+          echo "$KEYSTORE_BASE64" | base64 -d > sokhach-release.jks
+          {
+            echo "storeFile=sokhach-release.jks"
+            echo "storePassword=$STORE_PASSWORD"
+            echo "keyAlias=$KEY_ALIAS"
+            echo "keyPassword=$KEY_PASSWORD"
+          } > keystore.properties
+
+      - name: Build APK release
+        working-directory: android-app/android
+        run: ./gradlew assembleRelease --console=plain
+
+      - name: Đặt tên theo phiên bản
+        id: name
+        working-directory: android-app
+        run: |
+          VNAME=$(grep -E '^\s*versionName' android/app/build.gradle | grep -oE '"[^"]+"' | tr -d '"')
+          cp android/app/build/outputs/apk/release/app-release.apk "SoKhach-$VNAME.apk"
+          echo "file=SoKhach-$VNAME.apk" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.name.outputs.file }}
+          path: android-app/${{ steps.name.outputs.file }}
+          retention-days: 30
+
+      - name: Xoá khoá ký khỏi máy build
+        if: always()
+        working-directory: android-app
+        run: rm -f sokhach-release.jks keystore.properties
