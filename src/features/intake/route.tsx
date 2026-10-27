@@ -114,6 +114,7 @@ function IntakePage() {
   const [mergeBusy, setMergeBusy] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
   const initialized = useRef('');
+  const hasHydratedAccount = useRef(false);
   const [, setCatalogRevision] = useState(0);
   const customer = useMemo(() => customers.find((row) => row.id === customerId) ?? null, [customers, customerId]);
   const phoneMatches = findPhoneMatches(customers, values.phone, customerId);
@@ -134,9 +135,16 @@ function IntakePage() {
 
   useEffect(() => {
     if (customerId && !customer) return;
-    const key = `${account?.sync.local.userId || 'no-account'}:${customerId || 'new'}`;
+    const identity = customerId || 'new';
+    const userId = account?.sync.local.userId;
+    const key = `${userId || 'no-account'}:${identity}`;
     if (initialized.current === key) return;
+    const keepDraftDuringFirstHydration =
+      !!userId && !hasHydratedAccount.current && initialized.current === `no-account:${identity}` && dirty;
+    if (userId) hasHydratedAccount.current = true;
     initialized.current = key;
+    // Phiên local mở bất đồng bộ; giữ dữ liệu nếu khách đã nhập trước khi phiên sẵn sàng.
+    if (keepDraftDuringFirstHydration) return;
     const source = customer ? undefined : readLastSource() || lastUsedSource(customers);
     const next = makeValues(customer, source || SOURCE_DEFAULT);
     setCustomAptType(!!next.apt_type && !APT_TYPES.includes(next.apt_type as (typeof APT_TYPES)[number]));
@@ -148,7 +156,7 @@ function IntakePage() {
     setManualNotes(notes);
     setInitialManualNotes(JSON.stringify(notes));
     setNewManualNote('');
-  }, [account, customer, customerId, customers, reset]);
+  }, [account, customer, customerId, customers, dirty, reset]);
 
   useEffect(() => {
     if (blocker.state !== 'blocked') return;

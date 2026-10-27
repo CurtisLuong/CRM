@@ -110,6 +110,11 @@ async function installInsightsFixture(page: Page) {
       next_tasks: [],
     });
     tx.objectStore('meta').put({ key: 'legacy-imported', at: current.toISOString() });
+    // Chờ ghi xong rồi mới đóng: chuyển trang khi giao dịch chưa xong sẽ huỷ dữ liệu mẫu (FL-01, máy bận).
+    await new Promise<void>((resolve, reject) => {
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
     db.close();
   }, userId);
 }
