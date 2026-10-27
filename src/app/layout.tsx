@@ -7,6 +7,7 @@ import { SyncIssuesSheet } from '@/features/sync/SyncIssuesSheet';
 import { BlockBoundary, ToastProvider } from '@/ui';
 import { AppShell } from '@/ui/AppShell';
 import { CommandPalette, type PaletteItem } from '@/ui/CommandPalette';
+import { AppUpdatePrompt } from './AppUpdatePrompt';
 import { type AppCommand, appCommands, type CommandContext } from './commands';
 import { installCRMBack } from './layout.back';
 import { QuickAddSheet, ToolsMenu } from './layout.menus';
@@ -145,6 +146,7 @@ export function RootLayout() {
       <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} items={items} search={search} />
       <QuickAddSheet open={quickOpen} onOpenChange={setQuickOpen} commands={appCommands} ctx={ctx} />
       <UpdatePrompt />
+      <AppUpdatePrompt />
       <QuickActionsHost />
       <SyncIssuesSheet open={syncOpen} onOpenChange={setSyncOpen} />
     </ToastProvider>
