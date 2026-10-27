@@ -38,6 +38,10 @@
     <!-- Android 11+: phải khai báo mới "thấy" được app Zalo để mở đúng màn chat (ExternalLinkPlugin). -->
     <queries>
         <package android:name="com.zing.zalo" />
+        <!-- Nhận dạng giọng nói trên thiết bị (Android 11+ cần khai báo để tìm dịch vụ). -->
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
     </queries>
 
     <!-- Permissions -->

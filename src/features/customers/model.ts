@@ -187,7 +187,8 @@ export function v1FilterCustomers(
   return customers.filter((c) => {
     if (
       group === 'new'
-        ? isQualified(c)
+        ? // Khách mới chỉ gồm khách mình phụ trách: giao đi rồi thì chỉ còn ở Khách nhóm (D-003).
+          isQualified(c) || (!!c.owner_id && c.owner_id !== ownerId)
         : group === 'team'
           ? !c.owner_id || c.owner_id === ownerId
           : !isQualified(c) || c.owner_id !== ownerId

@@ -226,7 +226,7 @@ for (const scheme of ['light', 'dark'] as const) {
       expect(interactions).toMatchObject([{ channel: 'visit', kind: 'project_view', by: 't31-e2e-user' }]);
 
       await interact(page.getByRole('button', { name: 'Ghi chú' }));
-      await interact(page.getByRole('button', { name: /Đọc giọng nói/ }));
+      await interact(page.getByRole('button', { name: 'Nói để ghi chú' }));
       await page.evaluate(() => {
         const Recognition = (
           window as Window & { __MockSpeechRecognition?: { latest: { onresult?: (event: unknown) => void } | null } }

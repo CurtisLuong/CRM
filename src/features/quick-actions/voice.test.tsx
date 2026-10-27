@@ -38,10 +38,11 @@ describe('voice note input', () => {
     (window as Window & { SpeechRecognition?: typeof MockRecognition }).SpeechRecognition = MockRecognition;
     const onTranscript = vi.fn();
     render(<VoiceNoteInput account={account} onTranscript={onTranscript} />);
-    fireEvent.click(screen.getByRole('button', { name: '🎙 Đọc giọng nói' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Nói để ghi chú' }));
 
     expect(instance?.lang).toBe('vi-VN');
-    expect(instance?.interimResults).toBe(false);
+    // VN-01: bật chữ tạm để chữ hiện ngay khi đang nói; onTranscript vẫn chỉ nhận chữ chốt.
+    expect(instance?.interimResults).toBe(true);
     instance?.onresult?.({
       resultIndex: 0,
       results: [
@@ -84,9 +85,9 @@ describe('voice note input', () => {
     vi.stubGlobal('fetch', fetchMock);
     const onTranscript = vi.fn();
     render(<VoiceNoteInput account={account} onTranscript={onTranscript} />);
-    fireEvent.click(screen.getByRole('button', { name: '🎙 Ghi âm qua Worker' }));
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Dừng và chuyển văn bản' })).toBeTruthy());
-    fireEvent.click(screen.getByRole('button', { name: 'Dừng và chuyển văn bản' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Nói để ghi chú' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Dừng nghe' })).toBeTruthy());
+    fireEvent.click(screen.getByRole('button', { name: 'Dừng nghe' }));
 
     await waitFor(() => expect(onTranscript).toHaveBeenCalledWith('Khách quan tâm căn hai phòng ngủ'));
     expect(fetchMock).toHaveBeenCalledWith('https://worker.example/stt', expect.objectContaining({ method: 'POST' }));

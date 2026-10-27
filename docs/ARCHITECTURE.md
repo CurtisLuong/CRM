@@ -249,6 +249,7 @@ Vỏ `android-app/` (Capacitor, APK cài trực tiếp) mở `https://crm-cop.pa
 |---|---|---|
 | `window.Capacitor` + `Capacitor.Plugins.CallLog` (đọc nhật ký, `dial`) | web → native | Đồng bộ cuộc gọi, gọi thẳng (APK ≥1.4); thiếu plugin → `tel:` |
 | `Capacitor.Plugins.ExternalLink`, `AppInfo`, `ClipboardImage` | web → native | Mở Zalo/link ngoài, phiên bản app, dán ảnh |
+| `Capacitor.Plugins.SpeechInput` (APK mới, VN-02): `available()` → `{available}` · `start({lang})` · `stop()` · sự kiện `partial {text}`, `end {text}`, `error {code: 'not_allowed'\|'unavailable'\|'no_speech'\|'busy'\|'other'}` | web → native | Ghi chú giọng nói hiện chữ ngay trên Android; thiếu plugin → Web Speech / Worker STT như cũ |
 | `window.CRMBack()` trả true nếu web tự xử lý nút Back | native → web | Đóng sheet/hộp thoại trước khi thoát |
 | Sự kiện window `crm:resume` | native → web | Mở lại app → đồng bộ nhật ký gọi, mở sheet sau gọi |
 | `window.CRMCalls` (`sync`, `ingest`) | web | Cổng ghi cuộc gọi (D-002) |

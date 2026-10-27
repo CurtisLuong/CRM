@@ -1,11 +1,21 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { FeatureRoute } from '@/app/routes';
 import { useCustomers, useRepositoryAccount } from '@/data/hooks';
-import { EmptyState, MetricTile, MiniChart, StatTile } from '@/ui';
+import { EmptyState, InsightChart, StatTile } from '@/ui';
 import { CareSection } from './care';
 import { DetailBlock } from './detail';
 import { MarketingSection } from './marketing';
-import { headlineTiles, insightReport, splitInsights } from './model';
+import {
+  funnelChartData,
+  funnelChartTitle,
+  headlineTiles,
+  insightReport,
+  sourceChartData,
+  sourceChartTitle,
+  splitInsights,
+  weeklyChartData,
+  weeklyChartTitle,
+} from './model';
 
 const pct = (value: number | null) => (value == null ? '—' : `${value}%`);
 const nFmt = (n: number) => n.toLocaleString('vi-VN');
@@ -16,7 +26,8 @@ export function InsightsPage() {
   const account = useRepositoryAccount();
   const customers = useCustomers((c) => !!account && c.owner_id === account.sync.local.userId);
   const [now, setNow] = useState(() => Date.now());
-  const [openBlocks, setOpenBlocks] = useState<Record<string, boolean>>({});
+  // Phễu & tuần mở sẵn để liếc là thấy biểu đồ; hai khối còn lại thu gọn (Curtis chọn 2026-10-27).
+  const [openBlocks, setOpenBlocks] = useState<Record<string, boolean>>({ 'funnel-detail': true });
   const [scrollTarget, setScrollTarget] = useState<string | null>(null);
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 60_000);
@@ -29,6 +40,9 @@ export function InsightsPage() {
   }, [scrollTarget]);
   const report = useMemo(() => insightReport(customers, now), [customers, now]);
   const tiles = useMemo(() => headlineTiles(customers, now), [customers, now]);
+  const funnelData = useMemo(() => funnelChartData(report.funnel), [report.funnel]);
+  const weekData = useMemo(() => weeklyChartData(report.week), [report.week]);
+  const sourcesData = useMemo(() => sourceChartData(report.sources), [report.sources]);
   const observations = useMemo(() => splitInsights(report.insights.items), [report.insights.items]);
   const funnelDenominator = report.funnel[0]?.reached || 0;
   const openDetail = (id: string) => {
@@ -70,6 +84,74 @@ export function InsightsPage() {
           />
         ))}
       </div>
+
+      <DetailBlock
+        id="funnel-detail"
+        title="Phễu & tuần"
+        open={!!openBlocks['funnel-detail']}
+        onToggle={() => toggle('funnel-detail')}
+      >
+        <section aria-labelledby="funnel-title" className="rounded-card border border-border bg-surface p-4 shadow-e1">
+          <h2 id="funnel-title" className="text-heading">
+            Phễu và tốc độ
+          </h2>
+          <p className="mb-3 text-small text-text-2">
+            Số khách đã tới từng bậc trên tổng {nFmt(funnelDenominator)} khách vào phễu; thời gian ở bậc tính theo SLA
+            của từng bậc. Nuôi dài hạn nằm ngoài phễu.
+          </p>
+          <InsightChart
+            kind="funnel"
+            title={funnelChartTitle(funnelData)}
+            data={funnelData}
+            columns={[
+              { key: 'value', label: 'Khách đã tới bậc' },
+              { key: 'retention', label: 'Giữ lại', unit: '%' },
+            ]}
+          />
+          <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {report.funnel.map((stage, i) => (
+              <div
+                key={stage.key}
+                className="flex flex-wrap items-center justify-between gap-2 border-t border-border py-2"
+              >
+                <span className="text-body-strong">{stage.label}</span>
+                <span className="text-small text-text-2">
+                  {stage.reached}/{funnelDenominator} khách
+                  {i > 0
+                    ? ` · chuyển tiếp ${stage.conversion?.numerator}/${stage.conversion?.denominator} (${pct(stage.conversion?.percent ?? null)})`
+                    : ''}{' '}
+                  · trung bình hiện tại{' '}
+                  {stage.averageDurationMs === null ? 'chưa đủ dữ liệu' : formatDuration(stage.averageDurationMs)} ·{' '}
+                  {stage.overdue} quá hạn SLA
+                </span>
+              </div>
+            ))}
+          </div>
+          <p className="mt-2 text-small text-text-2">
+            Ngoài phễu: {report.outside.nurture} Nuôi dài hạn · {report.outside.dropped} Loại/không chốt ·{' '}
+            {report.outside.won} Đã ký · {report.outside.booking} Booking đang có.
+          </p>
+        </section>
+
+        <section aria-labelledby="week-title" className="rounded-card border border-border bg-surface p-4 shadow-e1">
+          <h2 id="week-title" className="text-heading">
+            Hiệu suất tuần
+          </h2>
+          <p className="mb-3 text-small text-text-2">
+            Tuần hiện tại so với tuần trước · {periodLabel(report.week.start, report.week.end)}. Số chuyển bậc là
+            milestone được ghi trong lịch sử.
+          </p>
+          <InsightChart
+            kind="weekly"
+            title={weeklyChartTitle(weekData)}
+            data={weekData}
+            columns={[
+              { key: 'value', label: 'Tuần này' },
+              { key: 'previous', label: 'Tuần trước' },
+            ]}
+          />
+        </section>
+      </DetailBlock>
 
       <section aria-labelledby="improve-title" className="rounded-card border border-border bg-surface p-4 shadow-e1">
         <h2 id="improve-title" className="text-heading">
@@ -120,91 +202,6 @@ export function InsightsPage() {
       </DetailBlock>
 
       <DetailBlock
-        id="funnel-detail"
-        title="Phễu & tuần"
-        open={!!openBlocks['funnel-detail']}
-        onToggle={() => toggle('funnel-detail')}
-      >
-        <section aria-labelledby="funnel-title" className="rounded-card border border-border bg-surface p-4 shadow-e1">
-          <h2 id="funnel-title" className="text-heading">
-            Phễu và tốc độ
-          </h2>
-          <p className="mb-3 text-small text-text-2">
-            Số khách đã tới từng bậc trên tổng {nFmt(funnelDenominator)} khách vào phễu; thời gian ở bậc tính theo SLA
-            của từng bậc. Nuôi dài hạn nằm ngoài phễu.
-          </p>
-          <MiniChart
-            kind="funnel"
-            title="Khách đã đạt tới bậc"
-            data={report.funnel.map((x) => ({ label: x.label, value: x.reached }))}
-          />
-          <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {report.funnel.map((stage, i) => (
-              <div
-                key={stage.key}
-                className="flex flex-wrap items-center justify-between gap-2 border-t border-border py-2"
-              >
-                <span className="text-body-strong">{stage.label}</span>
-                <span className="text-small text-text-2">
-                  {stage.reached}/{funnelDenominator} khách
-                  {i > 0
-                    ? ` · chuyển tiếp ${stage.conversion?.numerator}/${stage.conversion?.denominator} (${pct(stage.conversion?.percent ?? null)})`
-                    : ''}{' '}
-                  · trung bình hiện tại{' '}
-                  {stage.averageDurationMs === null ? 'chưa đủ dữ liệu' : formatDuration(stage.averageDurationMs)} ·{' '}
-                  {stage.overdue} quá hạn SLA
-                </span>
-              </div>
-            ))}
-          </div>
-          <p className="mt-2 text-small text-text-2">
-            Ngoài phễu: {report.outside.nurture} Nuôi dài hạn · {report.outside.dropped} Loại/không chốt ·{' '}
-            {report.outside.won} Đã ký · {report.outside.booking} Booking đang có.
-          </p>
-        </section>
-
-        <section aria-labelledby="week-title" className="rounded-card border border-border bg-surface p-4 shadow-e1">
-          <h2 id="week-title" className="text-heading">
-            Hiệu suất tuần
-          </h2>
-          <p className="mb-3 text-small text-text-2">
-            Tuần hiện tại so với tuần trước · {periodLabel(report.week.start, report.week.end)}. Số chuyển bậc là
-            milestone được ghi trong lịch sử.
-          </p>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
-            {(
-              [
-                ['Khách mới', 'leads'],
-                ['Cuộc gọi', 'calls'],
-                ['Nói chuyện được', 'talked'],
-                ['Chuyển Tiềm năng', 'qualified'],
-                ['Booking / Kí', 'milestones'],
-              ] as const
-            ).map(([label, key]) => (
-              <MetricTile
-                key={key}
-                label={label}
-                value={nFmt(report.week.current[key])}
-                ratio={`Mẫu: ${customers.length} khách phụ trách`}
-                period={`Tuần trước: ${nFmt(report.week.previous[key])}`}
-              />
-            ))}
-          </div>
-          <MiniChart
-            kind="bar"
-            title="Khách mới, cuộc gọi và kết quả tuần này"
-            data={[
-              { label: 'Khách mới', value: report.week.current.leads },
-              { label: 'Cuộc gọi', value: report.week.current.calls },
-              { label: 'Nói chuyện', value: report.week.current.talked },
-              { label: 'Đạt', value: report.week.current.qualified },
-              { label: 'Booking/Kí', value: report.week.current.milestones },
-            ]}
-          />
-        </section>
-      </DetailBlock>
-
-      <DetailBlock
         id="source-detail"
         title="Nguồn & Marketing"
         open={!!openBlocks['source-detail']}
@@ -217,7 +214,18 @@ export function InsightsPage() {
           <p className="mb-3 text-small text-text-2">
             Một khách có thể có nhiều nguồn đã lưu, nên tổng theo nguồn có thể lớn hơn số khách duy nhất.
           </p>
-          {report.sources.length ? (
+          {sourcesData.length > 1 ? (
+            <InsightChart
+              kind="source"
+              title={sourceChartTitle(sourcesData)}
+              data={sourcesData}
+              columns={[
+                { key: 'value', label: 'Khách theo nguồn' },
+                { key: 'numerator', label: 'Đạt' },
+                { key: 'percent', label: 'Tỉ lệ đạt', unit: '%' },
+              ]}
+            />
+          ) : report.sources.length ? (
             <div className="flex flex-col gap-3">
               {report.sources.map((source) => (
                 <div key={source.key} className="grid grid-cols-[minmax(0,8rem)_1fr_auto] items-center gap-3">

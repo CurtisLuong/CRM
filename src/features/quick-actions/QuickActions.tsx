@@ -24,7 +24,7 @@ import {
   slotFor,
 } from './model';
 import { actionStore, clearQuickAction, openQuickAction, type QuickAction } from './store';
-import { VoiceNoteInput } from './voice';
+import { appendVoiceTranscript, VoiceNoteInput, type VoiceNoteInputHandle, voiceNotePreview } from './voice';
 import { contactPhones, copyAndOpenZalo, defaultTemplates } from './zalo';
 
 const FIELD =
@@ -338,6 +338,10 @@ function ActionSheet({
   const existing = draft.editAt ? callAttemptsOf(c).find((a) => a.at === draft.editAt) : null;
   const [result, setResult] = useState<CallResult | null>((existing?.result as CallResult) ?? null);
   const [note, setNote] = useState(existing?.note ?? '');
+  const [interimNote, setInterimNote] = useState('');
+  const noteRef = useRef(note);
+  noteRef.current = note;
+  const voiceInput = useRef<VoiceNoteInputHandle>(null);
   const [mode, setMode] = useState<NextMode>('suggested');
   const [schedule, setSchedule] = useState(() => initialSchedule(c, now));
   const [customTime, setCustomTime] = useState('');
@@ -385,6 +389,20 @@ function ActionSheet({
     setMode(sug?.kind === 'ask' ? 'custom' : sug?.kind === 'drop' && sug.auto ? 'drop' : 'suggested');
     setEditSchedule(false);
   };
+  const appendTranscript = (transcript: string) => {
+    const next = appendVoiceTranscript(noteRef.current, transcript);
+    noteRef.current = next;
+    setNote(next);
+    setInterimNote('');
+  };
+  const setTranscriptInterim = (transcript: string) => {
+    setInterimNote(transcript);
+  };
+  const noteValue = (value: string) => {
+    noteRef.current = value;
+    setNote(value);
+    setInterimNote('');
+  };
   const run = async (fn: () => Promise<unknown>, close = true, successTitle = 'Đã lưu trên máy') => {
     if (busy) return;
     setBusy(true);
@@ -407,9 +425,12 @@ function ActionSheet({
   };
   const save = () =>
     run(async () => {
+      // Dừng nghe bên trong run: cờ busy bật trước nên bấm Lưu lần hai không tạo ghi chú trùng.
+      await voiceInput.current?.stop();
+      const savedNote = noteRef.current;
       if (kind === 'note') {
-        if (!note.trim()) throw new Error('Nhập ghi chú trước khi lưu.');
-        return account.customers.addNote(c.id, note);
+        if (!savedNote.trim()) throw new Error('Nhập ghi chú trước khi lưu.');
+        return account.customers.addNote(c.id, savedNote);
       }
       if (kind === 'schedule') {
         if (+schedule.start <= Date.now()) throw new Error('Chọn lịch gọi trong tương lai.');
@@ -433,7 +454,7 @@ function ActionSheet({
         c.id,
         draft,
         result,
-        note,
+        savedNote,
         mode,
         custom,
         Date.now(),
@@ -450,7 +471,7 @@ function ActionSheet({
         : kind === 'schedule'
           ? 'Hẹn gọi lại'
           : 'Nhắn Zalo';
-  const dirty = !!note || (kind === 'outcome' && !!result) || textEdited.current || editSchedule;
+  const dirty = !!note || !!interimNote || (kind === 'outcome' && !!result) || textEdited.current || editSchedule;
   return (
     <Sheet
       open
@@ -496,23 +517,29 @@ function ActionSheet({
         {kind === 'outcome' && (
           <>
             <OutcomePicker value={result} onValueChange={setOutcome} />
-            <label className="flex flex-col gap-1 text-small">
-              Ghi chú cuộc gọi
-              <textarea
-                ref={noteInput}
-                className={FIELD}
-                aria-label="Ghi chú cuộc gọi"
-                rows={3}
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-              />
-            </label>
-            <VoiceNoteInput
-              account={account}
-              onTranscript={(transcript) =>
-                setNote((current) => [current.trim(), transcript].filter(Boolean).join(' '))
-              }
-            />
+            <div className="flex flex-col gap-1 text-small">
+              <label htmlFor="call-note">Ghi chú cuộc gọi</label>
+              <div className="grid">
+                <textarea
+                  id="call-note"
+                  ref={noteInput}
+                  className={`${FIELD} col-start-1 row-start-1 pr-14 pb-14`}
+                  // Đang nghe thì khoá gõ: chữ tạm nằm trong ô, gõ vào sẽ chốt nó rồi bị nối lặp khi chữ chốt về.
+                  readOnly={!!interimNote}
+                  aria-label="Ghi chú cuộc gọi"
+                  rows={3}
+                  value={voiceNotePreview(note, interimNote)}
+                  onChange={(e) => noteValue(e.target.value)}
+                />
+                <VoiceNoteInput
+                  ref={voiceInput}
+                  account={account}
+                  disabled={busy}
+                  onTranscript={appendTranscript}
+                  onInterim={setTranscriptInterim}
+                />
+              </div>
+            </div>
             {result && note.trim() && <AiNoteReview account={account} customer={c} note={note} />}
             {result && (
               <section className="flex flex-col gap-2">
@@ -593,22 +620,28 @@ function ActionSheet({
         )}
         {kind === 'note' && (
           <div className="flex flex-col gap-2">
-            <label className="flex flex-col gap-1 text-small">
-              Nội dung
-              <textarea
-                className={FIELD}
-                aria-label="Nội dung ghi chú"
-                rows={5}
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-              />
-            </label>
-            <VoiceNoteInput
-              account={account}
-              onTranscript={(transcript) =>
-                setNote((current) => [current.trim(), transcript].filter(Boolean).join(' '))
-              }
-            />
+            <div className="flex flex-col gap-1 text-small">
+              <label htmlFor="quick-note">Nội dung</label>
+              <div className="grid">
+                <textarea
+                  id="quick-note"
+                  className={`${FIELD} col-start-1 row-start-1 pr-14 pb-14`}
+                  // Đang nghe thì khoá gõ: chữ tạm nằm trong ô, gõ vào sẽ chốt nó rồi bị nối lặp khi chữ chốt về.
+                  readOnly={!!interimNote}
+                  aria-label="Nội dung ghi chú"
+                  rows={5}
+                  value={voiceNotePreview(note, interimNote)}
+                  onChange={(e) => noteValue(e.target.value)}
+                />
+                <VoiceNoteInput
+                  ref={voiceInput}
+                  account={account}
+                  disabled={busy}
+                  onTranscript={appendTranscript}
+                  onInterim={setTranscriptInterim}
+                />
+              </div>
+            </div>
             {note.trim() && <AiNoteReview account={account} customer={c} note={note} />}
           </div>
         )}
