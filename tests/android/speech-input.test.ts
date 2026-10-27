@@ -36,8 +36,9 @@ describe('Android SpeechInput bridge contract', () => {
     expect(activity).toContain('registerPlugin(SpeechInputPlugin.class)');
     expect(plugin).toContain('Manifest.permission.RECORD_AUDIO');
     expect(manifest).toContain('android.speech.RecognitionService');
-    expect(gradle).toMatch(/versionCode\s+7/);
-    expect(gradle).toMatch(/versionName\s+"1\.6"/);
+    // SpeechInput có từ APK 1.6 (versionCode 7); bản sau chỉ được tăng số.
+    expect(Number(gradle.match(/versionCode\s+(\d+)/)?.[1])).toBeGreaterThanOrEqual(7);
+    expect(gradle).toMatch(/versionName\s+"\d+\.\d+"/);
   });
 
   it('uses Android on-device recognition and reports support only when that service is available', () => {
