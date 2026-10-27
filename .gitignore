@@ -16,3 +16,5 @@ playwright-report/
 logs/
 .env
 supabase/.temp/
+keystore.properties
+*.jks
