@@ -26,7 +26,8 @@ export function InsightsPage() {
   const account = useRepositoryAccount();
   const customers = useCustomers((c) => !!account && c.owner_id === account.sync.local.userId);
   const [now, setNow] = useState(() => Date.now());
-  const [openBlocks, setOpenBlocks] = useState<Record<string, boolean>>({});
+  // Phễu & tuần mở sẵn để liếc là thấy biểu đồ; hai khối còn lại thu gọn (Curtis chọn 2026-10-27).
+  const [openBlocks, setOpenBlocks] = useState<Record<string, boolean>>({ 'funnel-detail': true });
   const [scrollTarget, setScrollTarget] = useState<string | null>(null);
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 60_000);

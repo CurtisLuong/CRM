@@ -81,8 +81,9 @@ test('Hiệu quả v3: màn đầu = 4 con số bấm được; chi tiết thu g
   const tiles = ['Gọi khách mới', 'Nói chuyện được', 'Chăm đúng nhịp', 'Booking / Kí tuần này'];
   for (const name of tiles) await expect(main.getByRole('button', { name: new RegExp(`^${name}`) })).toBeVisible();
   await expect(main.getByRole('button', { name: /^Booking \/ Kí tuần này/ })).toContainText('2');
-  // Chi tiết thu gọn mặc định.
-  for (const name of ['Chăm sóc chi tiết', 'Phễu & tuần', 'Nguồn & Marketing'])
+  // Phễu & tuần mở sẵn; chi tiết khác thu gọn mặc định.
+  await expect(main.getByRole('button', { name: 'Phễu & tuần', exact: true })).toHaveAttribute('aria-expanded', 'true');
+  for (const name of ['Chăm sóc chi tiết', 'Nguồn & Marketing'])
     await expect(main.getByRole('button', { name, exact: true })).toHaveAttribute('aria-expanded', 'false');
   await expect(main.getByText('Tốc độ gọi lần đầu · trung vị')).toHaveCount(0);
   // Bấm ô → mở khối chi tiết tương ứng.

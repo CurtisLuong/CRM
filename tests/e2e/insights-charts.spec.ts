@@ -127,7 +127,11 @@ for (const scheme of ['light', 'dark'] as const) {
     await installFixture(page);
     await page.goto('/hieu-qua');
     const main = page.locator('main');
-    await main.getByRole('button', { name: 'Phễu & tuần', exact: true }).click();
+    // Phễu & tuần mở sẵn, không cần bấm.
+    await expect(main.getByRole('button', { name: 'Phễu & tuần', exact: true })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
 
     const funnel = main.getByTestId('insights-chart-funnel');
     const weekly = main.getByTestId('insights-chart-weekly');
