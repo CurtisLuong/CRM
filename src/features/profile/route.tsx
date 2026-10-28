@@ -684,10 +684,15 @@ function Profile() {
             <TabsPrimitive value={tab} onValueChange={setTab}>
               <TabsList
                 aria-label="Nội dung hồ sơ khách"
-                className="sticky top-14 z-20 gap-0 bg-surface-0 [&_[role=tab]]:scroll-mt-14"
+                // 5 tab không vừa 360px: cuộn ngang trong thanh tab thay vì ép chữ chồng lên nhau.
+                className="sticky top-14 z-20 gap-0 overflow-x-auto bg-surface-0 [scrollbar-width:none] [&_[role=tab]]:scroll-mt-14"
               >
                 {tabs.map((item) => (
-                  <TabsTrigger key={item.value} value={item.value} className="min-w-0 flex-1 px-2 text-xs sm:text-sm">
+                  <TabsTrigger
+                    key={item.value}
+                    value={item.value}
+                    className="shrink-0 px-3 text-xs sm:min-w-0 sm:flex-1 sm:px-2 sm:text-sm"
+                  >
                     {item.label}
                     {item.count !== undefined ? (
                       <span className="font-mono text-caption text-ink-muted">{item.count}</span>

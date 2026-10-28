@@ -104,6 +104,8 @@ export function NotificationsPage() {
                   }))}
                   bulkLabel="Ẩn tín hiệu"
                   onBulk={() => hideSignals(groupSignals.map(({ signal }) => signal))}
+                  // Màn Thông báo là danh sách đầy đủ: hiện hết khách trong nhóm (số chuông = số thẻ, không có trang "xem tất cả").
+                  preview={groupSignals.length}
                   defaultOpen
                 />
               );

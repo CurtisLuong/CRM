@@ -60,13 +60,6 @@ export function FunnelView({
           outside={outside}
         />
       </div>
-      <svg aria-label="Số khách theo bậc" className="h-5 w-full overflow-visible text-caption text-ink-muted">
-        {data.map((row, index) => (
-          <text key={row.label} x={`${(index / Math.max(data.length - 1, 1)) * 94}%`} y="15">
-            {n(row.value ?? 0)} khách
-          </text>
-        ))}
-      </svg>
       <table className="sr-only">
         <tbody>
           {data.map((row) => (

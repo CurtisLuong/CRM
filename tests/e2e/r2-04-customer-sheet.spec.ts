@@ -142,10 +142,10 @@ for (const theme of ['light', 'dark'] as const) {
       }));
       expect(width.document).toBeLessThanOrEqual(width.viewport);
       if (info.project.name === 'phone-360') {
-        expect(bounds.left).toBe(0);
-        expect(bounds.width).toBe(360);
+        expect(bounds.left).toBeCloseTo(0, 0); // tấm còn trượt vào: lệch vài phần triệu px
+        expect(bounds.width).toBeCloseTo(360, 0);
       } else {
-        expect(bounds.width).toBe(480);
+        expect(bounds.width).toBeCloseTo(480, 0);
         expect(bounds.left).toBeGreaterThan(700);
         await expect(page.locator('[data-card]').filter({ hasText: 'Khách Xem Nhanh' })).toBeVisible();
       }

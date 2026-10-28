@@ -122,6 +122,7 @@ export function ActionItem({
   onOpen,
   tone,
   dataCard,
+  wrapTime,
   children,
 }: {
   level: Level;
@@ -141,6 +142,8 @@ export function ActionItem({
   onOpen?: () => void;
   tone?: 'over' | 'soon';
   dataCard?: boolean;
+  /** Cho nhãn thời gian xuống dòng khi chật (màn Công việc: nhãn có cả ngày giờ). */
+  wrapTime?: boolean;
   /** Bằng chứng bổ sung của dòng; không hiển thị trong nhóm gọn. */
   children?: React.ReactNode;
 }) {
@@ -164,8 +167,16 @@ export function ActionItem({
       <div className="relative z-10 flex min-w-0 items-start gap-2.5 pointer-events-none">
         <Avatar name={customer} size={compact ? 32 : 36} />
         <div className="flex min-w-0 flex-1 flex-col gap-1">
-          <div className="flex min-w-0 items-start gap-2">
-            <div className="min-w-0 flex-1 break-words text-[15px] font-semibold leading-5">{title}</div>
+          {/* wrapTime: nhãn hạn dài ("Quá 2 giờ · 28/10 22:05") xuống dòng thay vì ép tiêu đề mỗi dòng một chữ ở 360px. */}
+          <div className={cn('flex min-w-0 items-start gap-2', wrapTime && 'flex-wrap gap-y-0.5')}>
+            <div
+              className={cn(
+                'min-w-0 flex-1 break-words text-[15px] font-semibold leading-5',
+                wrapTime && 'min-w-[9rem]',
+              )}
+            >
+              {title}
+            </div>
             <span className="shrink-0">
               <SignalBadge level={level}>{time ?? LEVEL_WORD[level]}</SignalBadge>
             </span>

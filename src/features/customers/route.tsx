@@ -784,7 +784,8 @@ function Customers() {
     {
       key: 'name',
       label: 'Khách hàng',
-      width: '28%',
+      // Cột tên chứa tên + lý do + dự án → rộng nhất; tên được ưu tiên giữ đủ chữ.
+      width: '40%',
       render: (customer) => {
         const sub = listCardSub(customer, now, userId);
         const project = Array.isArray(customer.projects)
@@ -797,7 +798,7 @@ function Customers() {
               <button
                 type="button"
                 aria-label={`Mở ${customer.full_name}`}
-                className="min-w-0 truncate text-left font-semibold text-ink hover:text-ion"
+                className="min-w-0 max-w-[60%] shrink-0 truncate text-left font-semibold text-ink hover:text-ion"
                 onClick={() => navigate(`/khach-hang/${customer.id}`)}
               >
                 {customer.full_name}
@@ -825,17 +826,17 @@ function Customers() {
     {
       key: 'phone',
       label: 'Điện thoại',
-      width: '18%',
+      width: '13%',
       render: (customer) => <span className="font-mono text-caption">{customer.phone}</span>,
     },
     {
       key: 'stage',
       label: 'Bậc',
-      width: '22%',
+      width: '16%',
       render: (customer) =>
         CARE_STAGE_DISPLAY[normStage(customer.care_stage) || ''] || normStage(customer.care_stage) || '—',
     },
-    { key: 'unit', label: 'Loại căn', width: '13%', render: (customer) => customer.apt_type || '—' },
+    { key: 'unit', label: 'Loại căn', width: '12%', render: (customer) => customer.apt_type || '—' },
     {
       key: 'source',
       label: 'Kênh',
@@ -879,7 +880,13 @@ function Customers() {
                       <LeadRow
                         name={customer.full_name}
                         phone={customer.phone}
-                        project={sub.rest || undefined}
+                        // Bậc đã có nhãn riêng trong dòng → bỏ chữ bậc khỏi dòng phụ cho đỡ lặp.
+                        project={
+                          sub.rest
+                            .split(' · ')
+                            .filter((part) => part !== (CARE_STAGE_DISPLAY[stage || ''] || stage))
+                            .join(' · ') || undefined
+                        }
                         stage={stage as Stage | undefined}
                         level={leadLevel}
                         time={sub.lead?.text}
@@ -1158,4 +1165,9 @@ function Customers() {
   );
 }
 
-export const route: FeatureRoute = { path: '/khach-hang/:id?', element: <Customers /> };
+export const route: FeatureRoute = {
+  path: '/khach-hang/:id?',
+  element: <Customers />,
+  // Bảng khách desktop nhiều cột → khổ rộng (760px làm mất cột Kênh, cắt tên).
+  handle: { wide: true },
+};

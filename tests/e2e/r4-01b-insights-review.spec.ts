@@ -110,7 +110,6 @@ for (const width of [360, 1280]) {
     const kit = funnel.getByTestId('insights-funnel-kit');
     await expect(kit.getByText('Đăng kí mới', { exact: true })).toBeVisible();
     await expect(kit.getByText('Rơi nhiều nhất')).toBeVisible();
-    await expect(funnel.locator('svg[aria-label="Số khách theo bậc"]')).toHaveCount(1);
     await expect(funnel.locator('svg[role="application"]')).toHaveCount(0);
   });
 }

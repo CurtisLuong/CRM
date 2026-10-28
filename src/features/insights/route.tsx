@@ -239,4 +239,8 @@ function formatDuration(ms: number) {
   return `${Math.floor(mins / 1440)} ngày ${Math.floor((mins % 1440) / 60)} giờ`;
 }
 
-export const route: FeatureRoute = { path: '/hieu-qua', element: <InsightsPage />, handle: { title: 'Hiệu quả' } };
+export const route: FeatureRoute = {
+  path: '/hieu-qua',
+  element: <InsightsPage />,
+  handle: { title: 'Hiệu quả', wide: true },
+};

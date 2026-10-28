@@ -118,7 +118,8 @@ for (const theme of ['light', 'dark'] as const) {
 
     for (const path of ['/khach-hang', '/today', '/cong-viec']) {
       await page.goto(path);
-      await expect(page.getByText('Khách Đang Chăm').first()).toBeVisible();
+      // Danh sách khách render cả bảng desktop (ẩn ở điện thoại) lẫn thẻ điện thoại → lấy bản đang hiện.
+      await expect(page.getByText('Khách Đang Chăm').filter({ visible: true }).first()).toBeVisible();
       await expect(page.getByText('Khách Thử Lưu Trữ')).toHaveCount(0);
     }
 

@@ -146,6 +146,7 @@ function TaskCard({
           }
           disabled={busy}
           compact
+          wrapTime
           onAction={row.type === 'call' ? onCall : done ? onReopen : onComplete}
           onOpen={() => navigate(`/khach-hang/${customer.id}`)}
         />

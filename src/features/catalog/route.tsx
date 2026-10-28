@@ -928,7 +928,13 @@ function CatalogPage() {
           {buildings.length > 0 && (
             <>
               <div className="hidden lg:block">
-                <DataTable caption="Danh sách toà" columns={buildingColumns} rows={buildingRows} density="compact" />
+                <DataTable
+                  caption="Danh sách toà"
+                  columns={buildingColumns}
+                  rows={buildingRows}
+                  density="compact"
+                  empty={<p className="m-0 p-4 text-center text-body text-ink-muted">Chưa có toà.</p>}
+                />
               </div>
               <div className="space-y-2 lg:hidden">
                 {buildingRows.map(({ building: row, price, handover, units }) => (
@@ -1315,7 +1321,13 @@ function CatalogPage() {
           {visibleUnits.length} căn phù hợp bộ lọc{visibleUnits.length > limit ? ` · đang hiển thị ${limit}` : ''}
         </p>
         <div className="hidden lg:block">
-          <DataTable caption="Danh sách căn" columns={unitColumns} rows={unitRows} density="compact" />
+          <DataTable
+            caption="Danh sách căn"
+            columns={unitColumns}
+            rows={unitRows}
+            density="compact"
+            empty={<p className="m-0 p-6 text-center text-body text-ink-muted">Không có căn khớp bộ lọc.</p>}
+          />
         </div>
         <div className="grid gap-3 sm:grid-cols-2 lg:hidden">
           {unitRows.map(({ unit, projectName, buildingCode, area, amount, matching }) => (
@@ -1383,4 +1395,9 @@ function CatalogPage() {
   );
 }
 
-export const route: FeatureRoute = { path: '/gio-hang', element: <CatalogPage /> };
+export const route: FeatureRoute = {
+  path: '/gio-hang',
+  element: <CatalogPage />,
+  // Màn đã có tiêu đề riêng "Giỏ hàng" → không đặt title cho thanh đầu (tránh 2 h1).
+  handle: { wide: true },
+};
