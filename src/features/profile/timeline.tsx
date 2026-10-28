@@ -1,7 +1,12 @@
 import { useState } from 'react';
+import { Timeline, type TimelineAction } from '@/components/crm';
+import { Button } from '@/components/ui/button';
+import { toast as notify } from '@/components/ui/sonner';
 import { taskKindOf } from '@/config/taskKinds';
 import type { Customer } from '@/domain/customer';
-import { Badge, Button, cn, displayDateTime, Icon, useToast } from '@/ui';
+import { cn } from '@/lib/utils';
+import { displayDateTime } from '@/ui/display';
+import { Icon } from '@/ui/Icon';
 import {
   editedTimelineNotePatch,
   type ProfileTimelineEntry,
@@ -10,11 +15,12 @@ import {
   type TimelineFilter,
   type TimelineRow,
   timelineCounts,
+  timelineIcon,
   timelineView,
 } from './model';
 
 const FIELD =
-  'min-h-11 w-full rounded-control border border-border-strong bg-surface px-3 text-body text-text focus-visible:outline-2 focus-visible:outline-focus disabled:opacity-60';
+  'min-h-11 w-full rounded-md border border-line bg-surface-100 px-3 text-body text-ink focus-visible:outline-2 focus-visible:outline-ion disabled:opacity-60';
 
 type Props = {
   customer: Customer;
@@ -30,7 +36,8 @@ type Props = {
  * PF-02: mốc bậc là đầu nhóm sát lề trái; mục trong bậc thụt vào sau đường dọc; mỗi dòng có icon.
  */
 export function ProfileTimeline({ customer, entries, writable, busy, onSave }: Props) {
-  const toast = useToast();
+  const toast = (input: { title: string; tone?: 'default' | 'error' }) =>
+    notify[input.tone === 'error' ? 'error' : 'info'](input.title);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
   const [filter, setFilter] = useState<TimelineFilter>('all');
@@ -59,7 +66,7 @@ export function ProfileTimeline({ customer, entries, writable, busy, onSave }: P
   };
 
   const noteEditor = (entry: ProfileTimelineEntry) => (
-    <div className="mt-2 space-y-2">
+    <span className="mt-2 flex flex-col gap-2">
       <textarea
         aria-label="Sửa ghi chú"
         value={draft}
@@ -67,15 +74,15 @@ export function ProfileTimeline({ customer, entries, writable, busy, onSave }: P
         onChange={(event) => setDraft(event.target.value)}
         className={`${FIELD} min-h-20 py-2`}
       />
-      <div className="flex gap-2">
+      <span className="flex gap-2">
         <Button variant="primary" disabled={busy || draft.length === 0} onClick={() => void saveEdit(entry.id)}>
           Lưu ghi chú
         </Button>
         <Button disabled={busy} onClick={() => setEditingId(null)}>
           Huỷ
         </Button>
-      </div>
-    </div>
+      </span>
+    </span>
   );
 
   const entryDetail = (entry: ProfileTimelineEntry) => {
@@ -83,8 +90,8 @@ export function ProfileTimeline({ customer, entries, writable, busy, onSave }: P
     const editable = entry.kind === 'note' || entry.kind === 'stage';
     if (editable && editingId === entry.id) return noteEditor(entry);
     return (
-      <div className="mt-1 flex flex-wrap items-start justify-between gap-2">
-        <p className="min-w-0 flex-1 whitespace-pre-wrap text-body text-text-2">{entry.detail}</p>
+      <span className="mt-1 flex flex-wrap items-start justify-between gap-2">
+        <span className="min-w-0 flex-1 whitespace-pre-wrap text-body text-ink-muted">{entry.detail}</span>
         {writable && editable && (
           <Button
             aria-label={`Sửa ghi chú ${entry.kind === 'stage' ? 'lịch sử bậc' : 'hồ sơ'}`}
@@ -94,7 +101,7 @@ export function ProfileTimeline({ customer, entries, writable, busy, onSave }: P
             Sửa
           </Button>
         )}
-      </div>
+      </span>
     );
   };
 
@@ -102,31 +109,79 @@ export function ProfileTimeline({ customer, entries, writable, busy, onSave }: P
     <>
       <div className="flex flex-wrap items-center gap-2">
         {options.heading ? (
-          <h3 className="text-section">{entry.title}</h3>
+          <h3 className="text-title">{entry.title}</h3>
         ) : (
           <span className="text-body-strong">{entry.title}</span>
         )}
-        {entry.automatic && <Badge>Tự động · SLA</Badge>}
-        {entry.kind === 'task' && entry.taskKind && <Badge>{taskKindOf(entry.taskKind).label}</Badge>}
+        {entry.automatic && (
+          <span className="rounded-sm border border-line px-2 py-0.5 text-caption text-ink-muted">Tự động · SLA</span>
+        )}
+        {entry.kind === 'task' && entry.taskKind && (
+          <span className="rounded-sm border border-line px-2 py-0.5 text-caption text-ink-muted">
+            {taskKindOf(entry.taskKind).label}
+          </span>
+        )}
       </div>
       {options.detail ? entryDetail(entry) : null}
-      <time className="mt-1 block font-data text-small text-text-3">{displayDateTime(entry.at)}</time>
+      <time className="mt-1 block font-mono text-caption text-ink-muted">{displayDateTime(entry.at)}</time>
     </>
   );
 
   const flatRow = (row: TimelineRow<ProfileTimelineEntry>) => (
-    <article key={row.entry.id} data-timeline-entry="" className="flex items-start gap-2 border-l-2 border-border pl-3">
-      <Icon name={row.icon} size={20} className="mt-0.5 shrink-0 text-text-3" />
+    <article key={row.entry.id} data-timeline-entry="" className="flex items-start gap-2 border-l-2 border-line pl-3">
+      <Icon name={row.icon} size={20} className="mt-0.5 shrink-0 text-ink-muted" />
       <div className="min-w-0 flex-1">{entryText(row.entry, { detail: true })}</div>
     </article>
   );
 
-  const groupedRow = (row: TimelineRow<ProfileTimelineEntry>) => (
-    <article key={row.entry.id} data-timeline-entry="" className="flex items-start gap-2">
-      <Icon name={row.icon} size={20} className="mt-0.5 shrink-0 text-text-3" />
-      <div className="min-w-0 flex-1">{entryText(row.entry, { detail: true })}</div>
-    </article>
-  );
+  const kitAction = (entry: ProfileTimelineEntry): TimelineAction => {
+    const action =
+      entry.kind === 'call'
+        ? 'call'
+        : entry.kind === 'note'
+          ? 'note'
+          : entry.kind === 'stage'
+            ? 'booking'
+            : entry.kind === 'task'
+              ? taskKindOf(entry.taskKind).key === 'message'
+                ? 'message'
+                : taskKindOf(entry.taskKind).key === 'cafe'
+                  ? 'cafe'
+                  : taskKindOf(entry.taskKind).key === 'visit'
+                    ? 'visit'
+                    : taskKindOf(entry.taskKind).key === 'contract'
+                      ? 'contract'
+                      : 'docs'
+              : entry.interactionKind === 'meeting'
+                ? 'cafe'
+                : entry.interactionKind === 'project_view'
+                  ? 'visit'
+                  : 'message';
+    return {
+      action,
+      at: entry.at,
+      title: (
+        <span data-timeline-entry="" className="inline-flex min-w-0 flex-wrap items-center gap-2">
+          <Icon name={timelineIcon(entry)} size={16} className="shrink-0 text-ink-muted" />
+          <span>{entry.title}</span>
+          {entry.kind === 'task' && entry.taskKind && (
+            <span className="rounded-sm border border-line px-2 py-0.5 text-caption text-ink-muted">
+              {taskKindOf(entry.taskKind).label}
+            </span>
+          )}
+        </span>
+      ),
+      note: (
+        <span className="flex flex-wrap items-center gap-1">
+          {entry.automatic && (
+            <span className="rounded-sm border border-line px-2 py-0.5 text-caption text-ink-muted">Tự động · SLA</span>
+          )}
+          {entry.detail && entryDetail(entry)}
+          <time className="font-mono text-caption text-ink-muted">{displayDateTime(entry.at)}</time>
+        </span>
+      ),
+    };
+  };
 
   return (
     <div className="space-y-4">
@@ -143,15 +198,15 @@ export function ProfileTimeline({ customer, entries, writable, busy, onSave }: P
                 aria-pressed={active}
                 onClick={() => setFilter(item.key)}
                 className={cn(
-                  'inline-flex min-h-9 items-center gap-1 rounded-full border px-3 text-small transition-colors',
+                  'inline-flex min-h-11 items-center gap-1 rounded-full border px-3 text-caption transition-colors',
                   active
-                    ? 'border-accent bg-accent-soft text-accent'
-                    : 'border-border bg-surface text-text-2 hover:bg-surface-2',
+                    ? 'border-ion bg-ion-tint text-ion'
+                    : 'border-line bg-surface-100 text-ink-muted hover:bg-surface-200',
                 )}
               >
                 {item.label}
                 {item.key !== 'all' && count > 0 && (
-                  <span className="font-data text-mono-data text-text-3">{count}</span>
+                  <span className="font-mono text-numeric text-ink-muted">{count}</span>
                 )}
               </button>
             );
@@ -159,7 +214,7 @@ export function ProfileTimeline({ customer, entries, writable, busy, onSave }: P
         </div>
       )}
       {isEmpty ? (
-        <p className="text-body text-text-2">Chưa có hoạt động để hiển thị.</p>
+        <p className="text-body text-ink-muted">Chưa có hoạt động để hiển thị.</p>
       ) : hasArchive ? (
         <div className="space-y-3">
           {view.ordered.map((row) => {
@@ -171,14 +226,14 @@ export function ProfileTimeline({ customer, entries, writable, busy, onSave }: P
                 data-timeline-header={row.topLevel ? '' : undefined}
                 className={cn(
                   'flex items-start gap-2',
-                  row.nested && 'ml-2 border-l-2 border-border pl-3',
-                  !row.nested && !row.topLevel && 'border-l-2 border-border pl-3',
+                  row.nested && 'ml-2 border-l-2 border-line pl-3',
+                  !row.nested && !row.topLevel && 'border-l-2 border-line pl-3',
                 )}
               >
                 <Icon
                   name={row.icon}
                   size={20}
-                  className={cn('mt-0.5 shrink-0', entry.kind === 'stage' ? 'text-accent' : 'text-text-3')}
+                  className={cn('mt-0.5 shrink-0', entry.kind === 'stage' ? 'text-ion' : 'text-ink-muted')}
                 />
                 <div className="min-w-0 flex-1">
                   {entryText(entry, {
@@ -196,17 +251,28 @@ export function ProfileTimeline({ customer, entries, writable, busy, onSave }: P
             <section key={group.id} data-timeline-group={group.id} className="space-y-2">
               {group.stage ? (
                 <article data-timeline-header="" className="flex items-start gap-2">
-                  <Icon name={group.icon} size={20} className="mt-0.5 shrink-0 text-accent" />
+                  <Icon name={group.icon} size={20} className="mt-0.5 shrink-0 text-ion" />
                   <div className="min-w-0 flex-1">{entryText(group.stage, { detail: stageDetail, heading: true })}</div>
                 </article>
               ) : (
                 <article data-timeline-header="" className="flex items-center gap-2">
-                  <Icon name={group.icon} size={20} className="shrink-0 text-text-3" />
-                  <h3 className="text-section">{group.title}</h3>
+                  <Icon name={group.icon} size={20} className="shrink-0 text-ink-muted" />
+                  <h3 className="text-title">{group.title}</h3>
                 </article>
               )}
               {group.rows.length > 0 && (
-                <div className="ml-2 space-y-3 border-l-2 border-border pl-3">{group.rows.map(groupedRow)}</div>
+                <div className="ml-2 border-l-2 border-line pl-3 [&>ol>li>span:nth-child(-n+2)]:hidden [&>ol>li>div>button]:hidden [&>ol>li>div>span]:hidden [&>ol>li>ol>li>span:first-child]:hidden">
+                  <Timeline
+                    now={new Date()}
+                    stages={[
+                      {
+                        stage: group.stage?.title.replace(/^Bậc: /, '') || 'Chưa có bậc',
+                        start: group.at || group.rows[0]?.entry.at || new Date(),
+                        items: group.rows.map((row) => kitAction(row.entry)),
+                      },
+                    ]}
+                  />
+                </div>
               )}
             </section>
           ))}

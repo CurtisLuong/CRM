@@ -13,6 +13,7 @@ import type { Task } from '@/domain/customer';
 import { snoozePromise, undoPromiseSnooze } from '@/domain/deadlines/promises';
 import { forStage } from '@/domain/followup';
 import { applySlaPlan, planSlaAutomation, slaPlanMessage } from '@/domain/velocity/automation';
+import { CustomerSheet } from '@/features/customer-sheet/CustomerSheet';
 import { openQuickAction } from '@/features/quick-actions/store';
 import { ACTION_BY_ID, type ActionId, NOTIF_TYPES, slaMeterFor } from '@/lib/crm';
 import {
@@ -69,6 +70,7 @@ export function TodayPage() {
   }>({ account: null, status: 'loading' });
   const [notice, setNotice] = useState('');
   const [now, setNow] = useState(() => Date.now());
+  const [quickCustomerId, setQuickCustomerId] = useState<string | null>(null);
   const [sessionIndex, setSessionIndex] = useState<number | null>(null);
   const [showSummary, setShowSummary] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
@@ -252,7 +254,7 @@ export function TodayPage() {
     const card = todayCard(row, now);
     const level = urgencyForRow(row, now);
     const writable = account.sync.local.userId === customer.owner_id && !customer.archived_at;
-    const open = () => navigate(`/ho-so/${customer.id}`);
+    const open = () => setQuickCustomerId(customer.id);
     const task = signalTask(signal, customer);
     const group = rowGroup(signal);
     const notification = NOTIF_TYPES[group ?? 'system'];
@@ -534,6 +536,12 @@ export function TodayPage() {
           Xem tổng kết ngày
         </Button>
       )}
+      <CustomerSheet
+        customer={customers.find((customer) => customer.id === quickCustomerId) ?? null}
+        userId={account.sync.local.userId}
+        onOpenChange={(open) => !open && setQuickCustomerId(null)}
+        onOpenProfile={(customer) => navigate(`/ho-so/${customer.id}`)}
+      />
     </main>
   );
 }
