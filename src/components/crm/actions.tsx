@@ -1,6 +1,6 @@
 import { Button, type ButtonProps } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { ACTION_BY_ID, type ActionId, initials, type Level } from '@/lib/crm';
+import { ACTION_BY_ID, type ActionId, initials, LEVEL_WORD, type Level } from '@/lib/crm';
 import { cn } from '@/lib/utils';
 import { iconGlyph } from '@/ui/Icon';
 import { SignalBadge } from './signal';
@@ -115,55 +115,99 @@ export function ActionItem({
   time,
   action,
   actionLabel,
+  actionAriaLabel,
+  disabled,
   compact,
   onAction,
+  onOpen,
+  tone,
+  dataCard,
+  children,
 }: {
   level: Level;
-  /** Verb-first: "Gọi lại", "Gửi bảng giá" */
+  /** Tên việc, luôn xuống dòng đầy đủ trên màn hẹp. */
   title: React.ReactNode;
   customer: string;
   context?: string;
   time?: string;
   action?: ActionId;
   actionLabel?: string;
-  /** Icon-only quick button for narrow rows */
+  actionAriaLabel?: string;
+  disabled?: boolean;
+  /** Dòng nhóm thu gọn, ẩn phần bằng chứng. */
   compact?: boolean;
   onAction?: () => void;
+  /** Chạm bất kỳ vùng trống nào trong dòng để mở khách. */
+  onOpen?: () => void;
+  tone?: 'over' | 'soon';
+  dataCard?: boolean;
+  /** Bằng chứng bổ sung của dòng; không hiển thị trong nhóm gọn. */
+  children?: React.ReactNode;
 }) {
   return (
-    <div
+    <article
+      data-card={dataCard ? '' : undefined}
+      data-tone={dataCard ? tone : undefined}
       className={cn(
-        'grid min-h-[72px] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-md border border-line bg-surface-100 px-4 py-3',
+        'relative min-w-0 rounded-md border border-line bg-surface-100 p-2',
         level === 'alert' && 'border-alert shadow-glow-alert',
       )}
     >
-      <Avatar name={customer} />
-      <div className="flex min-w-0 flex-col gap-0.5">
-        <span className="flex items-center gap-1.5 truncate text-[15px] font-semibold leading-[22px]">
-          {action && <ActionIcon action={action} size={16} className="text-ink-muted" />}
-          {title}
-        </span>
-        <span className="truncate text-caption text-ink-muted">{[customer, context].filter(Boolean).join(' · ')}</span>
+      {onOpen && (
+        <button
+          type="button"
+          aria-label={`Mở ${customer}`}
+          onClick={onOpen}
+          className="absolute inset-0 z-0 rounded-[inherit] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ion"
+        />
+      )}
+      <div className="relative z-10 flex min-w-0 items-start gap-2.5 pointer-events-none">
+        <Avatar name={customer} size={compact ? 32 : 36} />
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          <div className="flex min-w-0 items-start gap-2">
+            <div className="min-w-0 flex-1 break-words text-[15px] font-semibold leading-5">{title}</div>
+            <span className="shrink-0">
+              <SignalBadge level={level}>{time ?? LEVEL_WORD[level]}</SignalBadge>
+            </span>
+          </div>
+          <div className="flex min-w-0 items-center justify-between gap-2">
+            <div className="min-w-0 break-words text-caption leading-5 text-ink-muted">
+              <span className="font-semibold text-ink">{customer}</span>
+              {context && <> · {context}</>}
+            </div>
+            {(action || actionLabel) && (
+              <div className="shrink-0 pointer-events-auto">
+                {action ? (
+                  <ActionButton
+                    action={action}
+                    size="sm"
+                    variant={BTN_FOR[level]}
+                    display="inline"
+                    label={level === 'alert' ? 'Làm ngay' : (actionLabel ?? ACTION_BY_ID[action].short)}
+                    disabled={disabled}
+                    aria-label={
+                      actionAriaLabel ??
+                      `${level === 'alert' ? 'Làm ngay' : (actionLabel ?? ACTION_BY_ID[action].short)} ${customer}`
+                    }
+                    onClick={onAction}
+                  />
+                ) : (
+                  <Button
+                    size="sm"
+                    variant={BTN_FOR[level]}
+                    disabled={disabled}
+                    aria-label={actionAriaLabel ?? `${level === 'alert' ? 'Làm ngay' : actionLabel} ${customer}`}
+                    onClick={onAction}
+                  >
+                    {level === 'alert' ? 'Làm ngay' : actionLabel}
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
-      <div className="flex flex-col items-end gap-1.5">
-        <SignalBadge level={level}>{time}</SignalBadge>
-        {action ? (
-          <ActionButton
-            action={action}
-            size="sm"
-            variant={BTN_FOR[level]}
-            display={compact ? 'icon' : 'inline'}
-            label={actionLabel ?? ACTION_BY_ID[action].short}
-            onClick={onAction}
-          />
-        ) : (
-          actionLabel && (
-            <Button size="sm" variant={BTN_FOR[level]} onClick={onAction}>
-              {actionLabel}
-            </Button>
-          )
-        )}
-      </div>
-    </div>
+      {children && <div className="relative z-10 mt-2.5 border-line border-t pt-2 pointer-events-none">{children}</div>}
+    </article>
   );
 }

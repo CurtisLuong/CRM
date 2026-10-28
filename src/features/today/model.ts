@@ -8,6 +8,7 @@ import { callAttemptsOf, sourceListOf } from '@/domain/customer/normalize';
 import { countdownTag, fmtClock, taskDayLabel } from '@/domain/deadlines';
 import { computeSignals, type Signal } from '@/domain/signals';
 import { fmt as fmtDuration, status as slaStatus } from '@/domain/velocity/engine';
+import { type Level, signalFor, slaFor, slaMeterFor } from '@/lib/crm';
 import { callResultLabel, displayText, sourceLabel } from '@/ui/display';
 
 export type QueueFilter = 'priority' | 'new' | 'promise' | 'opportunity';
@@ -285,14 +286,20 @@ export function groupQueue(rows: readonly QueueRow[]): TodayGroup[] {
 
 /** Việc (next_tasks) mà tín hiệu nhắc tới — để nút Xong hoàn tất đúng việc. */
 export function signalTask(signal: Signal, customer: Customer): Task | undefined {
-  const ev = signal.evidence.find((entry) => entry.field === 'task')?.value as Partial<Task> | undefined;
+  const evidences = [signal, ...(signal.secondaryReasons ?? [])]
+    .map((item) => item.evidence.find((entry) => entry.field === 'task')?.value as Partial<Task> | undefined)
+    .filter((entry): entry is Partial<Task> => !!entry);
+  if (!evidences.length) return undefined;
   return (Array.isArray(customer.next_tasks) ? customer.next_tasks : []).find(
     (entry): entry is Task =>
       !!entry &&
       !entry.done_at &&
-      ((!!ev?.key && entry.key === ev.key) ||
-        (!!ev?.at && entry.at === ev.at) ||
-        (!ev?.key && !ev?.at && entry.due === ev?.due && entry.text === ev?.text)),
+      evidences.some(
+        (ev) =>
+          (!!ev.key && entry.key === ev.key) ||
+          (!!ev.at && entry.at === ev.at) ||
+          (!ev.key && !ev.at && entry.due === ev.due && entry.text === ev.text),
+      ),
   );
 }
 
@@ -411,4 +418,47 @@ export function todayCard(row: QueueRow, now: number): TodayCard {
   // Nhóm hẹn gọi / khách mới: tiêu đề tín hiệu chỉ nhắc lại thời hạn → bỏ để không lặp chữ (U4).
   const detail = group === 'due' || group === 'today' || group === 'new' ? '' : signal.title;
   return { tone, when, detail, facts, note, sla, action };
+}
+
+/** Mức gấp của dòng: hạn công việc trước, sau đó SLA; tín hiệu SLA dùng đồng hồ SLA thay vì mốc sắp xếp. */
+export function urgencyForRow(row: QueueRow, now: number): Level {
+  const { signal, customer } = row;
+  const task = signalTask(signal, customer);
+  const taskDue = task?.due ? Date.parse(task.due) : Number.NaN;
+  if (Number.isFinite(taskDue)) return signalFor(taskDue, now, { allDay: !!task?.due_allday });
+
+  const reasons = [signal, ...(signal.secondaryReasons ?? [])];
+  const call = reasons.find((item) => item.evidence.some(({ field }) => field === 'next_call_at'));
+  if (call) {
+    const callEnd = call.evidence.find(({ field }) => field === 'next_call_end')?.value;
+    const endMs = typeof callEnd === 'string' ? Date.parse(callEnd) : Number.NaN;
+    if (Number.isFinite(endMs)) return signalFor(endMs, now);
+  }
+
+  const deadline = reasons.find((item) => {
+    const hasPhase = item.evidence.some(({ field }) => field === 'phase');
+    const isNewLeadSla = item.group === 'new' && item.evidence.some(({ field }) => field === 'registered_at');
+    return !hasPhase && !isNewLeadSla && item.due != null && Number.isFinite(item.due);
+  });
+  const due = deadline?.due;
+  const slaDerived = reasons.some(
+    (item) =>
+      item.evidence.some(({ field }) => field === 'phase') ||
+      (item.group === 'new' && item.evidence.some(({ field }) => field === 'registered_at')),
+  );
+  if (!slaDerived && due != null && Number.isFinite(due)) return signalFor(due, now);
+
+  const meter = slaMeterFor(customer, now);
+  return meter ? (slaFor(meter.stage, meter.elapsed, { ideal: meter.ideal, max: meter.max }).level ?? 'ok') : 'ok';
+}
+
+/** Đếm đúng các dòng hàng đợi, không đổi thứ tự nhóm D-015 theo mức gấp. */
+export function todayUrgencyCounts(rows: readonly QueueRow[], now: number): Record<Level, number> {
+  return rows.reduce<Record<Level, number>>(
+    (counts, row) => {
+      counts[urgencyForRow(row, now)]++;
+      return counts;
+    },
+    { alert: 0, soon: 0, ok: 0 },
+  );
 }
