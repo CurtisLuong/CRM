@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { toast as notify } from 'sonner';
 import type { FeatureRoute } from '@/app/routes';
-import { TextField } from '@/components/crm';
+import { type Column, DataTable, TextField } from '@/components/crm';
 import { Button } from '@/components/ui/button';
 import { CARE_DONE_STAGES } from '@/config/stages';
 import { useCustomers, useRepositoryAccount } from '@/data/hooks';
@@ -188,6 +188,127 @@ function CatalogPage() {
           }))
           .filter((item) => item.match)
       : [];
+  const unitRows = visibleUnits.slice(0, limit).map((unit) => {
+    const p = catalog?.project(unit.project_id);
+    const b = catalog?.building(unit.building_id);
+    const area = catalog?.unitArea(unit);
+    const amount = catalog ? totalPrice(unit, catalog) : null;
+    const matching =
+      customerForMatch && catalog
+        ? matchCustomer(customerForMatch, unit, catalog, matchingMaxPrice ? asPrice(matchingMaxPrice) : null)
+        : null;
+    return {
+      id: unit.id,
+      unit,
+      projectName: p?.name || 'Chưa rõ dự án',
+      buildingCode: b?.code || '',
+      area,
+      amount,
+      matching,
+    };
+  });
+  const unitColumns: Column<(typeof unitRows)[number]>[] = [
+    { key: 'unit', label: 'Căn', render: ({ unit }) => <span className="font-semibold">{unit.code}</span> },
+    { key: 'project', label: 'Dự án', render: (row) => row.projectName },
+    { key: 'building', label: 'Toà', render: (row) => row.buildingCode },
+    { key: 'type', label: 'Loại căn', render: ({ unit }) => unit.apt_type || '—' },
+    {
+      key: 'floor',
+      label: 'Tầng',
+      numeric: true,
+      align: 'right',
+      render: ({ unit }) => <span className="text-numeric">{unit.floor ?? '—'}</span>,
+    },
+    {
+      key: 'area',
+      label: 'Diện tích',
+      numeric: true,
+      align: 'right',
+      render: (row) => <span className="text-numeric">{row.area == null ? '—' : `${row.area} m²`}</span>,
+    },
+    {
+      key: 'price',
+      label: 'Giá gồm thuế',
+      numeric: true,
+      align: 'right',
+      render: (row) => <span className="text-numeric">{row.amount == null ? '—' : money(row.amount)}</span>,
+    },
+    { key: 'status', label: 'Tình trạng', render: ({ unit }) => catalog?.statusLabel(unit.status) },
+    {
+      key: 'actions',
+      label: 'Thao tác',
+      render: ({ unit }) => (
+        <div className="flex gap-2">
+          <Button variant="secondary" onClick={() => editUnit(unit.id)}>
+            Sửa
+          </Button>
+          <Button variant="ghost" onClick={() => setUnitClient(unitClient === unit.id ? '' : unit.id)}>
+            Tìm khách
+          </Button>
+          <Button
+            variant="destructive"
+            onClick={() => {
+              if (window.confirm(`Lưu trữ căn ${unit.code}? Dữ liệu vẫn được giữ.`))
+                void run(() => catalog?.archiveUnit(unit.id) ?? Promise.resolve(), 'Đã lưu trữ căn');
+            }}
+          >
+            Lưu trữ
+          </Button>
+        </div>
+      ),
+    },
+  ];
+  const buildingRows = buildings.map((row) => ({
+    id: row.id,
+    building: row,
+    code: row.code,
+    price: catalog?.buildingPrice(row),
+    handover: catalog?.buildingHandover(row),
+    units: catalog?.unitsOf(row.id).length ?? 0,
+  }));
+  const buildingColumns: Column<(typeof buildingRows)[number]>[] = [
+    { key: 'code', label: 'Toà', render: ({ code }) => <span className="font-semibold">{code}</span> },
+    {
+      key: 'price',
+      label: 'Giá hiệu lực',
+      numeric: true,
+      align: 'right',
+      render: ({ price }) => (
+        <span className="text-numeric">{price == null ? '—' : `${formatPricePerM2(price)} triệu/m²`}</span>
+      ),
+    },
+    { key: 'handover', label: 'Bàn giao', render: ({ handover }) => handover || 'Theo dự án/chưa có' },
+    {
+      key: 'units',
+      label: 'Số căn',
+      numeric: true,
+      align: 'right',
+      render: ({ units }) => <span className="text-numeric">{units}</span>,
+    },
+    {
+      key: 'actions',
+      label: 'Thao tác',
+      render: ({ building: row, units }) => (
+        <div className="flex gap-2">
+          <Button onClick={() => setBuildingId(row.id)}>Chọn</Button>
+          <Button variant="secondary" onClick={() => editBuilding(row.id)}>
+            Sửa
+          </Button>
+          <Button
+            variant="destructive"
+            onClick={() => {
+              if (window.confirm(`Lưu trữ toà ${row.code}? ${units} căn vẫn được giữ nguyên.`)) {
+                void run(() => catalog?.archiveBuilding(row.id) ?? Promise.resolve(), 'Đã lưu trữ toà');
+                if (buildingId === row.id) setBuildingId('');
+              }
+            }}
+          >
+            Lưu trữ
+          </Button>
+        </div>
+      ),
+    },
+  ];
   const importPreview =
     pendingImport && catalog
       ? (() => {
@@ -552,7 +673,7 @@ function CatalogPage() {
                   <span className="flex gap-2">
                     <button
                       type="button"
-                      className="min-h-10 text-caption text-ion"
+                      className="min-h-11 text-caption text-ion"
                       onClick={() =>
                         setAptTypeForm({
                           id: type.id,
@@ -565,7 +686,7 @@ function CatalogPage() {
                     </button>
                     <button
                       type="button"
-                      className="min-h-10 text-caption text-alert-text"
+                      className="min-h-11 text-caption text-alert-text"
                       onClick={() => {
                         if (window.confirm(`Lưu trữ loại căn “${type.apt_type}”? Dữ liệu cũ vẫn được giữ.`))
                           void run(() => catalog.archiveProjectType(type.id), 'Đã lưu trữ loại căn');
@@ -587,15 +708,13 @@ function CatalogPage() {
                   placeholder="2N-2WC"
                 />
               </label>
-              <label className={labelClass}>
-                Diện tích điển hình (m²)
-                <input
-                  inputMode="decimal"
-                  className={fieldClass}
-                  value={aptTypeForm.area}
-                  onChange={(e) => setAptTypeForm({ ...aptTypeForm, area: e.target.value })}
-                />
-              </label>
+              <TextField
+                label="Diện tích điển hình"
+                suffix="m²"
+                numeric
+                value={aptTypeForm.area}
+                onChange={(e) => setAptTypeForm({ ...aptTypeForm, area: e.target.value })}
+              />
               <div className="flex items-end gap-2">
                 <Button disabled={saving} onClick={() => void saveAptType()}>
                   {aptTypeForm.id ? 'Lưu loại' : 'Thêm loại'}
@@ -647,7 +766,7 @@ function CatalogPage() {
               <div key={p.id} className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5">
                 <button
                   type="button"
-                  className="min-h-10 flex-1 text-left text-body text-ink"
+                  className="min-h-11 flex-1 text-left text-body text-ink"
                   onClick={() => {
                     setProjectId(p.id);
                     setBuildingId('');
@@ -655,12 +774,12 @@ function CatalogPage() {
                 >
                   {p.name}
                 </button>
-                <button type="button" className="min-h-10 px-2 text-caption text-ion" onClick={() => editProject(p.id)}>
+                <button type="button" className="min-h-11 px-2 text-caption text-ion" onClick={() => editProject(p.id)}>
                   Sửa
                 </button>
                 <button
                   type="button"
-                  className="min-h-10 px-2 text-caption text-alert-text"
+                  className="min-h-11 px-2 text-caption text-alert-text"
                   onClick={() => {
                     if (window.confirm(`Lưu trữ dự án “${p.name}”? Toà và căn vẫn được giữ nguyên.`)) {
                       void run(() => catalog.archiveProject(p.id), 'Đã lưu trữ dự án');
@@ -687,15 +806,13 @@ function CatalogPage() {
                   onChange={(e) => setProjectForm({ ...projectForm, name: e.target.value })}
                 />
               </label>
-              <label className={labelClass}>
-                Giá dự án (triệu/m²)
-                <input
-                  inputMode="decimal"
-                  className={fieldClass}
-                  value={projectForm.typical_price_per_m2}
-                  onChange={(e) => setProjectForm({ ...projectForm, typical_price_per_m2: e.target.value })}
-                />
-              </label>
+              <TextField
+                label="Giá dự án"
+                suffix="triệu/m²"
+                numeric
+                value={projectForm.typical_price_per_m2}
+                onChange={(e) => setProjectForm({ ...projectForm, typical_price_per_m2: e.target.value })}
+              />
               <label className={labelClass}>
                 Bàn giao dự kiến
                 <input
@@ -705,33 +822,27 @@ function CatalogPage() {
                   onChange={(e) => setProjectForm({ ...projectForm, handover_date: e.target.value })}
                 />
               </label>
-              <label className={labelClass}>
-                VAT (%)
-                <input
-                  inputMode="decimal"
-                  className={fieldClass}
-                  value={projectForm.vat_rate}
-                  onChange={(e) => setProjectForm({ ...projectForm, vat_rate: e.target.value })}
-                />
-              </label>
-              <label className={labelClass}>
-                KPBT (%)
-                <input
-                  inputMode="decimal"
-                  className={fieldClass}
-                  value={projectForm.kpbt_rate}
-                  onChange={(e) => setProjectForm({ ...projectForm, kpbt_rate: e.target.value })}
-                />
-              </label>
-              <label className={labelClass}>
-                Nhận sổ sau bàn giao (tháng)
-                <input
-                  inputMode="decimal"
-                  className={fieldClass}
-                  value={projectForm.title_after_months}
-                  onChange={(e) => setProjectForm({ ...projectForm, title_after_months: e.target.value })}
-                />
-              </label>
+              <TextField
+                label="VAT"
+                suffix="%"
+                numeric
+                value={projectForm.vat_rate}
+                onChange={(e) => setProjectForm({ ...projectForm, vat_rate: e.target.value })}
+              />
+              <TextField
+                label="KPBT"
+                suffix="%"
+                numeric
+                value={projectForm.kpbt_rate}
+                onChange={(e) => setProjectForm({ ...projectForm, kpbt_rate: e.target.value })}
+              />
+              <TextField
+                label="Nhận sổ sau bàn giao"
+                suffix="tháng"
+                numeric
+                value={projectForm.title_after_months}
+                onChange={(e) => setProjectForm({ ...projectForm, title_after_months: e.target.value })}
+              />
             </div>
             <div className="mt-3 flex gap-2">
               <Button disabled={saving} onClick={() => void saveProject()}>
@@ -781,15 +892,13 @@ function CatalogPage() {
                 onChange={(e) => setBuildingForm({ ...buildingForm, code: e.target.value })}
               />
             </label>
-            <label className={labelClass}>
-              Giá duyệt toà (triệu/m²)
-              <input
-                inputMode="decimal"
-                className={fieldClass}
-                value={buildingForm.approved_price_per_m2}
-                onChange={(e) => setBuildingForm({ ...buildingForm, approved_price_per_m2: e.target.value })}
-              />
-            </label>
+            <TextField
+              label="Giá duyệt toà"
+              suffix="triệu/m²"
+              numeric
+              value={buildingForm.approved_price_per_m2}
+              onChange={(e) => setBuildingForm({ ...buildingForm, approved_price_per_m2: e.target.value })}
+            />
             <label className={labelClass}>
               Bàn giao riêng của toà
               <input
@@ -817,38 +926,52 @@ function CatalogPage() {
             </div>
           </div>
           {buildings.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {buildings.map((b) => (
-                <div
-                  key={b.id}
-                  className={`flex items-center gap-1 rounded-md border px-2 ${buildingId === b.id ? 'border-primary bg-ion/10' : 'border-line'}`}
-                >
-                  <button type="button" className="min-h-10 px-2 text-caption" onClick={() => setBuildingId(b.id)}>
-                    {b.code}
-                  </button>
-                  <button
-                    type="button"
-                    className="min-h-10 px-2 text-caption text-ion"
-                    onClick={() => editBuilding(b.id)}
+            <>
+              <div className="hidden lg:block">
+                <DataTable caption="Danh sách toà" columns={buildingColumns} rows={buildingRows} density="compact" />
+              </div>
+              <div className="space-y-2 lg:hidden">
+                {buildingRows.map(({ building: row, price, handover, units }) => (
+                  <article
+                    key={row.id}
+                    className={`rounded-md border p-3 ${buildingId === row.id ? 'border-ion bg-ion-tint' : 'border-line bg-surface-100'}`}
                   >
-                    Sửa
-                  </button>
-                  <button
-                    type="button"
-                    className="min-h-10 px-2 text-caption text-alert-text"
-                    onClick={() => {
-                      const count = catalog.unitsOf(b.id).length;
-                      if (window.confirm(`Lưu trữ toà ${b.code}? ${count} căn vẫn được giữ nguyên.`)) {
-                        void run(() => catalog.archiveBuilding(b.id), 'Đã lưu trữ toà');
-                        if (buildingId === b.id) setBuildingId('');
-                      }
-                    }}
-                  >
-                    Lưu trữ
-                  </button>
-                </div>
-              ))}
-            </div>
+                    <div className="flex items-start justify-between gap-2">
+                      <button
+                        type="button"
+                        className="min-h-11 flex-1 text-left font-semibold"
+                        aria-pressed={buildingId === row.id}
+                        onClick={() => setBuildingId(row.id)}
+                      >
+                        Toà {row.code}
+                      </button>
+                      <span className="text-right text-numeric">
+                        {price == null ? 'Chưa có giá' : `${formatPricePerM2(price)} triệu/m²`}
+                      </span>
+                    </div>
+                    <p className="text-caption text-ink-muted">
+                      {units} căn · Bàn giao: {handover || 'theo dự án/chưa có'}
+                    </p>
+                    <div className="mt-2 flex gap-2">
+                      <Button variant="secondary" onClick={() => editBuilding(row.id)}>
+                        Sửa
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        onClick={() => {
+                          if (window.confirm(`Lưu trữ toà ${row.code}? ${units} căn vẫn được giữ nguyên.`)) {
+                            void run(() => catalog.archiveBuilding(row.id), 'Đã lưu trữ toà');
+                            if (buildingId === row.id) setBuildingId('');
+                          }
+                        }}
+                      >
+                        Lưu trữ
+                      </Button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </>
           )}
           {building && (
             <div className="rounded-md bg-surface-200 p-3 text-caption text-ink-muted">
@@ -873,7 +996,7 @@ function CatalogPage() {
                     const value = buildingTypeDraft[type.apt_type] || { selected: false, area: '' };
                     return (
                       <div key={type.id} className="grid items-center gap-2 sm:grid-cols-[1fr_1fr_auto]">
-                        <label className="flex min-h-10 items-center gap-2 text-caption">
+                        <label className="flex min-h-11 items-center gap-2 text-caption">
                           <input
                             type="checkbox"
                             checked={value.selected}
@@ -886,21 +1009,19 @@ function CatalogPage() {
                           />
                           {type.apt_type}
                         </label>
-                        <label className={labelClass}>
-                          Diện tích riêng (m²)
-                          <input
-                            inputMode="decimal"
-                            className={fieldClass}
-                            value={value.area}
-                            onChange={(e) =>
-                              setBuildingTypeDraft({
-                                ...buildingTypeDraft,
-                                [type.apt_type]: { ...value, area: e.target.value },
-                              })
-                            }
-                            placeholder={`${type.typical_area_m2 || 'theo dự án'}`}
-                          />
-                        </label>
+                        <TextField
+                          label="Diện tích riêng"
+                          suffix="m²"
+                          numeric
+                          value={value.area}
+                          onChange={(e) =>
+                            setBuildingTypeDraft({
+                              ...buildingTypeDraft,
+                              [type.apt_type]: { ...value, area: e.target.value },
+                            })
+                          }
+                          placeholder={`${type.typical_area_m2 || 'theo dự án'}`}
+                        />
                         <span className="text-caption text-ink-muted">
                           {value.selected ? 'Được dùng' : 'Không chọn'}
                         </span>
@@ -948,15 +1069,13 @@ function CatalogPage() {
                     catalog.projectTypes(project.id).map((type) => <option key={type.id} value={type.apt_type} />)}
                 </datalist>
               </label>
-              <label className={labelClass}>
-                Tầng
-                <input
-                  inputMode="numeric"
-                  className={fieldClass}
-                  value={unitForm.floor}
-                  onChange={(e) => setUnitForm({ ...unitForm, floor: e.target.value })}
-                />
-              </label>
+              <TextField
+                label="Tầng"
+                suffix="tầng"
+                numeric
+                value={unitForm.floor}
+                onChange={(e) => setUnitForm({ ...unitForm, floor: e.target.value })}
+              />
               <label className={labelClass}>
                 Hướng
                 <select
@@ -970,29 +1089,25 @@ function CatalogPage() {
                   ))}
                 </select>
               </label>
-              <label className={labelClass}>
-                Diện tích (m²)
-                <input
-                  inputMode="decimal"
-                  className={fieldClass}
-                  value={unitForm.area_m2}
-                  onChange={(e) => setUnitForm({ ...unitForm, area_m2: e.target.value })}
-                  placeholder={
-                    unitForm.apt_type && project
-                      ? `theo loại (${catalog.typicalArea(project.id, buildingId || null, unitForm.apt_type) || '—'})`
-                      : ''
-                  }
-                />
-              </label>
-              <label className={labelClass}>
-                Giá riêng (triệu/m²)
-                <input
-                  inputMode="decimal"
-                  className={fieldClass}
-                  value={unitForm.price_per_m2_override}
-                  onChange={(e) => setUnitForm({ ...unitForm, price_per_m2_override: e.target.value })}
-                />
-              </label>
+              <TextField
+                label="Diện tích"
+                suffix="m²"
+                numeric
+                value={unitForm.area_m2}
+                onChange={(e) => setUnitForm({ ...unitForm, area_m2: e.target.value })}
+                placeholder={
+                  unitForm.apt_type && project
+                    ? `theo loại (${catalog.typicalArea(project.id, buildingId || null, unitForm.apt_type) || '—'})`
+                    : ''
+                }
+              />
+              <TextField
+                label="Giá riêng"
+                suffix="triệu/m²"
+                numeric
+                value={unitForm.price_per_m2_override}
+                onChange={(e) => setUnitForm({ ...unitForm, price_per_m2_override: e.target.value })}
+              />
               <label className={labelClass}>
                 Tình trạng
                 <select
@@ -1089,16 +1204,14 @@ function CatalogPage() {
           </label>
         </div>
         {matchingCustomer && (
-          <label className={labelClass}>
-            Giá tối đa riêng để ghép khách (triệu, gồm VAT + KPBT)
-            <input
-              inputMode="decimal"
-              className={fieldClass}
-              value={matchingMaxPrice}
-              onChange={(e) => setMatchingMaxPrice(e.target.value)}
-              placeholder="Để trống nếu chưa xác định"
-            />
-          </label>
+          <TextField
+            label="Giá tối đa riêng để ghép khách"
+            suffix="triệu (đã gồm VAT + KPBT)"
+            numeric
+            value={matchingMaxPrice}
+            onChange={(e) => setMatchingMaxPrice(e.target.value)}
+            placeholder="Để trống nếu chưa xác định"
+          />
         )}
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <label className={labelClass}>
@@ -1119,63 +1232,69 @@ function CatalogPage() {
               ))}
             </select>
           </label>
-          <label className={labelClass}>
-            Tầng từ / đến
-            <div className="mt-1 flex gap-2">
-              <input
-                aria-label="Tầng từ"
-                inputMode="numeric"
-                className={fieldClass}
+          <div className="min-w-0 space-y-1">
+            <p className={labelClass}>Tầng từ / đến</p>
+            <div className="flex min-w-0 gap-2">
+              <TextField
+                className="min-w-0 flex-1"
+                label="Tầng từ"
+                suffix="tầng"
+                numeric
                 value={floorMin}
                 onChange={(e) => setFloorMin(e.target.value)}
               />
-              <input
-                aria-label="Tầng đến"
-                inputMode="numeric"
-                className={fieldClass}
+              <TextField
+                className="min-w-0 flex-1"
+                label="Tầng đến"
+                suffix="tầng"
+                numeric
                 value={floorMax}
                 onChange={(e) => setFloorMax(e.target.value)}
               />
             </div>
-          </label>
-          <label className={labelClass}>
-            Diện tích từ / đến (m²)
-            <div className="mt-1 flex gap-2">
-              <input
-                aria-label="Diện tích từ"
-                inputMode="decimal"
-                className={fieldClass}
+          </div>
+          <div className="min-w-0 space-y-1">
+            <p className={labelClass}>Diện tích từ / đến</p>
+            <div className="flex min-w-0 gap-2">
+              <TextField
+                className="min-w-0 flex-1"
+                label="Diện tích từ"
+                suffix="m²"
+                numeric
                 value={areaMin}
                 onChange={(e) => setAreaMin(e.target.value)}
               />
-              <input
-                aria-label="Diện tích đến"
-                inputMode="decimal"
-                className={fieldClass}
+              <TextField
+                className="min-w-0 flex-1"
+                label="Diện tích đến"
+                suffix="m²"
+                numeric
                 value={areaMax}
                 onChange={(e) => setAreaMax(e.target.value)}
               />
             </div>
-          </label>
-          <label className={labelClass}>
-            Giá từ / đến (triệu, gồm thuế)
-            <div className="mt-1 flex gap-2">
-              <input
-                aria-label="Giá từ"
-                inputMode="decimal"
-                className={fieldClass}
+          </div>
+          <div className="min-w-0 space-y-1">
+            <p className={labelClass}>Giá từ / đến (đã gồm thuế)</p>
+            <div className="flex min-w-0 gap-2">
+              <TextField
+                className="min-w-0 flex-1"
+                label="Giá từ"
+                suffix="triệu"
+                numeric
                 value={priceMin}
                 onChange={(e) => setPriceMin(e.target.value)}
               />
-              <input
-                aria-label="Giá đến"
-                inputMode="decimal"
-                className={fieldClass}
+              <TextField
+                className="min-w-0 flex-1"
+                label="Giá đến"
+                suffix="triệu"
+                numeric
                 value={priceMax}
                 onChange={(e) => setPriceMax(e.target.value)}
               />
             </div>
-          </label>
+          </div>
         </div>
         {matchingCustomer && customerForMatch && (
           <div className="rounded-md bg-surface-200 p-3 text-caption">
@@ -1195,70 +1314,64 @@ function CatalogPage() {
         <p role="status" className="text-caption text-ink-muted">
           {visibleUnits.length} căn phù hợp bộ lọc{visibleUnits.length > limit ? ` · đang hiển thị ${limit}` : ''}
         </p>
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {visibleUnits.slice(0, limit).map((unit) => {
-            const p = catalog.project(unit.project_id);
-            const b = catalog.building(unit.building_id);
-            const area = catalog.unitArea(unit);
-            const amount = totalPrice(unit, catalog);
-            const matching = customerForMatch
-              ? matchCustomer(customerForMatch, unit, catalog, matchingMaxPrice ? asPrice(matchingMaxPrice) : null)
-              : null;
-            return (
-              <article key={unit.id} className="rounded-md border border-line p-3">
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <h3 className="font-semibold">
-                      {p?.name || 'Chưa rõ dự án'} · {b?.code || ''} · {unit.code}
-                    </h3>
-                    <p className="mt-1 text-caption text-ink-muted">
-                      {unit.apt_type || 'Chưa rõ loại'} · {area == null ? 'Chưa rõ diện tích' : `${area} m²`} ·{' '}
-                      {unit.direction || 'Chưa rõ hướng'} · {unit.floor == null ? 'Chưa rõ tầng' : `Tầng ${unit.floor}`}{' '}
-                      · {catalog.statusLabel(unit.status)}
-                    </p>
-                  </div>
-                  <span className="text-caption text-ink-muted">{money(amount)}</span>
-                </div>
-                {matching && (
-                  <p className="mt-2 text-caption text-ion">
-                    {matching.reasons.join(' · ')}
-                    {matching.missing.length ? ` · Thiếu ${matching.missing.join(', ')}` : ''}
+        <div className="hidden lg:block">
+          <DataTable caption="Danh sách căn" columns={unitColumns} rows={unitRows} density="compact" />
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:hidden">
+          {unitRows.map(({ unit, projectName, buildingCode, area, amount, matching }) => (
+            <article key={unit.id} className="rounded-md border border-line bg-surface-100 p-3">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <h3 className="font-semibold">
+                    {projectName} · {buildingCode} · {unit.code}
+                  </h3>
+                  <p className="mt-1 text-caption text-ink-muted">
+                    {unit.apt_type || 'Chưa rõ loại'} · {area == null ? 'Chưa rõ diện tích' : `${area} m²`} ·{' '}
+                    {unit.direction || 'Chưa rõ hướng'} · {unit.floor == null ? 'Chưa rõ tầng' : `Tầng ${unit.floor}`} ·{' '}
+                    {catalog.statusLabel(unit.status)}
                   </p>
-                )}
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <Button variant="secondary" onClick={() => editUnit(unit.id)}>
-                    Sửa
-                  </Button>
-                  <Button variant="ghost" onClick={() => setUnitClient(unitClient === unit.id ? '' : unit.id)}>
-                    Tìm khách phù hợp
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    onClick={() => {
-                      if (window.confirm(`Lưu trữ căn ${unit.code}? Dữ liệu vẫn được giữ.`))
-                        void run(() => catalog.archiveUnit(unit.id), 'Đã lưu trữ căn');
-                    }}
-                  >
-                    Lưu trữ
-                  </Button>
                 </div>
-                {unitClient === unit.id && (
-                  <div className="mt-3 border-t border-line pt-3">
-                    <p className="text-caption">Khách đang hoạt động khớp dự án và loại căn: {customerHits.length}</p>
-                    {customerHits.slice(0, 10).map(({ customer, match }) => (
-                      <p key={customer.id} className="mt-1 text-caption">
-                        <Link className="font-semibold text-ion underline" to={`/khach-hang/${customer.id}`}>
-                          {customer.full_name}
-                        </Link>{' '}
-                        — {match.reasons.join(' · ')}
-                        {match.missing.length ? ` · Thiếu ${match.missing.join(', ')}` : ''}
-                      </p>
-                    ))}
-                  </div>
-                )}
-              </article>
-            );
-          })}
+                <span className="shrink-0 text-right text-numeric">{money(amount)}</span>
+              </div>
+              {matching && (
+                <p className="mt-2 text-caption text-ion">
+                  {matching.reasons.join(' · ')}
+                  {matching.missing.length ? ` · Thiếu ${matching.missing.join(', ')}` : ''}
+                </p>
+              )}
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button variant="secondary" onClick={() => editUnit(unit.id)}>
+                  Sửa
+                </Button>
+                <Button variant="ghost" onClick={() => setUnitClient(unitClient === unit.id ? '' : unit.id)}>
+                  Tìm khách phù hợp
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    if (window.confirm(`Lưu trữ căn ${unit.code}? Dữ liệu vẫn được giữ.`))
+                      void run(() => catalog.archiveUnit(unit.id), 'Đã lưu trữ căn');
+                  }}
+                >
+                  Lưu trữ
+                </Button>
+              </div>
+              {unitClient === unit.id && (
+                <div className="mt-3 border-t border-line pt-3">
+                  <p className="text-caption">Khách đang hoạt động khớp dự án và loại căn: {customerHits.length}</p>
+                  {customerHits.slice(0, 10).map(({ customer, match }) => (
+                    <p key={customer.id} className="mt-1 text-caption">
+                      <Link className="font-semibold text-ion underline" to={`/khach-hang/${customer.id}`}>
+                        {customer.full_name}
+                      </Link>{' '}
+                      — {match.reasons.join(' · ')}
+                      {match.missing.length ? ` · Thiếu ${match.missing.join(', ')}` : ''}
+                    </p>
+                  ))}
+                </div>
+              )}
+            </article>
+          ))}
         </div>
         {visibleUnits.length > limit && (
           <Button variant="secondary" onClick={() => setLimit((n) => n + 50)}>
