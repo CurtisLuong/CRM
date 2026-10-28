@@ -1,7 +1,7 @@
 # Sổ Khách — UX Guidelines v2
 
 > **Version:** 2.0 · 2026-10-16 · **Quyết định:** D-013 (IA), D-015 (tín hiệu), D-010 (thời hạn), D-008 (tự chuyển SLA).
-> **Companion:** `DESIGN_SYSTEM.md` (giao diện). File này quy định **trải nghiệm, thứ tự thông tin, luồng và số chạm**; không định nghĩa màu. Phạm vi tính năng: `PRD.md`.
+> **Companion:** `DESIGN.md` (giao diện, D-028). File này quy định **trải nghiệm, thứ tự thông tin, luồng và số chạm**; không định nghĩa màu. Phạm vi tính năng: `PRD.md`.
 
 ## 0. North Star
 
@@ -152,6 +152,6 @@ Một pattern ở mọi nơi: **Tín hiệu → Bằng chứng → Hành động
 - [ ] Gợi ý có lý do + bằng chứng + CTA; AI/automation chưa duyệt phải qua duyệt trước khi ghi/gửi.
 - [ ] Sau thao tác: phản hồi, lưu đúng timeline/bước tiếp, cập nhật UI, về đúng ngữ cảnh, có Hoàn tác khi phù hợp.
 - [ ] Không đổi logic bậc/hạn/owner/quyền/consent; không tạo business rule chưa duyệt.
-- [ ] Đủ empty/loading/error/offline; truy cập & responsive; giao diện đúng `DESIGN_SYSTEM.md`.
+- [ ] Đủ empty/loading/error/offline; truy cập & responsive; giao diện đúng `DESIGN.md`.
 
 **Rule of thumb:** chỉ thêm thành phần khi nó giúp sale **quyết định, thực hiện hoặc học cách chăm khách tốt hơn**.

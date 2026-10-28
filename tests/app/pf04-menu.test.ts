@@ -15,7 +15,11 @@ describe('buildMenu (PF-04)', () => {
   it('đủ 3 nhóm đúng thứ tự; mục trong nhóm đúng thứ tự luật 2', () => {
     expect(itemLabels(appCommands)).toEqual([
       { key: 'customers', kind: 'grid', items: ['Khách mới', 'Tệp & Retarget', 'Khách đã lưu trữ'] },
-      { key: 'tools', kind: 'grid', items: ['Giỏ hàng', 'Tính khoản vay', 'Thao tác nhanh', 'Nhập / Xuất dữ liệu'] },
+      {
+        key: 'tools',
+        kind: 'grid',
+        items: ['Giỏ hàng', 'Tài liệu', 'Tính khoản vay', 'Thao tác nhanh', 'Nhập / Xuất dữ liệu'],
+      },
       { key: 'settings', kind: 'rows', items: ['Đồng nghiệp', 'Cài đặt'] },
     ]);
   });

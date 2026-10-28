@@ -1,7 +1,7 @@
 # PRD — Sổ Khách CRM v2 (đại tu)
 
 > **Phiên bản:** 1.0 · 2026-10-16 · **Trạng thái:** Đã duyệt hướng (chat 2026-10-16), chưa code.
-> **Đọc khi:** chọn/thiết kế tính năng, viết task, nghiệm thu. Chi tiết giao diện: `DESIGN_SYSTEM.md`; hành vi: `UX_GUIDELINES.md`; kỹ thuật: `ARCHITECTURE.md`; thứ tự làm: `tasks.md`.
+> **Đọc khi:** chọn/thiết kế tính năng, viết task, nghiệm thu. Chi tiết giao diện: `DESIGN.md`; hành vi: `UX_GUIDELINES.md`; kỹ thuật: `ARCHITECTURE.md`; thứ tự làm: `tasks.md`.
 > **Nguồn:** codebase v1 (2026-10-16), `docs/CRM bất động sản 2026.md` (nghiên cứu thị trường), `docs/sale-focus-roadmap.md`, `docs/FEATURE_IDEAS.md`.
 
 ## 1. Bối cảnh và mục tiêu

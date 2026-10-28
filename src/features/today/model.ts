@@ -8,6 +8,7 @@ import { callAttemptsOf, sourceListOf } from '@/domain/customer/normalize';
 import { countdownTag, fmtClock, taskDayLabel } from '@/domain/deadlines';
 import { computeSignals, type Signal } from '@/domain/signals';
 import { fmt as fmtDuration, status as slaStatus } from '@/domain/velocity/engine';
+import { LEVEL_ORDER, type Level, signalFor, slaFor, slaMeterFor } from '@/lib/crm';
 import { callResultLabel, displayText, sourceLabel } from '@/ui/display';
 
 export type QueueFilter = 'priority' | 'new' | 'promise' | 'opportunity';
@@ -411,4 +412,47 @@ export function todayCard(row: QueueRow, now: number): TodayCard {
   // Nhóm hẹn gọi / khách mới: tiêu đề tín hiệu chỉ nhắc lại thời hạn → bỏ để không lặp chữ (U4).
   const detail = group === 'due' || group === 'today' || group === 'new' ? '' : signal.title;
   return { tone, when, detail, facts, note, sla, action };
+}
+
+/** Mức gấp của MỘT lý do: hạn việc (D-010) → cuối khung hẹn gọi (+30 phút, D-010) → hạn khác; lý do SLA → đồng hồ SLA (D-008). */
+function reasonLevel(signal: Signal, customer: Customer, now: number, slaLevel: Level | null): Level | null {
+  const task = signalTask(signal, customer);
+  const taskDue = task?.due ? Date.parse(task.due) : Number.NaN;
+  if (Number.isFinite(taskDue)) return signalFor(taskDue, now, { allDay: !!task?.due_allday });
+  if (signal.evidence.some(({ field }) => field === 'next_call_at')) {
+    const callEnd = signal.evidence.find(({ field }) => field === 'next_call_end')?.value;
+    const endMs = typeof callEnd === 'string' ? Date.parse(callEnd) : Number.NaN;
+    if (Number.isFinite(endMs)) return signalFor(endMs, now);
+  }
+  // Tín hiệu SLA (phase / khách mới theo registered_at): `due` chỉ là mốc xếp, mức lấy từ đồng hồ SLA.
+  const slaOnly =
+    signal.evidence.some(({ field }) => field === 'phase') ||
+    (signal.group === 'new' && signal.evidence.some(({ field }) => field === 'registered_at'));
+  if (slaOnly) return slaLevel;
+  return signal.due != null && Number.isFinite(signal.due) ? signalFor(signal.due, now) : null;
+}
+
+/**
+ * Mức gấp của dòng = mức gấp NHẤT trong lý do chính + lý do phụ (việc phụ không hạ mức của lý do chính).
+ * Không lý do nào có hạn → mức SLA của khách (D-008); không có cả hai → ok.
+ */
+export function urgencyForRow(row: QueueRow, now: number): Level {
+  const { signal, customer } = row;
+  const meter = slaMeterFor(customer, now);
+  const slaLevel = meter ? slaFor(meter.stage, meter.elapsed, { ideal: meter.ideal, max: meter.max }).level : null;
+  const levels = [signal, ...(signal.secondaryReasons ?? [])]
+    .map((item) => reasonLevel(item, customer, now, slaLevel))
+    .filter((l): l is Level => !!l);
+  return levels.sort((x, y) => LEVEL_ORDER[x] - LEVEL_ORDER[y])[0] ?? slaLevel ?? 'ok';
+}
+
+/** Đếm đúng các dòng hàng đợi, không đổi thứ tự nhóm D-015 theo mức gấp. */
+export function todayUrgencyCounts(rows: readonly QueueRow[], now: number): Record<Level, number> {
+  return rows.reduce<Record<Level, number>>(
+    (counts, row) => {
+      counts[urgencyForRow(row, now)]++;
+      return counts;
+    },
+    { alert: 0, soon: 0, ok: 0 },
+  );
 }

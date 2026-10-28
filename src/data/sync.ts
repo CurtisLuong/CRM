@@ -16,10 +16,16 @@ export class CustomerSync {
     readonly local: LocalDB,
     readonly client: SupabaseClient,
     readonly isOnline = () => navigator.onLine,
+    readonly demoMode = false,
   ) {}
 
   async flushQueue() {
     if (this.local.isClosed) return { synced: 0, pending: 0, error: null, assignError: null };
+    if (this.demoMode) {
+      const pending = await queueCount(this.local);
+      this.status.set({ pending, syncing: false, error: null });
+      return { synced: 0, pending, error: null, assignError: null };
+    }
     if (!this.isOnline()) {
       const pending = await queueCount(this.local);
       this.status.set({ pending });
@@ -50,7 +56,7 @@ export class CustomerSync {
   }
 
   async pull() {
-    if (this.local.isClosed || !this.isOnline()) return { ok: false, skipped: true };
+    if (this.demoMode || this.local.isClosed || !this.isOnline()) return { ok: false, skipped: true };
     const revision = this.local.revision;
     const archiveRevision = this.archiveRevision;
     try {
@@ -89,6 +95,7 @@ export class CustomerSync {
   }
 
   async applyRemote(id: string, deleted = false): Promise<boolean> {
+    if (this.demoMode) return false;
     return (await this.applyRemoteResult(id, deleted)) === 'applied';
   }
 

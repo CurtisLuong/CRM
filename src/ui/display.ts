@@ -1,5 +1,5 @@
 /**
- * Định dạng giá trị để HIỂN THỊ (DESIGN_SYSTEM.md v4 luật L3 — D-023): không bao giờ ra mã lưu DB,
+ * Định dạng giá trị để HIỂN THỊ (docs/DESIGN.md luật L3): không bao giờ ra mã lưu DB,
  * ngày ISO hay "[object Object]". Nhãn lấy từ src/config (một nguồn). Không dùng để ghi dữ liệu.
  */
 import { CALL_RESULTS } from '@/config/callResults';

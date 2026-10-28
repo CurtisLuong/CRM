@@ -1,46 +1,51 @@
 /*
- * Token Design System v4 "Precision Tonal" (D-023) — nguồn duy nhất (DESIGN_SYSTEM.md §2).
- * :root = sáng · [data-theme="dark"] = tối. src/app/theme.ts luôn đặt data-theme = "light" | "dark".
- * Khi JS chưa chạy (chưa có data-theme) thì theo prefers-color-scheme → không chớp ở chế độ Tự động.
- * Tailwind đọc các biến này qua @theme trong src/app/index.css — feature dùng class Tailwind, không dùng mã màu.
- * Khối tối viết 2 lần (attribute + media query); src/styles/tokens.test.ts kiểm 2 khối giống hệt nhau.
+ * Token "Realty CRM" (D-028, docs/DESIGN.md) — nguồn màu duy nhất của app. Nguồn thiết kế: realty-crm-ui/ (Claude Design).
+ * :root = sáng · [data-theme="dark"] = tối ("mission control"). src/app/theme.ts luôn đặt data-theme = "light" | "dark";
+ * khi JS chưa chạy thì theo prefers-color-scheme → không chớp ở chế độ Tự động.
+ * Tailwind đọc các biến qua @theme trong src/app/index.css — code dùng class (bg-surface-100, text-alert-text…), không mã màu.
+ * Khối tối viết 2 lần (attribute + media query); src/styles/tokens.test.ts kiểm 2 khối giống hệt nhau + tương phản AA.
  */
 
 :root {
   color-scheme: light;
 
-  /* 2.1 Màu */
-  --bg: #f2f4f7;
-  --surface: #ffffff;
-  --surface-2: #eceff3;
-  --surface-3: #e3e7ec;
-  --text: #0d1117;
-  --text-2: #444c56;
-  --text-3: #5d6672;
-  --border: #d9dee5;
-  --border-strong: #808b98;
-  --accent: #2b5cff;
-  --accent-fg: #ffffff;
-  --accent-soft: #eef2ff;
-  --danger: #c0262d;
-  --danger-bg: #fdeeee;
-  --warning: #8a5300;
-  --warning-bg: #fff4dd;
-  --success: #187645;
-  --success-bg: #e7f6ee;
-  --ai: #6b3fd4;
-  --ai-bg: #f3eeff;
-  --hairline: #e3e7ec;
-  --accent-tonal: #e1e8ff;
-  --track: #e7ebf0;
-  --bar: #0d1117;
+  /* Nền & chữ */
+  --surface-0: #eef2f6;
+  --surface-100: #ffffff;
+  --surface-200: #f4f7fa;
+  --line: #d5dde5;
+  --ink: #0b1220;
+  --ink-muted: #4f5d6c;
+  /* Tương tác (không bao giờ nói độ gấp) */
+  --ion: #0369a1;
+  --on-ion: #ffffff;
+  --ion-tint: #dff0fb;
+  /* Tín hiệu — chỉ cho thời gian/độ gấp: ok = đúng hẹn · soon = sắp tới · alert = quá hạn */
+  --signal-ok: #16a34a;
+  --signal-ok-text: #116a32;
+  --signal-ok-tint: #dcf5e5;
+  /* Bản gốc #ffffff chỉ đạt 3,3:1 trên --signal-ok sáng → dùng chữ tối như bản tối (5,8:1). */
+  --on-signal-ok: #03140a;
+  --signal-soon: #f5b400;
+  --signal-soon-text: #9a5800;
+  --signal-soon-tint: #fdf3d0;
+  --on-signal-soon: #1f1500;
+  --signal-alert: #e5243b;
+  --signal-alert-text: #c11a2e;
+  --signal-alert-tint: #fde2e5;
+  --on-signal-alert: #ffffff;
+  /* Biểu đồ — tối đa 3 chuỗi */
+  --chart-1: #0b78b5;
+  --chart-2: #c43e7e;
+  --chart-3: #6250d6;
+  --chart-prev: #7d8d9c;
+  /* Phát sáng: alert luôn được; ion chỉ cho focus / AI / đang chọn */
+  --glow-alert: 0 0 0 1px #e5243b40, 0 4px 16px #e5243b26;
+  --glow-ion: 0 0 0 1px #0369a133, 0 4px 14px #0369a11f;
+  --overlay: 0 24px 64px #0b122033;
+  --scrim: #0b122066;
 
-  /* 2.3 Độ cao — tối dùng surface-2/3 + viền thay bóng (bóng trong suốt, không dùng "none" để không phá ring của Tailwind) */
-  --e1: 0 1px 2px rgb(13 17 23 / 0.05);
-  --e2: 0 4px 16px rgb(13 17 23 / 0.08);
-  --e3: 0 12px 32px rgb(13 17 23 / 0.14);
-
-  /* 2.4 Chuyển động */
+  /* Chuyển động */
   --dur-fast: 120ms;
   --dur-base: 200ms;
   --dur-slow: 280ms;
@@ -48,64 +53,129 @@
 
 [data-theme="dark"] {
   color-scheme: dark;
-  --bg: #0a0d12;
-  --surface: #121821;
-  --surface-2: #19212c;
-  --surface-3: #212a36;
-  --text: #edf1f6;
-  --text-2: #aab4c0;
-  --text-3: #8893a1;
-  --border: #2a3441;
-  --border-strong: #5b6878;
-  --accent: #6f8fff;
-  --accent-fg: #0a0d12;
-  --accent-soft: #18234a;
-  --danger: #ff6e6e;
-  --danger-bg: #2c1517;
-  --warning: #f2b34b;
-  --warning-bg: #2a1f0c;
-  --success: #4fd08e;
-  --success-bg: #0f2219;
-  --ai: #b596ff;
-  --ai-bg: #1e1636;
-  --hairline: #222b37;
-  --accent-tonal: #1d2b5a;
-  --track: #222b37;
-  --bar: #edf1f6;
-  --e1: 0 0 #0000;
-  --e2: 0 0 #0000;
-  --e3: 0 0 #0000;
+  --surface-0: #070b10;
+  --surface-100: #0e151c;
+  --surface-200: #16212b;
+  --line: #223040;
+  --ink: #e6edf3;
+  --ink-muted: #8b9bab;
+  --ion: #38bdf8;
+  --on-ion: #04121c;
+  --ion-tint: #0c2a3a;
+  --signal-ok: #3ddc84;
+  --signal-ok-text: #3ddc84;
+  --signal-ok-tint: #0d2a1b;
+  --on-signal-ok: #03140a;
+  --signal-soon: #fbbf24;
+  --signal-soon-text: #fbbf24;
+  --signal-soon-tint: #2e2408;
+  --on-signal-soon: #1f1500;
+  --signal-alert: #ff5c6c;
+  --signal-alert-text: #ff5c6c;
+  --signal-alert-tint: #3a1015;
+  --on-signal-alert: #1f0306;
+  --chart-1: #1e96d1;
+  --chart-2: #d55181;
+  --chart-3: #8a7fee;
+  --chart-prev: #647585;
+  --glow-alert: 0 0 0 1px #ff5c6c66, 0 0 20px #ff5c6c40;
+  --glow-ion: 0 0 0 1px #38bdf859, 0 0 16px #38bdf833;
+  --overlay: 0 24px 64px #00000080;
+  --scrim: #02060acc;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme]) {
     color-scheme: dark;
-    --bg: #0a0d12;
-    --surface: #121821;
-    --surface-2: #19212c;
-    --surface-3: #212a36;
-    --text: #edf1f6;
-    --text-2: #aab4c0;
-    --text-3: #8893a1;
-    --border: #2a3441;
-    --border-strong: #5b6878;
-    --accent: #6f8fff;
-    --accent-fg: #0a0d12;
-    --accent-soft: #18234a;
-    --danger: #ff6e6e;
-    --danger-bg: #2c1517;
-    --warning: #f2b34b;
-    --warning-bg: #2a1f0c;
-    --success: #4fd08e;
-    --success-bg: #0f2219;
-    --ai: #b596ff;
-    --ai-bg: #1e1636;
-    --hairline: #222b37;
-    --accent-tonal: #1d2b5a;
-    --track: #222b37;
-    --bar: #edf1f6;
-    --e1: 0 0 #0000;
-    --e2: 0 0 #0000;
-    --e3: 0 0 #0000;
+    --surface-0: #070b10;
+    --surface-100: #0e151c;
+    --surface-200: #16212b;
+    --line: #223040;
+    --ink: #e6edf3;
+    --ink-muted: #8b9bab;
+    --ion: #38bdf8;
+    --on-ion: #04121c;
+    --ion-tint: #0c2a3a;
+    --signal-ok: #3ddc84;
+    --signal-ok-text: #3ddc84;
+    --signal-ok-tint: #0d2a1b;
+    --on-signal-ok: #03140a;
+    --signal-soon: #fbbf24;
+    --signal-soon-text: #fbbf24;
+    --signal-soon-tint: #2e2408;
+    --on-signal-soon: #1f1500;
+    --signal-alert: #ff5c6c;
+    --signal-alert-text: #ff5c6c;
+    --signal-alert-tint: #3a1015;
+    --on-signal-alert: #1f0306;
+    --chart-1: #1e96d1;
+    --chart-2: #d55181;
+    --chart-3: #8a7fee;
+    --chart-prev: #647585;
+    --glow-alert: 0 0 0 1px #ff5c6c66, 0 0 20px #ff5c6c40;
+    --glow-ion: 0 0 0 1px #38bdf859, 0 0 16px #38bdf833;
+    --overlay: 0 24px 64px #00000080;
+    --scrim: #02060acc;
   }
+}
+
+/*
+ * Biến ngữ nghĩa của shadcn/ui, trỏ vào token trên → primitive thêm bằng `npx shadcn add` tự khớp màu.
+ * Ngoại lệ: --accent vẫn là tên CŨ (= ion) vì màn cũ đang dùng; primitive mới gặp `bg-accent` thì đổi sang `bg-surface-200`.
+ */
+:root {
+  --background: var(--surface-0);
+  --foreground: var(--ink);
+  --card: var(--surface-100);
+  --card-foreground: var(--ink);
+  --popover: var(--surface-100);
+  --popover-foreground: var(--ink);
+  --primary: var(--ion);
+  --primary-foreground: var(--on-ion);
+  --secondary: var(--surface-200);
+  --secondary-foreground: var(--ink);
+  --muted: var(--surface-200);
+  --muted-foreground: var(--ink-muted);
+  --destructive: var(--signal-alert);
+  --destructive-foreground: var(--on-signal-alert);
+  --border: var(--line);
+  --input: var(--ink-muted);
+  --ring: var(--ion);
+  --radius: 10px;
+}
+
+/*
+ * TÊN CŨ (Design System v4 "Precision Tonal", D-023) — CHỈ để màn chưa chuyển vẫn đúng màu mới. Không dùng trong code mới;
+ * màn nào chuyển sang component mới thì đổi luôn class sang tên mới. Hết chỗ dùng thì xoá khối này (docs/DESIGN.md §11).
+ */
+:root {
+  --bg: var(--surface-0);
+  --surface: var(--surface-100);
+  --surface-2: var(--surface-200);
+  --surface-3: var(--surface-200);
+  --text: var(--ink);
+  --text-2: var(--ink-muted);
+  --text-3: var(--ink-muted);
+  --text-secondary: var(--ink-muted);
+  --text-muted: var(--ink-muted);
+  --border-strong: var(--ink-muted);
+  --accent: var(--ion);
+  --accent-fg: var(--on-ion);
+  --accent-soft: var(--ion-tint);
+  --accent-tonal: var(--ion-tint);
+  --danger: var(--signal-alert-text);
+  --danger-bg: var(--signal-alert-tint);
+  --warning: var(--signal-soon-text);
+  --warning-bg: var(--signal-soon-tint);
+  --success: var(--signal-ok-text);
+  --success-bg: var(--signal-ok-tint);
+  --ai: var(--ion);
+  --ai-bg: var(--ion-tint);
+  --hairline: var(--line);
+  --track: var(--surface-200);
+  --bar: var(--chart-1);
+  /* Thiết kế mới không dùng bóng đổ cho thẻ (viền thay bóng); chỉ lớp nổi (sheet/dialog) có --shadow-overlay. */
+  --e1: 0 0 #0000;
+  --e2: 0 0 #0000;
+  --e3: var(--overlay);
 }

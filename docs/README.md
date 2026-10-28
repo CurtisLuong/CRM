@@ -9,7 +9,7 @@
 | `PRD.md` | Mục tiêu, 5 ưu tiên, đối chiếu v1 → v2, tính năng F-01…F-14 + nghiệm thu, ngoài phạm vi, chỉ số | Chọn/thiết kế/nghiệm thu tính năng |
 | `tasks.md` | Sóng, phụ thuộc, nhóm song song, thẻ task (Đọc/Sở hữu/Xong khi), bảng trạng thái, việc của chủ dự án | Mỗi phiên làm việc v2 |
 | `ARCHITECTURE.md` | Stack, cấu trúc `src/`, **hợp đồng dữ liệu (§3)**, đồng bộ, AI/Worker, cầu nối Android, build/PWA, chuyển đổi, bảng ánh xạ v1 → v2 | Chạm dữ liệu, sync, schema, build, deploy |
-| `DESIGN_SYSTEM.md` | DS v3 "Signal": token sáng/tối, chữ, khoảng cách, chuyển động, icon, component, bố cục | Mọi việc giao diện v2 |
+| `DESIGN.md` | Bản UI "Realty CRM" (D-028): 3 luật cứng + L1–L5, token, tín hiệu, phễu/SLA, hành động, bố cục, form, biểu đồ, chữ; mẫu sống `/dev/ui-kit` | Mọi việc giao diện |
 | `UX_GUIDELINES.md` | IA 4 tab, ngân sách số chạm, chuẩn Hôm nay/Hồ sơ, tín hiệu & gợi ý, luồng chuẩn, Hiệu quả, checklist | Mọi việc trải nghiệm v2 (đọc cùng DS) |
 | `prompts.md` | Prompt AI trong app (Worker `/ai`) + mẫu prompt cho coding agent | Sửa AI; giao việc cho agent |
 | `decisions.md` | Chỉ mục + sổ quyết định D-001…D-015, quy trình khi xung đột | Xung đột nguyên tắc, cần tiền lệ |
@@ -40,7 +40,7 @@
 ## Quy ước
 
 - Mỗi quy tắc có **một nơi chính**; file khác chỉ tóm tắt + trỏ tới. Khi đổi quy tắc, sửa nơi chính trước.
-- File Markdown mới: chữ thường, gạch nối (trừ các file quy định viết hoa đã có: `PRD.md`, `DESIGN_SYSTEM.md`, `UX_GUIDELINES.md`, `CLAUDE.md`, `AGENTS.md`, `README.md`).
+- File Markdown mới: chữ thường, gạch nối (trừ các file quy định viết hoa đã có: `PRD.md`, `DESIGN.md`, `UX_GUIDELINES.md`, `CLAUDE.md`, `AGENTS.md`, `README.md`).
 - Changelog không thay cho quyết định; quyết định chỉ ghi điều ảnh hưởng nguyên tắc/phạm vi.
 - `project-status.md` chỉ giữ trạng thái hữu ích cho bàn giao + điểm chưa xác minh, ghi ngày và môi trường kiểm tra.
 - Giữ `index.html`, `manifest.json`, `sw.js` ở root trên `main` tới cutover (đổi vị trí làm đổi phạm vi Service Worker). Trên nhánh `v2`, code v1 nằm trong `legacy/` (T1.1).

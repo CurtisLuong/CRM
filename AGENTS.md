@@ -19,7 +19,7 @@
 | `factory` | Phát triển v3 bằng AI Factory (`docs/factory-playbook.md`). Worker làm trong worktree riêng, nhánh `agent/<ID>` | Preview Cloudflare, Supabase **staging** (`docs/runbooks/factory-preview.md`) |
 | `v2` | Nhánh tích hợp cũ (`docs/tasks.md`, cổng `scripts/agents/merge-to-v2.mjs`) — tạm dừng theo D-024 | `crm-v2-9hf.pages.dev` (staging) |
 
-Code: `src/` — Vite + React 19 + TypeScript strict + Tailwind v4 + Radix (D-011). `legacy/` = code v1 chỉ để tham chiếu. Vỏ `android-app/` build Gradle/APK riêng (D-002); web luôn phải chạy đủ khi không có vỏ.
+Code: `src/` — Vite + React 19 + TypeScript strict + Tailwind v4 + shadcn/ui trên Radix (D-011, D-027, D-028). `legacy/` = code v1 chỉ để tham chiếu. Vỏ `android-app/` build Gradle/APK riêng (D-002); web luôn phải chạy đủ khi không có vỏ.
 
 ## 3. Luật bất biến của dự án
 
@@ -31,7 +31,7 @@ Code: `src/` — Vite + React 19 + TypeScript strict + Tailwind v4 + Radix (D-01
 6. **Tự động hoá theo quy tắc đã duyệt (D-008, D-010):** quá hạn mức SLA ở giai đoạn có cấu hình tự chuyển → app tự chuyển + tạo lịch kèm theo; giữ lịch sử, thông báo, Hoàn tác. Không mở rộng automation sang giai đoạn/hành động chưa duyệt.
 7. **Thời hạn (D-010):** việc có giờ quá hạn sau mốc +30 phút; hẹn gọi sau cuối khung +30 phút; việc cả ngày quá hạn từ ngày hôm sau. Mọi màn đọc cùng một hàm.
 8. **AI chỉ đề xuất:** không tự ghi, gửi, gọi, đổi bậc, giao khách, đặt lịch; mọi thay đổi qua hộp duyệt. Không gửi SĐT cho AI. Prompt chuẩn: `docs/prompts.md`.
-9. **UI/UX:** theo `docs/DESIGN_SYSTEM.md` (v4 "Precision Tonal", D-023 — 5 luật L1–L5) và `docs/UX_GUIDELINES.md`.
+9. **UI/UX:** theo `docs/DESIGN.md` (bản UI "Realty CRM", D-028 — 3 luật cứng + L1–L5) và `docs/UX_GUIDELINES.md`. Mẫu sống: route `/dev/ui-kit`.
 10. **Đơn giản:** tái sử dụng module có sẵn; không đổi kiến trúc để giải quyết một chỉnh sửa nhỏ.
 
 ## 4. Hàng rào chung — áp cho MỌI task
@@ -40,7 +40,7 @@ Code: `src/` — Vite + React 19 + TypeScript strict + Tailwind v4 + Radix (D-01
 - Chỉ sửa trong phạm vi được giao. Giữ nguyên hợp đồng (`docs/ARCHITECTURE.md` §0.2 + mục "Hợp đồng" của task).
 - Viết test mới cho hành vi mới (unit Vitest trong `tests/**` hoặc `src/**/*.test.ts`; e2e Playwright trong `tests/e2e/`). `npm run check` phải xanh, cùng mọi lệnh trong mục Nghiệm thu của task.
 - Làm đúng luật nghiệp vụ và số chuẩn trong task; dùng hàm có sẵn của `src/domain`, `src/config`, `src/ui/display.ts` thay vì tự tính lại.
-- Giao diện: chỉ token + component `src/ui` (Design System v4); kiểm 360px và desktop, sáng/tối, dấu tiếng Việt, không cuộn ngang.
+- Giao diện: chỉ token + component `src/components/ui` + `src/components/crm` (`docs/DESIGN.md`); trạng thái/độ gấp qua `src/lib/crm` (không tự chọn màu tín hiệu). `src/ui/*` cũ chỉ dùng ở màn chưa chuyển. Kiểm 360px và desktop, sáng/tối, dấu tiếng Việt, không cuộn ngang.
 - **Luật nghiệp vụ mâu thuẫn, thiếu, hoặc test bắt buộc trái luật → dừng và báo `BLOCKED: <câu hỏi>`** (mục 5), không tự đặt luật. Cách cài đặt thì tự quyết, không cần hỏi.
 
 **CẤM**
@@ -88,7 +88,7 @@ npm run dev      # chạy local
 | Khi cần | Đọc |
 |---|---|
 | Module, hợp đồng, luồng dữ liệu, vùng cấm, schema, đồng bộ, auth, Android shell | `docs/ARCHITECTURE.md` (§0 trước; §3 bắt buộc khi chạm dữ liệu) |
-| Giao diện, token, component | `docs/DESIGN_SYSTEM.md` · bản mẫu `docs/v3/mockups/` |
+| Giao diện, token, component | `docs/DESIGN.md` · mẫu sống `/dev/ui-kit` (`src/features/ui-kit/`) · nguồn thiết kế `realty-crm-ui/` |
 | Trải nghiệm, thứ tự thông tin, số chạm | `docs/UX_GUIDELINES.md` |
 | Phạm vi tính năng (F-xx) | `docs/PRD.md` |
 | Lộ trình v3, trạng thái | `docs/ROADMAP.md`, `docs/STATE.md` |

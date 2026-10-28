@@ -14,7 +14,10 @@
 | `src/config/*` | **Nguồn duy nhất** của nhãn, mã, ngưỡng, khung giờ, SLA, icon (CLAUDE.md §3.5) | — | Đổi nghĩa mã đã lưu (D-012); để màn khác tự định nghĩa lại |
 | `src/domain/*` | Logic thuần: khách (normalize, timeline, brief), thời hạn D-010, follow-up D-005, SLA/tự chuyển D-008, tín hiệu D-015, chỉ số, tìm kiếm, vay | `config` | Import React, IndexedDB, Supabase, `src/ui`, `src/features` |
 | `src/data/*` | IndexedDB, hàng đợi, đồng bộ, realtime, auth, repository, hooks | `config`, `domain` | Bị feature gọi vòng qua (feature chỉ dùng repository + hooks) |
-| `src/ui/*` | Component Design System v4 (D-023) + định dạng hiển thị `display.ts` | `config` (nhãn, icon) | Tự tính nghiệp vụ (thời hạn, SLA, nhóm) — chỉ nhận giá trị đã tính |
+| `src/components/ui/*`, `src/components/crm/*` | Bộ component UI mới (D-028, `docs/DESIGN.md`): primitive shadcn + mảnh CRM (AppShell, SignalBadge, SlaMeter, Timeline, DataTable, bộ lọc, biểu đồ) | `src/lib/crm`, `src/lib/utils` (`cn`), `radix-ui`, `recharts` | Tự tính nghiệp vụ, mã màu thô |
+| `src/lib/crm/*` | Nối luật app → dạng component cần: bậc + SLA (`stageDef`, `slaFor`, `slaMeterFor`), tín hiệu (`signalFor` theo D-010), 9 hành động, loại thông báo, định dạng | `config`, `domain` | Luật/số riêng (mọi số lấy từ `src/config`, `src/domain`) |
+| `src/ui/*` | **Cũ** (D-023, đang thay bằng `src/components`): component màn chưa chuyển + `display.ts`, `Icon.tsx`, `BlockBoundary.tsx` (vẫn dùng chung) | `config` (nhãn, icon) | Tự tính nghiệp vụ (thời hạn, SLA, nhóm) — chỉ nhận giá trị đã tính |
+| `src/ui/lib/utils.ts` | Đường dẫn cũ của `cn` (re-export `src/lib/utils.ts`) | — | — |
 | `src/features/<tên>/` | Một màn/tính năng: `route.tsx` (tự đăng ký), `model.ts` (hàm thuần của màn), component riêng | `config`, `domain`, `data/hooks`, `ui`, `features/quick-actions/store` | Sửa file của feature khác; đổi luật trong `domain` |
 | `src/app/*` | Khung app, router (gom `features/*/route.tsx`), layout, theme, lệnh | mọi module | Chứa logic nghiệp vụ |
 | `worker/` | Cloudflare Worker (OCR, AI, Facebook leads) | — | Deploy bởi agent |
@@ -35,7 +38,8 @@
 | Tín hiệu: `computeSignals(customers, ctx)` → `Signal` (nhóm `SIGNALS_CONFIG.groupOrder`, tín hiệu phụ trong `secondaryReasons`) | `src/domain/signals` | Hôm nay, thông báo |
 | Route: `export const route: FeatureRoute` trong `src/features/*/route.tsx`; `handle: { title?, hideNav? }` | `src/app/routes.ts`, `layout.tsx` | router |
 | Hiển thị: `displayText`, `displayDate`, `displayDateTime`, `callResultLabel`, `sourceLabel`, `intakeLabel` (D-023 L3) | `src/ui/display.ts` | mọi màn |
-| Component v4: `CustomerCard`, `CardGroup`, `SlaBar`, `SessionBar`, `StatTile`, `ActionBar`, `Button` (`primary` / `secondary` tonal / `accent` / `ghost` / `danger` / `ai`) | `src/ui/*`, `docs/DESIGN_SYSTEM.md` §3 | mọi màn |
+| Component cũ v4 (đang thay): `CustomerCard`, `CardGroup`, `SlaBar`, `SessionBar`, `StatTile`, `ActionBar`, `Button` (`primary` / `secondary` tonal / `accent` / `ghost` / `danger` / `ai`) | `src/ui/*`, `docs/DESIGN_SYSTEM.md` §3 | mọi màn |
+| Component mới (D-028): `AppShell`/`Sidebar`/`BottomNav`/`PageHeader`, `SignalBadge`, `StageChip`/`SlaMeter`/`StagePath`, `Timeline`, `ActionButton`/`ActionItem`, `DataTable`, bộ lọc, form, thông báo, biểu đồ — props theo `src/components/crm/*`; dữ liệu qua `src/lib/crm` (`stageDef`, `slaFor`, `slaMeterFor`, `signalFor`, `ACTIONS`, `NOTIF_TYPES`) | `src/components/**`, `src/lib/crm`, `docs/DESIGN.md` | màn mới / màn làm lại |
 
 ### 0.3 Luồng dữ liệu (tóm tắt — chi tiết §4)
 
@@ -93,7 +97,10 @@ Giai đoạn chuyển đổi: v1 vẫn chạy ở `main`. v2 phát triển trên
 │  ├─ features/<tên>/           mỗi tính năng 1 thư mục: route.tsx (auto-register), components, hooks
 │  │                            today, customers, profile, quick-actions, tasks, leads, insights,
 │  │                            retarget, catalog, loan, team, ai, settings, import-export, intake
-│  ├─ ui/                       component Design System (Button, Sheet, ListRow, …) + dev gallery
+│  ├─ components/ui/            primitive shadcn theo token (D-028) — button, dialog, sheet, select, table…
+│  ├─ components/crm/           component CRM mới (AppShell, SignalBadge, SlaMeter, Timeline, DataTable…); mẫu /dev/ui-kit
+│  ├─ lib/                      cn (utils.ts) + crm/ (nối config/domain → component: bậc, SLA, tín hiệu, hành động)
+│  ├─ ui/                       component CŨ (D-023) cho màn chưa chuyển + display.ts, Icon.tsx + gallery /dev/ui
 │  └─ styles/                   tokens.css (CSS variables light/dark), fonts
 ├─ tests/                       unit (Vitest), e2e (Playwright), fixtures/, golden/ (đầu ra v1)
 ├─ SQL/                         schema.sql (baseline), migration v1 (giữ nguyên), SQL/v2/NNN_*.sql
