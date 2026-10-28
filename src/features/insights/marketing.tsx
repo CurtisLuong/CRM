@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
+import { EmptyState } from '@/components/crm';
 import type { RepositoryAccount } from '@/data/repositories/session';
 import type { Customer } from '@/domain/customer';
 import { type MarketingLeadLog, marketingCohorts, marketingDimensions } from '@/domain/metrics/marketing';
-import { Badge, EmptyState } from '@/ui';
 
 const fmt = (value: number) => value.toLocaleString('vi-VN');
 const ratio = (n: number, d: number) => `${fmt(n)}/${fmt(d)}`;
@@ -106,22 +106,24 @@ export function MarketingSection({
   return (
     <section
       aria-labelledby="marketing-title"
-      className="flex flex-col gap-3 rounded-card border border-border bg-surface p-4 shadow-e1"
+      className="flex flex-col gap-3 rounded-lg border border-line bg-surface-100 p-4 "
     >
       <header className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <h2 id="marketing-title" className="text-heading">
+          <h2 id="marketing-title" className="text-title">
             Marketing
           </h2>
-          <p className="text-small text-text-2">
+          <p className="text-caption text-ink-muted">
             Chất lượng lead theo dữ liệu CRM hiện có; một khách có thể mang nhiều kênh nên tổng từng kênh có thể lớn hơn
             số khách duy nhất. Không suy ra quan hệ nhân quả.
           </p>
         </div>
-        <Badge>{fmt(customers.length)} khách trong mẫu</Badge>
+        <span className="rounded-sm border border-line px-2 py-1 text-caption text-ink-muted">
+          {fmt(customers.length)} khách trong mẫu
+        </span>
       </header>
-      <div className="rounded-control bg-surface-2 p-3 text-small text-text-2">
-        <strong className="text-text">Định nghĩa funnel:</strong> Hợp lệ = không có lý do “Số sai” hoặc “Phá campaign”;
+      <div className="rounded-md bg-surface-200 p-3 text-caption text-ink-muted">
+        <strong className="text-ink">Định nghĩa funnel:</strong> Hợp lệ = không có lý do “Số sai” hoặc “Phá campaign”;
         Liên lạc được = có cuộc gọi kết quả Nói chuyện được; Đạt = khách đã được xác nhận đạt yêu cầu; các mốc sau =
         lịch sử/bậc hiện tại. Mỗi ô là tử/mẫu cùng kỳ dữ liệu đã lưu.
       </div>
@@ -132,7 +134,7 @@ export function MarketingSection({
             type="button"
             role="tab"
             aria-selected={dimension === key}
-            className={`min-h-10 rounded-control border px-3 text-small ${dimension === key ? 'border-accent bg-accent-soft text-text' : 'border-border bg-surface text-text-2'}`}
+            className={`min-h-10 rounded-md border px-3 text-caption ${dimension === key ? 'border-ion bg-ion-tint text-ink' : 'border-line bg-surface-100 text-ink-muted'}`}
             onClick={() => setDimension(key)}
           >
             {tabLabel[key]}
@@ -142,22 +144,22 @@ export function MarketingSection({
       {!selected.length ? (
         <EmptyState
           title="Chưa có dữ liệu marketing"
-          hint="Các nhóm xuất hiện khi khách có nguồn, campaign hoặc form được ghi nhận."
+          text="Các nhóm xuất hiện khi khách có nguồn, campaign hoặc form được ghi nhận."
         />
       ) : (
         <div className="flex flex-col gap-4">
           {selected.map((group) => (
-            <article key={group.key} className="rounded-control border border-border p-3">
+            <article key={group.key} className="rounded-md border border-line p-3">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <h3 className="text-body-strong">{group.label}</h3>
-                <span className="text-small text-text-2">Lead: {fmt(group.leadCount)} khách</span>
+                <h3 className="text-body font-semibold">{group.label}</h3>
+                <span className="text-caption text-ink-muted">Lead: {fmt(group.leadCount)} khách</span>
               </div>
               <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
                 {group.funnel.map((stage, index) => (
-                  <div key={stage.key} className="min-w-0 rounded-control bg-surface-2 p-2">
-                    <p className="truncate text-xs text-text-2">{stage.label}</p>
-                    <p className="font-data text-mono-data">{ratio(stage.numerator, stage.denominator)}</p>
-                    <p className="text-xs text-text-3">
+                  <div key={stage.key} className="min-w-0 rounded-md bg-surface-200 p-2">
+                    <p className="truncate text-caption text-ink-muted">{stage.label}</p>
+                    <p className="font-mono text-label font-mono">{ratio(stage.numerator, stage.denominator)}</p>
+                    <p className="text-caption text-ink-muted">
                       {percent(stage.numerator, stage.denominator)}
                       {index ? ` · / lead` : ' · toàn nhóm'}
                     </p>
@@ -165,11 +167,11 @@ export function MarketingSection({
                 ))}
               </div>
               {group.reasons.length > 0 && (
-                <div className="mt-3 border-t border-border pt-2">
+                <div className="mt-3 border-t border-line pt-2">
                   <p className="text-label">
                     Lý do loại · mẫu số {fmt(group.reasons[0]?.denominator || 0)} khách bị loại
                   </p>
-                  <ul className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-small text-text-2">
+                  <ul className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-caption text-ink-muted">
                     {group.reasons.map((item) => (
                       <li key={item.reason}>
                         {item.reason}: {ratio(item.numerator, item.denominator)}
@@ -182,19 +184,19 @@ export function MarketingSection({
           ))}
         </div>
       )}
-      <section aria-labelledby="marketing-cohort-title" className="border-t border-border pt-3">
-        <h3 id="marketing-cohort-title" className="text-body-strong">
+      <section aria-labelledby="marketing-cohort-title" className="border-t border-line pt-3">
+        <h3 id="marketing-cohort-title" className="text-body font-semibold">
           Cohort đăng ký theo tháng
         </h3>
-        <p className="text-small text-text-2">
+        <p className="text-caption text-ink-muted">
           Booking và ký HĐMB tính trên cohort đã theo dõi đủ 30 ngày. Cohort chưa đủ thời gian có thể xem cỡ mẫu nhưng
           chưa có tỉ lệ.
         </p>
         {cohorts.length ? (
           <div className="mt-2 overflow-x-auto">
-            <table className="w-full min-w-[32rem] text-left text-small">
+            <table className="w-full min-w-[32rem] text-left text-caption">
               <thead>
-                <tr className="border-b border-border text-text-2">
+                <tr className="border-b border-line text-ink-muted">
                   <th className="py-2 pr-3">Tháng</th>
                   <th className="py-2 pr-3">Lead / trưởng thành</th>
                   <th className="py-2 pr-3">Booking / trưởng thành</th>
@@ -203,7 +205,7 @@ export function MarketingSection({
               </thead>
               <tbody>
                 {cohorts.map((cohort) => (
-                  <tr key={cohort.period} className="border-b border-border">
+                  <tr key={cohort.period} className="border-b border-line">
                     <th scope="row" className="py-2 pr-3">
                       {cohort.period}
                     </th>
@@ -225,19 +227,19 @@ export function MarketingSection({
             </table>
           </div>
         ) : (
-          <p className="mt-2 text-small text-text-3">Chưa có ngày đăng ký hợp lệ.</p>
+          <p className="mt-2 text-caption text-ink-muted">Chưa có ngày đăng ký hợp lệ.</p>
         )}
       </section>
-      <aside aria-label="Tình trạng nhận lead Facebook" className="border-t border-border pt-3">
-        <h3 className="text-body-strong">Đường thu lead Facebook</h3>
+      <aside aria-label="Tình trạng nhận lead Facebook" className="border-t border-line pt-3">
+        <h3 className="text-body font-semibold">Đường thu lead Facebook</h3>
         {logState.loading ? (
-          <p className="text-small text-text-2">Đang kiểm tra nhật ký…</p>
+          <p className="text-caption text-ink-muted">Đang kiểm tra nhật ký…</p>
         ) : logState.available ? (
-          <p className="text-small text-text-2">
+          <p className="text-caption text-ink-muted">
             Lần nhận cuối: {latestLabel} · lỗi trong 5.000 bản ghi gần nhất: {fmt(logState.errors)}.
           </p>
         ) : (
-          <p className="text-small text-text-2">
+          <p className="text-caption text-ink-muted">
             Không đọc được nhật ký (có thể cần quyền admin) hoặc đang ngoại tuyến; chưa thể kết luận connector hoạt động
             hay có lỗi.
           </p>
