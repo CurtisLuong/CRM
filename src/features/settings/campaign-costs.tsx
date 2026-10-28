@@ -219,7 +219,7 @@ export function CampaignCostsSection({
               <input className={FIELD} maxLength={500} value={note} onChange={(event) => setNote(event.target.value)} />
             </label>
             <div className="flex flex-wrap items-center gap-3 sm:col-span-2">
-              <Button type="submit" variant="primary">
+              <Button type="submit" variant="primary" disabled={loading || saving}>
                 Lưu chi phí
               </Button>
               {status && (

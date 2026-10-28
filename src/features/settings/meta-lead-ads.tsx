@@ -1,8 +1,12 @@
 import { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router';
+import { SignalBadge } from '@/components/crm';
 import { Skeleton } from '@/components/ui/skeleton';
 import { type IntegrationHealth, useIntegrationHealth } from '@/data/hooks';
 import { integrationHealthSummary, META_LEAD_ADS_ANCHOR, META_LEAD_ADS_ID } from './model';
+
+// Tình trạng kết nối là tín hiệu: hoạt động = ok, cần chú ý = soon, lỗi = alert (DESIGN §2).
+const HEALTH_LEVEL = { success: 'ok', warning: 'soon', danger: 'alert' } as const;
 
 /** Thẻ tình trạng kết nối Facebook Lead Ads: chỉ đọc, không có nút ghi/gọi Worker. */
 export function MetaLeadAdsSection() {
@@ -52,9 +56,7 @@ function HealthDetails({ row }: { row: IntegrationHealth }) {
   return (
     <>
       <div className="mt-3 flex flex-wrap items-center gap-2">
-        <span className="rounded-md border border-line bg-surface-200 px-2.5 py-1 text-label">
-          {summary.level.label}
-        </span>
+        <SignalBadge level={HEALTH_LEVEL[summary.level.tone]}>{summary.level.label}</SignalBadge>
         <span className="text-caption text-ink-muted">{summary.checkedText}</span>
       </div>
       {summary.message && <p className="mt-3 whitespace-pre-wrap text-body">{summary.message}</p>}
