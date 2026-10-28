@@ -175,7 +175,7 @@ export function RootLayout() {
               }
             />
           }
-          mainClassName="px-0 pt-0 md:px-0"
+          mainClassName="block px-0 pt-0 md:px-0"
           wide={wide}
           aside={aside}
           asideRef={setAsideElement}
