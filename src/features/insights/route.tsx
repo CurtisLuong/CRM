@@ -9,6 +9,7 @@ import { MarketingSection } from './marketing';
 import {
   funnelChartData,
   funnelChartTitle,
+  headlineDelta,
   headlineTiles,
   insightReport,
   sourceChartData,
@@ -91,15 +92,7 @@ export function InsightsPage() {
                 value={tile.value}
                 unit={tile.unit}
                 fraction={tile.sub}
-                delta={
-                  tile.trend
-                    ? {
-                        dir: tile.trend.dir === 'flat' ? 'up' : tile.trend.dir,
-                        text: tile.trend.text,
-                        good: tile.trend.tone !== 'bad',
-                      }
-                    : undefined
-                }
+                delta={headlineDelta(tile.trend)}
               />
             </Suspense>
           </button>

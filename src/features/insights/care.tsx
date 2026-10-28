@@ -2,6 +2,8 @@ import { lazy, Suspense, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { CARE_STAGES } from '@/config/stages';
+import { VELOCITY_CONFIG } from '@/config/velocity';
 import type { Customer } from '@/domain/customer';
 import { CARE_METRIC_CONFIG, careHealth, fullCareMetrics } from '@/domain/metrics/care';
 import {
@@ -31,6 +33,10 @@ export function CareSection({ customers, now }: { customers: readonly Customer[]
   const metrics = useMemo(() => fullCareMetrics(customers, now), [customers, now]);
   const slotData = useMemo(() => slotChartData(metrics.slots), [metrics.slots]);
   const stageData = useMemo(() => stageSlaChartData(metrics.stages), [metrics.stages]);
+  const stagesWithAging = metrics.stages.flatMap((stage, index) => {
+    const aging = stageData[index];
+    return aging ? [{ stage, aging }] : [];
+  });
   const touchData = useMemo(() => touchConversionChartData(metrics.conversion), [metrics.conversion]);
   const [selected, setSelected] = useState<{ title: string; ids: string[] } | null>(null);
   const rowsById = useMemo(() => new Map(customers.map((customer) => [customer.id, customer])), [customers]);
@@ -192,31 +198,35 @@ export function CareSection({ customers, now }: { customers: readonly Customer[]
           <Suspense fallback={<Skeleton className="h-56 w-full" />}>
             <StageView
               headline={stageSlaChartTitle(stageData)}
-              rows={metrics.stages.map((stage) => ({
-                stage: stage.key as never,
-                ok: stage.total - stage.targetExceeded - stage.limitExceeded,
-                soon: stage.targetExceeded,
-                alert: stage.limitExceeded,
+              rows={stagesWithAging.map(({ stage, aging }) => ({
+                // StageAgingChart nhận care_stage đã lưu (hiện tên bậc), không phải khoá velocity ('care').
+                stage: CARE_STAGES[VELOCITY_CONFIG.order.indexOf(stage.key)] ?? stage.label,
+                ok: aging.onTime,
+                soon: aging.near,
+                alert: aging.overdue,
                 onClick: () => pick(stage.label, stage.customerIds),
               }))}
             />
           </Suspense>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-5">
-            {metrics.stages.map((stage) => (
-              <button
-                key={stage.key}
-                type="button"
-                className="rounded-md border border-line p-3 text-left hover:bg-surface-200 focus-visible:outline-2 focus-visible:outline-ion"
-                onClick={() => pick(stage.label, stage.customerIds)}
-              >
-                <span className="block text-label">{stage.label}</span>
-                <span className="block font-mono text-title">{stage.total} khách</span>
-                <span className="block text-caption text-ink-muted">
-                  {stage.targetExceeded} quá mục tiêu · {stage.limitExceeded} quá hạn mức
-                </span>
-                <span className="block text-caption text-ink-muted">{stage.definition}</span>
-              </button>
-            ))}
+            {stagesWithAging.map(({ stage, aging }, index) => {
+              return (
+                <button
+                  key={stage.key}
+                  data-testid={`stage-aging-list-${index}`}
+                  type="button"
+                  className="rounded-md border border-line p-3 text-left hover:bg-surface-200 focus-visible:outline-2 focus-visible:outline-ion"
+                  onClick={() => pick(stage.label, stage.customerIds)}
+                >
+                  <span className="block text-label">{stage.label}</span>
+                  <span className="block font-mono text-title">{stage.total} khách</span>
+                  <span className="block text-caption text-ink-muted">
+                    {aging.onTime} trong mục tiêu · {aging.near} đã qua mục tiêu · {aging.overdue} quá hạn mức
+                  </span>
+                  <span className="block text-caption text-ink-muted">{stage.definition}</span>
+                </button>
+              );
+            })}
           </div>
         </article>
         {tile(

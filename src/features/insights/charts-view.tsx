@@ -49,21 +49,18 @@ export function FunnelView({
   return (
     <ChartCard
       title="Phễu và tốc độ"
-      headline={total < 10 ? `${n(total)} khách đã vào phễu` : `${headline} · ${n(total)} khách`}
-      sample={{ n: total }}
+      headline={`${headline} · ${n(total)} khách`}
       definition="Số khách đã tới từng bậc trên tổng khách vào phễu; tỉ lệ chuyển tiếp so với bậc liền trước. Nuôi dài hạn nằm ngoài phễu."
       legend={[{ color: 'var(--chart-1)', label: 'Khách đã tới bậc' }]}
     >
-      <FunnelChart
-        total={total}
-        steps={data.map((row) => ({ label: row.label, count: row.value ?? 0 }))}
-        outside={outside}
-      />
-      <svg
-        role="application"
-        aria-label="Số khách theo bậc"
-        className="h-5 w-full overflow-visible text-caption text-ink-muted"
-      >
+      <div data-testid="insights-funnel-kit">
+        <FunnelChart
+          total={total}
+          steps={data.map((row) => ({ label: row.label, count: row.value ?? 0 }))}
+          outside={outside}
+        />
+      </div>
+      <svg aria-label="Số khách theo bậc" className="h-5 w-full overflow-visible text-caption text-ink-muted">
         {data.map((row, index) => (
           <text key={row.label} x={`${(index / Math.max(data.length - 1, 1)) * 94}%`} y="15">
             {n(row.value ?? 0)} khách
@@ -151,12 +148,10 @@ export function RateView({
 }
 
 export function SourceView({ data, headline }: { data: Point[]; headline: string }) {
-  const sampleCount = Math.max(0, ...data.map((row) => row.denominator ?? 0));
   return (
     <ChartCard
       title="Nguồn khách"
-      headline={sampleCount < 10 ? 'Số khách theo nguồn trong dữ liệu đã lưu' : headline}
-      sample={{ n: sampleCount }}
+      headline={headline}
       definition="Một khách có thể có nhiều nguồn đã lưu, nên tổng theo nguồn có thể lớn hơn số khách duy nhất. Tỉ lệ Đạt = khách Đạt / khách theo nguồn."
       legend={[{ color: 'var(--chart-1)', label: 'Khách theo nguồn' }]}
     >
@@ -164,10 +159,8 @@ export function SourceView({ data, headline }: { data: Point[]; headline: string
         data={data.map((row) => ({
           ...row,
           value: row.denominator ?? 0,
-          n: row.denominator,
           sub: row.percent == null ? '—' : `${row.numerator}/${row.denominator} · ${row.percent}%`,
         }))}
-        minSample={10}
         layout="horizontal"
         format={(value) => n(value ?? 0)}
       />
@@ -182,12 +175,10 @@ export function StageView({
   rows: { stage: Stage; ok: number; soon: number; alert: number; onClick: () => void }[];
   headline: string;
 }) {
-  const count = rows.reduce((sum, row) => sum + row.ok + row.soon + row.alert, 0);
   return (
     <ChartCard
       title="Phân bố khách theo SLA"
-      headline={count < 10 ? `${n(count)} khách đang ở các bậc có SLA` : headline}
-      sample={{ n: count }}
+      headline={headline}
       definition="Số khách mỗi bậc theo trạng thái so với mục tiêu và hạn mức SLA của bậc."
       legend={[
         { color: 'var(--ok)', label: 'Trong mục tiêu' },
