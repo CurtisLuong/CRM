@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import type { FeatureRoute } from '@/app/routes';
 import { isDemo } from '@/app/session';
@@ -6,15 +6,18 @@ import { useCustomers, useRepositoryAccount } from '@/data/hooks';
 import { appendInteractionPatch, createInteraction } from '@/domain/customer/interactions';
 import { Button, EmptyState, useToast } from '@/ui';
 import {
+  defaultProject,
+  filterItems,
   formatBytes,
-  initiallySelected,
   normalizeProject,
   type SendKitFile,
   type SendKitItem,
   selectedFiles,
+  selectFirstShownProject,
   sendKitText,
   totalFileSize,
   uniqueProjects,
+  visibleItems,
 } from './model';
 import { deleteSendKitItem, listSendKitItems, reorderSendKitItems, saveSendKitItem } from './store';
 
@@ -55,6 +58,11 @@ function SendKitPage() {
   const [error, setError] = useState('');
   const [catalogProjects, setCatalogProjects] = useState<string[]>([]);
   const [confirmText, setConfirmText] = useState(false);
+  const [activeProject, setActiveProject] = useState<string | null>(null);
+  const [searchText, setSearchText] = useState('');
+  const [pasteHelpMessage, setPasteHelpMessage] = useState('');
+  const initializedCustomer = useRef<string | null>(null);
+  const shownProjects = useRef(new Set<string>());
 
   const projectNames = useMemo(() => {
     const fromCustomers = customers.flatMap((row) =>
@@ -95,20 +103,32 @@ function SendKitPage() {
   }, [userId, account]);
 
   useEffect(() => {
-    if (!customer) return;
-    setSelected(
-      new Set(items.filter((item) => initiallySelected(item, customer.projects ?? [])).map((item) => item.id)),
-    );
-  }, [customer, items]);
+    if (!customer || loading || initializedCustomer.current === customer.id) return;
+    const initialProject = defaultProject(customer.projects ?? [], items);
+    initializedCustomer.current = customer.id;
+    shownProjects.current = new Set([initialProject === null ? '__all__' : normalizeProject(initialProject)]);
+    setActiveProject(initialProject);
+    setSelected(selectFirstShownProject(items, new Set(), initialProject, true));
+  }, [customer, items, loading]);
 
-  const grouped = useMemo(() => {
-    const groups = new Map<string, SendKitItem[]>();
-    for (const item of items) {
-      const key = item.project ?? '';
-      groups.set(key, [...(groups.get(key) ?? []), item]);
+  const projectOptions = useMemo(
+    () => uniqueProjects([...projectNames, ...items.map((item) => item.project ?? '').filter(Boolean)]),
+    [projectNames, items],
+  );
+  const shownItems = useMemo(
+    () => filterItems(visibleItems(items, activeProject), searchText),
+    [items, activeProject, searchText],
+  );
+  const changeProject = (project: string | null) => {
+    setActiveProject(project);
+    if (customer) {
+      const key = project === null ? '__all__' : normalizeProject(project);
+      if (!shownProjects.current.has(key)) {
+        shownProjects.current.add(key);
+        setSelected((old) => selectFirstShownProject(items, old, project));
+      }
     }
-    return groups;
-  }, [items]);
+  };
 
   const beginCreate = () => {
     setEditing(null);
@@ -163,6 +183,11 @@ function SendKitPage() {
       const next = items.filter((row) => row.id !== item.id).map((row, index) => ({ ...row, order: index }));
       await reorderSendKitItems(userId, next);
       setItems(next);
+      setSelected((old) => {
+        const selection = new Set(old);
+        selection.delete(item.id);
+        return selection;
+      });
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Không xoá được tài liệu.');
     }
@@ -227,7 +252,8 @@ function SendKitPage() {
             createInteraction('sent', userId, new Date().toISOString(), `Đã gửi tài liệu: ${titles}`),
           ),
         );
-        toast({ title: 'Đã chép chữ', description: 'Nếu Zalo không kèm chữ, dán vào khung chat.' });
+        if (attachments.length >= 2 && message) setPasteHelpMessage(message);
+        else toast({ title: 'Đã chép chữ', description: 'Nếu Zalo không kèm chữ, dán vào khung chat.' });
       } else {
         if (message) await navigator.clipboard.writeText(message);
         for (const file of shareFiles) {
@@ -240,6 +266,7 @@ function SendKitPage() {
         }
         const { copyAndOpenZalo } = await import('@/features/quick-actions/zalo');
         await copyAndOpenZalo(message, customer.phone);
+        if (attachments.length >= 2 && message) setPasteHelpMessage(message);
         toast({
           title: 'Đã chép chữ, mở Zalo và tải tệp',
           description: 'Thiết bị này không hỗ trợ chia sẻ tệp trực tiếp; hãy đính kèm các tệp vừa tải trong Zalo.',
@@ -288,6 +315,10 @@ function SendKitPage() {
     });
   const selectedCount = selected.size;
   const selectedFileCount = selectedFiles(items, selected).length;
+  const hiddenSelected = items.filter(
+    (item) => selected.has(item.id) && !shownItems.some((visible) => visible.id === item.id),
+  );
+  const projectValue = activeProject ?? '__all__';
   if (!account || !userId)
     return (
       <main className="mx-auto max-w-3xl p-4">
@@ -306,20 +337,22 @@ function SendKitPage() {
 
   if (customer) {
     const customerProjectNames = uniqueProjects(customer.projects ?? []);
-    const common = items.filter((item) => item.project === null);
-    const matched = items.filter(
-      (item) =>
-        item.project &&
-        customerProjectNames.some((name) => normalizeProject(name) === normalizeProject(item.project ?? '')),
-    );
-    const other = items.filter((item) => item.project && !matched.includes(item));
-    const groups: [string, SendKitItem[]][] = [
-      ['Chung', common],
-      ['Dự án của khách', matched],
-      ['Dự án khác', other],
+    const prioritizedProjects = [
+      ...customerProjectNames.filter((name) =>
+        projectOptions.some((option) => normalizeProject(option) === normalizeProject(name)),
+      ),
+      ...projectOptions.filter(
+        (name) =>
+          !customerProjectNames.some((customerName) => normalizeProject(customerName) === normalizeProject(name)),
+      ),
     ];
+    const commonItems = shownItems.filter((item) => item.project === null);
+    const projectItems = shownItems.filter((item) => item.project !== null);
+    const activeIsCustomerProject =
+      !!activeProject &&
+      customerProjectNames.some((name) => normalizeProject(name) === normalizeProject(activeProject));
     return (
-      <main className="mx-auto flex max-w-3xl flex-col gap-4 p-4 pb-28">
+      <main className="mx-auto flex max-w-3xl flex-col gap-4 p-4 pb-36">
         <header className="flex items-center justify-between gap-3">
           <div>
             <p className="text-small text-text-2">Gửi tài liệu</p>
@@ -334,34 +367,112 @@ function SendKitPage() {
             Khách nhóm · Chỉ xem. Gửi tài liệu bị tắt.
           </p>
         )}
-        {groups.map(
-          ([label, rows]) =>
-            rows.length > 0 && (
-              <section key={label} className="flex flex-col gap-2">
-                <h2 className="text-heading">{label}</h2>
-                {rows.map((item) => (
-                  <label
-                    key={item.id}
-                    className="flex min-h-12 items-start gap-3 rounded-control border border-border bg-surface p-3"
-                  >
-                    <input
-                      type="checkbox"
-                      className="mt-1 size-4 accent-current"
-                      checked={selected.has(item.id)}
-                      onChange={() => toggle(item.id)}
-                    />
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-body-strong">{item.title}</span>
-                      <span className="text-small text-text-2">
-                        {item.files.length ? sizeLabel(item.files) : 'Chỉ có chữ'}
-                      </span>
-                    </span>
-                  </label>
-                ))}
-              </section>
-            ),
+        <div className="sticky top-0 z-20 -mx-4 flex flex-col gap-2 border-y border-border bg-surface p-3 shadow-sm sm:flex-row">
+          <label className="flex min-w-0 flex-1 flex-col gap-1 text-small">
+            Dự án
+            <select
+              aria-label="Dự án"
+              className={FIELD}
+              value={projectValue}
+              onChange={(event) => changeProject(event.target.value === '__all__' ? null : event.target.value)}
+            >
+              <option value="__all__">Tất cả dự án</option>
+              {prioritizedProjects.map((name) => {
+                const belongsToCustomer = customerProjectNames.some(
+                  (customerName) => normalizeProject(customerName) === normalizeProject(name),
+                );
+                return (
+                  <option key={name} value={name}>
+                    {name}
+                    {belongsToCustomer ? ' · của khách' : ''}
+                  </option>
+                );
+              })}
+            </select>
+          </label>
+          <label className="flex min-w-0 flex-1 flex-col gap-1 text-small">
+            Tìm tài liệu
+            <input
+              aria-label="Tìm tài liệu"
+              className={FIELD}
+              value={searchText}
+              onChange={(event) => setSearchText(event.target.value)}
+              placeholder="Tiêu đề, nội dung, tên tệp"
+            />
+          </label>
+        </div>
+        {commonItems.length > 0 && (
+          <section className="flex flex-col gap-2">
+            <h2 className="text-heading">Chung</h2>
+            {commonItems.map((item) => (
+              <label
+                key={item.id}
+                className="flex min-h-12 items-start gap-3 rounded-control border border-border bg-surface p-3"
+              >
+                <input
+                  type="checkbox"
+                  className="mt-1 size-4 accent-current"
+                  checked={selected.has(item.id)}
+                  onChange={() => toggle(item.id)}
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-body-strong">{item.title}</span>
+                  <span className="text-small text-text-2">
+                    {item.files.length ? sizeLabel(item.files) : 'Chỉ có chữ'}
+                  </span>
+                </span>
+              </label>
+            ))}
+          </section>
         )}
-        {items.length === 0 && <EmptyState title="Chưa có tài liệu" hint="Thêm tài liệu trước khi gửi cho khách." />}
+        {projectItems.length > 0 && (
+          <section className="flex flex-col gap-2">
+            <h2 className="text-heading">
+              {activeProject === null ? 'Dự án' : `${activeProject}${activeIsCustomerProject ? ' · của khách' : ''}`}
+            </h2>
+            {projectItems.map((item) => (
+              <label
+                key={item.id}
+                className="flex min-h-12 items-start gap-3 rounded-control border border-border bg-surface p-3"
+              >
+                <input
+                  type="checkbox"
+                  className="mt-1 size-4 accent-current"
+                  checked={selected.has(item.id)}
+                  onChange={() => toggle(item.id)}
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-body-strong">{item.title}</span>
+                  <span className="text-small text-text-2">
+                    {item.files.length ? sizeLabel(item.files) : 'Chỉ có chữ'}
+                  </span>
+                </span>
+              </label>
+            ))}
+          </section>
+        )}
+        {shownItems.length === 0 &&
+          (searchText.trim() ? (
+            <EmptyState
+              title="Không có tài liệu khớp"
+              action={{ label: 'Xoá tìm kiếm', onClick: () => setSearchText('') }}
+            />
+          ) : (
+            <EmptyState title="Chưa có tài liệu" hint="Thêm tài liệu trước khi gửi cho khách." />
+          ))}
+        {hiddenSelected.length > 0 && (
+          <details className="rounded-control border border-border bg-surface p-3">
+            <summary className="cursor-pointer text-body-strong">Mục đã chọn đang ẩn · {hiddenSelected.length}</summary>
+            <div className="mt-2 flex flex-col gap-2">
+              {hiddenSelected.map((item) => (
+                <label key={item.id} className="flex items-center gap-2 text-small">
+                  <input type="checkbox" checked onChange={() => toggle(item.id)} />
+                  {item.title} · {item.project ?? 'Chung'}
+                </label>
+              ))}
+            </div>
+          </details>
+        )}
         {error && (
           <p role="alert" className="text-small text-danger">
             {error}
@@ -369,6 +480,9 @@ function SendKitPage() {
         )}
         <footer className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-surface p-3">
           <div className="mx-auto max-w-3xl">
+            <p className="mb-2 text-center text-small text-text-2">
+              Đã chọn {selectedCount} mục · {selectedFileCount} tệp
+            </p>
             <Button
               variant="primary"
               block
@@ -380,6 +494,19 @@ function SendKitPage() {
             </Button>
           </div>
         </footer>
+        {pasteHelpMessage && (
+          <aside
+            role="status"
+            className="fixed inset-x-0 bottom-28 z-40 mx-auto flex max-w-3xl flex-col gap-2 border border-border bg-surface p-3 shadow-lg"
+          >
+            <p className="text-small">
+              Zalo không kèm chữ khi gửi nhiều tệp. Chữ đã chép sẵn — trong Zalo giữ ô chat → Dán → Gửi.
+            </p>
+            <Button variant="secondary" onClick={() => void navigator.clipboard.writeText(pasteHelpMessage)}>
+              Chép lại chữ
+            </Button>
+          </aside>
+        )}
         {confirmText && (
           <div className="flex flex-col gap-2">
             <Button
@@ -395,10 +522,7 @@ function SendKitPage() {
     );
   }
 
-  const groupNames = [
-    '',
-    ...uniqueProjects([...projectNames, ...items.map((item) => item.project ?? '').filter(Boolean)]),
-  ];
+  const groupNames = activeProject === null ? ['', ...projectOptions] : ['', activeProject];
   return (
     <main className="mx-auto flex max-w-4xl flex-col gap-4 p-4">
       <header className="flex items-center justify-between gap-3">
@@ -411,6 +535,34 @@ function SendKitPage() {
         </Button>
       </header>
       <p className="text-small text-text-2">Bản thử: tài liệu lưu trên máy này, chưa đồng bộ sang máy khác</p>
+      <div className="sticky top-0 z-20 -mx-4 flex flex-col gap-2 border-y border-border bg-surface p-3 shadow-sm sm:flex-row">
+        <label className="flex min-w-0 flex-1 flex-col gap-1 text-small">
+          Dự án
+          <select
+            aria-label="Dự án"
+            className={FIELD}
+            value={projectValue}
+            onChange={(event) => changeProject(event.target.value === '__all__' ? null : event.target.value)}
+          >
+            <option value="__all__">Tất cả dự án</option>
+            {projectOptions.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex min-w-0 flex-1 flex-col gap-1 text-small">
+          Tìm tài liệu
+          <input
+            aria-label="Tìm tài liệu"
+            className={FIELD}
+            value={searchText}
+            onChange={(event) => setSearchText(event.target.value)}
+            placeholder="Tiêu đề, nội dung, tên tệp"
+          />
+        </label>
+      </div>
       {error && (
         <p role="alert" className="text-small text-danger">
           {error}
@@ -426,10 +578,23 @@ function SendKitPage() {
           hint="Lưu điều kiện mua, giấy tờ hoặc tệp dự án để gửi nhanh."
           action={{ label: 'Thêm tài liệu', onClick: beginCreate, icon: 'add' }}
         />
+      ) : shownItems.length === 0 ? (
+        searchText.trim() ? (
+          <EmptyState
+            title="Không có tài liệu khớp"
+            action={{ label: 'Xoá tìm kiếm', onClick: () => setSearchText('') }}
+          />
+        ) : (
+          <EmptyState
+            title="Chưa có tài liệu"
+            hint="Lưu điều kiện mua, giấy tờ hoặc tệp dự án để gửi nhanh."
+            action={{ label: 'Thêm tài liệu', onClick: beginCreate, icon: 'add' }}
+          />
+        )
       ) : (
         <div className="flex flex-col gap-4">
           {groupNames.map((name) => {
-            const rows = grouped.get(name) ?? [];
+            const rows = shownItems.filter((item) => (item.project ?? '') === name);
             if (!rows.length && name) return null;
             return (
               <details key={name || 'common'} open className="rounded-card border border-border bg-surface p-3">
