@@ -11,7 +11,6 @@ import { useCustomers, useRepositoryAccount, useSyncStatus } from '@/data/hooks'
 import type { Task } from '@/domain/customer';
 import { snoozePromise, undoPromiseSnooze } from '@/domain/deadlines/promises';
 import { forStage } from '@/domain/followup';
-import type { SignalAction } from '@/domain/signals';
 import { applySlaPlan, planSlaAutomation, slaPlanMessage } from '@/domain/velocity/automation';
 import { openQuickAction } from '@/features/quick-actions/store';
 import { ACTION_BY_ID, type ActionId, NOTIF_TYPES, slaMeterFor } from '@/lib/crm';
@@ -30,15 +29,6 @@ import {
   todayUrgencyCounts,
   urgencyForRow,
 } from './model';
-
-const UI_ACTION: Partial<Record<SignalAction, ActionId>> = {
-  call: 'call',
-  zalo: 'message',
-  schedule: 'call_sched',
-  classify: 'note',
-  open_profile: 'note',
-  record_call: 'note',
-};
 
 function CallSessionBar({
   title,
@@ -244,15 +234,8 @@ export function TodayPage() {
     const task = signalTask(signal, customer);
     const group = rowGroup(signal);
     const notification = NOTIF_TYPES[group ?? 'system'];
-    const signalAction = signal.actions.map((candidate) => UI_ACTION[candidate]).find(Boolean);
     const actionId: ActionId | undefined =
-      card.action === 'call'
-        ? 'call'
-        : card.action === 'outcome'
-          ? 'note'
-          : card.action === 'open'
-            ? (notification.action ?? signalAction)
-            : undefined;
+      card.action === 'call' ? 'call' : card.action === 'outcome' ? 'note' : undefined;
     const actionLabel =
       card.action === 'call'
         ? ACTION_BY_ID.call.short
@@ -260,7 +243,7 @@ export function TodayPage() {
           ? 'Xong'
           : card.action === 'outcome'
             ? 'Ghi kết quả'
-            : (notification.cta ?? (actionId ? ACTION_BY_ID[actionId].short : 'Mở'));
+            : 'Mở';
     const actionAriaLabel = `${actionLabel} ${customer.full_name}${level === 'alert' ? ' · Làm ngay' : ''}`;
     const title =
       task?.text ||

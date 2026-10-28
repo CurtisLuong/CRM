@@ -69,7 +69,7 @@ describe('urgencyForRow', () => {
     expect(urgencyForRow(item, Date.parse('2026-10-28T14:00:00+07:00'))).toBe('alert');
   });
 
-  it('ưu tiên hạn việc cụ thể trong tín hiệu phụ trước SLA tổng quát', () => {
+  it('mức của dòng = mức gấp nhất: SLA quá hạn mức không bị việc phụ hạ xuống', () => {
     const due = '2026-10-28T10:00:00+07:00';
     const task = { at: 'task-at', text: 'Gọi khách', due, kind: 'call' as const };
     const customerRecord = customer({
@@ -102,8 +102,14 @@ describe('urgencyForRow', () => {
       secondaryReasons: [taskSignal],
     });
 
-    expect(urgencyForRow(item, Date.parse('2026-10-28T10:29:00+07:00'))).toBe('soon');
+    // Đang chăm sóc từ 01/10 → 27 ngày > hạn mức 20 ngày (D-008) → alert dù việc phụ 10:00 còn trong +30 phút.
+    expect(urgencyForRow(item, Date.parse('2026-10-28T10:29:00+07:00'))).toBe('alert');
     expect(urgencyForRow(item, Date.parse('2026-10-28T10:31:00+07:00'))).toBe('alert');
+
+    // Vào bậc 26/10 → SLA còn đúng mục tiêu; việc phụ 10:00 quyết định: 10:29 soon, 10:31 alert (D-010).
+    const fresh = { ...item, customer: { ...customerRecord, care_stage_updated_at: '2026-10-26T09:00:00+07:00' } };
+    expect(urgencyForRow(fresh, Date.parse('2026-10-28T10:29:00+07:00'))).toBe('soon');
+    expect(urgencyForRow(fresh, Date.parse('2026-10-28T10:31:00+07:00'))).toBe('alert');
   });
 });
 

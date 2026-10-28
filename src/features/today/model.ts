@@ -8,7 +8,7 @@ import { callAttemptsOf, sourceListOf } from '@/domain/customer/normalize';
 import { countdownTag, fmtClock, taskDayLabel } from '@/domain/deadlines';
 import { computeSignals, type Signal } from '@/domain/signals';
 import { fmt as fmtDuration, status as slaStatus } from '@/domain/velocity/engine';
-import { type Level, signalFor, slaFor, slaMeterFor } from '@/lib/crm';
+import { LEVEL_ORDER, type Level, signalFor, slaFor, slaMeterFor } from '@/lib/crm';
 import { callResultLabel, displayText, sourceLabel } from '@/ui/display';
 
 export type QueueFilter = 'priority' | 'new' | 'promise' | 'opportunity';
@@ -286,20 +286,14 @@ export function groupQueue(rows: readonly QueueRow[]): TodayGroup[] {
 
 /** Việc (next_tasks) mà tín hiệu nhắc tới — để nút Xong hoàn tất đúng việc. */
 export function signalTask(signal: Signal, customer: Customer): Task | undefined {
-  const evidences = [signal, ...(signal.secondaryReasons ?? [])]
-    .map((item) => item.evidence.find((entry) => entry.field === 'task')?.value as Partial<Task> | undefined)
-    .filter((entry): entry is Partial<Task> => !!entry);
-  if (!evidences.length) return undefined;
+  const ev = signal.evidence.find((entry) => entry.field === 'task')?.value as Partial<Task> | undefined;
   return (Array.isArray(customer.next_tasks) ? customer.next_tasks : []).find(
     (entry): entry is Task =>
       !!entry &&
       !entry.done_at &&
-      evidences.some(
-        (ev) =>
-          (!!ev.key && entry.key === ev.key) ||
-          (!!ev.at && entry.at === ev.at) ||
-          (!ev.key && !ev.at && entry.due === ev.due && entry.text === ev.text),
-      ),
+      ((!!ev?.key && entry.key === ev.key) ||
+        (!!ev?.at && entry.at === ev.at) ||
+        (!ev?.key && !ev?.at && entry.due === ev?.due && entry.text === ev?.text)),
   );
 }
 
@@ -420,36 +414,32 @@ export function todayCard(row: QueueRow, now: number): TodayCard {
   return { tone, when, detail, facts, note, sla, action };
 }
 
-/** Mức gấp của dòng: hạn công việc trước, sau đó SLA; tín hiệu SLA dùng đồng hồ SLA thay vì mốc sắp xếp. */
-export function urgencyForRow(row: QueueRow, now: number): Level {
-  const { signal, customer } = row;
+/** Mức gấp của MỘT lý do: hạn việc (D-010) → cuối khung hẹn gọi (+30 phút, D-010) → hạn khác của tín hiệu; null = lý do chỉ từ SLA. */
+function reasonLevel(signal: Signal, customer: Customer, now: number): Level | null {
   const task = signalTask(signal, customer);
   const taskDue = task?.due ? Date.parse(task.due) : Number.NaN;
   if (Number.isFinite(taskDue)) return signalFor(taskDue, now, { allDay: !!task?.due_allday });
-
-  const reasons = [signal, ...(signal.secondaryReasons ?? [])];
-  const call = reasons.find((item) => item.evidence.some(({ field }) => field === 'next_call_at'));
-  if (call) {
-    const callEnd = call.evidence.find(({ field }) => field === 'next_call_end')?.value;
+  if (signal.evidence.some(({ field }) => field === 'next_call_at')) {
+    const callEnd = signal.evidence.find(({ field }) => field === 'next_call_end')?.value;
     const endMs = typeof callEnd === 'string' ? Date.parse(callEnd) : Number.NaN;
     if (Number.isFinite(endMs)) return signalFor(endMs, now);
   }
+  // Tín hiệu SLA (phase / khách mới theo registered_at): `due` chỉ là mốc xếp, mức lấy từ đồng hồ SLA bên dưới.
+  const slaOnly =
+    signal.evidence.some(({ field }) => field === 'phase') ||
+    (signal.group === 'new' && signal.evidence.some(({ field }) => field === 'registered_at'));
+  return !slaOnly && signal.due != null && Number.isFinite(signal.due) ? signalFor(signal.due, now) : null;
+}
 
-  const deadline = reasons.find((item) => {
-    const hasPhase = item.evidence.some(({ field }) => field === 'phase');
-    const isNewLeadSla = item.group === 'new' && item.evidence.some(({ field }) => field === 'registered_at');
-    return !hasPhase && !isNewLeadSla && item.due != null && Number.isFinite(item.due);
-  });
-  const due = deadline?.due;
-  const slaDerived = reasons.some(
-    (item) =>
-      item.evidence.some(({ field }) => field === 'phase') ||
-      (item.group === 'new' && item.evidence.some(({ field }) => field === 'registered_at')),
-  );
-  if (!slaDerived && due != null && Number.isFinite(due)) return signalFor(due, now);
-
+/** Mức gấp của dòng = mức gấp NHẤT trong lý do chính, lý do phụ và đồng hồ SLA (D-008) của khách. */
+export function urgencyForRow(row: QueueRow, now: number): Level {
+  const { signal, customer } = row;
   const meter = slaMeterFor(customer, now);
-  return meter ? (slaFor(meter.stage, meter.elapsed, { ideal: meter.ideal, max: meter.max }).level ?? 'ok') : 'ok';
+  const levels = [
+    ...[signal, ...(signal.secondaryReasons ?? [])].map((item) => reasonLevel(item, customer, now)),
+    meter ? slaFor(meter.stage, meter.elapsed, { ideal: meter.ideal, max: meter.max }).level : null,
+  ].filter((l): l is Level => !!l);
+  return levels.sort((x, y) => LEVEL_ORDER[x] - LEVEL_ORDER[y])[0] ?? 'ok';
 }
 
 /** Đếm đúng các dòng hàng đợi, không đổi thứ tự nhóm D-015 theo mức gấp. */
