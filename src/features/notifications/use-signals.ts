@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useCustomers, useRepositoryAccount } from '@/data/hooks';
-import { computeSignals, type SignalUiState } from '@/domain/signals';
+import { computeSignals, type Signal, type SignalUiState } from '@/domain/signals';
 
 /** Nguồn dùng chung của chuông header và màn Thông báo: cùng hàm computeSignals, cùng ui_state. */
 const keyFor = (userId: string) => `crm_signal_ui_state:${userId}`;
@@ -53,5 +53,36 @@ export function useNotificationSignals() {
     [account, customers, now, userId, uiState],
   );
 
-  return { account, customers, signals, status, userId };
+  const hideSignals = useCallback(
+    (hiddenSignals: readonly Signal[]) => {
+      if (!userId) return;
+      const next: SignalUiState = {
+        ...uiState,
+        signals: {
+          ...uiState.signals,
+          ...Object.fromEntries(
+            hiddenSignals.map((signal) => [signal.id, { fingerprint: signal.fingerprint, hidden: true }]),
+          ),
+        },
+      };
+      setUiState(next);
+      try {
+        localStorage.setItem(keyFor(userId), JSON.stringify(next));
+      } catch {
+        setStatus('Đã ẩn tín hiệu trên màn hình này nhưng chưa lưu được trên thiết bị.');
+      }
+      if (account) {
+        void account.remote
+          .saveUiStateRemote({ signals: next.signals })
+          .then((saved) => {
+            if (!saved) setStatus('Tín hiệu đã ẩn trên thiết bị nhưng chưa đồng bộ được.');
+          })
+          .catch(() => setStatus('Tín hiệu đã ẩn trên thiết bị nhưng chưa đồng bộ được.'));
+      }
+    },
+    [account, uiState, userId],
+  );
+  const hideSignal = useCallback((signal: Signal) => hideSignals([signal]), [hideSignals]);
+
+  return { account, customers, signals, status, userId, hideSignal, hideSignals };
 }
