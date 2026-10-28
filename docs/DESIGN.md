@@ -39,7 +39,7 @@ Luật đo được giữ từ D-023 (có e2e, vẫn chặn merge): **L1** màn 
 
 - Tính mức CHỈ bằng `signalFor(due, now, { allDay })` (mốc quá hạn D-010: có giờ = sau mốc +30 phút; cả ngày = từ hôm sau) và `slaFor` / `slaMeterFor(customer, now)` (SLA D-008 từ `src/domain/velocity`). Không tự chọn màu.
 - Luôn ký hiệu + chữ (`<SignalBadge>`), không chỉ màu. Chỉ `alert` được phát sáng (`shadow-glow-alert`) hoặc nhấp nháy.
-- Mọi danh sách xếp đỏ → vàng → xanh (`LEVEL_ORDER`), quá hạn lâu nhất trước.
+- Danh sách xếp đỏ → vàng → xanh (`LEVEL_ORDER`), quá hạn lâu nhất trước. **Ngoại lệ:** hàng đợi Hôm nay giữ thứ tự ưu tiên D-015 (`src/domain/signals`, nhóm theo `SIGNALS_CONFIG.groupOrder`) — màu chỉ hiện mức, không xếp lại.
 
 ## 3. Phễu & SLA
 
