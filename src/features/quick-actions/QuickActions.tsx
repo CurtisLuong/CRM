@@ -690,6 +690,16 @@ function ActionSheet({
                 }}
               />
             </label>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                onClose();
+                window.history.pushState(null, '', `/tai-lieu?customer=${encodeURIComponent(c.id)}`);
+                window.dispatchEvent(new PopStateEvent('popstate'));
+              }}
+            >
+              Gửi tài liệu
+            </Button>
             {launched && zaloReturn && (
               <section className="flex flex-col gap-2" aria-label="Xác nhận Zalo">
                 <p className="text-body-strong">Đã gửi tin trong Zalo?</p>
