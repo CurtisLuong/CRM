@@ -58,7 +58,7 @@ Luật đo được giữ từ D-023 (có e2e, vẫn chặn merge): **L1** màn 
 
 ## 5. Bố cục
 
-- Mọi màn: `<AppShell sidebar={<Sidebar/>} bottomNav={<BottomNav/>} header={<PageHeader/>}>`. Sidebar 232px / thu gọn 64px (phím `[`) từ 768px; dưới 768px là `<BottomNav>` 4 tab (`NAV_TABS`, D-013). Route dùng khung mới khai báo `handle: { bare: true }` (không lồng khung cũ).
+- Mọi màn: `<AppShell sidebar={<Sidebar/>} bottomNav={<BottomNav/>} header={<PageHeader/>}>`. Sidebar 232px / thu gọn 64px (phím `[`) từ 768px; dưới 768px là `<BottomNav>` 4 tab (`NAV_TABS`, D-013). Route dùng khung mới khai báo `handle: { bare: true }` (không lồng khung cũ). **Trang cuộn bằng cửa sổ** (không vùng cuộn riêng cho cột nội dung — kit gốc làm vậy nhưng phá thanh dính, danh sách ảo, Back Android); thanh đầu điện thoại ≈ 56px để giữ ngân sách màn đầu L1.
 - `<PageHeader>`: TRÁI tiêu đề + tổng số (+ phụ đề / badge tín hiệu), PHẢI 1–3 hành động, nút chính ĐỨNG CUỐI. Tìm + lọc ở `toolbar`, góc nhìn ở `tabs`.
 - Mở, không chuyển trang: khách mở trong `<Sheet>` bên phải (480px; điện thoại toàn màn) với SlaMeter → Timeline → chi tiết; danh sách vẫn ở sau. `<Dialog>` chỉ cho quyết định và ≤ 4 ô. Esc và nút Back Android đóng cả hai (`installCRMBack` trong `src/app/layout.back.ts` — khung cũ đã gắn; khung mới phải gắn lại khi thay `RootLayout`).
 - Khoảng cách 4/8/16/24 (`gap-1/2/4/6`). Vùng chạm ≥ 44px. Thiết kế từ 360px lên; kiểm 360 / 390 / 1280, sáng/tối, không cuộn ngang.
