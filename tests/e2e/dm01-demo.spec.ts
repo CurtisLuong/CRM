@@ -103,7 +103,12 @@ test('demo giữ dữ liệu local, chặn mạng, sống qua reload và xoá ri
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 
   await page.getByRole('button', { name: 'Mở Gia Hân · Khách mới' }).click();
-  await expect(page.getByRole('heading', { name: 'Gia Hân · Khách mới' })).toBeVisible();
+  // R2-04: "Mở" bật tấm xem nhanh; hồ sơ đầy đủ mở từ tấm.
+  await page
+    .getByRole('dialog', { name: 'Gia Hân · Khách mới' })
+    .getByRole('button', { name: 'Mở hồ sơ đầy đủ' })
+    .click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Gia Hân · Khách mới' })).toBeVisible();
   await page.getByRole('button', { name: 'Ghi chú', exact: true }).click();
   await page.getByRole('textbox', { name: 'Nội dung ghi chú' }).fill('Đã xem thử dữ liệu mẫu.');
   await page.getByRole('button', { name: 'Lưu', exact: true }).click();
