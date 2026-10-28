@@ -4,7 +4,7 @@ export const commands: AppCommand[] = [
   {
     id: 'send-kit.open',
     label: 'Mở Tài liệu gửi khách',
-    sub: 'Quản lý nội dung và tệp gửi qua Zalo',
+    sub: 'Chữ, ảnh, video, PDF gửi khách qua Zalo',
     icon: 'docs',
     group: 'Tiện ích',
     tools: true,
