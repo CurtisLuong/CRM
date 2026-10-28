@@ -1,12 +1,15 @@
+import { Search } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Outlet, useLocation, useMatches, useNavigate } from 'react-router';
+import { AppShell, BottomNav, NAV_DEFAULT, PageHeader, Sidebar } from '@/components/crm';
+import { TooltipProvider } from '@/components/ui';
 import { NotificationBell } from '@/features/notifications/Bell';
 import { QuickActionsHost } from '@/features/quick-actions/QuickActions';
 import { CustomerSearchBridge } from '@/features/search/SearchBridge';
 import { SyncIssuesSheet } from '@/features/sync/SyncIssuesSheet';
 import { BlockBoundary, ToastProvider } from '@/ui';
-import { AppShell } from '@/ui/AppShell';
 import { CommandPalette, type PaletteItem } from '@/ui/CommandPalette';
+import { SyncIndicator } from '@/ui/chrome';
 import { AppUpdatePrompt } from './AppUpdatePrompt';
 import { type AppCommand, appCommands, type CommandContext } from './commands';
 import { installCRMBack } from './layout.back';
@@ -58,9 +61,7 @@ function toPaletteItem(c: AppCommand, ctx: CommandContext): PaletteItem {
   };
 }
 
-const TABS = NAV_TABS.map((t) => ({ value: t.value, label: t.label, icon: t.icon }));
-
-/** Khung gốc: AppShell (4 tab + ＋, rail desktop, panel phải), Bảng lệnh, Back Android, Toast. */
+/** Khung gốc: AppShell mới (4 tab, Sidebar, Bảng lệnh, Back Android, Toast). */
 export function RootLayout() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
@@ -75,7 +76,7 @@ export function RootLayout() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [quickOpen, setQuickOpen] = useState(false);
   const [syncOpen, setSyncOpen] = useState(false);
-  const [rail, setRail] = useState(readRail);
+  const [railExpanded, setRailExpanded] = useState(readRail);
 
   const ctx = useMemo<CommandContext>(() => ({ navigate: (to) => navigate(to) }), [navigate]);
   const items = useMemo(() => appCommands.map((c) => toPaletteItem(c, ctx)), [ctx]);
@@ -104,51 +105,93 @@ export function RootLayout() {
     [navigate],
   );
 
-  const toggleRail = useCallback(() => {
-    setRail((r) => {
-      try {
-        localStorage.setItem(RAIL_KEY, r ? '0' : '1');
-      } catch {
-        // Không lưu được → chỉ áp cho phiên này.
-      }
-      return !r;
-    });
+  const setSidebarCollapsed = useCallback((collapsed: boolean) => {
+    const expanded = !collapsed;
+    setRailExpanded(expanded);
+    try {
+      localStorage.setItem(RAIL_KEY, expanded ? '1' : '0');
+    } catch {
+      // Không lưu được → chỉ áp cho phiên này.
+    }
   }, []);
 
   return (
-    <ToastProvider>
-      <AppShell
-        title={title}
-        hideNav={hideNav}
-        wide={wide}
-        tabs={TABS}
-        active={active}
-        onNavigate={(v) => {
-          const tab = NAV_TABS.find((t) => t.value === v);
-          if (tab) navigate(tab.path);
-        }}
-        onAdd={() => setQuickOpen(true)}
-        onSearch={() => setPaletteOpen(true)}
-        notifications={<NotificationBell />}
-        sync={sync}
-        onSyncOpen={() => setSyncOpen(true)}
-        menu={<ToolsMenu commands={appCommands} ctx={ctx} />}
-        railExpanded={rail}
-        onToggleRail={toggleRail}
-        aside={aside}
-        asideRef={setAsideElement}
-      >
-        <BlockBoundary label="màn này" resetKey={pathname}>
-          <Outlet />
-        </BlockBoundary>
-      </AppShell>
-      <CustomerSearchBridge />
-      <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} items={items} search={search} />
-      <QuickAddSheet open={quickOpen} onOpenChange={setQuickOpen} commands={appCommands} ctx={ctx} />
-      <UpdatePrompt />
-      <AppUpdatePrompt />
-      <QuickActionsHost />
-      <SyncIssuesSheet open={syncOpen} onOpenChange={setSyncOpen} />
-    </ToastProvider>
+    <TooltipProvider delayDuration={300}>
+      <ToastProvider>
+        <AppShell
+          sidebar={
+            <Sidebar
+              items={NAV_DEFAULT}
+              active={active ?? undefined}
+              onNavigate={(value) => {
+                const tab = NAV_TABS.find((t) => t.value === value);
+                if (tab) navigate(tab.path);
+              }}
+              onCreate={() => setQuickOpen(true)}
+              createLabel="Ghi nhanh"
+              collapsed={!railExpanded}
+              onCollapsedChange={setSidebarCollapsed}
+            />
+          }
+          bottomNav={
+            hideNav ? undefined : (
+              <BottomNav
+                items={NAV_DEFAULT}
+                active={active ?? undefined}
+                onNavigate={(value) => {
+                  const tab = NAV_TABS.find((t) => t.value === value);
+                  if (tab) navigate(tab.path);
+                }}
+                onCreate={() => setQuickOpen(true)}
+                createLabel="Ghi nhanh"
+              />
+            )
+          }
+          header={
+            <PageHeader
+              title={title}
+              compact
+              actions={
+                <>
+                  <button
+                    type="button"
+                    aria-label="Tìm khách, lệnh"
+                    title="Tìm (⌘K)"
+                    onClick={() => setPaletteOpen(true)}
+                    className="grid size-11 shrink-0 place-items-center rounded-md text-ink-muted hover:bg-surface-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ion"
+                  >
+                    <Search className="size-5" aria-hidden="true" />
+                  </button>
+                  <NotificationBell />
+                  {sync && (
+                    <SyncIndicator
+                      state={sync}
+                      onOpen={() => setSyncOpen(true)}
+                      className="size-11 min-w-11 rounded-md px-0 text-ink-muted"
+                    />
+                  )}
+                  <ToolsMenu commands={appCommands} ctx={ctx} />
+                </>
+              }
+            />
+          }
+          mainClassName="block px-0 pt-0 md:px-0"
+          wide={wide}
+          aside={aside}
+          asideRef={setAsideElement}
+        >
+          <BlockBoundary label="màn này" resetKey={pathname}>
+            <Outlet />
+          </BlockBoundary>
+        </AppShell>
+        <CustomerSearchBridge />
+        <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} items={items} search={search} />
+        <QuickAddSheet open={quickOpen} onOpenChange={setQuickOpen} commands={appCommands} ctx={ctx} />
+        <UpdatePrompt />
+        <AppUpdatePrompt />
+        <QuickActionsHost />
+        <SyncIssuesSheet open={syncOpen} onOpenChange={setSyncOpen} />
+      </ToastProvider>
+    </TooltipProvider>
   );
 }
