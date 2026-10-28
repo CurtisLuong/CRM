@@ -29,7 +29,7 @@ const FIELD = 'min-h-11 w-full rounded-control border border-border-strong bg-su
 
 export function SettingsPage() {
   const account = useRepositoryAccount();
-  const { session } = useAppSession();
+  const { session, isDemo, exitDemo } = useAppSession();
   const toast = useToast();
   const [theme, setTheme] = useThemePref();
   const userId = account?.sync.local.userId || '';
@@ -41,7 +41,7 @@ export function SettingsPage() {
   const [message, setMessage] = useState('');
   const [apkState, setApkState] = useState('');
   const appUpdate = useAppUpdateState();
-  const [online, setOnline] = useState(() => typeof navigator === 'undefined' || navigator.onLine);
+  const [online, setOnline] = useState(() => !isDemo && (typeof navigator === 'undefined' || navigator.onLine));
   const pendingSync = useRef(false);
   const syncBusy = useRef(false);
   const templatesRef = useRef(templates);
@@ -52,14 +52,15 @@ export function SettingsPage() {
   const showAi = aiEnabled(workerUrl, online);
 
   useEffect(() => {
-    const update = () => setOnline(navigator.onLine);
+    const update = () => setOnline(!isDemo && navigator.onLine);
+    update();
     window.addEventListener('online', update);
     window.addEventListener('offline', update);
     return () => {
       window.removeEventListener('online', update);
       window.removeEventListener('offline', update);
     };
-  }, []);
+  }, [isDemo]);
 
   useEffect(() => {
     if (!online || syncBusy.current || !pendingSync.current || !account || !userId) return;
@@ -97,13 +98,20 @@ export function SettingsPage() {
     try {
       const savedTemplates = localStorage.getItem(localSettingsKey('zalo', userId));
       if (savedTemplates) setTemplates(validTemplates(JSON.parse(savedTemplates)));
-      const legacyOwner = localStorage.getItem('crm_ai_settings_user');
+      const legacyOwner = isDemo ? null : localStorage.getItem('crm_ai_settings_user');
       const localAi =
         localStorage.getItem(localSettingsKey('ai', userId)) ||
-        (legacyOwner === userId ? localStorage.getItem('crm_ai_settings') : null);
+        (!isDemo && legacyOwner === userId ? localStorage.getItem('crm_ai_settings') : null);
       if (localAi) setAi(normalizeAiSettings(JSON.parse(localAi)));
     } catch {
       /* Remote values below remain the fallback. */
+    }
+    if (isDemo) {
+      setLoading(false);
+      setMessage('Đã dùng cài đặt mẫu lưu trên trình duyệt. Tính năng cần mạng không có trong dữ liệu mẫu.');
+      return () => {
+        active = false;
+      };
     }
     void Promise.all([account.remote.getZaloTemplatesRemote(), account.remote.getAiSettingsRemote()])
       .then(([remoteTemplates, remoteAi]) => {
@@ -137,7 +145,7 @@ export function SettingsPage() {
     return () => {
       active = false;
     };
-  }, [account, userId]);
+  }, [account, userId, isDemo]);
 
   const save = async () => {
     if (!account || !userId || saving) return;
@@ -147,8 +155,15 @@ export function SettingsPage() {
     try {
       localStorage.setItem(localSettingsKey('zalo', userId), JSON.stringify(templates));
       localStorage.setItem(localSettingsKey('ai', userId), JSON.stringify(ai));
-      localStorage.setItem('crm_ai_settings', JSON.stringify(ai));
-      localStorage.setItem('crm_ai_settings_user', userId);
+      if (!isDemo) {
+        localStorage.setItem('crm_ai_settings', JSON.stringify(ai));
+        localStorage.setItem('crm_ai_settings_user', userId);
+      }
+      if (isDemo) {
+        setMessage('Đã lưu trên trình duyệt. Cài đặt cần mạng không có trong dữ liệu mẫu.');
+        toast({ title: 'Đã lưu cài đặt' });
+        return;
+      }
       const [zaloOk, aiOk] = await Promise.all([
         account.remote.saveZaloTemplatesRemote(templates),
         account.remote.saveAiSettingsRemote(ai),
@@ -195,10 +210,15 @@ export function SettingsPage() {
         <p className="text-small text-text-2">Tuỳ chọn tài khoản và thiết bị.</p>
       </header>
       {!account ? <EmptyState title="Chưa đăng nhập" hint="Đăng nhập để đồng bộ cài đặt tài khoản." /> : null}
+      {isDemo && (
+        <p role="status" className="rounded-control bg-ion-tint p-3 text-small text-ink">
+          Một số tính năng cần mạng không có trong dữ liệu mẫu.
+        </p>
+      )}
       {/* Chỉ khi tài khoản có client máy chủ mới có dòng tình trạng để đọc; chưa đăng nhập không hiện thẻ. */}
-      {account?.sync?.client ? <MetaLeadAdsSection /> : null}
-      <CampaignProjectsSection customers={customers} account={account} />
-      <CampaignCostsSection customers={customers} account={account} />
+      {!isDemo && account?.sync?.client ? <MetaLeadAdsSection /> : null}
+      {!isDemo && <CampaignProjectsSection customers={customers} account={account} />}
+      {!isDemo && <CampaignCostsSection customers={customers} account={account} />}
       <section className="rounded-card border border-border bg-surface p-4">
         <h2 className="text-section">Giao diện</h2>
         <fieldset className="mt-3 flex flex-wrap gap-2" aria-label="Giao diện">
@@ -310,7 +330,9 @@ export function SettingsPage() {
         <h2 className="text-section">Cập nhật ứng dụng Android</h2>
         <p className="mt-1 text-small text-text-2">Kiểm tra phiên bản APK khi mở bằng vỏ Android.</p>
         <div className="mt-3 flex flex-wrap items-center gap-3">
-          <Button onClick={() => void checkApk()}>Kiểm tra cập nhật</Button>
+          <Button disabled={isDemo} onClick={() => void checkApk()}>
+            Kiểm tra cập nhật
+          </Button>
           {appUpdate.release && (
             <>
               <Button
@@ -347,11 +369,17 @@ export function SettingsPage() {
           </p>
         )}
       </div>
-      {session && (
+      {isDemo ? (
+        <section className="border-t border-border pt-4">
+          <Button variant="secondary" onClick={() => void exitDemo()}>
+            Thoát dữ liệu mẫu
+          </Button>
+        </section>
+      ) : session ? (
         <section className="border-t border-border pt-4">
           <Button onClick={() => void session.auth.signOut()}>Đăng xuất</Button>
         </section>
-      )}
+      ) : null}
     </main>
   );
 }

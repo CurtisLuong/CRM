@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import type { FeatureRoute } from '@/app/routes';
-import { useAppSession } from '@/app/session';
+import { startDemo, useAppSession } from '@/app/session';
 import { ActionItem, EmptyState, SlaMeter, StatTile } from '@/components/crm';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { SIGNALS_CONFIG } from '@/config/signals';
 import { useCustomers, useRepositoryAccount, useSyncStatus } from '@/data/hooks';
+import { isDemoAvailable } from '@/data/supabase';
 import type { Task } from '@/domain/customer';
 import { snoozePromise, undoPromiseSnooze } from '@/domain/deadlines/promises';
 import { forStage } from '@/domain/followup';
@@ -56,6 +57,7 @@ function CallSessionBar({
 
 export function TodayPage() {
   const { session, booting, error } = useAppSession();
+  const demoAvailable = isDemoAvailable();
   const account = useRepositoryAccount();
   const customers = useCustomers();
   const sync = useSyncStatus();
@@ -149,7 +151,7 @@ export function TodayPage() {
             <Skeleton className="h-24 w-full" />
             <Skeleton className="h-24 w-full" />
           </div>
-        ) : !session ? (
+        ) : !session && !demoAvailable ? (
           <EmptyState title="Chưa cấu hình kết nối" text={error || 'Cần cấu hình Supabase để đăng nhập.'} />
         ) : (
           <form
@@ -157,6 +159,10 @@ export function TodayPage() {
             onSubmit={async (event) => {
               event.preventDefault();
               setLoginError('');
+              if (!session) {
+                setLoginError(error || 'Chưa cấu hình kết nối để đăng nhập.');
+                return;
+              }
               try {
                 await session.auth.signIn(email, password);
                 setPassword('');
@@ -183,6 +189,22 @@ export function TodayPage() {
             <Button type="submit" variant="primary">
               Đăng nhập
             </Button>
+            {demoAvailable && (
+              <div className="flex flex-col gap-1">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() =>
+                    void startDemo().catch((cause) =>
+                      setLoginError(cause instanceof Error ? cause.message : 'Không mở được dữ liệu mẫu.'),
+                    )
+                  }
+                >
+                  Xem bằng dữ liệu mẫu
+                </Button>
+                <p className="text-caption text-ink-muted">Chỉ để xem thử, không cần tài khoản</p>
+              </div>
+            )}
             {(loginError || error) && (
               <p role="alert" className="text-alert-text text-label">
                 {loginError || error}
