@@ -1,3 +1,4 @@
+import { LoaderCircle } from 'lucide-react';
 import { RadioGroup } from 'radix-ui';
 import { type ButtonHTMLAttributes, type ReactNode, useState } from 'react';
 import { Button as KitButton } from '@/components/ui/button';
@@ -12,7 +13,6 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
-import { toast } from '@/components/ui/sonner';
 import { Textarea } from '@/components/ui/textarea';
 import { CALL_RESULTS, type CallResult } from '@/config/callResults';
 import { type CallSlotKey, FOLLOWUP_CONFIG } from '@/config/followup';
@@ -35,10 +35,15 @@ export function Button({
     <KitButton
       variant={variant === 'danger' ? 'destructive' : variant}
       className={cn(block && 'w-full', className)}
+      {...props}
       aria-busy={loading || undefined}
       disabled={props.disabled || loading}
-      {...props}
-    />
+    >
+      {loading && (
+        <LoaderCircle size={20} strokeWidth={1.75} className="animate-spin motion-reduce:animate-none" aria-hidden />
+      )}
+      {props.children}
+    </KitButton>
   );
 }
 
@@ -60,31 +65,6 @@ export function IconButton({
       <Icon name={icon} size={20} />
     </KitButton>
   );
-}
-
-export function notify(info: { title: string; description?: string; tone?: 'error' }) {
-  if (info.tone === 'error') toast.error(info.title, { description: info.description, duration: Infinity });
-  else toast.success(info.title, { description: info.description });
-  // Giữ phản hồi đọc được trong môi trường nhúng không mount Toaster (ví dụ test màn độc lập).
-  if (!document.querySelector('[data-sonner-toaster]')) {
-    document.getElementById('quick-actions-notice')?.remove();
-    const notice = document.createElement('div');
-    notice.id = 'quick-actions-notice';
-    notice.setAttribute('role', info.tone === 'error' ? 'alert' : 'status');
-    notice.className =
-      'fixed bottom-4 left-1/2 z-[60] -translate-x-1/2 rounded-md border border-line bg-surface-200 px-4 py-3 text-ink shadow-overlay';
-    const title = document.createElement('span');
-    title.textContent = info.title;
-    notice.append(title);
-    if (info.description) {
-      const description = document.createElement('span');
-      description.className = 'ml-2 text-ink-muted';
-      description.textContent = info.description;
-      notice.append(description);
-    }
-    document.body.append(notice);
-    window.setTimeout(() => notice.remove(), info.tone === 'error' ? 10_000 : 4_000);
-  }
 }
 
 export function ActionSheet({

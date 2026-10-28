@@ -9,17 +9,9 @@ import { appendInteractionPatch, createInteraction } from '@/domain/customer/int
 import type { ScheduleSuggestion } from '@/domain/followup';
 import { AiNoteReview } from '@/features/ai/AiNoteReview';
 import { AiZaloDraft } from '@/features/ai/AiZaloDraft';
+import { useToast } from '@/ui/Toast';
 import { InteractionRecorder } from './interactions';
-import {
-  Button,
-  IconButton,
-  Input,
-  OutcomePicker,
-  ActionSheet as Sheet,
-  SlotPicker,
-  Textarea,
-  notify as useToast,
-} from './kit';
+import { Button, IconButton, Input, OutcomePicker, ActionSheet as Sheet, SlotPicker, Textarea } from './kit';
 import {
   type CallDraft,
   callDuration,
@@ -131,7 +123,7 @@ export function QuickActionsHost({
   const [active, setActive] = useState<Active | null>(null);
   const source = useRef<CallSource | null>(null);
   const serial = useRef(0);
-  const toast = useToast;
+  const toast = useToast();
   const [phone, setPhone] = useState('');
   const [zaloReturn, setZaloReturn] = useState(false);
   const waitingZalo = useRef(false);
@@ -199,7 +191,7 @@ export function QuickActionsHost({
     }
     setActive({ ...request, serial: serial.current });
     setZaloReturn(false);
-  }, [request, account]);
+  }, [request, account, toast]);
   useEffect(() => {
     const back = () => {
       if (waitingZalo.current) {
@@ -342,7 +334,7 @@ function ActionSheet({
   onZaloOpen: () => void;
   onZaloSent?: (c: Customer, text: string, id: string) => void;
 }) {
-  const toast = useToast;
+  const toast = useToast();
   const [now] = useState(Date.now);
   const [draft] = useState<CallDraft>(() => given ?? { at: new Date(now).toISOString(), origin: 'manual' });
   const existing = draft.editAt ? callAttemptsOf(c).find((a) => a.at === draft.editAt) : null;
@@ -533,7 +525,7 @@ function ActionSheet({
                 <Textarea
                   id="call-note"
                   ref={noteInput}
-                  className={`${FIELD} col-start-1 row-start-1 pr-14 pb-14`}
+                  className="col-start-1 row-start-1 w-full pr-14 pb-14"
                   // Đang nghe thì khoá gõ: chữ tạm nằm trong ô, gõ vào sẽ chốt nó rồi bị nối lặp khi chữ chốt về.
                   readOnly={!!interimNote}
                   aria-label="Ghi chú cuộc gọi"
@@ -635,7 +627,7 @@ function ActionSheet({
               <div className="grid">
                 <Textarea
                   id="quick-note"
-                  className={`${FIELD} col-start-1 row-start-1 pr-14 pb-14`}
+                  className="col-start-1 row-start-1 w-full pr-14 pb-14"
                   // Đang nghe thì khoá gõ: chữ tạm nằm trong ô, gõ vào sẽ chốt nó rồi bị nối lặp khi chữ chốt về.
                   readOnly={!!interimNote}
                   aria-label="Nội dung ghi chú"
@@ -667,9 +659,10 @@ function ActionSheet({
                 textEdited.current = true;
               }}
             />
-            <label htmlFor="zalo-message-text" className="flex flex-col gap-1 text-caption">
+            <label htmlFor="zalo-template-select" className="flex flex-col gap-1 text-caption">
               Mẫu tin
               <select
+                id="zalo-template-select"
                 aria-label="Mẫu tin"
                 className={FIELD}
                 value={templateId}
@@ -690,7 +683,7 @@ function ActionSheet({
             <label htmlFor="zalo-message-text" className="flex flex-col gap-1 text-caption">
               Nội dung tin nhắn
               <Textarea
-                className={FIELD}
+                className="w-full"
                 id="zalo-message-text"
                 aria-label="Nội dung tin nhắn"
                 rows={7}

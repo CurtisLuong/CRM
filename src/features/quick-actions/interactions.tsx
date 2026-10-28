@@ -2,7 +2,8 @@ import { useState } from 'react';
 import type { RepositoryAccount } from '@/data/repositories/session';
 import type { Customer } from '@/domain/customer';
 import { appendInteractionPatch, createInteraction, type InteractionKind } from '@/domain/customer/interactions';
-import { Button, ActionSheet as Sheet, notify as useToast } from './kit';
+import { useToast } from '@/ui/Toast';
+import { Button, ActionSheet as Sheet } from './kit';
 import { openQuickAction } from './store';
 
 export function InteractionRecorder({
@@ -16,7 +17,7 @@ export function InteractionRecorder({
   trigger?: boolean;
   showCallAction?: boolean;
 }) {
-  const toast = useToast;
+  const toast = useToast();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
