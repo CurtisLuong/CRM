@@ -83,13 +83,14 @@ async function openToday(page: Page, colorScheme: 'light' | 'dark') {
           ],
         },
         {
+          // Vào bậc 27/10: SLA Đang chăm sóc còn trong mục tiêu → mức của dòng chỉ do hạn việc 10:00 (D-010).
           id: 'r1-due-task',
           owner_id: USER_ID,
           full_name: 'Khách có việc đến giờ',
           phone: '0900000002',
           care_stage: 'Đang chăm sóc',
-          qualified_at: localTime(1, 9),
-          care_stage_updated_at: localTime(1, 9),
+          qualified_at: localTime(27, 9),
+          care_stage_updated_at: localTime(27, 9),
           registered_at: localTime(1, 9),
           created_at: localTime(1, 9),
           call_attempts: [{ at: localTime(1, 9), result: 'talked' }],

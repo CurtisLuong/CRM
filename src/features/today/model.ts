@@ -414,8 +414,8 @@ export function todayCard(row: QueueRow, now: number): TodayCard {
   return { tone, when, detail, facts, note, sla, action };
 }
 
-/** Mức gấp của MỘT lý do: hạn việc (D-010) → cuối khung hẹn gọi (+30 phút, D-010) → hạn khác của tín hiệu; null = lý do chỉ từ SLA. */
-function reasonLevel(signal: Signal, customer: Customer, now: number): Level | null {
+/** Mức gấp của MỘT lý do: hạn việc (D-010) → cuối khung hẹn gọi (+30 phút, D-010) → hạn khác; lý do SLA → đồng hồ SLA (D-008). */
+function reasonLevel(signal: Signal, customer: Customer, now: number, slaLevel: Level | null): Level | null {
   const task = signalTask(signal, customer);
   const taskDue = task?.due ? Date.parse(task.due) : Number.NaN;
   if (Number.isFinite(taskDue)) return signalFor(taskDue, now, { allDay: !!task?.due_allday });
@@ -424,22 +424,26 @@ function reasonLevel(signal: Signal, customer: Customer, now: number): Level | n
     const endMs = typeof callEnd === 'string' ? Date.parse(callEnd) : Number.NaN;
     if (Number.isFinite(endMs)) return signalFor(endMs, now);
   }
-  // Tín hiệu SLA (phase / khách mới theo registered_at): `due` chỉ là mốc xếp, mức lấy từ đồng hồ SLA bên dưới.
+  // Tín hiệu SLA (phase / khách mới theo registered_at): `due` chỉ là mốc xếp, mức lấy từ đồng hồ SLA.
   const slaOnly =
     signal.evidence.some(({ field }) => field === 'phase') ||
     (signal.group === 'new' && signal.evidence.some(({ field }) => field === 'registered_at'));
-  return !slaOnly && signal.due != null && Number.isFinite(signal.due) ? signalFor(signal.due, now) : null;
+  if (slaOnly) return slaLevel;
+  return signal.due != null && Number.isFinite(signal.due) ? signalFor(signal.due, now) : null;
 }
 
-/** Mức gấp của dòng = mức gấp NHẤT trong lý do chính, lý do phụ và đồng hồ SLA (D-008) của khách. */
+/**
+ * Mức gấp của dòng = mức gấp NHẤT trong lý do chính + lý do phụ (việc phụ không hạ mức của lý do chính).
+ * Không lý do nào có hạn → mức SLA của khách (D-008); không có cả hai → ok.
+ */
 export function urgencyForRow(row: QueueRow, now: number): Level {
   const { signal, customer } = row;
   const meter = slaMeterFor(customer, now);
-  const levels = [
-    ...[signal, ...(signal.secondaryReasons ?? [])].map((item) => reasonLevel(item, customer, now)),
-    meter ? slaFor(meter.stage, meter.elapsed, { ideal: meter.ideal, max: meter.max }).level : null,
-  ].filter((l): l is Level => !!l);
-  return levels.sort((x, y) => LEVEL_ORDER[x] - LEVEL_ORDER[y])[0] ?? 'ok';
+  const slaLevel = meter ? slaFor(meter.stage, meter.elapsed, { ideal: meter.ideal, max: meter.max }).level : null;
+  const levels = [signal, ...(signal.secondaryReasons ?? [])]
+    .map((item) => reasonLevel(item, customer, now, slaLevel))
+    .filter((l): l is Level => !!l);
+  return levels.sort((x, y) => LEVEL_ORDER[x] - LEVEL_ORDER[y])[0] ?? slaLevel ?? 'ok';
 }
 
 /** Đếm đúng các dòng hàng đợi, không đổi thứ tự nhóm D-015 theo mức gấp. */
