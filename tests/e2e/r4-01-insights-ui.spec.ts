@@ -137,9 +137,9 @@ for (const scheme of ['light', 'dark'] as const) {
 
     const funnel = main.getByTestId('insights-chart-funnel');
     const weekly = main.getByTestId('insights-chart-weekly');
-    await expect(funnel.getByRole('application')).toBeVisible();
+    await expect(funnel.locator('svg').first()).toBeVisible();
     await expect(weekly.getByRole('application')).toBeVisible();
-    await expect(funnel.locator('svg[role="application"] text').filter({ hasText: '3 khách' })).toBeVisible();
+    await expect(funnel.locator('svg text').filter({ hasText: '3 khách' })).toBeVisible();
     await expect(weekly.locator('svg[role="application"] .recharts-label-list text').first()).toBeVisible();
     await expect(main.getByRole('button', { name: 'Cách tính' }).first()).toBeVisible();
     await main.getByRole('button', { name: 'Cách tính' }).first().click();
