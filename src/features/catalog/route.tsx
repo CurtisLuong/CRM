@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
+import { toast as notify } from 'sonner';
 import type { FeatureRoute } from '@/app/routes';
+import { TextField } from '@/components/crm';
+import { Button } from '@/components/ui/button';
 import { CARE_DONE_STAGES } from '@/config/stages';
 import { useCustomers, useRepositoryAccount } from '@/data/hooks';
 import type { Customer } from '@/domain/customer';
 import { customersForUnit, match as matchCustomer, price as totalPrice } from '@/domain/matching/property';
-import { Button, useToast } from '@/ui';
 import {
   downloadCatalogTemplate,
   formatPricePerM2,
@@ -16,8 +18,8 @@ import {
 } from './model';
 
 const DIRECTIONS = ['Đông', 'Tây', 'Nam', 'Bắc', 'Đông Bắc', 'Đông Nam', 'Tây Bắc', 'Tây Nam'];
-const fieldClass = 'mt-1 min-h-11 w-full rounded-control border border-border bg-surface px-3 text-body text-text';
-const labelClass = 'block text-small text-text-2';
+const fieldClass = 'mt-1 h-11 w-full rounded-sm border border-input bg-surface-100 px-3 text-body text-ink';
+const labelClass = 'block text-label text-ink-muted';
 type ProjectForm = {
   name: string;
   typical_price_per_m2: string;
@@ -62,7 +64,6 @@ const money = (value: number | null) =>
 function CatalogPage() {
   const account = useRepositoryAccount();
   const customers = useCustomers();
-  const toast = useToast();
   const catalog = account?.catalog;
   const userId = account?.sync.local.userId || '';
   const [, setRevision] = useState(0);
@@ -234,7 +235,7 @@ function CatalogPage() {
     try {
       await work();
       setRevision((value) => value + 1);
-      toast({ title: success });
+      notify.success(success);
     } catch (raw) {
       setError(raw instanceof Error ? raw.message : 'Không lưu được thay đổi.');
     } finally {
@@ -286,11 +287,11 @@ function CatalogPage() {
               ),
           );
         }
-        toast({ title: 'Đã lưu dự án' });
+        notify.success('Đã lưu dự án');
       } else {
         const created = await catalog.addProject(patch.name, patch);
         setProjectId(created.id);
-        toast({ title: 'Đã thêm dự án' });
+        notify.success('Đã thêm dự án');
       }
       setProjectEditing('');
       setProjectForm(emptyProject);
@@ -451,9 +452,9 @@ function CatalogPage() {
       setImportFileName('');
       setArchivedImportMatches({ archivedProjects: 0, archivedBuildings: 0 });
       setRevision((value) => value + 1);
-      toast({
-        title: `Đã nhập ${result.projects} dự án, ${result.buildings} toà và ${result.units} dòng căn; khôi phục ${result.restoredProjects} dự án, ${result.restoredBuildings} toà`,
-      });
+      notify.success(
+        `Đã nhập ${result.projects} dự án, ${result.buildings} toà và ${result.units} dòng căn; khôi phục ${result.restoredProjects} dự án, ${result.restoredBuildings} toà`,
+      );
     } catch (raw) {
       setError(raw instanceof Error ? raw.message : 'Nhập file thất bại.');
     } finally {
@@ -472,9 +473,9 @@ function CatalogPage() {
     <main className="mx-auto max-w-7xl space-y-5 p-4 pb-24 sm:p-6">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-label text-primary">DANH MỤC BẤT ĐỘNG SẢN</p>
+          <p className="text-label text-ion">DANH MỤC BẤT ĐỘNG SẢN</p>
           <h1 className="text-title">Giỏ hàng</h1>
-          <p className="text-small text-text-2">
+          <p className="text-caption text-ink-muted">
             {loading ? 'Đang đồng bộ danh mục…' : `${projects.length} dự án · ${catalog.units().length} căn`} · cache
             riêng tài khoản, xem được khi offline
           </p>
@@ -483,7 +484,7 @@ function CatalogPage() {
           <Button variant="secondary" onClick={() => void downloadCatalogTemplate()}>
             Tải file mẫu Excel
           </Button>
-          <label className="inline-flex min-h-11 cursor-pointer items-center rounded-control bg-primary px-4 text-small font-semibold text-on-primary">
+          <label className="inline-flex min-h-11 cursor-pointer items-center rounded-md bg-ion px-4 text-caption font-semibold text-on-ion">
             Nhập Excel / CSV
             <input
               aria-label="Chọn file Excel hoặc CSV"
@@ -496,17 +497,17 @@ function CatalogPage() {
         </div>
       </header>
       {error && (
-        <p role="alert" className="rounded-control border border-danger/30 bg-danger/10 p-3 text-small text-danger">
+        <p role="alert" className="rounded-md border border-alert/40 bg-alert-tint p-3 text-caption text-alert-text">
           {error}
         </p>
       )}
-      <p className="rounded-control border border-border bg-surface-2 p-3 text-small text-text-2">
+      <p className="rounded-md border border-line bg-surface-200 p-3 text-caption text-ink-muted">
         Lưu trữ sẽ ẩn mục khỏi danh sách thường; dữ liệu danh mục vẫn được giữ nguyên trong hệ thống.
       </p>
       {pendingImport && (
-        <section className="rounded-card border border-border bg-surface p-4" aria-live="polite">
+        <section className="rounded-lg border border-line bg-surface-100 p-4" aria-live="polite">
           <h2 className="text-heading">Xem trước nhập: {importFileName}</h2>
-          <p className="mt-1 text-small text-text-2">
+          <p className="mt-1 text-caption text-ink-muted">
             {pendingImport.rows.length} dòng · tạo {importPreview?.newProjects} dự án, {importPreview?.newBuildings} toà
             và {importPreview?.newUnits} căn · cập nhật {importPreview?.updatedUnits} căn · khôi phục từ lưu trữ{' '}
             {importPreview?.archivedProjects} dự án, {importPreview?.archivedBuildings} toà. Dự án/toà khớp đã lưu trữ
@@ -531,7 +532,7 @@ function CatalogPage() {
 
       <section className="grid gap-4 xl:grid-cols-[minmax(260px,0.8fr)_minmax(0,1.6fr)]">
         {projectId && (
-          <div className="mt-4 border-t border-border pt-4">
+          <div className="mt-4 border-t border-line pt-4">
             <div className="flex items-center justify-between gap-2">
               <h3 className="text-heading">Loại căn của dự án</h3>
               <Button variant="secondary" onClick={() => setAptTypeForm({ id: '', name: '', area: '' })}>
@@ -542,7 +543,7 @@ function CatalogPage() {
               {catalog.projectTypes(projectId).map((type) => (
                 <div
                   key={type.id}
-                  className="flex flex-wrap items-center justify-between gap-2 rounded-control border border-border px-3 py-2"
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-line px-3 py-2"
                 >
                   <span>
                     {type.apt_type} ·{' '}
@@ -551,7 +552,7 @@ function CatalogPage() {
                   <span className="flex gap-2">
                     <button
                       type="button"
-                      className="min-h-10 text-small text-primary"
+                      className="min-h-10 text-caption text-ion"
                       onClick={() =>
                         setAptTypeForm({
                           id: type.id,
@@ -564,7 +565,7 @@ function CatalogPage() {
                     </button>
                     <button
                       type="button"
-                      className="min-h-10 text-small text-danger"
+                      className="min-h-10 text-caption text-alert-text"
                       onClick={() => {
                         if (window.confirm(`Lưu trữ loại căn “${type.apt_type}”? Dữ liệu cũ vẫn được giữ.`))
                           void run(() => catalog.archiveProjectType(type.id), 'Đã lưu trữ loại căn');
@@ -609,7 +610,7 @@ function CatalogPage() {
           </div>
         )}
 
-        <div className="space-y-4 rounded-card border border-border bg-surface p-4">
+        <div className="space-y-4 rounded-lg border border-line bg-surface-100 p-4">
           <div className="flex items-center justify-between">
             <h2 className="text-heading">Dự án</h2>
             <Button
@@ -643,10 +644,10 @@ function CatalogPage() {
           </label>
           <div className="max-h-56 space-y-1 overflow-auto">
             {projects.map((p) => (
-              <div key={p.id} className="flex items-center justify-between gap-2 rounded-control px-2 py-1.5">
+              <div key={p.id} className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5">
                 <button
                   type="button"
-                  className="min-h-10 flex-1 text-left text-body text-text"
+                  className="min-h-10 flex-1 text-left text-body text-ink"
                   onClick={() => {
                     setProjectId(p.id);
                     setBuildingId('');
@@ -654,16 +655,12 @@ function CatalogPage() {
                 >
                   {p.name}
                 </button>
-                <button
-                  type="button"
-                  className="min-h-10 px-2 text-small text-primary"
-                  onClick={() => editProject(p.id)}
-                >
+                <button type="button" className="min-h-10 px-2 text-caption text-ion" onClick={() => editProject(p.id)}>
                   Sửa
                 </button>
                 <button
                   type="button"
-                  className="min-h-10 px-2 text-small text-danger"
+                  className="min-h-10 px-2 text-caption text-alert-text"
                   onClick={() => {
                     if (window.confirm(`Lưu trữ dự án “${p.name}”? Toà và căn vẫn được giữ nguyên.`)) {
                       void run(() => catalog.archiveProject(p.id), 'Đã lưu trữ dự án');
@@ -679,7 +676,7 @@ function CatalogPage() {
               </div>
             ))}
           </div>
-          <div className="border-t border-border pt-4">
+          <div className="border-t border-line pt-4">
             <h3 className="text-heading">{projectEditing ? 'Sửa dự án' : 'Thông tin dự án mới'}</h3>
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
               <label className={`${labelClass} sm:col-span-2`}>
@@ -755,7 +752,7 @@ function CatalogPage() {
           </div>
         </div>
 
-        <div className="space-y-4 rounded-card border border-border bg-surface p-4">
+        <div className="space-y-4 rounded-lg border border-line bg-surface-100 p-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-heading">Toà và căn</h2>
             <label className={labelClass}>
@@ -775,7 +772,7 @@ function CatalogPage() {
               </select>
             </label>
           </div>
-          <div className="grid gap-3 rounded-control border border-border p-3 sm:grid-cols-2">
+          <div className="grid gap-3 rounded-md border border-line p-3 sm:grid-cols-2">
             <label className={labelClass}>
               {buildingEditing ? 'Mã toà' : 'Thêm toà — mã'}
               <input
@@ -824,21 +821,21 @@ function CatalogPage() {
               {buildings.map((b) => (
                 <div
                   key={b.id}
-                  className={`flex items-center gap-1 rounded-control border px-2 ${buildingId === b.id ? 'border-primary bg-primary/10' : 'border-border'}`}
+                  className={`flex items-center gap-1 rounded-md border px-2 ${buildingId === b.id ? 'border-primary bg-ion/10' : 'border-line'}`}
                 >
-                  <button type="button" className="min-h-10 px-2 text-small" onClick={() => setBuildingId(b.id)}>
+                  <button type="button" className="min-h-10 px-2 text-caption" onClick={() => setBuildingId(b.id)}>
                     {b.code}
                   </button>
                   <button
                     type="button"
-                    className="min-h-10 px-2 text-small text-primary"
+                    className="min-h-10 px-2 text-caption text-ion"
                     onClick={() => editBuilding(b.id)}
                   >
                     Sửa
                   </button>
                   <button
                     type="button"
-                    className="min-h-10 px-2 text-small text-danger"
+                    className="min-h-10 px-2 text-caption text-alert-text"
                     onClick={() => {
                       const count = catalog.unitsOf(b.id).length;
                       if (window.confirm(`Lưu trữ toà ${b.code}? ${count} căn vẫn được giữ nguyên.`)) {
@@ -854,13 +851,13 @@ function CatalogPage() {
             </div>
           )}
           {building && (
-            <div className="rounded-control bg-surface-2 p-3 text-small text-text-2">
+            <div className="rounded-md bg-surface-200 p-3 text-caption text-ink-muted">
               Giá hiệu lực: {formatPricePerM2(catalog.buildingPrice(building)) || 'chưa có'} triệu/m² · bàn giao:{' '}
               {catalog.buildingHandover(building) || 'theo dự án/chưa có'}
             </div>
           )}
           {building && (
-            <section className="rounded-control border border-border p-3">
+            <section className="rounded-md border border-line p-3">
               <div className="flex items-center justify-between gap-2">
                 <h3 className="text-heading">Loại căn được phép ở toà {building.code}</h3>
                 <Button
@@ -876,7 +873,7 @@ function CatalogPage() {
                     const value = buildingTypeDraft[type.apt_type] || { selected: false, area: '' };
                     return (
                       <div key={type.id} className="grid items-center gap-2 sm:grid-cols-[1fr_1fr_auto]">
-                        <label className="flex min-h-10 items-center gap-2 text-small">
+                        <label className="flex min-h-10 items-center gap-2 text-caption">
                           <input
                             type="checkbox"
                             checked={value.selected}
@@ -904,7 +901,9 @@ function CatalogPage() {
                             placeholder={`${type.typical_area_m2 || 'theo dự án'}`}
                           />
                         </label>
-                        <span className="text-small text-text-2">{value.selected ? 'Được dùng' : 'Không chọn'}</span>
+                        <span className="text-caption text-ink-muted">
+                          {value.selected ? 'Được dùng' : 'Không chọn'}
+                        </span>
                       </div>
                     );
                   })}
@@ -913,7 +912,7 @@ function CatalogPage() {
                   </Button>
                 </div>
               ) : (
-                <p className="mt-2 text-small text-text-2">
+                <p className="mt-2 text-caption text-ink-muted">
                   {catalog.buildingTypes(building.id).length
                     ? catalog
                         .buildingTypes(building.id)
@@ -925,7 +924,7 @@ function CatalogPage() {
             </section>
           )}
 
-          <div className="border-t border-border pt-4">
+          <div className="border-t border-line pt-4">
             <h3 className="text-heading">{unitEditing ? 'Sửa căn' : 'Thêm căn'}</h3>
             <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <label className={labelClass}>
@@ -1027,26 +1026,23 @@ function CatalogPage() {
         </div>
       </section>
 
-      <section className="space-y-3 rounded-card border border-border bg-surface p-4">
+      <section className="space-y-3 rounded-lg border border-line bg-surface-100 p-4">
         <div>
           <h2 className="text-heading">Tìm căn và khách phù hợp</h2>
-          <p className="text-small text-text-2">
+          <p className="text-caption text-ink-muted">
             Giá hiển thị gồm VAT + KPBT; thiếu giá hoặc diện tích không được tính là đạt lọc giá.
           </p>
         </div>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <label className={labelClass}>
-            Tìm căn
-            <input
-              className={fieldClass}
-              value={query}
-              onChange={(e) => {
-                setQuery(e.target.value);
-                setLimit(50);
-              }}
-              placeholder="Mã căn, dự án, toà, ghi chú"
-            />
-          </label>
+          <TextField
+            label="Tìm căn"
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setLimit(50);
+            }}
+            placeholder="Mã căn, dự án, toà, ghi chú"
+          />
           <label className={labelClass}>
             Tình trạng
             <select className={fieldClass} value={status} onChange={(e) => setStatus(e.target.value)}>
@@ -1182,7 +1178,7 @@ function CatalogPage() {
           </label>
         </div>
         {matchingCustomer && customerForMatch && (
-          <div className="rounded-control bg-surface-2 p-3 text-small">
+          <div className="rounded-md bg-surface-200 p-3 text-caption">
             Đang đối chiếu theo dự án và loại căn đã ghi cho {customerForMatch.full_name}. Vốn sẵn có không được xem là
             giá tối đa.
             <div className="mt-2 space-y-2">
@@ -1196,7 +1192,7 @@ function CatalogPage() {
             </div>
           </div>
         )}
-        <p role="status" className="text-small text-text-2">
+        <p role="status" className="text-caption text-ink-muted">
           {visibleUnits.length} căn phù hợp bộ lọc{visibleUnits.length > limit ? ` · đang hiển thị ${limit}` : ''}
         </p>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -1209,22 +1205,22 @@ function CatalogPage() {
               ? matchCustomer(customerForMatch, unit, catalog, matchingMaxPrice ? asPrice(matchingMaxPrice) : null)
               : null;
             return (
-              <article key={unit.id} className="rounded-control border border-border p-3">
+              <article key={unit.id} className="rounded-md border border-line p-3">
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <h3 className="font-semibold">
                       {p?.name || 'Chưa rõ dự án'} · {b?.code || ''} · {unit.code}
                     </h3>
-                    <p className="mt-1 text-small text-text-2">
+                    <p className="mt-1 text-caption text-ink-muted">
                       {unit.apt_type || 'Chưa rõ loại'} · {area == null ? 'Chưa rõ diện tích' : `${area} m²`} ·{' '}
                       {unit.direction || 'Chưa rõ hướng'} · {unit.floor == null ? 'Chưa rõ tầng' : `Tầng ${unit.floor}`}{' '}
                       · {catalog.statusLabel(unit.status)}
                     </p>
                   </div>
-                  <span className="text-small text-text-2">{money(amount)}</span>
+                  <span className="text-caption text-ink-muted">{money(amount)}</span>
                 </div>
                 {matching && (
-                  <p className="mt-2 text-small text-primary">
+                  <p className="mt-2 text-caption text-ion">
                     {matching.reasons.join(' · ')}
                     {matching.missing.length ? ` · Thiếu ${matching.missing.join(', ')}` : ''}
                   </p>
@@ -1237,7 +1233,7 @@ function CatalogPage() {
                     Tìm khách phù hợp
                   </Button>
                   <Button
-                    variant="danger"
+                    variant="destructive"
                     onClick={() => {
                       if (window.confirm(`Lưu trữ căn ${unit.code}? Dữ liệu vẫn được giữ.`))
                         void run(() => catalog.archiveUnit(unit.id), 'Đã lưu trữ căn');
@@ -1247,11 +1243,11 @@ function CatalogPage() {
                   </Button>
                 </div>
                 {unitClient === unit.id && (
-                  <div className="mt-3 border-t border-border pt-3">
-                    <p className="text-small">Khách đang hoạt động khớp dự án và loại căn: {customerHits.length}</p>
+                  <div className="mt-3 border-t border-line pt-3">
+                    <p className="text-caption">Khách đang hoạt động khớp dự án và loại căn: {customerHits.length}</p>
                     {customerHits.slice(0, 10).map(({ customer, match }) => (
-                      <p key={customer.id} className="mt-1 text-small">
-                        <Link className="font-semibold text-primary underline" to={`/khach-hang/${customer.id}`}>
+                      <p key={customer.id} className="mt-1 text-caption">
+                        <Link className="font-semibold text-ion underline" to={`/khach-hang/${customer.id}`}>
                           {customer.full_name}
                         </Link>{' '}
                         — {match.reasons.join(' · ')}
