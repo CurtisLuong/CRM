@@ -84,7 +84,7 @@ test('demo giữ dữ liệu local, chặn mạng, sống qua reload và xoá ri
 
   await page.getByRole('button', { name: 'Xem bằng dữ liệu mẫu' }).click();
   await expect(page.getByText('Dữ liệu mẫu — không lưu lên máy chủ')).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Hôm nay', exact: true })).toBeVisible();
+  await expect(page.getByRole('banner').getByRole('heading', { name: 'Hôm nay', exact: true })).toBeVisible();
 
   const groups = [
     'Đến giờ / quá giờ hẹn gọi',
