@@ -138,7 +138,9 @@ for (const scheme of ['light', 'dark'] as const) {
     // Phễu dùng FunnelChart của kit (div), không còn là Recharts → không có role=application (R4-01b, Lead).
     await expect(funnel.getByTestId('insights-funnel-kit')).toBeVisible();
     await expect(weekly.getByRole('application')).toBeVisible();
-    await expect(funnel.locator('svg[aria-label="Số khách theo bậc"] text').filter({ hasText: '3 khách' })).toBeVisible();
+    await expect(
+      funnel.locator('svg[aria-label="Số khách theo bậc"] text').filter({ hasText: '3 khách' }),
+    ).toBeVisible();
     await expect(weekly.locator('svg[role="application"] .recharts-label-list text').first()).toBeVisible();
     const layout = await page.evaluate(() => ({
       width: window.innerWidth,
