@@ -1,6 +1,6 @@
+import { Button } from '@/components/ui/button';
 import type { RepositoryAccount } from '@/data/repositories/session';
 import type { Customer } from '@/domain/customer';
-import { Button } from '@/ui';
 import { AiProposalPanel } from './AiProposalPanel';
 import type { AiCloseReasonResult } from './model';
 export function AiCloseReason({
@@ -49,7 +49,7 @@ export function AiCloseReason({
               </div>
             ))}
           {result.dieu_kien_retarget && (
-            <p className="text-small">Điều kiện liên hệ lại: {result.dieu_kien_retarget}</p>
+            <p className="text-label">Điều kiện liên hệ lại: {result.dieu_kien_retarget}</p>
           )}
         </>
       )}

@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { RepositoryAccount } from '@/data/repositories/session';
 import type { Customer } from '@/domain/customer';
 import { buildAiContext } from '@/domain/customer/aiContext';
-import { AIBlock, Button } from '@/ui';
+import { AiSurface } from './AiSurface';
 import { type AiTask, aiAvailable, getAiSettings, requestAi } from './model';
 import { useAiScope } from './useAiScope';
 
@@ -70,22 +72,26 @@ export function AiProposalPanel<T>({
     }
   };
   return (
-    <section aria-label={title} className="rounded-card border border-border bg-surface p-4">
-      <h2 className="text-section">{title}</h2>
-      <Button className="mt-2" variant="ai" loading={busy} disabled={!!disabledReason} onClick={() => void generate()}>
-        Tạo đề xuất AI
-      </Button>
-      {disabledReason && <p className="mt-2 text-small text-warning">{disabledReason}</p>}
-      {error && (
-        <p role="alert" className="mt-2 text-small text-danger">
-          {error}
-        </p>
-      )}
-      {result && (
-        <AIBlock className="mt-3" source="Chỉ dựa trên dữ liệu được cung cấp; cần kiểm tra trước khi dùng">
-          {children(result, isCurrent)}
-        </AIBlock>
-      )}
-    </section>
+    <Card aria-label={title}>
+      <CardHeader>
+        <CardTitle className="text-title normal-case">{title}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Button className="mt-2" variant="primary" disabled={busy || !!disabledReason} onClick={() => void generate()}>
+          Tạo đề xuất AI
+        </Button>
+        {disabledReason && <p className="mt-2 text-label text-soon-text">{disabledReason}</p>}
+        {error && (
+          <p role="alert" className="mt-2 text-label text-alert-text">
+            {error}
+          </p>
+        )}
+        {result && (
+          <AiSurface className="mt-3" source="Chỉ dựa trên dữ liệu được cung cấp; cần kiểm tra trước khi dùng">
+            {children(result, isCurrent)}
+          </AiSurface>
+        )}
+      </CardContent>
+    </Card>
   );
 }
