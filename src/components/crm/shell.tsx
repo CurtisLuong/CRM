@@ -77,23 +77,14 @@ export function Sidebar({
   const item = (it: NavItem) => {
     const on = it.id === active;
     const Icon = it.icon;
-    const link = (
-      <a
-        href={it.href ?? '#'}
-        aria-current={on ? 'page' : undefined}
-        aria-label={collapsed ? `${it.label}${it.count != null ? ` · ${it.count}` : ''}` : undefined}
-        onClick={(e) => {
-          if (onNavigate) {
-            e.preventDefault();
-            onNavigate(it.id);
-          }
-        }}
-        className={cn(
-          'relative flex h-10 w-full items-center gap-3 rounded-sm px-2.5 text-sm font-medium text-ink-muted no-underline hover:bg-surface-200 hover:text-ink',
-          on && 'bg-ion-tint font-semibold text-ink hover:bg-ion-tint',
-          collapsed && 'size-11 justify-center px-0',
-        )}
-      >
+    const linkClass = cn(
+      'relative flex h-10 w-full items-center gap-3 rounded-sm px-2.5 text-left text-sm font-medium text-ink-muted no-underline hover:bg-surface-200 hover:text-ink',
+      on && 'bg-ion-tint font-semibold text-ink hover:bg-ion-tint',
+      collapsed && 'size-11 justify-center px-0',
+    );
+    const label = collapsed && it.count != null ? `${it.label} · ${it.count}` : it.label;
+    const content = (
+      <>
         <span className="relative grid place-items-center">
           <Icon className={cn('size-5', on && 'text-ion')} />
           {collapsed && it.count != null && (
@@ -116,6 +107,26 @@ export function Sidebar({
             {it.count}
           </span>
         )}
+      </>
+    );
+    const link = onNavigate ? (
+      <button
+        type="button"
+        aria-current={on ? 'page' : undefined}
+        aria-label={collapsed ? label : undefined}
+        onClick={() => onNavigate(it.id)}
+        className={linkClass}
+      >
+        {content}
+      </button>
+    ) : (
+      <a
+        href={it.href ?? '#'}
+        aria-current={on ? 'page' : undefined}
+        aria-label={collapsed ? label : undefined}
+        className={linkClass}
+      >
+        {content}
       </a>
     );
     return (
@@ -138,7 +149,7 @@ export function Sidebar({
     <nav
       aria-label="Điều hướng chính"
       className={cn(
-        'sticky top-0 flex h-full shrink-0 flex-col gap-2 overflow-hidden border-r border-line bg-surface-100 p-3 transition-[width] duration-200',
+        'sticky top-0 flex h-dvh shrink-0 self-start flex-col gap-2 overflow-hidden border-r border-line bg-surface-100 p-3 transition-[width] duration-200',
         collapsed ? 'w-16 items-center px-2' : 'w-[232px]',
       )}
     >
@@ -181,7 +192,7 @@ export function Sidebar({
         <button
           type="button"
           onClick={toggle}
-          aria-label={collapsed ? 'Mở rộng menu' : 'Thu gọn menu'}
+          aria-label={collapsed ? 'Mở rộng thanh bên' : 'Thu gọn thanh bên'}
           aria-expanded={!collapsed}
           className={cn(
             'flex h-10 w-full cursor-pointer items-center gap-3 rounded-sm px-2.5 text-sm font-medium text-ink-muted hover:bg-surface-200 hover:text-ink',
@@ -211,6 +222,7 @@ export function PageHeader({
   activeTab,
   onTab,
   sticky = true,
+  compact = false,
 }: {
   title: React.ReactNode;
   count?: number;
@@ -224,19 +236,36 @@ export function PageHeader({
   activeTab?: string;
   onTab?: (id: string) => void;
   sticky?: boolean;
+  /** Header khung app gọn 56px để giữ chỗ cho nội dung trên điện thoại. */
+  compact?: boolean;
 }) {
   return (
     <header
       className={cn(
-        'flex flex-col gap-3 border-b border-line bg-surface-0 px-6 py-4 max-sm:px-4 max-sm:py-3',
+        cn(
+          'flex flex-col gap-3 border-b border-line bg-surface-0 px-6 py-4 max-sm:px-4 max-sm:py-3',
+          compact && 'h-14 flex-row flex-nowrap gap-2 px-2 py-0 pt-[env(safe-area-inset-top)] max-sm:px-2',
+        ),
         sticky && 'sticky top-0 z-[5]',
       )}
     >
-      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
-        <div className="flex min-w-0 flex-col gap-0.5">
+      <div
+        className={cn(
+          'flex flex-wrap items-center justify-between gap-x-6 gap-y-3',
+          compact && 'min-w-0 flex-1 flex-nowrap gap-1',
+        )}
+      >
+        <div className={cn('flex min-w-0 flex-col gap-0.5', compact && 'flex-1 flex-row items-center')}>
           {overline && <span className="text-overline">{overline}</span>}
           <div className="flex flex-wrap items-center gap-2.5">
-            <h1 className="m-0 text-2xl font-bold leading-8 tracking-tight max-sm:text-xl">{title}</h1>
+            <h1
+              className={cn(
+                'm-0 text-2xl font-bold leading-8 tracking-tight max-sm:text-xl',
+                compact && 'truncate text-base leading-5',
+              )}
+            >
+              {title}
+            </h1>
             {count != null && (
               <span
                 role="img"
@@ -250,7 +279,11 @@ export function PageHeader({
           </div>
           {subtitle && <span className="text-[13px] text-ink-muted">{subtitle}</span>}
         </div>
-        {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
+        {actions && (
+          <div className={cn('flex flex-wrap items-center gap-2', compact && 'shrink-0 flex-nowrap gap-1')}>
+            {actions}
+          </div>
+        )}
       </div>
       {toolbar && <div className="flex flex-wrap items-center gap-2">{toolbar}</div>}
       {tabs && (
@@ -281,7 +314,7 @@ export function PageHeader({
 }
 
 /**
- * Khung mọi màn: menu trái (≥ 768px) hoặc thanh tab dưới (< 768px); header + nội dung bên phải, chỉ cột nội dung cuộn.
+ * Khung mọi màn: menu trái (≥ 768px) hoặc thanh tab dưới (< 768px); nội dung đi theo cuộn cửa sổ.
  * Gắn Sheet khách + <Toaster/> một lần ở cấp này.
  */
 export function AppShell({
@@ -290,6 +323,10 @@ export function AppShell({
   header,
   children,
   className,
+  mainClassName,
+  wide = false,
+  aside = false,
+  asideRef,
 }: {
   sidebar: React.ReactNode;
   /** <BottomNav> cho điện thoại; bỏ trống thì điện thoại không có điều hướng. */
@@ -297,15 +334,36 @@ export function AppShell({
   header?: React.ReactNode;
   children?: React.ReactNode;
   className?: string;
+  mainClassName?: string;
+  /** Màn rộng như Hồ sơ được dùng thêm chiều ngang trên desktop. */
+  wide?: boolean;
+  aside?: boolean;
+  asideRef?: (el: HTMLElement | null) => void;
 }) {
   return (
-    <div className={cn('flex h-dvh min-h-0 overflow-hidden bg-surface-0 text-ink', className)}>
+    <div className={cn('flex min-h-dvh bg-surface-0 text-ink', className)}>
       <div className="contents max-md:hidden">{sidebar}</div>
-      <div className="flex min-w-0 flex-1 flex-col overflow-auto bg-grid">
-        {header}
-        <main className={cn('flex flex-1 flex-col gap-4 px-6 pb-8 pt-4 max-sm:px-4', bottomNav && 'max-md:pb-24')}>
-          {children}
-        </main>
+      <div className="flex min-w-0 flex-1 bg-grid">
+        <div className="flex min-w-0 flex-1 flex-col">
+          {header}
+          <main
+            id="main"
+            className={cn(
+              'mx-auto flex w-full min-w-0 flex-1 flex-col gap-4 px-4 pb-24 pt-4 md:px-6 md:pb-8',
+              wide ? 'max-w-[1360px]' : 'max-w-[760px]',
+              mainClassName,
+            )}
+          >
+            {children}
+          </main>
+        </div>
+        {aside && (
+          <aside
+            ref={asideRef}
+            aria-label="Ngữ cảnh"
+            className="sticky top-0 hidden h-dvh w-[360px] shrink-0 overflow-y-auto border-l border-line bg-surface-100 lg:block"
+          />
+        )}
       </div>
       {bottomNav && <div className="md:hidden">{bottomNav}</div>}
     </div>
@@ -317,10 +375,14 @@ export function BottomNav({
   items = NAV_DEFAULT,
   active,
   onNavigate,
+  onCreate,
+  createLabel = 'Ghi nhanh',
 }: {
   items?: NavItem[];
   active?: string;
   onNavigate?: (id: string) => void;
+  onCreate?: () => void;
+  createLabel?: string;
 }) {
   return (
     <nav
@@ -328,43 +390,94 @@ export function BottomNav({
       className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface-100 pb-[env(safe-area-inset-bottom)]"
     >
       <ul className="m-0 grid list-none auto-cols-fr grid-flow-col p-0">
-        {items.map((it) => {
+        {items.map((it, index) => {
           const on = it.id === active;
           const Icon = it.icon;
-          return (
+          const tab = (
             <li key={it.id}>
-              <a
-                href={it.href ?? '#'}
-                aria-current={on ? 'page' : undefined}
-                onClick={(e) => {
-                  if (onNavigate) {
-                    e.preventDefault();
-                    onNavigate(it.id);
-                  }
-                }}
-                className={cn(
-                  'flex min-h-14 flex-col items-center justify-center gap-0.5 px-1 text-caption font-medium text-ink-muted',
-                  on && 'text-ion',
-                )}
-              >
-                <span className="relative">
-                  <Icon className="size-5" />
-                  {it.count != null && it.count > 0 && (
-                    <span
-                      className={cn(
-                        'absolute -top-1.5 left-3 min-w-4 rounded-full px-1 text-center font-mono text-[10px] font-semibold leading-4',
-                        BADGE[it.level ?? 'ok'],
-                      )}
-                    >
-                      {it.count}
-                    </span>
+              {onNavigate ? (
+                <button
+                  type="button"
+                  aria-current={on ? 'page' : undefined}
+                  onClick={() => onNavigate(it.id)}
+                  className={cn(
+                    'flex min-h-14 w-full flex-col items-center justify-center gap-0.5 px-1 text-caption font-medium text-ink-muted',
+                    on && 'text-ion',
                   )}
-                </span>
-                <span className="truncate">{it.label}</span>
-              </a>
+                >
+                  <span className="relative">
+                    <Icon className="size-5" />
+                    {it.count != null && it.count > 0 && (
+                      <span
+                        className={cn(
+                          'absolute -top-1.5 left-3 min-w-4 rounded-full px-1 text-center font-mono text-[10px] font-semibold leading-4',
+                          BADGE[it.level ?? 'ok'],
+                        )}
+                      >
+                        {it.count}
+                      </span>
+                    )}
+                  </span>
+                  <span className="truncate">{it.label}</span>
+                </button>
+              ) : (
+                <a
+                  href={it.href ?? '#'}
+                  aria-current={on ? 'page' : undefined}
+                  className={cn(
+                    'flex min-h-14 flex-col items-center justify-center gap-0.5 px-1 text-caption font-medium text-ink-muted',
+                    on && 'text-ion',
+                  )}
+                >
+                  <span className="relative">
+                    <Icon className="size-5" />
+                    {it.count != null && it.count > 0 && (
+                      <span
+                        className={cn(
+                          'absolute -top-1.5 left-3 min-w-4 rounded-full px-1 text-center font-mono text-[10px] font-semibold leading-4',
+                          BADGE[it.level ?? 'ok'],
+                        )}
+                      >
+                        {it.count}
+                      </span>
+                    )}
+                  </span>
+                  <span className="truncate">{it.label}</span>
+                </a>
+              )}
             </li>
           );
+          const half = Math.ceil(items.length / 2);
+          return (
+            <React.Fragment key={it.id}>
+              {index === half && onCreate && (
+                <li key="create" className="flex min-w-0 items-center justify-center">
+                  <button
+                    type="button"
+                    onClick={onCreate}
+                    aria-label={createLabel}
+                    className="grid size-12 place-items-center rounded-full bg-ion text-on-ion shadow-glow-ion"
+                  >
+                    <Plus className="size-5" />
+                  </button>
+                </li>
+              )}
+              {tab}
+            </React.Fragment>
+          );
         })}
+        {onCreate && items.length % 2 === 1 && (
+          <li className="flex min-w-0 items-center justify-center">
+            <button
+              type="button"
+              onClick={onCreate}
+              aria-label={createLabel}
+              className="grid size-12 place-items-center rounded-full bg-ion text-on-ion shadow-glow-ion"
+            >
+              <Plus className="size-5" />
+            </button>
+          </li>
+        )}
       </ul>
     </nav>
   );
