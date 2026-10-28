@@ -1,13 +1,17 @@
+import { Users } from 'lucide-react';
 import { useState } from 'react';
 import { useSearchParams } from 'react-router';
 import type { FeatureRoute } from '@/app/routes';
 import { useAppSession } from '@/app/session';
+import { EmptyState, TextField } from '@/components/crm';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useCustomers, useRepositoryAccount } from '@/data/hooks';
-import { Button, EmptyState, Loading, Skeleton } from '@/ui';
+import { Button, Input } from './kit';
 import { CallHistoryActions, QuickActionButtons } from './QuickActions';
 import { openQuickAction, type QuickAction } from './store';
 
-const FIELD = 'min-h-11 w-full rounded-control border border-border-strong bg-surface px-3 py-2 text-body text-text';
+const FIELD =
+  'h-11 w-full rounded-sm border border-input bg-surface-100 px-3 text-body text-ink focus-visible:outline-2 focus-visible:outline-ion';
 function QuickActionsPage() {
   const { session, booting, error } = useAppSession();
   const account = useRepositoryAccount();
@@ -25,14 +29,11 @@ function QuickActionsPage() {
       <h1 className="text-title">Thao tác nhanh</h1>
       {!account ? (
         booting ? (
-          <Loading label="Đang mở dữ liệu trên máy">
+          <div role="status" aria-label="Đang mở dữ liệu trên máy">
             <Skeleton className="h-20 w-full" />
-          </Loading>
+          </div>
         ) : !session ? (
-          <EmptyState
-            title="Chưa cấu hình kết nối staging"
-            hint={error || 'Cần VITE_SUPABASE_URL và VITE_SUPABASE_ANON_KEY để đăng nhập.'}
-          />
+          <EmptyState title="Chưa cấu hình kết nối staging" text={error || 'Cần cấu hình Supabase để đăng nhập.'} />
         ) : (
           <form
             className="flex max-w-md flex-col gap-3"
@@ -51,11 +52,12 @@ function QuickActionsPage() {
               }
             }}
           >
-            <p className="text-small text-text-2">Đăng nhập để mở dữ liệu của bạn.</p>
-            <label className="flex flex-col gap-1 text-small">
+            <p className="text-caption text-ink-muted">Đăng nhập để mở dữ liệu của bạn.</p>
+            <label htmlFor="quick-actions-email" className="flex flex-col gap-1 text-label">
               Email
-              <input
+              <Input
                 className={FIELD}
+                id="quick-actions-email"
                 type="email"
                 autoComplete="username"
                 required
@@ -63,10 +65,11 @@ function QuickActionsPage() {
                 onChange={(e) => setEmail(e.target.value)}
               />
             </label>
-            <label className="flex flex-col gap-1 text-small">
+            <label htmlFor="quick-actions-password" className="flex flex-col gap-1 text-label">
               Mật khẩu
-              <input
+              <Input
                 className={FIELD}
+                id="quick-actions-password"
                 type="password"
                 autoComplete="current-password"
                 required
@@ -78,7 +81,7 @@ function QuickActionsPage() {
               Đăng nhập
             </Button>
             {failure && (
-              <p role="alert" className="text-danger text-small">
+              <p role="alert" className="text-alert-text text-caption">
                 {failure}
               </p>
             )}
@@ -87,24 +90,22 @@ function QuickActionsPage() {
       ) : (
         <>
           <div className="flex items-center justify-between gap-2">
-            <p className="text-small text-text-2">Gọi, nhắn, ghi chú hoặc hẹn ngay trên dòng khách.</p>
+            <p className="text-caption text-ink-muted">Gọi, nhắn, ghi chú hoặc hẹn ngay trên dòng khách.</p>
             <Button onClick={() => void session?.auth.signOut()}>Đăng xuất</Button>
           </div>
-          <label className="flex flex-col gap-1 text-small">
-            Chọn khách
-            <input
-              type="search"
-              className={FIELD}
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Tên hoặc số điện thoại"
-            />
-          </label>
+          <TextField
+            id="quick-actions-search"
+            label="Chọn khách"
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Tên hoặc số điện thoại"
+          />
           {customers.length === 0 ? (
             <EmptyState
-              icon="customers"
+              icon={Users}
               title="Chưa có khách trên máy"
-              hint="Dữ liệu sẽ xuất hiện sau lần đồng bộ đầu tiên."
+              text="Dữ liệu sẽ xuất hiện sau lần đồng bộ đầu tiên."
             />
           ) : (
             <ul className="divide-y divide-border">
@@ -117,7 +118,7 @@ function QuickActionsPage() {
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="min-w-0">
                         <h2 className="break-words text-body-strong">{c.full_name}</h2>
-                        <p className="font-data text-mono-data text-text-2">{c.phone}</p>
+                        <p className="font-mono text-caption text-ink-muted">{c.phone}</p>
                       </div>
                       {intent ? (
                         <Button
@@ -131,7 +132,7 @@ function QuickActionsPage() {
                       )}
                     </div>
                     {c.owner_id !== account.sync.local.userId ? (
-                      <p className="text-small text-text-2">Khách nhóm · Chỉ xem</p>
+                      <p className="text-caption text-ink-muted">Khách nhóm · Chỉ xem</p>
                     ) : (
                       <CallHistoryActions customer={c} />
                     )}
@@ -142,7 +143,7 @@ function QuickActionsPage() {
         </>
       )}
       {error && account && (
-        <p role="status" className="text-small text-text-2">
+        <p role="status" className="text-caption text-ink-muted">
           Đang dùng dữ liệu trên máy. Đồng bộ chưa hoàn tất.
         </p>
       )}
