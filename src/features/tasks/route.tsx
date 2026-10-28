@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router';
 import type { FeatureRoute } from '@/app/routes';
 import { useAppSession } from '@/app/session';
 import { ActionItem, ChipGroup, EmptyState } from '@/components/crm';
@@ -6,7 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CALL_APPOINTMENT, TASK_KINDS, taskKindOf } from '@/config/taskKinds';
 import { useCustomers, useRepositoryAccount, useSyncStatus } from '@/data/hooks';
+import { fmtClock } from '@/domain/deadlines';
 import { appendPromise, promiseTaskKey, snoozePromise, undoPromiseSnooze } from '@/domain/deadlines/promises';
+import { fmt as formatDuration } from '@/domain/velocity/engine';
 import { openQuickAction } from '@/features/quick-actions/store';
 import { signalFor } from '@/lib/crm';
 import { cn } from '@/lib/utils';
@@ -14,20 +17,47 @@ import { useToast } from '@/ui/Toast';
 import { TASK_GROUPS, type TaskGroupId, type TaskRow, type TaskSideFilter, taskRows, taskTiming } from './model';
 
 const FIELD = 'min-h-11 rounded-md border border-line bg-surface-100 px-3 text-body text-ink';
+const FILTER_SELECT =
+  'min-h-11 rounded-md border border-input bg-surface-100 px-3 text-body text-ink hover:border-ink-muted focus-visible:border-ion focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ion';
 /** Nút phụ trong thẻ (Sửa/Dời): nhỏ, không chiếm chỗ của hành động chính. */
 const SMALL_ACTION =
-  'inline-flex min-h-11 items-center rounded-md px-3 text-label text-ink-muted hover:bg-surface-20000 disabled:opacity-50';
+  'inline-flex min-h-11 items-center rounded-md px-3 text-label text-ink-muted hover:bg-surface-200 disabled:opacity-50';
 
 function deadlineLabel(row: TaskRow, group: TaskGroupId, now: number) {
   if (group === 'done') return null;
   const timing = taskTiming(row, now);
   if (!timing) return null;
   const due = row.type === 'call' ? row.appointment.start : row.task.due;
-  const level = due ? signalFor(due, now, { allDay: timing.allDay }) : 'ok';
+  const level =
+    timing.state === 'missed'
+      ? 'alert'
+      : timing.state === 'due'
+        ? 'soon'
+        : due
+          ? signalFor(due, now, { allDay: timing.allDay })
+          : 'ok';
+  const dueDate = new Date(timing.startMs);
+  const today = new Date(now);
+  const sameDay = dueDate.toDateString() === today.toDateString();
+  const date = `${dueDate.getDate()}/${dueDate.getMonth() + 1}`;
+  const clock = fmtClock(timing.startMs);
+  const shortClock = clock.endsWith(':00') ? `${clock.slice(0, 2)}h` : clock;
+  const stamp = timing.allDay
+    ? date
+    : `${sameDay ? '' : `${date} `}${timing.state === 'far' || timing.state === 'soon' ? shortClock : clock}`;
+  const elapsedFrom = row.type === 'call' ? timing.endMs : timing.startMs;
+  const text =
+    timing.allDay && timing.state === 'missed'
+      ? `Quá hạn · ${stamp}`
+      : timing.state === 'missed'
+        ? `Quá ${formatDuration(now - elapsedFrom)} · ${stamp}`
+        : timing.state === 'due'
+          ? `Đến hạn · ${stamp}`
+          : stamp;
   return {
     tone: level === 'alert' ? 'over' : level === 'soon' ? 'soon' : undefined,
     level,
-    text: timing.text,
+    text,
   };
 }
 
@@ -61,6 +91,7 @@ function TaskCard({
   onSaveEdit: (text: string, due: string) => void;
   busy: boolean;
 }) {
+  const navigate = useNavigate();
   const [showSnooze, setShowSnooze] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [editText, setEditText] = useState<string>(row.type === 'task' ? (row.task.text ?? '') : '');
@@ -116,6 +147,7 @@ function TaskCard({
           disabled={busy}
           compact
           onAction={row.type === 'call' ? onCall : done ? onReopen : onComplete}
+          onOpen={() => navigate(`/khach-hang/${customer.id}`)}
         />
         {row.type === 'task' && !done && (
           <div className="mt-1">
@@ -458,7 +490,7 @@ function TasksPage() {
           Loại việc
           <select
             aria-label="Lọc theo loại việc"
-            className={FIELD}
+            className={FILTER_SELECT}
             value={kind}
             onChange={(event) => setKind(event.target.value)}
           >
@@ -505,7 +537,7 @@ function TasksPage() {
                   <h2 id={`tasks-${group.id}`} className="text-section">
                     {group.label}
                   </h2>
-                  <span className="inline-grid h-[22px] min-w-[22px] place-items-center rounded-full bg-surface-20000 px-1.5 text-caption text-ink-muted">
+                  <span className="inline-grid h-[22px] min-w-[22px] place-items-center rounded-full bg-surface-200 px-1.5 text-caption text-ink-muted">
                     {grouped.length}
                   </span>
                 </header>

@@ -29,6 +29,8 @@ export type TaskTiming = {
   tone?: TaskCardTone;
   /** Mốc bắt đầu để in ngày: việc = hạn, hẹn gọi = giờ bắt đầu. */
   startMs: number;
+  /** Mốc kết thúc dùng cho khoảng quá hạn của hẹn gọi. */
+  endMs: number;
   allDay: boolean;
   /** Nhãn đếm ngược của D-010 ("quá hạn", "còn 2 ngày"…). */
   text: string;
@@ -46,7 +48,7 @@ export function taskTiming(row: TaskRow, now: number): TaskTiming | null {
   const tag = countdownTag(startMs, endMs, allDay, now);
   if (!tag) return null;
   const tone = tag.state === 'missed' ? 'over' : tag.state === 'due' || tag.state === 'soon' ? 'soon' : undefined;
-  return { state: tag.state, tone, startMs, allDay, text: tag.text };
+  return { state: tag.state, tone, startMs, endMs, allDay, text: tag.text };
 }
 
 function calendarDayDiff(dueMs: number, now: number) {
