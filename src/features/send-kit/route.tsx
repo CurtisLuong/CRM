@@ -594,7 +594,7 @@ function SendKitPage() {
       ) : (
         <div className="flex flex-col gap-4">
           {groupNames.map((name) => {
-            const rows = shownItems.filter((item) => (item.project ?? '') === name);
+            const rows = shownItems.filter((item) => normalizeProject(item.project ?? '') === normalizeProject(name));
             if (!rows.length && name) return null;
             return (
               <details key={name || 'common'} open className="rounded-card border border-border bg-surface p-3">
@@ -750,4 +750,10 @@ function SendKitPage() {
   );
 }
 
-export const route: FeatureRoute = { path: '/tai-lieu', element: <SendKitPage />, handle: { title: 'Tài liệu' } };
+/** Đổi khách (hoặc bỏ khách → trang quản lý) dựng lại màn để dự án/tìm/hướng dẫn dán trở về mặc định. */
+function SendKitRoute() {
+  const [params] = useSearchParams();
+  return <SendKitPage key={params.get('customer') ?? ''} />;
+}
+
+export const route: FeatureRoute = { path: '/tai-lieu', element: <SendKitRoute />, handle: { title: 'Tài liệu' } };

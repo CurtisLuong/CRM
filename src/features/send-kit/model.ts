@@ -82,9 +82,10 @@ export function selectFirstShownProject(
 ): Set<string> {
   const next = new Set(selected);
   for (const item of items) {
-    if (project === null || (item.project && normalizeProject(item.project) === normalizeProject(project)))
+    // "Tất cả dự án" (null) chỉ tick mục Chung — không tick sẵn cả kho của mọi dự án.
+    if (project !== null && item.project && normalizeProject(item.project) === normalizeProject(project))
       next.add(item.id);
-    else if (includeCommon && item.project === null) next.add(item.id);
+    else if ((includeCommon || project === null) && item.project === null) next.add(item.id);
   }
   return next;
 }

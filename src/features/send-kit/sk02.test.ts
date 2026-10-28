@@ -20,6 +20,11 @@ describe('SK-02 lọc và chọn dự án', () => {
     expect(defaultProject([], items)).toBeNull();
   });
 
+  it('khách không có dự án (Tất cả dự án) chỉ tick sẵn mục Chung', () => {
+    const items = [item('common-1', 'Điều kiện mua', null), item('a-1', 'Ảnh A', 'A'), item('b-1', 'Video B', 'B')];
+    expect([...selectFirstShownProject(items, new Set(), null, true)]).toEqual(['common-1']);
+  });
+
   it('giữ mục A và Chung khi đổi B, đồng thời tick B lần đầu được hiện', () => {
     const items = [
       item('common-1', 'Điều kiện mua', null),
