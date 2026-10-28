@@ -295,7 +295,7 @@ function ProjectPicker({ customer, writable, online, catalog, onSave, open, onTo
                   </p>
                 )}
                 <div className="flex flex-wrap gap-2">
-                  <Button variant="primary" disabled={!online} onClick={() => void add()}>
+                  <Button variant="primary" disabled={!online || saving} onClick={() => void add()}>
                     Thêm dự án
                   </Button>
                   <Button
