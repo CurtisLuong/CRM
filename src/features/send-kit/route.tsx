@@ -465,7 +465,14 @@ function SendKitPage() {
         )}
         {shownItems.length === 0 &&
           (searchText.trim() ? (
-            <EmptyState title="Không có tài liệu khớp" />
+            <EmptyState
+              title="Không có tài liệu khớp"
+              actions={
+                <Button variant="secondary" aria-label="Hiện lại danh sách" onClick={() => setSearchText('')}>
+                  Xoá tìm kiếm
+                </Button>
+              }
+            />
           ) : (
             <EmptyState title="Chưa có tài liệu" text="Thêm tài liệu trước khi gửi cho khách." />
           ))}
@@ -586,7 +593,14 @@ function SendKitPage() {
         />
       ) : shownItems.length === 0 ? (
         searchText.trim() ? (
-          <EmptyState title="Không có tài liệu khớp" />
+          <EmptyState
+            title="Không có tài liệu khớp"
+            actions={
+              <Button variant="secondary" aria-label="Hiện lại danh sách" onClick={() => setSearchText('')}>
+                Xoá tìm kiếm
+              </Button>
+            }
+          />
         ) : (
           <EmptyState
             title="Chưa có tài liệu"
@@ -660,7 +674,7 @@ function SendKitPage() {
           })}
         </div>
       )}
-      <Sheet open={formOpen} onOpenChange={setFormOpen}>
+      <Sheet open={formOpen} onOpenChange={(open) => open && setFormOpen(true)}>
         <SheetContent
           aria-labelledby="send-kit-form-title"
           onEscapeKeyDown={(event) => event.preventDefault()}
