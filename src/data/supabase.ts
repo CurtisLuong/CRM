@@ -25,14 +25,10 @@ export function isDemoAvailable(): boolean {
 export function blockDemoNetwork() {
   if (originalFetch || typeof globalThis.fetch !== 'function') return;
   originalFetch = globalThis.fetch.bind(globalThis);
-  globalThis.fetch = async () =>
-    new Response(
-      JSON.stringify({ demo: true, unavailable: true, message: 'Tính năng này không có trong dữ liệu mẫu.' }),
-      {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      },
-    );
+  // Báo lỗi như mất mạng (không trả 200 giả): nơi gọi hiện trạng thái lỗi sẵn có, không coi là dữ liệu trống.
+  globalThis.fetch = async () => {
+    throw new TypeError('Tính năng này không có trong dữ liệu mẫu.');
+  };
 }
 
 export function restoreDemoNetwork() {

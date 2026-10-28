@@ -70,6 +70,8 @@ async function readDatabase(page: import('@playwright/test').Page, userId: strin
 }
 
 test('demo giữ dữ liệu local, chặn mạng, sống qua reload và xoá riêng DB demo khi thoát', async ({ page }) => {
+  // Giờ cố định: nhóm "Hẹn gọi còn lại hôm nay" không phụ thuộc lúc chạy test.
+  await page.clock.install({ time: new Date(2026, 9, 28, 10, 0) });
   await page.goto('/today');
   await expect(page.getByRole('button', { name: 'Xem bằng dữ liệu mẫu' })).toBeVisible();
   await seedRealDatabase(page);

@@ -11,8 +11,14 @@ const DAY = 24 * HOUR;
 /** Bộ dữ liệu dùng đồng hồ lúc nạp để các hạn và tín hiệu luôn còn mới. */
 export function demoDataset(now: number): Customer[] {
   const at = (offset: number) => new Date(now + offset).toISOString();
+  // Việc cả ngày lưu mốc 09:00 giờ máy như form thêm việc (src/features/profile/model.ts).
   const today = new Date(now);
-  today.setHours(0, 0, 0, 0);
+  today.setHours(9, 0, 0, 0);
+  const endOfDay = new Date(now);
+  endOfDay.setHours(23, 59, 0, 0);
+  // Hẹn gọi "còn lại hôm nay" phải nằm trước nửa đêm kể cả khi bấm lúc tối muộn.
+  const callStart = Math.min(now + 2 * HOUR, Math.max(now + 5 * MINUTE, endOfDay.getTime() - 30 * MINUTE));
+  const callEnd = Math.max(callStart + MINUTE, Math.min(callStart + 30 * MINUTE, endOfDay.getTime()));
   const base = (index: number, patch: Partial<Customer> = {}): Customer => {
     const careStage = patch.care_stage ?? 'Đăng kí mới';
     const created = patch.created_at ?? at(-DAY);
@@ -51,7 +57,7 @@ export function demoDataset(now: number): Customer[] {
     });
   };
   const task = (key: string, text: string, due: string, dueAllday = false) => ({
-    at: `demo-${key}`,
+    at: at(-DAY),
     key: `demo-${key}`,
     text,
     kind: 'docs',
@@ -80,8 +86,8 @@ export function demoDataset(now: number): Customer[] {
   });
   const todayCall = qualified(4, 'Đang chăm sóc', 2, {
     full_name: 'Đức Anh · Hẹn trong hôm nay',
-    next_call_at: at(2 * HOUR),
-    next_call_end: at(2.5 * HOUR),
+    next_call_at: new Date(callStart).toISOString(),
+    next_call_end: new Date(callEnd).toISOString(),
     next_call_reason: 'Trao đổi phương án vay',
   });
   const newLead = base(5, {

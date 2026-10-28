@@ -34,6 +34,13 @@ describe('demoDataset', () => {
     expect(status(within, now)?.state).toBe('ok');
   });
 
+  it('vẫn đủ mọi nhóm Hôm nay khi bấm lúc tối muộn', () => {
+    for (const late of [new Date(2026, 9, 28, 22, 30).getTime(), new Date(2026, 9, 28, 23, 40).getTime()]) {
+      const keys = new Set(groupQueue(queueRows(demoDataset(late), late, DEMO_USER_ID)).map((group) => group.key));
+      expect(SIGNALS_CONFIG.groupOrder.filter((group) => !keys.has(group))).toEqual([]);
+    }
+  });
+
   it('changes relative timestamps when loaded at a different time', () => {
     const first = demoDataset(now);
     const second = demoDataset(now + DAY_MS);
