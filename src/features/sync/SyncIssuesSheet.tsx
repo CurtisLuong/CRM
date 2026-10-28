@@ -1,8 +1,17 @@
 import { useEffect, useState } from 'react';
+import {
+  Button,
+  Sheet,
+  SheetBody,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui';
 import { useCustomers, useRepositoryAccount, useSyncStatus } from '@/data/hooks';
 import { type QueueOp, queueGetAll, type SyncError } from '@/data/queue';
 import { fieldLabel, rejectionReason } from '@/data/syncStatus';
-import { Button, Sheet } from '@/ui';
 
 const HIDDEN_FIELDS = new Set(['updated_at', 'care_stage_updated_at', 'id', 'owner_id_prev']);
 
@@ -77,75 +86,83 @@ export function SyncIssuesSheet({ open, onOpenChange }: { open: boolean; onOpenC
         if (!next) setConfirming(null);
         onOpenChange(next);
       }}
-      title="Đồng bộ"
-      description={
-        status.rejected.length
-          ? `${status.rejected.length} thay đổi bị máy chủ từ chối`
-          : status.pending
-            ? `Chờ đồng bộ ${status.pending} thay đổi`
-            : 'Dữ liệu trên máy này đã khớp máy chủ'
-      }
-      footer={
-        <Button variant="secondary" icon="sync" loading={busy && confirming == null} disabled={!online} onClick={retry}>
-          Thử lại
-        </Button>
-      }
     >
-      <div className="flex flex-col gap-3 pb-2">
-        {!online && (
-          <p className="text-body text-text-2">Đang ngoại tuyến — thay đổi được giữ trong máy và tự gửi khi có mạng.</p>
-        )}
-        {status.error && (
-          <div className="rounded-card border border-border p-3">
-            <p className="text-body-strong">Chưa gửi được lên máy chủ</p>
-            <p className="text-small text-text-2">{status.error.message}</p>
-            <p className="text-small text-text-2">App tự thử lại khi có mạng; không mất thay đổi nào.</p>
-          </div>
-        )}
-        {status.rejected.map((item) => {
-          const op = ops.find((o) => o.opId === item.opId);
-          const fields = changedFields(op);
-          return (
-            <div key={item.opId} className="flex flex-col gap-2 rounded-card border border-danger bg-danger-bg p-3">
-              <div>
-                <p className="text-body-strong">{nameOf(item.recordId)}</p>
-                {fields && <p className="text-small text-text-2">Thay đổi: {fields}</p>}
-              </div>
-              <p className="text-body text-danger">{rejectionReason(item)}</p>
-              <p className="text-small text-text-2">
-                Các thay đổi khác của khách này đang chờ phía sau; khách khác vẫn đồng bộ bình thường.
+      <SheetContent aria-label="Đồng bộ">
+        <SheetHeader>
+          <SheetTitle>Đồng bộ</SheetTitle>
+          <SheetDescription>
+            {status.rejected.length
+              ? `${status.rejected.length} thay đổi bị máy chủ từ chối`
+              : status.pending
+                ? `Chờ đồng bộ ${status.pending} thay đổi`
+                : 'Dữ liệu trên máy này đã khớp máy chủ'}
+          </SheetDescription>
+        </SheetHeader>
+        <SheetBody>
+          <div className="flex flex-col gap-3 pb-2">
+            {!online && (
+              <p className="text-body text-ink-muted">
+                Đang ngoại tuyến — thay đổi được giữ trong máy và tự gửi khi có mạng.
               </p>
-              {confirming === item.opId ? (
-                <div className="flex flex-col gap-2">
-                  <p className="text-small">
-                    Bỏ thay đổi này? Khách sẽ quay về dữ liệu đang có trên máy chủ. Bản sao thay đổi vẫn được lưu trong
-                    máy.
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    <Button variant="danger" loading={busy} onClick={() => discard(item)}>
-                      Xác nhận bỏ
-                    </Button>
-                    <Button variant="ghost" disabled={busy} onClick={() => setConfirming(null)}>
-                      Giữ lại
-                    </Button>
+            )}
+            {status.error && (
+              <div className="rounded-lg border border-line p-3">
+                <p className="text-body-strong">Chưa gửi được lên máy chủ</p>
+                <p className="text-caption text-ink-muted">{status.error.message}</p>
+                <p className="text-caption text-ink-muted">App tự thử lại khi có mạng; không mất thay đổi nào.</p>
+              </div>
+            )}
+            {status.rejected.map((item) => {
+              const op = ops.find((o) => o.opId === item.opId);
+              const fields = changedFields(op);
+              return (
+                <div key={item.opId} className="flex flex-col gap-2 rounded-lg border border-alert bg-alert-tint p-3">
+                  <div>
+                    <p className="text-body-strong">{nameOf(item.recordId)}</p>
+                    {fields && <p className="text-caption text-ink-muted">Thay đổi: {fields}</p>}
                   </div>
+                  <p className="text-body text-alert-text">{rejectionReason(item)}</p>
+                  <p className="text-caption text-ink-muted">
+                    Các thay đổi khác của khách này đang chờ phía sau; khách khác vẫn đồng bộ bình thường.
+                  </p>
+                  {confirming === item.opId ? (
+                    <div className="flex flex-col gap-2">
+                      <p className="text-caption">
+                        Bỏ thay đổi này? Khách sẽ quay về dữ liệu đang có trên máy chủ. Bản sao thay đổi vẫn được lưu
+                        trong máy.
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        <Button variant="destructive" disabled={busy} onClick={() => discard(item)}>
+                          Xác nhận bỏ
+                        </Button>
+                        <Button variant="ghost" disabled={busy} onClick={() => setConfirming(null)}>
+                          Giữ lại
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <Button
+                        variant="secondary"
+                        disabled={busy || !online}
+                        onClick={() => setConfirming(item.opId ?? null)}
+                      >
+                        Bỏ thao tác này
+                      </Button>
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <div>
-                  <Button
-                    variant="secondary"
-                    disabled={busy || !online}
-                    onClick={() => setConfirming(item.opId ?? null)}
-                  >
-                    Bỏ thao tác này
-                  </Button>
-                </div>
-              )}
-            </div>
-          );
-        })}
-        {failure && <p className="text-small text-danger">{failure}</p>}
-      </div>
+              );
+            })}
+            {failure && <p className="text-caption text-alert-text">{failure}</p>}
+          </div>
+        </SheetBody>
+        <SheetFooter>
+          <Button variant="secondary" disabled={(busy && confirming == null) || !online} onClick={retry}>
+            Thử lại
+          </Button>
+        </SheetFooter>
+      </SheetContent>
     </Sheet>
   );
 }
