@@ -81,10 +81,30 @@ export function NotificationsPage() {
                   items={groupSignals.map(({ signal, customer }) => ({
                     customer: customer.full_name,
                     reason: signal.reason,
-                    context: signal.title,
+                    context: (
+                      <span className="inline-flex flex-wrap items-center gap-2">
+                        <span>{signal.title}</span>
+                        <button
+                          type="button"
+                          className="font-medium text-ion hover:underline"
+                          onClick={() => navigate(`/ho-so/${customer.id}`)}
+                        >
+                          Mở hồ sơ {customer.full_name}
+                        </button>
+                        <button
+                          type="button"
+                          className="font-medium text-ink-muted hover:text-ink hover:underline"
+                          aria-label={`Ẩn tín hiệu ${typeDef.title} của ${customer.full_name}`}
+                          onClick={() => hideSignal(signal)}
+                        >
+                          Ẩn tín hiệu
+                        </button>
+                      </span>
+                    ),
                   }))}
                   bulkLabel="Ẩn tín hiệu"
                   onBulk={() => hideSignals(groupSignals.map(({ signal }) => signal))}
+                  defaultOpen
                 />
               );
             }
