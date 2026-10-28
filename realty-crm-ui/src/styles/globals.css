@@ -1,0 +1,209 @@
+@import "tailwindcss";
+
+/* ============================================================================
+   Realty CRM — design tokens (source: Realty CRM design system, tokens.json)
+   Dark ("mission control") is the default theme; light via data-theme="light".
+   RULE: no raw hex anywhere else in the app. Use these variables / utilities.
+   ========================================================================== */
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+@custom-variant light (&:where([data-theme="light"], [data-theme="light"] *));
+
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+  /* Surfaces & ink */
+  --surface-0: #070b10;
+  --surface-100: #0e151c;
+  --surface-200: #16212b;
+  --line: #223040;
+  --ink: #e6edf3;
+  --ink-muted: #8b9bab;
+  /* Interaction (never urgency) */
+  --ion: #38bdf8;
+  --on-ion: #04121c;
+  --ion-tint: #0c2a3a;
+  /* Signals — urgency only: ok = on track, soon = upcoming / in progress, alert = overdue */
+  --signal-ok: #3ddc84;
+  --signal-ok-text: #3ddc84;
+  --signal-ok-tint: #0d2a1b;
+  --on-signal-ok: #03140a;
+  --signal-soon: #fbbf24;
+  --signal-soon-text: #fbbf24;
+  --signal-soon-tint: #2e2408;
+  --on-signal-soon: #1f1500;
+  --signal-alert: #ff5c6c;
+  --signal-alert-text: #ff5c6c;
+  --signal-alert-tint: #3a1015;
+  --on-signal-alert: #1f0306;
+  /* Charts — validated set (adjacent pairs, CVD + normal vision). Max 3 series. */
+  --chart-1: #1e96d1;
+  --chart-2: #d55181;
+  --chart-3: #8a7fee;
+  --chart-prev: #647585;
+  /* Glows — alert always, ion for focus / AI only */
+  --glow-alert: 0 0 0 1px #ff5c6c66, 0 0 20px #ff5c6c40;
+  --glow-ion: 0 0 0 1px #38bdf859, 0 0 16px #38bdf833;
+  --shadow-overlay: 0 24px 64px #00000080;
+  --scrim: #02060acc;
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+  --surface-0: #eef2f6;
+  --surface-100: #ffffff;
+  --surface-200: #f4f7fa;
+  --line: #d5dde5;
+  --ink: #0b1220;
+  --ink-muted: #4f5d6c;
+  --ion: #0369a1;
+  --on-ion: #ffffff;
+  --ion-tint: #dff0fb;
+  --signal-ok: #16a34a;
+  --signal-ok-text: #116a32;
+  --signal-ok-tint: #dcf5e5;
+  --on-signal-ok: #ffffff;
+  --signal-soon: #f5b400;
+  --signal-soon-text: #9a5800;
+  --signal-soon-tint: #fdf3d0;
+  --on-signal-soon: #1f1500;
+  --signal-alert: #e5243b;
+  --signal-alert-text: #c11a2e;
+  --signal-alert-tint: #fde2e5;
+  --on-signal-alert: #ffffff;
+  --chart-1: #0b78b5;
+  --chart-2: #c43e7e;
+  --chart-3: #6250d6;
+  --chart-prev: #7d8d9c;
+  --glow-alert: 0 0 0 1px #e5243b40, 0 4px 16px #e5243b26;
+  --glow-ion: 0 0 0 1px #0369a133, 0 4px 14px #0369a11f;
+  --shadow-overlay: 0 24px 64px #0b122033;
+  --scrim: #0b122066;
+}
+
+/* shadcn/ui semantic variables, mapped onto the Realty tokens so stock shadcn components fit */
+:root {
+  --background: var(--surface-0);
+  --foreground: var(--ink);
+  --card: var(--surface-100);
+  --card-foreground: var(--ink);
+  --popover: var(--surface-100);
+  --popover-foreground: var(--ink);
+  --primary: var(--ion);
+  --primary-foreground: var(--on-ion);
+  --secondary: var(--surface-200);
+  --secondary-foreground: var(--ink);
+  --muted: var(--surface-200);
+  --muted-foreground: var(--ink-muted);
+  --accent: var(--surface-200);
+  --accent-foreground: var(--ink);
+  --destructive: var(--signal-alert);
+  --destructive-foreground: var(--on-signal-alert);
+  --border: var(--line);
+  --input: var(--ink-muted);
+  --ring: var(--ion);
+  --radius: 10px;
+}
+
+@theme inline {
+  --font-sans: "Be Vietnam Pro", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-surface-0: var(--surface-0);
+  --color-surface-100: var(--surface-100);
+  --color-surface-200: var(--surface-200);
+  --color-line: var(--line);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ion: var(--ion);
+  --color-on-ion: var(--on-ion);
+  --color-ion-tint: var(--ion-tint);
+  --color-ok: var(--signal-ok);
+  --color-ok-text: var(--signal-ok-text);
+  --color-ok-tint: var(--signal-ok-tint);
+  --color-on-ok: var(--on-signal-ok);
+  --color-soon: var(--signal-soon);
+  --color-soon-text: var(--signal-soon-text);
+  --color-soon-tint: var(--signal-soon-tint);
+  --color-on-soon: var(--on-signal-soon);
+  --color-alert: var(--signal-alert);
+  --color-alert-text: var(--signal-alert-text);
+  --color-alert-tint: var(--signal-alert-tint);
+  --color-on-alert: var(--on-signal-alert);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-prev: var(--chart-prev);
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+
+  --shadow-glow-alert: var(--glow-alert);
+  --shadow-glow-ion: var(--glow-ion);
+  --shadow-overlay: var(--shadow-overlay);
+
+  --animate-signal-pulse: signal-pulse 1.4s ease-in-out infinite;
+  --animate-shimmer: shimmer 1.3s linear infinite;
+  --animate-slide-in: slide-in 0.2s ease-out;
+  --animate-pop: pop 0.16s ease-out;
+}
+
+@keyframes signal-pulse { 50% { opacity: 0.35; } }
+@keyframes shimmer { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+@keyframes slide-in { from { transform: translateX(40px); opacity: 0; } }
+@keyframes pop { from { opacity: 0; transform: translateY(8px) scale(0.98); } }
+
+/* Type scale (from tokens.json): use these instead of ad-hoc font sizes */
+@utility text-display { font: 700 32px/38px var(--font-sans); letter-spacing: -0.02em; }
+@utility text-title { font: 600 20px/28px var(--font-sans); }
+@utility text-body { font: 400 15px/22px var(--font-sans); }
+@utility text-label { font: 500 13px/18px var(--font-sans); }
+@utility text-caption { font: 400 12px/16px var(--font-sans); }
+@utility text-numeric { font: 500 14px/20px var(--font-mono); font-variant-numeric: tabular-nums; }
+@utility text-countdown { font: 600 13px/18px var(--font-mono); font-variant-numeric: tabular-nums; }
+@utility text-overline { font: 600 11px/14px var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-muted); }
+
+/* Faint HUD dot grid for the app ground */
+@utility bg-grid {
+  background-color: var(--surface-0);
+  background-image: radial-gradient(var(--line) 1px, transparent 1.2px);
+  background-size: 16px 16px;
+}
+/* Small-sample texture for chart marks */
+@utility bg-hatch {
+  background: repeating-linear-gradient(135deg, currentColor 0 2px, transparent 2px 6px);
+}
+@utility focus-ring {
+  &:focus-visible { outline: 2px solid var(--ion); outline-offset: 2px; }
+}
+
+@layer base {
+  * { border-color: var(--line); }
+  html { background: var(--surface-0); }
+  body { margin: 0; background: var(--surface-0); color: var(--ink); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
+  :focus-visible { outline: 2px solid var(--ion); outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) {
+    *, ::before, ::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+  }
+}
