@@ -554,6 +554,9 @@ export function RetargetPage() {
                           </span>
                         )}
                       </div>
+                      <p className="px-4 pb-2 text-caption text-ink-muted">
+                        Phù hợp vì: {customerSegmentReasons(customer, filters).join(' · ')}
+                      </p>
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2 pl-6">
@@ -601,6 +604,16 @@ export function RetargetPage() {
         <EmptyState
           title="Chưa có khách phù hợp"
           text="Mở rộng điều kiện hoặc kiểm tra các dữ liệu có trong hồ sơ khách."
+          actions={
+            <Button
+              onClick={() => {
+                setFilters(DEFAULT_RETARGET_FILTERS);
+                document.getElementById('retarget-apt-type')?.focus();
+              }}
+            >
+              Đổi điều kiện
+            </Button>
+          }
         />
       )}
     </main>

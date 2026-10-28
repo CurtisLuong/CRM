@@ -1,6 +1,7 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router';
 import type { FeatureRoute } from '@/app/routes';
-import { ChipGroup, EmptyState, LeadRow, PageHeader } from '@/components/crm';
+import { EmptyState, LeadRow, PageHeader } from '@/components/crm';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetBody, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
@@ -220,6 +221,7 @@ function LeadSheet({ customer, onClose }: { customer: Customer | null; onClose: 
 }
 
 function LeadsPage() {
+  const navigate = useNavigate();
   const account = useRepositoryAccount();
   const customers = useCustomers();
   const [filter, setFilter] = useState<LeadFilter>('open');
@@ -228,6 +230,7 @@ function LeadsPage() {
   const rows = filterLeads(mine, filter).sort((a, b) =>
     (b.registered_at || b.created_at || '').localeCompare(a.registered_at || a.created_at || ''),
   );
+  const allLeads = filterLeads(mine, 'all');
   const selected = selectedId ? customers.find((c) => c.id === selectedId) || null : null;
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-4 p-4 lg:p-6">
@@ -239,29 +242,21 @@ function LeadsPage() {
         sticky={false}
       />
       <MetaLeadAdsBanner />
-      <label className="sr-only" htmlFor="lead-filter-compat">
+      <label htmlFor="lead-filter" className="flex flex-col gap-1 text-label">
         Lọc khách
+        <select
+          id="lead-filter"
+          className={FIELD}
+          value={filter}
+          onChange={(event) => setFilter(event.target.value as LeadFilter)}
+        >
+          {FILTERS.map((item) => (
+            <option key={item.value} value={item.value}>
+              {item.label}
+            </option>
+          ))}
+        </select>
       </label>
-      <select
-        id="lead-filter-compat"
-        className="sr-only"
-        tabIndex={-1}
-        aria-hidden="true"
-        value={filter}
-        onChange={(event) => setFilter(event.target.value as LeadFilter)}
-      >
-        {FILTERS.map((item) => (
-          <option key={item.value} value={item.value}>
-            {item.label}
-          </option>
-        ))}
-      </select>
-      <ChipGroup
-        label="Trạng thái khách mới"
-        options={FILTERS.map((item) => ({ ...item, count: filterLeads(mine, item.value).length }))}
-        value={filter}
-        onChange={(value) => value && setFilter(value as LeadFilter)}
-      />
       {rows.length ? (
         <ul aria-label="Danh sách khách mới" className="overflow-hidden rounded-md border border-line">
           {rows.map((customer) => {
@@ -290,7 +285,18 @@ function LeadsPage() {
       ) : (
         <EmptyState
           title={filter === 'open' ? 'Không có khách mới trong phễu' : 'Không có khách phù hợp'}
-          text="Đổi bộ lọc hoặc thêm khách mới."
+          text={
+            allLeads.length ? 'Thử trạng thái khách khác trong bộ lọc.' : 'Thêm khách mới để bắt đầu gọi và phân loại.'
+          }
+          actions={
+            allLeads.length ? (
+              <Button onClick={() => setFilter('all')}>Xoá lọc</Button>
+            ) : (
+              <Button variant="primary" onClick={() => navigate('/intake')}>
+                Thêm khách
+              </Button>
+            )
+          }
         />
       )}
       {!account && (

@@ -188,6 +188,7 @@ function Team() {
           <div className="flex flex-col gap-2 sm:flex-row">
             <Input
               type="email"
+              id="team-member-email"
               aria-label="Email đồng nghiệp"
               className={FIELD}
               value={email}
@@ -266,7 +267,15 @@ function Team() {
                     : 'Danh sách nhóm chưa tải được. Vui lòng thử lại.'
             }
             actions={
-              userId && loadState !== 'loading' ? <Button onClick={() => void refresh()}>Tải lại</Button> : undefined
+              userId && loadState !== 'loading' ? (
+                admin && loadState === 'ready' ? (
+                  <Button onClick={() => document.getElementById('team-member-email')?.focus()}>
+                    Thêm đồng nghiệp
+                  </Button>
+                ) : (
+                  <Button onClick={() => void refresh()}>Tải lại</Button>
+                )
+              ) : undefined
             }
           />
         )}

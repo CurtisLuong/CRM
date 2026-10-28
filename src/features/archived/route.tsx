@@ -62,6 +62,13 @@ function ArchivedPage() {
         <EmptyState
           title={total ? 'Không có khách khớp' : 'Chưa có khách nào được lưu trữ'}
           text={total ? 'Thử tên hoặc số điện thoại khác.' : 'Lưu trữ khách ở cuối hồ sơ khách.'}
+          actions={
+            total ? (
+              <Button onClick={() => setQuery('')}>Xoá tìm kiếm</Button>
+            ) : (
+              <Button onClick={() => navigate('/khach-hang')}>Mở danh sách khách</Button>
+            )
+          }
         />
       )}
     </main>
