@@ -1,7 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import type { FeatureRoute } from '@/app/routes';
 import { useAppSession } from '@/app/session';
+import { ActionItem, EmptyState, SlaMeter, StatTile } from '@/components/crm';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
 import { SIGNALS_CONFIG } from '@/config/signals';
 import { useCustomers, useRepositoryAccount, useSyncStatus } from '@/data/hooks';
 import type { Task } from '@/domain/customer';
@@ -9,17 +13,7 @@ import { snoozePromise, undoPromiseSnooze } from '@/domain/deadlines/promises';
 import { forStage } from '@/domain/followup';
 import { applySlaPlan, planSlaAutomation, slaPlanMessage } from '@/domain/velocity/automation';
 import { openQuickAction } from '@/features/quick-actions/store';
-import {
-  Button,
-  CardGroup,
-  CustomerCard,
-  type CustomerCardAction,
-  EmptyState,
-  Icon,
-  Loading,
-  SessionBar,
-  Skeleton,
-} from '@/ui';
+import { ACTION_BY_ID, type ActionId, NOTIF_TYPES, slaMeterFor } from '@/lib/crm';
 import {
   capacityPlan,
   capacitySnoozeCandidates,
@@ -29,9 +23,36 @@ import {
   nextCallSlotStart,
   type QueueRow,
   queueRows,
+  rowGroup,
   signalTask,
   todayCard,
+  todayUrgencyCounts,
+  urgencyForRow,
 } from './model';
+
+function CallSessionBar({
+  title,
+  sub,
+  duration,
+  onStart,
+}: {
+  title: string;
+  sub: string;
+  duration: number;
+  onStart: () => void;
+}) {
+  return (
+    <div className="flex items-center gap-3 rounded-md border border-line bg-surface-100 p-3">
+      <div className="min-w-0 flex-1">
+        <b className="block text-body font-semibold">{title}</b>
+        <span className="block text-caption text-ink-muted">{sub}</span>
+      </div>
+      <Button variant="primary" size="sm" aria-label="Bắt đầu" onClick={onStart}>
+        Bắt đầu · ~{duration} phút
+      </Button>
+    </div>
+  );
+}
 
 export function TodayPage() {
   const { session, booting, error } = useAppSession();
@@ -39,6 +60,11 @@ export function TodayPage() {
   const customers = useCustomers();
   const sync = useSyncStatus();
   const navigate = useNavigate();
+  const [readState, setReadState] = useState<{
+    account: typeof account;
+    status: 'loading' | 'ready' | 'error';
+    error?: string;
+  }>({ account: null, status: 'loading' });
   const [notice, setNotice] = useState('');
   const [now, setNow] = useState(() => Date.now());
   const [sessionIndex, setSessionIndex] = useState<number | null>(null);
@@ -53,6 +79,23 @@ export function TodayPage() {
   customersRef.current = customers;
   const [snoozeBusy, setSnoozeBusy] = useState(false);
   const [snoozeUndo, setSnoozeUndo] = useState<(() => void) | null>(null);
+  const refreshCustomers = useCallback(async () => {
+    if (!account) return;
+    setReadState({ account, status: 'loading' });
+    try {
+      await account.customers.refresh();
+      setReadState({ account, status: 'ready' });
+    } catch (cause) {
+      setReadState({
+        account,
+        status: 'error',
+        error: cause instanceof Error ? cause.message : 'Không tải được dữ liệu khách.',
+      });
+    }
+  }, [account]);
+  useEffect(() => {
+    if (account) void refreshCustomers();
+  }, [account, refreshCustomers]);
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 60_000);
     return () => window.clearInterval(timer);
@@ -90,22 +133,24 @@ export function TodayPage() {
   const summary = endOfDaySummary(customers, now);
   // Một định nghĩa quá hạn (D-010) và một quy tắc hành động (kể cả tín hiệu phụ) — cùng nguồn với thẻ.
   const cards = new Map(rows.map((row) => [row, todayCard(row, now)]));
-  const lateCount = rows.filter((row) => cards.get(row)?.tone === 'over').length;
+  const counts = todayUrgencyCounts(rows, now);
   const sessionRows = rows.filter((row) => cards.get(row)?.action === 'call');
-  const activeCall = sessionIndex == null ? null : (sessionRows[sessionIndex] ?? null);
   const sessionMinutes = sessionRows.reduce((sum, row) => sum + row.minutes, 0);
+  const activeCall = sessionIndex == null ? null : (sessionRows[sessionIndex] ?? null);
   const afterEvening = new Date(now).getHours() >= 20 && new Date(now).getMinutes() >= 45;
+  const currentReadState = readState.account === account ? readState : { account, status: 'loading' as const };
 
   if (!account) {
     return (
       <main className="mx-auto flex max-w-3xl flex-col gap-4 p-4">
         <h1 className="text-title">Hôm nay</h1>
         {booting ? (
-          <Loading label="Đang mở dữ liệu trên máy">
-            <Skeleton className="h-28 w-full" />
-          </Loading>
+          <div role="status" aria-label="Đang mở dữ liệu trên máy" className="flex flex-col gap-3">
+            <Skeleton className="h-24 w-full" />
+            <Skeleton className="h-24 w-full" />
+          </div>
         ) : !session ? (
-          <EmptyState title="Chưa cấu hình kết nối" hint={error || 'Cần cấu hình Supabase để đăng nhập.'} />
+          <EmptyState title="Chưa cấu hình kết nối" text={error || 'Cần cấu hình Supabase để đăng nhập.'} />
         ) : (
           <form
             className="flex max-w-md flex-col gap-3"
@@ -120,21 +165,15 @@ export function TodayPage() {
               }
             }}
           >
-            <p className="text-small text-text-2">Đăng nhập để mở hàng đợi khách của bạn.</p>
-            <label className="flex flex-col gap-1 text-small">
-              Email
-              <input
-                className="min-h-11 rounded-control border border-border-strong bg-surface px-3"
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
+            <p className="text-body text-ink-muted">Đăng nhập để mở hàng đợi khách của bạn.</p>
+            <label htmlFor="today-email" className="flex flex-col gap-1 text-label">
+              <span>Email</span>
+              <Input id="today-email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
             </label>
-            <label className="flex flex-col gap-1 text-small">
-              Mật khẩu
-              <input
-                className="min-h-11 rounded-control border border-border-strong bg-surface px-3"
+            <label htmlFor="today-password" className="flex flex-col gap-1 text-label">
+              <span>Mật khẩu</span>
+              <Input
+                id="today-password"
                 type="password"
                 required
                 value={password}
@@ -145,7 +184,7 @@ export function TodayPage() {
               Đăng nhập
             </Button>
             {(loginError || error) && (
-              <p role="alert" className="text-danger text-small">
+              <p role="alert" className="text-alert-text text-label">
                 {loginError || error}
               </p>
             )}
@@ -155,88 +194,147 @@ export function TodayPage() {
     );
   }
 
+  if (currentReadState.status === 'loading') {
+    return (
+      <main className="mx-auto flex max-w-3xl flex-col gap-3 p-4 pb-24" aria-label="Hôm nay">
+        <div className="grid grid-cols-3 gap-2">
+          <Skeleton className="h-24" />
+          <Skeleton className="h-24" />
+          <Skeleton className="h-24" />
+        </div>
+        <Skeleton className="h-16 w-full" />
+        <Skeleton className="h-24 w-full" />
+      </main>
+    );
+  }
+
+  if (currentReadState.status === 'error') {
+    return (
+      <main className="mx-auto flex max-w-3xl flex-col p-4 pb-24">
+        <EmptyState
+          kind="error"
+          title="Không tải được hàng đợi"
+          text={currentReadState.error || 'Dữ liệu trên máy chưa đọc được.'}
+          actions={
+            <Button variant="primary" onClick={() => void refreshCustomers()}>
+              Thử lại
+            </Button>
+          }
+        />
+      </main>
+    );
+  }
+
   const renderCard = (row: QueueRow, compact = false) => {
     const { signal, customer } = row;
     const card = todayCard(row, now);
+    const level = urgencyForRow(row, now);
     const writable = account.sync.local.userId === customer.owner_id && !customer.archived_at;
     const open = () => navigate(`/ho-so/${customer.id}`);
-    const action: CustomerCardAction =
+    const task = signalTask(signal, customer);
+    const group = rowGroup(signal);
+    const notification = NOTIF_TYPES[group ?? 'system'];
+    const actionId: ActionId | undefined =
+      card.action === 'call' ? 'call' : card.action === 'outcome' ? 'note' : undefined;
+    const actionLabel =
       card.action === 'call'
-        ? { label: 'Gọi', icon: 'call', onClick: () => openQuickAction(customer.id, 'call'), disabled: !writable }
+        ? ACTION_BY_ID.call.short
         : card.action === 'complete'
-          ? {
-              label: 'Xong',
-              icon: 'done',
-              disabled: !writable,
-              onClick: () => {
-                const task = signalTask(signal, customer);
-                if (!task?.at) return;
-                void account.customers
-                  .completeTask(customer.id, task.at)
-                  .catch(() => setNotice('Chưa hoàn tất được việc.'));
-              },
+          ? 'Xong'
+          : card.action === 'outcome'
+            ? 'Ghi kết quả'
+            : 'Mở';
+    const actionAriaLabel = `${actionLabel} ${customer.full_name}${level === 'alert' ? ' · Làm ngay' : ''}`;
+    const title =
+      task?.text ||
+      (card.action === 'call'
+        ? ACTION_BY_ID.call.label
+        : card.action === 'complete'
+          ? 'Hoàn tất việc'
+          : card.action === 'outcome'
+            ? 'Ghi kết quả cuộc gọi'
+            : notification.title);
+    const onAction =
+      card.action === 'call'
+        ? () => openQuickAction(customer.id, 'call')
+        : card.action === 'complete'
+          ? () => {
+              const task = signalTask(signal, customer);
+              if (!task?.at) return;
+              void account.customers
+                .completeTask(customer.id, task.at)
+                .catch(() => setNotice('Chưa hoàn tất được việc.'));
             }
           : card.action === 'outcome'
-            ? {
-                label: 'Ghi kết quả',
-                icon: 'note',
-                onClick: () => openQuickAction(customer.id, 'outcome'),
-                disabled: !writable,
-              }
-            : { label: 'Mở', icon: 'open', onClick: open };
-    const sub = card.when ? (
-      <>
-        <span
-          className={
-            card.when.state === 'over'
-              ? 'font-semibold text-danger'
-              : card.when.state === 'soon'
-                ? 'font-semibold text-warning'
-                : 'font-data'
-          }
-        >
-          {card.when.text}
-        </span>
-        {card.detail ? ` · ${card.detail}` : ''}
-      </>
-    ) : (
-      card.detail
-    );
+            ? () => openQuickAction(customer.id, 'outcome')
+            : open;
+    const meter = slaMeterFor(customer, now);
     return (
-      <CustomerCard
+      <ActionItem
         key={signal.dedupeKey}
-        name={customer.full_name}
-        tone={card.tone}
-        sub={sub}
+        level={level}
+        title={title}
+        customer={customer.full_name}
+        context={card.detail || undefined}
+        time={card.when?.text}
+        action={card.action === 'complete' ? undefined : actionId}
+        actionLabel={actionLabel}
+        actionAriaLabel={actionAriaLabel}
+        disabled={card.action !== 'open' && !writable}
+        onAction={onAction}
         onOpen={open}
-        action={action}
         compact={compact}
-        facts={compact ? undefined : card.facts}
-        note={compact ? undefined : card.note}
-        sla={compact ? undefined : card.sla}
-      />
+        dataCard
+        tone={level === 'alert' ? 'over' : level === 'soon' ? 'soon' : undefined}
+      >
+        {!compact && (
+          <div className="flex flex-col gap-2">
+            {card.facts.length > 0 && (
+              <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5">
+                {card.facts.map((fact) => (
+                  <div key={fact.label} className="min-w-0">
+                    <dt className="text-caption text-ink-muted">{fact.label}</dt>
+                    <dd className="break-words text-label font-medium">{fact.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            )}
+            {card.note && <p className="m-0 break-words text-label text-ink-muted">“{card.note}”</p>}
+            {card.sla && (
+              <div className="flex flex-wrap items-center gap-2 text-caption text-ink-muted">
+                <span>{card.sla.text}</span>
+                {meter && <SlaMeter {...meter} compact />}
+              </div>
+            )}
+          </div>
+        )}
+      </ActionItem>
     );
   };
 
   return (
-    <main className="mx-auto flex max-w-3xl flex-col p-4 pb-24">
-      <div className="flex items-center justify-between gap-2 text-small">
-        <span>
+    <main className="mx-auto flex max-w-3xl flex-col p-4 pt-3 pb-24">
+      <section className="grid grid-cols-3 gap-2" aria-label="Tổng quan mức gấp">
+        <StatTile compact level="alert" label="Quá hạn" value={counts.alert} />
+        <StatTile compact level="soon" label="Đến giờ hôm nay" value={counts.soon} />
+        <StatTile compact level="ok" label="Đúng hẹn" value={counts.ok} />
+      </section>
+      {sessionRows.length === 0 && (
+        <div className="mt-2 text-caption text-ink-muted">
           {rows.length} việc · ~{plan.minutes} phút
-        </span>
-        {lateCount > 0 && <span className="font-semibold text-danger">{lateCount} quá hạn</span>}
-      </div>
+        </div>
+      )}
       {notice && (
         <div
           role="status"
-          className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-control bg-surface-2 p-3 text-small"
+          className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-md bg-surface-200 p-3 text-label"
         >
           <span>{notice}</span>
           {snoozeUndo && <Button onClick={() => snoozeUndo()}>Hoàn tác</Button>}
         </div>
       )}
       {plan.overflow > 0 && (
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-card-sm bg-surface-2 p-3 text-small">
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-md bg-surface-200 p-3 text-label">
           <span>Quá tải khoảng {plan.overflow} phút</span>
           {snoozeCandidates.length > 0 && (
             <Button
@@ -316,17 +414,19 @@ export function TodayPage() {
 
       {sessionIndex == null ? (
         sessionRows.length > 0 && (
-          <SessionBar
-            className="mt-3"
-            title={`Gọi lần lượt ${sessionRows.length} khách`}
-            sub={`~${sessionMinutes} phút`}
-            onStart={() => setSessionIndex(0)}
-          />
+          <div className="mt-3">
+            <CallSessionBar
+              title={`Gọi lần lượt ${sessionRows.length} khách`}
+              sub={`${rows.length} việc · ~${plan.minutes} phút`}
+              duration={sessionMinutes}
+              onStart={() => setSessionIndex(0)}
+            />
+          </div>
         )
       ) : activeCall ? (
         <div className="mt-3 flex flex-col gap-2">
           {renderCard(activeCall)}
-          <p className="text-small">
+          <p className="text-label text-ink-muted">
             {sessionIndex + 1}/{sessionRows.length}
           </p>
           <div className="flex gap-2">
@@ -336,7 +436,7 @@ export function TodayPage() {
         </div>
       ) : (
         <div className="mt-3 flex flex-col gap-2">
-          <p className="text-small">Đã hết khách trong phiên.</p>
+          <p className="text-label text-ink-muted">Đã hết khách trong phiên.</p>
           <Button className="self-start" onClick={() => setSessionIndex(null)}>
             Đóng phiên
           </Button>
@@ -347,20 +447,20 @@ export function TodayPage() {
         if (group.collapsed) {
           const opened = !!openCollapsed[group.key];
           return (
-            <section key={group.key} aria-label={group.title} className="mt-3.5">
+            <section key={group.key} aria-label={group.title} className="mt-2">
               <button
                 type="button"
                 aria-expanded={opened}
                 onClick={() => setOpenCollapsed((prev) => ({ ...prev, [group.key]: !opened }))}
-                className="flex min-h-12 w-full items-center justify-between gap-2 rounded-card-sm border border-hairline bg-surface px-4 text-left"
+                className="flex min-h-12 w-full items-center justify-between gap-2 rounded-md border border-line bg-surface-100 px-4 text-left text-label font-semibold"
               >
                 <span>
-                  {group.title} <span className="text-text-3">{group.rows.length}</span>
+                  {group.title} <span className="text-ink-muted">{group.rows.length}</span>
                 </span>
-                <Icon name={opened ? 'expand' : 'open'} />
+                <span aria-hidden>{opened ? '⌄' : '›'}</span>
               </button>
               {opened && (
-                <div className="mt-2 flex flex-col gap-2.5">{group.rows.map((row) => renderCard(row, true))}</div>
+                <div className="mt-2 flex flex-col gap-2">{group.rows.map((row) => renderCard(row, true))}</div>
               )}
             </section>
           );
@@ -369,33 +469,39 @@ export function TodayPage() {
         const shownRows = showAll ? group.rows : group.rows.slice(0, SIGNALS_CONFIG.todayCompactLimit);
         const remaining = group.rows.length - shownRows.length;
         return (
-          <CardGroup key={group.key} title={group.title} count={group.rows.length}>
-            {shownRows.map((row) => renderCard(row, !group.full))}
-            {remaining > 0 && (
-              <Button
-                variant="ghost"
-                className="self-start"
-                onClick={() => setExpandedGroups((prev) => ({ ...prev, [group.key]: true }))}
-              >
-                Xem thêm {remaining}
-              </Button>
-            )}
-          </CardGroup>
+          <section key={group.key} aria-label={group.title} className="mt-2">
+            <div className="mb-2 flex items-baseline gap-2 px-1">
+              <h2 className="text-label font-semibold">{group.title}</h2>
+              <span className="text-caption text-ink-muted tabular-nums">{group.rows.length}</span>
+            </div>
+            <div className="flex flex-col gap-2">
+              {shownRows.map((row) => renderCard(row, !group.full))}
+              {remaining > 0 && (
+                <Button
+                  variant="ghost"
+                  className="self-start"
+                  onClick={() => setExpandedGroups((prev) => ({ ...prev, [group.key]: true }))}
+                >
+                  Xem thêm {remaining}
+                </Button>
+              )}
+            </div>
+          </section>
         );
       })}
 
       {!rows.length && (
         <EmptyState
-          icon="task"
+          kind="done"
           title="Đã xử lý các việc ưu tiên"
-          hint="Chưa có tín hiệu cần hành động. Không tạo việc giả."
+          text="Chưa có tín hiệu cần hành động. Không tạo việc giả."
         />
       )}
 
       {(afterEvening || showSummary) && (
-        <section className="mt-3 rounded-card border border-border bg-surface p-4">
-          <h2 className="text-heading">Tổng kết ngày</h2>
-          <p className="mt-2 text-small">
+        <section className="mt-3 rounded-md border border-line bg-surface-100 p-4">
+          <h2 className="text-title">Tổng kết ngày</h2>
+          <p className="mt-2 text-label text-ink-muted">
             Lời hứa đã giữ: {summary.kept} · lời hứa trễ: {summary.late} · cuộc gọi chưa ghi kết quả:{' '}
             {summary.unrecorded} · việc ngày mai: {summary.tomorrow} · thay đổi chờ đồng bộ: {sync.pending}
           </p>
@@ -405,13 +511,6 @@ export function TodayPage() {
         <Button className="mt-2 self-start" variant="ghost" onClick={() => setShowSummary(true)}>
           Xem tổng kết ngày
         </Button>
-      )}
-      {!customers.length && (
-        <EmptyState
-          icon="customers"
-          title="Chưa có khách trên thiết bị"
-          hint="Hàng đợi sẽ xuất hiện sau lần đồng bộ đầu tiên."
-        />
       )}
     </main>
   );

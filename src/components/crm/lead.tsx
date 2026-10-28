@@ -98,12 +98,16 @@ export function StatTile({
   delta,
   level,
   onClick,
+  compact,
+  className,
 }: {
   label: string;
   value: React.ReactNode;
   delta?: string;
   level?: Level;
   onClick?: () => void;
+  compact?: boolean;
+  className?: string;
 }) {
   const TEXT: Record<Level, string> = { ok: 'text-ok-text', soon: 'text-soon-text', alert: 'text-alert-text' };
   return (
@@ -112,14 +116,20 @@ export function StatTile({
       onClick={onClick}
       className={cn(
         'flex min-w-44 cursor-pointer flex-col gap-1 rounded-lg border border-line bg-surface-100 p-4 text-left',
+        compact && 'min-w-0 gap-0.5 p-2 sm:gap-1 sm:p-4',
         level === 'alert' && 'border-alert shadow-glow-alert',
+        className,
       )}
     >
-      <span className="flex items-center gap-1.5 text-overline">
+      <span className="flex min-h-8 items-center gap-1.5 text-overline leading-4">
         {level && <Glyph level={level} />}
         {label}
       </span>
-      <span className={cn('text-display tabular-nums', level && TEXT[level])}>{value}</span>
+      <span
+        className={cn(compact ? 'text-title sm:text-display' : 'text-display', 'tabular-nums', level && TEXT[level])}
+      >
+        {value}
+      </span>
       {delta && <span className="text-caption text-ink-muted">{delta}</span>}
     </button>
   );
