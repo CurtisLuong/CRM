@@ -222,6 +222,22 @@ function SendKitPage() {
     const attachments = selectedFiles(chosen, selected);
     const titles = chosen.map((item) => item.title).join(', ');
     try {
+      // Chỉ có chữ: link zalo.me/<số> báo "trang không tồn tại" khi khách không cho tìm bằng số (Curtis thử 28/10)
+      // → dùng bảng chia sẻ như khi có tệp; máy không có bảng chia sẻ mới mở link Zalo.
+      if (!attachments.length && typeof navigator.share === 'function') {
+        await navigator.clipboard.writeText(message);
+        await navigator.share({ text: message });
+        const latest = account.customers.getSnapshot().find((row) => row.id === customer.id) ?? customer;
+        await account.customers.update(
+          customer.id,
+          appendInteractionPatch(
+            latest,
+            createInteraction('sent', userId, new Date().toISOString(), `Đã gửi tài liệu: ${titles}`),
+          ),
+        );
+        toast({ title: 'Đã gửi tài liệu', description: 'Đã ghi vào lịch sử khách.' });
+        return;
+      }
       if (!attachments.length) {
         const { copyAndOpenZalo } = await import('@/features/quick-actions/zalo');
         await copyAndOpenZalo(message, customer.phone);

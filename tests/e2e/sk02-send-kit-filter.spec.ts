@@ -116,5 +116,22 @@ for (const viewport of [360, 1280]) {
       document: document.documentElement.scrollWidth,
     }));
     expect(dimensions.document).toBeLessThanOrEqual(dimensions.viewport);
+
+    // Chỉ có chữ → cũng đi qua bảng chia sẻ (link zalo.me/<số> báo lỗi khi khách không cho tìm bằng số).
+    await page.goto('/tai-lieu?customer=dm01-05');
+    await expect(page.getByText('Đã chọn 4 mục · 2 tệp')).toBeVisible();
+    await page.getByRole('checkbox', { name: /Ảnh A/ }).uncheck();
+    await page.getByRole('checkbox', { name: /Bảng giá A/ }).uncheck();
+    await expect(page.getByText('Đã chọn 2 mục · 0 tệp')).toBeVisible();
+    await page.getByRole('button', { name: /Gửi qua Zalo/ }).click();
+    await expect
+      .poll(() => page.evaluate(() => (window as Window & { __sendPayloads?: unknown[] }).__sendPayloads?.length))
+      .toBe(1); // tải lại trang → danh sách giả lập bắt đầu lại
+    const textOnly = await page.evaluate(
+      () => (window as Window & { __sendPayloads?: { text?: string; files?: string[] }[] }).__sendPayloads?.[0],
+    );
+    expect(textOnly?.files).toEqual([]);
+    expect(textOnly?.text).toContain('Nội dung điều kiện mua');
+    await expect(page).toHaveURL(/\/tai-lieu\?customer=dm01-05/);
   });
 }
