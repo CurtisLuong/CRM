@@ -8,6 +8,13 @@ Bộ tài liệu được biên soạn ngày 06/10/2026; đây không phải ng�
 
 Chỉ đọc file này khi cần tiếp nối công việc hoặc task phụ thuộc trạng thái triển khai/test.
 
+## Bản UI "Realty CRM" R0+R1 + Tài liệu gửi khách (bản thử) lên production (2026-10-28)
+
+- **Curtis duyệt "merge vào main" 2026-10-28** sau khi thử preview `factory`. `main` = `6012270` (merge `factory` @ `8bbc806`; trước đó gộp `origin/main` 85dd7c9 — chỉ có merge commit PR #1–#3, không xung đột). Lead push thẳng `main`; Cloudflare project `crm` tự build `crm-cop.pages.dev`. **Rollback:** đưa `main` về `85dd7c9` (bản production trước).
+- Gồm: token/màu mới (D-028), khung mới (menu trái 64/232px, thanh tab dưới, thanh đầu 56px), Hôm nay mới (R1-02), chế độ dữ liệu mẫu (**không hiện trên production** — URL Supabase production), Tài liệu gửi khách bản thử (SK-01/02: lưu trên máy, chưa đồng bộ; vỏ Android chưa chia sẻ tệp được → tải tệp + mở Zalo), thông báo "Có bản mới" nổi trên thanh tab + tự hỏi bản mới mỗi 30 phút.
+- **Không đổi** SQL, Supabase, Worker, vỏ Android → không migration, không APK mới.
+- Kiểm: `npm run check` 1227 test; `npm run e2e` trên cây merge 534 đạt + 2 trượt (`dm01` chập chờn do 2 tiêu đề lúc chuyển màn — Lead sửa test, chạy lại xanh). Chưa thử máy thật Android/vỏ app.
+
 ## Hồ sơ desktop 2 cột PF-07 lên production (2026-10-21)
 
 - 2026-10-22 (3): CL-03 (hồ sơ gọn: ngày sinh đủ năm hoặc chỉ ngày/tháng → tuổi, mệnh, cung; ô trống ẩn sau "Bổ sung"; ô ngắn 2 cột; Nhu cầu theo đợt + Người cùng quyết định sang tab Nhu cầu & căn → Nâng cao) + worker pool Factory (chỉ script). Curtis duyệt merge. `main` = `805c0c9` (cây file giống hệt `factory` b3663f6; 1100 unit + 418 e2e xanh, build xanh). Push GitHub → Cloudflare deployment `fe7fa0b7`; trang thật có bundle mới. Không có SQL. Rollback: deployment `f9a969a2` (be3b43f).
