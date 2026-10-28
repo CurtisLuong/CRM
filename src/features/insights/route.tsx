@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import type { FeatureRoute } from '@/app/routes';
+import { EmptyState } from '@/components/crm';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useCustomers, useRepositoryAccount } from '@/data/hooks';
-import { EmptyState, InsightChart, StatTile } from '@/ui';
 import { CareSection } from './care';
 import { DetailBlock } from './detail';
 import { MarketingSection } from './marketing';
@@ -17,8 +18,12 @@ import {
   weeklyChartTitle,
 } from './model';
 
+const MetricView = lazy(() => import('./charts-view').then((module) => ({ default: module.MetricView })));
+const FunnelView = lazy(() => import('./charts-view').then((module) => ({ default: module.FunnelView })));
+const WeeklyView = lazy(() => import('./charts-view').then((module) => ({ default: module.WeeklyView })));
+const SourceView = lazy(() => import('./charts-view').then((module) => ({ default: module.SourceView })));
+
 const pct = (value: number | null) => (value == null ? '—' : `${value}%`);
-const nFmt = (n: number) => n.toLocaleString('vi-VN');
 const periodLabel = (start: number, end: number) =>
   `${new Date(start).toLocaleDateString('vi-VN')}–${new Date(end).toLocaleDateString('vi-VN')}`;
 
@@ -55,7 +60,7 @@ export function InsightsPage() {
   if (!account)
     return (
       <main className="mx-auto max-w-5xl p-4">
-        <EmptyState title="Chưa có dữ liệu tài khoản" hint="Đăng nhập để xem hiệu quả chăm sóc, phễu và nguồn khách." />
+        <EmptyState title="Chưa có dữ liệu tài khoản" text="Đăng nhập để xem hiệu quả chăm sóc, phễu và nguồn khách." />
       </main>
     );
   if (!customers.length)
@@ -63,7 +68,7 @@ export function InsightsPage() {
       <main className="mx-auto flex max-w-5xl flex-col gap-5 p-4 pb-10">
         <EmptyState
           title="Chưa có dữ liệu phân tích"
-          hint="Các chỉ số chăm sóc sẽ xuất hiện khi có khách và lịch sử."
+          text="Các chỉ số chăm sóc sẽ xuất hiện khi có khách và lịch sử."
         />
         <MarketingSection customers={customers} account={account} />
       </main>
@@ -73,15 +78,31 @@ export function InsightsPage() {
     <main className="mx-auto flex max-w-5xl flex-col gap-5 p-4 pb-10">
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {tiles.map((tile) => (
-          <StatTile
+          <button
             key={tile.key}
-            label={tile.label}
-            value={tile.value}
-            unit={tile.unit}
-            sub={tile.sub}
-            trend={tile.trend}
+            data-tile
+            type="button"
             onClick={() => openDetail(tile.target)}
-          />
+            className="min-h-28 rounded-lg text-left focus-visible:outline-2 focus-visible:outline-ion"
+          >
+            <Suspense fallback={<Skeleton className="h-28 w-full" />}>
+              <MetricView
+                label={tile.label}
+                value={tile.value}
+                unit={tile.unit}
+                fraction={tile.sub}
+                delta={
+                  tile.trend
+                    ? {
+                        dir: tile.trend.dir === 'flat' ? 'up' : tile.trend.dir,
+                        text: tile.trend.text,
+                        good: tile.trend.tone !== 'bad',
+                      }
+                    : undefined
+                }
+              />
+            </Suspense>
+          </button>
         ))}
       </div>
 
@@ -91,31 +112,30 @@ export function InsightsPage() {
         open={!!openBlocks['funnel-detail']}
         onToggle={() => toggle('funnel-detail')}
       >
-        <section aria-labelledby="funnel-title" className="rounded-card border border-border bg-surface p-4 shadow-e1">
-          <h2 id="funnel-title" className="text-heading">
-            Phễu và tốc độ
-          </h2>
-          <p className="mb-3 text-small text-text-2">
-            Số khách đã tới từng bậc trên tổng {nFmt(funnelDenominator)} khách vào phễu; thời gian ở bậc tính theo SLA
-            của từng bậc. Nuôi dài hạn nằm ngoài phễu.
-          </p>
-          <InsightChart
-            kind="funnel"
-            title={funnelChartTitle(funnelData)}
-            data={funnelData}
-            columns={[
-              { key: 'value', label: 'Khách đã tới bậc' },
-              { key: 'retention', label: 'Giữ lại', unit: '%' },
-            ]}
-          />
+        <section aria-label="Phễu và tốc độ" className="rounded-lg border border-line bg-surface-100 p-4">
+          <Suspense fallback={<Skeleton className="h-64 w-full" />}>
+            <div data-testid="insights-chart-funnel">
+              <FunnelView
+                data={funnelData}
+                headline={funnelChartTitle(funnelData)}
+                total={funnelDenominator}
+                outside={[
+                  { label: 'Nuôi dài hạn', count: report.outside.nurture },
+                  { label: 'Loại/không chốt', count: report.outside.dropped },
+                  { label: 'Đã ký', count: report.outside.won },
+                  { label: 'Booking đang có', count: report.outside.booking },
+                ]}
+              />
+            </div>
+          </Suspense>
           <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
             {report.funnel.map((stage, i) => (
               <div
                 key={stage.key}
-                className="flex flex-wrap items-center justify-between gap-2 border-t border-border py-2"
+                className="flex flex-wrap items-center justify-between gap-2 border-t border-line py-2"
               >
-                <span className="text-body-strong">{stage.label}</span>
-                <span className="text-small text-text-2">
+                <span className="text-body font-semibold">{stage.label}</span>
+                <span className="text-caption text-ink-muted">
                   {stage.reached}/{funnelDenominator} khách
                   {i > 0
                     ? ` · chuyển tiếp ${stage.conversion?.numerator}/${stage.conversion?.denominator} (${pct(stage.conversion?.percent ?? null)})`
@@ -127,48 +147,43 @@ export function InsightsPage() {
               </div>
             ))}
           </div>
-          <p className="mt-2 text-small text-text-2">
+          <p className="mt-2 text-caption text-ink-muted">
             Ngoài phễu: {report.outside.nurture} Nuôi dài hạn · {report.outside.dropped} Loại/không chốt ·{' '}
             {report.outside.won} Đã ký · {report.outside.booking} Booking đang có.
           </p>
         </section>
 
-        <section aria-labelledby="week-title" className="rounded-card border border-border bg-surface p-4 shadow-e1">
-          <h2 id="week-title" className="text-heading">
-            Hiệu suất tuần
-          </h2>
-          <p className="mb-3 text-small text-text-2">
-            Tuần hiện tại so với tuần trước · {periodLabel(report.week.start, report.week.end)}. Số chuyển bậc là
-            milestone được ghi trong lịch sử.
-          </p>
-          <InsightChart
-            kind="weekly"
-            title={weeklyChartTitle(weekData)}
-            data={weekData}
-            columns={[
-              { key: 'value', label: 'Tuần này' },
-              { key: 'previous', label: 'Tuần trước' },
-            ]}
-          />
+        <section aria-label="Hiệu suất tuần" className="rounded-lg border border-line bg-surface-100 p-4">
+          <Suspense fallback={<Skeleton className="h-64 w-full" />}>
+            <div data-testid="insights-chart-weekly">
+              <WeeklyView
+                data={weekData}
+                headline={weeklyChartTitle(weekData)}
+                period={periodLabel(report.week.start, report.week.end)}
+              />
+            </div>
+          </Suspense>
         </section>
       </DetailBlock>
 
-      <section aria-labelledby="improve-title" className="rounded-card border border-border bg-surface p-4 shadow-e1">
-        <h2 id="improve-title" className="text-heading">
+      <section aria-labelledby="improve-title" className="rounded-lg border border-line bg-surface-100 p-4 ">
+        <h2 id="improve-title" className="text-title">
           Cần cải thiện
         </h2>
-        <p className="mb-3 text-small text-text-2">Quan sát theo quy tắc khi đủ mẫu; không suy ra quan hệ nhân quả.</p>
+        <p className="mb-3 text-caption text-ink-muted">
+          Quan sát theo quy tắc khi đủ mẫu; không suy ra quan hệ nhân quả.
+        </p>
         {observations.top.length ? (
-          <ul className="flex flex-col divide-y divide-border">
+          <ul className="flex flex-col divide-y divide-line">
             {observations.top.map((item) => (
               <li key={item.key} className="py-3 first:pt-0 last:pb-0">
-                <p className="text-body-strong">{item.title}</p>
-                <p className="text-small text-text-2">{item.evidence}</p>
+                <p className="text-body font-semibold">{item.title}</p>
+                <p className="text-caption text-ink-muted">{item.evidence}</p>
               </li>
             ))}
           </ul>
         ) : (
-          <p className="text-small text-text-3">Chưa có quan sát đạt ngưỡng.</p>
+          <p className="text-caption text-ink-muted">Chưa có quan sát đạt ngưỡng.</p>
         )}
       </section>
 
@@ -180,22 +195,24 @@ export function InsightsPage() {
       >
         <CareSection customers={customers} now={now} />
         {hasMoreObservations && (
-          <section aria-labelledby="care-observations-title" className="border-t border-border pt-4">
-            <h3 id="care-observations-title" className="text-body-strong">
+          <section aria-labelledby="care-observations-title" className="border-t border-line pt-4">
+            <h3 id="care-observations-title" className="text-body font-semibold">
               Quan sát khác
             </h3>
             {observations.rest.length > 0 && (
-              <ul className="mt-2 flex flex-col divide-y divide-border">
+              <ul className="mt-2 flex flex-col divide-y divide-line">
                 {observations.rest.map((item) => (
                   <li key={item.key} className="py-3 first:pt-0 last:pb-0">
-                    <p className="text-body-strong">{item.title}</p>
-                    <p className="text-small text-text-2">{item.evidence}</p>
+                    <p className="text-body font-semibold">{item.title}</p>
+                    <p className="text-caption text-ink-muted">{item.evidence}</p>
                   </li>
                 ))}
               </ul>
             )}
             {report.insights.pending.length > 0 && (
-              <p className="mt-3 text-small text-text-2">Cần thêm dữ liệu: {report.insights.pending.join(' · ')}.</p>
+              <p className="mt-3 text-caption text-ink-muted">
+                Cần thêm dữ liệu: {report.insights.pending.join(' · ')}.
+              </p>
             )}
           </section>
         )}
@@ -207,45 +224,13 @@ export function InsightsPage() {
         open={!!openBlocks['source-detail']}
         onToggle={() => toggle('source-detail')}
       >
-        <section aria-labelledby="source-title" className="rounded-card border border-border bg-surface p-4 shadow-e1">
-          <h2 id="source-title" className="text-heading">
-            Nguồn khách
-          </h2>
-          <p className="mb-3 text-small text-text-2">
-            Một khách có thể có nhiều nguồn đã lưu, nên tổng theo nguồn có thể lớn hơn số khách duy nhất.
-          </p>
-          {sourcesData.length > 1 ? (
-            <InsightChart
-              kind="source"
-              title={sourceChartTitle(sourcesData)}
-              data={sourcesData}
-              columns={[
-                { key: 'value', label: 'Khách theo nguồn' },
-                { key: 'numerator', label: 'Đạt' },
-                { key: 'percent', label: 'Tỉ lệ đạt', unit: '%' },
-              ]}
-            />
-          ) : report.sources.length ? (
-            <div className="flex flex-col gap-3">
-              {report.sources.map((source) => (
-                <div key={source.key} className="grid grid-cols-[minmax(0,8rem)_1fr_auto] items-center gap-3">
-                  <span className="truncate text-small text-text-2">{source.label}</span>
-                  <span className="h-3 rounded-full bg-surface-2">
-                    <span
-                      className="block h-full rounded-full bg-accent"
-                      style={{
-                        width: `${Math.max(2, (100 * source.denominator) / Math.max(...report.sources.map((s) => s.denominator), 1))}%`,
-                      }}
-                    />
-                  </span>
-                  <span className="font-data text-mono-data">
-                    {source.numerator}/{source.denominator} Đạt · {pct(source.percent)}
-                  </span>
-                </div>
-              ))}
-            </div>
+        <section aria-label="Nguồn khách" className="rounded-lg border border-line bg-surface-100 p-4">
+          {sourcesData.length > 0 ? (
+            <Suspense fallback={<Skeleton className="h-64 w-full" />}>
+              <SourceView data={sourcesData} headline={sourceChartTitle(sourcesData)} />
+            </Suspense>
           ) : (
-            <p className="text-small text-text-3">Chưa rõ nguồn khách.</p>
+            <p className="text-body text-ink-muted">Chưa rõ nguồn khách.</p>
           )}
         </section>
         <MarketingSection customers={customers} account={account} />
