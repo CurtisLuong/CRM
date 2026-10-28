@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import type { FeatureRoute } from '@/app/routes';
-import { ActionButton, Avatar, ChipGroup, type Column, DataTable, FilterBar, LeadRow } from '@/components/crm';
+import { ActionButton, ChipGroup, type Column, DataTable, FilterBar, LeadRow } from '@/components/crm';
 import { Button as KitButton } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -18,8 +18,9 @@ import { SOURCES } from '@/config/sources';
 import { CARE_STAGE_BRANCH, CARE_STAGE_DISPLAY, CARE_STAGE_PICKER_ORDER } from '@/config/stages';
 import { useCustomers, useRepositoryAccount, useSyncStatus } from '@/data/hooks';
 import type { Customer } from '@/domain/customer';
-import { callAttemptsOf, isQualified, normStage, sourceListOf } from '@/domain/customer/normalize';
+import { isQualified, normStage, sourceListOf } from '@/domain/customer/normalize';
 import { apartmentGroup } from '@/domain/search/search';
+import { CustomerSheet as QuickCustomerSheet } from '@/features/customer-sheet/CustomerSheet';
 import { openQuickAction } from '@/features/quick-actions/store';
 import {
   type AssignmentMode,
@@ -114,14 +115,6 @@ function IconButton({ icon, label, onClick }: { icon: string; label: string; var
     <KitButton variant="ghost" size="icon" aria-label={label} onClick={onClick}>
       <Icon name={icon} size={20} />
     </KitButton>
-  );
-}
-
-function Badge({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="inline-flex min-h-7 items-center rounded-sm border border-line bg-surface-200 px-2 text-label text-ink">
-      {children}
-    </span>
   );
 }
 
@@ -1066,61 +1059,14 @@ function Customers() {
         </div>
       </CustomerSheet>
 
-      <CustomerSheet
-        open={!!selected}
+      <QuickCustomerSheet
+        customer={selected}
+        userId={userId}
+        canAssign={canAssign}
         onOpenChange={(open) => !open && (params.id ? navigate('/khach-hang') : setSelectedLocal(null))}
-        title={selected?.full_name || 'Thông tin khách'}
-        description={selected?.phone || undefined}
-      >
-        {selected && (
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <Avatar name={selected.full_name} size={56} />
-              <div>
-                <div className="font-semibold text-body">{selected.full_name}</div>
-                <div className="font-mono text-numeric text-ink-muted">{selected.phone}</div>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Badge>{isQualified(selected) ? 'Tiềm năng' : 'Khách mới'}</Badge>
-              <Badge>
-                {CARE_STAGE_DISPLAY[normStage(selected.care_stage) || ''] ||
-                  normStage(selected.care_stage) ||
-                  'Chưa có bậc'}
-              </Badge>
-              {selected.apt_type && <Badge>{selected.apt_type}</Badge>}
-            </div>
-            <dl className="grid grid-cols-[130px_1fr] gap-y-2 text-label">
-              <dt className="text-ink-muted">Kênh</dt>
-              <dd>
-                {sourceListOf(selected.source)
-                  .map((s) => SOURCES[s] || s)
-                  .join(' · ') || 'Chưa rõ'}
-              </dd>
-              <dt className="text-ink-muted">Đã gọi</dt>
-              <dd>{callAttemptsOf(selected).length} lần</dd>
-              <dt className="text-ink-muted">Người phụ trách</dt>
-              <dd>{team.find((p) => (p.user_id || p.id) === selected.owner_id)?.name || 'Tôi'}</dd>
-            </dl>
-            <Button
-              className="w-full"
-              variant="primary"
-              icon="call"
-              onClick={() => openQuickAction(selected.id, 'call')}
-            >
-              Gọi {selected.full_name}
-            </Button>
-            <Button className="w-full" onClick={() => navigate(`/ho-so/${selected.id}`)}>
-              Mở hồ sơ đầy đủ
-            </Button>
-            {canAssign && (
-              <Button className="w-full" onClick={openAssignment} icon="assign">
-                Giao khách
-              </Button>
-            )}
-          </div>
-        )}
-      </CustomerSheet>
+        onOpenProfile={(customer) => navigate(`/ho-so/${customer.id}`)}
+        onAssign={openAssignment}
+      />
       <CustomerSheet
         open={assignOpen}
         onOpenChange={(open) => {
