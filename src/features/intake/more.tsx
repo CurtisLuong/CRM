@@ -70,6 +70,7 @@ export function IntakeMore({ open, onToggle, values, register, set, fieldErrors,
   return (
     <section aria-label="Thông tin thêm" className="flex flex-col gap-3">
       <Button
+        type="button"
         className="w-full justify-between"
         variant="secondary"
         aria-expanded={open}

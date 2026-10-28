@@ -499,7 +499,7 @@ function IntakePage() {
         <section className="flex flex-col gap-3 rounded-lg border border-line bg-surface-100 p-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-title">Thông tin cá nhân</h2>
-            <Button onClick={() => fileInput.current?.click()} disabled={ocrBusy}>
+            <Button type="button" onClick={() => fileInput.current?.click()} disabled={ocrBusy}>
               Nhập từ ảnh
             </Button>
             <input
@@ -626,7 +626,10 @@ function IntakePage() {
                     rows={2}
                     className="min-w-0 flex-1 rounded-md border border-line bg-surface-100 px-3 py-2 text-body text-ink"
                   />
-                  <Button onClick={() => setManualNotes((current) => current.filter((_, i) => i !== index))}>
+                  <Button
+                    type="button"
+                    onClick={() => setManualNotes((current) => current.filter((_, i) => i !== index))}
+                  >
                     Xoá
                   </Button>
                 </div>
@@ -640,6 +643,7 @@ function IntakePage() {
                   placeholder="Thêm ghi chú…"
                 />
                 <Button
+                  type="button"
                   onClick={() => {
                     const text = newManualNote.trim();
                     if (!text) return;
@@ -669,7 +673,9 @@ function IntakePage() {
             className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-soon bg-soon-tint p-3 text-caption text-soon-text"
           >
             <span>SĐT đã có ở khách “{match.full_name}”. Kiểm tra trước khi lưu.</span>
-            <Button onClick={() => navigate(`/khach-hang/${match.id}`)}>Mở khách cũ</Button>
+            <Button type="button" onClick={() => navigate(`/khach-hang/${match.id}`)}>
+              Mở khách cũ
+            </Button>
           </aside>
         ))}
         {error && (
@@ -678,7 +684,9 @@ function IntakePage() {
           </p>
         )}
         <div className="sticky bottom-16 flex justify-end gap-2 border-t border-line bg-surface-100/95 py-3 backdrop-blur">
-          <Button onClick={() => navigate(-1)}>Huỷ</Button>
+          <Button type="button" onClick={() => navigate(-1)}>
+            Huỷ
+          </Button>
           <Button type="submit" variant="primary" disabled={saving}>
             Lưu khách
           </Button>
