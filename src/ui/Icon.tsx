@@ -23,13 +23,12 @@ import {
   Copy,
   Ellipsis,
   File,
-  FileSignature,
-  FileText,
   Flame,
+  FolderCheck,
   Gauge,
   Grip,
+  HandCoins,
   HandHelping,
-  Handshake,
   Headset,
   HeartHandshake,
   HeartPulse,
@@ -42,7 +41,7 @@ import {
   LogOut,
   type LucideIcon,
   MapPinHouse,
-  MessageSquareText,
+  MessageCircleMore,
   Mic,
   NotebookPen,
   Phone,
@@ -53,6 +52,7 @@ import {
   RefreshCw,
   Scale,
   Settings,
+  Signature,
   Sparkles,
   Sprout,
   Square,
@@ -96,13 +96,12 @@ const GLYPHS: Record<(typeof ICONS)[IconName], LucideIcon> = {
   Copy,
   Ellipsis,
   File,
-  FileSignature,
-  FileText,
   Flame,
+  FolderCheck,
   Gauge,
   Grip,
+  HandCoins,
   HandHelping,
-  Handshake,
   Headset,
   HeartHandshake,
   HeartPulse,
@@ -114,7 +113,7 @@ const GLYPHS: Record<(typeof ICONS)[IconName], LucideIcon> = {
   ListFilter,
   LogOut,
   MapPinHouse,
-  MessageSquareText,
+  MessageCircleMore,
   Mic,
   NotebookPen,
   Phone,
@@ -125,6 +124,7 @@ const GLYPHS: Record<(typeof ICONS)[IconName], LucideIcon> = {
   RefreshCw,
   Scale,
   Settings,
+  Signature,
   Sparkles,
   Sprout,
   Square,
@@ -140,6 +140,11 @@ const GLYPHS: Record<(typeof ICONS)[IconName], LucideIcon> = {
   UsersRound,
   Zap,
 };
+
+/** Component glyph của một khái niệm — cho component cần cỡ icon riêng (src/components/crm/actions.tsx). */
+export function iconGlyph(name: IconName | string): LucideIcon {
+  return GLYPHS[ICONS[(name in ICONS ? name : ICON_FALLBACK) as IconName]];
+}
 
 export type IconSize = 16 | 20 | 24;
 
@@ -159,7 +164,7 @@ export function Icon({
   className?: string;
 }) {
   const key = (name in ICONS ? name : ICON_FALLBACK) as IconName;
-  const Glyph = GLYPHS[ICONS[key]];
+  const Glyph = iconGlyph(key);
   return (
     <Glyph
       size={size}

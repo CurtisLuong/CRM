@@ -36,7 +36,8 @@ Lựa chọn nền tảng ban đầu (Supabase, Cloudflare Pages, local-first) k
 | D-024 | Đợt v3 chạy bằng AI Factory trên nhánh `factory`; task cũ T5.5, T6.3 tạm hoãn | Đã duyệt 2026-10-18 | Áp dụng tới khi v3 lên production |
 | D-025 | Khách nhóm: người đang thấy được sửa thông tin + thêm ghi chú; không SLA/nhắc việc | Đã duyệt + code 2026-10-22; SQL 010 đã chạy staging + production | Nới D-003 |
 | D-026 | Lead tự chạy SQL nhỏ trên production; Curtis chỉ duyệt khi xoá/sửa dữ liệu hoặc đổi cấu trúc lớn | Đã duyệt 2026-10-22 | Thay "migration production do Curtis chạy" |
-| D-027 | Bản UI mới dùng shadcn/ui (Radix) trên Tailwind v4 | Đã duyệt 2026-10-28; thư viện đã cài, chờ `systemdesign.md` để đặt token | Bổ sung D-011; D-023 sẽ được thay khi có design system mới |
+| D-027 | Bản UI mới dùng shadcn/ui (Radix) trên Tailwind v4 | Đã duyệt 2026-10-28; token + component theo D-028 | Bổ sung D-011; D-023 sẽ được thay khi có design system mới |
+| D-028 | Bản UI "Realty CRM" (Claude Design, `realty-crm-ui/`) thay Design System v4 | Curtis yêu cầu 2026-10-28; nền đã port vào `factory`, màn chuyển dần | Thay D-023 (giữ L1–L5); bổ sung D-027 |
 
 ## Ba loại kết quả
 
@@ -435,3 +436,16 @@ Ví dụ và mẫu trong bộ tài liệu không phải sự chấp thuận cho 
 - Chưa làm: đặt token cho shadcn (`background`, `primary`, `muted`, `popover`, `input`, `ring`…) — chờ `systemdesign.md`. Xung đột tên cần design system mới giải quyết: `accent` của app là màu chính, `accent` của shadcn là nền hover nhạt (đề xuất: màu chính đổi sang `primary`).
 - Không đổi: D-012, local-first, quyền, nguồn cấu hình; UX chưa đổi (Curtis: "chưa nói UX").
 
+### D-028 — Bản UI "Realty CRM" thay Design System v4
+
+- Ngày: 2026-10-28
+- Loại: Đổi giao diện (Curtis: "mới dùng claude design thiết kế lại UI… làm lại theo cái đấy, viết sẵn components và design.md, sửa hoặc xoá các file cũ xung đột, nhất quán theo thiết kế mới").
+- Nguồn: `realty-crm-ui/` (commit 26e1735). Luật giao diện: `docs/DESIGN.md`. Mẫu sống: `/dev/ui-kit`.
+- Quyết định:
+  - Token mới (`surface-0/100/200`, `line`, `ink`, `ink-muted`, `ion`, tín hiệu `ok`/`soon`/`alert`, `chart-*`) là nguồn màu duy nhất. Màu chỉ nói độ gấp; mọi thứ bấm được là `ion`. Tên token cũ trỏ vào token mới để màn chưa chuyển đổi màu ngay; xoá khi hết màn dùng.
+  - Component mới ở `src/components/ui` (primitive shadcn) + `src/components/crm`; `cn` chuyển về `src/lib/utils.ts`. Bỏ 37 component radix-nova chưa dùng (`src/ui/shadcn`). `src/ui/*` cũ giữ cho màn chưa chuyển.
+  - Luật nghiệp vụ KHÔNG lấy từ kit: bậc, SLA, 9 hành động, loại thông báo đi qua `src/lib/crm` từ `src/config` + `src/domain`. Khác kit: phễu 5 bậc có "Xem dự án"; "Nuôi dài hạn" (kit: "Chăm dài hạn") không tính SLA; số SLA theo D-008 (kit để số giả); quá hạn theo D-010 (+30 phút); không có bảng "được chuyển bậc" (kit có `STAGE_MOVES`, chưa duyệt); loại thông báo = nhóm tín hiệu D-015.
+  - Icon 4 hành động đổi theo kit (D-006, sửa 1 nơi `src/config/icons.ts`): Zalo `MessageCircleMore`, Hồ sơ `FolderCheck`, Booking `HandCoins`, Kí HĐ `Signature`.
+  - Bổ sung so với kit: `BottomNav` cho điện thoại (kit chỉ ghi trong DESIGN.md), điều hướng lấy `NAV_TABS` (4 khu vực D-013, bỏ "Pipeline"/"Lịch hẹn" của kit), route `handle: { bare: true }` để màn dùng khung mới không lồng khung cũ, test chặn mã màu thô (`tests/design/no-raw-colors.test.ts`). Chữ trên khối xanh (sáng) đổi sang tối để đạt 4,5:1.
+  - Giữ: D-012, local-first, quyền, nguồn cấu hình, L1–L5 (e2e). Thứ tự chuyển màn: Hôm nay → Khách hàng → Thông báo → Hiệu quả → form.
+- Đã xoá (thay bằng `docs/DESIGN.md`): `docs/DESIGN_SYSTEM.md`, `docs/v3/design-language.md`, `docs/v3/mockups/` (xem lại bằng git: `git show ae9ef2a:docs/DESIGN_SYSTEM.md`).

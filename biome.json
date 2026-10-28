@@ -15,7 +15,7 @@
         "noRestrictedImports": {
           "level": "error",
           "options": {
-            "paths": { "cn": "Dùng cn từ '@/ui/lib/utils' (đã khai báo token cỡ chữ/bo góc của Design System)." }
+            "paths": { "cn": "Dùng cn từ '@/lib/utils' (đã khai báo token cỡ chữ/bo góc của Design System)." }
           }
         }
       }
@@ -24,11 +24,12 @@
   "assist": { "actions": { "source": { "organizeImports": "on" } } },
   "overrides": [
     {
-      "includes": ["src/ui/shadcn/**"],
+      "includes": ["src/components/**", "src/features/ui-kit/**"],
       "linter": {
         "rules": {
           "a11y": { "useSemanticElements": "off", "useKeyWithClickEvents": "off" },
-          "suspicious": { "noArrayIndexKey": "off", "noDoubleEquals": "off" }
+          "suspicious": { "noArrayIndexKey": "off", "noDoubleEquals": "off" },
+          "style": { "noNonNullAssertion": "off" }
         }
       }
     }

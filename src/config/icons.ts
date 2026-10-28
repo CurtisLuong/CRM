@@ -1,7 +1,7 @@
 /**
  * NGUỒN DUY NHẤT — D-006. Khái niệm → icon (tên glyph lucide-react). Một khái niệm = một icon ở mọi nơi;
  * đổi 1 dòng là đổi toàn app. Feature KHÔNG import lucide trực tiếp — dùng <Icon name="call" /> (src/ui).
- * Khái niệm port từ legacy/js/icons.js (ICON_PATHS, STAGE_ICON) + khái niệm mới của v2 (DESIGN_SYSTEM §2.5).
+ * Khái niệm port từ legacy/js/icons.js (ICON_PATHS, STAGE_ICON) + khái niệm mới của v2.
  */
 
 import type * as Lucide from 'lucide-react';
@@ -33,12 +33,12 @@ export const ICONS = {
   call_sched: 'CalendarClock', // Hẹn gọi
   call_again: 'PhoneForwarded', // Gọi lại (chưa liên lạc được)
   talked: 'PhoneCall', // Nói chuyện được
-  message: 'MessageSquareText', // Nhắn tin / Zalo
+  message: 'MessageCircleMore', // Nhắn tin / Zalo (D-028)
   cafe: 'Coffee', // Hẹn cafe
-  docs: 'FileText', // Hồ sơ · Tài liệu
+  docs: 'FolderCheck', // Hồ sơ · Tài liệu (D-028)
   visit: 'MapPinHouse', // Xem dự án · Tham quan (CP-03: cùng bộ nét với Gọi/Zalo/Cafe/Hồ sơ)
-  booking: 'Handshake', // Booking
-  contract: 'FileSignature', // Kí HĐMB · Kí HĐ · Chốt
+  booking: 'HandCoins', // Booking (D-028)
+  contract: 'Signature', // Kí HĐMB · Kí HĐ · Chốt (D-028)
   task: 'SquareCheckBig', // Việc · Việc tiếp theo
   drop: 'CircleX', // Loại / không chốt
   nurture: 'Sprout', // Nuôi dài hạn
@@ -50,7 +50,7 @@ export const ICONS = {
   idle: 'Clock', // Lâu chưa liên hệ
   alert: 'TriangleAlert', // Thiếu việc tiếp theo · cảnh báo
   birthday: 'Cake', // Sinh nhật
-  // ── Khái niệm mới v2 (DESIGN_SYSTEM §2.5) ──
+  // ── Khái niệm mới v2 ──
   voice: 'Mic', // Ghi chú giọng nói
   voice_stop: 'Square', // Đang nghe giọng nói → bấm để dừng
   promise_me: 'HandHelping', // Lời hứa của mình với khách
@@ -63,7 +63,7 @@ export const ICONS = {
   command: 'Command', // Bảng lệnh
   sync: 'RefreshCw', // Đồng bộ
   offline: 'CloudOff', // Ngoại tuyến
-  // ── Khái niệm v4 (DESIGN_SYSTEM v4 §3 — D-023) ──
+  // ── Khái niệm v4 (D-023) ──
   done: 'Check', // Đánh dấu xong (nút trên thẻ việc)
   start: 'Play', // Bắt đầu phiên gọi
   more: 'Ellipsis', // Thêm thao tác (⋯)

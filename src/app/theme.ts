@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react';
 
 /**
- * Chọn giao diện Sáng / Tối / Tự động (DESIGN_SYSTEM.md §2).
+ * Chọn giao diện Sáng / Tối / Tự động (docs/DESIGN.md §1).
  * - Lựa chọn lưu ở localStorage (theo thiết bị, không đồng bộ lên Supabase).
  * - Luôn đặt <html data-theme="light|dark"> theo giá trị đã quy ra; "Tự động" theo prefers-color-scheme và đổi theo hệ thống.
  * - initTheme() chạy trong main.tsx trước khi React vẽ → không chớp sai màu.
@@ -40,12 +40,12 @@ export function resolveTheme(pref: ThemePref, systemDark: boolean): ResolvedThem
   return pref;
 }
 
-/** Đặt data-theme + màu thanh trạng thái (meta theme-color) theo token --bg của theme. */
+/** Đặt data-theme + màu thanh trạng thái (meta theme-color) theo token --surface-0 (nền app) của theme. */
 function apply(pref: ThemePref) {
   const root = document.documentElement;
   const theme = resolveTheme(pref, systemPrefersDark());
   if (root.dataset.theme !== theme) root.dataset.theme = theme;
-  const bg = getComputedStyle(root).getPropertyValue('--bg').trim();
+  const bg = getComputedStyle(root).getPropertyValue('--surface-0').trim();
   const meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
   if (meta && bg) meta.content = bg;
 }

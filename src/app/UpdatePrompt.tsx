@@ -10,7 +10,7 @@ export function UpdatePrompt() {
   return (
     <div
       role="status"
-      className="fixed inset-x-4 bottom-4 flex items-center gap-3 rounded-lg bg-gray-900 p-3 text-white"
+      className="fixed inset-x-4 bottom-4 flex items-center gap-3 rounded-lg border border-line bg-surface-100 p-3 text-ink shadow-overlay"
     >
       <span className="flex-1">Có bản mới</span>
       <button type="button" className="font-semibold" onClick={() => updateServiceWorker(true)}>
