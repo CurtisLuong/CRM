@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Button, cn } from '@/ui';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { customDateLabel, dayKey, parseDayKey } from './model';
 
 const WEEKDAYS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'] as const;
@@ -47,7 +48,7 @@ export function CalendarRange({ from, to, now, onPick, onConfirm, onCancel }: Pr
   };
 
   return (
-    <div className="space-y-2 rounded-card border border-hairline p-0">
+    <div className="space-y-2 rounded-md border border-line p-0">
       <div className="flex items-center justify-between gap-2">
         <Button
           aria-label="Tháng trước"
@@ -57,7 +58,7 @@ export function CalendarRange({ from, to, now, onPick, onConfirm, onCancel }: Pr
         >
           ‹
         </Button>
-        <p className="text-body-strong">
+        <p className="font-semibold text-body">
           Tháng {month + 1}/{year}
         </p>
         <Button
@@ -71,7 +72,7 @@ export function CalendarRange({ from, to, now, onPick, onConfirm, onCancel }: Pr
       </div>
       <div className="grid grid-cols-7 gap-0.5">
         {WEEKDAYS.map((label) => (
-          <span key={label} className="py-1 text-center text-small text-text-3">
+          <span key={label} className="py-1 text-center text-label text-ink-muted">
             {label}
           </span>
         ))}
@@ -90,12 +91,8 @@ export function CalendarRange({ from, to, now, onPick, onConfirm, onCancel }: Pr
               onClick={() => pick(day)}
               style={index === 0 ? { gridColumnStart: offset + 1 } : undefined}
               className={cn(
-                'flex h-11 w-full items-center justify-center rounded-control text-small font-semibold transition-colors duration-(--dur-fast) focus-visible:outline-2 focus-visible:outline-focus',
-                edge
-                  ? 'bg-accent text-accent-fg'
-                  : selected
-                    ? 'bg-accent-tonal text-accent'
-                    : 'text-text hover:bg-surface-2',
+                'flex h-11 min-w-11 w-full items-center justify-center rounded-md text-label font-semibold transition-colors duration-(--dur-fast) focus-visible:outline-2 focus-visible:outline-ion',
+                edge ? 'bg-ion text-on-ion' : selected ? 'bg-ion-tint text-ion' : 'text-ink hover:bg-surface-200',
               )}
             >
               {day}
@@ -103,9 +100,9 @@ export function CalendarRange({ from, to, now, onPick, onConfirm, onCancel }: Pr
           );
         })}
       </div>
-      <p aria-live="polite" className="text-small text-text-2">
+      <p aria-live="polite" className="text-label text-ink-muted">
         {pickingStart ? 'Chọn ngày đầu' : 'Chọn ngày cuối'} ·{' '}
-        <span className="text-body-strong text-text">{customDateLabel(from, to, now)}</span>
+        <span className="font-semibold text-body text-ink">{customDateLabel(from, to, now)}</span>
       </p>
       <div className="flex gap-2">
         <Button className="flex-1" onClick={onCancel}>

@@ -1,6 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import type { FeatureRoute } from '@/app/routes';
+import { ActionButton, Avatar, ChipGroup, type Column, DataTable, FilterBar, LeadRow } from '@/components/crm';
+import { Button as KitButton } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Sheet,
+  SheetBody,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
 import { APT_TYPES } from '@/config/aptTypes';
 import { SOURCES } from '@/config/sources';
 import { CARE_STAGE_BRANCH, CARE_STAGE_DISPLAY, CARE_STAGE_PICKER_ORDER } from '@/config/stages';
@@ -16,7 +28,10 @@ import {
   canAssignCustomer,
   type TeamMember,
 } from '@/features/team/model';
-import { Avatar, Badge, Button, CustomerCard, cn, IconButton, Sheet, useToast } from '@/ui';
+import type { Level, Stage } from '@/lib/crm';
+import { cn } from '@/lib/utils';
+import { Icon } from '@/ui/Icon';
+import { useToast } from '../../ui/Toast';
 import { CalendarRange } from './CalendarRange';
 import {
   type CustomerFilters,
@@ -65,12 +80,84 @@ const VIEW_STORE = 'crm_v2_customer_view';
 // Thẻ gọn cao 64px + khe 8px = 72px; virtualWindow cần đúng nhịp này.
 const CARD_HEIGHT = 64;
 const CARD_GAP = 8;
-const ITEM_HEIGHT = CARD_HEIGHT + CARD_GAP;
+const MOBILE_ITEM_HEIGHT = CARD_HEIGHT + CARD_GAP;
+const DESKTOP_ITEM_HEIGHT = 40;
+
+function Button({
+  icon,
+  loading,
+  disabled,
+  variant = 'secondary',
+  ...props
+}: React.ComponentProps<typeof KitButton> & { icon?: string; loading?: boolean }) {
+  const content = icon ? (
+    <>
+      <Icon name={icon} size={20} />
+      {props.children}
+    </>
+  ) : (
+    props.children
+  );
+  return (
+    <KitButton
+      variant={variant === 'primary' ? 'primary' : variant === 'ghost' ? 'ghost' : 'secondary'}
+      disabled={disabled || loading}
+      {...props}
+    >
+      {content}
+    </KitButton>
+  );
+}
+
+function IconButton({ icon, label, onClick }: { icon: string; label: string; variant?: string; onClick: () => void }) {
+  return (
+    <KitButton variant="ghost" size="icon" aria-label={label} onClick={onClick}>
+      <Icon name={icon} size={20} />
+    </KitButton>
+  );
+}
+
+function Badge({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="inline-flex min-h-7 items-center rounded-sm border border-line bg-surface-200 px-2 text-label text-ink">
+      {children}
+    </span>
+  );
+}
+
+function CustomerSheet({
+  open,
+  onOpenChange,
+  title,
+  description,
+  footer,
+  children,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  title: string;
+  description?: string;
+  footer?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent aria-label={title}>
+        <SheetHeader>
+          <SheetTitle>{title}</SheetTitle>
+          {description && <SheetDescription>{description}</SheetDescription>}
+        </SheetHeader>
+        <SheetBody>{children}</SheetBody>
+        {footer && <SheetFooter>{footer}</SheetFooter>}
+      </SheetContent>
+    </Sheet>
+  );
+}
 
 const CHIP =
-  'inline-flex min-h-11 shrink-0 items-center rounded-full border px-3.5 text-small font-semibold transition-colors duration-(--dur-fast) focus-visible:outline-2 focus-visible:outline-focus';
+  'inline-flex min-h-11 shrink-0 items-center rounded-full border px-3.5 text-label font-semibold transition-colors duration-(--dur-fast) focus-visible:outline-2 focus-visible:outline-ion';
 const chipClass = (active: boolean) =>
-  cn(CHIP, active ? 'border-accent bg-accent text-accent-fg' : 'border-border bg-surface text-text hover:bg-surface-2');
+  cn(CHIP, active ? 'border-ion bg-ion text-on-ion' : 'border-line bg-surface-100 text-ink hover:bg-surface-200');
 
 function loadSaved(userId: string): SavedSegment[] {
   try {
@@ -148,7 +235,7 @@ function SortToggle<K extends keyof SortChoice>({ label, value, choices, onChang
       aria-label={`${label}: ${current.text}`}
       aria-pressed={atFirst}
       onClick={() => onChange(next.value)}
-      className="flex min-h-11 w-full items-center justify-between gap-3 rounded-control border border-border bg-surface px-3 text-left transition-colors duration-(--dur-fast) focus-visible:outline-2 focus-visible:outline-focus"
+      className="flex min-h-11 w-full items-center justify-between gap-3 rounded-md border border-line bg-surface-100 px-3 text-left transition-colors duration-(--dur-fast) focus-visible:outline-2 focus-visible:outline-ion"
     >
       <span className="min-w-0 truncate text-body">{label}</span>
       <span aria-hidden className="flex shrink-0 items-center gap-1">
@@ -156,8 +243,8 @@ function SortToggle<K extends keyof SortChoice>({ label, value, choices, onChang
           <span
             key={arrow}
             className={cn(
-              'flex size-8 items-center justify-center rounded-[8px] text-body-strong',
-              arrow === activeArrow ? 'bg-accent-soft text-accent' : 'text-text-3',
+              'flex size-8 items-center justify-center rounded-[8px] font-semibold text-body',
+              arrow === activeArrow ? 'bg-ion-tint text-ion' : 'text-ink-muted',
             )}
           >
             {arrow}
@@ -200,9 +287,17 @@ function Customers() {
   const [moreOpen, setMoreOpen] = useState(false);
   const [dateDraft, setDateDraft] = useState<{ from: string; to: string } | null>(null);
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [desktop, setDesktop] = useState(() => window.matchMedia('(min-width: 1024px)').matches);
   // Chỉ lưu vị trí sau khi đã khôi phục xong, tránh ghi đè bằng mặc định lúc màn vừa dựng.
   const [hydrated, setHydrated] = useState(false);
   const scrollRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const media = window.matchMedia('(min-width: 1024px)');
+    const update = () => setDesktop(media.matches);
+    update();
+    media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  }, []);
 
   // One page scroll surface: list gestures can always reach the search chips above it.
   // Keep rendering bounded to the viewport, relative to the list's page position.
@@ -498,13 +593,13 @@ function Customers() {
   const controls = (
     <div className="space-y-3">
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-        <label className="text-small text-text-2">
+        <label className="text-label text-ink-muted">
           Trạng thái
           <select
             aria-label="Lọc trạng thái"
             value={filters.status}
             onChange={(e) => setFilter('status', e.target.value as CustomerFilters['status'])}
-            className="mt-1 min-h-11 w-full rounded-control border border-border-strong bg-surface px-3 text-body text-text"
+            className="mt-1 min-h-11 w-full rounded-md border border-line bg-surface-100 px-3 text-body text-ink"
           >
             {(group === 'new'
               ? [
@@ -529,13 +624,13 @@ function Customers() {
             ))}
           </select>
         </label>
-        <label className="text-small text-text-2">
+        <label className="text-label text-ink-muted">
           Bậc chăm sóc
           <select
             aria-label="Lọc bậc chăm sóc"
             value={filters.stage}
             onChange={(e) => setFilter('stage', e.target.value)}
-            className="mt-1 min-h-11 w-full rounded-control border border-border-strong bg-surface px-3 text-body text-text"
+            className="mt-1 min-h-11 w-full rounded-md border border-line bg-surface-100 px-3 text-body text-ink"
           >
             <option value="">Tất cả bậc chăm sóc</option>
             {CARE_STAGE_PICKER_ORDER.map((s) => {
@@ -548,7 +643,7 @@ function Customers() {
             })}
           </select>
         </label>
-        <label className="text-small text-text-2">
+        <label className="text-label text-ink-muted">
           Ngày đăng ký
           <select
             aria-label="Lọc ngày đăng ký"
@@ -558,7 +653,7 @@ function Customers() {
               if (value === 'custom') openCalendar();
               else applyDatePreset(value);
             }}
-            className="mt-1 min-h-11 w-full rounded-control border border-border-strong bg-surface px-3 text-body text-text"
+            className="mt-1 min-h-11 w-full rounded-md border border-line bg-surface-100 px-3 text-body text-ink"
           >
             <option value="all">Mọi thời điểm</option>
             <option value="yesterday">Hôm qua</option>
@@ -572,13 +667,13 @@ function Customers() {
             </option>
           </select>
         </label>
-        <label className="text-small text-text-2">
+        <label className="text-label text-ink-muted">
           Loại căn
           <select
             aria-label="Lọc loại căn"
             value={filters.apt}
             onChange={(e) => setFilter('apt', e.target.value)}
-            className="mt-1 min-h-11 w-full rounded-control border border-border-strong bg-surface px-3 text-body text-text"
+            className="mt-1 min-h-11 w-full rounded-md border border-line bg-surface-100 px-3 text-body text-ink"
           >
             <option value="">Tất cả loại căn</option>
             {[...new Set(['Studio', '1N', '2N', '3N', ...APT_TYPES.map((x) => apartmentGroup(x))])].map((apt) => (
@@ -588,13 +683,13 @@ function Customers() {
             ))}
           </select>
         </label>
-        <label className="text-small text-text-2">
+        <label className="text-label text-ink-muted">
           Kênh
           <select
             aria-label="Lọc kênh"
             value={filters.source}
             onChange={(e) => setFilter('source', e.target.value)}
-            className="mt-1 min-h-11 w-full rounded-control border border-border-strong bg-surface px-3 text-body text-text"
+            className="mt-1 min-h-11 w-full rounded-md border border-line bg-surface-100 px-3 text-body text-ink"
           >
             <option value="">Tất cả kênh</option>
             {Object.entries(SOURCES).map(([s, l]) => (
@@ -605,13 +700,13 @@ function Customers() {
           </select>
         </label>
         {group === 'team' && team.some((p) => p.is_me && p.is_admin) && (
-          <label className="text-small text-text-2">
+          <label className="text-label text-ink-muted">
             Người phụ trách
             <select
               aria-label="Lọc người phụ trách"
               value={filters.owner}
               onChange={(e) => setFilter('owner', e.target.value)}
-              className="mt-1 min-h-11 w-full rounded-control border border-border-strong bg-surface px-3 text-body text-text"
+              className="mt-1 min-h-11 w-full rounded-md border border-line bg-surface-100 px-3 text-body text-ink"
             >
               <option value="">Tất cả khách nhóm</option>
               <option value="following">Tôi đang theo dõi</option>
@@ -629,7 +724,7 @@ function Customers() {
       </div>
       {calendarOpen && dateDraft && (
         <div className="space-y-1">
-          <p className="text-body-strong">Chọn ngày đăng ký</p>
+          <p className="font-semibold text-body">Chọn ngày đăng ký</p>
           <CalendarRange
             from={dateDraft.from}
             to={dateDraft.to}
@@ -645,8 +740,8 @@ function Customers() {
           Chọn lại ngày
         </Button>
       )}
-      <fieldset className="space-y-1 rounded-card border border-hairline p-3">
-        <legend className="px-1 text-body-strong">Sắp xếp</legend>
+      <fieldset className="space-y-1 rounded-md border border-line p-3">
+        <legend className="px-1 font-semibold text-body">Sắp xếp</legend>
         <SortToggle<'registered'>
           label="Ngày đăng ký"
           value={sort.registered}
@@ -683,111 +778,206 @@ function Customers() {
     { value: 'new', label: 'Khách mới' },
     ...(team.length || counts.team ? [{ value: 'team' as const, label: 'Khách nhóm' }] : []),
   ];
+  const itemHeight = desktop ? DESKTOP_ITEM_HEIGHT : MOBILE_ITEM_HEIGHT;
   const range = virtualWindow(
     visible.length,
-    Math.min(scrollTop, Math.max(0, (visible.length - 1) * ITEM_HEIGHT)),
+    Math.min(scrollTop, Math.max(0, (visible.length - 1) * itemHeight)),
     viewportHeight,
-    ITEM_HEIGHT,
+    itemHeight,
+    desktop ? 1 : 4,
   );
   const slice = visible.slice(range.start, range.end);
+  const tableColumns: Column<Customer>[] = [
+    {
+      key: 'name',
+      label: 'Khách hàng',
+      width: '28%',
+      render: (customer) => {
+        const sub = listCardSub(customer, now, userId);
+        const project = Array.isArray(customer.projects)
+          ? customer.projects.find((value) => typeof value === 'string' && value.trim())
+          : undefined;
+        const lastTouch = sub.lead?.text.startsWith('Quá SLA') ? sub.rest.split(' · ')[0] : undefined;
+        return (
+          <ul className="m-0 list-none p-0">
+            <li data-card data-tone={sub.lead?.tone} className="flex min-w-0 items-center gap-2">
+              <button
+                type="button"
+                aria-label={`Mở ${customer.full_name}`}
+                className="min-w-0 truncate text-left font-semibold text-ink hover:text-ion"
+                onClick={() => navigate(`/khach-hang/${customer.id}`)}
+              >
+                {customer.full_name}
+              </button>
+              {sub.lead && <span className="truncate text-caption text-ink-muted">{sub.lead.text}</span>}
+              {lastTouch && <span className="truncate text-caption text-ink-muted">{lastTouch}</span>}
+              {project && <span className="truncate text-caption text-ink-muted">{project}</span>}
+              <ActionButton
+                action="call"
+                display="icon"
+                label={`Gọi ${customer.full_name}`}
+                size="sm"
+                variant="ghost"
+                className="ml-auto"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  openQuickAction(customer.id, 'call');
+                }}
+              />
+            </li>
+          </ul>
+        );
+      },
+    },
+    {
+      key: 'phone',
+      label: 'Điện thoại',
+      width: '18%',
+      render: (customer) => <span className="font-mono text-caption">{customer.phone}</span>,
+    },
+    {
+      key: 'stage',
+      label: 'Bậc',
+      width: '22%',
+      render: (customer) =>
+        CARE_STAGE_DISPLAY[normStage(customer.care_stage) || ''] || normStage(customer.care_stage) || '—',
+    },
+    { key: 'unit', label: 'Loại căn', width: '13%', render: (customer) => customer.apt_type || '—' },
+    {
+      key: 'source',
+      label: 'Kênh',
+      width: '19%',
+      render: (customer) =>
+        sourceListOf(customer.source)
+          .map((source) => SOURCES[source] || source)
+          .join(' · ') || '—',
+    },
+  ];
 
   const list = (
     <section ref={scrollRef} aria-label="Danh sách khách" className="mt-1">
       <div style={{ height: range.totalHeight, position: 'relative' }}>
-        <ul className="flex flex-col gap-2" style={{ position: 'absolute', insetInline: 0, top: range.offset }}>
-          {slice.map((customer) => {
-            const sub = listCardSub(customer, now, userId);
-            const subNode =
-              sub.lead || sub.rest ? (
-                <>
-                  {sub.lead && (
-                    <span
-                      className={
-                        sub.lead.tone === 'over'
-                          ? 'font-semibold text-danger'
-                          : sub.lead.tone === 'soon'
-                            ? 'font-semibold text-warning'
-                            : undefined
-                      }
-                    >
-                      {sub.lead.text}
-                    </span>
-                  )}
-                  {sub.lead && sub.rest ? ' · ' : ''}
-                  {sub.rest}
-                </>
-              ) : undefined;
-            return (
-              <li key={customer.id} className="h-16">
-                <CustomerCard
-                  compact
-                  className="h-full"
-                  name={customer.full_name}
-                  sub={subNode}
-                  tone={sub.lead?.tone}
-                  onOpen={() => navigate(`/khach-hang/${customer.id}`)}
-                  action={{ label: 'Gọi', icon: 'call', onClick: () => openQuickAction(customer.id, 'call') }}
-                />
-              </li>
-            );
-          })}
-        </ul>
+        {desktop ? (
+          <div className="absolute inset-x-0" style={{ top: range.offset }}>
+            <DataTable
+              caption="Danh sách khách"
+              columns={tableColumns}
+              rows={slice}
+              onRowClick={(customer) => navigate(`/khach-hang/${customer.id}`)}
+              empty={<div className="p-8 text-center text-body text-ink-muted">Không tìm thấy khách khớp bộ lọc.</div>}
+            />
+          </div>
+        ) : (
+          <ul className="flex flex-col gap-2" style={{ position: 'absolute', insetInline: 0, top: range.offset }}>
+            {slice.map((customer) => {
+              const sub = listCardSub(customer, now, userId);
+              const stage = normStage(customer.care_stage);
+              const leadLevel: Level | undefined =
+                sub.lead?.tone === 'over' ? 'alert' : sub.lead?.tone === 'soon' ? 'soon' : undefined;
+              return (
+                <li
+                  key={customer.id}
+                  data-card
+                  data-tone={sub.lead?.tone}
+                  className="relative h-16 overflow-hidden rounded-md border border-line bg-surface-100"
+                >
+                  <div className="flex h-full items-center pr-2">
+                    <div aria-hidden="true" className="min-w-0 flex-1">
+                      <LeadRow
+                        name={customer.full_name}
+                        phone={customer.phone}
+                        project={sub.rest || undefined}
+                        stage={stage as Stage | undefined}
+                        level={leadLevel}
+                        time={sub.lead?.text}
+                        onClick={() => navigate(`/khach-hang/${customer.id}`)}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      aria-label={`Mở ${customer.full_name}`}
+                      className="absolute inset-y-0 left-0 right-14 z-10 cursor-pointer opacity-0"
+                      onClick={() => navigate(`/khach-hang/${customer.id}`)}
+                    />
+                    <ActionButton
+                      action="call"
+                      display="icon"
+                      label={`Gọi ${customer.full_name}`}
+                      variant="ghost"
+                      className="relative z-20"
+                      onClick={() => openQuickAction(customer.id, 'call')}
+                    />
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </div>
       {visible.length === 0 && (
-        <div className="p-8 text-center text-body text-text-2">Không tìm thấy khách khớp bộ lọc.</div>
+        <div className="p-8 text-center text-body text-ink-muted">Không tìm thấy khách khớp bộ lọc.</div>
       )}
     </section>
   );
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-4 pt-2 pb-24 lg:p-6">
+    <main className="mx-auto w-full max-w-7xl px-4 pt-2 pb-24 lg:p-6">
       <div className="flex items-center gap-2">
-        <input
+        <Input
           aria-label="Tìm khách"
           value={filters.query}
           onChange={(e) => setFilter('query', e.target.value)}
           placeholder="Tên, SĐT, dự án, ghi chú…"
-          className="min-h-11 min-w-0 flex-1 rounded-control border border-border-strong bg-surface px-3 text-body text-text placeholder:text-text-3 focus-visible:outline-2 focus-visible:outline-focus"
+          className="flex-1"
         />
         <IconButton icon="more" label="Thêm thao tác" variant="ghost" onClick={() => setMoreOpen(true)} />
       </div>
 
-      <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
-        {groupOptions.map((item) => (
-          <button
-            key={item.value}
-            type="button"
-            aria-pressed={group === item.value}
-            onClick={() => {
-              setGroup(item.value);
-              setFilters(defaultFiltersFor(item.value));
+      <div className="mt-2 overflow-x-auto pb-1 [&_[role=group]>button]:min-h-11">
+        <ChipGroup
+          label="Nhóm khách"
+          value={group}
+          options={groupOptions.map((item) => ({
+            value: item.value,
+            label: item.label,
+          }))}
+          onChange={(value) => {
+            if (value) {
+              setGroup(value as CustomerGroup);
+              setFilters(defaultFiltersFor(value as CustomerGroup));
               setCalendarOpen(false);
               setDateDraft(null);
               setActiveSaved('');
               setScrollTop(0);
-            }}
-            className={chipClass(group === item.value)}
-          >
-            {item.label}
-          </button>
-        ))}
+            }
+          }}
+        />
       </div>
-
-      <div className="mt-1 flex min-h-11 items-center gap-2">
-        <IconButton icon="filter" label="Lọc khách" variant="ghost" onClick={() => setFilterOpen(true)} />
-        <p aria-live="polite" className="min-w-0 flex-1 text-small text-text-2">
-          <span className="text-body-strong text-text">{visible.length.toLocaleString('vi-VN')} khách</span>
-        </p>
+      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1.5">
+        <KitButton variant="secondary" aria-haspopup="dialog" onClick={() => setFilterOpen(true)}>
+          <Icon name="filter" size={20} />
+          Lọc
+        </KitButton>
+        <div className="min-w-0 flex-1 [&>button:first-child]:hidden">
+          <FilterBar
+            result={visible.length}
+            onOpen={() => setFilterOpen(true)}
+            onClearAll={clearFilters}
+            chips={
+              isFilterDirty(group, filters) ? [{ label: 'Bộ lọc', value: 'Đang áp dụng', onRemove: clearFilters }] : []
+            }
+          />
+        </div>
         {isFilterDirty(group, filters) && (
-          <Button variant="ghost" className="shrink-0" onClick={clearFilters}>
+          <KitButton variant="ghost" className="shrink-0" onClick={clearFilters}>
             Xoá lọc
-          </Button>
+          </KitButton>
         )}
       </div>
 
       {list}
 
-      <Sheet
+      <CustomerSheet
         open={filterOpen}
         onOpenChange={handleFilterOpen}
         title="Lọc khách"
@@ -802,15 +992,15 @@ function Customers() {
       >
         <div className="space-y-4">
           {controls}
-          <div className="space-y-2 border-hairline border-t pt-4">
-            <p className="text-body-strong">Lưu tệp</p>
+          <div className="space-y-2 border-line border-t pt-4">
+            <p className="font-semibold text-body">Lưu tệp</p>
             <div className="flex gap-2">
               <input
                 aria-label="Tên tệp mới"
                 value={segmentName}
                 onChange={(e) => setSegmentName(e.target.value)}
                 placeholder="Tên tệp khách"
-                className="min-h-11 min-w-0 flex-1 rounded-control border border-border-strong bg-surface px-3 text-body text-text"
+                className="min-h-11 min-w-0 flex-1 rounded-md border border-line bg-surface-100 px-3 text-body text-ink"
               />
               <Button onClick={() => void saveSegment()} disabled={!segmentName.trim()} loading={saving} icon="segment">
                 Lưu tệp
@@ -837,9 +1027,9 @@ function Customers() {
             )}
           </div>
         </div>
-      </Sheet>
+      </CustomerSheet>
 
-      <Sheet open={moreOpen} onOpenChange={setMoreOpen} title="Thêm thao tác">
+      <CustomerSheet open={moreOpen} onOpenChange={setMoreOpen} title="Thêm thao tác">
         <div className="flex flex-col gap-2">
           <Button
             icon="retarget"
@@ -874,9 +1064,9 @@ function Customers() {
             </Link>
           </Button>
         </div>
-      </Sheet>
+      </CustomerSheet>
 
-      <Sheet
+      <CustomerSheet
         open={!!selected}
         onOpenChange={(open) => !open && (params.id ? navigate('/khach-hang') : setSelectedLocal(null))}
         title={selected?.full_name || 'Thông tin khách'}
@@ -887,8 +1077,8 @@ function Customers() {
             <div className="flex items-center gap-3">
               <Avatar name={selected.full_name} size={56} />
               <div>
-                <div className="text-body-strong">{selected.full_name}</div>
-                <div className="font-data text-mono-data text-text-2">{selected.phone}</div>
+                <div className="font-semibold text-body">{selected.full_name}</div>
+                <div className="font-mono text-numeric text-ink-muted">{selected.phone}</div>
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -900,16 +1090,16 @@ function Customers() {
               </Badge>
               {selected.apt_type && <Badge>{selected.apt_type}</Badge>}
             </div>
-            <dl className="grid grid-cols-[130px_1fr] gap-y-2 text-small">
-              <dt className="text-text-2">Kênh</dt>
+            <dl className="grid grid-cols-[130px_1fr] gap-y-2 text-label">
+              <dt className="text-ink-muted">Kênh</dt>
               <dd>
                 {sourceListOf(selected.source)
                   .map((s) => SOURCES[s] || s)
                   .join(' · ') || 'Chưa rõ'}
               </dd>
-              <dt className="text-text-2">Đã gọi</dt>
+              <dt className="text-ink-muted">Đã gọi</dt>
               <dd>{callAttemptsOf(selected).length} lần</dd>
-              <dt className="text-text-2">Người phụ trách</dt>
+              <dt className="text-ink-muted">Người phụ trách</dt>
               <dd>{team.find((p) => (p.user_id || p.id) === selected.owner_id)?.name || 'Tôi'}</dd>
             </dl>
             <Button
@@ -930,8 +1120,8 @@ function Customers() {
             )}
           </div>
         )}
-      </Sheet>
-      <Sheet
+      </CustomerSheet>
+      <CustomerSheet
         open={assignOpen}
         onOpenChange={(open) => {
           if (!assignBusy) setAssignOpen(open);
@@ -957,13 +1147,13 @@ function Customers() {
       >
         {selected && (
           <div className="space-y-4">
-            <label className="block space-y-1 text-small text-text-2">
+            <label className="block space-y-1 text-label text-ink-muted">
               <span>Người nhận</span>
               <select
                 aria-label="Người nhận khách"
                 value={assignTo}
                 onChange={(event) => setAssignTo(event.target.value)}
-                className="min-h-11 w-full rounded-control border border-border-strong bg-surface px-3 text-body text-text"
+                className="min-h-11 w-full rounded-md border border-line bg-surface-100 px-3 text-body text-ink"
               >
                 <option value="">Chọn người nhận</option>
                 {assignableMembers.map((person) => (
@@ -975,8 +1165,8 @@ function Customers() {
             </label>
             {assignTo !== userId && (
               <fieldset className="space-y-2">
-                <legend className="text-small text-text-2">Sau khi giao</legend>
-                <label className="flex min-h-11 items-center gap-3 rounded-control border border-border p-3 text-body">
+                <legend className="text-label text-ink-muted">Sau khi giao</legend>
+                <label className="flex min-h-11 items-center gap-3 rounded-md border border-line p-3 text-body">
                   <input
                     type="radio"
                     name="assign-mode"
@@ -986,10 +1176,10 @@ function Customers() {
                   />
                   <span>
                     Tôi vẫn theo dõi{' '}
-                    <span className="block text-small text-text-2">Tôi chỉ xem; người nhận là người phụ trách.</span>
+                    <span className="block text-label text-ink-muted">Tôi chỉ xem; người nhận là người phụ trách.</span>
                   </span>
                 </label>
-                <label className="flex min-h-11 items-center gap-3 rounded-control border border-border p-3 text-body">
+                <label className="flex min-h-11 items-center gap-3 rounded-md border border-line p-3 text-body">
                   <input
                     type="radio"
                     name="assign-mode"
@@ -998,12 +1188,12 @@ function Customers() {
                     onChange={() => setAssignMode('handoff')}
                   />
                   <span>
-                    Giao hẳn <span className="block text-small text-text-2">Khách rời danh sách của tôi.</span>
+                    Giao hẳn <span className="block text-label text-ink-muted">Khách rời danh sách của tôi.</span>
                   </span>
                 </label>
               </fieldset>
             )}
-            <label className="block space-y-1 text-small text-text-2">
+            <label className="block space-y-1 text-label text-ink-muted">
               <span>Ghi chú cho người nhận (tuỳ chọn)</span>
               <textarea
                 aria-label="Ghi chú giao khách"
@@ -1011,13 +1201,13 @@ function Customers() {
                 onChange={(event) => setAssignNote(event.target.value)}
                 rows={3}
                 maxLength={500}
-                className="w-full rounded-control border border-border-strong bg-surface p-3 text-body text-text"
+                className="w-full rounded-md border border-line bg-surface-100 p-3 text-body text-ink"
                 placeholder="Ví dụ: khách hẹn xem nhà mẫu thứ 7"
               />
             </label>
           </div>
         )}
-      </Sheet>
+      </CustomerSheet>
     </main>
   );
 }
