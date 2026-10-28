@@ -1,13 +1,16 @@
+import type { InputHTMLAttributes } from 'react';
 import { useId } from 'react';
 import type { UseFormRegister } from 'react-hook-form';
+import { DatePicker, SelectField, TextField } from '@/components/crm';
+import { Button } from '@/components/ui/button';
 import { ADVANCED_GROUPS } from '@/config/advanced';
 import { calcCungFromDOB, calcMenhFromSolarDOB } from '@/domain/lunar/lunar';
-import { Button, Icon } from '@/ui';
+import { Icon } from '@/ui/Icon';
 import type { IntakeValues } from './schema';
 import { safeDob } from './view';
 
 const FIELD =
-  'min-h-11 rounded-control border border-border-strong bg-surface px-3 text-body text-text focus-visible:outline-2 focus-visible:outline-focus';
+  'min-h-11 rounded-sm border border-line bg-surface-100 px-3 text-body text-ink focus-visible:outline-2 focus-visible:outline-ion';
 const TEXTAREA = `${FIELD} py-2`;
 
 export type IntakeSetValue = (key: keyof IntakeValues, value: unknown) => void;
@@ -34,57 +37,77 @@ export function IntakeMore({ open, onToggle, values, register, set, fieldErrors,
   const panelId = useId();
   const label = filledCount > 0 ? `Thêm thông tin · đã điền ${filledCount}` : 'Thêm thông tin';
 
-  const input = (text: string, name: keyof IntakeValues, type = 'text', props: Record<string, unknown> = {}) => (
-    <label className="flex flex-col gap-1 text-small text-text-2" key={name}>
-      {text}
-      <input
-        {...register(name)}
-        type={type}
-        value={String(values[name] ?? '')}
-        onChange={(e) => set(name, e.target.value)}
-        aria-invalid={!!fieldErrors[name]}
-        className={FIELD}
-        {...props}
-      />
-      {fieldErrors[name] && <span className="text-small text-danger">{fieldErrors[name]}</span>}
-    </label>
+  const input = (
+    text: string,
+    name: keyof IntakeValues,
+    type = 'text',
+    props: Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> = {},
+  ) => (
+    <TextField
+      key={name}
+      {...register(name)}
+      label={text}
+      type={type}
+      value={String(values[name] ?? '')}
+      onChange={(e) => set(name, e.target.value)}
+      error={fieldErrors[name]}
+      {...props}
+    />
   );
 
   const select = (text: string, name: keyof IntakeValues, options: readonly string[]) => (
-    <label className="flex flex-col gap-1 text-small text-text-2" key={name}>
-      {text}
-      <select
-        {...register(name)}
-        value={String(values[name] ?? '')}
-        onChange={(e) => set(name, e.target.value)}
-        aria-invalid={!!fieldErrors[name]}
-        className={FIELD}
-      >
-        <option value="">— Chưa rõ —</option>
-        {options.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-      </select>
-      {fieldErrors[name] && <span className="text-small text-danger">{fieldErrors[name]}</span>}
-    </label>
+    <SelectField
+      key={name}
+      label={text}
+      options={[{ value: '__none', label: '— Chưa rõ —' }, ...options]}
+      placeholder="— Chưa rõ —"
+      value={String(values[name] || '__none')}
+      onValueChange={(value) => set(name, value === '__none' ? '' : value)}
+      error={fieldErrors[name]}
+    />
   );
 
   return (
     <section aria-label="Thông tin thêm" className="flex flex-col gap-3">
-      <Button variant="secondary" block aria-expanded={open} aria-controls={panelId} onClick={onToggle}>
+      <Button
+        type="button"
+        className="w-full justify-between"
+        variant="secondary"
+        aria-expanded={open}
+        aria-controls={panelId}
+        onClick={onToggle}
+      >
         <span className="flex-1 text-left">{label}</span>
-        <Icon name={open ? 'up' : 'expand'} size={20} className="text-text-2" />
+        <Icon name={open ? 'up' : 'expand'} size={20} className="text-ink-muted" />
       </Button>
       {open && (
-        <div id={panelId} className="flex flex-col gap-4 rounded-card border border-border bg-surface p-4 shadow-e1">
+        <div id={panelId} className="flex flex-col gap-4 rounded-lg border border-line bg-surface-100 p-4">
           <section className="flex flex-col gap-3">
-            <h2 className="text-section">Cá nhân</h2>
+            <h2 className="text-title">Cá nhân</h2>
             <div className="grid gap-3 sm:grid-cols-2">
-              {select('Giới tính', 'gender', ['nam', 'nữ', 'khác'])}
-              {input('Ngày sinh (ngày/tháng/năm)', 'dob', 'text', { placeholder: '15/08/1988' })}
-              <p className="text-small text-text-2 sm:col-span-2">
+              <label className="flex min-w-0 flex-col gap-1.5 text-label text-ink-muted">
+                Giới tính
+                <select
+                  {...register('gender')}
+                  value={values.gender}
+                  onChange={(event) => set('gender', event.target.value)}
+                  className={`${FIELD} w-full`}
+                >
+                  <option value="">— Chưa rõ —</option>
+                  {['nam', 'nữ', 'khác'].map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <DatePicker
+                label="Ngày sinh (ngày/tháng/năm)"
+                value={values.dob}
+                onChange={(value) => set('dob', value)}
+                error={fieldErrors.dob}
+              />
+              <p className="text-caption text-ink-muted sm:col-span-2">
                 Mệnh: {values.dob ? calcMenhFromSolarDOB(safeDob(values.dob)) || 'Chưa xác định' : 'Chưa biết'} · Cung:{' '}
                 {values.dob ? calcCungFromDOB(safeDob(values.dob)) || 'Chưa xác định' : 'Chưa biết'}
               </p>
@@ -96,7 +119,7 @@ export function IntakeMore({ open, onToggle, values, register, set, fieldErrors,
           </section>
 
           <section className="flex flex-col gap-3">
-            <h2 className="text-section">Đăng ký</h2>
+            <h2 className="text-title">Đăng ký</h2>
             <div className="grid gap-3 sm:grid-cols-2">
               {input('Thời gian đăng ký', 'registered_at', 'datetime-local')}
               {input('Chiến dịch', 'campaign')}
@@ -104,7 +127,7 @@ export function IntakeMore({ open, onToggle, values, register, set, fieldErrors,
           </section>
 
           <section className="flex flex-col gap-3">
-            <h2 className="text-section">Chi tiết căn hộ</h2>
+            <h2 className="text-title">Chi tiết căn hộ</h2>
             <div className="grid gap-3 sm:grid-cols-2">
               {input('Diện tích (m²)', 'apt_area', 'number', { min: 0, step: 'any' })}
               {input('Mã toà', 'building_code')}
@@ -131,22 +154,22 @@ export function IntakeMore({ open, onToggle, values, register, set, fieldErrors,
             </div>
           </section>
 
-          <label className="flex flex-col gap-1 text-small text-text-2">
+          <label className="flex flex-col gap-1.5 text-label text-ink-muted">
             Ghi chú đăng ký
             <textarea
               value={values.notes}
               onChange={(e) => set('notes', e.target.value)}
               rows={3}
-              className={TEXTAREA}
+              className={`${TEXTAREA} w-full`}
             />
           </label>
 
           {ADVANCED_GROUPS.map((group) => (
-            <details key={group.title} className="rounded-card border border-border bg-surface-2 p-4">
-              <summary className="cursor-pointer text-section">{group.title}</summary>
+            <details key={group.title} className="rounded-lg border border-line bg-surface-200 p-4">
+              <summary className="cursor-pointer text-title">{group.title}</summary>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 {group.fields.map((field) => (
-                  <div key={field.key} className="flex flex-col gap-1 text-small text-text-2">
+                  <div key={field.key} className="flex flex-col gap-1 text-caption text-ink-muted">
                     <label htmlFor={`advanced-${field.key}`}>{field.label}</label>
                     {field.type === 'textarea' ? (
                       <textarea
