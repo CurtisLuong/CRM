@@ -1,5 +1,11 @@
+import type { ReactNode } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import type { FeatureRoute } from '@/app/routes';
+import { EmptyState, LeadRow, PageHeader } from '@/components/crm';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { toast as sonnerToast } from '@/components/ui/sonner';
+import { Textarea } from '@/components/ui/textarea';
 import { CLOSE_REASONS } from '@/config/reasons';
 import { CARE_STAGE_DISPLAY } from '@/config/stages';
 import { useCustomers, useRepositoryAccount } from '@/data/hooks';
@@ -12,11 +18,14 @@ import {
   type RetargetFilters,
 } from '@/domain/matching/segments';
 import { copyAndOpenZalo } from '@/features/quick-actions/zalo';
-import { Badge, Button, EmptyState, useToast } from '@/ui';
 
 type SavedSegment = { id: string; name: string; filters: RetargetFilters };
 const STORAGE = 'crm_v2_retarget_segments';
-const FIELD = 'min-h-11 w-full rounded-control border border-border-strong bg-surface px-3 text-body text-text';
+const FIELD =
+  'min-h-11 w-full rounded-sm border border-line bg-surface-100 px-3 text-body text-ink focus-visible:outline-2 focus-visible:outline-ion';
+const Pill = ({ children }: { children: ReactNode }) => (
+  <span className="rounded-full border border-line bg-surface-200 px-2 py-1 text-caption">{children}</span>
+);
 function readSegments(userId: string): SavedSegment[] {
   try {
     const value = JSON.parse(localStorage.getItem(`${STORAGE}:${userId}`) || '[]');
@@ -36,7 +45,6 @@ function messageFor(customer: Customer, project: string, aptType: string, body: 
 export function RetargetPage() {
   const account = useRepositoryAccount();
   const customers = useCustomers();
-  const toast = useToast();
   const userId = account?.sync.local.userId || '';
   const [filters, setFilters] = useState<RetargetFilters>(DEFAULT_RETARGET_FILTERS);
   const [saved, setSaved] = useState<SavedSegment[]>([]);
@@ -102,8 +110,7 @@ export function RetargetPage() {
     const next = [...saved, { id: crypto.randomUUID(), name, filters: { ...filters } }];
     const synced = await saveSegments(next);
     setSegmentName('');
-    toast({
-      title: synced ? 'Đã lưu tệp retarget' : 'Đã lưu trên thiết bị',
+    sonnerToast.success(synced ? 'Đã lưu tệp retarget' : 'Đã lưu trên thiết bị', {
       description: 'Tệp tự cập nhật theo điều kiện đã lưu.',
     });
   };
@@ -150,9 +157,11 @@ export function RetargetPage() {
       latestEligible(customer.id);
       const text = messageFor(customer, project, aptType, template);
       await copyAndOpenZalo(text, customer.phone);
-      toast({ title: 'Đã sao chép bản nháp', description: 'Kiểm tra lại nội dung trong Zalo trước khi tự gửi.' });
+      sonnerToast.success('Đã sao chép bản nháp', {
+        description: 'Kiểm tra lại nội dung trong Zalo trước khi tự gửi.',
+      });
     } catch (error) {
-      toast({ title: error instanceof Error ? error.message : 'Chưa mở được Zalo', tone: 'error' });
+      sonnerToast.error(error instanceof Error ? error.message : 'Chưa mở được Zalo');
     }
   };
   const markSent = async (customerId: string) => {
@@ -199,9 +208,9 @@ export function RetargetPage() {
             }
           : {}),
       });
-      toast({ title: 'Đã ghi nhận đã gửi', description: 'Lịch theo dõi được thêm; tin chưa được gửi tự động.' });
+      sonnerToast.success('Đã ghi nhận đã gửi', { description: 'Lịch theo dõi được thêm; tin chưa được gửi tự động.' });
     } catch (error) {
-      toast({ title: error instanceof Error ? error.message : 'Chưa ghi nhận được lần gửi', tone: 'error' });
+      sonnerToast.error(error instanceof Error ? error.message : 'Chưa ghi nhận được lần gửi');
     } finally {
       setWorking('');
     }
@@ -229,9 +238,9 @@ export function RetargetPage() {
           },
         ],
       });
-      toast({ title: response === 'replied' ? 'Đã ghi nhận phản hồi' : 'Đã ghi nhận chưa phản hồi' });
+      sonnerToast.success(response === 'replied' ? 'Đã ghi nhận phản hồi' : 'Đã ghi nhận chưa phản hồi');
     } catch (error) {
-      toast({ title: error instanceof Error ? error.message : 'Chưa lưu được kết quả', tone: 'error' });
+      sonnerToast.error(error instanceof Error ? error.message : 'Chưa lưu được kết quả');
     } finally {
       setWorking('');
     }
@@ -240,81 +249,88 @@ export function RetargetPage() {
   if (!account)
     return (
       <main className="mx-auto max-w-5xl p-4">
-        <EmptyState title="Chưa có dữ liệu tài khoản" hint="Đăng nhập để tạo tệp retarget." />
+        <EmptyState title="Chưa có dữ liệu tài khoản" text="Đăng nhập để tạo tệp retarget." />
       </main>
     );
 
   return (
     <main className="mx-auto flex max-w-5xl flex-col gap-5 p-4 pb-10">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-title">Tệp &amp; Retarget</h1>
-          <p className="text-small text-text-2">Lọc khách bạn phụ trách, kiểm tra điều kiện rồi tự liên hệ.</p>
-        </div>
-        <Badge>{visible.length} khách phù hợp · loại khách yêu cầu không liên hệ</Badge>
-      </header>
-      <section className="rounded-card border border-border bg-surface p-4 shadow-e1" aria-label="Điều kiện lọc tệp">
-        <h2 className="text-heading">Điều kiện tệp</h2>
-        <p className="mb-3 text-small text-text-2">
+      <PageHeader
+        title="Tệp & Retarget"
+        count={visible.length}
+        noun="khách phù hợp"
+        subtitle="Lọc khách bạn phụ trách, kiểm tra điều kiện rồi tự liên hệ."
+        sticky={false}
+      />
+      <section className="rounded-md border border-line bg-surface-100 p-4 " aria-label="Điều kiện lọc tệp">
+        <h2 className="text-title">Điều kiện tệp</h2>
+        <p className="mb-3 text-caption text-ink-muted">
           Khách đã tắt liên hệ và khách người khác phụ trách luôn bị loại. “Có thể liên hệ” không thay thế việc xác nhận
           đồng ý trong từng cuộc trao đổi.
         </p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <label className="text-small">
+          <label htmlFor="retarget-apt-type" className="text-label">
             Loại căn
-            <input
+            <Input
+              id="retarget-apt-type"
               className={FIELD}
               value={filters.aptType}
               onChange={(e) => setFilters({ ...filters, aptType: e.target.value })}
               placeholder="VD: 2N"
             />
           </label>
-          <label className="text-small">
+          <label htmlFor="retarget-project-filter" className="text-label">
             Dự án đã quan tâm
-            <input
+            <Input
+              id="retarget-project-filter"
               className={FIELD}
               value={filters.project}
               onChange={(e) => setFilters({ ...filters, project: e.target.value })}
             />
           </label>
-          <label className="text-small">
+          <label htmlFor="retarget-purpose" className="text-label">
             Mục đích
-            <input
+            <Input
+              id="retarget-purpose"
               className={FIELD}
               value={filters.purpose}
               onChange={(e) => setFilters({ ...filters, purpose: e.target.value })}
               placeholder="Ở, đầu tư…"
             />
           </label>
-          <label className="text-small">
+          <label htmlFor="retarget-region" className="text-label">
             Khu vực
-            <input
+            <Input
+              id="retarget-region"
               className={FIELD}
               value={filters.region}
               onChange={(e) => setFilters({ ...filters, region: e.target.value })}
               placeholder="Hải Phòng…"
             />
           </label>
-          <label className="text-small">
+          <label htmlFor="retarget-occupation" className="text-label">
             Nghề nghiệp
-            <input
+            <Input
+              id="retarget-occupation"
               className={FIELD}
               value={filters.occupation}
               onChange={(e) => setFilters({ ...filters, occupation: e.target.value })}
             />
           </label>
-          <label className="text-small">
+          <label htmlFor="retarget-timeline" className="text-label">
             Thời điểm mua dự kiến
-            <input
+            <Input
+              id="retarget-timeline"
               className={FIELD}
               value={filters.timeline}
               onChange={(e) => setFilters({ ...filters, timeline: e.target.value })}
               placeholder="VD: 6 tháng"
             />
           </label>
-          <label className="text-small">
+          <label htmlFor="retarget-close-reason" className="text-label">
             Lý do kết thúc
             <select
+              id="retarget-close-reason"
               className={FIELD}
               value={filters.closeReason}
               onChange={(e) => setFilters({ ...filters, closeReason: e.target.value })}
@@ -327,9 +343,10 @@ export function RetargetPage() {
               ))}
             </select>
           </label>
-          <label className="text-small">
+          <label htmlFor="retarget-max-budget" className="text-label">
             Ngân sách tối đa khách (VND)
-            <input
+            <Input
+              id="retarget-max-budget"
               className={FIELD}
               inputMode="numeric"
               value={filters.maxBudget}
@@ -337,9 +354,10 @@ export function RetargetPage() {
               placeholder="Chỉ lọc khi có dữ liệu ngân sách"
             />
           </label>
-          <label className="text-small">
+          <label htmlFor="retarget-contacted-before" className="text-label">
             Liên hệ cuối trước ngày
-            <input
+            <Input
+              id="retarget-contacted-before"
               className={FIELD}
               type="date"
               value={filters.contactedBefore}
@@ -348,16 +366,17 @@ export function RetargetPage() {
           </label>
         </div>
         <div className="mt-3 flex flex-wrap items-end gap-2">
-          <label className="min-w-48 flex-1 text-small">
+          <label htmlFor="retarget-segment-name" className="min-w-48 flex-1 text-label">
             Tên tệp
-            <input
+            <Input
+              id="retarget-segment-name"
               className={FIELD}
               value={segmentName}
               onChange={(e) => setSegmentName(e.target.value)}
               placeholder="VD: Khách tìm căn 2N"
             />
           </label>
-          <Button onClick={() => void saveSegment()} disabled={!segmentName.trim()} icon="segment">
+          <Button onClick={() => void saveSegment()} disabled={!segmentName.trim()} variant="primary">
             Lưu tệp
           </Button>
           <Button
@@ -392,53 +411,58 @@ export function RetargetPage() {
           </section>
         )}
       </section>
-      <section className="rounded-card border border-border bg-surface p-4 shadow-e1" aria-label="Chiến dịch retarget">
-        <h2 className="text-heading">Chiến dịch đo phản hồi</h2>
-        <p className="mb-3 text-small text-text-2">
+      <section className="rounded-md border border-line bg-surface-100 p-4 " aria-label="Chiến dịch retarget">
+        <h2 className="text-title">Chiến dịch đo phản hồi</h2>
+        <p className="mb-3 text-caption text-ink-muted">
           Catalog hiện không cung cấp mốc xác minh giá/tồn cho màn này. Không hiển thị giá, tồn kho hay khẳng định căn
           còn bán; xác minh với nguồn bán trước khi đưa thông tin vào tin nhắn.
         </p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <label className="text-small">
+          <label htmlFor="retarget-campaign" className="text-label">
             Tên chiến dịch
-            <input
+            <Input
+              id="retarget-campaign"
               className={FIELD}
               value={campaign}
               onChange={(e) => setCampaign(e.target.value)}
               placeholder="VD: Khách quan tâm Tràng Cát T10"
             />
           </label>
-          <label className="text-small">
+          <label htmlFor="retarget-project" className="text-label">
             Dự án cần xác minh (tuỳ chọn)
-            <input
+            <Input
+              id="retarget-project"
               className={FIELD}
               value={project}
               onChange={(e) => setProject(e.target.value)}
               placeholder="Không tự chèn giá/tồn kho"
             />
           </label>
-          <label className="text-small">
+          <label htmlFor="retarget-apt-type-message" className="text-label">
             Loại căn cần xác minh
-            <input
+            <Input
+              id="retarget-apt-type-message"
               className={FIELD}
               value={aptType}
               onChange={(e) => setAptType(e.target.value)}
               placeholder="VD: 2N"
             />
           </label>
-          <label className="text-small">
+          <label htmlFor="retarget-follow-up" className="text-label">
             Ngày theo dõi sau khi gửi
-            <input
+            <Input
+              id="retarget-follow-up"
               className={FIELD}
               type="date"
               value={followUpDate}
               onChange={(e) => setFollowUpDate(e.target.value)}
             />
           </label>
-          <label className="text-small sm:col-span-2">
+          <label htmlFor="retarget-template" className="text-label sm:col-span-2">
             Mẫu tin · biến: {'{{ten}}'}, {'{{du_an}}'}, {'{{loai_can}}'}
-            <textarea
-              className={`${FIELD} min-h-24 py-2`}
+            <Textarea
+              id="retarget-template"
+              className="min-h-24 w-full rounded-sm border border-line bg-surface-100 px-3 py-2 text-body text-ink focus-visible:outline-2 focus-visible:outline-ion"
               value={template}
               onChange={(e) => setTemplate(e.target.value)}
             />
@@ -448,7 +472,7 @@ export function RetargetPage() {
           <Button disabled={!selectedVisible.length} onClick={exportEligible}>
             Xuất {selectedVisible.length} khách đã chọn
           </Button>
-          <Badge>
+          <Pill>
             {customers.reduce(
               (count, customer) =>
                 count +
@@ -467,16 +491,16 @@ export function RetargetPage() {
               0,
             )}{' '}
             phản hồi đã ghi nhận
-          </Badge>
+          </Pill>
         </div>
       </section>
       {visible.length ? (
         <section
-          className="overflow-hidden rounded-card border border-border bg-surface"
+          className="overflow-hidden rounded-md border border-line bg-surface-100"
           aria-label="Danh sách khách retarget"
         >
-          <div className="flex items-center justify-between gap-3 border-b border-border p-3">
-            <label className="flex items-center gap-2 text-small">
+          <div className="flex items-center justify-between gap-3 border-b border-line p-3">
+            <label className="flex items-center gap-2 text-caption">
               <input
                 type="checkbox"
                 checked={visible.length > 0 && selectedVisible.length === visible.length}
@@ -484,7 +508,7 @@ export function RetargetPage() {
               />
               Chọn {visible.length} khách
             </label>
-            <span className="text-small text-text-2">Dữ liệu cục bộ; kiểm tra lại trước khi gửi.</span>
+            <span className="text-caption text-ink-muted">Dữ liệu cục bộ; kiểm tra lại trước khi gửi.</span>
           </div>
           <ul className="divide-y divide-border">
             {visible.map((customer) => {
@@ -514,20 +538,22 @@ export function RetargetPage() {
                       }
                     />
                     <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <strong>{customer.full_name}</strong>
-                        <Badge>
+                      <LeadRow
+                        name={customer.full_name}
+                        phone={customer.phone}
+                        project={(customer.projects || []).join(' · ') || 'Chưa ghi dự án'}
+                        unit={customer.apt_type || 'Chưa rõ loại căn'}
+                      />
+                      <div className="flex flex-wrap gap-2 px-4 py-2">
+                        <Pill>
                           {CARE_STAGE_DISPLAY[customer.care_stage || ''] || customer.care_stage || 'Chưa rõ bậc'}
-                        </Badge>
+                        </Pill>
+                        {customer.retarget_hint?.note && (
+                          <span className="text-caption text-ink-muted">
+                            Điều kiện đã lưu: {customer.retarget_hint.note}
+                          </span>
+                        )}
                       </div>
-                      <p className="text-small text-text-2">
-                        {customer.apt_type || 'Chưa rõ loại căn'} ·{' '}
-                        {(customer.projects || []).join(' · ') || 'Chưa ghi dự án'} ·{' '}
-                        {customerSegmentReasons(customer, filters).join(' · ')}
-                      </p>
-                      {customer.retarget_hint?.note && (
-                        <p className="text-small">Điều kiện đã lưu: {customer.retarget_hint.note}</p>
-                      )}
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2 pl-6">
@@ -560,9 +586,9 @@ export function RetargetPage() {
                         )}
                       </>
                     ) : (
-                      <span className="self-center text-small text-text-2">Chọn khách để chuẩn bị liên hệ.</span>
+                      <span className="self-center text-caption text-ink-muted">Chọn khách để chuẩn bị liên hệ.</span>
                     )}
-                    <span className="self-center text-small text-text-2">
+                    <span className="self-center text-caption text-ink-muted">
                       Không tự gửi · xác minh nội dung trước khi gửi.
                     </span>
                   </div>
@@ -574,7 +600,7 @@ export function RetargetPage() {
       ) : (
         <EmptyState
           title="Chưa có khách phù hợp"
-          hint="Mở rộng điều kiện hoặc kiểm tra các dữ liệu có trong hồ sơ khách."
+          text="Mở rộng điều kiện hoặc kiểm tra các dữ liệu có trong hồ sơ khách."
         />
       )}
     </main>

@@ -1,14 +1,16 @@
 import { useState, useSyncExternalStore } from 'react';
 import { useNavigate } from 'react-router';
 import type { FeatureRoute } from '@/app/routes';
+import { EmptyState, LeadRow, PageHeader } from '@/components/crm';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { useRepositoryAccount } from '@/data/hooks';
 import type { Customer } from '@/domain/customer';
 import { ARCHIVED_PATH, archivedDate, archiveReason, canArchive, useArchiveActions } from '@/features/profile/archive';
-import { Avatar, Button, EmptyState } from '@/ui';
 import { archivedCustomers } from './model';
 
 const FIELD =
-  'min-h-11 w-full rounded-control border border-border-strong bg-surface px-3 text-body text-text focus-visible:outline-2 focus-visible:outline-focus';
+  'min-h-11 w-full rounded-sm border border-line bg-surface-100 px-3 text-body text-ink focus-visible:outline-2 focus-visible:outline-ion';
 const noRows: Customer[] = [];
 const noop = () => () => {};
 
@@ -27,19 +29,17 @@ function ArchivedPage() {
   const userId = account?.sync.local.userId;
 
   return (
-    <main className="mx-auto w-full max-w-3xl space-y-4 p-4 lg:p-6" data-testid="archived-customers">
+    <main className="mx-auto w-full max-w-5xl space-y-4 p-4 lg:p-6" data-testid="archived-customers">
       <div className="flex items-center justify-between gap-2">
         <Button onClick={() => navigate('/khach-hang')}>← Danh sách khách</Button>
       </div>
-      <header className="space-y-1">
-        <h1 className="text-title">Khách đã lưu trữ</h1>
-        <p className="text-small text-text-2">
-          Khách ở đây đã ẩn khỏi danh sách và nhắc việc; dữ liệu còn nguyên. Người phụ trách bấm “Khôi phục” để đưa
-          khách trở lại.
-        </p>
-      </header>
+      <PageHeader title="Khách đã lưu trữ" count={total} noun="khách" sticky={false} />
+      <p className="text-caption text-ink-muted">
+        Khách ở đây đã ẩn khỏi danh sách và nhắc việc; dữ liệu còn nguyên. Người phụ trách bấm “Khôi phục” để đưa khách
+        trở lại.
+      </p>
       {total > 0 && (
-        <input
+        <Input
           aria-label="Tìm khách đã lưu trữ"
           placeholder="Tìm theo tên hoặc SĐT"
           className={FIELD}
@@ -48,7 +48,7 @@ function ArchivedPage() {
         />
       )}
       {list.length ? (
-        <ul className="divide-y divide-border rounded-card border border-border bg-surface">
+        <ul className="overflow-hidden rounded-md border border-line bg-surface-100">
           {list.map((customer) => (
             <ArchivedRow
               key={customer.id}
@@ -60,9 +60,8 @@ function ArchivedPage() {
         </ul>
       ) : (
         <EmptyState
-          icon="history"
           title={total ? 'Không có khách khớp' : 'Chưa có khách nào được lưu trữ'}
-          hint={total ? 'Thử tên hoặc số điện thoại khác.' : 'Lưu trữ khách ở cuối hồ sơ khách.'}
+          text={total ? 'Thử tên hoặc số điện thoại khác.' : 'Lưu trữ khách ở cuối hồ sơ khách.'}
         />
       )}
     </main>
@@ -73,19 +72,19 @@ function ArchivedRow({ customer, owner, onOpen }: { customer: Customer; owner: b
   const { busy, run } = useArchiveActions(customer);
   const date = archivedDate(customer.archived_at);
   return (
-    <li className="flex flex-wrap items-center gap-3 p-3">
-      <Avatar name={customer.full_name} size={40} />
-      <button type="button" onClick={onOpen} className="min-w-0 flex-1 text-left">
-        <p className="truncate text-body-strong">{customer.full_name}</p>
-        <p className="text-small text-text-2">
-          <span className="font-data">{customer.phone}</span>
-          {date ? ` · lưu trữ ${date}` : ''}
-          {archiveReason(customer) ? ` · ${archiveReason(customer)}` : ''}
-          {owner ? '' : ' · người phụ trách khác'}
-        </p>
-      </button>
+    <li className="flex items-center gap-2 border-b border-line last:border-b-0">
+      <div className="min-w-0 flex-1">
+        <LeadRow
+          name={customer.full_name}
+          phone={customer.phone}
+          onClick={onOpen}
+          nextStep={[date ? `Lưu trữ ${date}` : '', archiveReason(customer), owner ? '' : 'Người phụ trách khác']
+            .filter(Boolean)
+            .join(' · ')}
+        />
+      </div>
       {owner && (
-        <Button loading={busy} onClick={() => void run(false)} aria-label={`Khôi phục ${customer.full_name}`}>
+        <Button disabled={busy} onClick={() => void run(false)} aria-label={`Khôi phục ${customer.full_name}`}>
           Khôi phục
         </Button>
       )}

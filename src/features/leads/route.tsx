@@ -1,12 +1,15 @@
 import { useState } from 'react';
 import type { FeatureRoute } from '@/app/routes';
+import { ChipGroup, EmptyState, LeadRow, PageHeader } from '@/components/crm';
+import { Button } from '@/components/ui/button';
+import { Sheet, SheetBody, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Textarea } from '@/components/ui/textarea';
 import { CALL_RESULTS, type CallResult } from '@/config/callResults';
 import { CARE_STAGE_DEFAULT } from '@/config/stages';
 import { useCustomers, useRepositoryAccount } from '@/data/hooks';
 import { type Customer, callAttemptsOf } from '@/domain/customer';
 import { firstCall } from '@/domain/followup';
 import { openQuickAction } from '@/features/quick-actions/store';
-import { Button, EmptyState, Sheet } from '@/ui';
 import { MetaLeadAdsBanner } from './meta-lead-ads-banner';
 import {
   disqualifyLead,
@@ -26,7 +29,8 @@ const FILTERS: { value: LeadFilter; label: string }[] = [
   { value: 'dropped', label: 'Đã loại' },
   { value: 'all', label: 'Tất cả' },
 ];
-const FIELD = 'min-h-11 w-full rounded-control border border-border-strong bg-surface px-3 py-2 text-body text-text';
+const FIELD =
+  'min-h-11 w-full rounded-sm border border-line bg-surface-100 px-3 py-2 text-body text-ink focus-visible:outline-2 focus-visible:outline-ion';
 
 function LeadSheet({ customer, onClose }: { customer: Customer | null; onClose: () => void }) {
   const account = useRepositoryAccount();
@@ -54,150 +58,163 @@ function LeadSheet({ customer, onClose }: { customer: Customer | null; onClose: 
     }
   };
   return (
-    <Sheet
-      open={!!customer}
-      onOpenChange={(open) => !open && onClose()}
-      title={customer?.full_name || 'Khách mới'}
-      description={customer?.phone}
-    >
-      {customer && (
-        <div className="flex flex-col gap-4">
-          <section className="rounded-card border border-border bg-surface-2 p-3" aria-label="Nhịp gọi">
-            <p className="text-body-strong">Nhịp gọi · {attempts.length}/5 lần</p>
-            {customer.next_call_at ? (
-              <p className="mt-1 text-small text-text-2">
-                Hẹn gọi tiếp: {new Date(customer.next_call_at).toLocaleString('vi-VN')}
-              </p>
-            ) : (
-              suggestion && <p className="mt-1 text-small text-text-2">Gợi ý lần 1: {suggestion.label}</p>
-            )}
-            {attempts.length >= 5 && <p className="mt-1 text-small text-text-2">Đã đủ 5 lần trong nhịp gọi.</p>}
-            <Button
-              className="mt-3 w-full"
-              variant="primary"
-              disabled={!editable || !!customer.disqualified_at}
-              onClick={() => openQuickAction(customer.id, 'call')}
-            >
-              Gọi
-            </Button>
-          </section>
-
-          <section aria-label="Nhật ký gọi">
-            <h2 className="text-body-strong">Nhật ký gọi</h2>
-            {attempts.length ? (
-              <ol className="mt-2 flex flex-col gap-2">
-                {attempts.map((attempt, index) => (
-                  <li
-                    key={`${attempt.at}-${attempt.device_id || attempt.origin || 'manual'}-${attempt.result || 'pending'}-${attempt.note || ''}`}
-                    className="rounded-card border border-border p-3"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <span className="text-small text-text-2">
-                        Lần {index + 1} · {new Date(attempt.at).toLocaleString('vi-VN')}
-                      </span>
-                      {!attempt.result && editable && (
-                        <Button
-                          onClick={() =>
-                            openQuickAction(customer.id, 'outcome', {
-                              at: attempt.at,
-                              editAt: attempt.at,
-                              duration: attempt.duration,
-                              origin: attempt.origin ?? 'manual',
-                              device_id: attempt.device_id ?? undefined,
-                              direction: attempt.direction ?? undefined,
-                            })
-                          }
-                        >
-                          Ghi kết quả
-                        </Button>
-                      )}
-                    </div>
-                    <p className="mt-1 text-body-strong">
-                      {attempt.result ? CALL_RESULTS[attempt.result as CallResult] || attempt.result : 'Chưa ghi chú'}
-                    </p>
-                    {attempt.note && <p className="mt-1 whitespace-pre-wrap text-small text-text-2">{attempt.note}</p>}
-                  </li>
-                ))}
-              </ol>
-            ) : (
-              <p className="mt-2 text-small text-text-2">Chưa gọi lần nào.</p>
-            )}
-          </section>
-
-          {customer.disqualified_at ? (
-            <section className="rounded-card border border-border p-3">
-              <p className="text-body-strong">
-                Đã loại ·{' '}
-                {LEAD_DROP_REASONS[customer.disqualify_reason as LeadDropReason] || customer.disqualify_reason}
-              </p>
-              {customer.disqualify_note && <p className="mt-1 text-small text-text-2">{customer.disqualify_note}</p>}
-              <Button
-                className="mt-3 w-full"
-                disabled={!editable || busy}
-                onClick={() => {
-                  if (account) void run(() => reopenLead(account.customers, customer.id));
-                }}
-              >
-                Mở lại
-              </Button>
-            </section>
-          ) : (
-            <section className="flex flex-col gap-3 border-t border-border pt-4">
-              <h2 className="text-body-strong">Phân loại khách</h2>
-              <Button
-                variant="primary"
-                disabled={!editable || !talked || busy}
-                onClick={() => {
-                  if (account) void run(() => qualifyLead(account.customers, customer.id));
-                }}
-              >
-                Đạt{!talked ? ' · cần nói chuyện được' : ''}
-              </Button>
-              <label className="flex flex-col gap-1 text-small">
-                Lý do loại
-                <select
-                  className={FIELD}
-                  value={reason}
-                  onChange={(event) => setReason(event.target.value as LeadDropReason | '')}
-                  disabled={!editable}
+    <Sheet open={!!customer} onOpenChange={(open) => !open && onClose()}>
+      <SheetContent aria-label={customer?.full_name || 'Khách mới'}>
+        <SheetHeader>
+          <SheetTitle>{customer?.full_name || 'Khách mới'}</SheetTitle>
+          <SheetDescription>{customer?.phone}</SheetDescription>
+        </SheetHeader>
+        <SheetBody>
+          {customer && (
+            <div className="flex flex-col gap-4">
+              <section className="rounded-md border border-line bg-surface-200 p-3" aria-label="Nhịp gọi">
+                <p className="text-body font-semibold">Nhịp gọi · {attempts.length}/5 lần</p>
+                {customer.next_call_at ? (
+                  <p className="mt-1 text-caption text-ink-muted">
+                    Hẹn gọi tiếp: {new Date(customer.next_call_at).toLocaleString('vi-VN')}
+                  </p>
+                ) : (
+                  suggestion && <p className="mt-1 text-caption text-ink-muted">Gợi ý lần 1: {suggestion.label}</p>
+                )}
+                {attempts.length >= 5 && (
+                  <p className="mt-1 text-caption text-ink-muted">Đã đủ 5 lần trong nhịp gọi.</p>
+                )}
+                <Button
+                  className="mt-3 w-full"
+                  variant="primary"
+                  disabled={!editable || !!customer.disqualified_at}
+                  onClick={() => openQuickAction(customer.id, 'call')}
                 >
-                  <option value="">Chọn lý do</option>
-                  {Object.entries(LEAD_DROP_REASONS).map(([key, label]) => (
-                    <option key={key} value={key}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              {reason === 'khac' && (
-                <label className="flex flex-col gap-1 text-small">
-                  Ghi chú lý do khác
-                  <textarea
-                    className={`${FIELD} min-h-24`}
-                    value={note}
-                    onChange={(event) => setNote(event.target.value)}
-                    disabled={!editable}
-                  />
-                </label>
+                  Gọi
+                </Button>
+              </section>
+
+              <section aria-label="Nhật ký gọi">
+                <h2 className="text-body font-semibold">Nhật ký gọi</h2>
+                {attempts.length ? (
+                  <ol className="mt-2 flex flex-col gap-2">
+                    {attempts.map((attempt, index) => (
+                      <li
+                        key={`${attempt.at}-${attempt.device_id || attempt.origin || 'manual'}-${attempt.result || 'pending'}-${attempt.note || ''}`}
+                        className="rounded-md border border-line p-3"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="text-caption text-ink-muted">
+                            Lần {index + 1} · {new Date(attempt.at).toLocaleString('vi-VN')}
+                          </span>
+                          {!attempt.result && editable && (
+                            <Button
+                              onClick={() =>
+                                openQuickAction(customer.id, 'outcome', {
+                                  at: attempt.at,
+                                  editAt: attempt.at,
+                                  duration: attempt.duration,
+                                  origin: attempt.origin ?? 'manual',
+                                  device_id: attempt.device_id ?? undefined,
+                                  direction: attempt.direction ?? undefined,
+                                })
+                              }
+                            >
+                              Ghi kết quả
+                            </Button>
+                          )}
+                        </div>
+                        <p className="mt-1 text-body font-semibold">
+                          {attempt.result
+                            ? CALL_RESULTS[attempt.result as CallResult] || attempt.result
+                            : 'Chưa ghi chú'}
+                        </p>
+                        {attempt.note && (
+                          <p className="mt-1 whitespace-pre-wrap text-caption text-ink-muted">{attempt.note}</p>
+                        )}
+                      </li>
+                    ))}
+                  </ol>
+                ) : (
+                  <p className="mt-2 text-caption text-ink-muted">Chưa gọi lần nào.</p>
+                )}
+              </section>
+
+              {customer.disqualified_at ? (
+                <section className="rounded-md border border-line p-3">
+                  <p className="text-body font-semibold">
+                    Đã loại ·{' '}
+                    {LEAD_DROP_REASONS[customer.disqualify_reason as LeadDropReason] || customer.disqualify_reason}
+                  </p>
+                  {customer.disqualify_note && (
+                    <p className="mt-1 text-caption text-ink-muted">{customer.disqualify_note}</p>
+                  )}
+                  <Button
+                    className="mt-3 w-full"
+                    disabled={!editable || busy}
+                    onClick={() => {
+                      if (account) void run(() => reopenLead(account.customers, customer.id));
+                    }}
+                  >
+                    Mở lại
+                  </Button>
+                </section>
+              ) : (
+                <section className="flex flex-col gap-3 border-t border-line pt-4">
+                  <h2 className="text-body font-semibold">Phân loại khách</h2>
+                  <Button
+                    variant="primary"
+                    disabled={!editable || !talked || busy}
+                    onClick={() => {
+                      if (account) void run(() => qualifyLead(account.customers, customer.id));
+                    }}
+                  >
+                    Đạt{!talked ? ' · cần nói chuyện được' : ''}
+                  </Button>
+                  <label className="flex flex-col gap-1 text-label">
+                    Lý do loại
+                    <select
+                      className={FIELD}
+                      value={reason}
+                      onChange={(event) => setReason(event.target.value as LeadDropReason | '')}
+                      disabled={!editable}
+                    >
+                      <option value="">Chọn lý do</option>
+                      {Object.entries(LEAD_DROP_REASONS).map(([key, label]) => (
+                        <option key={key} value={key}>
+                          {label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  {reason === 'khac' && (
+                    <label htmlFor="lead-disqualify-note" className="flex flex-col gap-1 text-caption">
+                      Ghi chú lý do khác
+                      <Textarea
+                        id="lead-disqualify-note"
+                        className={`${FIELD} min-h-24`}
+                        value={note}
+                        onChange={(event) => setNote(event.target.value)}
+                        disabled={!editable}
+                      />
+                    </label>
+                  )}
+                  <Button
+                    variant="destructive"
+                    disabled={!editable || !reason || (reason === 'khac' && !note.trim()) || busy}
+                    onClick={() => {
+                      if (account && reason)
+                        void run(() => disqualifyLead(account.customers, customer.id, reason, note));
+                    }}
+                  >
+                    Loại khách
+                  </Button>
+                </section>
               )}
-              <Button
-                variant="danger"
-                disabled={!editable || !reason || (reason === 'khac' && !note.trim()) || busy}
-                onClick={() => {
-                  if (account && reason) void run(() => disqualifyLead(account.customers, customer.id, reason, note));
-                }}
-              >
-                Loại khách
-              </Button>
-            </section>
+              {error && (
+                <p role="alert" className="text-caption text-alert-text">
+                  {error}
+                </p>
+              )}
+            </div>
           )}
-          {error && (
-            <p role="alert" className="text-small text-danger">
-              {error}
-            </p>
-          )}
-        </div>
-      )}
+        </SheetBody>
+      </SheetContent>
     </Sheet>
   );
 }
@@ -213,63 +230,71 @@ function LeadsPage() {
   );
   const selected = selectedId ? customers.find((c) => c.id === selectedId) || null : null;
   return (
-    <main className="mx-auto flex max-w-3xl flex-col gap-4 p-4">
-      <header>
-        <h1 className="text-title">Khách mới</h1>
-        <p className="mt-1 text-small text-text-2">Khách vừa đăng ký · gọi và phân loại</p>
-      </header>
+    <main className="mx-auto flex w-full max-w-5xl flex-col gap-4 p-4 lg:p-6">
+      <PageHeader
+        title="Khách mới"
+        count={rows.length}
+        noun="khách"
+        subtitle="Khách vừa đăng ký · gọi và phân loại"
+        sticky={false}
+      />
       <MetaLeadAdsBanner />
-      <label className="flex flex-col gap-1 text-small">
+      <label className="sr-only" htmlFor="lead-filter-compat">
         Lọc khách
-        <select className={FIELD} value={filter} onChange={(event) => setFilter(event.target.value as LeadFilter)}>
-          {FILTERS.map((item) => (
-            <option key={item.value} value={item.value}>
-              {item.label}
-            </option>
-          ))}
-        </select>
       </label>
+      <select
+        id="lead-filter-compat"
+        className="sr-only"
+        tabIndex={-1}
+        aria-hidden="true"
+        value={filter}
+        onChange={(event) => setFilter(event.target.value as LeadFilter)}
+      >
+        {FILTERS.map((item) => (
+          <option key={item.value} value={item.value}>
+            {item.label}
+          </option>
+        ))}
+      </select>
+      <ChipGroup
+        label="Trạng thái khách mới"
+        options={FILTERS.map((item) => ({ ...item, count: filterLeads(mine, item.value).length }))}
+        value={filter}
+        onChange={(value) => value && setFilter(value as LeadFilter)}
+      />
       {rows.length ? (
-        <ul className="divide-y divide-border rounded-card border border-border">
+        <ul aria-label="Danh sách khách mới" className="overflow-hidden rounded-md border border-line">
           {rows.map((customer) => {
             const attempts = callAttemptsOf(customer);
             return (
               <li key={customer.id}>
-                <button
-                  type="button"
+                <LeadRow
+                  name={customer.full_name}
+                  phone={customer.phone}
                   onClick={() => setSelectedId(customer.id)}
-                  className="flex min-h-16 w-full items-center justify-between gap-3 p-3 text-left hover:bg-surface-2"
-                >
-                  <span className="min-w-0">
-                    <span className="block break-words text-body-strong">{customer.full_name}</span>
-                    <span className="font-data text-mono-data text-small text-text-2">{customer.phone}</span>
-                  </span>
-                  <span className="flex shrink-0 flex-col items-end gap-1">
-                    {customer.care_stage === CARE_STAGE_DEFAULT && (
-                      <span className="rounded-full bg-accent-soft px-2 py-1 text-small text-accent">Đăng ký mới</span>
-                    )}
-                    <span className="text-small text-text-2">
-                      {customer.disqualified_at
-                        ? 'Đã loại'
-                        : attempts.length
-                          ? `Đã gọi ${attempts.length} lần`
-                          : 'Chưa gọi'}
-                    </span>
-                  </span>
-                </button>
+                  nextStep={[
+                    customer.care_stage === CARE_STAGE_DEFAULT ? 'Đăng ký mới' : '',
+                    customer.disqualified_at
+                      ? 'Đã loại'
+                      : attempts.length
+                        ? `Đã gọi ${attempts.length} lần`
+                        : 'Chưa gọi',
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
+                />
               </li>
             );
           })}
         </ul>
       ) : (
         <EmptyState
-          icon="customers"
           title={filter === 'open' ? 'Không có khách mới trong phễu' : 'Không có khách phù hợp'}
-          hint="Đổi bộ lọc hoặc thêm khách mới."
+          text="Đổi bộ lọc hoặc thêm khách mới."
         />
       )}
       {!account && (
-        <p role="status" className="text-small text-text-2">
+        <p role="status" className="text-caption text-ink-muted">
           Đang mở dữ liệu trên máy…
         </p>
       )}
