@@ -17,12 +17,14 @@ for (const scheme of ['light', 'dark'] as const) {
           created_at: '2026-10-01T00:00:00.000Z',
         };
         localStorage.setItem('crm_last_user', JSON.stringify({ id: userId, email: user.email }));
-        localStorage.setItem(
-          'crm_zalo_templates:u03-e2e-user',
-          JSON.stringify([
-            { id: 'old-template', name: 'Mẫu lưu trước', text: 'Nội dung cũ đã lưu nguyên vẹn.', legacy: 'giữ lại' },
-          ]),
-        );
+        // Chỉ gieo lần đầu: addInitScript chạy lại khi tải lại trang.
+        if (!localStorage.getItem('crm_zalo_templates:u03-e2e-user'))
+          localStorage.setItem(
+            'crm_zalo_templates:u03-e2e-user',
+            JSON.stringify([
+              { id: 'old-template', name: 'Mẫu lưu trước', text: 'Nội dung cũ đã lưu nguyên vẹn.', legacy: 'giữ lại' },
+            ]),
+          );
         localStorage.setItem(
           'sb-127-auth-token',
           JSON.stringify({
@@ -53,11 +55,12 @@ for (const scheme of ['light', 'dark'] as const) {
       await expect(page.getByRole('textbox', { name: 'Nội dung — Mẫu lưu trước' })).toHaveValue(
         'Nội dung cũ đã lưu nguyên vẹn.',
       );
-      await page.getByRole('textbox', { name: 'Tên mẫu' }).first().fill('Mẫu đã sửa');
+      // Nhãn ô nội dung theo tên mẫu: sửa nội dung trước khi đổi tên.
       await page.getByRole('textbox', { name: 'Nội dung — Mẫu lưu trước' }).fill('Nội dung đã cập nhật.');
+      await page.getByRole('textbox', { name: 'Tên mẫu' }).first().fill('Mẫu đã sửa');
       await page.getByRole('button', { name: 'Thêm mẫu' }).click();
       await page.getByRole('textbox', { name: 'Tên mẫu' }).last().fill('Mẫu mới');
-      await page.getByRole('textbox', { name: 'Nội dung mẫu mới' }).fill('Xin chào anh/chị.');
+      await page.getByRole('textbox', { name: 'Nội dung — Mẫu mới' }).fill('Xin chào anh/chị.');
       await page.getByRole('button', { name: 'Lưu mẫu tin' }).click();
       await expect(page.getByRole('status')).toContainText('Đã lưu trên thiết bị');
       await page.reload();

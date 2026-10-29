@@ -18,6 +18,7 @@ function ZaloTemplatesPage() {
   const [message, setMessage] = useState('');
   const [online, setOnline] = useState(() => !isDemo && (typeof navigator === 'undefined' || navigator.onLine));
   const pendingSync = useRef(false);
+  const edited = useRef(false);
   const syncBusy = useRef(false);
   const templatesRef = useRef(templates);
   templatesRef.current = templates;
@@ -81,7 +82,7 @@ function ZaloTemplatesPage() {
       .getZaloTemplatesRemote()
       .then((remoteTemplates) => {
         if (!active) return;
-        if (Array.isArray(remoteTemplates)) {
+        if (Array.isArray(remoteTemplates) && !edited.current) {
           const valid = validTemplates(remoteTemplates);
           setTemplates(valid);
           localStorage.setItem(localSettingsKey('zalo', userId), JSON.stringify(remoteTemplates));
@@ -101,9 +102,14 @@ function ZaloTemplatesPage() {
     };
   }, [account, userId, isDemo]);
 
+  /** Người dùng đã sửa thì mẫu tải muộn từ máy chủ không được ghi đè lên bản đang sửa. */
+  const editTemplates = (update: (all: SettingsTemplate[]) => SettingsTemplate[]) => {
+    edited.current = true;
+    setTemplates(update);
+  };
   const setTemplate = (id: string, patch: Partial<SettingsTemplate>) =>
-    setTemplates((all) => all.map((item) => (item.id === id ? { ...item, ...patch } : item)));
-  const addTemplate = () => setTemplates((all) => [...all, { id: `u_${crypto.randomUUID()}`, name: '', text: '' }]);
+    editTemplates((all) => all.map((item) => (item.id === id ? { ...item, ...patch } : item)));
+  const addTemplate = () => editTemplates((all) => [...all, { id: `u_${crypto.randomUUID()}`, name: '', text: '' }]);
   const save = async () => {
     if (!account || !userId || saving) return;
     syncBusy.current = true;
@@ -143,59 +149,56 @@ function ZaloTemplatesPage() {
       )}
       <div className="flex items-center justify-between gap-3">
         <p className="text-caption text-ink-muted">{templates.length} mẫu tin</p>
-        <Button disabled={!account || loading} onClick={addTemplate}>
+        <Button disabled={!account} onClick={addTemplate}>
           Thêm mẫu
         </Button>
       </div>
-      {loading ? (
-        <p className="text-caption text-ink-muted">Đang tải mẫu tin…</p>
-      ) : (
-        <div className="flex flex-col gap-3">
-          {templates.map((item) => (
-            <Card key={item.id} className="flex flex-col gap-3 p-4">
-              <TextField
-                label="Tên mẫu"
-                aria-label="Tên mẫu"
-                maxLength={60}
-                value={item.name}
-                onChange={(event) => setTemplate(item.id, { name: event.target.value })}
-                placeholder="Tên mẫu"
+      {/* Local-first: mẫu trên thiết bị hiện ngay; máy chủ chậm/mất mạng không chặn sửa. */}
+      {loading && <p className="text-caption text-ink-muted">Đang tải mẫu tin từ tài khoản…</p>}
+      <div className="flex flex-col gap-3">
+        {templates.map((item) => (
+          <Card key={item.id} className="flex flex-col gap-3 p-4">
+            <TextField
+              label="Tên mẫu"
+              aria-label="Tên mẫu"
+              maxLength={60}
+              value={item.name}
+              onChange={(event) => setTemplate(item.id, { name: event.target.value })}
+              placeholder="Tên mẫu"
+            />
+            <label className="flex flex-col gap-1 text-caption" htmlFor={`zalo-template-${item.id}`}>
+              Nội dung {item.name ? `— ${item.name}` : 'mẫu mới'}
+              <Textarea
+                id={`zalo-template-${item.id}`}
+                className={`${FIELD} min-h-28`}
+                rows={4}
+                value={item.text}
+                onChange={(event) => setTemplate(item.id, { text: event.target.value })}
+                placeholder="Nội dung tin nhắn"
               />
-              <label className="flex flex-col gap-1 text-caption" htmlFor={`zalo-template-${item.id}`}>
-                Nội dung {item.name ? `— ${item.name}` : 'mẫu mới'}
-                <Textarea
-                  id={`zalo-template-${item.id}`}
-                  className={`${FIELD} min-h-28`}
-                  rows={4}
-                  value={item.text}
-                  onChange={(event) => setTemplate(item.id, { text: event.target.value })}
-                  placeholder="Nội dung tin nhắn"
-                />
-              </label>
-              {!defaultTemplates().some((template) => template.id === item.id) && (
-                <Button
-                  variant="destructive"
-                  onClick={() => setTemplates((all) => all.filter((entry) => entry.id !== item.id))}
-                >
-                  Xoá mẫu
-                </Button>
-              )}
-            </Card>
-          ))}
-        </div>
-      )}
+            </label>
+            {!defaultTemplates().some((template) => template.id === item.id) && (
+              <Button
+                variant="destructive"
+                onClick={() => editTemplates((all) => all.filter((entry) => entry.id !== item.id))}
+              >
+                Xoá mẫu
+              </Button>
+            )}
+          </Card>
+        ))}
+      </div>
       <div className="sticky bottom-2 z-10 -mx-1 flex flex-wrap items-center gap-3 rounded-lg border border-line bg-surface-100/95 p-3 shadow-lg backdrop-blur">
         <Button
-          disabled={!account || loading || saving}
-          variant="primary"
+          disabled={!account || saving}
           onClick={() => {
             if (window.confirm('Khôi phục mẫu mặc định? Mẫu bạn tự thêm sẽ bị xoá khi bấm Lưu.'))
-              setTemplates(defaultTemplates());
+              editTemplates(() => defaultTemplates());
           }}
         >
           Khôi phục mẫu mặc định
         </Button>
-        <Button variant="primary" disabled={!account || loading || saving} onClick={() => void save()}>
+        <Button variant="primary" disabled={!account || saving} onClick={() => void save()}>
           {saving ? 'Đang lưu…' : 'Lưu mẫu tin'}
         </Button>
         {message && (
