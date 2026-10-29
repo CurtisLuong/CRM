@@ -234,7 +234,7 @@ export function DocumentsSection({
   return (
     <section className="space-y-4" aria-label="Tài liệu khách">
       <div className="flex items-center justify-between gap-2">
-        <h2 className="text-section">Tài liệu &amp; ảnh</h2>
+        <h2 className="text-section-head">Tài liệu &amp; ảnh</h2>
         {writable && (
           <label className="inline-flex min-h-11 cursor-pointer items-center rounded-sm border border-line px-3 text-body font-semibold">
             Tải tài liệu

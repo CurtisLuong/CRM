@@ -605,7 +605,7 @@ function Profile() {
               <span aria-hidden className="absolute inset-y-3 left-0 w-[3px] rounded-r-[3px] bg-alert" />
             )}
             <div className="flex items-center justify-between gap-2">
-              <h2 className="text-label text-ink-muted">Việc tiếp theo</h2>
+              <h2 className="text-section-head">Việc tiếp theo</h2>
               <Button disabled={!writable} onClick={() => setAddOpen(true)}>
                 Thêm việc
               </Button>
@@ -663,7 +663,7 @@ function Profile() {
 
           <section aria-label="Lần trước" className="rounded-md border border-line bg-surface-100 p-4 max-xl:order-3">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <h2 className="text-label text-ink-muted">Lần trước{lastTouch?.when ? ` · ${lastTouch.when}` : ''}</h2>
+              <h2 className="text-section-head">Lần trước{lastTouch?.when ? ` · ${lastTouch.when}` : ''}</h2>
               {lastTouch && <span className="text-caption text-ink-muted">{lastTouch.meta}</span>}
             </div>
             {lastTouch ? (
@@ -720,7 +720,7 @@ function Profile() {
         */}
         <div className="contents xl:sticky xl:top-14 xl:flex xl:h-[calc(100dvh-112px)] xl:flex-col xl:gap-4 xl:overflow-y-auto">
           <section aria-label="Đã biết" className="rounded-md border border-line bg-surface-100 p-4 max-xl:order-4">
-            <h2 className="text-label text-ink-muted">Đã biết</h2>
+            <h2 className="text-section-head">Đã biết</h2>
             {briefParts.known.length ? (
               <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-3">
                 {briefParts.known.map((item) => (

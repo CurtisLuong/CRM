@@ -31,7 +31,7 @@ export function MetaLeadAdsSection() {
       aria-labelledby="meta-lead-ads-title"
       className="scroll-mt-4 rounded-lg border border-line bg-surface-100 p-4"
     >
-      <h2 id="meta-lead-ads-title" className="text-section">
+      <h2 id="meta-lead-ads-title" className="text-section-head">
         Kết nối Facebook Lead Ads
       </h2>
       {health.state === 'loading' && (

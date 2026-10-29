@@ -731,7 +731,7 @@ function CatalogPage() {
 
         <div className="space-y-4 rounded-lg border border-line bg-surface-100 p-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-heading">Dự án</h2>
+            <h2 className="text-section-head">Dự án</h2>
             <Button
               variant="secondary"
               onClick={() => {
@@ -865,7 +865,7 @@ function CatalogPage() {
 
         <div className="space-y-4 rounded-lg border border-line bg-surface-100 p-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-heading">Toà và căn</h2>
+            <h2 className="text-section-head">Toà và căn</h2>
             <label className={labelClass}>
               Chọn toà
               <select
@@ -1149,7 +1149,7 @@ function CatalogPage() {
 
       <section className="space-y-3 rounded-lg border border-line bg-surface-100 p-4">
         <div>
-          <h2 className="text-heading">Tìm căn và khách phù hợp</h2>
+          <h2 className="text-section-head">Tìm căn và khách phù hợp</h2>
           <p className="text-caption text-ink-muted">
             Giá hiển thị gồm VAT + KPBT; thiếu giá hoặc diện tích không được tính là đạt lọc giá.
           </p>

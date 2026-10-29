@@ -188,7 +188,7 @@ export function SettingsPage() {
       {!isDemo && <CampaignProjectsSection customers={customers} account={account} />}
       {!isDemo && <CampaignCostsSection customers={customers} account={account} />}
       <Card className="p-4">
-        <h2 className="text-section">Giao diện</h2>
+        <h2 className="text-section-head">Giao diện</h2>
         <fieldset className="mt-3 flex flex-wrap gap-2" aria-label="Giao diện">
           <legend className="sr-only">Giao diện</legend>
           {THEME_OPTIONS.map((option) => (
@@ -205,7 +205,7 @@ export function SettingsPage() {
       </Card>
       {showAi && (
         <section className="rounded-lg border border-line bg-surface-100 p-4">
-          <h2 className="text-section">Cài đặt Trợ lý AI</h2>
+          <h2 className="text-section-head">Cài đặt Trợ lý AI</h2>
           <p className="mt-1 text-caption text-ink-muted">
             Chỉ cấu hình cách diễn đạt. AI không tự lưu hoặc gửi nội dung.
           </p>
@@ -238,7 +238,7 @@ export function SettingsPage() {
         </p>
       )}
       <section className="rounded-lg border border-line bg-surface-100 p-4">
-        <h2 className="text-section">Cập nhật ứng dụng Android</h2>
+        <h2 className="text-section-head">Cập nhật ứng dụng Android</h2>
         <p className="mt-1 text-caption text-ink-muted">Kiểm tra phiên bản APK khi mở bằng vỏ Android.</p>
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <Button disabled={isDemo} onClick={() => void checkApk()}>

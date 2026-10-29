@@ -150,7 +150,7 @@ export function CampaignCostsSection({
 
   return (
     <section aria-labelledby="campaign-costs-title" className="rounded-lg border border-line bg-surface-100 p-4">
-      <h2 id="campaign-costs-title" className="text-section">
+      <h2 id="campaign-costs-title" className="text-section-head">
         Chi phí campaign
       </h2>
       <p className="mt-1 text-caption text-ink-muted">

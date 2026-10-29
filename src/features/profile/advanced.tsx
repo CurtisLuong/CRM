@@ -224,7 +224,7 @@ export function ProfileAdvanced({ customer, writable, onSaveAdvanced }: Props) {
           {/* "Nguồn và độ mới" (field_meta) Curtis cho ẩn 2026-10-21: dữ liệu vẫn ghi cho AI/độ mới, không hiện. */}
           {unknown.length > 0 && (
             <div className="space-y-1">
-              <h2 className="text-section">Trường cũ khác</h2>
+              <h2 className="text-section-head">Trường cũ khác</h2>
               {unknown.map(([key, value]) => (
                 <p key={key} className="text-caption text-ink-muted">
                   {key}: {displayText(value)} <span className="text-ink-muted">(trường cũ được giữ nguyên)</span>

@@ -91,7 +91,7 @@ function LeadSheet({ customer, onClose }: { customer: Customer | null; onClose: 
               </section>
 
               <section aria-label="Nhật ký gọi">
-                <h2 className="text-body font-semibold">Nhật ký gọi</h2>
+                <h2 className="text-section-head">Nhật ký gọi</h2>
                 {attempts.length ? (
                   <ol className="mt-2 flex flex-col gap-2">
                     {attempts.map((attempt, index) => (
@@ -157,7 +157,7 @@ function LeadSheet({ customer, onClose }: { customer: Customer | null; onClose: 
                 </section>
               ) : (
                 <section className="flex flex-col gap-3 border-t border-line pt-4">
-                  <h2 className="text-body font-semibold">Phân loại khách</h2>
+                  <h2 className="text-section-head">Phân loại khách</h2>
                   <Button
                     variant="primary"
                     disabled={!editable || !talked || busy}

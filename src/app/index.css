@@ -192,6 +192,13 @@
   text-transform: uppercase;
   color: var(--ink-muted);
 }
+/* Tiêu đề mục trong trang (vd "Việc đến hạn hôm nay"): chữ HOA, giãn chữ, lớn hơn text-label một bậc (Curtis 29/10). */
+@utility text-section-head {
+  font: 600 14px / 20px var(--font-sans);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
 /* Lưới chấm mờ cho nền app (kiểu HUD). */
 @utility bg-grid {
   background-color: var(--surface-0);

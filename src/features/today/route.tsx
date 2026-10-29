@@ -457,7 +457,8 @@ export function TodayPage() {
                 className="flex min-h-12 w-full items-center justify-between gap-2 rounded-md border border-line bg-surface-100 px-4 text-left text-label font-semibold"
               >
                 <span>
-                  {group.title} <span className="text-ink-muted">{group.rows.length}</span>
+                  <span className="text-section-head">{group.title}</span>{' '}
+                  <span className="text-ink-muted">{group.rows.length}</span>
                 </span>
                 <span aria-hidden>{opened ? '⌄' : '›'}</span>
               </button>
@@ -473,7 +474,7 @@ export function TodayPage() {
         return (
           <section key={group.key} aria-label={group.title} className="mt-2">
             <div className="mb-2 flex items-baseline gap-2 px-1">
-              <h2 className="text-label font-semibold">{group.title}</h2>
+              <h2 className="text-section-head">{group.title}</h2>
               <span className="text-caption text-ink-muted tabular-nums">{group.rows.length}</span>
             </div>
             <div className="flex flex-col gap-2">

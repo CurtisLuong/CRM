@@ -208,7 +208,7 @@ export function CampaignProjectsSection({
 
   return (
     <section aria-labelledby="campaign-projects-title" className="rounded-lg border border-line bg-surface-100 p-4">
-      <h2 id="campaign-projects-title" className="text-section">
+      <h2 id="campaign-projects-title" className="text-section-head">
         Dự án theo chiến dịch quảng cáo
       </h2>
       <p className="mt-1 text-caption text-ink-muted">
