@@ -17,6 +17,7 @@ import { CustomerSheet } from '@/features/customer-sheet/CustomerSheet';
 import { openQuickAction } from '@/features/quick-actions/store';
 import { ACTION_BY_ID, type ActionId, NOTIF_TYPES, slaMeterFor } from '@/lib/crm';
 import {
+  callSessionRows,
   capacityPlan,
   capacitySnoozeCandidates,
   endOfDaySummary,
@@ -71,7 +72,6 @@ export function TodayPage() {
   const [notice, setNotice] = useState('');
   const [now, setNow] = useState(() => Date.now());
   const [quickCustomerId, setQuickCustomerId] = useState<string | null>(null);
-  const [sessionIndex, setSessionIndex] = useState<number | null>(null);
   const [showSummary, setShowSummary] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
   const [openCollapsed, setOpenCollapsed] = useState<Record<string, boolean>>({});
@@ -132,15 +132,13 @@ export function TodayPage() {
     () => (account ? queueRows(customers, now, account.sync.local.userId) : []),
     [account, customers, now],
   );
+  const sessionRows = callSessionRows(rows, now);
   const plan = capacityPlan(rows, now);
   const snoozeCandidates = capacitySnoozeCandidates(plan.suggested, now);
   const summary = endOfDaySummary(customers, now);
   // Một định nghĩa quá hạn (D-010) và một quy tắc hành động (kể cả tín hiệu phụ) — cùng nguồn với thẻ.
-  const cards = new Map(rows.map((row) => [row, todayCard(row, now)]));
   const counts = todayUrgencyCounts(rows, now);
-  const sessionRows = rows.filter((row) => cards.get(row)?.action === 'call');
   const sessionMinutes = sessionRows.reduce((sum, row) => sum + row.minutes, 0);
-  const activeCall = sessionIndex == null ? null : (sessionRows[sessionIndex] ?? null);
   const afterEvening = new Date(now).getHours() >= 20 && new Date(now).getMinutes() >= 45;
   const currentReadState = readState.account === account ? readState : { account, status: 'loading' as const };
 
@@ -436,34 +434,14 @@ export function TodayPage() {
         </div>
       )}
 
-      {sessionIndex == null ? (
-        sessionRows.length > 0 && (
-          <div className="mt-3">
-            <CallSessionBar
-              title={`Gọi lần lượt ${sessionRows.length} khách`}
-              sub={`${rows.length} việc · ~${plan.minutes} phút`}
-              duration={sessionMinutes}
-              onStart={() => setSessionIndex(0)}
-            />
-          </div>
-        )
-      ) : activeCall ? (
-        <div className="mt-3 flex flex-col gap-2">
-          {renderCard(activeCall)}
-          <p className="text-label text-ink-muted">
-            {sessionIndex + 1}/{sessionRows.length}
-          </p>
-          <div className="flex gap-2">
-            <Button onClick={() => setSessionIndex((i) => (i ?? 0) + 1)}>Bỏ qua khách</Button>
-            <Button onClick={() => setSessionIndex(null)}>Dừng phiên</Button>
-          </div>
-        </div>
-      ) : (
-        <div className="mt-3 flex flex-col gap-2">
-          <p className="text-label text-ink-muted">Đã hết khách trong phiên.</p>
-          <Button className="self-start" onClick={() => setSessionIndex(null)}>
-            Đóng phiên
-          </Button>
+      {sessionRows.length > 0 && (
+        <div className="mt-3">
+          <CallSessionBar
+            title={`Gọi lần lượt ${sessionRows.length} khách`}
+            sub={`${rows.length} việc · ~${plan.minutes} phút`}
+            duration={sessionMinutes}
+            onStart={() => navigate(`/thao-tac-nhanh?phien=goi&t=${now}`)}
+          />
         </div>
       )}
 

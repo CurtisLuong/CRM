@@ -414,6 +414,11 @@ export function todayCard(row: QueueRow, now: number): TodayCard {
   return { tone, when, detail, facts, note, sla, action };
 }
 
+/** Call queue shared by Today and the quick actions calling session. */
+export function callSessionRows(rows: readonly QueueRow[], now: number): QueueRow[] {
+  return rows.filter((row) => todayCard(row, now).action === 'call');
+}
+
 /** Mức gấp của MỘT lý do: hạn việc (D-010) → cuối khung hẹn gọi (+30 phút, D-010) → hạn khác; lý do SLA → đồng hồ SLA (D-008). */
 function reasonLevel(signal: Signal, customer: Customer, now: number, slaLevel: Level | null): Level | null {
   const task = signalTask(signal, customer);
