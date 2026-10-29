@@ -87,6 +87,8 @@ export function CallHistoryActions({ customer }: { customer: Customer }) {
           <Button
             key={`${attempt.at}:${attempt.device_id ?? ''}`}
             variant="secondary"
+            // Nút kit cao cố định + không xuống dòng: mở cho chữ giãn tối đa 2 dòng (Curtis 29/10).
+            className="h-auto min-h-11 w-full justify-start whitespace-normal py-2"
             onClick={() =>
               openQuickAction(customer.id, 'outcome', {
                 at: attempt.at,
@@ -98,7 +100,7 @@ export function CallHistoryActions({ customer }: { customer: Customer }) {
               })
             }
           >
-            <span className="block w-full break-words text-left [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] overflow-hidden">
+            <span className="w-full break-words text-left [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] overflow-hidden">
               {pending ? 'Ghi kết quả' : 'Sửa kết quả'} cuộc gọi · {when} · {result}
             </span>
           </Button>

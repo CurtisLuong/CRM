@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useNavigate } from 'react-router';
 import type { FeatureRoute } from '@/app/routes';
 import { EmptyState, NotificationGroup, SignalBadge } from '@/components/crm';
@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { SIGNALS_CONFIG, type SignalGroup } from '@/config/signals';
 import type { Signal } from '@/domain/signals';
 import { type Level, NOTIF_TYPES, type NotifType } from '@/lib/crm';
+import { useToast } from '@/ui/Toast';
 import { notificationLevel } from './model';
 import { useNotificationSignals } from './use-signals';
 
@@ -81,10 +82,13 @@ export function NotificationsPage() {
   const navigate = useNavigate();
   // Cùng hook với chuông header → số trên chuông luôn bằng số thẻ dưới đây.
   const { account, customers, signals, status, snoozeSignal, snoozeSignals } = useNotificationSignals();
-  const [confirmation, setConfirmation] = useState<{ text: string; undo: () => void } | null>(null);
+  const toast = useToast();
+  // Toast nổi trên thanh dưới: danh sách dài thì dòng xác nhận cuối trang không ai thấy.
+  const showSnoozed = (result: { until: number; undo: () => void }) =>
+    toast({ title: snoozeConfirmation(result.until), onUndo: result.undo, durationMs: 8000 });
   const snooze = (items: Signal[], duration: number) => {
     const result = snoozeSignals(items, duration);
-    setConfirmation({ text: snoozeConfirmation(result.until), undo: result.undo });
+    showSnoozed(result);
   };
   const now = Date.now();
   const byId = useMemo(() => new Map(customers.map((customer) => [customer.id, customer])), [customers]);
@@ -163,7 +167,7 @@ export function NotificationsPage() {
                           customer={customer.full_name}
                           onSnooze={(duration) => {
                             const result = snoozeSignal(signal, duration);
-                            setConfirmation({ text: snoozeConfirmation(result.until), undo: result.undo });
+                            showSnoozed(result);
                           }}
                         />
                       </span>
@@ -215,7 +219,7 @@ export function NotificationsPage() {
                       customer={customer.full_name}
                       onSnooze={(duration) => {
                         const result = snoozeSignal(signal, duration);
-                        setConfirmation({ text: snoozeConfirmation(result.until), undo: result.undo });
+                        showSnoozed(result);
                       }}
                     />
                   </div>
@@ -228,21 +232,6 @@ export function NotificationsPage() {
       {status && (
         <p role="status" className="text-caption text-ink-muted">
           {status}
-        </p>
-      )}
-      {confirmation && (
-        <p role="status" className="flex flex-wrap items-center gap-2 text-caption text-ink-muted">
-          <span>{confirmation.text}</span>
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => {
-              confirmation.undo();
-              setConfirmation(null);
-            }}
-          >
-            Hoàn tác
-          </Button>
         </p>
       )}
       <Button variant="ghost" onClick={() => navigate('/')}>
