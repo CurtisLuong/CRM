@@ -89,7 +89,7 @@ test('R3-02 nhóm vẫn mở đúng từng khách và chuông giảm ngay khi �
 
   const bell = page.getByRole('button', { name: 'Thông báo, 3 mục' });
   await expect(bell).toBeVisible();
-  await page.getByRole('button', { name: `Ẩn tín hiệu Hệ thống của ${rows[0].full_name}` }).click();
+  await page.getByRole('button', { name: `Tạm hoãn tín hiệu Hệ thống của ${rows[0].full_name}` }).click();
   await expect(page.getByRole('button', { name: 'Thông báo, 2 mục' })).toBeVisible();
   await expect(page.getByText('2 tín hiệu', { exact: true })).toBeVisible();
 

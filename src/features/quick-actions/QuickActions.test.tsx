@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Customer } from '@/domain/customer';
 import { ToastProvider } from '@/ui';
 import { CallHistoryActions, QuickActionButtons, QuickActionsHost } from './QuickActions';
-import { clearQuickAction } from './store';
+import { clearQuickAction, openQuickAction } from './store';
 import { contactPhones, defaultTemplates, zaloHref } from './zalo';
 
 const mockSession = vi.hoisted(() => ({ account: null as unknown }));
@@ -61,7 +61,8 @@ describe('quick actions touch budget', () => {
       </ToastProvider>,
     );
 
-    await user.click(screen.getByRole('button', { name: 'Ghi cuộc gọi' }));
+    // U-02: nút "Ghi cuộc gọi" bỏ khỏi nhật ký; mở thẳng tấm Kết quả cuộc gọi như Ghi tương tác → Đã gọi.
+    act(() => openQuickAction('quick-1', 'outcome'));
     expect(await screen.findByRole('heading', { name: /Kết quả cuộc gọi/ })).toBeTruthy();
     await user.click(screen.getByRole('radio', { name: 'Nói chuyện được' }));
     await user.type(screen.getByRole('textbox', { name: 'Ghi chú cuộc gọi' }), 'Khách quan tâm');

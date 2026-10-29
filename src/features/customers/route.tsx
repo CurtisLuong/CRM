@@ -954,11 +954,7 @@ function Customers() {
         />
       </div>
       <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1.5">
-        <KitButton variant="secondary" aria-haspopup="dialog" onClick={() => setFilterOpen(true)}>
-          <Icon name="filter" size={20} />
-          Lọc
-        </KitButton>
-        <div className="min-w-0 flex-1 [&>button:first-child]:hidden">
+        <div className="min-w-0 flex-1">
           <FilterBar
             result={visible.length}
             onOpen={() => setFilterOpen(true)}

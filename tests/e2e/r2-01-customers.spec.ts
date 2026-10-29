@@ -75,7 +75,7 @@ for (const theme of ['light', 'dark'] as const) {
     test.skip(!['phone-360', 'desktop-1280'].includes(info.project.name), 'Kiểm ở 360px và 1280px');
     await open(page, theme);
     await expect(page.getByRole('group', { name: 'Nhóm khách' })).toBeVisible();
-    await expect(page.getByRole('button', { name: /^Lọc/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /^Bộ lọc/ })).toBeVisible();
     if (info.project.name === 'desktop-1280') {
       await expect(page.getByRole('table', { name: 'Danh sách khách' })).toBeVisible();
       await expect(page.getByRole('row', { name: /Khách R2-01/ })).toBeVisible();

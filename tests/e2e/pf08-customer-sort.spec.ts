@@ -137,7 +137,7 @@ const cardNames = (page: Page) =>
 const card = (page: Page, name: string) => page.locator(`[data-card]:has(button[aria-label="Mở ${name}"])`);
 
 const openFilters = async (page: Page) => {
-  await page.getByRole('button', { name: /^Lọc/ }).click();
+  await page.getByRole('button', { name: /^Bộ lọc/ }).click();
   return page.getByRole('dialog', { name: /Lọc/ });
 };
 

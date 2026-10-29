@@ -71,7 +71,12 @@ test('R5-02b: textarea nhiều dòng, nhãn kết quả và label mẫu tin', as
 
   await page.goto('/thao-tac-nhanh');
   await expect(page.getByRole('heading', { name: 'Khách R5-02b' })).toBeVisible();
-  await page.getByRole('button', { name: 'Ghi cuộc gọi' }).click();
+  // U-02: bỏ nút "Ghi cuộc gọi" trùng; ghi cuộc gọi tay qua Ghi tương tác → Đã gọi.
+  await page.getByRole('button', { name: 'Ghi tương tác', exact: true }).first().click();
+  await page
+    .getByRole('dialog', { name: 'Ghi tương tác · Khách R5-02b' })
+    .getByRole('button', { name: 'Đã gọi' })
+    .click();
   const callSheet = page.getByRole('dialog', { name: 'Kết quả cuộc gọi · Khách R5-02b' });
   await expect(callSheet).toBeVisible();
   const callNote = callSheet.getByRole('textbox', { name: 'Ghi chú cuộc gọi' });
