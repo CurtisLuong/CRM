@@ -14,6 +14,7 @@ export const THEME_TEXT_SIZES = [
   'numeric',
   'countdown',
   'overline',
+  'section-head',
   // Tên cũ (D-023), xoá khi hết màn dùng.
   'section',
   'body-strong',
