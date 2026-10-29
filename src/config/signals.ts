@@ -1,5 +1,11 @@
 /** D-015: thresholds and legacy queue policy live here; SLA/deadlines retain their own config. */
 export const SIGNALS_CONFIG = {
+  snoozeDurations: [
+    { label: '2 giờ', milliseconds: 2 * 60 * 60 * 1000 },
+    { label: '4 giờ', milliseconds: 4 * 60 * 60 * 1000 },
+    { label: '8 giờ', milliseconds: 8 * 60 * 60 * 1000 },
+    { label: '1 ngày', milliseconds: 24 * 60 * 60 * 1000 },
+  ] as const,
   // Approved local T2.B5 exception: UX ranking, with separate v1 baseline projection.
   defaultOrdering: 'ux' as const,
   hotInterestMin: 60,
