@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import type { FeatureRoute } from '@/app/routes';
 import { EmptyState, NotificationGroup, SignalBadge } from '@/components/crm';
@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { SIGNALS_CONFIG, type SignalGroup } from '@/config/signals';
 import type { Signal } from '@/domain/signals';
 import { type Level, NOTIF_TYPES, type NotifType } from '@/lib/crm';
-import { useToast } from '@/ui/Toast';
 import { notificationLevel } from './model';
 import { useNotificationSignals } from './use-signals';
 
@@ -82,10 +81,15 @@ export function NotificationsPage() {
   const navigate = useNavigate();
   // Cùng hook với chuông header → số trên chuông luôn bằng số thẻ dưới đây.
   const { account, customers, signals, status, snoozeSignal, snoozeSignals } = useNotificationSignals();
-  const toast = useToast();
-  // Toast nổi trên thanh dưới: danh sách dài thì dòng xác nhận cuối trang không ai thấy.
+  // Thanh xác nhận nổi trên thanh tab đáy: danh sách dài thì dòng cuối trang không ai thấy.
+  const [confirmation, setConfirmation] = useState<{ text: string; undo: () => void } | null>(null);
   const showSnoozed = (result: { until: number; undo: () => void }) =>
-    toast({ title: snoozeConfirmation(result.until), onUndo: result.undo, durationMs: 8000 });
+    setConfirmation({ text: snoozeConfirmation(result.until), undo: result.undo });
+  useEffect(() => {
+    if (!confirmation) return;
+    const timer = window.setTimeout(() => setConfirmation(null), 8000);
+    return () => window.clearTimeout(timer);
+  }, [confirmation]);
   const snooze = (items: Signal[], duration: number) => {
     const result = snoozeSignals(items, duration);
     showSnoozed(result);
@@ -233,6 +237,24 @@ export function NotificationsPage() {
         <p role="status" className="text-caption text-ink-muted">
           {status}
         </p>
+      )}
+      {confirmation && (
+        <div
+          role="status"
+          className="fixed inset-x-3 bottom-[calc(64px+env(safe-area-inset-bottom)+12px)] z-[55] mx-auto flex max-w-md items-center gap-3 rounded-lg border border-line bg-surface-100 py-2 pr-2 pl-4 text-label text-ink shadow-overlay md:right-4 md:bottom-4 md:left-auto md:mx-0 md:w-80"
+        >
+          <span className="min-w-0 flex-1">{confirmation.text}</span>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => {
+              confirmation.undo();
+              setConfirmation(null);
+            }}
+          >
+            Hoàn tác
+          </Button>
+        </div>
       )}
       <Button variant="ghost" onClick={() => navigate('/')}>
         Về Hôm nay

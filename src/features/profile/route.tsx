@@ -685,7 +685,7 @@ function Profile() {
               <TabsList
                 aria-label="Nội dung hồ sơ khách"
                 // 5 tab không vừa 360px: cuộn ngang trong thanh tab thay vì ép chữ chồng lên nhau.
-                className="sticky top-14 z-20 gap-0 overflow-x-auto bg-surface-0 [scrollbar-width:none] [&_[role=tab]]:scroll-mt-14"
+                className="sticky top-[calc(56px+env(safe-area-inset-top))] z-20 gap-0 overflow-x-auto bg-surface-0 [scrollbar-width:none] [&_[role=tab]]:scroll-mt-14"
               >
                 {tabs.map((item) => (
                   <TabsTrigger
@@ -718,7 +718,7 @@ function Profile() {
           (trừ thêm 56px lề dưới của khung) để khi cuộn hết trang cột vẫn nằm ngay dưới tiêu đề;
           nội dung dài hơn thì tự cuộn bên trong, không bị cắt.
         */}
-        <div className="contents xl:sticky xl:top-14 xl:flex xl:h-[calc(100dvh-112px)] xl:flex-col xl:gap-4 xl:overflow-y-auto">
+        <div className="contents xl:sticky xl:top-[calc(56px+env(safe-area-inset-top))] xl:flex xl:h-[calc(100dvh-112px)] xl:flex-col xl:gap-4 xl:overflow-y-auto">
           <section aria-label="Đã biết" className="rounded-md border border-line bg-surface-100 p-4 max-xl:order-4">
             <h2 className="text-section-head">Đã biết</h2>
             {briefParts.known.length ? (
