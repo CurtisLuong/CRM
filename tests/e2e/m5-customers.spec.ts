@@ -116,7 +116,7 @@ test('Danh sách v3: ô tìm + chip nhóm/tệp; bộ lọc trong sheet; không 
   await main.getByRole('button', { name: /^Khách mới/ }).click();
   await expect(main.getByRole('button', { name: /^Khách mới/ })).toHaveAttribute('aria-pressed', 'true');
   await expect(card(page, 'Khách Mới Đăng Ký 0')).toBeVisible();
-  await main.getByRole('button', { name: /^Lọc/ }).click();
+  await main.getByRole('button', { name: /^Bộ lọc/ }).click();
   const sheet = page.getByRole('dialog', { name: /Lọc/ });
   await expect(sheet.getByLabel('Lọc trạng thái')).toBeVisible();
   await expect(sheet.getByRole('button', { name: /^Xem \d+ khách$/ })).toBeVisible();

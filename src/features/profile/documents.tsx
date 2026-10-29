@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
+import { Button } from '@/components/ui/button';
 import type { IconName } from '@/config/icons';
-import { Button, Icon, useToast } from '@/ui';
+import { Icon } from '@/ui/Icon';
+import { useToast } from '@/ui/Toast';
 
 /** Hàng `documents` có sẵn (storage_path chỉ dùng để mở/xoá, không hiện cho người dùng). */
 export type ProfileDocument = {
@@ -232,9 +234,9 @@ export function DocumentsSection({
   return (
     <section className="space-y-4" aria-label="Tài liệu khách">
       <div className="flex items-center justify-between gap-2">
-        <h2 className="text-section">Tài liệu &amp; ảnh</h2>
+        <h2 className="text-section-head">Tài liệu &amp; ảnh</h2>
         {writable && (
-          <label className="inline-flex min-h-11 cursor-pointer items-center rounded-control border border-border-strong px-3 text-body-strong">
+          <label className="inline-flex min-h-11 cursor-pointer items-center rounded-sm border border-line px-3 text-body font-semibold">
             Tải tài liệu
             <input
               className="sr-only"
@@ -250,40 +252,40 @@ export function DocumentsSection({
         )}
       </div>
       {error && (
-        <p role="alert" className="text-small text-danger">
+        <p role="alert" className="text-caption text-alert-text">
           {error}
         </p>
       )}
       {!error && loading && (
-        <p role="status" className="text-body text-text-2">
+        <p role="status" className="text-body text-ink-muted">
           Đang tải tài liệu…
         </p>
       )}
       {!error && !loading && !docs.length && (
-        <p className="text-body text-text-2">
+        <p className="text-body text-ink-muted">
           {online ? 'Chưa có tài liệu.' : 'Ngoại tuyến · tài liệu chỉ tải khi có mạng.'}
         </p>
       )}
       {!error &&
         groups.map((group) => (
           <section key={group.key} aria-labelledby={`profile-doc-group-${group.key}`} className="space-y-1">
-            <h3 id={`profile-doc-group-${group.key}`} className="flex items-center gap-2 text-label text-text-2">
+            <h3 id={`profile-doc-group-${group.key}`} className="flex items-center gap-2 text-label text-ink-muted">
               <Icon name={group.icon} size={16} />
               {group.label}
-              <span className="font-data text-mono-data text-text-3">{group.docs.length}</span>
+              <span className="font-data text-mono-data text-ink-muted">{group.docs.length}</span>
             </h3>
             <ul>
               {group.docs.map((doc) => (
                 <li
                   key={doc.id}
-                  className="flex items-start justify-between gap-3 border-b border-border py-2"
+                  className="flex items-start justify-between gap-3 border-b border-line py-2"
                   data-document-id={doc.id}
                 >
                   <div className="flex min-w-0 items-start gap-2">
-                    <Icon name={group.icon} size={20} className="mt-1 shrink-0 text-text-3" />
+                    <Icon name={group.icon} size={20} className="mt-1 shrink-0 text-ink-muted" />
                     <div className="min-w-0">
-                      <p className="text-body-strong [overflow-wrap:anywhere]">{documentName(doc)}</p>
-                      <p className="text-small text-text-3">{documentMeta(doc)}</p>
+                      <p className="text-body font-semibold [overflow-wrap:anywhere]">{documentName(doc)}</p>
+                      <p className="text-caption text-ink-muted">{documentMeta(doc)}</p>
                     </div>
                   </div>
                   <div className="flex shrink-0 gap-2">
@@ -291,8 +293,6 @@ export function DocumentsSection({
                     {writable && (
                       <Button
                         variant="ghost"
-                        icon="delete"
-                        loading={deletingId === doc.id}
                         disabled={busy}
                         aria-label={`Xoá ${documentName(doc)}`}
                         onClick={() => void remove(doc)}
@@ -306,7 +306,9 @@ export function DocumentsSection({
             </ul>
           </section>
         ))}
-      {!writable && <p className="text-small text-text-2">Bạn chỉ có quyền xem; thao tác sửa và tải lên đã khoá.</p>}
+      {!writable && (
+        <p className="text-caption text-ink-muted">Bạn chỉ có quyền xem; thao tác sửa và tải lên đã khoá.</p>
+      )}
     </section>
   );
 }

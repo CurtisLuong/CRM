@@ -9,8 +9,9 @@ import { appendInteractionPatch, createInteraction } from '@/domain/customer/int
 import type { ScheduleSuggestion } from '@/domain/followup';
 import { AiNoteReview } from '@/features/ai/AiNoteReview';
 import { AiZaloDraft } from '@/features/ai/AiZaloDraft';
-import { Button, IconButton, OutcomePicker, Sheet, SlotPicker, useToast } from '@/ui';
+import { useToast } from '@/ui/Toast';
 import { InteractionRecorder } from './interactions';
+import { Button, IconButton, Input, OutcomePicker, ActionSheet as Sheet, SlotPicker, Textarea } from './kit';
 import {
   type CallDraft,
   callDuration,
@@ -28,7 +29,7 @@ import { appendVoiceTranscript, VoiceNoteInput, type VoiceNoteInputHandle, voice
 import { contactPhones, copyAndOpenZalo, defaultTemplates } from './zalo';
 
 const FIELD =
-  'min-h-11 w-full rounded-control border border-border-strong bg-surface px-3 py-2 text-body text-text focus:outline-2 focus:outline-accent';
+  'h-11 w-full rounded-sm border border-input bg-surface-100 px-3 text-body text-ink focus-visible:outline-2 focus-visible:outline-ion';
 
 export { openQuickAction } from './store';
 /** Reusable on rows, detail action bars and calling sessions. Does not require navigation. */
@@ -70,15 +71,15 @@ export function CallHistoryActions({ customer }: { customer: Customer }) {
   const calls = callAttemptsOf(customer);
   return (
     <section className="flex flex-col gap-2" aria-label={`Nhật ký cuộc gọi ${customer.full_name}`}>
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-small text-text-2">Nhật ký cuộc gọi</h3>
-        <Button variant="secondary" onClick={() => openQuickAction(customer.id, 'outcome')}>
-          Ghi cuộc gọi
-        </Button>
-      </div>
+      <h3 className="text-caption text-ink-muted">Nhật ký cuộc gọi</h3>
       {calls.map((attempt) => {
         const pending = !attempt.result;
-        const when = new Date(attempt.at).toLocaleString('vi-VN');
+        const when = new Date(attempt.at).toLocaleString('vi-VN', {
+          day: '2-digit',
+          month: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+        });
         const result = attempt.result
           ? (CALL_RESULTS[attempt.result as CallResult] ?? attempt.result)
           : 'Chưa ghi kết quả';
@@ -86,6 +87,8 @@ export function CallHistoryActions({ customer }: { customer: Customer }) {
           <Button
             key={`${attempt.at}:${attempt.device_id ?? ''}`}
             variant="secondary"
+            // Nút kit cao cố định + không xuống dòng: mở cho chữ giãn tối đa 2 dòng (Curtis 29/10).
+            className="h-auto min-h-11 w-full justify-start whitespace-normal py-2"
             onClick={() =>
               openQuickAction(customer.id, 'outcome', {
                 at: attempt.at,
@@ -97,7 +100,9 @@ export function CallHistoryActions({ customer }: { customer: Customer }) {
               })
             }
           >
-            {pending ? 'Ghi kết quả' : 'Sửa kết quả'} cuộc gọi · {when} · {result}
+            <span className="w-full break-words text-left [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] overflow-hidden">
+              {pending ? 'Ghi kết quả' : 'Sửa kết quả'} cuộc gọi · {when} · {result}
+            </span>
           </Button>
         );
       })}
@@ -294,9 +299,10 @@ function ScheduleFields({
         onDayChange={(d) => onChange(scheduleFor(d, slot, schedule.reason))}
         onSlotChange={(s: CallSlotKey) => onChange(scheduleFor(day, s, schedule.reason))}
       />
-      <label className="flex flex-col gap-1 text-small">
+      <label htmlFor="schedule-other-date" className="flex flex-col gap-1 text-caption">
         Ngày khác
-        <input
+        <Input
+          id="schedule-other-date"
           aria-label="Ngày hẹn khác"
           type="date"
           className={FIELD}
@@ -517,13 +523,13 @@ function ActionSheet({
         {kind === 'outcome' && (
           <>
             <OutcomePicker value={result} onValueChange={setOutcome} />
-            <div className="flex flex-col gap-1 text-small">
+            <div className="flex flex-col gap-1 text-caption">
               <label htmlFor="call-note">Ghi chú cuộc gọi</label>
               <div className="grid">
-                <textarea
+                <Textarea
                   id="call-note"
                   ref={noteInput}
-                  className={`${FIELD} col-start-1 row-start-1 pr-14 pb-14`}
+                  className="col-start-1 row-start-1 w-full pr-14 pb-14"
                   // Đang nghe thì khoá gõ: chữ tạm nằm trong ô, gõ vào sẽ chốt nó rồi bị nối lặp khi chữ chốt về.
                   readOnly={!!interimNote}
                   aria-label="Ghi chú cuộc gọi"
@@ -545,15 +551,15 @@ function ActionSheet({
               <section className="flex flex-col gap-2">
                 <h3 className="text-body-strong">Bước tiếp theo</h3>
                 {suggested && mode === 'suggested' && (
-                  <p className="text-small text-text-2">
+                  <p className="text-caption text-ink-muted">
                     {suggested.label} · {suggested.reason}
                   </p>
                 )}
                 {suggestion?.kind === 'drop' && (
                   <>
-                    <p className="text-small">{suggestion.text}</p>
+                    <p className="text-caption">{suggestion.text}</p>
                     {!suggestion.auto && (
-                      <label className="flex min-h-11 items-center gap-2 text-small">
+                      <label className="flex min-h-11 items-center gap-2 text-caption">
                         <input
                           type="checkbox"
                           checked={mode === 'drop'}
@@ -565,7 +571,7 @@ function ActionSheet({
                   </>
                 )}
                 {suggestion?.kind === 'ask' && mode !== 'none' ? (
-                  <label className="flex flex-col gap-1 text-small">
+                  <label className="flex flex-col gap-1 text-caption">
                     Đúng giờ khách hẹn
                     <input
                       className={FIELD}
@@ -596,7 +602,7 @@ function ActionSheet({
                     </Button>
                   </>
                 )}
-                <label className="flex min-h-11 items-center gap-2 text-small">
+                <label className="flex min-h-11 items-center gap-2 text-caption">
                   <input
                     type="checkbox"
                     checked={mode === 'none'}
@@ -620,12 +626,12 @@ function ActionSheet({
         )}
         {kind === 'note' && (
           <div className="flex flex-col gap-2">
-            <div className="flex flex-col gap-1 text-small">
+            <div className="flex flex-col gap-1 text-caption">
               <label htmlFor="quick-note">Nội dung</label>
               <div className="grid">
-                <textarea
+                <Textarea
                   id="quick-note"
-                  className={`${FIELD} col-start-1 row-start-1 pr-14 pb-14`}
+                  className="col-start-1 row-start-1 w-full pr-14 pb-14"
                   // Đang nghe thì khoá gõ: chữ tạm nằm trong ô, gõ vào sẽ chốt nó rồi bị nối lặp khi chữ chốt về.
                   readOnly={!!interimNote}
                   aria-label="Nội dung ghi chú"
@@ -648,7 +654,7 @@ function ActionSheet({
         {kind === 'schedule' && <ScheduleFields schedule={schedule} onChange={setSchedule} />}
         {kind === 'zalo' && (
           <>
-            <p className="text-small text-text-2">{phone} · Dán nội dung vào Zalo rồi tự bấm gửi.</p>
+            <p className="text-caption text-ink-muted">{phone} · Dán nội dung vào Zalo rồi tự bấm gửi.</p>
             <AiZaloDraft
               account={account}
               customer={c}
@@ -657,9 +663,10 @@ function ActionSheet({
                 textEdited.current = true;
               }}
             />
-            <label className="flex flex-col gap-1 text-small">
+            <label htmlFor="zalo-template-select" className="flex flex-col gap-1 text-caption">
               Mẫu tin
               <select
+                id="zalo-template-select"
                 aria-label="Mẫu tin"
                 className={FIELD}
                 value={templateId}
@@ -677,10 +684,11 @@ function ActionSheet({
                 ))}
               </select>
             </label>
-            <label className="flex flex-col gap-1 text-small">
+            <label htmlFor="zalo-message-text" className="flex flex-col gap-1 text-caption">
               Nội dung tin nhắn
-              <textarea
-                className={FIELD}
+              <Textarea
+                className="w-full"
+                id="zalo-message-text"
                 aria-label="Nội dung tin nhắn"
                 rows={7}
                 value={text}
@@ -738,12 +746,12 @@ function ActionSheet({
         )}
         {kind !== 'zalo' && <InteractionRecorder account={account} customer={c} showCallAction={kind !== 'outcome'} />}
         {error && (
-          <p role="alert" className="text-small text-danger">
+          <p role="alert" className="text-caption text-alert-text">
             {error}
           </p>
         )}
         {!account.sync.isOnline() && (
-          <p className="text-small text-text-2">Ngoại tuyến · Thay đổi được lưu trên máy.</p>
+          <p className="text-caption text-ink-muted">Ngoại tuyến · Thay đổi được lưu trên máy.</p>
         )}
       </div>
     </Sheet>

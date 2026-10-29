@@ -1,8 +1,6 @@
 import { useEffect, useId, useState } from 'react';
+import { TextField } from '@/components/crm/form-fields';
 import { dobView, parseDobInput } from './dob';
-
-const FIELD =
-  'min-h-11 w-full rounded-control border border-border-strong bg-surface px-3 text-body text-text focus-visible:outline-2 focus-visible:outline-focus disabled:opacity-60';
 
 type Props = {
   value: unknown;
@@ -35,15 +33,15 @@ export function DobField({ value, disabled, now, onSave }: Props) {
   };
 
   return (
-    <fieldset className="min-w-0 space-y-1 text-small text-text-2">
-      <legend>Ngày sinh</legend>
-      <input
+    <fieldset className="min-w-0 space-y-1 text-caption text-ink-muted">
+      <legend className="sr-only">Ngày sinh</legend>
+      <TextField
         id={id}
+        label="Ngày sinh"
         type="text"
         inputMode="numeric"
         aria-label="Ngày sinh — ngày/tháng/năm"
-        aria-invalid={error ? true : undefined}
-        className={FIELD}
+        error={error || undefined}
         disabled={disabled}
         value={draft}
         placeholder="15/08/1985 hoặc 15/08"
@@ -53,19 +51,14 @@ export function DobField({ value, disabled, now, onSave }: Props) {
           if (event.key === 'Enter') event.currentTarget.blur();
         }}
       />
-      {error && (
-        <p role="alert" className="text-small text-danger">
-          {error}
-        </p>
-      )}
-      {!view.known && view.raw && <p className="text-text-3 [overflow-wrap:anywhere]">Đang lưu: {view.raw}</p>}
+      {!view.known && view.raw && <p className="text-ink-muted [overflow-wrap:anywhere]">Đang lưu: {view.raw}</p>}
       {view.known && (view.age != null || view.menhShort || view.cung) && (
-        <p className="flex flex-wrap gap-x-3 gap-y-1 text-small">
+        <p className="flex flex-wrap gap-x-3 gap-y-1 text-caption">
           {view.age != null && <span>{view.age} tuổi</span>}
           {view.menhShort && (
             <span>
               {view.menhShort}
-              {view.menhNapAm && <span className="text-text-3"> · {view.menhNapAm}</span>}
+              {view.menhNapAm && <span className="text-ink-muted"> · {view.menhNapAm}</span>}
             </span>
           )}
           {view.cung && <span>Cung {view.cung}</span>}

@@ -1,11 +1,13 @@
 // biome-ignore-all lint/suspicious/noArrayIndexKey: Loan table columns and rate-tier positions have fixed semantic order; only the last tier can be removed.
 import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import { toast as notify } from 'sonner';
+import { type Column, EmptyState, DataTable as KitDataTable, TextField } from '@/components/crm';
+import { Button } from '@/components/ui/button';
 import { useCustomers, useRepositoryAccount } from '@/data/hooks';
 import type { Data } from '@/data/repositories/customers';
 import type { RepositoryAccount } from '@/data/repositories/session';
 import { type Customer, isQualified } from '@/domain/customer';
 import { BANK_PRESETS, type BankPreset, type ComputeResult, compute, type Numeric } from '@/domain/loan';
-import { Button, EmptyState, ErrorState, useToast } from '@/ui';
 import {
   applyCatalog,
   buildInput,
@@ -24,11 +26,11 @@ import { printLoan } from './print';
 import { createLoanStore, type LoanQuote } from './store';
 
 const FIELD =
-  'min-h-11 w-full min-w-0 rounded-control border border-border-strong bg-surface px-3 py-2 text-body text-text focus:outline-2 focus:outline-accent';
+  'h-11 w-full min-w-0 rounded-sm border border-input bg-surface-100 px-3 py-2 text-body text-ink focus:outline-2 focus:outline-ion';
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     // biome-ignore lint/a11y/noLabelWithoutControl: The children always include the input or select, nested inside this label.
-    <label className="flex min-w-0 flex-col gap-1 text-small text-text-2">
+    <label className="flex min-w-0 flex-col gap-1 text-label text-ink-muted">
       <span>{label}</span>
       {children}
     </label>
@@ -50,57 +52,57 @@ function NumberInput({
   step?: string;
 }) {
   return (
-    <Field label={label}>
-      <input
-        className={FIELD}
-        aria-label={label}
-        type="number"
-        inputMode="decimal"
-        min={min}
-        max={max}
-        step={step}
-        value={value ?? ''}
-        onChange={(e) => onChange(e.target.value === '' ? null : Number(e.target.value))}
-      />
-    </Field>
+    <TextField
+      className="w-full"
+      label={label}
+      type="number"
+      inputMode="decimal"
+      numeric
+      suffix={label.includes('m²') ? 'm²' : label.includes('%') ? '%' : label.includes('tháng') ? 'tháng' : undefined}
+      min={min}
+      max={max}
+      step={step}
+      value={value ?? ''}
+      onChange={(e) => onChange(e.target.value === '' ? null : Number(e.target.value))}
+    />
   );
 }
 function Group({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="flex flex-col gap-3 border-t border-border pt-4">
-      <h2 className="text-section">{title}</h2>
+    <section className="flex flex-col gap-3 border-t border-line pt-4">
+      <h2 className="text-section-head">{title}</h2>
       {children}
     </section>
   );
 }
-function DataTable({ label, head, rows }: { label: string; head: string[]; rows: (string | number)[][] }) {
+function ErrorState({ title, detail, onRetry }: { title: string; detail: string; onRetry?: () => void }) {
   return (
-    <div className="overflow-x-auto">
-      <table aria-label={label} className="w-full border-collapse text-small">
-        <thead>
-          <tr>
-            {head.map((h) => (
-              <th className="border-b border-border bg-surface-2 px-3 py-2 text-left font-medium" key={h}>
-                {h}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r, i) => (
-            <tr key={`${label}-${i}`}>
-              {r.map((v, j) => (
-                <td
-                  className="whitespace-nowrap border-b border-border px-3 py-2 tabular-nums"
-                  key={`${label}-${i}-${j}`}
-                >
-                  {v}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div role="alert" className="rounded-md border border-alert/40 bg-alert-tint p-4 text-alert-text">
+      <p className="font-semibold">{title}</p>
+      <p className="mt-1 text-caption">{detail}</p>
+      {onRetry && (
+        <Button className="mt-3" onClick={onRetry}>
+          Thử lại
+        </Button>
+      )}
+    </div>
+  );
+}
+function DataTable({ label, head, rows }: { label: string; head: string[]; rows: (string | number)[][] }) {
+  type TableRow = { id: number } & Record<string, string | number>;
+  const data: TableRow[] = rows.map((row, index) => ({
+    id: index,
+    ...Object.fromEntries(row.map((v, i) => [`c${i}`, v])),
+  }));
+  const columns: Column<TableRow>[] = head.map((title, i) => ({
+    key: `c${i}`,
+    label: title,
+    numeric: i > 0,
+    render: (row) => row[`c${i}`] as string | number,
+  }));
+  return (
+    <div className="max-w-full overflow-x-auto" data-slot="loan-table-scroll">
+      <KitDataTable caption={label} columns={columns} rows={data} className="min-w-[640px]" />
     </div>
   );
 }
@@ -117,7 +119,7 @@ export function LoanCalculator({ prefill = {} }: { prefill?: LoanPrefill }) {
   return (
     <main className="mx-auto flex max-w-5xl flex-col gap-4 p-4">
       <h1 className="text-title">Tính khoản vay</h1>
-      <p className="text-small text-text-2">
+      <p className="text-caption text-ink-muted">
         Số liệu tạm tính để tham khảo. Lãi suất và phí là giả định; xác nhận với ngân hàng trước khi tư vấn.
       </p>
       <Field label="Khách hàng (không bắt buộc)">
@@ -134,7 +136,7 @@ export function LoanCalculator({ prefill = {} }: { prefill?: LoanPrefill }) {
         </select>
       </Field>
       {selected && !customer && (
-        <p role="status" className="text-small text-text-2">
+        <p role="status" className="text-caption text-ink-muted">
           Đang tìm khách trong dữ liệu tài khoản. Chưa thể lưu phương án cho khách này.
         </p>
       )}
@@ -162,7 +164,6 @@ function CalculatorForm({
   selectedId: string;
   prefill: LoanPrefill;
 }) {
-  const toast = useToast();
   const store = useMemo(() => (account ? createLoanStore(account) : null), [account]);
   const [state, setState] = useState<LoanState>(() => {
     const s = initialState(prefill);
@@ -301,7 +302,7 @@ function CalculatorForm({
       });
       if (account?.sync.local.isClosed) return;
       setQuotes(await store.listQuotes(selectedId || null));
-      toast({ title: 'Đã lưu phương án lên máy chủ' });
+      notify.success('Đã lưu phương án lên máy chủ');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Không lưu được phương án.');
     } finally {
@@ -310,7 +311,7 @@ function CalculatorForm({
   };
   const remember = () => {
     store?.saveLocalSettings({ loan: state.loan, consultant });
-    toast({ title: 'Đã nhớ thông số trên máy cho tài khoản này' });
+    notify.success('Đã nhớ thông số trên máy cho tài khoản này');
   };
   return (
     <div className="flex flex-col gap-6">
@@ -397,7 +398,7 @@ function CalculatorForm({
             onChange={(n) => dates({ titleAfterMonths: n ?? 0 })}
           />
         </div>
-        <p className="text-small text-text-2">
+        <p className="text-caption text-ink-muted">
           VAT {project?.vat_rate ?? 5}% · KPBT {project?.kpbt_rate ?? 2}%.{' '}
           {project
             ? 'Chính sách theo dự án trong giỏ hàng.'
@@ -413,7 +414,7 @@ function CalculatorForm({
                   handover_date: state.dates.handoverDate,
                   title_after_months: state.dates.titleAfterMonths,
                 });
-                toast({ title: 'Đã cập nhật ngày bàn giao và nhận sổ của dự án' });
+                notify.success('Đã cập nhật ngày bàn giao và nhận sổ của dự án');
               } catch (e) {
                 setError(String(e));
               }
@@ -543,7 +544,7 @@ function CalculatorForm({
             )}
           </div>
         </div>
-        <label className="flex min-h-11 items-center gap-2 text-small">
+        <label className="flex min-h-11 items-center gap-2 text-caption">
           <input
             type="checkbox"
             checked={state.loan.graceEnabled}
@@ -629,20 +630,20 @@ function CalculatorForm({
               >
                 In / Lưu PDF A4
               </Button>
-              <Button disabled={!writable || !store || !result.schedule} loading={busy} onClick={save}>
-                Lưu phương án
+              <Button disabled={!writable || !store || !result.schedule || busy} onClick={save}>
+                {busy ? 'Đang lưu…' : 'Lưu phương án'}
               </Button>
             </div>
           </>
         )
       )}
       {!account && (
-        <p className="text-small text-text-2">
+        <p className="text-caption text-ink-muted">
           Bảng tính và PDF dùng được ngoại tuyến. Đăng nhập trong Thao tác nhanh để lưu/đọc phương án.
         </p>
       )}
       {error && (
-        <p role="alert" className="text-small text-danger">
+        <p role="alert" className="text-caption text-alert-text">
           {error}
         </p>
       )}
@@ -664,12 +665,12 @@ function CalculatorForm({
           />
         )}
         {quotes.length === 0 ? (
-          <EmptyState title="Chưa có phương án đã lưu" hint="Tính và lưu một phương án để mở lại sau." />
+          <EmptyState title="Chưa có phương án đã lưu" text="Tính và lưu một phương án để mở lại sau." />
         ) : (
           <ul className="divide-y divide-border">
             {quotes.map((q) => (
               <li key={q.id} className="flex items-center justify-between gap-3 py-3">
-                <span className="text-small">
+                <span className="text-caption">
                   {q.unit_code || 'Chưa có mã căn'} · {new Date(q.created_at).toLocaleString('vi-VN')}
                 </span>
                 <Button
@@ -714,13 +715,13 @@ function LoanResults({
           ['Trả cao nhất / tháng', r.maxPayment],
         ].map(([label, n]) => (
           <div key={label}>
-            <dt className="text-small text-text-2">{label}</dt>
+            <dt className="text-caption text-ink-muted">{label}</dt>
             <dd className="break-words font-data text-body-strong">{money(Number(n))} đ</dd>
           </div>
         ))}
       </dl>
       {r.warnings.map((w, i) => (
-        <p key={`${w}-${i}`} className="text-small text-warning">
+        <p key={`${w}-${i}`} className="text-caption text-soon-text">
           {w}
         </p>
       ))}
@@ -748,7 +749,7 @@ function LoanResults({
       />
       {s && (
         <>
-          <p className="text-small">
+          <p className="text-caption">
             Tổng lãi: {money(s.totalInterest)} đ · Tổng trả ngân hàng: {money(s.totalPaid)} đ
           </p>
           <DataTable
@@ -795,11 +796,11 @@ function LoanResults({
       {r.payoff && (
         <>
           <h3 className="text-body-strong">Tất toán sau {r.payoff.month} tháng</h3>
-          <p className="text-small">
+          <p className="text-caption">
             Dư nợ {money(r.payoff.balance)} đ · Phí {r.payoff.feePct}%: {money(r.payoff.fee)} đ · Cần chuẩn bị{' '}
             {money(r.payoff.totalToPay)} đ · Lãi tránh được sau phí {money(r.payoff.netSaving)} đ
           </p>
-          {r.payoff.warning && <p className="text-small text-warning">{r.payoff.warning}</p>}
+          {r.payoff.warning && <p className="text-caption text-soon-text">{r.payoff.warning}</p>}
         </>
       )}
     </Group>

@@ -1,14 +1,16 @@
+import type { InputHTMLAttributes } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useBlocker, useNavigate, useParams } from 'react-router';
 import type { FeatureRoute } from '@/app/routes';
+import { SelectField, TextField } from '@/components/crm';
+import { Button } from '@/components/ui/button';
 import { APT_TYPES } from '@/config/aptTypes';
 import { SOURCE_DEFAULT, SOURCES } from '@/config/sources';
 import { CARE_STAGE_DEFAULT, CARE_STAGE_PICKER_ORDER, CONTACT_STATUSES } from '@/config/stages';
 import { useCustomers, useRepositoryAccount } from '@/data/hooks';
 import type { Customer } from '@/domain/customer';
 import { detectDuplicatePairs, findDuplicateCandidates } from '@/domain/customer/merge';
-import { Button } from '@/ui';
 import {
   addOcrNote,
   defaultIntakeValues,
@@ -320,25 +322,28 @@ function IntakePage() {
 
   if (customerId && !customer)
     return (
-      <main className="mx-auto max-w-3xl px-4 py-8 text-body text-text-2">
+      <main className="mx-auto max-w-3xl px-4 py-8 text-body text-ink-muted">
         Đang tải khách hoặc không tìm thấy bản ghi trong dữ liệu local.
       </main>
     );
 
-  const input = (label: string, name: keyof IntakeValues, type = 'text', props: Record<string, unknown> = {}) => (
-    <label className="flex flex-col gap-1 text-small text-text-2" key={name}>
-      {label}
-      <input
-        {...register(name)}
-        type={type}
-        value={String(values[name] ?? '')}
-        onChange={(e) => set(name, e.target.value)}
-        aria-invalid={!!fieldErrors[name]}
-        className="min-h-11 rounded-control border border-border-strong bg-surface px-3 text-body text-text focus-visible:outline-2 focus-visible:outline-focus"
-        {...props}
-      />
-      {fieldErrors[name] && <span className="text-small text-danger">{fieldErrors[name]}</span>}
-    </label>
+  const input = (
+    label: string,
+    name: keyof IntakeValues,
+    type = 'text',
+    props: Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> = {},
+  ) => (
+    <TextField
+      key={name}
+      {...register(name)}
+      label={label.replace(/ \*$/, '')}
+      required={label.endsWith(' *')}
+      type={type}
+      value={String(values[name] ?? '')}
+      onChange={(e) => set(name, e.target.value)}
+      error={fieldErrors[name]}
+      {...props}
+    />
   );
   const select = (
     label: string,
@@ -346,24 +351,18 @@ function IntakePage() {
     options: readonly string[],
     optionLabel: (option: string) => string = (option) => option,
   ) => (
-    <label className="flex min-w-0 flex-col gap-1 text-small text-text-2" key={name}>
-      {label}
-      <select
-        {...register(name)}
-        value={String(values[name] ?? '')}
-        onChange={(e) => set(name, e.target.value)}
-        aria-invalid={!!fieldErrors[name]}
-        className="min-h-11 w-full min-w-0 rounded-control border border-border-strong bg-surface px-3 text-body text-text focus-visible:outline-2 focus-visible:outline-focus"
-      >
-        <option value="">— Chưa rõ —</option>
-        {options.map((option) => (
-          <option key={option} value={option}>
-            {optionLabel(option)}
-          </option>
-        ))}
-      </select>
-      {fieldErrors[name] && <span className="text-small text-danger">{fieldErrors[name]}</span>}
-    </label>
+    <SelectField
+      key={name}
+      label={label}
+      options={[
+        { value: '__none', label: '— Chưa rõ —' },
+        ...options.map((option) => ({ value: option, label: optionLabel(option) })),
+      ]}
+      placeholder="— Chưa rõ —"
+      value={String(values[name] || '__none')}
+      onValueChange={(value) => set(name, value === '__none' ? '' : value)}
+      error={fieldErrors[name]}
+    />
   );
 
   const catalog = account?.catalog;
@@ -375,24 +374,40 @@ function IntakePage() {
         )
         .map((unit: Record<string, unknown>) => String(unit.code))
     : [];
+  const projectAptTypes = catalog
+    ?.projects()
+    .filter((project: Record<string, unknown>) => values.projects.includes(String(project.name)))
+    .flatMap((project: Record<string, unknown>) =>
+      catalog.projectTypes(project.id).map((type: Record<string, unknown>) => String(type.apt_type)),
+    )
+    .filter(
+      (type: string, index: number, all: string[]) =>
+        type && !APT_TYPES.includes(type as (typeof APT_TYPES)[number]) && all.indexOf(type) === index,
+    );
+  const aptTypeOptions = [
+    { value: '__none', label: '— Chưa rõ —' },
+    ...APT_TYPES.map((type) => ({ value: type, label: type })),
+    ...(projectAptTypes?.map((type: string) => ({ value: type, label: type })) ?? []),
+    { value: '__other', label: 'Khác' },
+  ];
 
   return (
-    <main className="mx-auto flex max-w-3xl flex-col gap-5 px-4 py-6 pb-24">
+    <main className="mx-auto flex w-full max-w-3xl min-w-0 flex-col gap-5 px-4 py-6 pb-24">
       <header className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-label text-text-3">Khách hàng</p>
+          <p className="text-label text-ink-muted">Khách hàng</p>
           <h1 className="text-title">{customer ? 'Sửa thông tin khách' : 'Thêm khách mới'}</h1>
         </div>
         <Button onClick={() => navigate(-1)}>Đóng</Button>
       </header>
       {duplicatePairs.length > 0 && (
         <section
-          className="flex flex-col gap-3 rounded-card border border-border-strong bg-surface p-4 shadow-e1"
+          className="flex flex-col gap-3 rounded-lg border border-line bg-surface-100 p-4"
           aria-label="Khách có thể trùng"
         >
           <div>
-            <h2 className="text-section">Có hồ sơ nghi trùng</h2>
-            <p className="text-small text-text-2">
+            <h2 className="text-title">Có hồ sơ nghi trùng</h2>
+            <p className="text-caption text-ink-muted">
               Phát hiện theo SĐT chuẩn hoá trùng và tên gần giống. Chỉ lưu trữ hồ sơ sau khi chọn giữ lại và xác nhận
               gộp.
             </p>
@@ -401,10 +416,10 @@ function IntakePage() {
             {duplicatePairs.map(([left, right]) => (
               <li
                 key={`${left.id}:${right.id}`}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-control border border-border p-3"
+                className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-line p-3"
               >
                 <span className="text-body">
-                  {left.full_name} · {left.phone} <span className="text-text-3">↔</span> {right.full_name} ·{' '}
+                  {left.full_name} · {left.phone} <span className="text-ink-muted">↔</span> {right.full_name} ·{' '}
                   {right.phone}
                 </span>
                 <Button
@@ -424,10 +439,10 @@ function IntakePage() {
               {selectedPair.map((row) => (
                 <article
                   key={row.id}
-                  className={`flex flex-col gap-2 rounded-control border p-3 ${keeperId === row.id ? 'border-primary bg-primary/5' : 'border-border'}`}
+                  className={`flex flex-col gap-2 rounded-md border p-3 ${keeperId === row.id ? 'border-ion bg-ion-tint' : 'border-line'}`}
                 >
-                  <h3 className="text-body-strong">{row.full_name}</h3>
-                  <dl className="grid grid-cols-[auto_1fr] gap-x-2 text-small text-text-2">
+                  <h3 className="text-body font-semibold">{row.full_name}</h3>
+                  <dl className="grid grid-cols-[auto_1fr] gap-x-2 text-caption text-ink-muted">
                     <dt>SĐT</dt>
                     <dd>{row.phone}</dd>
                     <dt>Người phụ trách</dt>
@@ -457,12 +472,7 @@ function IntakePage() {
                 </article>
               ))}
               <div className="flex flex-wrap gap-2 md:col-span-2">
-                <Button
-                  variant="danger"
-                  loading={mergeBusy}
-                  disabled={!keeperId || mergeBusy}
-                  onClick={() => void mergeSelected()}
-                >
+                <Button variant="destructive" disabled={!keeperId || mergeBusy} onClick={() => void mergeSelected()}>
                   Xác nhận gộp và lưu trữ hồ sơ còn lại
                 </Button>
                 <Button disabled={mergeBusy} onClick={() => setSelectedDuplicate(null)}>
@@ -475,10 +485,10 @@ function IntakePage() {
       )}
       {intakeCandidates.length > 0 && (
         <section
-          className="flex flex-wrap items-center justify-between gap-3 rounded-control border border-border-strong bg-surface p-3"
+          className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-line bg-surface-100 p-3"
           role="status"
         >
-          <p className="text-small text-text-2">
+          <p className="text-caption text-ink-muted">
             SĐT và tên gần giống hồ sơ {intakeCandidates.map((row) => `“${row.full_name}”`).join(', ')}. Mở hồ sơ hiện
             có để cập nhật, tránh tạo bản ghi trùng.
           </p>
@@ -486,10 +496,10 @@ function IntakePage() {
         </section>
       )}
       <form onSubmit={handleSubmit(save)} className="flex flex-col gap-4" noValidate>
-        <section className="flex flex-col gap-3 rounded-card border border-border bg-surface p-4 shadow-e1">
+        <section className="flex flex-col gap-3 rounded-lg border border-line bg-surface-100 p-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-section">Thông tin cá nhân</h2>
-            <Button onClick={() => fileInput.current?.click()} loading={ocrBusy}>
+            <h2 className="text-title">Thông tin cá nhân</h2>
+            <Button type="button" onClick={() => fileInput.current?.click()} disabled={ocrBusy}>
               Nhập từ ảnh
             </Button>
             <input
@@ -504,7 +514,7 @@ function IntakePage() {
             />
           </div>
           {ocrStatus && (
-            <p role="status" className="text-small text-text-2">
+            <p role="status" className="text-caption text-ink-muted">
               {ocrStatus}
             </p>
           )}
@@ -513,29 +523,22 @@ function IntakePage() {
             {input('Số điện thoại *', 'phone', 'tel', { autoComplete: 'tel' })}
           </div>
         </section>
-        <section className="flex flex-col gap-3 rounded-card border border-border bg-surface p-4 shadow-e1">
-          <h2 className="text-section">Nguồn khách</h2>
+        <section className="flex flex-col gap-3 rounded-lg border border-line bg-surface-100 p-4">
+          <h2 className="text-title">Nguồn khách</h2>
           <div className="grid gap-3 sm:grid-cols-2">
-            <label className="flex flex-col gap-1 text-small text-text-2">
-              Kênh *
-              <select
-                value={values.source_channel}
-                onChange={(e) => set('source_channel', e.target.value)}
-                className="min-h-11 rounded-control border border-border-strong bg-surface px-3 text-body text-text"
-              >
-                {Object.entries(SOURCES).map(([code, label]) => (
-                  <option value={code} key={code}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <SelectField
+              label="Kênh"
+              required
+              options={Object.entries(SOURCES).map(([value, label]) => ({ value, label }))}
+              value={values.source_channel}
+              onValueChange={(value) => set('source_channel', value)}
+            />
           </div>
         </section>
-        <section className="flex flex-col gap-3 rounded-card border border-border bg-surface p-4 shadow-e1">
-          <h2 className="text-section">Nhu cầu căn hộ</h2>
+        <section className="flex flex-col gap-3 rounded-lg border border-line bg-surface-100 p-4">
+          <h2 className="text-title">Nhu cầu căn hộ</h2>
           <div className="grid gap-3 sm:grid-cols-2">
-            <label className="flex flex-col gap-1 text-small text-text-2">
+            <label className="flex flex-col gap-1 text-caption text-ink-muted">
               Dự án (có thể chọn nhiều)
               <select
                 multiple
@@ -546,7 +549,7 @@ function IntakePage() {
                     Array.from(e.target.selectedOptions, (option) => option.value),
                   )
                 }
-                className="min-h-28 rounded-control border border-border-strong bg-surface px-3 py-2 text-body text-text"
+                className="min-h-28 rounded-md border border-line bg-surface-100 px-3 py-2 text-body text-ink"
               >
                 {account?.catalog.projects().map((project: Record<string, unknown>) => (
                   <option key={String(project.id)} value={String(project.name)}>
@@ -555,49 +558,29 @@ function IntakePage() {
                 ))}
               </select>
             </label>
-            <label className="flex flex-col gap-1 text-small text-text-2">
-              Loại căn
-              <select
-                value={customAptType ? '__other' : values.apt_type}
-                onChange={(e) => {
-                  if (e.target.value === '__other') {
-                    setCustomAptType(true);
-                    set('apt_type', '');
-                  } else {
-                    setCustomAptType(false);
-                    set('apt_type', e.target.value);
-                  }
-                }}
-                className="min-h-11 rounded-control border border-border-strong bg-surface px-3 text-body text-text"
-              >
-                <option value="">— Chưa rõ —</option>
-                {APT_TYPES.map((type) => (
-                  <option key={type}>{type}</option>
-                ))}
-                {account?.catalog
-                  .projects()
-                  .filter((p: Record<string, unknown>) => values.projects.includes(String(p.name)))
-                  .flatMap((p: Record<string, unknown>) =>
-                    account.catalog.projectTypes(p.id).map((t: Record<string, unknown>) => String(t.apt_type)),
-                  )
-                  .filter(
-                    (type: string, index: number, all: string[]) =>
-                      type && !APT_TYPES.includes(type as (typeof APT_TYPES)[number]) && all.indexOf(type) === index,
-                  )
-                  .map((type: string) => (
-                    <option key={type}>{type}</option>
-                  ))}
-                <option value="__other">Khác</option>
-              </select>
-            </label>
+            <SelectField
+              label="Loại căn"
+              options={aptTypeOptions}
+              placeholder="— Chưa rõ —"
+              value={customAptType ? '__other' : values.apt_type || '__none'}
+              onValueChange={(value) => {
+                if (value === '__other') {
+                  setCustomAptType(true);
+                  set('apt_type', '');
+                } else {
+                  setCustomAptType(false);
+                  set('apt_type', value === '__none' ? '' : value);
+                }
+              }}
+            />
             {customAptType ? input('Loại căn khác', 'apt_type') : null}
           </div>
         </section>
-        <section className="flex flex-col gap-3 rounded-card border border-border bg-surface p-4 shadow-e1">
-          <h2 className="text-section">Chăm sóc</h2>
+        <section className="flex flex-col gap-3 rounded-lg border border-line bg-surface-100 p-4">
+          <h2 className="text-title">Chăm sóc</h2>
           <div className="grid gap-3 sm:grid-cols-2">
             {!customer && (
-              <label className="flex min-h-11 items-center gap-3 text-body text-text">
+              <label className="flex min-h-11 items-center gap-3 text-body text-ink">
                 <input
                   type="checkbox"
                   checked={values.qualify_now}
@@ -615,8 +598,9 @@ function IntakePage() {
                 {select('Tiến độ', 'care_stage', CARE_STAGE_PICKER_ORDER, stageOptionLabel)}
                 {select('Trạng thái liên lạc', 'contact_status', CONTACT_STATUSES)}
                 {input('Ghi chú cho lần đổi tiến độ', 'care_stage_note')}
-                <label className="flex flex-col gap-2 text-small text-text-2 sm:col-span-2">
-                  Mức quan tâm: <strong className="text-body-strong text-text">{Number(values.interest_level)}%</strong>
+                <label className="flex flex-col gap-2 text-caption text-ink-muted sm:col-span-2">
+                  Mức quan tâm:{' '}
+                  <strong className="text-body font-semibold text-ink">{Number(values.interest_level)}%</strong>
                   <input
                     type="range"
                     min="0"
@@ -628,7 +612,7 @@ function IntakePage() {
               </>
             )}
             <div className="flex flex-col gap-2 sm:col-span-2">
-              <h3 className="text-body-strong text-text">Ghi chú chăm sóc</h3>
+              <h3 className="text-body font-semibold text-ink">Ghi chú chăm sóc</h3>
               {manualNotes.map((note, index) => (
                 <div key={`${String(note.at ?? 'note')}-${String(note.text ?? '')}`} className="flex items-start gap-2">
                   <textarea
@@ -640,9 +624,12 @@ function IntakePage() {
                       )
                     }
                     rows={2}
-                    className="min-w-0 flex-1 rounded-control border border-border-strong bg-surface px-3 py-2 text-body text-text"
+                    className="min-w-0 flex-1 rounded-md border border-line bg-surface-100 px-3 py-2 text-body text-ink"
                   />
-                  <Button onClick={() => setManualNotes((current) => current.filter((_, i) => i !== index))}>
+                  <Button
+                    type="button"
+                    onClick={() => setManualNotes((current) => current.filter((_, i) => i !== index))}
+                  >
                     Xoá
                   </Button>
                 </div>
@@ -652,10 +639,11 @@ function IntakePage() {
                   aria-label="Ghi chú mới"
                   value={newManualNote}
                   onChange={(event) => setNewManualNote(event.target.value)}
-                  className="min-h-11 min-w-0 flex-1 rounded-control border border-border-strong bg-surface px-3 text-body text-text"
+                  className="min-h-11 min-w-0 flex-1 rounded-md border border-line bg-surface-100 px-3 text-body text-ink"
                   placeholder="Thêm ghi chú…"
                 />
                 <Button
+                  type="button"
                   onClick={() => {
                     const text = newManualNote.trim();
                     if (!text) return;
@@ -682,20 +670,24 @@ function IntakePage() {
         {phoneMatches.map((match) => (
           <aside
             key={match.id}
-            className="flex flex-wrap items-center justify-between gap-2 rounded-control border border-warning bg-warning-bg p-3 text-small text-warning"
+            className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-soon bg-soon-tint p-3 text-caption text-soon-text"
           >
             <span>SĐT đã có ở khách “{match.full_name}”. Kiểm tra trước khi lưu.</span>
-            <Button onClick={() => navigate(`/khach-hang/${match.id}`)}>Mở khách cũ</Button>
+            <Button type="button" onClick={() => navigate(`/khach-hang/${match.id}`)}>
+              Mở khách cũ
+            </Button>
           </aside>
         ))}
         {error && (
-          <p role="alert" className="rounded-control border border-danger bg-danger-bg p-3 text-small text-danger">
+          <p role="alert" className="rounded-md border border-alert bg-alert-tint p-3 text-caption text-alert-text">
             {error}
           </p>
         )}
-        <div className="sticky bottom-16 flex justify-end gap-2 border-t border-border bg-surface/95 py-3 backdrop-blur">
-          <Button onClick={() => navigate(-1)}>Huỷ</Button>
-          <Button type="submit" variant="primary" loading={saving}>
+        <div className="sticky bottom-16 flex justify-end gap-2 border-t border-line bg-surface-100/95 py-3 backdrop-blur">
+          <Button type="button" onClick={() => navigate(-1)}>
+            Huỷ
+          </Button>
+          <Button type="submit" variant="primary" disabled={saving}>
             Lưu khách
           </Button>
         </div>

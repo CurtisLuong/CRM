@@ -39,19 +39,24 @@ export function LeadRow({
       )}
     >
       <Avatar name={name} />
+      {/* Tên một dòng riêng: ở 360px nhãn bậc đứng cạnh tên sẽ ép tên còn "C." (R2 review). */}
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="flex min-w-0 items-center gap-2">
-          <span className="truncate text-[15px] font-semibold leading-[22px]">{name}</span>
-          {stage && <StageChip stage={stage} />}
+          <span className="min-w-0 flex-1 truncate text-[15px] font-semibold leading-[22px]">{name}</span>
+          {level && (
+            <span className="shrink-0">
+              <SignalBadge level={level}>{time}</SignalBadge>
+            </span>
+          )}
         </span>
-        <span className="truncate text-caption text-ink-muted">
-          {[phone, project, unit].filter(Boolean).join(' · ')}
+        <span className="flex min-w-0 items-center gap-2">
+          {stage && <StageChip stage={stage} className="shrink-0" />}
+          <span className="min-w-0 truncate text-caption text-ink-muted">
+            {[phone, project, unit].filter(Boolean).join(' · ')}
+          </span>
         </span>
       </span>
-      <span className="flex flex-col items-end gap-1">
-        {level && <SignalBadge level={level}>{time}</SignalBadge>}
-        {nextStep && <span className="text-caption text-ink-muted">{nextStep}</span>}
-      </span>
+      {nextStep && <span className="shrink-0 text-caption text-ink-muted">{nextStep}</span>}
     </button>
   );
 }

@@ -1,32 +1,63 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router';
+import { useNavigate } from 'react-router';
 import type { FeatureRoute } from '@/app/routes';
 import { useAppSession } from '@/app/session';
+import { ActionItem, ChipGroup, EmptyState } from '@/components/crm';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { CALL_APPOINTMENT, TASK_KINDS, taskKindOf } from '@/config/taskKinds';
 import { useCustomers, useRepositoryAccount, useSyncStatus } from '@/data/hooks';
+import { fmtClock } from '@/domain/deadlines';
 import { appendPromise, promiseTaskKey, snoozePromise, undoPromiseSnooze } from '@/domain/deadlines/promises';
+import { fmt as formatDuration } from '@/domain/velocity/engine';
 import { openQuickAction } from '@/features/quick-actions/store';
-import { Badge, Button, cn, EmptyState, Icon, Loading, Skeleton, useToast } from '@/ui';
+import { signalFor } from '@/lib/crm';
+import { cn } from '@/lib/utils';
+import { useToast } from '@/ui/Toast';
 import { TASK_GROUPS, type TaskGroupId, type TaskRow, type TaskSideFilter, taskRows, taskTiming } from './model';
 
-const FIELD = 'min-h-11 rounded-control border border-border-strong bg-surface px-3 text-body text-text';
+const FIELD = 'min-h-11 rounded-md border border-line bg-surface-100 px-3 text-body text-ink';
+const FILTER_SELECT =
+  'min-h-11 rounded-md border border-input bg-surface-100 px-3 text-body text-ink hover:border-ink-muted focus-visible:border-ion focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ion';
 /** Nút phụ trong thẻ (Sửa/Dời): nhỏ, không chiếm chỗ của hành động chính. */
 const SMALL_ACTION =
-  'inline-flex min-h-8 items-center rounded-control px-2 text-small text-text-2 hover:bg-surface-2 disabled:opacity-50';
+  'inline-flex min-h-11 items-center rounded-md px-3 text-label text-ink-muted hover:bg-surface-200 disabled:opacity-50';
 
 function deadlineLabel(row: TaskRow, group: TaskGroupId, now: number) {
   if (group === 'done') return null;
   const timing = taskTiming(row, now);
   if (!timing) return null;
-  const date = new Date(timing.startMs).toLocaleString('vi-VN', {
-    day: '2-digit',
-    month: '2-digit',
-    ...(timing.allDay ? {} : { hour: '2-digit', minute: '2-digit' }),
-  });
+  const due = row.type === 'call' ? row.appointment.start : row.task.due;
+  const level =
+    timing.state === 'missed'
+      ? 'alert'
+      : timing.state === 'due'
+        ? 'soon'
+        : due
+          ? signalFor(due, now, { allDay: timing.allDay })
+          : 'ok';
+  const dueDate = new Date(timing.startMs);
+  const today = new Date(now);
+  const sameDay = dueDate.toDateString() === today.toDateString();
+  const date = `${dueDate.getDate()}/${dueDate.getMonth() + 1}`;
+  const clock = fmtClock(timing.startMs);
+  const shortClock = clock.endsWith(':00') ? `${clock.slice(0, 2)}h` : clock;
+  const stamp = timing.allDay
+    ? date
+    : `${sameDay ? '' : `${date} `}${timing.state === 'far' || timing.state === 'soon' ? shortClock : clock}`;
+  const elapsedFrom = row.type === 'call' ? timing.endMs : timing.startMs;
+  const text =
+    timing.allDay && timing.state === 'missed'
+      ? `Quá hạn · ${stamp}`
+      : timing.state === 'missed'
+        ? `Quá ${formatDuration(now - elapsedFrom)} · ${stamp}`
+        : timing.state === 'due'
+          ? `Đến hạn · ${stamp}`
+          : stamp;
   return {
-    tone: timing.tone,
-    text: `${timing.text} · ${date}`,
-    className: timing.tone === 'over' ? 'text-danger' : timing.tone === 'soon' ? 'text-warning' : 'text-text-2',
+    tone: level === 'alert' ? 'over' : level === 'soon' ? 'soon' : undefined,
+    level,
+    text,
   };
 }
 
@@ -60,6 +91,7 @@ function TaskCard({
   onSaveEdit: (text: string, due: string) => void;
   busy: boolean;
 }) {
+  const navigate = useNavigate();
   const [showSnooze, setShowSnooze] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [editText, setEditText] = useState<string>(row.type === 'task' ? (row.task.text ?? '') : '');
@@ -82,75 +114,42 @@ function TaskCard({
       : task?.text || 'Việc chưa có nội dung';
   const done = group === 'done' && row.type === 'task';
   return (
-    <li
-      data-card
-      data-tone={deadline?.tone}
-      className="relative flex items-start gap-2.5 overflow-hidden rounded-card-sm border border-hairline bg-surface py-2.5 pr-2.5 pl-3.5 shadow-e1"
-    >
-      {deadline?.tone && (
-        <span
-          aria-hidden="true"
-          className={cn(
-            'absolute top-2.5 bottom-2.5 left-0 w-[3px] rounded-r-[3px]',
-            deadline.tone === 'over' ? 'bg-danger' : 'bg-warning',
-          )}
-        />
-      )}
-      {row.type === 'call' ? (
-        <Button aria-label={`Gọi: ${customer.full_name}`} disabled={busy} onClick={onCall} icon="call">
-          Gọi
-        </Button>
-      ) : group === 'done' ? (
-        <Button aria-label={`Mở lại: ${row.task.text}`} disabled={busy} onClick={onReopen}>
-          Mở lại
-        </Button>
-      ) : (
-        <button
-          type="button"
-          aria-label={`Hoàn tất: ${row.task.text}`}
-          title="Hoàn tất việc"
-          disabled={busy}
-          onClick={onComplete}
-          className="mt-0.5 inline-flex size-11 shrink-0 items-center justify-center rounded-control border border-border-strong bg-surface text-text-2 hover:border-accent hover:text-accent disabled:opacity-50"
-        >
-          <span aria-hidden="true" className="size-4 rounded-full border-2 border-current" />
-        </button>
-      )}
+    <li data-card data-tone={deadline?.tone} className="min-w-0">
       <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-          <p className={cn('min-w-0 text-body-strong', done && 'text-text-2 line-through')}>{text}</p>
-          {deadline && <span className={cn('shrink-0 text-small', deadline.className)}>{deadline.text}</span>}
-        </div>
-        <div className="mt-0.5 flex flex-wrap items-baseline gap-x-1.5 text-small text-text-2">
-          <Link to={`/khach-hang/${encodeURIComponent(customer.id)}`} className="text-accent hover:underline">
-            {customer.full_name || 'Khách chưa có tên'}
-          </Link>
-          <span aria-hidden="true">·</span>
-          <span className="inline-flex items-center gap-1">
-            <Icon name={kind.icon} size={16} />
-            {kind.label}
-          </span>
-          {ownPromise !== null && (
+        <ActionItem
+          level={deadline?.level ?? 'ok'}
+          title={
             <>
-              <span aria-hidden="true">·</span>
-              <span>{ownPromise ? 'Em hứa' : 'Khách hẹn'}</span>
+              {text}
+              {ownPromise !== null && (
+                <span className="ml-1 text-caption font-medium text-ink-muted">
+                  {ownPromise ? 'Em hứa' : 'Khách hẹn'}
+                </span>
+              )}
+              {done && row.type === 'task' && row.task.done_at && (
+                <span className="ml-1 text-caption font-medium text-ink-muted">
+                  Đã xong · {new Date(row.task.done_at).toLocaleDateString('vi-VN')}
+                </span>
+              )}
             </>
-          )}
-          {row.type === 'call' && (
-            <>
-              <span aria-hidden="true">·</span>
-              <span>Lịch hẹn</span>
-            </>
-          )}
-          {done && (
-            <>
-              <span aria-hidden="true">·</span>
-              <span>
-                Đã xong{row.task.done_at ? ` · ${new Date(row.task.done_at).toLocaleDateString('vi-VN')}` : ''}
-              </span>
-            </>
-          )}
-        </div>
+          }
+          customer={customer.full_name || 'Khách chưa có tên'}
+          context={kind.label}
+          time={deadline?.text ?? (done ? 'Đã xong' : 'Chưa có hạn')}
+          actionLabel={row.type === 'call' ? 'Gọi' : done ? 'Mở lại' : 'Xong'}
+          actionAriaLabel={
+            row.type === 'call'
+              ? `Gọi: ${customer.full_name}`
+              : done
+                ? `Mở lại: ${row.task.text}`
+                : `Hoàn tất: ${row.task.text}`
+          }
+          disabled={busy}
+          compact
+          wrapTime
+          onAction={row.type === 'call' ? onCall : done ? onReopen : onComplete}
+          onOpen={() => navigate(`/khach-hang/${customer.id}`)}
+        />
         {row.type === 'task' && !done && (
           <div className="mt-1">
             {!showEdit && !showSnooze && (
@@ -174,7 +173,7 @@ function TaskCard({
                   setShowEdit(false);
                 }}
               >
-                <label className="flex min-w-0 flex-col gap-1 text-small text-text-2">
+                <label className="flex min-w-0 flex-col gap-1 text-label text-ink-muted">
                   Nội dung việc
                   <input
                     aria-label={`Sửa nội dung: ${row.task.text}`}
@@ -184,7 +183,7 @@ function TaskCard({
                     onChange={(event) => setEditText(event.target.value)}
                   />
                 </label>
-                <label className="flex min-w-0 flex-col gap-1 text-small text-text-2">
+                <label className="flex min-w-0 flex-col gap-1 text-label text-ink-muted">
                   Hạn (để trống nếu không hạn)
                   <input
                     aria-label={`Sửa hạn: ${row.task.text}`}
@@ -215,7 +214,7 @@ function TaskCard({
                   setShowSnooze(false);
                 }}
               >
-                <label className="flex min-w-0 flex-col gap-1 text-small text-text-2">
+                <label className="flex min-w-0 flex-col gap-1 text-label text-ink-muted">
                   Hạn mới
                   <input
                     aria-label={`Hạn mới: ${row.task.text}`}
@@ -226,7 +225,7 @@ function TaskCard({
                     onChange={(event) => setSnoozeDue(event.target.value)}
                   />
                 </label>
-                <label className="flex min-w-0 flex-col gap-1 text-small text-text-2">
+                <label className="flex min-w-0 flex-col gap-1 text-label text-ink-muted">
                   Lý do dời
                   <select
                     aria-label={`Lý do dời: ${row.task.text}`}
@@ -290,11 +289,12 @@ function TasksPage() {
       <main className="mx-auto flex max-w-3xl flex-col gap-4 p-4">
         <h1 className="text-title">Công việc</h1>
         {booting ? (
-          <Loading label="Đang mở dữ liệu trên máy">
+          <div role="status" aria-label="Đang mở dữ liệu trên máy" className="flex flex-col gap-3">
+            <span className="text-label text-ink-muted">Đang mở dữ liệu trên máy</span>
             <Skeleton className="h-28 w-full" />
-          </Loading>
+          </div>
         ) : !session ? (
-          <EmptyState title="Chưa cấu hình kết nối" hint={error || 'Cần cấu hình Supabase để đăng nhập.'} />
+          <EmptyState title="Chưa cấu hình kết nối" text={error || 'Cần cấu hình Supabase để đăng nhập.'} />
         ) : (
           <form
             className="flex max-w-md flex-col gap-3"
@@ -309,8 +309,8 @@ function TasksPage() {
               }
             }}
           >
-            <p className="text-small text-text-2">Đăng nhập để xem các cam kết của bạn.</p>
-            <label className="flex flex-col gap-1 text-small">
+            <p className="text-label text-ink-muted">Đăng nhập để xem các cam kết của bạn.</p>
+            <label className="flex flex-col gap-1 text-label">
               Email
               <input
                 className={FIELD}
@@ -320,7 +320,7 @@ function TasksPage() {
                 onChange={(event) => setLoginEmail(event.target.value)}
               />
             </label>
-            <label className="flex flex-col gap-1 text-small">
+            <label className="flex flex-col gap-1 text-label">
               Mật khẩu
               <input
                 className={FIELD}
@@ -334,7 +334,7 @@ function TasksPage() {
               Đăng nhập
             </Button>
             {(loginError || error) && (
-              <p role="alert" className="text-small text-danger">
+              <p role="alert" className="text-label text-alert-text">
                 {loginError || error}
               </p>
             )}
@@ -346,10 +346,12 @@ function TasksPage() {
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-4 p-4 pb-24">
       <header className="flex flex-wrap items-end justify-between gap-2 px-1">
-        <p className="text-small text-text-2">{rows.length} việc · Em hứa và Khách hẹn</p>
-        <p className="text-small text-text-2">{sync.pending ? `${sync.pending} thay đổi chờ đồng bộ` : 'Đã đồng bộ'}</p>
+        <p className="text-caption text-ink-muted">{rows.length} việc · Em hứa và Khách hẹn</p>
+        <p className="text-caption text-ink-muted">
+          {sync.pending ? `${sync.pending} thay đổi chờ đồng bộ` : 'Đã đồng bộ'}
+        </p>
       </header>
-      <section className="rounded-card border border-border bg-surface p-3">
+      <section className="rounded-md border border-line bg-surface-100 p-3">
         {!showCreate ? (
           <Button variant="primary" onClick={() => setShowCreate(true)}>
             Thêm lời hứa
@@ -396,7 +398,7 @@ function TasksPage() {
               }
             }}
           >
-            <label className="flex flex-col gap-1 text-small text-text-2 sm:col-span-2">
+            <label className="flex flex-col gap-1 text-label text-ink-muted sm:col-span-2">
               Khách hàng
               <select
                 aria-label="Khách hàng của lời hứa"
@@ -415,7 +417,7 @@ function TasksPage() {
                   ))}
               </select>
             </label>
-            <label className="flex flex-col gap-1 text-small text-text-2 sm:col-span-2">
+            <label className="flex flex-col gap-1 text-label text-ink-muted sm:col-span-2">
               Việc cần làm
               <input
                 aria-label="Nội dung lời hứa"
@@ -426,7 +428,7 @@ function TasksPage() {
                 placeholder="Ví dụ: Gửi bảng giá căn 2 phòng ngủ"
               />
             </label>
-            <label className="flex flex-col gap-1 text-small text-text-2">
+            <label className="flex flex-col gap-1 text-label text-ink-muted">
               Cam kết
               <select
                 aria-label="Loại lời hứa"
@@ -438,7 +440,7 @@ function TasksPage() {
                 <option value="customer">Khách hẹn</option>
               </select>
             </label>
-            <label className="flex flex-col gap-1 text-small text-text-2">
+            <label className="flex flex-col gap-1 text-label text-ink-muted">
               Loại việc
               <select
                 aria-label="Loại việc mới"
@@ -455,7 +457,7 @@ function TasksPage() {
                   ))}
               </select>
             </label>
-            <label className="flex flex-col gap-1 text-small text-text-2">
+            <label className="flex flex-col gap-1 text-label text-ink-muted">
               Hạn
               <input
                 aria-label="Hạn lời hứa"
@@ -474,7 +476,7 @@ function TasksPage() {
               </Button>
             </div>
             {createError && (
-              <p role="alert" className="text-small text-danger sm:col-span-2">
+              <p role="alert" className="text-label text-alert-text sm:col-span-2">
                 {createError}
               </p>
             )}
@@ -483,13 +485,13 @@ function TasksPage() {
       </section>
       <section
         aria-label="Lọc công việc"
-        className="grid grid-cols-1 gap-3 rounded-card border border-border bg-surface p-3 sm:grid-cols-2"
+        className="grid grid-cols-1 gap-3 rounded-md border border-line bg-surface-100 p-3 sm:grid-cols-2"
       >
-        <label className="flex flex-col gap-1 text-small text-text-2">
+        <label className="flex flex-col gap-1 text-label text-ink-muted">
           Loại việc
           <select
             aria-label="Lọc theo loại việc"
-            className={FIELD}
+            className={FILTER_SELECT}
             value={kind}
             onChange={(event) => setKind(event.target.value)}
           >
@@ -501,24 +503,25 @@ function TasksPage() {
             ))}
           </select>
         </label>
-        <label className="flex flex-col gap-1 text-small text-text-2">
-          Cam kết
-          <select
-            aria-label="Lọc theo người hứa"
-            className={FIELD}
+        <div className="flex flex-col gap-1.5 text-label text-ink-muted">
+          <span>Cam kết</span>
+          <ChipGroup
+            label="Lọc theo người hứa"
             value={side}
-            onChange={(event) => setSide(event.target.value as TaskSideFilter)}
-          >
-            <option value="all">Em hứa và Khách hẹn</option>
-            <option value="me">Em hứa</option>
-            <option value="customer">Khách hẹn</option>
-          </select>
-        </label>
+            allowEmpty={false}
+            onChange={(value) => value && setSide(value as TaskSideFilter)}
+            options={[
+              { value: 'all', label: 'Tất cả' },
+              { value: 'me', label: 'Em hứa' },
+              { value: 'customer', label: 'Khách hẹn' },
+            ]}
+          />
+        </div>
       </section>
       {rows.length === 0 ? (
         <EmptyState
           title="Không có công việc phù hợp"
-          hint={
+          text={
             customers.length
               ? 'Thử đổi bộ lọc hoặc xem lại sau.'
               : 'Việc mới sẽ xuất hiện tại đây khi được thêm vào hồ sơ khách.'
@@ -532,10 +535,12 @@ function TasksPage() {
             return (
               <section key={group.id} aria-labelledby={`tasks-${group.id}`} className="flex flex-col gap-2">
                 <header className="flex items-center justify-between gap-2 px-1">
-                  <h2 id={`tasks-${group.id}`} className="text-section">
+                  <h2 id={`tasks-${group.id}`} className="text-section-head">
                     {group.label}
                   </h2>
-                  <Badge variant="count">{grouped.length}</Badge>
+                  <span className="inline-grid h-[22px] min-w-[22px] place-items-center rounded-full bg-surface-200 px-1.5 text-caption text-ink-muted">
+                    {grouped.length}
+                  </span>
                 </header>
                 <ul className="flex flex-col gap-2">
                   {grouped.map((row) => {

@@ -182,6 +182,10 @@ test('Nút Gọi trên thẻ mở luồng gọi có sẵn; chạm tên mở hồ
   await page.waitForFunction(() => (window as Window & { __dialCalls?: number }).__dialCalls === 1);
   await page.goto('/');
   await card(page, 'Khách Quá Hẹn').getByRole('button', { name: 'Mở Khách Quá Hẹn' }).click();
+  // R2-04: "Mở" bật tấm xem nhanh ngay trên Hôm nay; hồ sơ đầy đủ mở từ tấm.
+  const quick = page.getByRole('dialog', { name: 'Khách Quá Hẹn' });
+  await expect(quick).toBeVisible();
+  await quick.getByRole('button', { name: 'Mở hồ sơ đầy đủ' }).click();
   await expect(page).toHaveURL(/\/ho-so\/m3-due$/);
 });
 

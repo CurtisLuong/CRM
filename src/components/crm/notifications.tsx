@@ -88,7 +88,9 @@ export function NotificationItem({
     <div
       className={cn(
         'group/nt relative grid min-h-14 grid-cols-[32px_minmax(0,1fr)_auto_auto] items-center gap-x-3 gap-y-1 rounded-md border border-line bg-surface-100 px-3 py-2.5 hover:bg-surface-200 max-sm:grid-cols-[32px_minmax(0,1fr)_auto]',
-        nested && 'min-h-12 grid-cols-[minmax(0,1fr)_auto_auto] rounded-none border-0 border-t bg-transparent py-1.5',
+        // Mục lồng không có cột icon 32px: phải ghi đè cả biến thể max-sm, không thì chữ bị nhét vào cột 32px.
+        nested &&
+          'min-h-12 grid-cols-[minmax(0,1fr)_auto_auto] rounded-none border-0 border-t bg-transparent py-1.5 max-sm:grid-cols-[minmax(0,1fr)_auto]',
         compact && 'grid-cols-[32px_minmax(0,1fr)_auto]',
       )}
     >
@@ -131,6 +133,7 @@ export function NotificationItem({
         className={cn(
           'flex items-center justify-end gap-1 max-sm:col-span-2 max-sm:col-start-2 max-sm:justify-start',
           compact && 'col-span-2 col-start-2 justify-start',
+          nested && 'max-sm:col-start-1',
         )}
       >
         {onSnooze && (
@@ -168,6 +171,7 @@ export interface NotificationGroupProps {
   unread?: boolean;
   bulkLabel?: string;
   onBulk?: () => void;
+  bulkControl?: React.ReactNode;
   onSeeAll?: () => void;
   preview?: number;
   defaultOpen?: boolean;
@@ -184,6 +188,7 @@ export function NotificationGroup({
   unread,
   bulkLabel,
   onBulk,
+  bulkControl,
   onSeeAll,
   preview = 5,
   defaultOpen,
@@ -242,15 +247,16 @@ export function NotificationGroup({
           {open ? 'Thu gọn' : `Xem ${count} khách`}
           <ChevronDown className={cn('transition-transform', open && 'rotate-180')} />
         </Button>
-        {(bulkLabel ?? t.bulk) && t.action && (
-          <ActionButton
-            action={t.action}
-            size="sm"
-            variant={level ? BTN[level] : 'secondary'}
-            label={`${bulkLabel ?? t.bulk} ${count}`}
-            onClick={onBulk}
-          />
-        )}
+        {bulkControl ??
+          ((bulkLabel ?? t.bulk) && t.action && (
+            <ActionButton
+              action={t.action}
+              size="sm"
+              variant={level ? BTN[level] : 'secondary'}
+              label={`${bulkLabel ?? t.bulk} ${count}`}
+              onClick={onBulk}
+            />
+          ))}
       </div>
       {open && (
         <div className="bg-surface-0">

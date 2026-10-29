@@ -1,4 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
+import { TextField } from '@/components/crm/form-fields';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import {
   ASSET_LEGACY,
   LIFE_CONTEXT_LEGACY,
@@ -7,11 +10,12 @@ import {
   PROFILE_LIFE_CONTEXT,
 } from '@/config/advanced';
 import type { Customer } from '@/domain/customer';
-import { Button, displayText, Icon } from '@/ui';
+import { displayText } from '@/ui/display';
+import { Icon } from '@/ui/Icon';
 import { legacyDraft, legacyValues, showLegacy } from './fields';
 
 const FIELD =
-  'min-h-11 w-full rounded-control border border-border-strong bg-surface px-3 text-body text-text focus-visible:outline-2 focus-visible:outline-focus disabled:opacity-60';
+  'min-h-11 w-full rounded-sm border border-line bg-surface-100 px-3 text-body text-ink focus-visible:outline-2 focus-visible:outline-ion disabled:opacity-60';
 
 const fieldId = (label: string) => `profile-field-${label.toLocaleLowerCase('vi').replace(/[^\p{L}\p{N}]+/gu, '-')}`;
 
@@ -50,31 +54,37 @@ export function ProfileTextField({
   // Ô số không hiện được ghi cũ dạng chữ (vd. "2 tỷ") → hiện chỉ đọc để không tưởng là trống (D-012).
   const textInNumber = type === 'number' && raw.trim() !== '' && !Number.isFinite(Number(raw));
   return (
-    <div className="block space-y-1 text-small text-text-2">
-      <label htmlFor={id}>{label}</label>
-      {textInNumber && <p className="text-text-3 [overflow-wrap:anywhere]">Đang lưu: {raw}</p>}
+    <div className="space-y-1">
+      {textInNumber && <p className="text-ink-muted [overflow-wrap:anywhere]">Đang lưu: {raw}</p>}
       {multiline ? (
-        <textarea
-          id={id}
-          value={draft}
-          disabled={disabled}
-          placeholder={placeholder}
-          onChange={(e) => setDraft(e.target.value)}
-          onBlur={save}
-          className={`${FIELD} min-h-20 py-2`}
-        />
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor={id} className="text-label text-ink-muted">
+            {label}
+          </label>
+          <Textarea
+            id={id}
+            value={draft}
+            disabled={disabled}
+            placeholder={placeholder}
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={save}
+            className="min-h-20"
+          />
+        </div>
       ) : (
-        <input
+        <TextField
           id={id}
+          label={label}
+          className="[&_label]:block [&_label]:min-h-9"
           type={type}
           inputMode={type === 'number' ? 'numeric' : undefined}
           min={type === 'number' ? 0 : undefined}
+          numeric={type === 'number'}
           value={draft}
           disabled={disabled}
           placeholder={placeholder}
           onChange={(e) => setDraft(e.target.value)}
           onBlur={save}
-          className={FIELD}
         />
       )}
     </div>
@@ -110,7 +120,7 @@ export function LegacyAssistField({ label, value, disabled, placeholder, legacy,
   };
   return (
     <div className="space-y-2">
-      <div className="block space-y-1 text-small text-text-2">
+      <div className="block space-y-1 text-caption text-ink-muted">
         <label htmlFor={id}>{label}</label>
         <textarea
           id={id}
@@ -124,12 +134,12 @@ export function LegacyAssistField({ label, value, disabled, placeholder, legacy,
         />
       </div>
       {showLegacy(legacy, draft) && (
-        <div className="space-y-2 rounded-control border border-dashed border-border-strong bg-surface-2 p-3">
-          <p className="text-small text-text-2">Ghi cũ đang giữ trong hồ sơ (chưa gộp vào ô):</p>
+        <div className="space-y-2 rounded-sm border border-dashed border-line bg-surface-200 p-3">
+          <p className="text-caption text-ink-muted">Ghi cũ đang giữ trong hồ sơ (chưa gộp vào ô):</p>
           <dl className="space-y-1">
             {legacy.map((row) => (
               <div key={row.key}>
-                <dt className="text-small text-text-3">{row.label}</dt>
+                <dt className="text-caption text-ink-muted">{row.label}</dt>
                 <dd className="text-body [overflow-wrap:anywhere]">{row.value}</dd>
               </div>
             ))}
@@ -171,9 +181,15 @@ export function ProfileAdvanced({ customer, writable, onSaveAdvanced }: Props) {
 
   return (
     <section aria-label="Hồ sơ nâng cao" className="space-y-3">
-      <Button variant="secondary" block aria-expanded={open} aria-controls={panelId} onClick={() => setOpen(!open)}>
+      <Button
+        variant="secondary"
+        className="w-full"
+        aria-expanded={open}
+        aria-controls={panelId}
+        onClick={() => setOpen(!open)}
+      >
         <span className="flex-1 text-left">Nâng cao</span>
-        <Icon name={open ? 'up' : 'expand'} size={20} className="text-text-2" />
+        <Icon name={open ? 'up' : 'expand'} size={20} className="text-ink-muted" />
       </Button>
       {open && (
         <div id={panelId} className="space-y-4">
@@ -186,7 +202,7 @@ export function ProfileAdvanced({ customer, writable, onSaveAdvanced }: Props) {
             onSave={(value) => onSaveAdvanced(PROFILE_LIFE_CONTEXT.key, value)}
           />
           <fieldset className="space-y-2">
-            <legend className="text-body-strong">Tài sản</legend>
+            <legend className="text-body font-semibold">Tài sản</legend>
             {PROFILE_ASSET_FIELDS.map((field) => (
               <ProfileTextField
                 key={field.key}
@@ -199,19 +215,19 @@ export function ProfileAdvanced({ customer, writable, onSaveAdvanced }: Props) {
               />
             ))}
             {assetLegacy.map((row) => (
-              <p key={row.key} className="text-small text-text-2">
+              <p key={row.key} className="text-caption text-ink-muted">
                 {row.label}: <span className="text-body">{row.value}</span>{' '}
-                <span className="text-text-3">(ghi cũ được giữ nguyên)</span>
+                <span className="text-ink-muted">(ghi cũ được giữ nguyên)</span>
               </p>
             ))}
           </fieldset>
           {/* "Nguồn và độ mới" (field_meta) Curtis cho ẩn 2026-10-21: dữ liệu vẫn ghi cho AI/độ mới, không hiện. */}
           {unknown.length > 0 && (
             <div className="space-y-1">
-              <h2 className="text-section">Trường cũ khác</h2>
+              <h2 className="text-section-head">Trường cũ khác</h2>
               {unknown.map(([key, value]) => (
-                <p key={key} className="text-small text-text-2">
-                  {key}: {displayText(value)} <span className="text-text-3">(trường cũ được giữ nguyên)</span>
+                <p key={key} className="text-caption text-ink-muted">
+                  {key}: {displayText(value)} <span className="text-ink-muted">(trường cũ được giữ nguyên)</span>
                 </p>
               ))}
             </div>

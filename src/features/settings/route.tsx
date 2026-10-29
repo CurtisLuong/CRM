@@ -9,32 +9,22 @@ import {
 import type { FeatureRoute } from '@/app/routes';
 import { useAppSession } from '@/app/session';
 import { THEME_OPTIONS, type ThemePref, useThemePref } from '@/app/theme';
+import { EmptyState, SelectField } from '@/components/crm';
+import { Button, Card, Textarea, toast } from '@/components/ui';
 import { useCustomers, useRepositoryAccount } from '@/data/hooks';
-import { Button, EmptyState, useToast } from '@/ui';
 import { CampaignCostsSection } from './campaign-costs';
 import { CampaignProjectsSection } from './campaign-projects';
 import { MetaLeadAdsSection } from './meta-lead-ads';
-import {
-  AI_DEFAULT_STYLE,
-  AI_MODELS,
-  aiEnabled,
-  defaultTemplates,
-  localSettingsKey,
-  normalizeAiSettings,
-  type SettingsTemplate,
-  validTemplates,
-} from './model';
+import { AI_DEFAULT_STYLE, AI_MODELS, aiEnabled, localSettingsKey, normalizeAiSettings } from './model';
 
-const FIELD = 'min-h-11 w-full rounded-control border border-border-strong bg-surface px-3 py-2 text-body text-text';
+const FIELD = 'min-h-11 w-full rounded-sm border border-input bg-surface-100 px-3 py-2 text-body text-ink';
 
 export function SettingsPage() {
   const account = useRepositoryAccount();
   const { session, isDemo, exitDemo } = useAppSession();
-  const toast = useToast();
   const [theme, setTheme] = useThemePref();
   const userId = account?.sync.local.userId || '';
   const customers = useCustomers((customer) => !!account && customer.owner_id === userId);
-  const [templates, setTemplates] = useState<SettingsTemplate[]>(defaultTemplates());
   const [ai, setAi] = useState(() => normalizeAiSettings(null));
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -44,9 +34,7 @@ export function SettingsPage() {
   const [online, setOnline] = useState(() => !isDemo && (typeof navigator === 'undefined' || navigator.onLine));
   const pendingSync = useRef(false);
   const syncBusy = useRef(false);
-  const templatesRef = useRef(templates);
   const aiRef = useRef(ai);
-  templatesRef.current = templates;
   aiRef.current = ai;
   const workerUrl = import.meta.env.VITE_WORKER_URL as string | undefined;
   const showAi = aiEnabled(workerUrl, online);
@@ -67,14 +55,12 @@ export function SettingsPage() {
     let active = true;
     syncBusy.current = true;
     setSaving(true);
-    void Promise.all([
-      account.remote.saveZaloTemplatesRemote(templatesRef.current),
-      account.remote.saveAiSettingsRemote(aiRef.current),
-    ])
-      .then(([zaloOk, aiOk]) => {
+    void account.remote
+      .saveAiSettingsRemote(aiRef.current)
+      .then((aiOk) => {
         if (!active) return;
-        pendingSync.current = !(zaloOk && aiOk);
-        if (zaloOk && aiOk) setMessage('Đã đồng bộ cài đặt đã lưu trên thiết bị.');
+        pendingSync.current = !aiOk;
+        if (aiOk) setMessage('Đã đồng bộ cài đặt đã lưu trên thiết bị.');
       })
       .catch(() => {
         pendingSync.current = true;
@@ -96,8 +82,6 @@ export function SettingsPage() {
     let active = true;
     setLoading(true);
     try {
-      const savedTemplates = localStorage.getItem(localSettingsKey('zalo', userId));
-      if (savedTemplates) setTemplates(validTemplates(JSON.parse(savedTemplates)));
       const legacyOwner = isDemo ? null : localStorage.getItem('crm_ai_settings_user');
       const localAi =
         localStorage.getItem(localSettingsKey('ai', userId)) ||
@@ -113,16 +97,10 @@ export function SettingsPage() {
         active = false;
       };
     }
-    void Promise.all([account.remote.getZaloTemplatesRemote(), account.remote.getAiSettingsRemote()])
-      .then(([remoteTemplates, remoteAi]) => {
+    void account.remote
+      .getAiSettingsRemote()
+      .then((remoteAi) => {
         if (!active) return;
-        if (Array.isArray(remoteTemplates)) {
-          setTemplates(validTemplates(remoteTemplates));
-          localStorage.setItem(localSettingsKey('zalo', userId), JSON.stringify(remoteTemplates));
-        } else if (remoteTemplates === null) {
-          const local = localStorage.getItem(localSettingsKey('zalo', userId));
-          if (local) void account.remote.saveZaloTemplatesRemote(validTemplates(JSON.parse(local)));
-        }
         if (remoteAi && typeof remoteAi === 'object') {
           setAi(normalizeAiSettings(remoteAi));
           localStorage.setItem(localSettingsKey('ai', userId), JSON.stringify(remoteAi));
@@ -153,7 +131,6 @@ export function SettingsPage() {
     setSaving(true);
     setMessage('');
     try {
-      localStorage.setItem(localSettingsKey('zalo', userId), JSON.stringify(templates));
       localStorage.setItem(localSettingsKey('ai', userId), JSON.stringify(ai));
       if (!isDemo) {
         localStorage.setItem('crm_ai_settings', JSON.stringify(ai));
@@ -161,18 +138,13 @@ export function SettingsPage() {
       }
       if (isDemo) {
         setMessage('Đã lưu trên trình duyệt. Cài đặt cần mạng không có trong dữ liệu mẫu.');
-        toast({ title: 'Đã lưu cài đặt' });
+        toast.success('Đã lưu cài đặt');
         return;
       }
-      const [zaloOk, aiOk] = await Promise.all([
-        account.remote.saveZaloTemplatesRemote(templates),
-        account.remote.saveAiSettingsRemote(ai),
-      ]);
-      pendingSync.current = !(zaloOk && aiOk);
-      setMessage(
-        zaloOk && aiOk ? 'Đã lưu và đồng bộ cài đặt.' : 'Đã lưu trên thiết bị; đồng bộ sẽ thử lại khi có mạng.',
-      );
-      toast({ title: 'Đã lưu cài đặt' });
+      const aiOk = await account.remote.saveAiSettingsRemote(ai);
+      pendingSync.current = !aiOk;
+      setMessage(aiOk ? 'Đã lưu và đồng bộ cài đặt.' : 'Đã lưu trên thiết bị; đồng bộ sẽ thử lại khi có mạng.');
+      toast.success('Đã lưu cài đặt');
     } catch {
       setMessage('Đã lưu trên thiết bị; chưa đồng bộ được lên tài khoản.');
     } finally {
@@ -199,19 +171,15 @@ export function SettingsPage() {
     }
   };
 
-  const setTemplate = (id: string, patch: Partial<SettingsTemplate>) =>
-    setTemplates((all) => all.map((item) => (item.id === id ? { ...item, ...patch } : item)));
-  const addTemplate = () => setTemplates((all) => [...all, { id: `u_${crypto.randomUUID()}`, name: '', text: '' }]);
-
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-5 p-4 pb-10">
       <header>
         <h1 className="text-title">Cài đặt</h1>
-        <p className="text-small text-text-2">Tuỳ chọn tài khoản và thiết bị.</p>
+        <p className="text-caption text-ink-muted">Tuỳ chọn tài khoản và thiết bị.</p>
       </header>
-      {!account ? <EmptyState title="Chưa đăng nhập" hint="Đăng nhập để đồng bộ cài đặt tài khoản." /> : null}
+      {!account ? <EmptyState title="Chưa đăng nhập" text="Đăng nhập để đồng bộ cài đặt tài khoản." /> : null}
       {isDemo && (
-        <p role="status" className="rounded-control bg-ion-tint p-3 text-small text-ink">
+        <p role="status" className="rounded-md bg-ion-tint p-3 text-caption text-ink">
           Một số tính năng cần mạng không có trong dữ liệu mẫu.
         </p>
       )}
@@ -219,8 +187,8 @@ export function SettingsPage() {
       {!isDemo && account?.sync?.client ? <MetaLeadAdsSection /> : null}
       {!isDemo && <CampaignProjectsSection customers={customers} account={account} />}
       {!isDemo && <CampaignCostsSection customers={customers} account={account} />}
-      <section className="rounded-card border border-border bg-surface p-4">
-        <h2 className="text-section">Giao diện</h2>
+      <Card className="p-4">
+        <h2 className="text-section-head">Giao diện</h2>
         <fieldset className="mt-3 flex flex-wrap gap-2" aria-label="Giao diện">
           <legend className="sr-only">Giao diện</legend>
           {THEME_OPTIONS.map((option) => (
@@ -234,82 +202,25 @@ export function SettingsPage() {
             </Button>
           ))}
         </fieldset>
-      </section>
-      <section className="rounded-card border border-border bg-surface p-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <h2 className="text-section">Mẫu tin Zalo</h2>
-            <p className="text-small text-text-2">Lưu theo tài khoản; nội dung chỉ được điền sẵn, không tự gửi.</p>
-          </div>
-          <Button onClick={addTemplate}>Thêm mẫu</Button>
-        </div>
-        {loading ? (
-          <p className="mt-3 text-small text-text-2">Đang tải cài đặt…</p>
-        ) : (
-          <div className="mt-3 flex flex-col gap-3">
-            {templates.map((item) => (
-              <fieldset key={item.id} className="flex flex-col gap-2 rounded-control border border-border p-3">
-                <legend className="px-1 text-label">{item.name || 'Mẫu mới'}</legend>
-                <input
-                  className={FIELD}
-                  aria-label="Tên mẫu"
-                  maxLength={60}
-                  value={item.name}
-                  onChange={(event) => setTemplate(item.id, { name: event.target.value })}
-                  placeholder="Tên mẫu"
-                />
-                <textarea
-                  className={`${FIELD} min-h-28`}
-                  aria-label={`Nội dung ${item.name || 'mẫu mới'}`}
-                  rows={4}
-                  value={item.text}
-                  onChange={(event) => setTemplate(item.id, { text: event.target.value })}
-                  placeholder="Nội dung tin nhắn"
-                />
-                {!defaultTemplates().some((template) => template.id === item.id) && (
-                  <Button
-                    variant="danger"
-                    onClick={() => setTemplates((all) => all.filter((entry) => entry.id !== item.id))}
-                  >
-                    Xoá mẫu
-                  </Button>
-                )}
-              </fieldset>
-            ))}
-          </div>
-        )}
-        <div className="mt-3 flex flex-wrap gap-2">
-          <Button
-            onClick={() => {
-              if (window.confirm('Khôi phục mẫu mặc định? Mẫu bạn tự thêm sẽ bị xoá khi bấm Lưu.'))
-                setTemplates(defaultTemplates());
-            }}
-          >
-            Khôi phục mẫu mặc định
-          </Button>
-        </div>
-      </section>
+      </Card>
       {showAi && (
-        <section className="rounded-card border border-border bg-surface p-4">
-          <h2 className="text-section">Cài đặt Trợ lý AI</h2>
-          <p className="mt-1 text-small text-text-2">Chỉ cấu hình cách diễn đạt. AI không tự lưu hoặc gửi nội dung.</p>
-          <label className="mt-3 flex flex-col gap-1 text-small">
-            Model
-            <select
-              className={FIELD}
+        <section className="rounded-lg border border-line bg-surface-100 p-4">
+          <h2 className="text-section-head">Cài đặt Trợ lý AI</h2>
+          <p className="mt-1 text-caption text-ink-muted">
+            Chỉ cấu hình cách diễn đạt. AI không tự lưu hoặc gửi nội dung.
+          </p>
+          <div className="mt-3">
+            <SelectField
+              label="Model"
               value={String(ai.model)}
-              onChange={(event) => setAi((current) => ({ ...current, model: event.target.value }))}
-            >
-              {AI_MODELS.map((model) => (
-                <option value={model.key} key={model.key}>
-                  {model.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="mt-3 flex flex-col gap-1 text-small">
+              options={AI_MODELS.map((model) => ({ value: model.key, label: model.name }))}
+              onValueChange={(value) => setAi((current) => ({ ...current, model: value }))}
+            />
+          </div>
+          <label className="mt-3 flex flex-col gap-1 text-caption" htmlFor="settings-ai-style">
             Phong cách viết
-            <textarea
+            <Textarea
+              id="settings-ai-style"
               className={`${FIELD} min-h-40`}
               maxLength={2000}
               value={String(ai.style || AI_DEFAULT_STYLE)}
@@ -322,13 +233,13 @@ export function SettingsPage() {
         </section>
       )}
       {!showAi && (
-        <p className="rounded-control bg-surface-2 p-3 text-small text-text-2">
+        <p className="rounded-md bg-surface-200 p-3 text-caption text-ink-muted">
           Cài đặt AI đang ẩn khi Worker chưa cấu hình hoặc thiết bị ngoại tuyến.
         </p>
       )}
-      <section className="rounded-card border border-border bg-surface p-4">
-        <h2 className="text-section">Cập nhật ứng dụng Android</h2>
-        <p className="mt-1 text-small text-text-2">Kiểm tra phiên bản APK khi mở bằng vỏ Android.</p>
+      <section className="rounded-lg border border-line bg-surface-100 p-4">
+        <h2 className="text-section-head">Cập nhật ứng dụng Android</h2>
+        <p className="mt-1 text-caption text-ink-muted">Kiểm tra phiên bản APK khi mở bằng vỏ Android.</p>
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <Button disabled={isDemo} onClick={() => void checkApk()}>
             Kiểm tra cập nhật
@@ -337,7 +248,6 @@ export function SettingsPage() {
             <>
               <Button
                 variant="primary"
-                loading={appUpdate.installState === 'checking' || appUpdate.installState === 'downloading'}
                 disabled={appUpdate.installState === 'checking' || appUpdate.installState === 'downloading'}
                 onClick={() => void startAppUpdate()}
               >
@@ -346,13 +256,13 @@ export function SettingsPage() {
               {appUpdate.installState === 'permission' && (
                 <Button onClick={() => void openAppUpdateSettings()}>Mở cài đặt</Button>
               )}
-              <div className="min-w-0 basis-full text-small text-text-2">
-                <p className="text-body-strong text-text">Có bản app mới {appUpdate.release.versionName || ''}</p>
+              <div className="min-w-0 basis-full text-caption text-ink-muted">
+                <p className="text-body-strong text-ink">Có bản app mới {appUpdate.release.versionName || ''}</p>
                 {appUpdate.release.notes && <p className="truncate">{appUpdate.release.notes}</p>}
               </div>
             </>
           )}
-          <span role="status" className="text-small text-text-2">
+          <span role="status" className="text-caption text-ink-muted">
             {appUpdate.release && appUpdate.installState !== 'idle'
               ? appUpdateStatusMessage(appUpdate)
               : apkState || (appUpdate.release ? '' : appUpdate.checkMessage)}
@@ -360,11 +270,11 @@ export function SettingsPage() {
         </div>
       </section>
       <div className="flex flex-wrap items-center gap-3">
-        <Button variant="primary" loading={saving} disabled={!account || loading} onClick={() => void save()}>
+        <Button variant="primary" disabled={!account || loading || saving} onClick={() => void save()}>
           Lưu cài đặt
         </Button>
         {message && (
-          <p role="status" className="text-small text-text-2">
+          <p role="status" className="text-caption text-ink-muted">
             {message}
           </p>
         )}

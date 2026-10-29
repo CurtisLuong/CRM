@@ -1,8 +1,9 @@
 import { type ReactNode, useState } from 'react';
+import { Button } from '@/components/ui/button';
 import { CLOSE_REASONS } from '@/config/reasons';
 import type { Customer } from '@/domain/customer';
 import { factFreshness, factPatch } from '@/domain/customer/facts';
-import { Button, Icon } from '@/ui';
+import { Icon } from '@/ui/Icon';
 import { LONG_FIELD, SHORT_FIELD } from './fields';
 
 type Save = (patch: Record<string, unknown>, message?: string) => void;
@@ -57,17 +58,17 @@ const FACT_LABELS: Record<string, string> = {
 export function FactFreshnessSection({ customer, now = Date.now() }: { customer: Customer; now?: number }) {
   return (
     <section className="space-y-2">
-      <h2 className="text-section">Nguồn và độ mới của dữ kiện</h2>
+      <h2 className="text-section-head">Nguồn và độ mới của dữ kiện</h2>
       {Object.entries(FACT_LABELS).map(([field, label]) => {
         const meta = customer.field_meta?.[field];
         const age = factFreshness(meta?.at, now);
         return (
-          <p key={field} className="text-small text-text-2">
+          <p key={field} className="text-caption text-ink-muted">
             {label}: {sourceName[meta?.by || ''] || 'Nguồn chưa ghi'} · {age.label}
           </p>
         );
       })}
-      <p className="text-small text-text-3">Dữ kiện quá 90 ngày cần xác nhận lại.</p>
+      <p className="text-caption text-ink-muted">Dữ kiện quá 90 ngày cần xác nhận lại.</p>
     </section>
   );
 }
@@ -124,14 +125,14 @@ export function CustomerContactPrefs({
 
   return (
     <section className="space-y-3">
-      <h2 className="text-section">Tuỳ chọn liên hệ</h2>
+      <h2 className="text-section-head">Tuỳ chọn liên hệ</h2>
       <div className="flex flex-wrap gap-3">
         {showChannel && (
-          <label className={`flex flex-col gap-1 text-small ${SHORT_FIELD}`}>
+          <label className={`flex flex-col gap-1 text-caption ${SHORT_FIELD}`}>
             Kênh ưu tiên
             <input
               aria-label="Kênh liên hệ ưu tiên"
-              className="min-h-11 w-full rounded-control border border-border-strong bg-surface px-3 text-body"
+              className="min-h-11 w-full rounded-sm border border-line bg-surface-100 px-3 text-body"
               disabled={!writable}
               value={channel}
               onChange={(e) => setChannel(e.target.value)}
@@ -140,11 +141,11 @@ export function CustomerContactPrefs({
           </label>
         )}
         {showSlot && (
-          <label className={`flex flex-col gap-1 text-small ${SHORT_FIELD}`}>
+          <label className={`flex flex-col gap-1 text-caption ${SHORT_FIELD}`}>
             Khung giờ ưu tiên
             <input
               aria-label="Khung giờ liên hệ"
-              className="min-h-11 w-full rounded-control border border-border-strong bg-surface px-3 text-body"
+              className="min-h-11 w-full rounded-sm border border-line bg-surface-100 px-3 text-body"
               disabled={!writable}
               value={slot}
               onChange={(e) => setSlot(e.target.value)}
@@ -173,10 +174,10 @@ export function CustomerContactPrefs({
           </label>
         )}
         {showDncReason && (
-          <label className={`flex flex-col gap-1 text-small ${LONG_FIELD}`}>
+          <label className={`flex flex-col gap-1 text-caption ${LONG_FIELD}`}>
             Lý do không liên hệ
             <input
-              className="min-h-11 w-full rounded-control border border-border-strong bg-surface px-3 text-body"
+              className="min-h-11 w-full rounded-sm border border-line bg-surface-100 px-3 text-body"
               disabled={!writable}
               value={dncReason}
               onChange={(e) => setDncReason(e.target.value)}
@@ -244,29 +245,29 @@ export function CustomerInterests({
 
   return (
     <section className="space-y-3">
-      <h2 className="text-section">Nhu cầu theo đợt</h2>
+      <h2 className="text-section-head">Nhu cầu theo đợt</h2>
       {(customer.interests || []).map((interest, index) => {
         if (!interest) return null;
         const age = factFreshness(interest.at, now);
         return (
-          <article key={interest?.id || index} className="rounded-control border border-border p-3">
-            <p className="text-body-strong">
+          <article key={interest?.id || index} className="rounded-sm border border-line p-3">
+            <p className="text-body font-semibold">
               {interest.project || 'Chưa rõ dự án'} · {interest.apt_type || 'Chưa rõ loại căn'}
             </p>
-            <p className="text-small text-text-2">
+            <p className="text-caption text-ink-muted">
               {interest.status || 'Chưa rõ trạng thái'} · nguồn{' '}
               {sourceName[interest.source || ''] || interest.source || 'chưa ghi'} · {age.label}
             </p>
-            {interest.purpose && <p className="text-small text-text-2">Mục đích: {interest.purpose}</p>}
-            {interest.timeline && <p className="text-small text-text-2">Thời điểm: {interest.timeline}</p>}
+            {interest.purpose && <p className="text-caption text-ink-muted">Mục đích: {interest.purpose}</p>}
+            {interest.timeline && <p className="text-caption text-ink-muted">Thời điểm: {interest.timeline}</p>}
             {interest.budget_max != null && (
-              <p className="text-small text-text-2">Ngân sách tối đa: {interest.budget_max}</p>
+              <p className="text-caption text-ink-muted">Ngân sách tối đa: {interest.budget_max}</p>
             )}
-            <label className="mt-2 flex flex-col gap-1 text-small">
+            <label className="mt-2 flex flex-col gap-1 text-caption">
               Trạng thái đợt
               <select
                 aria-label={`Trạng thái đợt ${interest.project || index + 1}`}
-                className="min-h-11 rounded-control border border-border-strong bg-surface px-3 text-body"
+                className="min-h-11 rounded-sm border border-line bg-surface-100 px-3 text-body"
                 disabled={!writable}
                 value={interest.status || 'open'}
                 onChange={(e) =>
@@ -283,11 +284,11 @@ export function CustomerInterests({
               </select>
             </label>
             {interest.status === 'lost' && (
-              <label className="mt-2 flex flex-col gap-1 text-small">
+              <label className="mt-2 flex flex-col gap-1 text-caption">
                 Lý do kết thúc đợt
                 <input
                   aria-label={`Lý do đợt ${interest.project || index + 1}`}
-                  className="min-h-11 rounded-control border border-border-strong bg-surface px-3 text-body"
+                  className="min-h-11 rounded-sm border border-line bg-surface-100 px-3 text-body"
                   disabled={!writable}
                   defaultValue={interest.reason || ''}
                   onBlur={(e) =>
@@ -304,7 +305,7 @@ export function CustomerInterests({
         {projectCatalog ? (
           <select
             aria-label="Dự án quan tâm mới"
-            className="min-h-11 w-full min-w-0 rounded-control border border-border-strong bg-surface px-3 text-body"
+            className="min-h-11 w-full min-w-0 rounded-sm border border-line bg-surface-100 px-3 text-body"
             disabled={!writable}
             value={project}
             onChange={(e) => setProject(e.target.value)}
@@ -319,7 +320,7 @@ export function CustomerInterests({
         ) : (
           <input
             aria-label="Dự án quan tâm mới"
-            className="min-h-11 w-full min-w-0 rounded-control border border-border-strong bg-surface px-3 text-body"
+            className="min-h-11 w-full min-w-0 rounded-sm border border-line bg-surface-100 px-3 text-body"
             disabled={!writable}
             value={project}
             onChange={(e) => setProject(e.target.value)}
@@ -328,7 +329,7 @@ export function CustomerInterests({
         )}
         <input
           aria-label="Loại căn đợt mới"
-          className="min-h-11 rounded-control border border-border-strong bg-surface px-3 text-body"
+          className="min-h-11 rounded-sm border border-line bg-surface-100 px-3 text-body"
           disabled={!writable}
           value={interestType}
           onChange={(e) => setInterestType(e.target.value)}
@@ -338,7 +339,7 @@ export function CustomerInterests({
           aria-label="Ngân sách đợt mới"
           type="number"
           min="0"
-          className="min-h-11 rounded-control border border-border-strong bg-surface px-3 text-body"
+          className="min-h-11 rounded-sm border border-line bg-surface-100 px-3 text-body"
           disabled={!writable}
           value={interestBudget}
           onChange={(e) => setInterestBudget(e.target.value)}
@@ -346,7 +347,7 @@ export function CustomerInterests({
         />
         <input
           aria-label="Mục đích đợt mới"
-          className="min-h-11 rounded-control border border-border-strong bg-surface px-3 text-body"
+          className="min-h-11 rounded-sm border border-line bg-surface-100 px-3 text-body"
           disabled={!writable}
           value={interestPurpose}
           onChange={(e) => setInterestPurpose(e.target.value)}
@@ -354,7 +355,7 @@ export function CustomerInterests({
         />
         <input
           aria-label="Thời điểm đợt mới"
-          className="min-h-11 rounded-control border border-border-strong bg-surface px-3 text-body"
+          className="min-h-11 rounded-sm border border-line bg-surface-100 px-3 text-body"
           disabled={!writable}
           value={interestTimeline}
           onChange={(e) => setInterestTimeline(e.target.value)}
@@ -396,7 +397,7 @@ export function CustomerHousehold({ customer, writable, onSave, now }: BaseProps
 
   return (
     <section className="space-y-3">
-      <h2 className="text-section">Người cùng quyết định</h2>
+      <h2 className="text-section-head">Người cùng quyết định</h2>
       {(customer.household || []).filter(Boolean).map((person, index) => (
         <p key={person?.id || index} className="text-body">
           {person?.name || 'Chưa có tên'}
@@ -407,7 +408,7 @@ export function CustomerHousehold({ customer, writable, onSave, now }: BaseProps
       <div className="grid gap-2 sm:grid-cols-3">
         <input
           aria-label="Tên người cùng quyết định"
-          className="min-h-11 rounded-control border border-border-strong bg-surface px-3 text-body"
+          className="min-h-11 rounded-sm border border-line bg-surface-100 px-3 text-body"
           disabled={!writable}
           value={member}
           onChange={(e) => setMember(e.target.value)}
@@ -415,7 +416,7 @@ export function CustomerHousehold({ customer, writable, onSave, now }: BaseProps
         />
         <input
           aria-label="Vai trò người cùng quyết định"
-          className="min-h-11 rounded-control border border-border-strong bg-surface px-3 text-body"
+          className="min-h-11 rounded-sm border border-line bg-surface-100 px-3 text-body"
           disabled={!writable}
           value={memberRole}
           onChange={(e) => setMemberRole(e.target.value)}
@@ -423,7 +424,7 @@ export function CustomerHousehold({ customer, writable, onSave, now }: BaseProps
         />
         <input
           aria-label="Số điện thoại người cùng quyết định"
-          className="min-h-11 rounded-control border border-border-strong bg-surface px-3 text-body"
+          className="min-h-11 rounded-sm border border-line bg-surface-100 px-3 text-body"
           disabled={!writable}
           value={memberPhone}
           onChange={(e) => setMemberPhone(e.target.value)}
@@ -431,7 +432,7 @@ export function CustomerHousehold({ customer, writable, onSave, now }: BaseProps
         />
         <input
           aria-label="Ghi chú người cùng quyết định"
-          className="min-h-11 rounded-control border border-border-strong bg-surface px-3 text-body"
+          className="min-h-11 rounded-sm border border-line bg-surface-100 px-3 text-body"
           disabled={!writable}
           value={memberNote}
           onChange={(e) => setMemberNote(e.target.value)}
@@ -460,12 +461,12 @@ export function CustomerClosure({ customer, writable, onSave, now }: BaseProps) 
 
   return (
     <section className="space-y-3">
-      <h2 className="text-section">Lý do kết thúc và điều kiện retarget</h2>
-      <label className="flex flex-col gap-1 text-small">
+      <h2 className="text-section-head">Lý do kết thúc và điều kiện retarget</h2>
+      <label className="flex flex-col gap-1 text-caption">
         Lý do
         <select
           aria-label="Lý do kết thúc"
-          className="min-h-11 rounded-control border border-border-strong bg-surface px-3 text-body"
+          className="min-h-11 rounded-sm border border-line bg-surface-100 px-3 text-body"
           disabled={!writable}
           value={customer.close_reason || ''}
           onChange={(e) => closePatch('close_reason', e.target.value || null)}
@@ -478,10 +479,10 @@ export function CustomerClosure({ customer, writable, onSave, now }: BaseProps) 
           ))}
         </select>
       </label>
-      <label className="flex flex-col gap-1 text-small">
+      <label className="flex flex-col gap-1 text-caption">
         Ghi chú kết thúc
         <input
-          className="min-h-11 rounded-control border border-border-strong bg-surface px-3 text-body"
+          className="min-h-11 rounded-sm border border-line bg-surface-100 px-3 text-body"
           disabled={!writable}
           value={closeNote}
           onChange={(e) => setCloseNote(e.target.value)}
@@ -489,11 +490,11 @@ export function CustomerClosure({ customer, writable, onSave, now }: BaseProps) 
         />
       </label>
       <div className="grid gap-2 sm:grid-cols-2">
-        <label className="flex flex-col gap-1 text-small">
+        <label className="flex flex-col gap-1 text-caption">
           Liên hệ lại sau ngày
           <input
             type="date"
-            className="min-h-11 rounded-control border border-border-strong bg-surface px-3 text-body"
+            className="min-h-11 rounded-sm border border-line bg-surface-100 px-3 text-body"
             disabled={!writable}
             value={retargetAfter}
             onChange={(e) => setRetargetAfter(e.target.value)}
@@ -502,12 +503,12 @@ export function CustomerClosure({ customer, writable, onSave, now }: BaseProps) 
             }
           />
         </label>
-        <label className="flex flex-col gap-1 text-small">
+        <label className="flex flex-col gap-1 text-caption">
           Ngân sách tối đa (VNĐ)
           <input
             type="number"
             min="0"
-            className="min-h-11 rounded-control border border-border-strong bg-surface px-3 text-body"
+            className="min-h-11 rounded-sm border border-line bg-surface-100 px-3 text-body"
             disabled={!writable}
             value={retargetPrice}
             onChange={(e) => setRetargetPrice(e.target.value)}
@@ -518,10 +519,10 @@ export function CustomerClosure({ customer, writable, onSave, now }: BaseProps) 
           />
         </label>
       </div>
-      <label className="flex flex-col gap-1 text-small">
+      <label className="flex flex-col gap-1 text-caption">
         Loại căn phù hợp
         <input
-          className="min-h-11 rounded-control border border-border-strong bg-surface px-3 text-body"
+          className="min-h-11 rounded-sm border border-line bg-surface-100 px-3 text-body"
           disabled={!writable}
           value={retargetAptTypes}
           onChange={(e) => setRetargetAptTypes(e.target.value)}
@@ -562,7 +563,7 @@ export function CustomerMemory({
         <CustomerContactPrefs customer={customer} writable={writable} onSave={onSave} now={now} hideEmpty={hideEmpty} />
       )}
       {supplement && (supplement.count > 0 || supplement.open) && writable && (
-        <Button variant="secondary" block aria-expanded={supplement.open} onClick={supplement.onToggle}>
+        <Button variant="secondary" className="w-full" aria-expanded={supplement.open} onClick={supplement.onToggle}>
           {supplement.open ? 'Thu gọn' : `Bổ sung (${supplement.count})`}
         </Button>
       )}
@@ -590,9 +591,9 @@ export function CustomerNeedsAdvanced({
   const [open, setOpen] = useState(false);
   return (
     <section aria-label="Nhu cầu nâng cao" className="space-y-3">
-      <Button variant="secondary" block aria-expanded={open} onClick={() => setOpen(!open)}>
+      <Button variant="secondary" className="w-full" aria-expanded={open} onClick={() => setOpen(!open)}>
         <span className="flex-1 text-left">Nâng cao</span>
-        <Icon name={open ? 'up' : 'expand'} size={20} className="text-text-2" />
+        <Icon name={open ? 'up' : 'expand'} size={20} className="text-ink-muted" />
       </Button>
       {open && (
         <div className="space-y-5">

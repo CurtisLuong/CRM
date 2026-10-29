@@ -308,12 +308,12 @@ for (const theme of ['light', 'dark'] as const) {
     await page.getByLabel('Lọc theo loại việc').selectOption('contract');
     const contract = page.locator('#main li').filter({ hasText: 'Phạm Văn An' }).filter({ hasText: 'Kí hợp đồng' });
     await expect(contract).toBeVisible();
+    // Dòng việc theo kit (ActionItem: ảnh đại diện + loại việc bằng chữ), không còn icon loại việc (R5-03, Lead).
     await expect(contract.getByText('Kí HĐ')).toBeVisible();
-    await expect(contract.locator('svg[data-icon="contract"]')).toBeVisible();
     await page.getByLabel('Lọc theo loại việc').selectOption('other');
     const other = page.locator('#main li').filter({ hasText: 'Phạm Văn An' }).filter({ hasText: 'Việc khác' });
     await expect(other).toBeVisible();
-    await expect(other.getByText('Việc', { exact: true })).toBeVisible();
+    await expect(other).toContainText('Phạm Văn An · Việc');
     await noHorizontalScroll(page);
     await shoot(page, info, `cp03-legacy-${theme}.png`);
   });

@@ -106,3 +106,13 @@ Capacitor mở link khác tên miền app bằng `Intent.ACTION_VIEW` không kè
 
 **Quy tắc:** không đoán cấu trúc bên trong app khác — đọc dữ liệu thật qua `adb` (dumpsys/logcat) trước khi viết code chọn màn; cài thử qua `adb install -r` trước khi phát APK.
 
+
+## Vitest giữ kết quả `import.meta.glob` cũ (2026-10-28)
+
+Thêm `src/features/send-kit/commands.ts` → `tests/app/pf04-menu.test.ts` lúc trượt lúc đạt: lệnh mới không có trong `appCommands`. Nguyên nhân: Vitest 5 bật `fsModuleCache` (bộ đệm module trong `node_modules/.vitest-cache`), khoá theo nội dung file nên `src/app/commands/index.ts` không đổi → giữ danh sách glob cũ. Worktree mới (cài thư viện mới) thì xanh, repo đã chạy test trước đó thì trượt.
+
+**Quy tắc:** giữ `fsModuleCache: false` trong `vitest.config.ts`. Test lạ trượt sau khi thêm file tính năng mới → nghĩ tới bộ đệm trước khi sửa code.
+
+## Link `zalo.me/<số>` báo "trang không tồn tại" (2026-10-28)
+
+Mở chat Zalo bằng số điện thoại chỉ chạy khi khách cho người lạ tìm bằng số. Gửi nội dung có sẵn (Tài liệu gửi khách) → dùng bảng chia sẻ (`navigator.share`) để người dùng chọn cuộc trò chuyện. Chia sẻ ≥ 2 tệp thì Zalo bỏ phần chữ (1 tệp thì giữ).

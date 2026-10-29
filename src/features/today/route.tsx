@@ -13,9 +13,11 @@ import type { Task } from '@/domain/customer';
 import { snoozePromise, undoPromiseSnooze } from '@/domain/deadlines/promises';
 import { forStage } from '@/domain/followup';
 import { applySlaPlan, planSlaAutomation, slaPlanMessage } from '@/domain/velocity/automation';
+import { CustomerSheet } from '@/features/customer-sheet/CustomerSheet';
 import { openQuickAction } from '@/features/quick-actions/store';
 import { ACTION_BY_ID, type ActionId, NOTIF_TYPES, slaMeterFor } from '@/lib/crm';
 import {
+  callSessionRows,
   capacityPlan,
   capacitySnoozeCandidates,
   endOfDaySummary,
@@ -69,7 +71,7 @@ export function TodayPage() {
   }>({ account: null, status: 'loading' });
   const [notice, setNotice] = useState('');
   const [now, setNow] = useState(() => Date.now());
-  const [sessionIndex, setSessionIndex] = useState<number | null>(null);
+  const [quickCustomerId, setQuickCustomerId] = useState<string | null>(null);
   const [showSummary, setShowSummary] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
   const [openCollapsed, setOpenCollapsed] = useState<Record<string, boolean>>({});
@@ -130,15 +132,13 @@ export function TodayPage() {
     () => (account ? queueRows(customers, now, account.sync.local.userId) : []),
     [account, customers, now],
   );
+  const sessionRows = callSessionRows(rows, now);
   const plan = capacityPlan(rows, now);
   const snoozeCandidates = capacitySnoozeCandidates(plan.suggested, now);
   const summary = endOfDaySummary(customers, now);
   // Một định nghĩa quá hạn (D-010) và một quy tắc hành động (kể cả tín hiệu phụ) — cùng nguồn với thẻ.
-  const cards = new Map(rows.map((row) => [row, todayCard(row, now)]));
   const counts = todayUrgencyCounts(rows, now);
-  const sessionRows = rows.filter((row) => cards.get(row)?.action === 'call');
   const sessionMinutes = sessionRows.reduce((sum, row) => sum + row.minutes, 0);
-  const activeCall = sessionIndex == null ? null : (sessionRows[sessionIndex] ?? null);
   const afterEvening = new Date(now).getHours() >= 20 && new Date(now).getMinutes() >= 45;
   const currentReadState = readState.account === account ? readState : { account, status: 'loading' as const };
 
@@ -252,7 +252,7 @@ export function TodayPage() {
     const card = todayCard(row, now);
     const level = urgencyForRow(row, now);
     const writable = account.sync.local.userId === customer.owner_id && !customer.archived_at;
-    const open = () => navigate(`/ho-so/${customer.id}`);
+    const open = () => setQuickCustomerId(customer.id);
     const task = signalTask(signal, customer);
     const group = rowGroup(signal);
     const notification = NOTIF_TYPES[group ?? 'system'];
@@ -434,34 +434,14 @@ export function TodayPage() {
         </div>
       )}
 
-      {sessionIndex == null ? (
-        sessionRows.length > 0 && (
-          <div className="mt-3">
-            <CallSessionBar
-              title={`Gọi lần lượt ${sessionRows.length} khách`}
-              sub={`${rows.length} việc · ~${plan.minutes} phút`}
-              duration={sessionMinutes}
-              onStart={() => setSessionIndex(0)}
-            />
-          </div>
-        )
-      ) : activeCall ? (
-        <div className="mt-3 flex flex-col gap-2">
-          {renderCard(activeCall)}
-          <p className="text-label text-ink-muted">
-            {sessionIndex + 1}/{sessionRows.length}
-          </p>
-          <div className="flex gap-2">
-            <Button onClick={() => setSessionIndex((i) => (i ?? 0) + 1)}>Bỏ qua khách</Button>
-            <Button onClick={() => setSessionIndex(null)}>Dừng phiên</Button>
-          </div>
-        </div>
-      ) : (
-        <div className="mt-3 flex flex-col gap-2">
-          <p className="text-label text-ink-muted">Đã hết khách trong phiên.</p>
-          <Button className="self-start" onClick={() => setSessionIndex(null)}>
-            Đóng phiên
-          </Button>
+      {sessionRows.length > 0 && (
+        <div className="mt-3">
+          <CallSessionBar
+            title={`Gọi lần lượt ${sessionRows.length} khách`}
+            sub={`${rows.length} việc · ~${plan.minutes} phút`}
+            duration={sessionMinutes}
+            onStart={() => navigate(`/thao-tac-nhanh?phien=goi&t=${now}`)}
+          />
         </div>
       )}
 
@@ -477,7 +457,8 @@ export function TodayPage() {
                 className="flex min-h-12 w-full items-center justify-between gap-2 rounded-md border border-line bg-surface-100 px-4 text-left text-label font-semibold"
               >
                 <span>
-                  {group.title} <span className="text-ink-muted">{group.rows.length}</span>
+                  <span className="text-section-head">{group.title}</span>{' '}
+                  <span className="text-ink-muted">{group.rows.length}</span>
                 </span>
                 <span aria-hidden>{opened ? '⌄' : '›'}</span>
               </button>
@@ -493,7 +474,7 @@ export function TodayPage() {
         return (
           <section key={group.key} aria-label={group.title} className="mt-2">
             <div className="mb-2 flex items-baseline gap-2 px-1">
-              <h2 className="text-label font-semibold">{group.title}</h2>
+              <h2 className="text-section-head">{group.title}</h2>
               <span className="text-caption text-ink-muted tabular-nums">{group.rows.length}</span>
             </div>
             <div className="flex flex-col gap-2">
@@ -534,6 +515,12 @@ export function TodayPage() {
           Xem tổng kết ngày
         </Button>
       )}
+      <CustomerSheet
+        customer={customers.find((customer) => customer.id === quickCustomerId) ?? null}
+        userId={account.sync.local.userId}
+        onOpenChange={(open) => !open && setQuickCustomerId(null)}
+        onOpenProfile={(customer) => navigate(`/ho-so/${customer.id}`)}
+      />
     </main>
   );
 }

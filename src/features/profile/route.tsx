@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import type { FeatureRoute } from '@/app/routes';
+import { ActionButton, Avatar, SlaMeter, StageChip } from '@/components/crm';
+import { Button } from '@/components/ui/button';
+import { Sheet, SheetBody, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { TabsContent, TabsList, Tabs as TabsPrimitive, TabsTrigger } from '@/components/ui/tabs';
 import { PREF_CONDITIONS_LEGACY, PROFILE_PREF_CONDITIONS, PROFILE_PREF_FIELDS } from '@/config/advanced';
 import { CARE_STAGE_BOOKING, CARE_STAGE_DISPLAY } from '@/config/stages';
 import { type TaskActionKind, taskKindOf } from '@/config/taskKinds';
@@ -19,22 +23,9 @@ import { bookingSteps, status as slaStatus } from '@/domain/velocity/engine';
 import { AiBrief } from '@/features/ai/AiBrief';
 import { customerUnit, loanPath } from '@/features/loan/model';
 import { openQuickAction } from '@/features/quick-actions/store';
-import { slaBarOf } from '@/features/today/model';
-import {
-  ActionBar,
-  Avatar,
-  Badge,
-  Button,
-  DeadlineTag,
-  HealthDot,
-  Icon,
-  Sheet,
-  SlaBar,
-  StageChip,
-  sourceLabel,
-  Tabs,
-  useToast,
-} from '@/ui';
+import { fmtDur, slaFor, slaMeterFor } from '@/lib/crm';
+import { sourceLabel } from '@/ui/display';
+import { Icon } from '@/ui/Icon';
 import { AddTaskSheet } from './add-task';
 import { ProfileTextField as Field, LegacyAssistField, ProfileAdvanced } from './advanced';
 import { ArchiveCustomerSection, ArchivedBanner } from './archive';
@@ -65,7 +56,15 @@ function Profile() {
   const navigate = useNavigate();
   const customer = useCustomer(id);
   const account = useRepositoryAccount();
-  const toast = useToast();
+  const [notice, setNotice] = useState<{
+    title: string;
+    description?: string;
+    tone?: 'default' | 'error';
+    onUndo?: () => void;
+  } | null>(null);
+  const toast = (input: { title: string; description?: string; tone?: 'default' | 'error'; onUndo?: () => void }) => {
+    setNotice(input);
+  };
   const [now, setNow] = useState(Date.now());
   const [busy, setBusy] = useState(false);
   // CP-01: Nhu cầu & căn là tab đầu/mặc định; mở khách khác quay lại tab này.
@@ -225,17 +224,41 @@ function Profile() {
     if (!hasNeedValue(value)) keepNeedVisible(String(key));
     setField(key, value);
   };
-  const actionBar = (
-    <ActionBar
-      actions={[
-        { icon: 'call', label: 'Gọi', disabled: !writable, onClick: () => openQuickAction(c.id, 'call') },
-        { icon: 'message', label: 'Zalo', disabled: !writable, onClick: () => openQuickAction(c.id, 'zalo') },
-        { icon: 'note', label: 'Ghi chú', disabled: !infoWritable, onClick: () => openQuickAction(c.id, 'note') },
-        { icon: 'call_sched', label: 'Hẹn', disabled: !writable, onClick: () => openQuickAction(c.id, 'schedule') },
-      ]}
-      // Desktop: thanh nút nằm trong thẻ đầu hồ sơ → thẳng lề nội dung thẻ, không lấn ra mép.
-      className="-mx-4 lg:mx-0"
-    />
+  const actionBar = (className = '') => (
+    <nav aria-label="Hành động nhanh" className={`flex min-w-0 items-center justify-between gap-2 ${className}`}>
+      <ActionButton
+        action="call"
+        label="Gọi"
+        display="stacked"
+        className="md:w-auto md:flex-row md:px-4"
+        disabled={!writable}
+        onClick={() => openQuickAction(c.id, 'call')}
+      />
+      <ActionButton
+        action="message"
+        label="Zalo"
+        display="stacked"
+        className="md:w-auto md:flex-row md:px-4"
+        disabled={!writable}
+        onClick={() => openQuickAction(c.id, 'zalo')}
+      />
+      <ActionButton
+        action="note"
+        label="Ghi chú"
+        display="stacked"
+        className="md:w-auto md:flex-row md:px-4"
+        disabled={!infoWritable}
+        onClick={() => openQuickAction(c.id, 'note')}
+      />
+      <ActionButton
+        action="call_sched"
+        label="Hẹn"
+        display="stacked"
+        className="md:w-auto md:flex-row md:px-4"
+        disabled={!writable}
+        onClick={() => openQuickAction(c.id, 'schedule')}
+      />
+    </nav>
   );
   const onStage = async (next: string) => {
     if (!writable || !account || next === stage) return;
@@ -287,7 +310,7 @@ function Profile() {
   const memoryContent = (
     <div key={c.id} className="space-y-5">
       <section className="space-y-3">
-        <h2 className="text-section">Thông tin chính</h2>
+        <h2 className="text-title">Thông tin chính</h2>
         <ProfileInfoFields
           customer={c}
           writable={infoWritable}
@@ -321,9 +344,9 @@ function Profile() {
   const needsContent = (
     <div key={c.id} className="space-y-4">
       <section className="space-y-3">
-        <h2 className="text-section">Nhu cầu hiện tại</h2>
+        <h2 className="text-title">Nhu cầu hiện tại</h2>
         {catalogLoadFailed && (
-          <p role="alert" className="text-small text-danger">
+          <p role="alert" className="text-caption text-alert-text">
             Chưa tải được danh mục dự án. Đang giữ dữ liệu trên máy; các tên chưa có trong danh mục có thể chưa được tải
             về.
           </p>
@@ -351,9 +374,9 @@ function Profile() {
       </section>
       {stage === CARE_STAGE_BOOKING && (
         <section className="space-y-3">
-          <h2 className="text-section">Checklist Booking & làm hồ sơ</h2>
+          <h2 className="text-title">Checklist Booking & làm hồ sơ</h2>
           {bookingSteps(c, now).map((row) => (
-            <label key={row.key} className="flex min-h-12 items-center gap-3 border-b border-border py-2">
+            <label key={row.key} className="flex min-h-12 items-center gap-3 border-b border-line py-2">
               <input
                 type="checkbox"
                 checked={!!row.doneAt}
@@ -362,15 +385,14 @@ function Profile() {
               />
               <span className="flex-1">
                 <span className="block text-body-strong">{row.label}</span>
-                <span className="text-small text-text-2">{row.text}</span>
+                <span className="text-caption text-ink-muted">{row.text}</span>
               </span>
               {row.due && (
-                <DeadlineTag
-                  tag={{
-                    state: row.state === 'over' ? 'missed' : row.state === 'warn' ? 'soon' : 'far',
-                    text: new Date(row.due).toLocaleDateString('vi-VN'),
-                  }}
-                />
+                <span
+                  className={`rounded-sm px-2 py-1 text-caption ${row.state === 'over' ? 'bg-alert-tint text-alert-text' : row.state === 'warn' ? 'bg-soon-tint text-soon-text' : 'bg-surface-200 text-ink-muted'}`}
+                >
+                  {new Date(row.due).toLocaleDateString('vi-VN')}
+                </span>
               )}
             </label>
           ))}
@@ -394,7 +416,7 @@ function Profile() {
         projectCatalog={catalog}
       >
         <section className="space-y-3">
-          <h2 className="text-section">Sở thích bất động sản</h2>
+          <h2 className="text-title">Sở thích bất động sản</h2>
           {PROFILE_PREF_FIELDS.map((field) =>
             field.key === PROFILE_PREF_CONDITIONS.key ? (
               <LegacyAssistField
@@ -438,7 +460,7 @@ function Profile() {
         onCountChange={setDocCount}
       />
       {teamInfo && (
-        <p className="text-small text-text-2">
+        <p className="text-caption text-ink-muted">
           Khách của đồng nghiệp: bạn sửa được thông tin và thêm ghi chú; bậc, cuộc gọi, lịch, ảnh và tài liệu do người
           phụ trách quản lý.
         </p>
@@ -455,7 +477,7 @@ function Profile() {
       label: 'Tính vay',
       content: (
         <section className="space-y-3">
-          <p className="text-body text-text-2">
+          <p className="text-body text-ink-muted">
             Mở máy tính vay với khách và căn đang xem. Thao tác này không sửa hồ sơ.
           </p>
           <Button variant="primary" onClick={() => navigate(loanPath({ customerId: c.id, ...customerUnit(c) }))}>
@@ -466,11 +488,17 @@ function Profile() {
     },
   ];
 
-  const slas = slaBarOf(c, now);
   const briefParts = splitBrief(brief);
   const lastTouch = lastTouchOf(c, now);
   const extra = extraFacts(c, now);
   const stageLabel = CARE_STAGE_DISPLAY[stage] || stage || 'Chưa có bậc';
+  const slaMeter = slaMeterFor(c, now);
+  const slaDisplay = slaMeter ? slaFor(slaMeter.stage, slaMeter.elapsed, slaMeter) : null;
+  const slaTimeLabel = slaMeter
+    ? slaDisplay?.status === 'over'
+      ? `quá ${slaDisplay.time.slice(1)}`
+      : `còn ${fmtDur(Math.max(0, slaMeter.max - slaMeter.elapsed))}`
+    : null;
   const stageOptions = stageChoiceRows(stage);
   // Việc đến hạn/quá hạn đứng đầu hồ sơ, vạch đỏ để không bỏ quên (D-010).
   const tones = tasks.map((task) => dueTone(taskDueInfo(task, now)));
@@ -492,7 +520,7 @@ function Profile() {
       */}
       <div className="flex flex-col gap-4 xl:grid xl:grid-cols-[minmax(0,1fr)_320px] xl:items-start xl:gap-6">
         <div className="contents xl:flex xl:min-w-0 xl:flex-col xl:gap-4">
-          <header className="relative overflow-hidden rounded-card border border-border bg-surface max-xl:order-1">
+          <header className="relative overflow-hidden rounded-md border border-line bg-surface-100 max-xl:order-1">
             {c.cover_path && account?.remote.coverUrl(c.cover_path) && (
               <img src={account.remote.coverUrl(c.cover_path) || ''} alt="" className="h-24 w-full object-cover" />
             )}
@@ -510,10 +538,18 @@ function Profile() {
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <h1 className="min-w-0 truncate text-title">{c.full_name}</h1>
-                    {readOnly && <Badge>Chỉ xem</Badge>}
-                    {teamInfo && <Badge>Khách nhóm · sửa thông tin</Badge>}
+                    {readOnly && (
+                      <span className="rounded-sm border border-line px-2 py-1 text-caption text-ink-muted">
+                        Chỉ xem
+                      </span>
+                    )}
+                    {teamInfo && (
+                      <span className="rounded-sm border border-line px-2 py-1 text-caption text-ink-muted">
+                        Khách nhóm · sửa thông tin
+                      </span>
+                    )}
                   </div>
-                  <p className="font-data text-mono-data text-text-2">{c.phone}</p>
+                  <p className="font-mono text-numeric text-ink-muted">{c.phone}</p>
                 </div>
               </div>
               <div className="flex flex-wrap items-center gap-2">
@@ -523,31 +559,34 @@ function Profile() {
                   aria-label={`Đổi bậc · ${stageLabel}`}
                   disabled={!writable || busy}
                   onClick={() => setStageOpen(true)}
-                  className="inline-flex min-h-9 items-center gap-1 rounded-full text-left disabled:opacity-60"
+                  className="inline-flex min-h-11 items-center gap-1 rounded-full text-left disabled:opacity-60"
                 >
-                  <StageChip stage={stage || 'idle'} label={stageLabel} />
-                  <Icon name="expand" size={16} className="text-text-3" />
+                  <StageChip stage={stage || 'idle'}>{stageLabel}</StageChip>
+                  <Icon name="expand" size={16} className="text-ink-muted" />
                 </button>
-                <HealthDot
-                  health={
-                    // Khách đồng nghiệp: như khách chưa có tín hiệu SLA — không báo trễ/rủi ro vì SLA (L3).
-                    otherOwner || !(calls.length || c.next_call_at)
-                      ? 'unknown'
-                      : sla?.state === 'over'
-                        ? 'risk'
-                        : sla?.state === 'warn'
-                          ? 'late'
-                          : 'ok'
-                  }
-                  showText
-                />
-                <Badge>{sourceText || 'Chưa rõ nguồn'}</Badge>
+                {!otherOwner && (calls.length || c.next_call_at) ? (
+                  <span className="inline-flex items-center gap-1.5 text-caption text-ink-muted">
+                    <span
+                      aria-hidden
+                      className={`size-2 rounded-full ${sla?.state === 'over' ? 'bg-alert' : sla?.state === 'warn' ? 'bg-soon' : 'bg-ok'}`}
+                    />
+                    {sla?.state === 'over' ? 'Quá hạn' : sla?.state === 'warn' ? 'Sắp đến hạn' : 'Đúng nhịp'}
+                  </span>
+                ) : null}
+                <span className="rounded-sm border border-line bg-surface-100 px-2 py-1 text-caption text-ink-muted">
+                  {sourceText || 'Chưa rõ nguồn'}
+                </span>
               </div>
-              {!otherOwner && slas && <SlaBar label="SLA bậc" state={slas.state} ratio={slas.ratio} text={slas.text} />}
-              <div className="-mx-4 lg:mx-0">{actionBar}</div>
-              {otherOwner && <p className="text-small text-text-2">Người phụ trách khác · hồ sơ chỉ xem.</p>}
+              {!otherOwner && slaMeter && (
+                <div className="space-y-1.5">
+                  <SlaMeter {...slaMeter} />
+                  {slaTimeLabel && <p className="text-caption text-ink-muted">{slaTimeLabel}</p>}
+                </div>
+              )}
+              <div className="-mx-4 hidden xl:block">{actionBar('px-4')}</div>
+              {otherOwner && <p className="text-caption text-ink-muted">Người phụ trách khác · hồ sơ chỉ xem.</p>}
               {undoPlan && (
-                <div className="flex flex-wrap items-center justify-between gap-2 rounded-card border border-border bg-surface-2 p-3">
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-line bg-surface-200 p-3">
                   <p className="text-body">Ứng dụng đã tự chuyển khách theo SLA.</p>
                   <Button disabled={!writable || busy} onClick={() => void undo()}>
                     Hoàn tác
@@ -560,13 +599,13 @@ function Profile() {
           <section
             aria-label="Việc tiếp theo"
             data-tone={nextTone}
-            className="relative overflow-hidden rounded-card border border-border bg-surface p-4 max-xl:order-2"
+            className="relative overflow-hidden rounded-md border border-line bg-surface-100 p-4 max-xl:order-2"
           >
             {nextTone === 'over' && (
-              <span aria-hidden className="absolute inset-y-3 left-0 w-[3px] rounded-r-[3px] bg-danger" />
+              <span aria-hidden className="absolute inset-y-3 left-0 w-[3px] rounded-r-[3px] bg-alert" />
             )}
             <div className="flex items-center justify-between gap-2">
-              <h2 className="text-label text-text-2">Việc tiếp theo</h2>
+              <h2 className="text-section-head">Việc tiếp theo</h2>
               <Button disabled={!writable} onClick={() => setAddOpen(true)}>
                 Thêm việc
               </Button>
@@ -596,13 +635,19 @@ function Profile() {
                       />
                       <div className="min-w-0 flex-1">
                         <p className="text-body-strong">{task.text}</p>
-                        <div className="mt-1 flex flex-wrap items-center gap-2 text-small text-text-2">
+                        <div className="mt-1 flex flex-wrap items-center gap-2 text-caption text-ink-muted">
                           <span className="inline-flex items-center gap-1">
                             <Icon name={kindInfo.icon} size={16} />
                             {kindInfo.label}
                           </span>
                           <span>{task.side === 'customer' ? 'Khách hẹn' : 'Em hứa'}</span>
-                          <DeadlineTag tag={tag} />
+                          {tag && (
+                            <span
+                              className={`rounded-sm px-2 py-1 text-caption ${tag.state === 'missed' ? 'bg-alert-tint text-alert-text' : tag.state === 'due' || tag.state === 'soon' ? 'bg-soon-tint text-soon-text' : 'bg-surface-200 text-ink-muted'}`}
+                            >
+                              {tag.text}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </li>
@@ -610,16 +655,16 @@ function Profile() {
                 })}
               </ul>
             ) : (
-              <p className="mt-2 text-body text-text-2">
+              <p className="mt-2 text-body text-ink-muted">
                 Chưa có bước tiếp theo. Ghi lại việc cần làm hoặc lời hứa để không bỏ quên khách.
               </p>
             )}
           </section>
 
-          <section aria-label="Lần trước" className="rounded-card border border-border bg-surface p-4 max-xl:order-3">
+          <section aria-label="Lần trước" className="rounded-md border border-line bg-surface-100 p-4 max-xl:order-3">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <h2 className="text-label text-text-2">Lần trước{lastTouch?.when ? ` · ${lastTouch.when}` : ''}</h2>
-              {lastTouch && <span className="text-small text-text-2">{lastTouch.meta}</span>}
+              <h2 className="text-section-head">Lần trước{lastTouch?.when ? ` · ${lastTouch.when}` : ''}</h2>
+              {lastTouch && <span className="text-caption text-ink-muted">{lastTouch.meta}</span>}
             </div>
             {lastTouch ? (
               <p className="mt-2 text-body">
@@ -627,19 +672,40 @@ function Profile() {
                 {lastTouch.text}
               </p>
             ) : (
-              <p className="mt-2 text-body text-text-2">Chưa có liên hệ nào được ghi.</p>
+              <p className="mt-2 text-body text-ink-muted">Chưa có liên hệ nào được ghi.</p>
             )}
           </section>
 
+          {actionBar(
+            'fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface-0 px-4 pt-2 pb-[calc(8px+env(safe-area-inset-bottom))] shadow-overlay xl:hidden',
+          )}
+
           <div className="max-xl:order-5">
-            <Tabs
-              items={tabs}
-              value={tab}
-              onValueChange={setTab}
-              label="Nội dung hồ sơ khách"
-              sticky
-              className="[&_[role=tab]]:scroll-mt-14 [&_[role=tablist]]:top-14"
-            />
+            <TabsPrimitive value={tab} onValueChange={setTab}>
+              <TabsList
+                aria-label="Nội dung hồ sơ khách"
+                // 5 tab không vừa 360px: cuộn ngang trong thanh tab thay vì ép chữ chồng lên nhau.
+                className="sticky top-14 z-20 gap-0 overflow-x-auto bg-surface-0 [scrollbar-width:none] [&_[role=tab]]:scroll-mt-14"
+              >
+                {tabs.map((item) => (
+                  <TabsTrigger
+                    key={item.value}
+                    value={item.value}
+                    className="shrink-0 px-3 text-xs sm:min-w-0 sm:flex-1 sm:px-2 sm:text-sm"
+                  >
+                    {item.label}
+                    {item.count !== undefined ? (
+                      <span className="font-mono text-caption text-ink-muted">{item.count}</span>
+                    ) : null}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+              {tabs.map((item) => (
+                <TabsContent key={item.value} value={item.value} aria-label={item.label} className="mt-4">
+                  {item.content}
+                </TabsContent>
+              ))}
+            </TabsPrimitive>
           </div>
 
           <div className="max-xl:order-8">
@@ -653,55 +719,55 @@ function Profile() {
           nội dung dài hơn thì tự cuộn bên trong, không bị cắt.
         */}
         <div className="contents xl:sticky xl:top-14 xl:flex xl:h-[calc(100dvh-112px)] xl:flex-col xl:gap-4 xl:overflow-y-auto">
-          <section aria-label="Đã biết" className="rounded-card border border-border bg-surface p-4 max-xl:order-4">
-            <h2 className="text-label text-text-2">Đã biết</h2>
+          <section aria-label="Đã biết" className="rounded-md border border-line bg-surface-100 p-4 max-xl:order-4">
+            <h2 className="text-section-head">Đã biết</h2>
             {briefParts.known.length ? (
               <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-3">
                 {briefParts.known.map((item) => (
                   <div key={item.key} className="min-w-0">
-                    <dt className="text-small text-text-3">{item.label}</dt>
+                    <dt className="text-caption text-ink-muted">{item.label}</dt>
                     <dd className="text-body [overflow-wrap:anywhere]">{item.value}</dd>
                   </div>
                 ))}
               </dl>
             ) : (
-              <p className="mt-2 text-body text-text-2">Chưa có thông tin nào được ghi.</p>
+              <p className="mt-2 text-body text-ink-muted">Chưa có thông tin nào được ghi.</p>
             )}
             {briefParts.missing.length > 0 && (
               <div className="mt-3 flex flex-wrap items-center gap-1.5">
-                <span className="text-small text-text-2">Còn thiếu:</span>
+                <span className="text-caption text-ink-muted">Còn thiếu:</span>
                 {briefParts.missing.map((item) => (
                   <button
                     key={item.key}
                     type="button"
                     aria-expanded={missingKey === item.key}
                     onClick={() => setMissingKey(missingKey === item.key ? '' : item.key)}
-                    className="inline-flex min-h-9 items-center rounded-full border border-dashed border-border-strong px-3 text-small text-text-2 hover:bg-surface-2"
+                    className="inline-flex min-h-9 items-center rounded-full border border-dashed border-line px-3 text-caption text-ink-muted hover:bg-surface-200"
                   >
                     {item.label}
                   </button>
                 ))}
               </div>
             )}
-            {asked && <p className="mt-2 text-small text-text-2">Có thể hỏi: {asked.question}</p>}
+            {asked && <p className="mt-2 text-caption text-ink-muted">Có thể hỏi: {asked.question}</p>}
           </section>
 
           <section
             aria-label="Thông tin thêm"
-            className="rounded-card border border-border bg-surface p-4 max-xl:order-6"
+            className="rounded-md border border-line bg-surface-100 p-4 max-xl:order-6"
           >
-            <h2 className="text-section">Thông tin thêm</h2>
+            <h2 className="text-title">Thông tin thêm</h2>
             {extra.length ? (
-              <dl className="mt-3 grid grid-cols-2 gap-3 text-small sm:max-xl:grid-cols-3">
+              <dl className="mt-3 grid grid-cols-2 gap-3 text-caption sm:max-xl:grid-cols-3">
                 {extra.map((row) => (
                   <div key={row.label} className="min-w-0">
-                    <dt className="text-text-3">{row.label}</dt>
+                    <dt className="text-ink-muted">{row.label}</dt>
                     <dd className="whitespace-pre-wrap text-body [overflow-wrap:anywhere]">{row.value}</dd>
                   </div>
                 ))}
               </dl>
             ) : (
-              <p className="mt-2 text-body text-text-2">Chưa có thông tin bổ sung.</p>
+              <p className="mt-2 text-body text-ink-muted">Chưa có thông tin bổ sung.</p>
             )}
           </section>
 
@@ -723,44 +789,68 @@ function Profile() {
         onSave={saveNewTask}
       />
 
-      <Sheet
-        open={stageOpen}
-        onOpenChange={setStageOpen}
-        title="Đổi bậc khách"
-        description="Chọn bậc chăm sóc mới. Lịch gợi ý và SLA sẽ theo bậc mới."
-      >
-        <fieldset className="space-y-1">
-          <legend className="sr-only">Bậc chăm sóc</legend>
-          {stageOptions.map((option) => (
-            <label
-              key={option.stage}
-              className={`flex min-h-12 cursor-pointer items-center gap-3 rounded-control px-2 hover:bg-surface-2 ${
-                option.hint ? 'ml-4 border-l-2 border-border-strong pl-3' : ''
-              }`}
-            >
-              <input
-                type="radio"
-                name="profile-care-stage"
-                value={option.stage}
-                checked={option.stage === stage}
-                disabled={busy}
-                aria-label={option.label}
-                onChange={() => {
-                  setStageOpen(false);
-                  void onStage(option.stage);
-                }}
-              />
-              <span className="min-w-0">
-                <span className="block text-body">
-                  {option.hint && <span aria-hidden>↳ </span>}
-                  {option.label}
-                </span>
-                {option.hint && <span className="block text-small text-text-3">{option.hint}</span>}
-              </span>
-            </label>
-          ))}
-        </fieldset>
+      <Sheet open={stageOpen} onOpenChange={setStageOpen}>
+        <SheetContent aria-describedby="stage-description">
+          <SheetHeader>
+            <SheetTitle>Đổi bậc khách</SheetTitle>
+            <SheetDescription id="stage-description">
+              Chọn bậc chăm sóc mới. Lịch gợi ý và SLA sẽ theo bậc mới.
+            </SheetDescription>
+          </SheetHeader>
+          <SheetBody>
+            <fieldset className="space-y-1">
+              <legend className="sr-only">Bậc chăm sóc</legend>
+              {stageOptions.map((option) => (
+                <label
+                  key={option.stage}
+                  className={`flex min-h-12 cursor-pointer items-center gap-3 rounded-md px-2 hover:bg-surface-200 ${
+                    option.hint ? 'ml-4 border-l-2 border-line pl-3' : ''
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="profile-care-stage"
+                    value={option.stage}
+                    checked={option.stage === stage}
+                    disabled={busy}
+                    aria-label={option.label}
+                    onChange={() => {
+                      setStageOpen(false);
+                      void onStage(option.stage);
+                    }}
+                  />
+                  <span className="min-w-0">
+                    <span className="block text-body">
+                      {option.hint && <span aria-hidden>↳ </span>}
+                      {option.label}
+                    </span>
+                    {option.hint && <span className="block text-caption text-ink-muted">{option.hint}</span>}
+                  </span>
+                </label>
+              ))}
+            </fieldset>
+          </SheetBody>
+        </SheetContent>
       </Sheet>
+      {notice && (
+        <div
+          role={notice.tone === 'error' ? 'alert' : 'status'}
+          className="fixed inset-x-4 bottom-20 z-[60] mx-auto flex max-w-md items-center gap-3 rounded-md border border-line bg-surface-200 p-3 text-ink shadow-overlay lg:right-4 lg:bottom-4 lg:left-auto"
+        >
+          <span className="min-w-0 flex-1">
+            <strong className="block text-body-strong">{notice.title}</strong>
+            {notice.description && <span className="text-caption text-ink-muted">{notice.description}</span>}
+          </span>
+          {notice.onUndo && (
+            <Button variant="ghost" onClick={notice.onUndo}>
+              Hoàn tác
+            </Button>
+          )}
+          <Button variant="ghost" aria-label="Đóng thông báo" onClick={() => setNotice(null)}>
+            Đóng
+          </Button>
+        </div>
+      )}
     </main>
   );
 }

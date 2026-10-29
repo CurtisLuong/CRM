@@ -18,7 +18,16 @@ describe('buildMenu (PF-04)', () => {
       {
         key: 'tools',
         kind: 'grid',
-        items: ['Giỏ hàng', 'Tài liệu', 'Tính khoản vay', 'Thao tác nhanh', 'Nhập / Xuất dữ liệu'],
+        // U-03/U-04: Thủ tục (16) và Mẫu tin Zalo (17) đứng sau Tài liệu (15).
+        items: [
+          'Giỏ hàng',
+          'Tài liệu',
+          'Thủ tục',
+          'Mẫu tin Zalo',
+          'Tính khoản vay',
+          'Thao tác nhanh',
+          'Nhập / Xuất dữ liệu',
+        ],
       },
       { key: 'settings', kind: 'rows', items: ['Đồng nghiệp', 'Cài đặt'] },
     ]);

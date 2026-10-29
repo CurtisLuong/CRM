@@ -1,8 +1,9 @@
 import { useRef, useState } from 'react';
 import type { FeatureRoute } from '@/app/routes';
+import { EmptyState, Segmented } from '@/components/crm';
+import { Button } from '@/components/ui';
 import { useCustomers, useRepositoryAccount } from '@/data/hooks';
 import { normalizePhoneVN } from '@/domain/customer/phone';
-import { Button, EmptyState } from '@/ui';
 import {
   formatExportCell,
   guessColumn,
@@ -14,7 +15,6 @@ import {
 } from './model';
 
 type CellRows = unknown[][];
-const FIELD = 'min-h-11 rounded-control border border-border-strong bg-surface px-3 py-2 text-body text-text';
 const templateKey = (userId: string) => `crm_import_template:${userId}`;
 
 function ImportExportPage() {
@@ -146,18 +146,18 @@ function ImportExportPage() {
     <main className="mx-auto flex max-w-4xl flex-col gap-5 p-4 pb-10">
       <header>
         <h1 className="text-title">Nhập / Xuất dữ liệu</h1>
-        <p className="text-small text-text-2">
+        <p className="text-caption text-ink-muted">
           Excel khách hàng dùng đúng danh sách cột v1. Bản xuất chỉ gồm khách bạn phụ trách.
         </p>
       </header>
-      {!account && <EmptyState title="Chưa đăng nhập" hint="Đăng nhập để nhập hoặc xuất dữ liệu khách." />}
-      <section className="rounded-card border border-border bg-surface p-4">
-        <h2 className="text-section">Xuất Excel</h2>
-        <p className="mt-1 text-small text-text-2">{owned.length} khách do bạn phụ trách trên thiết bị.</p>
+      {!account && <EmptyState title="Chưa đăng nhập" text="Đăng nhập để nhập hoặc xuất dữ liệu khách." />}
+      <section className="rounded-lg border border-line bg-surface-100 p-4">
+        <h2 className="text-section-head">Xuất Excel</h2>
+        <p className="mt-1 text-caption text-ink-muted">{owned.length} khách do bạn phụ trách trên thiết bị.</p>
         <fieldset className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
           <legend className="mb-2 text-label">Chọn cột xuất</legend>
           {IO_FIELDS.map((field) => (
-            <label key={field.key} className="flex min-h-11 items-center gap-2 text-small">
+            <label key={field.key} className="flex min-h-11 items-center gap-2 text-caption">
               <input
                 type="checkbox"
                 checked={selected.includes(field.key)}
@@ -175,15 +175,14 @@ function ImportExportPage() {
           className="mt-3"
           variant="primary"
           disabled={!account || working || owned.length === 0}
-          loading={working}
           onClick={() => void exportExcel()}
         >
           Xuất {owned.length} khách
         </Button>
       </section>
-      <section className="rounded-card border border-border bg-surface p-4">
-        <h2 className="text-section">Nhập Excel / CSV</h2>
-        <p className="mt-1 text-small text-text-2">
+      <section className="rounded-lg border border-line bg-surface-100 p-4">
+        <h2 className="text-section-head">Nhập Excel / CSV</h2>
+        <p className="mt-1 text-caption text-ink-muted">
           Nhập chỉ thêm khách mới; SĐT trùng được bỏ qua, không ghi đè hồ sơ hiện có. Có thể nhập offline.
         </p>
         <input
@@ -198,18 +197,26 @@ function ImportExportPage() {
         </Button>
         {filename && rows.length > 0 && (
           <div className="mt-4 flex flex-col gap-3">
-            <p className="text-small text-text-2">
+            <p className="text-caption text-ink-muted">
               {filename} · {rows.length} dòng
             </p>
-            <label className="flex min-h-11 items-center gap-2 text-small">
-              <input type="checkbox" checked={headerRow} onChange={(event) => setHeaderRow(event.target.checked)} />{' '}
-              Dòng đầu là tiêu đề cột
-            </label>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-label">Dòng đầu là tiêu đề cột</span>
+              <Segmented
+                label="Dòng đầu là tiêu đề cột"
+                value={headerRow ? 'yes' : 'no'}
+                options={[
+                  { value: 'yes', label: 'Có' },
+                  { value: 'no', label: 'Không' },
+                ]}
+                onChange={(value) => setHeaderRow(value === 'yes')}
+              />
+            </div>
             <div className="flex flex-col gap-2">
               <h3 className="text-label">Ghép cột</h3>
               {mapping.map((key, index) => (
                 <label
-                  className="grid grid-cols-[minmax(0,1fr)_minmax(9rem,1fr)] items-center gap-2 text-small"
+                  className="grid grid-cols-[minmax(0,1fr)_minmax(9rem,1fr)] items-center gap-2 text-caption"
                   // biome-ignore lint/suspicious/noArrayIndexKey: Spreadsheet column position is its stable identity.
                   key={index}
                 >
@@ -217,16 +224,22 @@ function ImportExportPage() {
                     {headerRow ? String(rows[0]?.[index] ?? `Cột ${index + 1}`) : `Cột ${index + 1}`}
                   </span>
                   <select
-                    className={FIELD}
+                    className="min-h-11 min-w-0 rounded-sm border border-input bg-surface-100 px-3 py-2 text-body text-ink"
                     aria-label={`Ghép cột ${index + 1}`}
-                    value={key}
+                    value={key || '__skip'}
                     onChange={(event) =>
                       setMapping((current) =>
-                        current.map((value, i) => (i === index ? (event.target.value as ImportColumn) : value)),
+                        current.map((item, i) =>
+                          i === index
+                            ? event.target.value === '__skip'
+                              ? ''
+                              : (event.target.value as ImportColumn)
+                            : item,
+                        ),
                       )
                     }
                   >
-                    <option value="">Bỏ qua</option>
+                    <option value="__skip">Bỏ qua</option>
                     {IO_FIELDS.map((field) => (
                       <option key={field.key} value={field.key}>
                         {field.label}
@@ -237,9 +250,9 @@ function ImportExportPage() {
                 </label>
               ))}
             </div>
-            <div className="overflow-x-auto rounded-control border border-border">
-              <table className="min-w-full text-left text-small">
-                <caption className="p-2 text-left text-text-2">Xem trước tối đa 3 dòng</caption>
+            <div className="overflow-x-auto rounded-md border border-line">
+              <table className="min-w-full text-left text-caption">
+                <caption className="p-2 text-left text-ink-muted">Xem trước tối đa 3 dòng</caption>
                 <thead>
                   <tr>
                     {mapping.map((key, index) => (
@@ -268,18 +281,18 @@ function ImportExportPage() {
                 </tbody>
               </table>
             </div>
-            <p className="text-small text-text-2">
+            <p className="text-caption text-ink-muted">
               Các khách nhập được lưu local trước, sau đó đồng bộ theo hàng đợi hiện có. Rà soát ghép cột trước khi
               nhập.
             </p>
-            <Button variant="primary" loading={working} onClick={() => void importCustomers()}>
+            <Button variant="primary" disabled={working || !account} onClick={() => void importCustomers()}>
               Nhập khách
             </Button>
           </div>
         )}
       </section>
       {status && (
-        <p role="status" className="rounded-control bg-surface-2 p-3 text-small text-text-2">
+        <p role="status" className="rounded-md bg-surface-200 p-3 text-caption text-ink-muted">
           {status}
         </p>
       )}

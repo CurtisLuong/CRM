@@ -168,8 +168,8 @@ test('L3: hồ sơ khách đồng nghiệp quá SLA không có thanh/chữ SLA, 
   await expect(head).toContainText('Người phụ trách khác · hồ sơ chỉ xem.');
   await expect(head).not.toContainText('SLA bậc');
   await expect(head).not.toContainText(/quá \d/i);
-  // Như khách chưa có tín hiệu SLA — không báo "Đang trễ"/"Nguy cơ".
-  await expect(head).toContainText('Chưa đủ dữ liệu');
+  // Như khách chưa có tín hiệu SLA — không báo trễ/quá hạn (đầu hồ sơ kit R2-02 không còn ô "Chưa đủ dữ liệu").
+  await expect(head).not.toContainText('Quá hạn');
   await expect(head).not.toContainText('Nguy cơ');
   await expect(page.getByRole('button', { name: 'Hoàn tác' })).toHaveCount(0);
   await expectNoHorizontalScroll(page);
@@ -183,17 +183,13 @@ test('L3: hồ sơ khách đồng nghiệp quá SLA không có thanh/chữ SLA, 
 test('L2: ô Tiến độ ở form xếp Nuôi dài hạn ngay sau Đang chăm sóc, có dấu nhánh', async ({ page }) => {
   await seed(page);
   await page.goto(`/intake/${ownOver.id}`);
-  const progress = page.locator('select[name="care_stage"]');
+  // Form kit (R5-01): ô chọn Radix (combobox + listbox), không còn <select>.
+  const progress = page.getByRole('combobox', { name: 'Tiến độ' });
   await expect(progress).toBeVisible();
-  await expect(progress).toHaveValue('Đang chăm sóc');
-  const options = await progress
-    .locator('option')
-    .evaluateAll((nodes) =>
-      nodes
-        .map((node) => ({ value: (node as HTMLOptionElement).value, text: node.textContent ?? '' }))
-        .filter((option) => option.value),
-    );
-  expect(options.map((option) => option.value)).toEqual([
+  await expect(progress).toContainText('Đang chăm sóc');
+  await progress.click();
+  const texts = (await page.getByRole('option').allTextContents()).filter((text) => text !== '— Chưa rõ —');
+  expect(texts.map((text) => text.replace(/^↳ /, '').split(' · ')[0])).toEqual([
     'Đăng kí mới',
     'Đang tiếp cận',
     'Đang chăm sóc',
@@ -203,19 +199,20 @@ test('L2: ô Tiến độ ở form xếp Nuôi dài hạn ngay sau Đang chăm s
     'Kí HĐMB',
     'Loại',
   ]);
-  const nurture = options.find((option) => option.value === 'Nuôi dài hạn');
-  expect(nurture?.text).toContain('↳');
-  expect(nurture?.text).toContain('không tính SLA');
+  const nurture = texts.find((text) => text.includes('Nuôi dài hạn'));
+  expect(nurture).toContain('↳');
+  expect(nurture).toContain('không tính SLA');
+  await page.keyboard.press('Escape');
   await expectNoHorizontalScroll(page);
 });
 
 test('L3: hồ sơ khách của mình cùng dữ liệu vẫn có thanh SLA và nút hoàn tác tự chuyển', async ({ page }) => {
   await openProfile(page, ownOver.id, ownOver.full_name);
   const head = header(page);
-  await expect(head).toContainText('SLA bậc');
-  await expect(head).toContainText('quá 5 ngày');
-  await expect(head).toContainText('Nguy cơ');
-  await expect(head).not.toContainText('Chưa đủ dữ liệu');
+  // Đồng hồ SLA của kit (R2-02): "SLA <mục tiêu> · <hạn mức>", "quá 5n 00h", tín hiệu "Quá hạn".
+  await expect(head).toContainText('SLA 10n · 20n');
+  await expect(head).toContainText('quá 5n');
+  await expect(head).toContainText('Quá hạn');
   await expectNoHorizontalScroll(page);
 
   await page.goto(`/ho-so/${ownNurture.id}`);
