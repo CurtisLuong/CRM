@@ -152,7 +152,7 @@ function ImportExportPage() {
       </header>
       {!account && <EmptyState title="Chưa đăng nhập" text="Đăng nhập để nhập hoặc xuất dữ liệu khách." />}
       <section className="rounded-lg border border-line bg-surface-100 p-4">
-        <h2 className="text-section">Xuất Excel</h2>
+        <h2 className="text-section-head">Xuất Excel</h2>
         <p className="mt-1 text-caption text-ink-muted">{owned.length} khách do bạn phụ trách trên thiết bị.</p>
         <fieldset className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
           <legend className="mb-2 text-label">Chọn cột xuất</legend>
@@ -181,7 +181,7 @@ function ImportExportPage() {
         </Button>
       </section>
       <section className="rounded-lg border border-line bg-surface-100 p-4">
-        <h2 className="text-section">Nhập Excel / CSV</h2>
+        <h2 className="text-section-head">Nhập Excel / CSV</h2>
         <p className="mt-1 text-caption text-ink-muted">
           Nhập chỉ thêm khách mới; SĐT trùng được bỏ qua, không ghi đè hồ sơ hiện có. Có thể nhập offline.
         </p>

@@ -535,7 +535,7 @@ function TasksPage() {
             return (
               <section key={group.id} aria-labelledby={`tasks-${group.id}`} className="flex flex-col gap-2">
                 <header className="flex items-center justify-between gap-2 px-1">
-                  <h2 id={`tasks-${group.id}`} className="text-section">
+                  <h2 id={`tasks-${group.id}`} className="text-section-head">
                     {group.label}
                   </h2>
                   <span className="inline-grid h-[22px] min-w-[22px] place-items-center rounded-full bg-surface-200 px-1.5 text-caption text-ink-muted">

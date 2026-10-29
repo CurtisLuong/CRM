@@ -70,7 +70,7 @@ function NumberInput({
 function Group({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="flex flex-col gap-3 border-t border-line pt-4">
-      <h2 className="text-heading">{title}</h2>
+      <h2 className="text-section-head">{title}</h2>
       {children}
     </section>
   );

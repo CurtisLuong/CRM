@@ -58,7 +58,7 @@ const FACT_LABELS: Record<string, string> = {
 export function FactFreshnessSection({ customer, now = Date.now() }: { customer: Customer; now?: number }) {
   return (
     <section className="space-y-2">
-      <h2 className="text-section">Nguồn và độ mới của dữ kiện</h2>
+      <h2 className="text-section-head">Nguồn và độ mới của dữ kiện</h2>
       {Object.entries(FACT_LABELS).map(([field, label]) => {
         const meta = customer.field_meta?.[field];
         const age = factFreshness(meta?.at, now);
@@ -125,7 +125,7 @@ export function CustomerContactPrefs({
 
   return (
     <section className="space-y-3">
-      <h2 className="text-section">Tuỳ chọn liên hệ</h2>
+      <h2 className="text-section-head">Tuỳ chọn liên hệ</h2>
       <div className="flex flex-wrap gap-3">
         {showChannel && (
           <label className={`flex flex-col gap-1 text-caption ${SHORT_FIELD}`}>
@@ -245,7 +245,7 @@ export function CustomerInterests({
 
   return (
     <section className="space-y-3">
-      <h2 className="text-section">Nhu cầu theo đợt</h2>
+      <h2 className="text-section-head">Nhu cầu theo đợt</h2>
       {(customer.interests || []).map((interest, index) => {
         if (!interest) return null;
         const age = factFreshness(interest.at, now);
@@ -397,7 +397,7 @@ export function CustomerHousehold({ customer, writable, onSave, now }: BaseProps
 
   return (
     <section className="space-y-3">
-      <h2 className="text-section">Người cùng quyết định</h2>
+      <h2 className="text-section-head">Người cùng quyết định</h2>
       {(customer.household || []).filter(Boolean).map((person, index) => (
         <p key={person?.id || index} className="text-body">
           {person?.name || 'Chưa có tên'}
@@ -461,7 +461,7 @@ export function CustomerClosure({ customer, writable, onSave, now }: BaseProps) 
 
   return (
     <section className="space-y-3">
-      <h2 className="text-section">Lý do kết thúc và điều kiện retarget</h2>
+      <h2 className="text-section-head">Lý do kết thúc và điều kiện retarget</h2>
       <label className="flex flex-col gap-1 text-caption">
         Lý do
         <select
