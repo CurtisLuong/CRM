@@ -25,9 +25,9 @@ export function snoozeSignalState(current: SignalUiState, signals: readonly Sign
   }
   const until = now + durationMs;
   for (const [id, signal] of affected) {
-    if (entries[id]?.hidden) continue;
     previous.set(id, entries[id]);
-    entries[id] = { ...entries[id], fingerprint: signal.fingerprint, snoozedUntil: until };
+    // Tín hiệu đang hiện mà còn mục `hidden` cũ nghĩa là fingerprint đã đổi (mục cũ hết hiệu lực): ghi mục hoãn mới thay hẳn.
+    entries[id] = { fingerprint: signal.fingerprint, snoozedUntil: until };
   }
   return {
     until,

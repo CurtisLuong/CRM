@@ -35,12 +35,17 @@ describe('snoozeSignalState', () => {
     const before = { signals: { parent: { fingerprint: 'old', hidden: true } } };
     const result = snoozeSignalState(before, [parent], SIGNALS_CONFIG.snoozeDurations[2].milliseconds, now);
 
+    // Mục ẩn cũ khác fingerprint đã hết hiệu lực: bấm hoãn phải ghi mục hoãn mới, Hoàn tác trả lại mục cũ.
     expect(result.state.signals?.parent).toEqual({
-      fingerprint: 'old',
-      hidden: true,
+      fingerprint: parent.fingerprint,
+      snoozedUntil: now + 8 * 60 * 60 * 1000,
     });
     expect(result.state.signals?.secondary?.snoozedUntil).toBe(now + 8 * 60 * 60 * 1000);
     expect(result.restore().signals).toEqual(before.signals);
+  });
+
+  it('đúng 4 mốc hoãn, mặc định 8 giờ', () => {
+    expect(SIGNALS_CONFIG.snoozeDurations.map((d) => d.milliseconds / 3_600_000)).toEqual([2, 4, 8, 24]);
   });
 
   it('hoàn tác không để lại mục mới nếu trước đó chưa có trạng thái', () => {
