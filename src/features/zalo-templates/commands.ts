@@ -4,7 +4,7 @@ export const commands: AppCommand[] = [
   {
     id: 'zalo-templates.open',
     label: 'Mở Mẫu tin Zalo',
-    sub: 'Quản lý mẫu tin dùng khi chăm sóc khách',
+    sub: 'Soạn và sửa mẫu tin nhắn chăm sóc khách',
     icon: 'message',
     group: 'Tiện ích',
     tools: true,
