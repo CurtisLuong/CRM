@@ -132,7 +132,13 @@ for (const theme of ['light', 'dark'] as const) {
       await expect(sheet.getByText('Đã gửi Zalo')).toBeVisible();
       await expect(sheet.getByText('Xong việc: Gửi hồ sơ mẫu')).toBeVisible();
 
-      const bounds = await sheet.evaluate((element) => {
+      const bounds = await sheet.evaluate(async (element) => {
+        // Đo sau khi tấm trượt vào xong, không đo giữa chừng hiệu ứng.
+        // Bỏ hiệu ứng lặp vô hạn (chấm nhấp nháy) — chỉ chờ hiệu ứng có kết thúc.
+        const finite = element
+          .getAnimations({ subtree: true })
+          .filter((animation) => animation.effect?.getTiming().iterations !== Number.POSITIVE_INFINITY);
+        await Promise.all(finite.map((animation) => animation.finished));
         const rect = element.getBoundingClientRect();
         return { left: rect.left, width: rect.width };
       });

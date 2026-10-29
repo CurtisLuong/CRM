@@ -244,9 +244,12 @@ export function PageHeader({
       className={cn(
         cn(
           'flex flex-col gap-3 border-b border-line bg-surface-0 px-6 py-4 max-sm:px-4 max-sm:py-3',
-          compact && 'h-14 flex-row flex-nowrap gap-2 px-2 py-0 pt-[env(safe-area-inset-top)] max-sm:px-2',
+          // Vỏ Android vẽ dưới status bar: chiều cao = 56px + phần status bar, không trừ phần đệm vào 56px (Curtis 29/10: nút đầu bị đẩy lên status bar).
+          compact &&
+            'h-[calc(56px+env(safe-area-inset-top))] flex-row flex-nowrap gap-2 px-2 py-0 pt-[env(safe-area-inset-top)] max-sm:px-2',
         ),
-        sticky && 'sticky top-0 z-[5]',
+        // Trên mọi dòng danh sách (nút phủ dòng khách z-10/z-20), dưới thanh tab đáy (z-40) và Sheet.
+        sticky && 'sticky top-0 z-30',
       )}
     >
       <div
