@@ -1,11 +1,12 @@
 import { Users } from 'lucide-react';
-import { useState } from 'react';
-import { useSearchParams } from 'react-router';
+import { useMemo, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router';
 import type { FeatureRoute } from '@/app/routes';
 import { useAppSession } from '@/app/session';
 import { EmptyState, TextField } from '@/components/crm';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useCustomers, useRepositoryAccount } from '@/data/hooks';
+import { callSessionRows, queueRows } from '@/features/today/model';
 import { Button, Input } from './kit';
 import { CallHistoryActions, QuickActionButtons } from './QuickActions';
 import { openQuickAction, type QuickAction } from './store';
@@ -16,6 +17,7 @@ function QuickActionsPage() {
   const { session, booting, error } = useAppSession();
   const account = useRepositoryAccount();
   const customers = useCustomers();
+  const navigate = useNavigate();
   const [params] = useSearchParams();
   const [email, setEmail] = useState(''),
     [password, setPassword] = useState('');
@@ -24,6 +26,15 @@ function QuickActionsPage() {
     [failure, setFailure] = useState('');
   const action = params.get('action');
   const intent: QuickAction | null = action === 'note' || action === 'schedule' ? action : null;
+  const isCallSession = params.get('phien') === 'goi';
+  const requestedNow = Number(params.get('t'));
+  const sessionNow = Number.isFinite(requestedNow) && requestedNow > 0 ? requestedNow : Date.now();
+  const sessionRows = useMemo(
+    () => (account ? callSessionRows(queueRows(customers, sessionNow, account.sync.local.userId), sessionNow) : []),
+    [account, customers, sessionNow],
+  );
+  const [sessionIndex, setSessionIndex] = useState(0);
+  const activeSessionRow = sessionRows[sessionIndex];
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-4 p-4">
       <h1 className="text-title">Thao tác nhanh</h1>
@@ -87,6 +98,38 @@ function QuickActionsPage() {
             )}
           </form>
         )
+      ) : isCallSession ? (
+        <section aria-label="Phiên gọi" className="flex flex-col gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-body-strong">
+              Phiên gọi ·{' '}
+              <span>
+                {Math.min(sessionIndex + 1, sessionRows.length)}/{sessionRows.length}
+              </span>
+            </p>
+          </div>
+          {activeSessionRow ? (
+            <article className="flex flex-col gap-3 rounded-md border border-line bg-surface-100 p-4">
+              <div className="min-w-0">
+                <h2 className="break-words text-title">{activeSessionRow.customer.full_name}</h2>
+                <p className="font-mono text-caption text-ink-muted">{activeSessionRow.customer.phone}</p>
+              </div>
+              <QuickActionButtons customer={activeSessionRow.customer} />
+              <CallHistoryActions customer={activeSessionRow.customer} />
+              <div className="flex flex-wrap gap-2">
+                <Button variant="secondary" onClick={() => setSessionIndex((index) => index + 1)}>
+                  Bỏ qua khách
+                </Button>
+                <Button onClick={() => navigate('/today')}>Dừng phiên</Button>
+              </div>
+            </article>
+          ) : (
+            <div className="flex flex-col items-start gap-3">
+              <p className="text-body">Đã hết khách trong phiên.</p>
+              <Button onClick={() => navigate('/today')}>Đóng phiên</Button>
+            </div>
+          )}
+        </section>
       ) : (
         <>
           <div className="flex items-center justify-between gap-2">

@@ -71,15 +71,15 @@ export function CallHistoryActions({ customer }: { customer: Customer }) {
   const calls = callAttemptsOf(customer);
   return (
     <section className="flex flex-col gap-2" aria-label={`Nhật ký cuộc gọi ${customer.full_name}`}>
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-caption text-ink-muted">Nhật ký cuộc gọi</h3>
-        <Button variant="secondary" onClick={() => openQuickAction(customer.id, 'outcome')}>
-          Ghi cuộc gọi
-        </Button>
-      </div>
+      <h3 className="text-caption text-ink-muted">Nhật ký cuộc gọi</h3>
       {calls.map((attempt) => {
         const pending = !attempt.result;
-        const when = new Date(attempt.at).toLocaleString('vi-VN');
+        const when = new Date(attempt.at).toLocaleString('vi-VN', {
+          day: '2-digit',
+          month: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+        });
         const result = attempt.result
           ? (CALL_RESULTS[attempt.result as CallResult] ?? attempt.result)
           : 'Chưa ghi kết quả';
@@ -98,7 +98,9 @@ export function CallHistoryActions({ customer }: { customer: Customer }) {
               })
             }
           >
-            {pending ? 'Ghi kết quả' : 'Sửa kết quả'} cuộc gọi · {when} · {result}
+            <span className="block w-full break-words text-left [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] overflow-hidden">
+              {pending ? 'Ghi kết quả' : 'Sửa kết quả'} cuộc gọi · {when} · {result}
+            </span>
           </Button>
         );
       })}
