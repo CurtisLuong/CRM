@@ -8,6 +8,13 @@ Bộ tài liệu được biên soạn ngày 06/10/2026; đây không phải ng�
 
 Chỉ đọc file này khi cần tiếp nối công việc hoặc task phụ thuộc trạng thái triển khai/test.
 
+## UI mới mọi màn (R2–R5) + góp ý đợt U lên production (2026-10-29)
+
+- **Curtis duyệt "merge main và push" 2026-10-29** sau khi xem preview `factory`. `main` = `a0532a5` (merge `factory` @ `fa1f4e2`; `origin/main` = `6012270`, không xung đột; cây `main` trùng `factory`). Lead push thẳng `main`; Cloudflare project `crm` tự build `crm-cop.pages.dev`. **Rollback:** đưa `main` về `6012270`.
+- Gồm: mọi màn theo bản UI "Realty CRM" (R2–R5: Khách hàng + tấm xem nhanh, Hồ sơ, Thông báo, Hiệu quả, Thêm khách, Thao tác nhanh, Công việc, Cài đặt, Giỏ hàng, danh sách phụ, Tài liệu) + đợt U: Thông báo chỉ Tạm hoãn (2 giờ/4 giờ/8 giờ/1 ngày, mặc định 8 giờ), bỏ nút Lọc cũ, tiêu đề mục chữ HOA, Thao tác nhanh (nhật ký 2 dòng, bỏ Ghi cuộc gọi, phiên gọi chạy ở `/thao-tac-nhanh`), trang Mẫu tin Zalo `/mau-zalo`, trang Thủ tục `/thu-tuc`.
+- **Không đổi** SQL, Supabase, Worker, vỏ Android → không migration, không APK mới. Mục `hidden` cũ của tín hiệu giữ nguyên trong `ui_state`.
+- Kiểm: `npm run check` 1239 test; `npm run e2e` cả bộ 698/701 (3 ca pf06 tìm "dũng" → sửa phụ đề lệnh, chạy lại đạt); sau đó 2 sửa nhỏ (nhật ký 2 dòng, toast hoãn) chạy lại e2e liên quan. Ảnh 360/1280 sáng/tối bằng dữ liệu mẫu. Chưa thử máy thật Android/vỏ app.
+
 ## Bản UI "Realty CRM" R0+R1 + Tài liệu gửi khách (bản thử) lên production (2026-10-28)
 
 - **Curtis duyệt "merge vào main" 2026-10-28** sau khi thử preview `factory`. `main` = `6012270` (merge `factory` @ `8bbc806`; trước đó gộp `origin/main` 85dd7c9 — chỉ có merge commit PR #1–#3, không xung đột). Lead push thẳng `main`; Cloudflare project `crm` tự build `crm-cop.pages.dev`. **Rollback:** đưa `main` về `85dd7c9` (bản production trước).
