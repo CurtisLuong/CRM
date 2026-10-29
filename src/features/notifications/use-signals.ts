@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { useCustomers, useRepositoryAccount } from '@/data/hooks';
 import { computeSignals, type Signal, type SignalUiState } from '@/domain/signals';
+import { snoozeSignalState } from './model';
 
 /** Màn Thông báo và chuông cần cùng một trạng thái ẩn trong cùng tab. */
 const keyFor = (userId: string) => `crm_signal_ui_state:${userId}`;
@@ -97,18 +98,10 @@ export function useNotificationSignals() {
     [account, customers, now, userId, uiState],
   );
 
-  const hideSignals = useCallback(
-    (hiddenSignals: readonly Signal[]) => {
+  const saveSignalsState = useCallback(
+    (next: SignalUiState, deviceFailureMessage: string, remoteFailureMessage: string) => {
       if (!userId) return;
       const store = storeFor(userId);
-      const hidden = hiddenSignals.flatMap((signal) => [signal, ...(signal.secondaryReasons ?? [])]);
-      const next: SignalUiState = {
-        ...store.state.uiState,
-        signals: {
-          ...store.state.uiState.signals,
-          ...Object.fromEntries(hidden.map((signal) => [signal.id, { fingerprint: signal.fingerprint, hidden: true }])),
-        },
-      };
       store.revision += 1;
       updateStore(userId, (current) => ({ ...current, uiState: next }));
       try {
@@ -116,7 +109,7 @@ export function useNotificationSignals() {
       } catch {
         updateStore(userId, (current) => ({
           ...current,
-          status: 'Đã ẩn tín hiệu trên màn hình này nhưng chưa lưu được trên thiết bị.',
+          status: deviceFailureMessage,
         }));
       }
       void account?.remote
@@ -125,19 +118,46 @@ export function useNotificationSignals() {
           if (!saved)
             updateStore(userId, (current) => ({
               ...current,
-              status: 'Tín hiệu đã ẩn trên thiết bị nhưng chưa đồng bộ được.',
+              status: remoteFailureMessage,
             }));
         })
         .catch(() =>
           updateStore(userId, (current) => ({
             ...current,
-            status: 'Tín hiệu đã ẩn trên thiết bị nhưng chưa đồng bộ được.',
+            status: remoteFailureMessage,
           })),
         );
     },
     [account, userId],
   );
-  const hideSignal = useCallback((signal: Signal) => hideSignals([signal]), [hideSignals]);
+  const snoozeSignals = useCallback(
+    (snoozedSignals: readonly Signal[], durationMs: number) => {
+      if (!userId) return { until: Date.now() + durationMs, undo: () => {} };
+      const current = storeFor(userId).state.uiState;
+      const changed = snoozeSignalState(current, snoozedSignals, durationMs, Date.now());
+      saveSignalsState(
+        changed.state,
+        'Đã hoãn tín hiệu trên màn hình này nhưng chưa lưu được trên thiết bị.',
+        'Tín hiệu đã hoãn trên thiết bị nhưng chưa đồng bộ được.',
+      );
+      return {
+        until: changed.until,
+        undo: () => {
+          const latest = storeFor(userId).state.uiState;
+          saveSignalsState(
+            changed.restore(latest),
+            'Đã hoàn tác tạm hoãn trên màn hình này nhưng chưa lưu được trên thiết bị.',
+            'Đã hoàn tác trên thiết bị nhưng chưa đồng bộ được.',
+          );
+        },
+      };
+    },
+    [saveSignalsState, userId],
+  );
+  const snoozeSignal = useCallback(
+    (signal: Signal, durationMs: number) => snoozeSignals([signal], durationMs),
+    [snoozeSignals],
+  );
 
-  return { account, customers, signals, status, userId, hideSignal, hideSignals };
+  return { account, customers, signals, status, userId, snoozeSignal, snoozeSignals };
 }

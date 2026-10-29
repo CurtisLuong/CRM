@@ -171,6 +171,7 @@ export interface NotificationGroupProps {
   unread?: boolean;
   bulkLabel?: string;
   onBulk?: () => void;
+  bulkControl?: React.ReactNode;
   onSeeAll?: () => void;
   preview?: number;
   defaultOpen?: boolean;
@@ -187,6 +188,7 @@ export function NotificationGroup({
   unread,
   bulkLabel,
   onBulk,
+  bulkControl,
   onSeeAll,
   preview = 5,
   defaultOpen,
@@ -245,15 +247,16 @@ export function NotificationGroup({
           {open ? 'Thu gọn' : `Xem ${count} khách`}
           <ChevronDown className={cn('transition-transform', open && 'rotate-180')} />
         </Button>
-        {(bulkLabel ?? t.bulk) && t.action && (
-          <ActionButton
-            action={t.action}
-            size="sm"
-            variant={level ? BTN[level] : 'secondary'}
-            label={`${bulkLabel ?? t.bulk} ${count}`}
-            onClick={onBulk}
-          />
-        )}
+        {bulkControl ??
+          ((bulkLabel ?? t.bulk) && t.action && (
+            <ActionButton
+              action={t.action}
+              size="sm"
+              variant={level ? BTN[level] : 'secondary'}
+              label={`${bulkLabel ?? t.bulk} ${count}`}
+              onClick={onBulk}
+            />
+          ))}
       </div>
       {open && (
         <div className="bg-surface-0">

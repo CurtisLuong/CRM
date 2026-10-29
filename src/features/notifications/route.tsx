@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import type { FeatureRoute } from '@/app/routes';
 import { EmptyState, NotificationGroup, SignalBadge } from '@/components/crm';
@@ -9,6 +9,68 @@ import { type Level, NOTIF_TYPES, type NotifType } from '@/lib/crm';
 import { notificationLevel } from './model';
 import { useNotificationSignals } from './use-signals';
 
+function SnoozeControl({
+  title,
+  customer,
+  onSnooze,
+  bulk = false,
+}: {
+  title: string;
+  customer?: string;
+  onSnooze: (duration: number) => void;
+  bulk?: boolean;
+}) {
+  const label = customer
+    ? `Tạm hoãn tín hiệu ${title} của ${customer}`
+    : bulk
+      ? `Tạm hoãn nhóm tín hiệu ${title}`
+      : `Tạm hoãn tín hiệu ${title}`;
+  return (
+    <span className="relative inline-flex items-center gap-1">
+      <Button
+        type="button"
+        variant="ghost"
+        onClick={() => onSnooze(SIGNALS_CONFIG.snoozeDurations[2].milliseconds)}
+        aria-label={label}
+      >
+        Hoãn 8 giờ
+      </Button>
+      <select
+        aria-label={`Chọn thời gian hoãn${customer ? ` cho ${customer}` : ''}`}
+        defaultValue=""
+        onChange={(event) => {
+          const duration = SIGNALS_CONFIG.snoozeDurations.find((item) => item.label === event.target.value);
+          if (duration) onSnooze(duration.milliseconds);
+          event.target.value = '';
+        }}
+        className="min-h-11 max-w-20 rounded-sm border border-line bg-surface-100 px-2 text-sm text-ink"
+      >
+        <option value="" disabled>
+          Khác
+        </option>
+        {SIGNALS_CONFIG.snoozeDurations.map((duration) => (
+          <option key={duration.label} value={duration.label}>
+            {duration.label}
+            {duration.milliseconds === SIGNALS_CONFIG.snoozeDurations[2].milliseconds ? ' · Mặc định' : ''}
+          </option>
+        ))}
+      </select>
+    </span>
+  );
+}
+
+function snoozeConfirmation(until: number) {
+  const date = new Date(until);
+  const today = new Date();
+  const time = date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false });
+  const sameDay =
+    date.getFullYear() === today.getFullYear() &&
+    date.getMonth() === today.getMonth() &&
+    date.getDate() === today.getDate();
+  const day = date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+  return `Đã hoãn đến ${sameDay ? '' : `${day} `}${time}`;
+}
+
 const LEVEL_RANK: Record<Level, number> = { alert: 0, soon: 1, ok: 2 };
 
 function notificationType(signal: Signal): NotifType {
@@ -18,7 +80,12 @@ function notificationType(signal: Signal): NotifType {
 export function NotificationsPage() {
   const navigate = useNavigate();
   // Cùng hook với chuông header → số trên chuông luôn bằng số thẻ dưới đây.
-  const { account, customers, signals, status, hideSignal, hideSignals } = useNotificationSignals();
+  const { account, customers, signals, status, snoozeSignal, snoozeSignals } = useNotificationSignals();
+  const [confirmation, setConfirmation] = useState<{ text: string; undo: () => void } | null>(null);
+  const snooze = (items: Signal[], duration: number) => {
+    const result = snoozeSignals(items, duration);
+    setConfirmation({ text: snoozeConfirmation(result.until), undo: result.undo });
+  };
   const now = Date.now();
   const byId = useMemo(() => new Map(customers.map((customer) => [customer.id, customer])), [customers]);
   const grouped = useMemo(() => {
@@ -91,19 +158,29 @@ export function NotificationsPage() {
                         >
                           Mở hồ sơ {customer.full_name}
                         </button>
-                        <button
-                          type="button"
-                          className="font-medium text-ink-muted hover:text-ink hover:underline"
-                          aria-label={`Ẩn tín hiệu ${typeDef.title} của ${customer.full_name}`}
-                          onClick={() => hideSignal(signal)}
-                        >
-                          Ẩn tín hiệu
-                        </button>
+                        <SnoozeControl
+                          title={typeDef.title}
+                          customer={customer.full_name}
+                          onSnooze={(duration) => {
+                            const result = snoozeSignal(signal, duration);
+                            setConfirmation({ text: snoozeConfirmation(result.until), undo: result.undo });
+                          }}
+                        />
                       </span>
                     ),
                   }))}
-                  bulkLabel="Ẩn tín hiệu"
-                  onBulk={() => hideSignals(groupSignals.map(({ signal }) => signal))}
+                  bulkControl={
+                    <SnoozeControl
+                      title={typeDef.title}
+                      bulk
+                      onSnooze={(duration) =>
+                        snooze(
+                          groupSignals.map(({ signal }) => signal),
+                          duration,
+                        )
+                      }
+                    />
+                  }
                   // Màn Thông báo là danh sách đầy đủ: hiện hết khách trong nhóm (số chuông = số thẻ, không có trang "xem tất cả").
                   preview={groupSignals.length}
                   defaultOpen
@@ -133,14 +210,14 @@ export function NotificationsPage() {
                     <Button type="button" variant="ghost" onClick={() => navigate(`/ho-so/${customer.id}`)}>
                       Mở hồ sơ
                     </Button>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      onClick={() => hideSignal(signal)}
-                      aria-label={`Ẩn tín hiệu ${typeDef.title} của ${customer.full_name}`}
-                    >
-                      Ẩn tín hiệu
-                    </Button>
+                    <SnoozeControl
+                      title={typeDef.title}
+                      customer={customer.full_name}
+                      onSnooze={(duration) => {
+                        const result = snoozeSignal(signal, duration);
+                        setConfirmation({ text: snoozeConfirmation(result.until), undo: result.undo });
+                      }}
+                    />
                   </div>
                 </article>
               );
@@ -151,6 +228,21 @@ export function NotificationsPage() {
       {status && (
         <p role="status" className="text-caption text-ink-muted">
           {status}
+        </p>
+      )}
+      {confirmation && (
+        <p role="status" className="flex flex-wrap items-center gap-2 text-caption text-ink-muted">
+          <span>{confirmation.text}</span>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => {
+              confirmation.undo();
+              setConfirmation(null);
+            }}
+          >
+            Hoàn tác
+          </Button>
         </p>
       )}
       <Button variant="ghost" onClick={() => navigate('/')}>
