@@ -8,6 +8,10 @@ Bộ tài liệu được biên soạn ngày 06/10/2026; đây không phải ng�
 
 Chỉ đọc file này khi cần tiếp nối công việc hoặc task phụ thuộc trạng thái triển khai/test.
 
+## Nhật ký Dòng thời gian một khuôn (2026-10-30, tối)
+
+- Curtis: nút Sửa nhảy đầu/giữa/cuối, ngày lặp. Sửa (Curtis chọn qua Telegram): mỗi mục = icon + tên + **một** ngày ở dòng tên (dạng kit "T6 16/10 13:16"); khung chỉ khi có ghi chú — chữ trái, nút Sửa cố định cuối dòng trên; bỏ icon lặp (ẩn đúng vòng tròn kit); "Hạn" bỏ giây; tab hồ sơ trượt cùng nhịp thanh đầu (transform). Test `tests/e2e/profile-timeline-layout.spec.ts` (đủ loại mục, đo vị trí); `profile.spec.ts` đổi câu kiểm ngày theo lựa chọn của Curtis. 1239 unit + 716 e2e xanh. `main` = `b9f6e88`, Cloudflare đã build (`index-7jKcFteM.js`). **Rollback:** `main` về `3ec797c`.
+
 ## Nhật ký Dòng thời gian bị nhét cột 32px (2026-10-30, chiều)
 
 - Curtis gửi ảnh Android: tab Dòng thời gian của hồ sơ xuống dòng từng chữ, tràn khung. Nguyên nhân: tab ẩn vòng tròn bậc của kit `Timeline` nhưng hàng vẫn là lưới `32px | 1fr` → nội dung rơi vào cột 32px. Sửa `[&>ol>li]:grid-cols-1` (`src/features/profile/timeline.tsx`), test `tests/e2e/profile-timeline-width.spec.ts` (code cũ đo 32px). `main` = `3ec797c` (Curtis duyệt Telegram), Cloudflare đã build (`index-B-s3KrsG.js`). **Rollback:** `main` về `cec8c33`.
