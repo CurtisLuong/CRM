@@ -4,8 +4,8 @@ import { Button } from '@/components/ui/button';
 import { toast as notify } from '@/components/ui/sonner';
 import { taskKindOf } from '@/config/taskKinds';
 import type { Customer } from '@/domain/customer';
+import { fmtWhen } from '@/lib/crm';
 import { cn } from '@/lib/utils';
-import { displayDateTime } from '@/ui/display';
 import { Icon } from '@/ui/Icon';
 import {
   editedTimelineNotePatch,
@@ -85,56 +85,51 @@ export function ProfileTimeline({ customer, entries, writable, busy, onSave }: P
     </span>
   );
 
-  // Một khuôn cho mọi mục (Curtis 30/10): chữ bên trái, nút Sửa cố định cuối dòng trên; ngày xuống hẳn dòng dưới, căn phải.
-  const entryBody = (entry: ProfileTimelineEntry, showDetail: boolean) => {
+  // Một khuôn cho mọi mục (Curtis 30/10): dòng đầu = icon + tên + ngày (một ngày duy nhất, ngoài khung);
+  // khung chỉ có khi có ghi chú — chữ bên trái, nút Sửa cố định cuối dòng trên.
+  const entryBody = (entry: ProfileTimelineEntry) => {
+    if (!entry.detail) return null;
     const editable = entry.kind === 'note' || entry.kind === 'stage';
-    const detail = showDetail ? entry.detail : null;
+    if (editable && editingId === entry.id) return noteEditor(entry);
     return (
-      <span data-entry-body="" className="mt-1 grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 gap-y-1">
-        {detail && editable && editingId === entry.id ? (
-          <span className="col-span-2">{noteEditor(entry)}</span>
-        ) : (
-          detail && (
-            <>
-              <span className="col-start-1 whitespace-pre-wrap break-words text-body text-ink-muted">{detail}</span>
-              {writable && editable && (
-                <Button
-                  aria-label={`Sửa ghi chú ${entry.kind === 'stage' ? 'lịch sử bậc' : 'hồ sơ'}`}
-                  disabled={busy}
-                  onClick={() => startEdit(entry.id, entry.detail || '')}
-                  className="col-start-2 row-start-1"
-                >
-                  Sửa
-                </Button>
-              )}
-            </>
-          )
+      <span data-entry-body="" className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3">
+        <span className="whitespace-pre-wrap break-words text-body text-ink-muted">{entry.detail}</span>
+        {writable && editable && (
+          <Button
+            aria-label={`Sửa ghi chú ${entry.kind === 'stage' ? 'lịch sử bậc' : 'hồ sơ'}`}
+            disabled={busy}
+            onClick={() => startEdit(entry.id, entry.detail || '')}
+          >
+            Sửa
+          </Button>
         )}
-        <time className="col-span-2 justify-self-end font-mono text-caption text-ink-muted">
-          {displayDateTime(entry.at)}
-        </time>
       </span>
     );
   };
 
   const entryText = (entry: ProfileTimelineEntry, options: { detail: boolean; heading?: boolean }) => (
     <>
-      <div className="flex flex-wrap items-center gap-2">
-        {options.heading ? (
-          <h3 className="text-title">{entry.title}</h3>
-        ) : (
-          <span className="text-body-strong">{entry.title}</span>
-        )}
-        {entry.automatic && (
-          <span className="rounded-sm border border-line px-2 py-0.5 text-caption text-ink-muted">Tự động · SLA</span>
-        )}
-        {entry.kind === 'task' && entry.taskKind && (
-          <span className="rounded-sm border border-line px-2 py-0.5 text-caption text-ink-muted">
-            {taskKindOf(entry.taskKind).label}
-          </span>
-        )}
+      <div className="flex items-baseline justify-between gap-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          {options.heading ? (
+            <h3 className="text-title">{entry.title}</h3>
+          ) : (
+            <span className="text-body-strong">{entry.title}</span>
+          )}
+          {entry.automatic && (
+            <span className="rounded-sm border border-line px-2 py-0.5 text-caption text-ink-muted">Tự động · SLA</span>
+          )}
+          {entry.kind === 'task' && entry.taskKind && (
+            <span className="rounded-sm border border-line px-2 py-0.5 text-caption text-ink-muted">
+              {taskKindOf(entry.taskKind).label}
+            </span>
+          )}
+        </div>
+        <time className="shrink-0 font-mono text-xs text-ink-muted" dateTime={new Date(entry.at).toISOString()}>
+          {fmtWhen(entry.at)}
+        </time>
       </div>
-      {entryBody(entry, options.detail)}
+      {options.detail && entry.detail && <div className="mt-1">{entryBody(entry)}</div>}
     </>
   );
 
@@ -182,14 +177,18 @@ export function ProfileTimeline({ customer, entries, writable, busy, onSave }: P
           )}
         </span>
       ),
-      note: (
-        <span className="flex flex-col items-start gap-1">
-          {entry.automatic && (
-            <span className="rounded-sm border border-line px-2 py-0.5 text-caption text-ink-muted">Tự động · SLA</span>
-          )}
-          <span className="w-full [&>span]:mt-0">{entryBody(entry, true)}</span>
-        </span>
-      ),
+      // Không có ghi chú → không vẽ khung (ngày đã ở dòng tên của kit).
+      note:
+        entry.detail || entry.automatic ? (
+          <span className="flex flex-col items-start gap-1">
+            {entry.automatic && (
+              <span className="rounded-sm border border-line px-2 py-0.5 text-caption text-ink-muted">
+                Tự động · SLA
+              </span>
+            )}
+            {entry.detail && <span className="w-full">{entryBody(entry)}</span>}
+          </span>
+        ) : undefined,
     };
   };
 

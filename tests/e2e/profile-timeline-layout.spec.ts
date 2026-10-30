@@ -1,7 +1,8 @@
 import { expect, type Page, test } from '@playwright/test';
 
-// Curtis 30/10: mọi mục nhật ký cùng một khuôn — chữ bên trái, nút Sửa cố định cuối dòng trên,
-// ngày xuống hẳn dòng dưới và căn phải. Dữ liệu đủ loại: gọi có/không ghi chú, ghi chú ngắn/dài, Zalo, việc, bậc.
+// Curtis 30/10: mọi mục nhật ký cùng một khuôn — dòng đầu có icon + tên + đúng một ngày (ngoài khung);
+// khung chỉ có khi có ghi chú: chữ bên trái, nút Sửa cố định cuối dòng trên.
+// Dữ liệu đủ loại: gọi có/không ghi chú, ghi chú ngắn/dài, Zalo, việc, bậc.
 const userId = 'tl-layout';
 const NOW = new Date('2026-10-30T10:00:00+07:00');
 const at = (day: number, hour: number, minute = 0) =>
@@ -103,44 +104,54 @@ async function open(page: Page) {
 }
 
 for (const theme of ['light', 'dark'] as const) {
-  test(`nhật ký: Sửa cuối dòng trên, ngày dòng dưới căn phải (${theme})`, async ({ page }, info) => {
+  test(`nhật ký: mỗi mục một ngày ngoài khung, Sửa cuối dòng trên (${theme})`, async ({ page }, info) => {
     await page.emulateMedia({ colorScheme: theme });
     await open(page);
-    const bodies = page.locator('[data-entry-body]');
-    // 3 cuộc gọi + 3 ghi chú + Zalo + việc + 2 mốc bậc.
-    expect(await bodies.count()).toBeGreaterThanOrEqual(10);
-    expect(await page.getByRole('button', { name: /^Sửa ghi chú/ }).count()).toBe(4);
+    const panel = page.getByRole('tabpanel', { name: /Dòng thời gian/ });
 
+    // Mỗi mục (trong bậc + mốc bậc) có icon, tên và đúng một ngày.
+    const steps = panel.locator('[data-timeline-group] ol ol > li');
+    expect(await steps.count()).toBe(8); // 3 cuộc gọi + 3 ghi chú + Zalo + việc
+    for (const step of await steps.all()) {
+      await expect(step.locator('time')).toHaveCount(1);
+      await expect(step.locator('[data-timeline-entry] svg')).toHaveCount(1);
+    }
+    const stageHeads = panel
+      .locator('[data-timeline-header]')
+      .filter({ has: page.getByRole('heading', { name: /^Bậc:/ }) });
+    expect(await stageHeads.count()).toBe(2);
+    for (const head of await stageHeads.all()) await expect(head.locator('time')).toHaveCount(1);
+
+    // Không ghi chú → không khung; khung không chứa ngày.
+    const noNote = steps.filter({ hasText: 'Không nghe máy' });
+    await expect(noNote.locator('p')).toHaveCount(0);
+    await expect(panel.locator('[data-entry-body] time')).toHaveCount(0);
+    await expect(panel.getByText('Hạn 09:00 28/10/2026', { exact: true })).toBeVisible();
+
+    const bodies = panel.locator('[data-entry-body]');
+    expect(await bodies.count()).toBe(8); // 2 cuộc gọi có ghi chú + 3 ghi chú + Zalo + việc + 1 ghi chú mốc bậc
+    expect(await page.getByRole('button', { name: /^Sửa ghi chú/ }).count()).toBe(4);
     const layouts = await bodies.evaluateAll((els) =>
       els.map((el) => {
         const r = (n: Element) => n.getBoundingClientRect();
-        const body = r(el);
-        const time = el.querySelector(':scope > time');
         const button = el.querySelector(':scope > button');
         const text = el.querySelector(':scope > span');
         return {
-          text: text?.textContent?.slice(0, 20) ?? '(không chữ)',
-          body: { left: body.left, right: body.right, top: body.top },
-          time: time ? { left: r(time).left, right: r(time).right, top: r(time).top } : null,
-          button: button ? { right: r(button).right, top: r(button).top, bottom: r(button).bottom } : null,
-          textBox: text ? { left: r(text).left, right: r(text).right, top: r(text).top, bottom: r(text).bottom } : null,
+          text: text?.textContent?.slice(0, 20) ?? '',
+          body: { left: r(el).left, right: r(el).right, top: r(el).top },
+          textBox: text ? { left: r(text).left, right: r(text).right, top: r(text).top } : null,
+          button: button ? { right: r(button).right, top: r(button).top, left: r(button).left } : null,
         };
       }),
     );
     for (const item of layouts) {
       const where = `mục "${item.text}"`;
-      expect(item.time, where).not.toBeNull();
-      const time = item.time!;
-      expect(Math.abs(time.right - item.body.right), `${where}: ngày căn phải`).toBeLessThanOrEqual(1);
-      if (item.textBox) {
-        expect(Math.abs(item.textBox.left - item.body.left), `${where}: chữ bắt đầu từ trái`).toBeLessThanOrEqual(1);
-        expect(time.top, `${where}: ngày xuống dòng dưới chữ`).toBeGreaterThanOrEqual(item.textBox.bottom - 1);
-      }
+      expect(item.textBox, where).not.toBeNull();
+      expect(Math.abs(item.textBox!.left - item.body.left), `${where}: chữ bắt đầu từ trái`).toBeLessThanOrEqual(1);
       if (item.button) {
         expect(Math.abs(item.button.right - item.body.right), `${where}: Sửa sát phải`).toBeLessThanOrEqual(1);
         expect(Math.abs(item.button.top - item.body.top), `${where}: Sửa ở dòng trên cùng`).toBeLessThanOrEqual(1);
-        expect(time.top, `${where}: ngày dưới nút Sửa`).toBeGreaterThanOrEqual(item.button.bottom - 1);
-        expect(item.textBox!.right, `${where}: chữ không đè nút Sửa`).toBeLessThanOrEqual(item.button.right);
+        expect(item.textBox!.right, `${where}: chữ không đè nút Sửa`).toBeLessThanOrEqual(item.button.left);
       }
     }
     const width = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
@@ -150,7 +161,7 @@ for (const theme of ['light', 'dark'] as const) {
       contentType: 'image/png',
     });
 
-    // Bấm Sửa: ô sửa thay chỗ chữ, ngày vẫn ở dòng dưới.
+    // Bấm Sửa: ô sửa thay chỗ chữ; Huỷ trả lại như cũ.
     await page
       .getByRole('button', { name: /^Sửa ghi chú/ })
       .first()
