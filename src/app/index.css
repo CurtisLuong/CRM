@@ -230,6 +230,17 @@
     -webkit-text-size-adjust: 100%;
   }
 
+  /* Mép dưới thanh đầu khung app — thanh dính bên dưới (tab hồ sơ) bám theo khi thanh đầu ẩn/hiện lúc cuộn. */
+  :root {
+    --app-header-top: calc(56px + env(safe-area-inset-top));
+  }
+
+  @media (max-width: 767px) {
+    :root[data-header-hidden] {
+      --app-header-top: env(safe-area-inset-top);
+    }
+  }
+
   /* Cỡ body đặt ở body (không ở html) để rem của Tailwind vẫn = 16px → lưới 4px đúng. */
   body {
     min-height: 100dvh;

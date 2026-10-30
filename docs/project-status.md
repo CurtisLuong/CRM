@@ -8,6 +8,11 @@ Bộ tài liệu được biên soạn ngày 06/10/2026; đây không phải ng�
 
 Chỉ đọc file này khi cần tiếp nối công việc hoặc task phụ thuộc trạng thái triển khai/test.
 
+## Sửa thanh đầu trên Android (2026-10-29, chiều)
+
+- Curtis gửi ảnh vỏ Android: thanh đầu trùng status bar, nút gọi của dòng khách đè lên khi cuộn. Sửa: thanh đầu cao `56px + env(safe-area-inset-top)` (trước cố định 56px nên phần đệm ăn vào nội dung, đẩy nút lên status bar), lớp z-30 (trước z-5); tab dính hồ sơ dời theo. `main` = `fa64f0f` (merge `factory` @ `a4c638f`), Cloudflare đã build (`index-C6mebC2P.js`). **Rollback:** `main` về `a0532a5`.
+- Kiểm: check 1239; e2e cả bộ 701 đạt + 3 ca r3-01 (Lead dùng `@/ui/Toast` ở Thông báo → đổi sang thanh xác nhận bằng kit, chạy lại đạt); test mới `header-overlay.spec.ts` trượt trên code cũ. Safe-area không giả lập được trên Chromium → **chờ Curtis thử máy thật**.
+
 ## UI mới mọi màn (R2–R5) + góp ý đợt U lên production (2026-10-29)
 
 - **Curtis duyệt "merge main và push" 2026-10-29** sau khi xem preview `factory`. `main` = `a0532a5` (merge `factory` @ `fa1f4e2`; `origin/main` = `6012270`, không xung đột; cây `main` trùng `factory`). Lead push thẳng `main`; Cloudflare project `crm` tự build `crm-cop.pages.dev`. **Rollback:** đưa `main` về `6012270`.

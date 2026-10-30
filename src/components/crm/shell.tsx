@@ -208,6 +208,49 @@ export function Sidebar({
   );
 }
 
+/**
+ * Kiểu Facebook (Curtis 30/10): vuốt lên xem thêm thì giấu thanh đầu, chỉ còn status bar; vuốt xuống thì hiện lại.
+ * Gần đầu trang luôn hiện. Bỏ qua rung tay < 8px để thanh không nhấp nháy.
+ */
+function useHideOnScroll(enabled: boolean) {
+  const [hidden, setHidden] = React.useState(false);
+  React.useEffect(() => {
+    if (!enabled) return;
+    let last = window.scrollY;
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      const y = Math.max(0, window.scrollY);
+      if (y < 56) {
+        setHidden(false);
+        last = y;
+        return;
+      }
+      if (Math.abs(y - last) < 8) return;
+      setHidden(y > last);
+      last = y;
+    };
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(update);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      cancelAnimationFrame(frame);
+    };
+  }, [enabled]);
+  React.useEffect(() => {
+    if (!enabled) return;
+    const root = document.documentElement;
+    if (hidden) root.dataset.headerHidden = '';
+    else delete root.dataset.headerHidden;
+    return () => {
+      delete root.dataset.headerHidden;
+    };
+  }, [enabled, hidden]);
+  return enabled && hidden;
+}
+
 /** Every page: LEFT title + total count (+ subtitle/signals), RIGHT 1–3 actions with the single primary LAST. Optional toolbar row + tabs. */
 export function PageHeader({
   title,
@@ -239,80 +282,92 @@ export function PageHeader({
   /** Header khung app gọn 56px để giữ chỗ cho nội dung trên điện thoại. */
   compact?: boolean;
 }) {
+  const hidden = useHideOnScroll(compact && sticky);
   return (
-    <header
-      className={cn(
-        cn(
-          'flex flex-col gap-3 border-b border-line bg-surface-0 px-6 py-4 max-sm:px-4 max-sm:py-3',
-          // Vỏ Android vẽ dưới status bar: chiều cao = 56px + phần status bar, không trừ phần đệm vào 56px (Curtis 29/10: nút đầu bị đẩy lên status bar).
-          compact &&
-            'h-[calc(56px+env(safe-area-inset-top))] flex-row flex-nowrap gap-2 px-2 py-0 pt-[env(safe-area-inset-top)] max-sm:px-2',
-        ),
-        // Trên mọi dòng danh sách (nút phủ dòng khách z-10/z-20), dưới thanh tab đáy (z-40) và Sheet.
-        sticky && 'sticky top-0 z-30',
+    <>
+      {compact && sticky && (
+        // Nền cho status bar khi thanh đầu ẩn — nội dung cuộn không lộ dưới giờ/pin. Web thường cao 0.
+        <div aria-hidden className="fixed inset-x-0 top-0 z-30 h-[env(safe-area-inset-top)] bg-surface-0 md:hidden" />
       )}
-    >
-      <div
+      <header
+        data-hidden={hidden || undefined}
         className={cn(
-          'flex flex-wrap items-center justify-between gap-x-6 gap-y-3',
-          compact && 'min-w-0 flex-1 flex-nowrap gap-1',
+          cn(
+            'flex flex-col gap-3 border-b border-line bg-surface-0 px-6 py-4 max-sm:px-4 max-sm:py-3',
+            // Vỏ Android vẽ dưới status bar: chiều cao = 56px + phần status bar, không trừ phần đệm vào 56px (Curtis 29/10: nút đầu bị đẩy lên status bar).
+            compact &&
+              'h-[calc(56px+env(safe-area-inset-top))] flex-row flex-nowrap gap-2 px-2 py-0 pt-[env(safe-area-inset-top)] max-sm:px-2',
+          ),
+          // Trên mọi dòng danh sách (nút phủ dòng khách z-10/z-20), dưới thanh tab đáy (z-40) và Sheet.
+          sticky && 'sticky top-0 z-30',
+          // Chỉ ẩn trên điện thoại; desktop luôn hiện. Tab tới nút trong thanh thì hiện lại.
+          compact &&
+            sticky &&
+            'transition-transform duration-200 motion-reduce:transition-none max-md:data-[hidden]:-translate-y-full max-md:focus-within:translate-y-0',
         )}
       >
-        <div className={cn('flex min-w-0 flex-col gap-0.5', compact && 'flex-1 flex-row items-center')}>
-          {overline && <span className="text-overline">{overline}</span>}
-          <div className="flex flex-wrap items-center gap-2.5">
-            <h1
-              className={cn(
-                'm-0 text-2xl font-bold leading-8 tracking-tight max-sm:text-xl',
-                compact && 'truncate text-base leading-5',
-              )}
-            >
-              {title}
-            </h1>
-            {count != null && (
-              <span
-                role="img"
-                aria-label={`${count} ${noun}`}
-                className="inline-grid h-6 place-items-center rounded-[6px] border border-line bg-surface-200 px-2 font-mono text-[13px] font-semibold tabular-nums"
-              >
-                {count}
-              </span>
-            )}
-            {signals && <span className="inline-flex gap-1.5">{signals}</span>}
-          </div>
-          {subtitle && <span className="text-[13px] text-ink-muted">{subtitle}</span>}
-        </div>
-        {actions && (
-          <div className={cn('flex flex-wrap items-center gap-2', compact && 'shrink-0 flex-nowrap gap-1')}>
-            {actions}
-          </div>
-        )}
-      </div>
-      {toolbar && <div className="flex flex-wrap items-center gap-2">{toolbar}</div>}
-      {tabs && (
-        <div role="tablist" className="-mx-1 -mb-4 flex gap-1 overflow-x-auto">
-          {tabs.map((t) => {
-            const on = t.id === activeTab;
-            return (
-              <button
-                key={t.id}
-                type="button"
-                role="tab"
-                aria-selected={on}
-                onClick={() => onTab?.(t.id)}
+        <div
+          className={cn(
+            'flex flex-wrap items-center justify-between gap-x-6 gap-y-3',
+            compact && 'min-w-0 flex-1 flex-nowrap gap-1',
+          )}
+        >
+          <div className={cn('flex min-w-0 flex-col gap-0.5', compact && 'flex-1 flex-row items-center')}>
+            {overline && <span className="text-overline">{overline}</span>}
+            <div className="flex flex-wrap items-center gap-2.5">
+              <h1
                 className={cn(
-                  'inline-flex h-10 cursor-pointer items-center gap-1.5 whitespace-nowrap border-b-2 border-transparent px-3 text-sm font-medium text-ink-muted hover:text-ink',
-                  on && 'border-ion font-semibold text-ink',
+                  'm-0 text-2xl font-bold leading-8 tracking-tight max-sm:text-xl',
+                  compact && 'truncate text-base leading-5',
                 )}
               >
-                {t.label}
-                {t.count != null && <span className="font-mono text-[11px] text-ink-muted">{t.count}</span>}
-              </button>
-            );
-          })}
+                {title}
+              </h1>
+              {count != null && (
+                <span
+                  role="img"
+                  aria-label={`${count} ${noun}`}
+                  className="inline-grid h-6 place-items-center rounded-[6px] border border-line bg-surface-200 px-2 font-mono text-[13px] font-semibold tabular-nums"
+                >
+                  {count}
+                </span>
+              )}
+              {signals && <span className="inline-flex gap-1.5">{signals}</span>}
+            </div>
+            {subtitle && <span className="text-[13px] text-ink-muted">{subtitle}</span>}
+          </div>
+          {actions && (
+            <div className={cn('flex flex-wrap items-center gap-2', compact && 'shrink-0 flex-nowrap gap-1')}>
+              {actions}
+            </div>
+          )}
         </div>
-      )}
-    </header>
+        {toolbar && <div className="flex flex-wrap items-center gap-2">{toolbar}</div>}
+        {tabs && (
+          <div role="tablist" className="-mx-1 -mb-4 flex gap-1 overflow-x-auto">
+            {tabs.map((t) => {
+              const on = t.id === activeTab;
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={on}
+                  onClick={() => onTab?.(t.id)}
+                  className={cn(
+                    'inline-flex h-10 cursor-pointer items-center gap-1.5 whitespace-nowrap border-b-2 border-transparent px-3 text-sm font-medium text-ink-muted hover:text-ink',
+                    on && 'border-ion font-semibold text-ink',
+                  )}
+                >
+                  {t.label}
+                  {t.count != null && <span className="font-mono text-[11px] text-ink-muted">{t.count}</span>}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </header>
+    </>
   );
 }
 

@@ -18,7 +18,8 @@ const SheetContent = React.forwardRef<
       ref={ref}
       style={{ width, ...style }}
       className={cn(
-        'fixed inset-y-0 right-0 z-50 flex max-w-full flex-col border-l border-line bg-surface-100 text-ink shadow-overlay animate-slide-in max-[560px]:!w-full max-[560px]:border-l-0',
+        // Vỏ Android vẽ dưới status bar và thanh điều hướng: chừa hai phần đó để nút Đóng và nút đáy bấm được (Curtis 30/10).
+        'fixed inset-y-0 right-0 z-50 flex max-w-full flex-col border-l border-line bg-surface-100 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] text-ink shadow-overlay animate-slide-in max-[560px]:!w-full max-[560px]:border-l-0',
         className,
       )}
       {...props}

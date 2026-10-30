@@ -25,6 +25,8 @@ async function readStore(page: Page, userId: string, store: 'customers' | 'queue
 for (const theme of ['light', 'dark'] as const) {
   test(`archive hides a customer softly and restore brings it back (${theme})`, async ({ page }, testInfo) => {
     await page.emulateMedia({ colorScheme: theme });
+    // Cố định giờ theo dữ liệu mẫu (hẹn gọi 17/10): để giờ thật thì SLA tự chuyển khách khỏi Hôm nay → test hỏng theo ngày.
+    await page.clock.install({ time: new Date('2026-10-17T03:00:00.000Z') });
     const userId = `t510-${testInfo.project.name}-${theme}`;
     const customerId = `archive-${testInfo.project.name}-${theme}`;
     await page.route('http://127.0.0.1:54321/**', (route) =>
@@ -57,6 +59,14 @@ for (const theme of ['light', 'dark'] as const) {
     await page.evaluate(
       async ({ name, userId, customerId }) => {
         const request = indexedDB.open(name, 2);
+        // Test có thể mở trước khi app kịp tạo bảng → tự tạo, không thì transaction báo thiếu bảng (chập chờn).
+        request.onupgradeneeded = () => {
+          const db = request.result;
+          if (!db.objectStoreNames.contains('customers')) db.createObjectStore('customers', { keyPath: 'id' });
+          if (!db.objectStoreNames.contains('queue'))
+            db.createObjectStore('queue', { keyPath: 'opId', autoIncrement: true });
+          if (!db.objectStoreNames.contains('meta')) db.createObjectStore('meta', { keyPath: 'key' });
+        };
         const db = await new Promise<IDBDatabase>((resolve, reject) => {
           request.onsuccess = () => resolve(request.result);
           request.onerror = () => reject(request.error);
