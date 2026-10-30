@@ -4,8 +4,8 @@ import { Button } from '@/components/ui/button';
 import { toast as notify } from '@/components/ui/sonner';
 import { taskKindOf } from '@/config/taskKinds';
 import type { Customer } from '@/domain/customer';
+import { fmtWhen } from '@/lib/crm';
 import { cn } from '@/lib/utils';
-import { displayDateTime } from '@/ui/display';
 import { Icon } from '@/ui/Icon';
 import {
   editedTimelineNotePatch,
@@ -85,13 +85,15 @@ export function ProfileTimeline({ customer, entries, writable, busy, onSave }: P
     </span>
   );
 
-  const entryDetail = (entry: ProfileTimelineEntry) => {
+  // Một khuôn cho mọi mục (Curtis 30/10): dòng đầu = icon + tên + ngày (một ngày duy nhất, ngoài khung);
+  // khung chỉ có khi có ghi chú — chữ bên trái, nút Sửa cố định cuối dòng trên.
+  const entryBody = (entry: ProfileTimelineEntry) => {
     if (!entry.detail) return null;
     const editable = entry.kind === 'note' || entry.kind === 'stage';
     if (editable && editingId === entry.id) return noteEditor(entry);
     return (
-      <span className="mt-1 flex flex-wrap items-start justify-between gap-2">
-        <span className="min-w-0 flex-1 whitespace-pre-wrap text-body text-ink-muted">{entry.detail}</span>
+      <span data-entry-body="" className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3">
+        <span className="whitespace-pre-wrap break-words text-body text-ink-muted">{entry.detail}</span>
         {writable && editable && (
           <Button
             aria-label={`Sửa ghi chú ${entry.kind === 'stage' ? 'lịch sử bậc' : 'hồ sơ'}`}
@@ -107,23 +109,27 @@ export function ProfileTimeline({ customer, entries, writable, busy, onSave }: P
 
   const entryText = (entry: ProfileTimelineEntry, options: { detail: boolean; heading?: boolean }) => (
     <>
-      <div className="flex flex-wrap items-center gap-2">
-        {options.heading ? (
-          <h3 className="text-title">{entry.title}</h3>
-        ) : (
-          <span className="text-body-strong">{entry.title}</span>
-        )}
-        {entry.automatic && (
-          <span className="rounded-sm border border-line px-2 py-0.5 text-caption text-ink-muted">Tự động · SLA</span>
-        )}
-        {entry.kind === 'task' && entry.taskKind && (
-          <span className="rounded-sm border border-line px-2 py-0.5 text-caption text-ink-muted">
-            {taskKindOf(entry.taskKind).label}
-          </span>
-        )}
+      <div className="flex items-baseline justify-between gap-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          {options.heading ? (
+            <h3 className="text-title">{entry.title}</h3>
+          ) : (
+            <span className="text-body-strong">{entry.title}</span>
+          )}
+          {entry.automatic && (
+            <span className="rounded-sm border border-line px-2 py-0.5 text-caption text-ink-muted">Tự động · SLA</span>
+          )}
+          {entry.kind === 'task' && entry.taskKind && (
+            <span className="rounded-sm border border-line px-2 py-0.5 text-caption text-ink-muted">
+              {taskKindOf(entry.taskKind).label}
+            </span>
+          )}
+        </div>
+        <time className="shrink-0 font-mono text-xs text-ink-muted" dateTime={new Date(entry.at).toISOString()}>
+          {fmtWhen(entry.at)}
+        </time>
       </div>
-      {options.detail ? entryDetail(entry) : null}
-      <time className="mt-1 block font-mono text-caption text-ink-muted">{displayDateTime(entry.at)}</time>
+      {options.detail && entry.detail && <div className="mt-1">{entryBody(entry)}</div>}
     </>
   );
 
@@ -171,15 +177,18 @@ export function ProfileTimeline({ customer, entries, writable, busy, onSave }: P
           )}
         </span>
       ),
-      note: (
-        <span className="flex flex-wrap items-center gap-1">
-          {entry.automatic && (
-            <span className="rounded-sm border border-line px-2 py-0.5 text-caption text-ink-muted">Tự động · SLA</span>
-          )}
-          {entry.detail && entryDetail(entry)}
-          <time className="font-mono text-caption text-ink-muted">{displayDateTime(entry.at)}</time>
-        </span>
-      ),
+      // Không có ghi chú → không vẽ khung (ngày đã ở dòng tên của kit).
+      note:
+        entry.detail || entry.automatic ? (
+          <span className="flex flex-col items-start gap-1">
+            {entry.automatic && (
+              <span className="rounded-sm border border-line px-2 py-0.5 text-caption text-ink-muted">
+                Tự động · SLA
+              </span>
+            )}
+            {entry.detail && <span className="w-full">{entryBody(entry)}</span>}
+          </span>
+        ) : undefined,
     };
   };
 
@@ -260,9 +269,9 @@ export function ProfileTimeline({ customer, entries, writable, busy, onSave }: P
                   <h3 className="text-title">{group.title}</h3>
                 </article>
               )}
-              {/* Ẩn vòng tròn bậc của kit → bỏ luôn cột 32px của nó, không thì nội dung bị nhét vào cột hẹp (Curtis 30/10). */}
+              {/* Ẩn vòng tròn bậc và vòng tròn từng mục của kit (icon đã nằm trong dòng mục) → bỏ luôn cột của chúng, không thì nội dung bị nhét vào cột hẹp và icon lặp đôi (Curtis 30/10). */}
               {group.rows.length > 0 && (
-                <div className="ml-2 border-l-2 border-line pl-3 [&>ol>li]:grid-cols-1 [&>ol>li>span:nth-child(-n+2)]:hidden [&>ol>li>div>button]:hidden [&>ol>li>div>span]:hidden [&>ol>li>ol>li>span:first-child]:hidden">
+                <div className="ml-2 border-l-2 border-line pl-3 [&>ol>li]:grid-cols-1 [&>ol>li>span:nth-child(-n+2)]:hidden [&>ol>li>div>ol>li]:grid-cols-1 [&>ol>li>div>ol>li]:before:hidden [&>ol>li>div>ol>li>span:first-child]:hidden [&>ol>li>div>button]:hidden [&>ol>li>div>span]:hidden">
                   <Timeline
                     now={new Date()}
                     stages={[

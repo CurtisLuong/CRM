@@ -8,6 +8,10 @@ Bộ tài liệu được biên soạn ngày 06/10/2026; đây không phải ng�
 
 Chỉ đọc file này khi cần tiếp nối công việc hoặc task phụ thuộc trạng thái triển khai/test.
 
+## Nhật ký Dòng thời gian bị nhét cột 32px (2026-10-30, chiều)
+
+- Curtis gửi ảnh Android: tab Dòng thời gian của hồ sơ xuống dòng từng chữ, tràn khung. Nguyên nhân: tab ẩn vòng tròn bậc của kit `Timeline` nhưng hàng vẫn là lưới `32px | 1fr` → nội dung rơi vào cột 32px. Sửa `[&>ol>li]:grid-cols-1` (`src/features/profile/timeline.tsx`), test `tests/e2e/profile-timeline-width.spec.ts` (code cũ đo 32px). `main` = `3ec797c` (Curtis duyệt Telegram), Cloudflare đã build (`index-B-s3KrsG.js`). **Rollback:** `main` về `cec8c33`.
+
 ## Thanh đầu kiểu Facebook + ngăn kéo chừa status bar (2026-10-30)
 
 - Curtis gửi ảnh vỏ Android: tấm khách và Lọc khách tràn lên status bar, không bấm được nút Đóng. Sửa: `SheetContent` đệm `safe-area-inset-top/bottom`, `DialogContent` chừa hai mép; thanh đầu khung app trên điện thoại ẩn khi cuộn xuống (vuốt lên), hiện khi cuộn lên, dải nền status bar luôn giữ; tab dính hồ sơ theo `--app-header-top`. Kiểm bằng Chromium giả lập status bar 32px (CDP `Emulation.setSafeAreaInsetsOverride`), chưa thử máy thật. `main` = `cec8c33` (Curtis duyệt qua Telegram), Cloudflare đã build (`index-BGblD2TL.js`). **Rollback:** `main` về `fa64f0f`.
