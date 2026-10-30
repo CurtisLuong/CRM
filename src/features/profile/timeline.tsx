@@ -85,22 +85,34 @@ export function ProfileTimeline({ customer, entries, writable, busy, onSave }: P
     </span>
   );
 
-  const entryDetail = (entry: ProfileTimelineEntry) => {
-    if (!entry.detail) return null;
+  // Một khuôn cho mọi mục (Curtis 30/10): chữ bên trái, nút Sửa cố định cuối dòng trên; ngày xuống hẳn dòng dưới, căn phải.
+  const entryBody = (entry: ProfileTimelineEntry, showDetail: boolean) => {
     const editable = entry.kind === 'note' || entry.kind === 'stage';
-    if (editable && editingId === entry.id) return noteEditor(entry);
+    const detail = showDetail ? entry.detail : null;
     return (
-      <span className="mt-1 flex flex-wrap items-start justify-between gap-2">
-        <span className="min-w-0 flex-1 whitespace-pre-wrap text-body text-ink-muted">{entry.detail}</span>
-        {writable && editable && (
-          <Button
-            aria-label={`Sửa ghi chú ${entry.kind === 'stage' ? 'lịch sử bậc' : 'hồ sơ'}`}
-            disabled={busy}
-            onClick={() => startEdit(entry.id, entry.detail || '')}
-          >
-            Sửa
-          </Button>
+      <span data-entry-body="" className="mt-1 grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 gap-y-1">
+        {detail && editable && editingId === entry.id ? (
+          <span className="col-span-2">{noteEditor(entry)}</span>
+        ) : (
+          detail && (
+            <>
+              <span className="col-start-1 whitespace-pre-wrap break-words text-body text-ink-muted">{detail}</span>
+              {writable && editable && (
+                <Button
+                  aria-label={`Sửa ghi chú ${entry.kind === 'stage' ? 'lịch sử bậc' : 'hồ sơ'}`}
+                  disabled={busy}
+                  onClick={() => startEdit(entry.id, entry.detail || '')}
+                  className="col-start-2 row-start-1"
+                >
+                  Sửa
+                </Button>
+              )}
+            </>
+          )
         )}
+        <time className="col-span-2 justify-self-end font-mono text-caption text-ink-muted">
+          {displayDateTime(entry.at)}
+        </time>
       </span>
     );
   };
@@ -122,8 +134,7 @@ export function ProfileTimeline({ customer, entries, writable, busy, onSave }: P
           </span>
         )}
       </div>
-      {options.detail ? entryDetail(entry) : null}
-      <time className="mt-1 block font-mono text-caption text-ink-muted">{displayDateTime(entry.at)}</time>
+      {entryBody(entry, options.detail)}
     </>
   );
 
@@ -172,12 +183,11 @@ export function ProfileTimeline({ customer, entries, writable, busy, onSave }: P
         </span>
       ),
       note: (
-        <span className="flex flex-wrap items-center gap-1">
+        <span className="flex flex-col items-start gap-1">
           {entry.automatic && (
             <span className="rounded-sm border border-line px-2 py-0.5 text-caption text-ink-muted">Tự động · SLA</span>
           )}
-          {entry.detail && entryDetail(entry)}
-          <time className="font-mono text-caption text-ink-muted">{displayDateTime(entry.at)}</time>
+          <span className="w-full [&>span]:mt-0">{entryBody(entry, true)}</span>
         </span>
       ),
     };
@@ -260,9 +270,9 @@ export function ProfileTimeline({ customer, entries, writable, busy, onSave }: P
                   <h3 className="text-title">{group.title}</h3>
                 </article>
               )}
-              {/* Ẩn vòng tròn bậc của kit → bỏ luôn cột 32px của nó, không thì nội dung bị nhét vào cột hẹp (Curtis 30/10). */}
+              {/* Ẩn vòng tròn bậc và vòng tròn từng mục của kit (icon đã nằm trong dòng mục) → bỏ luôn cột của chúng, không thì nội dung bị nhét vào cột hẹp và icon lặp đôi (Curtis 30/10). */}
               {group.rows.length > 0 && (
-                <div className="ml-2 border-l-2 border-line pl-3 [&>ol>li]:grid-cols-1 [&>ol>li>span:nth-child(-n+2)]:hidden [&>ol>li>div>button]:hidden [&>ol>li>div>span]:hidden [&>ol>li>ol>li>span:first-child]:hidden">
+                <div className="ml-2 border-l-2 border-line pl-3 [&>ol>li]:grid-cols-1 [&>ol>li>span:nth-child(-n+2)]:hidden [&>ol>li>div>ol>li]:grid-cols-1 [&>ol>li>div>ol>li]:before:hidden [&>ol>li>div>ol>li>span:first-child]:hidden [&>ol>li>div>button]:hidden [&>ol>li>div>span]:hidden">
                   <Timeline
                     now={new Date()}
                     stages={[
