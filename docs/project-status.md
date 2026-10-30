@@ -8,6 +8,10 @@ Bộ tài liệu được biên soạn ngày 06/10/2026; đây không phải ng�
 
 Chỉ đọc file này khi cần tiếp nối công việc hoặc task phụ thuộc trạng thái triển khai/test.
 
+## Thanh đầu kiểu Facebook + ngăn kéo chừa status bar (2026-10-30)
+
+- Curtis gửi ảnh vỏ Android: tấm khách và Lọc khách tràn lên status bar, không bấm được nút Đóng. Sửa: `SheetContent` đệm `safe-area-inset-top/bottom`, `DialogContent` chừa hai mép; thanh đầu khung app trên điện thoại ẩn khi cuộn xuống (vuốt lên), hiện khi cuộn lên, dải nền status bar luôn giữ; tab dính hồ sơ theo `--app-header-top`. Kiểm bằng Chromium giả lập status bar 32px (CDP `Emulation.setSafeAreaInsetsOverride`), chưa thử máy thật. `main` = `cec8c33` (Curtis duyệt qua Telegram), Cloudflare đã build (`index-BGblD2TL.js`). **Rollback:** `main` về `fa64f0f`.
+
 ## Sửa thanh đầu trên Android (2026-10-29, chiều)
 
 - Curtis gửi ảnh vỏ Android: thanh đầu trùng status bar, nút gọi của dòng khách đè lên khi cuộn. Sửa: thanh đầu cao `56px + env(safe-area-inset-top)` (trước cố định 56px nên phần đệm ăn vào nội dung, đẩy nút lên status bar), lớp z-30 (trước z-5); tab dính hồ sơ dời theo. `main` = `fa64f0f` (merge `factory` @ `a4c638f`), Cloudflare đã build (`index-C6mebC2P.js`). **Rollback:** `main` về `a0532a5`.

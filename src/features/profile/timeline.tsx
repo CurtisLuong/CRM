@@ -260,8 +260,9 @@ export function ProfileTimeline({ customer, entries, writable, busy, onSave }: P
                   <h3 className="text-title">{group.title}</h3>
                 </article>
               )}
+              {/* Ẩn vòng tròn bậc của kit → bỏ luôn cột 32px của nó, không thì nội dung bị nhét vào cột hẹp (Curtis 30/10). */}
               {group.rows.length > 0 && (
-                <div className="ml-2 border-l-2 border-line pl-3 [&>ol>li>span:nth-child(-n+2)]:hidden [&>ol>li>div>button]:hidden [&>ol>li>div>span]:hidden [&>ol>li>ol>li>span:first-child]:hidden">
+                <div className="ml-2 border-l-2 border-line pl-3 [&>ol>li]:grid-cols-1 [&>ol>li>span:nth-child(-n+2)]:hidden [&>ol>li>div>button]:hidden [&>ol>li>div>span]:hidden [&>ol>li>ol>li>span:first-child]:hidden">
                   <Timeline
                     now={new Date()}
                     stages={[
