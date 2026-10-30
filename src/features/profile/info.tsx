@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { Field } from '@/components/crm/form-fields';
 import { Card } from '@/components/ui/card';
 import { OCCUPATIONS } from '@/config/occupations';
@@ -50,7 +50,8 @@ type InfoProps = {
 
 /** Khu "Thông tin chính" của tab Trí nhớ: ô ngắn nửa hàng, ô dài cả hàng, ô trống ẩn sau "Bổ sung". */
 export function ProfileInfoFields({ customer, writable, busy, now, showEmpty, onSaveField, onSaveDob }: InfoProps) {
-  const rows: { key: string; short: boolean; always?: boolean; node: ReactNode }[] = [
+  // bare: ô tự đặt khung (Ngày sinh kèm các ô Tuổi/Mệnh/Cung).
+  const rows: { key: string; short: boolean; always?: boolean; bare?: boolean; node: ReactNode }[] = [
     {
       key: 'full_name',
       short: false,
@@ -93,6 +94,7 @@ export function ProfileInfoFields({ customer, writable, busy, now, showEmpty, on
     {
       key: 'dob',
       short: true,
+      bare: true,
       node: <DobField value={customer.dob} disabled={!writable} now={now} onSave={onSaveDob} />,
     },
     {
@@ -153,11 +155,15 @@ export function ProfileInfoFields({ customer, writable, busy, now, showEmpty, on
   return (
     <Card className="min-w-0 w-full p-4">
       <div className="flex flex-wrap gap-3">
-        {visible.map((row) => (
-          <div key={row.key} className={row.short ? SHORT_FIELD : LONG_FIELD}>
-            {row.node}
-          </div>
-        ))}
+        {visible.map((row) =>
+          row.bare ? (
+            <Fragment key={row.key}>{row.node}</Fragment>
+          ) : (
+            <div key={row.key} className={row.short ? SHORT_FIELD : LONG_FIELD}>
+              {row.node}
+            </div>
+          ),
+        )}
       </div>
     </Card>
   );
