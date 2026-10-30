@@ -4,7 +4,9 @@ import type { UseFormRegister } from 'react-hook-form';
 import { DatePicker, SelectField, TextField } from '@/components/crm';
 import { Button } from '@/components/ui/button';
 import { ADVANCED_GROUPS } from '@/config/advanced';
-import { calcCungFromDOB, calcMenhFromSolarDOB } from '@/domain/lunar/lunar';
+import { dobView } from '@/features/profile/dob';
+import { DobDerivedFields } from '@/features/profile/dob-field';
+import { SHORT_FIELD } from '@/features/profile/fields';
 import { Icon } from '@/ui/Icon';
 import type { IntakeValues } from './schema';
 import { safeDob } from './view';
@@ -107,10 +109,13 @@ export function IntakeMore({ open, onToggle, values, register, set, fieldErrors,
                 onChange={(value) => set('dob', value)}
                 error={fieldErrors.dob}
               />
-              <p className="text-caption text-ink-muted sm:col-span-2">
-                Mệnh: {values.dob ? calcMenhFromSolarDOB(safeDob(values.dob)) || 'Chưa xác định' : 'Chưa biết'} · Cung:{' '}
-                {values.dob ? calcCungFromDOB(safeDob(values.dob)) || 'Chưa xác định' : 'Chưa biết'}
-              </p>
+              <div className="flex flex-wrap gap-3 empty:hidden sm:col-span-2">
+                <DobDerivedFields
+                  view={dobView(safeDob(values.dob), Date.now())}
+                  cellClassName={SHORT_FIELD}
+                  labelClassName=""
+                />
+              </div>
               {select('Tình trạng hôn nhân', 'marital_status', ['đã kết hôn', 'chưa kết hôn'])}
               {select('Công việc', 'occupation', ['Tự do', 'Công ty, DN', 'Công, viên chức', 'Công an, Bộ đội'])}
               {input('Thu nhập', 'income')}
