@@ -36,8 +36,9 @@ describe('Android AppUpdate bridge contract', () => {
     expect(paths).toContain('<files-path name="app_updates" path="updates/" />');
     expect(plugin).toContain('getContext().getFilesDir()');
     expect(plugin).toContain('FileProvider.getUriForFile');
-    expect(Number(gradle.match(/versionCode\s+(\d+)/)?.[1])).toBe(8);
-    expect(gradle).toMatch(/versionName\s+"1\.7"/);
+    // AppUpdate có từ APK 1.7 (versionCode 8); các bản sau chỉ được tăng số.
+    expect(Number(gradle.match(/versionCode\s+(\d+)/)?.[1])).toBeGreaterThanOrEqual(8);
+    expect(gradle).toMatch(/versionName\s+"1\.\d+"/);
   });
 
   it('restricts HTTPS downloads to the release host and rejects using matching code/message', () => {
