@@ -126,7 +126,8 @@ test('Mỗi khách một thẻ gọn: hạn đứng đầu dòng phụ, đúng 1
   await open(page);
   const late = card(page, 'Khách Danh Sách 00');
   await expect(late).toHaveAttribute('data-tone', 'over');
-  await expect(late.getByText(/^Quên gọi 07:00/)).toBeVisible();
+  // Curtis 31/10: tên ưu tiên đủ chữ; nhãn hạn co lại (có thể chỉ còn ▲) khi tên dài ở 360px.
+  await expect(late.getByText(/^Quên gọi 07:00/)).toBeAttached();
   await expect(late).toContainText('NOXH Tràng Duệ');
   await expect(late.getByRole('button')).toHaveCount(2);
   await late.getByRole('button', { name: 'Gọi Khách Danh Sách 00' }).click();

@@ -235,7 +235,7 @@ export function ActionItem({
               >
                 {need.aptType}
               </span>
-              {' · '}
+              {'\u00a0·\u00a0'}
               <span
                 className={cn(
                   'min-w-0 overflow-hidden text-ellipsis whitespace-nowrap',

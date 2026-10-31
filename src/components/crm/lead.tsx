@@ -22,7 +22,7 @@ function NeedText({ need }: { need: CustomerNeed }) {
       >
         {need.aptType}
       </span>
-      {' · '}
+      {'\u00a0·\u00a0'}
       <span
         className={cn(
           'min-w-0 overflow-hidden text-ellipsis whitespace-nowrap',
@@ -77,17 +77,21 @@ export function LeadRow({
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="flex min-w-0 items-center gap-2">
           {/* Tên được ưu tiên đủ chữ; nhãn hạn / lần chạm co lại thành "…" khi thiếu chỗ (Curtis 31/10). */}
-          <span className="min-w-0 max-w-full shrink-0 truncate text-[15px] font-semibold leading-[22px]">{name}</span>
+          <span className="min-w-0 shrink truncate text-[15px] font-semibold leading-[22px]">{name}</span>
           {level && (
-            // Nhãn hạn giữ tối thiểu ▲ + "…" để vẫn thấy khách gấp khi tên dài.
-            <span className="flex min-w-11 shrink">
+            // Nhãn hạn giữ tối thiểu dấu ▲ để vẫn thấy khách gấp khi tên dài.
+            <span className="flex min-w-7 shrink-[1000]">
               <SignalBadge level={level} className="max-w-full">
                 {time}
               </SignalBadge>
             </span>
           )}
-          {lastTouch && <span className="min-w-0 truncate text-caption font-normal text-ink-muted">{lastTouch}</span>}
-          {!level && time && <span className="min-w-0 truncate text-caption font-normal text-ink-muted">{time}</span>}
+          {lastTouch && (
+            <span className="min-w-0 shrink-[1000] truncate text-caption font-normal text-ink-muted">{lastTouch}</span>
+          )}
+          {!level && time && (
+            <span className="min-w-0 shrink-[1000] truncate text-caption font-normal text-ink-muted">{time}</span>
+          )}
         </span>
         <span className="flex min-w-0 items-center gap-2">
           {stage && <StageChip stage={stage} compactOnMobile={hidePhone} className="shrink-0" />}
