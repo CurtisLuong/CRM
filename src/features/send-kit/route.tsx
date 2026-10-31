@@ -24,6 +24,7 @@ import {
   uniqueProjects,
   visibleItems,
 } from './model';
+import { nativeShareFilesContext, shareFilesWithNativePlugin } from './nativeShare';
 import { deleteSendKitItem, listSendKitItems, reorderSendKitItems, saveSendKitItem } from './store';
 
 const sizeLabel = (files: SendKitFile[]) => `${files.length} tệp · ${formatBytes(totalFileSize(files))}`;
@@ -223,7 +224,24 @@ function SendKitPage() {
     const message = sendKitText(chosen, selected, customer);
     const attachments = selectedFiles(chosen, selected);
     const titles = chosen.map((item) => item.title).join(', ');
+    const nativeShare = nativeShareFilesContext();
     try {
+      if (attachments.length && nativeShare.plugin) {
+        if (message) await navigator.clipboard.writeText(message);
+        await shareFilesWithNativePlugin(nativeShare.plugin, attachments, message, async () => {
+          const latest = account.customers.getSnapshot().find((row) => row.id === customer.id) ?? customer;
+          await account.customers.update(
+            customer.id,
+            appendInteractionPatch(
+              latest,
+              createInteraction('sent', userId, new Date().toISOString(), `Đã gửi tài liệu: ${titles}`),
+            ),
+          );
+        });
+        if (attachments.length >= 2 && message) setPasteHelpMessage(message);
+        toast.success('Đã gửi tài liệu', { description: 'Đã ghi vào lịch sử khách.' });
+        return;
+      }
       // Chỉ có chữ: link zalo.me/<số> báo "trang không tồn tại" khi khách không cho tìm bằng số (Curtis thử 28/10)
       // → dùng bảng chia sẻ như khi có tệp; máy không có bảng chia sẻ mới mở link Zalo.
       if (!attachments.length && typeof navigator.share === 'function') {
@@ -282,8 +300,9 @@ function SendKitPage() {
         const { copyAndOpenZalo } = await import('@/features/quick-actions/zalo');
         await copyAndOpenZalo(message, customer.phone);
         if (attachments.length >= 2 && message) setPasteHelpMessage(message);
+        const updateHint = nativeShare.isNative ? 'Cập nhật app để gửi kèm tệp. ' : '';
         toast.info('Đã chép chữ, mở Zalo và tải tệp', {
-          description: 'Thiết bị này không hỗ trợ chia sẻ tệp trực tiếp; hãy đính kèm các tệp vừa tải trong Zalo.',
+          description: `${updateHint}Thiết bị này không hỗ trợ chia sẻ tệp trực tiếp; hãy đính kèm các tệp vừa tải trong Zalo.`,
         });
       }
     } catch (reason) {

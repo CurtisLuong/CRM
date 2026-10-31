@@ -257,6 +257,7 @@ Vỏ `android-app/` (Capacitor, APK cài trực tiếp) mở `https://crm-cop.pa
 | `window.Capacitor` + `Capacitor.Plugins.CallLog` (đọc nhật ký, `dial`) | web → native | Đồng bộ cuộc gọi, gọi thẳng (APK ≥1.4); thiếu plugin → `tel:` |
 | `Capacitor.Plugins.ExternalLink`, `AppInfo`, `ClipboardImage` | web → native | Mở Zalo/link ngoài, phiên bản app, dán ảnh |
 | `Capacitor.Plugins.SpeechInput` (APK mới, VN-02): `available()` → `{available}` · `start({lang})` · `stop()` · sự kiện `partial {text}`, `end {text}`, `error {code: 'not_allowed'\|'unavailable'\|'no_speech'\|'busy'\|'other'}` | web → native | Ghi chú giọng nói hiện chữ ngay trên Android; thiếu plugin → Web Speech / Worker STT như cũ |
+| `Capacitor.Plugins.ShareFiles` (APK ≥1.8, U-06): `share({files: [{name, mimeType, base64}], text?, preferPackage?})` ghi tệp vào cache riêng, chia sẻ qua FileProvider (`ACTION_SEND`/`ACTION_SEND_MULTIPLE` + `EXTRA_TEXT`); có `preferPackage` (vd `com.zing.zalo`) thì mở thẳng gói đó, không thì bảng chọn → resolve `{target: 'package'\|'chooser'}` · reject `no_files` · `write_failed` · `no_app` · `busy` | web → native | Gửi tài liệu kèm tệp trong vỏ (WebView không có `navigator.share`); thiếu plugin → nhánh cũ + nhắc cập nhật app |
 | `window.CRMBack()` trả true nếu web tự xử lý nút Back | native → web | Đóng sheet/hộp thoại trước khi thoát |
 | Sự kiện window `crm:resume` | native → web | Mở lại app → đồng bộ nhật ký gọi, mở sheet sau gọi |
 | `window.CRMCalls` (`sync`, `ingest`) | web | Cổng ghi cuộc gọi (D-002) |
