@@ -20,14 +20,37 @@ export function StageChip({
   stage,
   children,
   className,
+  compactOnMobile = false,
 }: {
   stage: Stage;
   children?: React.ReactNode;
   className?: string;
+  compactOnMobile?: boolean;
 }) {
   const st = stageDef(stage);
   const lost = st.end === 'lost';
   const won = st.end === 'won';
+  if (compactOnMobile) {
+    return (
+      <>
+        <span
+          role="img"
+          aria-label={`Bậc: ${st.label}`}
+          title={`Bậc: ${st.label}`}
+          className="inline-flex h-6 shrink-0 items-center sm:hidden"
+        >
+          <span aria-hidden className="inline-flex w-5 items-center gap-px">
+            {Array.from({ length: FUNNEL_STEPS }, (_, i) => i + 1).map((n) => (
+              <i key={n} className={cn('h-1.5 flex-1 rounded-[1px]', n <= st.step ? 'bg-ion' : 'bg-surface-200')} />
+            ))}
+          </span>
+        </span>
+        <span className={cn('hidden shrink-0 sm:inline-flex', className)}>
+          <StageChip stage={stage}>{children}</StageChip>
+        </span>
+      </>
+    );
+  }
   return (
     <span
       className={cn(

@@ -190,20 +190,6 @@ export function ActionItem({
                 <span className="font-semibold text-ink">{customer}</span>
                 {context && <> · {context}</>}
               </div>
-              {need && (
-                <div
-                  data-testid="customer-need-line"
-                  className="min-w-0 truncate text-caption leading-4 text-ink-muted"
-                >
-                  <span className={need.aptType.startsWith('Chưa rõ') ? 'text-ink-muted/70' : undefined}>
-                    {need.aptType}
-                  </span>
-                  {' · '}
-                  <span className={need.project.startsWith('Chưa rõ') ? 'text-ink-muted/70' : undefined}>
-                    {need.project}
-                  </span>
-                </div>
-              )}
             </div>
             {(action || actionLabel) && (
               <div className="shrink-0 pointer-events-auto">
@@ -235,6 +221,21 @@ export function ActionItem({
               </div>
             )}
           </div>
+          {need && (
+            <div
+              data-testid="customer-need-line"
+              title={need.title ?? `${need.aptType} · ${need.project}`}
+              className="min-w-0 truncate text-caption leading-4 text-ink-muted"
+            >
+              <span className={need.aptType.startsWith('Chưa rõ') ? 'text-ink-muted/70' : undefined}>
+                {need.aptType}
+              </span>
+              {' · '}
+              <span className={need.project.startsWith('Chưa rõ') ? 'text-ink-muted/70' : undefined}>
+                {need.project}
+              </span>
+            </div>
+          )}
         </div>
       </div>
       {children && <div className="relative z-10 mt-2.5 border-line border-t pt-2 pointer-events-none">{children}</div>}

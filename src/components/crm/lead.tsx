@@ -7,7 +7,11 @@ import { StageChip } from './stage';
 
 function NeedText({ need }: { need: CustomerNeed }) {
   return (
-    <span data-testid="customer-need-line" className="min-w-0 truncate text-caption text-ink-muted">
+    <span
+      data-testid="customer-need-line"
+      title={need.title ?? `${need.aptType} · ${need.project}`}
+      className="min-w-0 truncate text-caption text-ink-muted"
+    >
       <span className={need.aptType.startsWith('Chưa rõ') ? 'text-ink-muted/70' : undefined}>{need.aptType}</span>
       {' · '}
       <span className={need.project.startsWith('Chưa rõ') ? 'text-ink-muted/70' : undefined}>{need.project}</span>
@@ -45,16 +49,13 @@ export function LeadRow({
   need?: CustomerNeed;
   hidePhone?: boolean;
 }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={selected || undefined}
-      className={cn(
-        'flex min-h-16 w-full cursor-pointer items-center gap-3 border-b border-line bg-surface-100 px-4 py-2 text-left last:border-b-0 hover:bg-surface-200',
-        selected && 'bg-ion-tint hover:bg-ion-tint',
-      )}
-    >
+  const rowClass = cn(
+    'flex min-h-16 w-full items-center gap-3 border-b border-line bg-surface-100 px-4 py-2 text-left last:border-b-0',
+    !hidePhone && 'cursor-pointer hover:bg-surface-200',
+    selected && 'bg-ion-tint hover:bg-ion-tint',
+  );
+  const content = (
+    <>
       <Avatar name={name} />
       {/* Tên một dòng riêng: ở 360px nhãn bậc đứng cạnh tên sẽ ép tên còn "C." (R2 review). */}
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -71,7 +72,7 @@ export function LeadRow({
           {!level && time && <span className="shrink-0 truncate text-caption font-normal text-ink-muted">{time}</span>}
         </span>
         <span className="flex min-w-0 items-center gap-2">
-          {stage && <StageChip stage={stage} className="shrink-0" />}
+          {stage && <StageChip stage={stage} compactOnMobile={hidePhone} className="shrink-0" />}
           {need ? (
             <NeedText need={need} />
           ) : (
@@ -85,6 +86,12 @@ export function LeadRow({
         )}
       </span>
       {nextStep && <span className="shrink-0 text-caption text-ink-muted">{nextStep}</span>}
+    </>
+  );
+  if (hidePhone) return <div className={rowClass}>{content}</div>;
+  return (
+    <button type="button" onClick={onClick} aria-pressed={selected || undefined} className={rowClass}>
+      {content}
     </button>
   );
 }
