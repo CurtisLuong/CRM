@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { useRepositoryAccount } from '@/data/hooks';
 import type { Customer } from '@/domain/customer';
 import { ARCHIVED_PATH, archivedDate, archiveReason, canArchive, useArchiveActions } from '@/features/profile/archive';
+import { customerNeed } from '@/lib/crm/customer-need';
 import { archivedCustomers } from './model';
 
 const FIELD =
@@ -84,6 +85,7 @@ function ArchivedRow({ customer, owner, onOpen }: { customer: Customer; owner: b
         <LeadRow
           name={customer.full_name}
           phone={customer.phone}
+          need={customerNeed(customer)}
           onClick={onOpen}
           nextStep={[date ? `Lưu trữ ${date}` : '', archiveReason(customer), owner ? '' : 'Người phụ trách khác']
             .filter(Boolean)

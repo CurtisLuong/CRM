@@ -1,8 +1,19 @@
 import type { Level, Stage } from '@/lib/crm';
+import type { CustomerNeed } from '@/lib/crm/customer-need';
 import { cn } from '@/lib/utils';
 import { Avatar } from './actions';
 import { Glyph, SignalBadge } from './signal';
 import { StageChip } from './stage';
+
+function NeedText({ need }: { need: CustomerNeed }) {
+  return (
+    <span className="min-w-0 truncate text-caption text-ink-muted">
+      <span className={need.aptType.startsWith('Chưa rõ') ? 'text-ink-muted/70' : undefined}>{need.aptType}</span>
+      {' · '}
+      <span className={need.project.startsWith('Chưa rõ') ? 'text-ink-muted/70' : undefined}>{need.project}</span>
+    </span>
+  );
+}
 
 /** One customer in a list: who, which stage, and how urgent the next step is. Stage and signal are separate. */
 export function LeadRow({
@@ -13,9 +24,12 @@ export function LeadRow({
   stage,
   level,
   time,
+  lastTouch,
   nextStep,
   selected,
   onClick,
+  need,
+  hidePhone = false,
 }: {
   name: string;
   phone?: string;
@@ -24,9 +38,12 @@ export function LeadRow({
   stage?: Stage;
   level?: Level;
   time?: string;
+  lastTouch?: string;
   nextStep?: string;
   selected?: boolean;
   onClick?: () => void;
+  need?: CustomerNeed;
+  hidePhone?: boolean;
 }) {
   return (
     <button
@@ -48,12 +65,20 @@ export function LeadRow({
               <SignalBadge level={level}>{time}</SignalBadge>
             </span>
           )}
+          {lastTouch && (
+            <span className="max-w-20 shrink-0 truncate text-caption font-normal text-ink-muted">{lastTouch}</span>
+          )}
+          {!level && time && <span className="shrink-0 truncate text-caption font-normal text-ink-muted">{time}</span>}
         </span>
         <span className="flex min-w-0 items-center gap-2">
           {stage && <StageChip stage={stage} className="shrink-0" />}
-          <span className="min-w-0 truncate text-caption text-ink-muted">
-            {[phone, project, unit].filter(Boolean).join(' · ')}
-          </span>
+          {need ? (
+            <NeedText need={need} />
+          ) : (
+            <span className="min-w-0 truncate text-caption text-ink-muted">
+              {[hidePhone ? undefined : phone, project, unit].filter(Boolean).join(' · ')}
+            </span>
+          )}
         </span>
       </span>
       {nextStep && <span className="shrink-0 text-caption text-ink-muted">{nextStep}</span>}

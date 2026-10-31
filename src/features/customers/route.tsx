@@ -30,6 +30,7 @@ import {
   type TeamMember,
 } from '@/features/team/model';
 import type { Level, Stage } from '@/lib/crm';
+import { customerNeed } from '@/lib/crm/customer-need';
 import { cn } from '@/lib/utils';
 import { Icon } from '@/ui/Icon';
 import { useToast } from '../../ui/Toast';
@@ -785,39 +786,47 @@ function Customers() {
       key: 'name',
       label: 'Khách hàng',
       // Cột tên chứa tên + lý do + dự án → rộng nhất; tên được ưu tiên giữ đủ chữ.
-      width: '40%',
+      width: '48%',
       render: (customer) => {
         const sub = listCardSub(customer, now, userId);
-        const project = Array.isArray(customer.projects)
-          ? customer.projects.find((value) => typeof value === 'string' && value.trim())
-          : undefined;
+        const need = customerNeed(customer);
         const lastTouch = sub.lead?.text.startsWith('Quá SLA') ? sub.rest.split(' · ')[0] : undefined;
         return (
           <ul className="m-0 list-none p-0">
-            <li data-card data-tone={sub.lead?.tone} className="flex min-w-0 items-center gap-2">
-              <button
-                type="button"
-                aria-label={`Mở ${customer.full_name}`}
-                className="min-w-0 max-w-[60%] shrink-0 truncate text-left font-semibold text-ink hover:text-ion"
-                onClick={() => navigate(`/khach-hang/${customer.id}`)}
-              >
-                {customer.full_name}
-              </button>
-              {sub.lead && <span className="truncate text-caption text-ink-muted">{sub.lead.text}</span>}
-              {lastTouch && <span className="truncate text-caption text-ink-muted">{lastTouch}</span>}
-              {project && <span className="truncate text-caption text-ink-muted">{project}</span>}
-              <ActionButton
-                action="call"
-                display="icon"
-                label={`Gọi ${customer.full_name}`}
-                size="sm"
-                variant="ghost"
-                className="ml-auto"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  openQuickAction(customer.id, 'call');
-                }}
-              />
+            <li data-card data-tone={sub.lead?.tone} className="flex min-w-0 flex-col items-start gap-0">
+              <div className="relative flex min-w-0 w-full items-center gap-2 pr-9">
+                <button
+                  type="button"
+                  aria-label={`Mở ${customer.full_name}`}
+                  className="min-w-0 max-w-[60%] shrink-0 truncate text-left text-[13px] leading-[18px] font-semibold text-ink hover:text-ion"
+                  onClick={() => navigate(`/khach-hang/${customer.id}`)}
+                >
+                  {customer.full_name}
+                </button>
+                {sub.lead && <span className="truncate text-caption leading-4 text-ink-muted">{sub.lead.text}</span>}
+                {lastTouch && <span className="truncate text-caption leading-4 text-ink-muted">{lastTouch}</span>}
+                <ActionButton
+                  action="call"
+                  display="icon"
+                  label={`Gọi ${customer.full_name}`}
+                  size="sm"
+                  variant="ghost"
+                  className="absolute top-1/2 right-0 -translate-y-1/2"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    openQuickAction(customer.id, 'call');
+                  }}
+                />
+              </div>
+              <span className="max-w-full truncate text-caption leading-4 text-ink-muted">
+                <span className={need.aptType.startsWith('Chưa rõ') ? 'text-ink-muted/70' : undefined}>
+                  {need.aptType}
+                </span>
+                {' · '}
+                <span className={need.project.startsWith('Chưa rõ') ? 'text-ink-muted/70' : undefined}>
+                  {need.project}
+                </span>
+              </span>
             </li>
           </ul>
         );
@@ -836,11 +845,10 @@ function Customers() {
       render: (customer) =>
         CARE_STAGE_DISPLAY[normStage(customer.care_stage) || ''] || normStage(customer.care_stage) || '—',
     },
-    { key: 'unit', label: 'Loại căn', width: '12%', render: (customer) => customer.apt_type || '—' },
     {
       key: 'source',
       label: 'Kênh',
-      width: '19%',
+      width: '23%',
       render: (customer) =>
         sourceListOf(customer.source)
           .map((source) => SOURCES[source] || source)
@@ -866,6 +874,7 @@ function Customers() {
             {slice.map((customer) => {
               const sub = listCardSub(customer, now, userId);
               const stage = normStage(customer.care_stage);
+              const lastTouch = sub.lead?.text.startsWith('Quá SLA') ? sub.rest.split(' · ')[0] : undefined;
               const leadLevel: Level | undefined =
                 sub.lead?.tone === 'over' ? 'alert' : sub.lead?.tone === 'soon' ? 'soon' : undefined;
               return (
@@ -879,17 +888,12 @@ function Customers() {
                     <div aria-hidden="true" className="min-w-0 flex-1">
                       <LeadRow
                         name={customer.full_name}
-                        phone={customer.phone}
-                        // Bậc đã có nhãn riêng trong dòng → bỏ chữ bậc khỏi dòng phụ cho đỡ lặp.
-                        project={
-                          sub.rest
-                            .split(' · ')
-                            .filter((part) => part !== (CARE_STAGE_DISPLAY[stage || ''] || stage))
-                            .join(' · ') || undefined
-                        }
+                        need={customerNeed(customer)}
+                        hidePhone
                         stage={stage as Stage | undefined}
                         level={leadLevel}
                         time={sub.lead?.text}
+                        lastTouch={lastTouch}
                         onClick={() => navigate(`/khach-hang/${customer.id}`)}
                       />
                     </div>

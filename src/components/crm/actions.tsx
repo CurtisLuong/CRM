@@ -1,6 +1,7 @@
 import { Button, type ButtonProps } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ACTION_BY_ID, type ActionId, initials, LEVEL_WORD, type Level } from '@/lib/crm';
+import type { CustomerNeed } from '@/lib/crm/customer-need';
 import { cn } from '@/lib/utils';
 import { iconGlyph } from '@/ui/Icon';
 import { SignalBadge } from './signal';
@@ -124,6 +125,7 @@ export function ActionItem({
   dataCard,
   wrapTime,
   children,
+  need,
 }: {
   level: Level;
   /** Tên việc, luôn xuống dòng đầy đủ trên màn hẹp. */
@@ -146,6 +148,7 @@ export function ActionItem({
   wrapTime?: boolean;
   /** Bằng chứng bổ sung của dòng; không hiển thị trong nhóm gọn. */
   children?: React.ReactNode;
+  need?: CustomerNeed;
 }) {
   return (
     <article
@@ -153,6 +156,7 @@ export function ActionItem({
       data-tone={dataCard ? tone : undefined}
       className={cn(
         'relative min-w-0 rounded-md border border-line bg-surface-100 p-2',
+        need && 'p-1',
         level === 'alert' && 'border-alert shadow-glow-alert',
       )}
     >
@@ -166,7 +170,7 @@ export function ActionItem({
       )}
       <div className="relative z-10 flex min-w-0 items-start gap-2.5 pointer-events-none">
         <Avatar name={customer} size={compact ? 32 : 36} />
-        <div className="flex min-w-0 flex-1 flex-col gap-1">
+        <div className={cn('flex min-w-0 flex-1 flex-col gap-1', need && 'gap-0')}>
           {/* wrapTime: nhãn hạn dài ("Quá 2 giờ · 28/10 22:05") xuống dòng thay vì ép tiêu đề mỗi dòng một chữ ở 360px. */}
           <div className={cn('flex min-w-0 items-start gap-2', wrapTime && 'flex-wrap gap-y-0.5')}>
             <div
@@ -182,9 +186,22 @@ export function ActionItem({
             </span>
           </div>
           <div className="flex min-w-0 items-center justify-between gap-2">
-            <div className="min-w-0 break-words text-caption leading-5 text-ink-muted">
-              <span className="font-semibold text-ink">{customer}</span>
-              {context && <> · {context}</>}
+            <div className="flex min-w-0 flex-1 flex-col">
+              <div className={cn('min-w-0 break-words text-caption text-ink-muted', need ? 'leading-4' : 'leading-5')}>
+                <span className="font-semibold text-ink">{customer}</span>
+                {context && <> · {context}</>}
+              </div>
+              {need && (
+                <div className="flex min-w-0 truncate text-caption leading-4 text-ink-muted">
+                  <span className={need.aptType.startsWith('Chưa rõ') ? 'text-ink-muted/70' : undefined}>
+                    {need.aptType}
+                  </span>
+                  {' · '}
+                  <span className={need.project.startsWith('Chưa rõ') ? 'text-ink-muted/70' : undefined}>
+                    {need.project}
+                  </span>
+                </div>
+              )}
             </div>
             {(action || actionLabel) && (
               <div className="shrink-0 pointer-events-auto">
