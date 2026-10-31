@@ -208,17 +208,20 @@ test('Nhóm ít gấp thu gọn, chạm để mở', async ({ page }) => {
   await expect(card(page, 'Khách Nóng Nguội')).toBeVisible();
 });
 
-test('Màn đầu điện thoại 360×780 thấy trọn ≥ 2 thẻ (D-023 L1)', async ({ page }, info) => {
+// D-029 (Curtis 31/10, chọn 2b): thẻ có dòng loại căn · dự án cả bề ngang → màn đầu thấy trọn ≥ 1 thẻ
+// và đầu thẻ 2 (thay mốc ≥ 2 thẻ trọn của D-023 L1).
+test('Màn đầu điện thoại 360×780 thấy trọn ≥ 1 thẻ + đầu thẻ 2 (D-023 L1, D-029)', async ({ page }, info) => {
   test.skip(info.project.name !== 'phone-360', 'Ngân sách màn đầu đo ở 360×780');
   await open(page);
-  const full = await page.locator('[data-card]').evaluateAll(
-    (els) =>
-      els.filter((e) => {
-        const r = e.getBoundingClientRect();
-        return r.top >= 0 && r.bottom <= innerHeight - 64;
-      }).length,
+  const boxes = await page.locator('[data-card]').evaluateAll((els) =>
+    els.map((e) => {
+      const r = e.getBoundingClientRect();
+      return { top: r.top, bottom: r.bottom, limit: innerHeight - 64 };
+    }),
   );
-  expect(full).toBeGreaterThanOrEqual(2);
+  expect(boxes.filter((b) => b.top >= 0 && b.bottom <= b.limit).length).toBeGreaterThanOrEqual(1);
+  expect(boxes.length).toBeGreaterThanOrEqual(2);
+  expect(boxes[1].top + 48).toBeLessThanOrEqual(boxes[1].limit);
   const w = await page.evaluate(() => ({ vw: innerWidth, sw: document.documentElement.scrollWidth }));
   expect(w.sw).toBeLessThanOrEqual(w.vw);
 });
