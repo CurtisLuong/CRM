@@ -7,7 +7,7 @@ import { StageChip } from './stage';
 
 function NeedText({ need }: { need: CustomerNeed }) {
   return (
-    <span className="min-w-0 truncate text-caption text-ink-muted">
+    <span data-testid="customer-need-line" className="min-w-0 truncate text-caption text-ink-muted">
       <span className={need.aptType.startsWith('Chưa rõ') ? 'text-ink-muted/70' : undefined}>{need.aptType}</span>
       {' · '}
       <span className={need.project.startsWith('Chưa rõ') ? 'text-ink-muted/70' : undefined}>{need.project}</span>
@@ -80,6 +80,9 @@ export function LeadRow({
             </span>
           )}
         </span>
+        {need && !hidePhone && phone && (
+          <span className="font-mono text-caption leading-4 text-ink-muted">{phone}</span>
+        )}
       </span>
       {nextStep && <span className="shrink-0 text-caption text-ink-muted">{nextStep}</span>}
     </button>

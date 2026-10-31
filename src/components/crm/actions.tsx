@@ -156,7 +156,6 @@ export function ActionItem({
       data-tone={dataCard ? tone : undefined}
       className={cn(
         'relative min-w-0 rounded-md border border-line bg-surface-100 p-2',
-        need && 'p-1',
         level === 'alert' && 'border-alert shadow-glow-alert',
       )}
     >
@@ -170,7 +169,7 @@ export function ActionItem({
       )}
       <div className="relative z-10 flex min-w-0 items-start gap-2.5 pointer-events-none">
         <Avatar name={customer} size={compact ? 32 : 36} />
-        <div className={cn('flex min-w-0 flex-1 flex-col gap-1', need && 'gap-0')}>
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
           {/* wrapTime: nhãn hạn dài ("Quá 2 giờ · 28/10 22:05") xuống dòng thay vì ép tiêu đề mỗi dòng một chữ ở 360px. */}
           <div className={cn('flex min-w-0 items-start gap-2', wrapTime && 'flex-wrap gap-y-0.5')}>
             <div
@@ -192,7 +191,10 @@ export function ActionItem({
                 {context && <> · {context}</>}
               </div>
               {need && (
-                <div className="flex min-w-0 truncate text-caption leading-4 text-ink-muted">
+                <div
+                  data-testid="customer-need-line"
+                  className="min-w-0 truncate text-caption leading-4 text-ink-muted"
+                >
                   <span className={need.aptType.startsWith('Chưa rõ') ? 'text-ink-muted/70' : undefined}>
                     {need.aptType}
                   </span>

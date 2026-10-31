@@ -798,7 +798,7 @@ function Customers() {
                 <button
                   type="button"
                   aria-label={`Mở ${customer.full_name}`}
-                  className="min-w-0 max-w-[60%] shrink-0 truncate text-left text-[13px] leading-[18px] font-semibold text-ink hover:text-ion"
+                  className="min-w-0 max-w-[60%] shrink-0 truncate text-left font-semibold text-ink hover:text-ion"
                   onClick={() => navigate(`/khach-hang/${customer.id}`)}
                 >
                   {customer.full_name}
@@ -818,7 +818,10 @@ function Customers() {
                   }}
                 />
               </div>
-              <span className="max-w-full truncate text-caption leading-4 text-ink-muted">
+              <span
+                data-testid="customer-need-line"
+                className="max-w-full truncate text-caption leading-4 text-ink-muted"
+              >
                 <span className={need.aptType.startsWith('Chưa rõ') ? 'text-ink-muted/70' : undefined}>
                   {need.aptType}
                 </span>
@@ -874,7 +877,6 @@ function Customers() {
             {slice.map((customer) => {
               const sub = listCardSub(customer, now, userId);
               const stage = normStage(customer.care_stage);
-              const lastTouch = sub.lead?.text.startsWith('Quá SLA') ? sub.rest.split(' · ')[0] : undefined;
               const leadLevel: Level | undefined =
                 sub.lead?.tone === 'over' ? 'alert' : sub.lead?.tone === 'soon' ? 'soon' : undefined;
               return (
@@ -893,7 +895,10 @@ function Customers() {
                         stage={stage as Stage | undefined}
                         level={leadLevel}
                         time={sub.lead?.text}
-                        lastTouch={lastTouch}
+                        // Lần chạm: thẻ không nhãn hạn, và thẻ "Quá SLA" (M5 đã duyệt: hạn + lần chạm).
+                        lastTouch={
+                          !sub.lead || sub.lead.text.startsWith('Quá SLA') ? sub.rest.split(' · ')[0] : undefined
+                        }
                         onClick={() => navigate(`/khach-hang/${customer.id}`)}
                       />
                     </div>
