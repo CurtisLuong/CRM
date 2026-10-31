@@ -12,6 +12,7 @@ import { appendPromise, promiseTaskKey, snoozePromise, undoPromiseSnooze } from 
 import { fmt as formatDuration } from '@/domain/velocity/engine';
 import { openQuickAction } from '@/features/quick-actions/store';
 import { signalFor } from '@/lib/crm';
+import { customerNeed } from '@/lib/crm/customer-need';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/ui/Toast';
 import { TASK_GROUPS, type TaskGroupId, type TaskRow, type TaskSideFilter, taskRows, taskTiming } from './model';
@@ -134,6 +135,7 @@ function TaskCard({
             </>
           }
           customer={customer.full_name || 'Khách chưa có tên'}
+          need={customerNeed(customer)}
           context={kind.label}
           time={deadline?.text ?? (done ? 'Đã xong' : 'Chưa có hạn')}
           actionLabel={row.type === 'call' ? 'Gọi' : done ? 'Mở lại' : 'Xong'}

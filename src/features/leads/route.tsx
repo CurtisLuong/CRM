@@ -11,6 +11,7 @@ import { useCustomers, useRepositoryAccount } from '@/data/hooks';
 import { type Customer, callAttemptsOf } from '@/domain/customer';
 import { firstCall } from '@/domain/followup';
 import { openQuickAction } from '@/features/quick-actions/store';
+import { customerNeed } from '@/lib/crm/customer-need';
 import { MetaLeadAdsBanner } from './meta-lead-ads-banner';
 import {
   disqualifyLead,
@@ -266,6 +267,7 @@ function LeadsPage() {
                 <LeadRow
                   name={customer.full_name}
                   phone={customer.phone}
+                  need={customerNeed(customer)}
                   onClick={() => setSelectedId(customer.id)}
                   nextStep={[
                     customer.care_stage === CARE_STAGE_DEFAULT ? 'Đăng ký mới' : '',

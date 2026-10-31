@@ -8,6 +8,10 @@ Bộ tài liệu được biên soạn ngày 06/10/2026; đây không phải ng�
 
 Chỉ đọc file này khi cần tiếp nối công việc hoặc task phụ thuộc trạng thái triển khai/test.
 
+## Tuổi / Mệnh / Cung thành ô riêng (2026-10-30, tối)
+
+- Curtis: chữ phụ tuổi/mệnh/cung dưới Ngày sinh làm ô cao lệch, Hôn nhân tụt. Sửa (Telegram 1a 2a): Ngày sinh | Tuổi, Mệnh (nạp âm) | Cung là ô chỉ đọc có nhãn, khung như ô khác; nhãn Ngày sinh cao bằng nhãn ô khác; nạp âm dài xuống 2 dòng ở 360px thì ô cùng hàng giãn bằng. Màn Thêm khách dùng cùng ô. Test `tests/e2e/profile-dob-cells.spec.ts`; `cl03-profile-compact.spec.ts` đổi câu kiểm theo lựa chọn của Curtis. 1239 unit + 725 e2e xanh. `main` = `e79ec3e`, Cloudflare đã build (`index-DHyxFRIO.js`). **Rollback:** `main` về `b9f6e88`.
+
 ## Nhật ký Dòng thời gian một khuôn (2026-10-30, tối)
 
 - Curtis: nút Sửa nhảy đầu/giữa/cuối, ngày lặp. Sửa (Curtis chọn qua Telegram): mỗi mục = icon + tên + **một** ngày ở dòng tên (dạng kit "T6 16/10 13:16"); khung chỉ khi có ghi chú — chữ trái, nút Sửa cố định cuối dòng trên; bỏ icon lặp (ẩn đúng vòng tròn kit); "Hạn" bỏ giây; tab hồ sơ trượt cùng nhịp thanh đầu (transform). Test `tests/e2e/profile-timeline-layout.spec.ts` (đủ loại mục, đo vị trí); `profile.spec.ts` đổi câu kiểm ngày theo lựa chọn của Curtis. 1239 unit + 716 e2e xanh. `main` = `b9f6e88`, Cloudflare đã build (`index-7jKcFteM.js`). **Rollback:** `main` về `3ec797c`.

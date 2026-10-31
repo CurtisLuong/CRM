@@ -38,6 +38,7 @@ Lựa chọn nền tảng ban đầu (Supabase, Cloudflare Pages, local-first) k
 | D-026 | Lead tự chạy SQL nhỏ trên production; Curtis chỉ duyệt khi xoá/sửa dữ liệu hoặc đổi cấu trúc lớn | Đã duyệt 2026-10-22 | Thay "migration production do Curtis chạy" |
 | D-027 | Bản UI mới dùng shadcn/ui (Radix) trên Tailwind v4 | Đã duyệt 2026-10-28; token + component theo D-028 | Bổ sung D-011; D-023 sẽ được thay khi có design system mới |
 | D-028 | Bản UI "Realty CRM" (Claude Design, `realty-crm-ui/`) thay Design System v4 | Curtis yêu cầu 2026-10-28; nền đã port vào `factory`, màn chuyển dần | Thay D-023 (giữ L1–L5); bổ sung D-027 |
+| D-029 | Thẻ khách luôn có "loại căn · dự án" (chữ rút gọn chỉ ở giao diện); nới ngân sách màn đầu Hôm nay | Đã duyệt 2026-10-31 (Telegram 1a, 2b) | Sửa mốc D-023 L1 cho Hôm nay (≥ 2 thẻ trọn → ≥ 1 thẻ trọn + đầu thẻ 2) |
 
 ## Ba loại kết quả
 
@@ -449,3 +450,15 @@ Ví dụ và mẫu trong bộ tài liệu không phải sự chấp thuận cho 
   - Bổ sung so với kit: `BottomNav` cho điện thoại (kit chỉ ghi trong DESIGN.md), điều hướng lấy `NAV_TABS` (4 khu vực D-013, bỏ "Pipeline"/"Lịch hẹn" của kit), route `handle: { bare: true }` để màn dùng khung mới không lồng khung cũ, test chặn mã màu thô (`tests/design/no-raw-colors.test.ts`). Chữ trên khối xanh (sáng) đổi sang tối để đạt 4,5:1.
   - Giữ: D-012, local-first, quyền, nguồn cấu hình, L1–L5 (e2e). Thứ tự chuyển màn: Hôm nay → Khách hàng → Thông báo → Hiệu quả → form.
 - Đã xoá (thay bằng `docs/DESIGN.md`): `docs/DESIGN_SYSTEM.md`, `docs/v3/design-language.md`, `docs/v3/mockups/` (xem lại bằng git: `git show ae9ef2a:docs/DESIGN_SYSTEM.md`).
+
+### D-029 — Thẻ khách luôn có loại căn + dự án; chữ rút gọn chỉ ở giao diện
+
+- Ngày: 2026-10-31
+- Loại: UX (Curtis: "thẻ card của khách đều phải chứa thông tin loại căn hộ quan tâm và dự án quan tâm, phải ngang hàng với tên hoặc ngay sau tên"; chọn qua Telegram 1a, 2b).
+- Quyết định:
+  - Mọi thẻ/dòng khách trong danh sách (Hôm nay, Công việc, Khách hàng, Khách mới, Retarget, Lưu trữ) có dòng "loại căn · dự án" ngay dưới dòng tên. Không đặt cùng dòng tên vì tên dài ở 360px đã bị cắt. Thiếu thì ghi mờ "Chưa rõ loại căn" / "Chưa rõ dự án".
+  - Thẻ Khách hàng điện thoại: dòng 2 = bậc dạng vạch không chữ + dòng nhu cầu; bỏ SĐT khỏi thẻ (máy tính giữ cột SĐT); thẻ giữ 64px, màn đầu ≥ 7 thẻ.
+  - Thẻ Hôm nay / Công việc: dòng nhu cầu cả bề ngang; thẻ được cao thêm. Màn đầu Hôm nay 360×780: ≥ 1 thẻ trọn + đầu thẻ 2 (trước: ≥ 2 thẻ trọn, D-023 L1); thẻ việc ≤ 170px (trước 150px).
+  - Chữ rút gọn chỉ ở giao diện, DB giữ giá trị gốc: loại căn hiện mã chuẩn ("2N-2WC"); dự án hiện tên ngắn theo `src/config/projectShort.ts` ("Vin Tràng Cát" → "Vin TC", "Marquee Homes" → "Marquee", cụm "Nhà ở xã hội" → "NOXH"). Dự án mới: Curtis đặt quy tắc, thêm vào file đó.
+- Không đổi: D-012 (không ghi tên ngắn vào dữ liệu), hồ sơ/form/xuất Excel dùng tên đầy đủ.
+

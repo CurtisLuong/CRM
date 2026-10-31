@@ -16,6 +16,7 @@ import { applySlaPlan, planSlaAutomation, slaPlanMessage } from '@/domain/veloci
 import { CustomerSheet } from '@/features/customer-sheet/CustomerSheet';
 import { openQuickAction } from '@/features/quick-actions/store';
 import { ACTION_BY_ID, type ActionId, NOTIF_TYPES, slaMeterFor } from '@/lib/crm';
+import { customerNeed } from '@/lib/crm/customer-need';
 import {
   callSessionRows,
   capacityPlan,
@@ -297,6 +298,7 @@ export function TodayPage() {
         level={level}
         title={title}
         customer={customer.full_name}
+        need={customerNeed(customer)}
         context={card.detail || undefined}
         time={card.when?.text}
         action={card.action === 'complete' ? undefined : actionId}
