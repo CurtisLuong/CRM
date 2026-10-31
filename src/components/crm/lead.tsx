@@ -60,16 +60,18 @@ export function LeadRow({
       {/* Tên một dòng riêng: ở 360px nhãn bậc đứng cạnh tên sẽ ép tên còn "C." (R2 review). */}
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="flex min-w-0 items-center gap-2">
-          <span className="min-w-0 flex-1 truncate text-[15px] font-semibold leading-[22px]">{name}</span>
+          {/* Tên được ưu tiên đủ chữ; nhãn hạn / lần chạm co lại thành "…" khi thiếu chỗ (Curtis 31/10). */}
+          <span className="min-w-0 max-w-full shrink-0 truncate text-[15px] font-semibold leading-[22px]">{name}</span>
           {level && (
-            <span className="shrink-0">
-              <SignalBadge level={level}>{time}</SignalBadge>
+            // Nhãn hạn giữ tối thiểu ▲ + "…" để vẫn thấy khách gấp khi tên dài.
+            <span className="flex min-w-11 shrink">
+              <SignalBadge level={level} className="max-w-full">
+                {time}
+              </SignalBadge>
             </span>
           )}
-          {lastTouch && (
-            <span className="max-w-20 shrink-0 truncate text-caption font-normal text-ink-muted">{lastTouch}</span>
-          )}
-          {!level && time && <span className="shrink-0 truncate text-caption font-normal text-ink-muted">{time}</span>}
+          {lastTouch && <span className="min-w-0 truncate text-caption font-normal text-ink-muted">{lastTouch}</span>}
+          {!level && time && <span className="min-w-0 truncate text-caption font-normal text-ink-muted">{time}</span>}
         </span>
         <span className="flex min-w-0 items-center gap-2">
           {stage && <StageChip stage={stage} compactOnMobile={hidePhone} className="shrink-0" />}

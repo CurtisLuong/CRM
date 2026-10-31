@@ -790,7 +790,6 @@ function Customers() {
       render: (customer) => {
         const sub = listCardSub(customer, now, userId);
         const need = customerNeed(customer);
-        const lastTouch = sub.lead?.text.startsWith('Quá SLA') ? sub.rest.split(' · ')[0] : undefined;
         return (
           <ul className="m-0 list-none p-0">
             <li data-card data-tone={sub.lead?.tone} className="flex min-w-0 flex-col items-start gap-0">
@@ -804,7 +803,6 @@ function Customers() {
                   {customer.full_name}
                 </button>
                 {sub.lead && <span className="truncate text-caption leading-4 text-ink-muted">{sub.lead.text}</span>}
-                {lastTouch && <span className="truncate text-caption leading-4 text-ink-muted">{lastTouch}</span>}
                 <ActionButton
                   action="call"
                   display="icon"
@@ -895,10 +893,8 @@ function Customers() {
                         stage={stage as Stage | undefined}
                         level={leadLevel}
                         time={sub.lead?.text}
-                        // Lần chạm: thẻ không nhãn hạn, và thẻ "Quá SLA" (M5 đã duyệt: hạn + lần chạm).
-                        lastTouch={
-                          !sub.lead || sub.lead.text.startsWith('Quá SLA') ? sub.rest.split(' · ')[0] : undefined
-                        }
+                        // Lần chạm chỉ khi không có nhãn hạn: "Quá SLA N ngày" đã nói cùng ý (Curtis 31/10).
+                        lastTouch={!sub.lead ? sub.rest.split(' · ')[0] : undefined}
                         onClick={() => navigate(`/khach-hang/${customer.id}`)}
                       />
                     </div>

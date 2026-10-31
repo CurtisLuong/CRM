@@ -185,14 +185,13 @@ test('nhu cầu từng thẻ đúng nội dung, vị trí, màu và ellipsis ở
       const longLine = lines.filter({ hasText: 'Căn hộ ba phòng ngủ' }).first();
       if (path === '/khach-moi') await expect(longLine).toBeVisible();
       if (await longLine.count()) {
-        const metrics = await longLine.evaluate((element) => ({
-          overflow: element.scrollWidth > element.clientWidth,
-          textOverflow: getComputedStyle(element).textOverflow,
-          display: getComputedStyle(element).display,
-        }));
-        expect(metrics.overflow).toBe(true);
-        expect(metrics.textOverflow).toBe('ellipsis');
-        expect(metrics.display).not.toBe('flex');
+        // Curtis 31/10: phần trong dòng co riêng ("Chưa rõ…" co trước) → "…" có thể nằm ở dòng hoặc ở từng phần.
+        const metrics = await longLine.evaluate((element) =>
+          [element, ...element.querySelectorAll('span')].some(
+            (part) => part.scrollWidth > part.clientWidth && getComputedStyle(part).textOverflow === 'ellipsis',
+          ),
+        );
+        expect(metrics).toBe(true);
       }
       if (width === 1280 && path === '/khach-hang') {
         const name = page.getByRole('button', { name: `Mở ${common.full_name}` });

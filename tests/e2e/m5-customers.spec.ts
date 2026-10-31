@@ -131,7 +131,9 @@ test('Mỗi khách một thẻ gọn: hạn đứng đầu dòng phụ, đúng 1
   await expect(late.getByRole('button')).toHaveCount(2);
   await late.getByRole('button', { name: 'Gọi Khách Danh Sách 00' }).click();
   await page.waitForFunction(() => (window as Window & { __dialCalls?: number }).__dialCalls === 1);
-  await expect(card(page, 'Khách Danh Sách 01')).toContainText(/ngày trước|Hôm qua|Hôm nay|tuần trước/);
+  // Curtis 31/10: "Quá SLA N ngày" và lần chạm nói cùng ý → thẻ có nhãn hạn chỉ giữ nhãn.
+  await expect(card(page, 'Khách Danh Sách 01')).toContainText('Quá SLA');
+  await expect(card(page, 'Khách Danh Sách 01')).not.toContainText(/ngày trước|Hôm qua|Hôm nay|tuần trước/);
 });
 
 test('Chạm tên khách mở thông tin khách', async ({ page }) => {
@@ -163,4 +165,23 @@ test('Màn đầu 360×780 thấy trọn ≥ 7 thẻ khách (D-023 L1)', async (
   expect(full).toBeGreaterThanOrEqual(7);
   const w = await page.evaluate(() => ({ vw: innerWidth, sw: document.documentElement.scrollWidth }));
   expect(w.sw).toBeLessThanOrEqual(w.vw);
+});
+
+test('Thẻ điện thoại ưu tiên đủ tên; nhãn hạn co lại khi thiếu chỗ, không lần chạm cạnh nhãn (Curtis 31/10)', async ({
+  page,
+}, info) => {
+  test.skip(info.project.name === 'desktop-1280', 'Thẻ điện thoại');
+  await open(page);
+  for (const name of ['Khách Danh Sách 00', 'Khách Danh Sách 01']) {
+    const box = card(page, name);
+    await expect(box).toContainText(/Quên gọi|Quá SLA/);
+    const cut = await box.evaluate(
+      (el, text) =>
+        [...el.querySelectorAll('span')]
+          .filter((s) => s.textContent === text)
+          .map((s) => s.scrollWidth > s.clientWidth),
+      name,
+    );
+    expect(cut, `${name}: tên phải hiện đủ`).toEqual([false]);
+  }
 });

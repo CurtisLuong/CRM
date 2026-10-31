@@ -51,7 +51,7 @@ export function SignalBadge({
       )}
     >
       <Glyph level={level} pulse />
-      <span>{children ?? LEVEL_WORD[level]}</span>
+      <span className="min-w-0 truncate">{children ?? LEVEL_WORD[level]}</span>
     </span>
   );
 }
