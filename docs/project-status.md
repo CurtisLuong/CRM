@@ -8,6 +8,10 @@ Bộ tài liệu được biên soạn ngày 06/10/2026; đây không phải ng�
 
 Chỉ đọc file này khi cần tiếp nối công việc hoặc task phụ thuộc trạng thái triển khai/test.
 
+## Thẻ Khách hàng ưu tiên đủ tên (2026-10-31, chiều)
+
+- Curtis (ảnh Android): tên bị che vì nhãn "Quá SLA" + lần chạm; hai thứ trùng ý → chỉ giữ SLA; ưu tiên đủ tên, loại căn, dự án, phần khác "…". Lead: bỏ lần chạm khi có nhãn hạn (mobile + bảng máy tính), tên co sau nhãn (nhãn tối thiểu ▲); U-05d (luna, 1 lần): "Chưa rõ…" co trước, dự án đủ; Lead sửa dấu " · " mất khoảng trắng trong dòng flex. Test M5/U-05b chỉnh theo luật mới. 1253 unit + 750/751 e2e (u04 Thủ tục chập chờn). `main` = `7982295` (`index-CBFV6yud.js`). **Rollback:** `main` về `a97553f`.
+
 ## Thẻ khách có loại căn + dự án; tiêu đề mục không đậm (2026-10-31)
 
 - Curtis: thẻ khách phải có loại căn + dự án quan tâm, ngay sau tên; tiêu đề mục bỏ in đậm. Telegram 1a, 2b → D-029: dòng "loại căn · dự án" dưới tên ở 6 màn; Khách hàng điện thoại bậc dạng vạch, bỏ SĐT, 64px; Hôm nay/Công việc dòng riêng cả bề ngang (nới L1 Hôm nay: ≥ 1 thẻ trọn + đầu thẻ 2; thẻ việc ≤ 170px); loại căn mã chuẩn, dự án tên ngắn `src/config/projectShort.ts` (chỉ giao diện). Worker luna (U-05, U-05b, U-05c — 4 lượt do đặc tả: thiếu giới hạn e2e, không đo 360px, glob `{}`); Lead sửa luật lần chạm theo M5 + nới 2 test theo D-029. 1253 unit + 745/746 e2e (u04 Thủ tục chập chờn, lặp lại qua). `main` = `a97553f`, Cloudflare đã build (`index-CWS1CpBO.js`). **Rollback:** `main` về `e79ec3e`.
