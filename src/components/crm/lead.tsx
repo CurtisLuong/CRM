@@ -6,15 +6,31 @@ import { Glyph, SignalBadge } from './signal';
 import { StageChip } from './stage';
 
 function NeedText({ need }: { need: CustomerNeed }) {
+  const missingAptType = need.aptType.startsWith('Chưa rõ');
+  const missingProject = need.project.startsWith('Chưa rõ');
   return (
     <span
       data-testid="customer-need-line"
       title={need.title ?? `${need.aptType} · ${need.project}`}
-      className="min-w-0 truncate text-caption text-ink-muted"
+      className="flex min-w-0 overflow-hidden whitespace-nowrap text-caption text-ink-muted"
     >
-      <span className={need.aptType.startsWith('Chưa rõ') ? 'text-ink-muted/70' : undefined}>{need.aptType}</span>
-      {' · '}
-      <span className={need.project.startsWith('Chưa rõ') ? 'text-ink-muted/70' : undefined}>{need.project}</span>
+      <span
+        className={cn(
+          'min-w-0 overflow-hidden text-ellipsis whitespace-nowrap',
+          missingAptType ? 'shrink-[1000] text-ink-muted/70' : 'shrink-[0.01]',
+        )}
+      >
+        {need.aptType}
+      </span>
+      {'\u00a0·\u00a0'}
+      <span
+        className={cn(
+          'min-w-0 overflow-hidden text-ellipsis whitespace-nowrap',
+          missingProject ? 'shrink-[100] text-ink-muted/70' : 'shrink-[10]',
+        )}
+      >
+        {need.project}
+      </span>
     </span>
   );
 }
@@ -60,16 +76,22 @@ export function LeadRow({
       {/* Tên một dòng riêng: ở 360px nhãn bậc đứng cạnh tên sẽ ép tên còn "C." (R2 review). */}
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="flex min-w-0 items-center gap-2">
-          <span className="min-w-0 flex-1 truncate text-[15px] font-semibold leading-[22px]">{name}</span>
+          {/* Tên được ưu tiên đủ chữ; nhãn hạn / lần chạm co lại thành "…" khi thiếu chỗ (Curtis 31/10). */}
+          <span className="min-w-0 shrink truncate text-[15px] font-semibold leading-[22px]">{name}</span>
           {level && (
-            <span className="shrink-0">
-              <SignalBadge level={level}>{time}</SignalBadge>
+            // Nhãn hạn giữ tối thiểu dấu ▲ để vẫn thấy khách gấp khi tên dài.
+            <span className="flex min-w-7 shrink-[1000]">
+              <SignalBadge level={level} className="max-w-full">
+                {time}
+              </SignalBadge>
             </span>
           )}
           {lastTouch && (
-            <span className="max-w-20 shrink-0 truncate text-caption font-normal text-ink-muted">{lastTouch}</span>
+            <span className="min-w-0 shrink-[1000] truncate text-caption font-normal text-ink-muted">{lastTouch}</span>
           )}
-          {!level && time && <span className="shrink-0 truncate text-caption font-normal text-ink-muted">{time}</span>}
+          {!level && time && (
+            <span className="min-w-0 shrink-[1000] truncate text-caption font-normal text-ink-muted">{time}</span>
+          )}
         </span>
         <span className="flex min-w-0 items-center gap-2">
           {stage && <StageChip stage={stage} compactOnMobile={hidePhone} className="shrink-0" />}
