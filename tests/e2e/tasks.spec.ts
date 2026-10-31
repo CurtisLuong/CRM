@@ -231,7 +231,7 @@ for (const scheme of ['light', 'dark'] as const) {
       await expect(page.getByRole('button', { name: 'Hoàn tất: Gửi bảng giá' })).toBeVisible();
     });
 
-    test('M5 thẻ việc v3: mỗi việc một thẻ, vạch màu theo hạn, gọn (≤ 150px ở 360)', async ({ page }, info) => {
+    test('M5 thẻ việc v3: mỗi việc một thẻ, vạch màu theo hạn, gọn (≤ 170px ở 360)', async ({ page }, info) => {
       await installTaskFixture(page);
       await page.goto('/cong-viec');
       const cards = page.locator('#main li[data-card]');
@@ -242,7 +242,8 @@ for (const scheme of ['light', 'dark'] as const) {
       await expect(page.locator('#main li[data-card] [data-badge]')).toHaveCount(0);
       if (info.project.name === 'phone-360') {
         const heights = await cards.evaluateAll((els) => els.map((e) => e.getBoundingClientRect().height));
-        expect(Math.max(...heights)).toBeLessThanOrEqual(150);
+        // D-029 (Curtis 31/10): thêm dòng loại căn · dự án cả bề ngang → trần 150 + 20px.
+        expect(Math.max(...heights)).toBeLessThanOrEqual(170);
       }
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     });

@@ -1,6 +1,7 @@
 import { Button, type ButtonProps } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ACTION_BY_ID, type ActionId, initials, LEVEL_WORD, type Level } from '@/lib/crm';
+import type { CustomerNeed } from '@/lib/crm/customer-need';
 import { cn } from '@/lib/utils';
 import { iconGlyph } from '@/ui/Icon';
 import { SignalBadge } from './signal';
@@ -124,6 +125,7 @@ export function ActionItem({
   dataCard,
   wrapTime,
   children,
+  need,
 }: {
   level: Level;
   /** Tên việc, luôn xuống dòng đầy đủ trên màn hẹp. */
@@ -146,6 +148,7 @@ export function ActionItem({
   wrapTime?: boolean;
   /** Bằng chứng bổ sung của dòng; không hiển thị trong nhóm gọn. */
   children?: React.ReactNode;
+  need?: CustomerNeed;
 }) {
   return (
     <article
@@ -182,9 +185,11 @@ export function ActionItem({
             </span>
           </div>
           <div className="flex min-w-0 items-center justify-between gap-2">
-            <div className="min-w-0 break-words text-caption leading-5 text-ink-muted">
-              <span className="font-semibold text-ink">{customer}</span>
-              {context && <> · {context}</>}
+            <div className="flex min-w-0 flex-1 flex-col">
+              <div className={cn('min-w-0 break-words text-caption text-ink-muted', need ? 'leading-4' : 'leading-5')}>
+                <span className="font-semibold text-ink">{customer}</span>
+                {context && <> · {context}</>}
+              </div>
             </div>
             {(action || actionLabel) && (
               <div className="shrink-0 pointer-events-auto">
@@ -216,6 +221,21 @@ export function ActionItem({
               </div>
             )}
           </div>
+          {need && (
+            <div
+              data-testid="customer-need-line"
+              title={need.title ?? `${need.aptType} · ${need.project}`}
+              className="min-w-0 truncate text-caption leading-4 text-ink-muted"
+            >
+              <span className={need.aptType.startsWith('Chưa rõ') ? 'text-ink-muted/70' : undefined}>
+                {need.aptType}
+              </span>
+              {' · '}
+              <span className={need.project.startsWith('Chưa rõ') ? 'text-ink-muted/70' : undefined}>
+                {need.project}
+              </span>
+            </div>
+          )}
         </div>
       </div>
       {children && <div className="relative z-10 mt-2.5 border-line border-t pt-2 pointer-events-none">{children}</div>}

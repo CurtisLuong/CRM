@@ -18,6 +18,7 @@ import {
   type RetargetFilters,
 } from '@/domain/matching/segments';
 import { copyAndOpenZalo } from '@/features/quick-actions/zalo';
+import { customerNeed } from '@/lib/crm/customer-need';
 
 type SavedSegment = { id: string; name: string; filters: RetargetFilters };
 const STORAGE = 'crm_v2_retarget_segments';
@@ -538,12 +539,7 @@ export function RetargetPage() {
                       }
                     />
                     <div className="min-w-0 flex-1">
-                      <LeadRow
-                        name={customer.full_name}
-                        phone={customer.phone}
-                        project={(customer.projects || []).join(' · ') || 'Chưa ghi dự án'}
-                        unit={customer.apt_type || 'Chưa rõ loại căn'}
-                      />
+                      <LeadRow name={customer.full_name} phone={customer.phone} need={customerNeed(customer)} />
                       <div className="flex flex-wrap gap-2 px-4 py-2">
                         <Pill>
                           {CARE_STAGE_DISPLAY[customer.care_stage || ''] || customer.care_stage || 'Chưa rõ bậc'}
