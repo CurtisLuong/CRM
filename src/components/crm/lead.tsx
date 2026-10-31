@@ -6,15 +6,31 @@ import { Glyph, SignalBadge } from './signal';
 import { StageChip } from './stage';
 
 function NeedText({ need }: { need: CustomerNeed }) {
+  const missingAptType = need.aptType.startsWith('Chưa rõ');
+  const missingProject = need.project.startsWith('Chưa rõ');
   return (
     <span
       data-testid="customer-need-line"
       title={need.title ?? `${need.aptType} · ${need.project}`}
-      className="min-w-0 truncate text-caption text-ink-muted"
+      className="flex min-w-0 overflow-hidden whitespace-nowrap text-caption text-ink-muted"
     >
-      <span className={need.aptType.startsWith('Chưa rõ') ? 'text-ink-muted/70' : undefined}>{need.aptType}</span>
+      <span
+        className={cn(
+          'min-w-0 overflow-hidden text-ellipsis whitespace-nowrap',
+          missingAptType ? 'shrink-[1000] text-ink-muted/70' : 'shrink-[0.01]',
+        )}
+      >
+        {need.aptType}
+      </span>
       {' · '}
-      <span className={need.project.startsWith('Chưa rõ') ? 'text-ink-muted/70' : undefined}>{need.project}</span>
+      <span
+        className={cn(
+          'min-w-0 overflow-hidden text-ellipsis whitespace-nowrap',
+          missingProject ? 'shrink-[100] text-ink-muted/70' : 'shrink-[10]',
+        )}
+      >
+        {need.project}
+      </span>
     </span>
   );
 }

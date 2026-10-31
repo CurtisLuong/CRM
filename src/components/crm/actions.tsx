@@ -225,13 +225,23 @@ export function ActionItem({
             <div
               data-testid="customer-need-line"
               title={need.title ?? `${need.aptType} · ${need.project}`}
-              className="min-w-0 truncate text-caption leading-4 text-ink-muted"
+              className="flex min-w-0 overflow-hidden whitespace-nowrap text-caption leading-4 text-ink-muted"
             >
-              <span className={need.aptType.startsWith('Chưa rõ') ? 'text-ink-muted/70' : undefined}>
+              <span
+                className={cn(
+                  'min-w-0 overflow-hidden text-ellipsis whitespace-nowrap',
+                  need.aptType.startsWith('Chưa rõ') ? 'shrink-[1000] text-ink-muted/70' : 'shrink-[0.01]',
+                )}
+              >
                 {need.aptType}
               </span>
               {' · '}
-              <span className={need.project.startsWith('Chưa rõ') ? 'text-ink-muted/70' : undefined}>
+              <span
+                className={cn(
+                  'min-w-0 overflow-hidden text-ellipsis whitespace-nowrap',
+                  need.project.startsWith('Chưa rõ') ? 'shrink-[100] text-ink-muted/70' : 'shrink-[10]',
+                )}
+              >
                 {need.project}
               </span>
             </div>
