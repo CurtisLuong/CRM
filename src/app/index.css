@@ -192,9 +192,10 @@
   text-transform: uppercase;
   color: var(--ink-muted);
 }
-/* Tiêu đề mục trong trang (vd "Việc đến hạn hôm nay"): chữ HOA, giãn chữ, lớn hơn text-label một bậc (Curtis 29/10). */
+/* Tiêu đề mục trong trang (vd "Việc đến hạn hôm nay"): chữ HOA, giãn chữ, lớn hơn text-label một bậc (Curtis 29/10).
+   Chữ thường không đậm để không tranh với nội dung thẻ bên dưới (Curtis 31/10). */
 @utility text-section-head {
-  font: 600 14px / 20px var(--font-sans);
+  font: 400 14px / 20px var(--font-sans);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink);
