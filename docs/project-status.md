@@ -8,6 +8,10 @@ Bộ tài liệu được biên soạn ngày 06/10/2026; đây không phải ng�
 
 Chỉ đọc file này khi cần tiếp nối công việc hoặc task phụ thuộc trạng thái triển khai/test.
 
+## Thẻ khách có loại căn + dự án; tiêu đề mục không đậm (2026-10-31)
+
+- Curtis: thẻ khách phải có loại căn + dự án quan tâm, ngay sau tên; tiêu đề mục bỏ in đậm. Telegram 1a, 2b → D-029: dòng "loại căn · dự án" dưới tên ở 6 màn; Khách hàng điện thoại bậc dạng vạch, bỏ SĐT, 64px; Hôm nay/Công việc dòng riêng cả bề ngang (nới L1 Hôm nay: ≥ 1 thẻ trọn + đầu thẻ 2; thẻ việc ≤ 170px); loại căn mã chuẩn, dự án tên ngắn `src/config/projectShort.ts` (chỉ giao diện). Worker luna (U-05, U-05b, U-05c — 4 lượt do đặc tả: thiếu giới hạn e2e, không đo 360px, glob `{}`); Lead sửa luật lần chạm theo M5 + nới 2 test theo D-029. 1253 unit + 745/746 e2e (u04 Thủ tục chập chờn, lặp lại qua). `main` = `a97553f`, Cloudflare đã build (`index-CWS1CpBO.js`). **Rollback:** `main` về `e79ec3e`.
+
 ## Tuổi / Mệnh / Cung thành ô riêng (2026-10-30, tối)
 
 - Curtis: chữ phụ tuổi/mệnh/cung dưới Ngày sinh làm ô cao lệch, Hôn nhân tụt. Sửa (Telegram 1a 2a): Ngày sinh | Tuổi, Mệnh (nạp âm) | Cung là ô chỉ đọc có nhãn, khung như ô khác; nhãn Ngày sinh cao bằng nhãn ô khác; nạp âm dài xuống 2 dòng ở 360px thì ô cùng hàng giãn bằng. Màn Thêm khách dùng cùng ô. Test `tests/e2e/profile-dob-cells.spec.ts`; `cl03-profile-compact.spec.ts` đổi câu kiểm theo lựa chọn của Curtis. 1239 unit + 725 e2e xanh. `main` = `e79ec3e`, Cloudflare đã build (`index-DHyxFRIO.js`). **Rollback:** `main` về `b9f6e88`.
