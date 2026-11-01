@@ -18,3 +18,6 @@ logs/
 supabase/.temp/
 keystore.properties
 *.jks
+
+# AI Factory — worktree của worker/merge (scripts/factory-*.mjs)
+.worktrees/

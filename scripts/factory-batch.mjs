@@ -20,7 +20,7 @@ import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { parseTask } from './factory-run.mjs';
+import { parseTask, worktreeDir } from './factory-run.mjs';
 import { WORKERS, workerOf } from './factory-workers.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -62,7 +62,7 @@ function inspect(file) {
     const t = parseTask(file);
     const problems = [];
     if (/CHƯA CHẠY|CHỜ CHỐT/i.test(t.md)) problems.push('đặc tả còn ghi CHƯA CHẠY / CHỜ CHỐT');
-    if (existsSync(resolve(ROOT, '..', `wt-${t.id}`))) problems.push(`worktree ../wt-${t.id} đã có`);
+    if (existsSync(worktreeDir(ROOT, `wt-${t.id}`))) problems.push(`worktree .worktrees/wt-${t.id} đã có`);
     const worker = cliWorker || t.worker || 'deepseek';
     const fallbackName = cliFallback || t.fallback || '';
     const fallback = fallbackName && fallbackName !== worker ? fallbackName : '';
@@ -201,7 +201,7 @@ async function reviewAndMerge(t, r) {
     if (m.code === 0 && line.includes(' ✓ ')) {
       r.merged = `✓ ${line.split(' ✓ ')[1]}`;
       r.branch = `(đã merge vào ${base})`;
-      spawnSync('git', ['worktree', 'remove', '--force', resolve(ROOT, '..', `wt-${t.id}`)], { cwd: ROOT });
+      spawnSync('git', ['worktree', 'remove', '--force', worktreeDir(ROOT, `wt-${t.id}`)], { cwd: ROOT });
       spawnSync('git', ['branch', '-D', `agent/${t.id}`], { cwd: ROOT });
     } else r.merged = `✗ ${line.split(' ✗ ')[1] ?? (m.timedOut ? 'hết giờ' : m.out.trim().split('\n').at(-1))}`;
   }
@@ -269,7 +269,7 @@ async function main() {
         attempts: attemptsField.split(' ')[0] || '—',
         model: res.code === 0 ? lastModel : models || '—',
         cost: Number(field(res.out, 'Chi phí').replace('$', '')) || 0,
-        branch: res.code === 0 ? `agent/${t.id}` : existsSync(resolve(ROOT, '..', `wt-${t.id}`)) ? `agent/${t.id} (chưa commit)` : '—',
+        branch: res.code === 0 ? `agent/${t.id}` : existsSync(worktreeDir(ROOT, `wt-${t.id}`)) ? `agent/${t.id} (chưa commit)` : '—',
         files: field(res.out, 'File đổi') || '—',
         log: relative(ROOT, outFile),
         minutes: res.minutes,
@@ -288,7 +288,7 @@ async function main() {
       if (res.code === 4) {
         // Hết hạn mức: dừng cả batch (task sau cũng sẽ hết), xoá worktree dở để chạy lại được.
         stopped = `${field(res.out, 'Trạng thái').replace(/^TẠM DỪNG — /, '')} — đăng nhập/nạp tiền rồi chạy lại lệnh batch`;
-        spawnSync('git', ['worktree', 'remove', '--force', resolve(ROOT, '..', `wt-${t.id}`)], { cwd: ROOT });
+        spawnSync('git', ['worktree', 'remove', '--force', worktreeDir(ROOT, `wt-${t.id}`)], { cwd: ROOT });
         spawnSync('git', ['branch', '-D', `agent/${t.id}`], { cwd: ROOT });
         r.branch = '— (đã xoá, chạy lại sau)';
       }

@@ -1,16 +1,16 @@
 #!/usr/bin/env node
 // AI Factory — merge các nhánh worker vào `factory` sau khi máy tự kiểm (Lead không phải tự chạy test). KHÔNG push.
 // Dùng: node scripts/factory-merge.mjs agent/A [agent/B ...] [--into factory] [--check "<lệnh>"]...
-// Mỗi nhánh, lần lượt, trong worktree tạm ../wt-merge-<giờ> (repo chính không bị đụng tới):
+// Mỗi nhánh, lần lượt, trong worktree tạm .worktrees/wt-merge-<giờ> (repo chính không bị đụng tới):
 //   rebase lên đỉnh hiện tại của --into → chạy đủ lệnh kiểm (mặc định: npm run check + npm run e2e)
 //   → xanh: merge --no-ff vào đỉnh mới; trượt/xung đột: bỏ qua nhánh đó, đỉnh giữ nguyên, sang nhánh sau.
 // Cuối cùng cập nhật nhánh --into (fast-forward; nếu đang mở ở thư mục nào thì merge --ff-only ngay tại đó).
 // In đúng 1 dòng mỗi nhánh: "<nhánh> ✓ <sha>" hoặc "<nhánh> ✗ <lý do>". Mã thoát: 0 mọi nhánh vào · 1 có nhánh trượt · 2 lỗi.
 // Test trượt ở file nhánh không đụng → chạy lại đúng file đó 1 lần (chập chờn có sẵn) trước khi tính trượt.
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { installDeps, must, retryUntouched, sh } from './factory-run.mjs';
+import { installDeps, must, retryUntouched, sh, worktreeDir } from './factory-run.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const LOG_DIR = join(ROOT, 'logs');
@@ -51,7 +51,7 @@ function main() {
   const oldTip = must('git', ['rev-parse', '--verify', into], { cwd: ROOT });
 
   const stamp = new Date().toISOString().replace(/\D/g, '').slice(0, 14);
-  const wt = resolve(ROOT, '..', `wt-merge-${stamp}`);
+  const wt = worktreeDir(ROOT, `wt-merge-${stamp}`);
   must('git', ['worktree', 'add', '-q', '--detach', wt, oldTip], { cwd: ROOT });
   // Cổng e2e riêng: không đụng server của worker/batch đang chạy song song.
   process.env.E2E_PORT ||= String(4290 + (Number(stamp.slice(-2)) % 9));
@@ -126,6 +126,18 @@ function main() {
     }
   } finally {
     sh('git', ['worktree', 'remove', '--force', wt], { cwd: ROOT });
+  }
+  // Nhánh đã vào `into` → gỡ worktree worker của nó để .worktrees/ không dồn lên. Còn file chưa commit thì giữ lại.
+  const porcelain = must('git', ['worktree', 'list', '--porcelain'], { cwd: ROOT });
+  for (const branch of branches) {
+    if (!lines.some((l) => l.startsWith(`${branch} ✓`))) continue;
+    const at = checkedOutAt(porcelain, branch);
+    if (!at || resolve(at) === ROOT) continue;
+    const dirty = sh('git', ['status', '--porcelain'], { cwd: at })
+      .stdout.split('\n')
+      .filter((l) => l.trim() && l !== '?? opencode.json');
+    if (dirty.length) lines.push(`(!) giữ worktree ${relative(ROOT, at)}: còn ${dirty.length} file chưa commit`);
+    else sh('git', ['worktree', 'remove', '--force', at], { cwd: ROOT });
   }
   for (const l of lines) console.log(l);
   return lines.some((l) => l.includes(' ✗ ')) ? 1 : 0;

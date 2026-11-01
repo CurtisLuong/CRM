@@ -3,7 +3,7 @@
 // Không merge, không push.
 // Dùng: node scripts/factory-run.mjs tasks/queue/<ID>.md [--base factory] [--worker <mã>] [--fallback <mã>]
 //   Worker: --worker > dòng "Worker: <mã>" trong task > deepseek. Dự phòng: --fallback > "Dự phòng: <mã>" trong task > không có.
-// Đạt → commit trong worktree ../wt-<ID>, nhánh agent/<ID>. Lead đọc diff rồi merge vào `factory` bằng cách của repo.
+// Đạt → commit trong worktree .worktrees/wt-<ID>, nhánh agent/<ID>. Lead đọc diff rồi merge vào `factory` bằng cách của repo.
 // Mã thoát: 0 ĐẠT · 1 TRƯỢT · 2 LỖI · 3 BLOCKED (worker hỏi Lead — không tăng mức suy luận, không tính trượt)
 //   · 4 TẠM DỪNG (hết hạn mức/hết tiền, không còn dự phòng — không tính trượt, task giữ nguyên trong hàng đợi).
 // Hết hạn mức giữa chừng + có dự phòng → chuyển sang worker dự phòng, chạy lại kế hoạch 3 lần của nó trên cùng worktree.
@@ -17,6 +17,9 @@ import { fileURLToPath } from 'node:url';
 import { isQuotaError, opencodeFinalText, sh, WORKER_NAMES, workerOf } from './factory-workers.mjs';
 
 export { sh };
+
+/** Worktree của AI Factory nằm trong repo (.worktrees/, đã gitignore), không rải ra thư mục cha. */
+export const worktreeDir = (root, name) => join(root, '.worktrees', name);
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const DENY_CONFIG = join(ROOT, 'scripts', 'opencode.worker.json');
@@ -381,7 +384,7 @@ function main() {
   let worker = workerOf(opt('--worker') || task.worker || 'deepseek');
   const fallbackName = opt('--fallback') || task.fallback || '';
   const fallback = fallbackName && fallbackName !== worker.name ? workerOf(fallbackName) : null;
-  const wt = resolve(ROOT, '..', `wt-${task.id}`);
+  const wt = worktreeDir(ROOT, `wt-${task.id}`);
   const branch = `agent/${task.id}`;
   if (existsSync(wt)) throw new Error(`Worktree đã tồn tại: ${wt}. Xoá bằng: git worktree remove ${wt} && git branch -D ${branch}`);
 

@@ -46,7 +46,7 @@ Luồng C (lỗi/yêu cầu nhỏ): đối chiếu repo → gom câu hỏi → <
 
 ## BLOCKED
 
-Worker gặp luật mâu thuẫn/thiếu hoặc test bắt buộc trái luật → kết thúc bằng `BLOCKED: <câu hỏi>`. Script: dừng ngay, **không tăng mức suy luận, không tính trượt**, mã thoát 3, task sang `tasks/blocked/`, câu hỏi đứng đầu report. Lead trả lời (hỏi Curtis nếu là luật nghiệp vụ), sửa mục Luật/Hợp đồng của task, xoá worktree cũ (`git worktree remove ../wt-<ID> && git branch -D agent/<ID>`), đưa lại vào `tasks/queue/`.
+Worker gặp luật mâu thuẫn/thiếu hoặc test bắt buộc trái luật → kết thúc bằng `BLOCKED: <câu hỏi>`. Script: dừng ngay, **không tăng mức suy luận, không tính trượt**, mã thoát 3, task sang `tasks/blocked/`, câu hỏi đứng đầu report. Lead trả lời (hỏi Curtis nếu là luật nghiệp vụ), sửa mục Luật/Hợp đồng của task, xoá worktree cũ (`git worktree remove .worktrees/wt-<ID> && git branch -D agent/<ID>`), đưa lại vào `tasks/queue/`.
 
 ## Review theo rủi ro (trước khi merge task loại code)
 
