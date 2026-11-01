@@ -41,6 +41,12 @@ export type HeadlineTile = {
   target: string;
 };
 
+/** Flat trends already have a plain-text comparison in the tile subtitle. */
+export function headlineDelta(trend: HeadlineTile['trend']) {
+  if (!trend || trend.dir === 'flat') return undefined;
+  return { dir: trend.dir, text: trend.text, good: trend.tone !== 'bad' };
+}
+
 const fmtN = (n: number) => n.toLocaleString('vi-VN');
 
 /** Quan sát hiện ngay dưới 4 ô; phần dư nằm trong khối chi tiết (M5-03). */
@@ -182,6 +188,7 @@ export function stageSlaChartData(stages: FullCare['stages']) {
   return stages.map((stage) => ({
     label: stage.label,
     total: stage.total,
+    // warn/over của slaStatus loại trừ nhau → 3 nhóm cộng đúng tổng.
     onTime: stage.total - stage.targetExceeded - stage.limitExceeded,
     near: stage.targetExceeded,
     overdue: stage.limitExceeded,

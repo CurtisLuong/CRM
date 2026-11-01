@@ -250,11 +250,8 @@ test('Ngày trong Thông tin thêm cùng một kiểu với Lần gọi cuối',
   await expect(extra).not.toContainText('04/10/2026');
 });
 
-test('Điện thoại: màn đầu hồ sơ giữ nguyên như bản cũ', async ({ page }, info) => {
-  test.skip(!info.project.name.startsWith('phone-'), 'Chỉ đo điện thoại');
-  await open(page);
-  await expect(page).toHaveScreenshot(`phone-first-screen-${info.project.name}.png`, { maxDiffPixelRatio: 0.01 });
-});
+// Ảnh mẫu "màn đầu điện thoại giữ nguyên bản cũ" đã gỡ (28/10): R2 làm lại hồ sơ theo D-028.
+// Màn đầu điện thoại do e2e R2 kiểm theo ngân sách L1 thay vì so ảnh.
 
 // Ảnh trước/sau cho báo cáo: PF07_SHOTS=<thư mục> npx playwright test pf07 --project=desktop-1280 -g "Ảnh"
 test('Ảnh bố cục desktop cho báo cáo', async ({ page }, info) => {

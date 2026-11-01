@@ -1,6 +1,6 @@
+import { Button } from '@/components/ui/button';
 import type { RepositoryAccount } from '@/data/repositories/session';
 import type { Customer } from '@/domain/customer';
-import { Button } from '@/ui';
 import { AiProposalPanel } from './AiProposalPanel';
 import { type AiRetarget, validDay } from './model';
 export type VerifiedAiProduct = {

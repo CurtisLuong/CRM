@@ -137,7 +137,7 @@ const cardNames = (page: Page) =>
 const card = (page: Page, name: string) => page.locator(`[data-card]:has(button[aria-label="Mở ${name}"])`);
 
 const openFilters = async (page: Page) => {
-  await page.getByRole('button', { name: /^Lọc/ }).click();
+  await page.getByRole('button', { name: /^Bộ lọc/ }).click();
   return page.getByRole('dialog', { name: /Lọc/ });
 };
 
@@ -239,12 +239,13 @@ test('PF-08: danh sách ảo giữ nhịp 72px khi cuộn danh sách dài', asyn
   await expect(list.getByText('Khách Cũ 000', { exact: true })).toBeInViewport();
   expect(await items.count()).toBeLessThan(25);
 
-  // Nhịp thẻ vẫn đúng 72px sau khi cuộn (không nhảy).
+  // Nhịp thẻ vẫn đều sau khi cuộn (không nhảy): điện thoại 72px; desktop ≥ 1024px là bảng 40px (D-028, R2-01).
+  const rowGap = (page.viewportSize()?.width ?? 0) >= 1024 ? 40 : 72;
   const tops = (await items.evaluateAll((els) => els.map((el) => Math.round(el.getBoundingClientRect().top)))).sort(
     (a, b) => a - b,
   );
   const gaps = new Set(tops.slice(1).map((top, i) => top - tops[i]));
-  expect([...gaps]).toEqual([72]);
+  expect([...gaps]).toEqual([rowGap]);
 
   // Cuộn về đầu: thẻ đầu vẫn là khách cần gọi, không lệch.
   for (let gesture = 0; gesture < 40; gesture++) {

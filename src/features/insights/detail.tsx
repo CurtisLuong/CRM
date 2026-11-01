@@ -22,25 +22,21 @@ export function DetailBlock({
   const titleId = `${id}-title`;
   const panelId = `${id}-panel`;
   return (
-    <section
-      id={id}
-      aria-labelledby={titleId}
-      className="scroll-mt-20 rounded-card border border-border bg-surface shadow-e1"
-    >
+    <section id={id} aria-labelledby={titleId} className="scroll-mt-20 rounded-lg border border-line bg-surface-100 ">
       <button
         type="button"
         aria-expanded={open}
         aria-controls={panelId}
         onClick={onToggle}
-        className="flex min-h-12 w-full items-center justify-between gap-2 rounded-card px-4 py-3 text-left hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-focus"
+        className="flex min-h-12 w-full items-center justify-between gap-2 rounded-lg px-4 py-3 text-left hover:bg-surface-200 focus-visible:outline-2 focus-visible:outline-ion"
       >
-        <span id={titleId} className="text-body-strong">
+        <span id={titleId} className="text-body font-semibold">
           {title}
         </span>
         <Icon name={open ? 'expand' : 'open'} />
       </button>
       {open && (
-        <div id={panelId} className="flex flex-col gap-4 border-t border-hairline p-4">
+        <div id={panelId} className="flex flex-col gap-4 border-t border-line p-4">
           {children}
         </div>
       )}

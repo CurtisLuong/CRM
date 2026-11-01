@@ -72,7 +72,10 @@ export function customerTimeline(customer: Customer): CustomerTimelineEntry[] {
       at: task.done_at,
       kind: 'task',
       title: `Xong việc: ${task.text || 'Việc không tên'}`,
-      detail: task.due ? `Hạn ${new Date(task.due).toLocaleString('vi-VN')}` : undefined,
+      // Giờ:phút ngày/tháng/năm, không kèm giây (Curtis 30/10).
+      detail: task.due
+        ? `Hạn ${new Date(task.due).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' })}`
+        : undefined,
     });
   }
   const meta = customer.field_meta && typeof customer.field_meta === 'object' ? customer.field_meta : {};

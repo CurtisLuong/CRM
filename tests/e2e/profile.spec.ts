@@ -119,7 +119,8 @@ for (const theme of ['light', 'dark'] as const) {
     await page.goto(`/ho-so/${customerId}`);
     await expect(page.getByRole('heading', { name: 'Nguyễn Thị Hưởng' })).toBeVisible();
     await page.getByRole('tab', { name: 'Dòng thời gian' }).click();
-    await expect(page.getByText('16/10/2026', { exact: false }).first()).toBeVisible();
+    // Curtis 30/10: mỗi mục một ngày, ở dòng tên (dạng kit "T6 16/10 13:16"; khác năm mới kèm năm).
+    await expect(page.locator('[data-timeline-group] time').filter({ hasText: '16/10' }).first()).toBeVisible();
     await expect(page.getByText('Đã xem dự án', { exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Sửa ghi chú hồ sơ' }).click();
     await page.getByRole('textbox', { name: 'Sửa ghi chú' }).fill('Ghi chú hồ sơ đã sửa');

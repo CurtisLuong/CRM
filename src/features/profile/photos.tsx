@@ -1,7 +1,43 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import {
+  SheetBody,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  Sheet as SheetRoot,
+  SheetTitle,
+} from '@/components/ui/sheet';
 import type { Customer } from '@/domain/customer';
-import { Avatar, Button, Icon, Sheet, useToast } from '@/ui';
-import { cn } from '@/ui/cn';
+import { cn } from '@/lib/utils';
+import { Icon } from '@/ui/Icon';
+import { useToast } from '@/ui/Toast';
+
+function PhotoSheet({
+  open,
+  onOpenChange,
+  title,
+  description,
+  children,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  title: string;
+  description: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <SheetRoot open={open} onOpenChange={onOpenChange}>
+      <SheetContent aria-describedby={undefined}>
+        <SheetHeader>
+          <SheetTitle>{title}</SheetTitle>
+          <SheetDescription>{description}</SheetDescription>
+        </SheetHeader>
+        <SheetBody>{children}</SheetBody>
+      </SheetContent>
+    </SheetRoot>
+  );
+}
 
 /** Hai vị trí ảnh của hồ sơ khách. Chỉ nhận ảnh; upload cần mạng và quyền của người phụ trách. */
 export type PhotoKind = 'avatar' | 'cover';
@@ -220,7 +256,7 @@ export function ProfilePhotoFrame({
   };
 
   const frameClass = cn(
-    'relative block overflow-hidden bg-surface-2 text-text-3 focus-visible:outline-2 focus-visible:outline-focus',
+    'relative block overflow-hidden bg-surface-200 text-ink-muted focus-visible:outline-2 focus-visible:outline-ion',
     kind === 'cover' ? 'h-24 w-full' : 'size-14 rounded-full',
     (writable || url) && 'cursor-pointer hover:brightness-95',
     className,
@@ -250,28 +286,39 @@ export function ProfilePhotoFrame({
         >
           {frameBody}
           {kind === 'cover' && (
-            <span className="pointer-events-none absolute bottom-2 left-2 rounded-full bg-surface/90 px-2 py-0.5 text-small text-text-2">
+            <span className="pointer-events-none absolute bottom-2 left-2 rounded-full bg-surface-100/90 px-2 py-0.5 text-caption text-ink-muted">
               {label}
             </span>
           )}
         </button>
       ) : kind === 'avatar' ? (
         <span role="img" aria-label={label} title={label} className="inline-flex">
-          <Avatar name={customer.full_name} size={56} />
+          <span
+            className="grid size-14 place-items-center rounded-full bg-ion-tint text-body font-semibold text-ion"
+            aria-hidden
+          >
+            {customer.full_name
+              .trim()
+              .split(/\s+/u)
+              .slice(-2)
+              .map((part) => part[0])
+              .join('')
+              .toLocaleUpperCase('vi')}
+          </span>
         </span>
       ) : (
         <span
           role="img"
           aria-label={label}
           title={label}
-          className="flex h-24 w-full items-center justify-center bg-surface-2 text-text-3"
+          className="flex h-24 w-full items-center justify-center bg-surface-200 text-ink-muted"
         >
           <Icon name="image" size={24} />
         </span>
       )}
-      {kind === 'avatar' && <span className="text-small text-text-3">{label}</span>}
+      {kind === 'avatar' && <span className="text-caption text-ink-muted">{label}</span>}
 
-      <Sheet
+      <PhotoSheet
         open={sheet === 'viewer'}
         onOpenChange={(open) => {
           if (!open) {
@@ -288,25 +335,25 @@ export function ProfilePhotoFrame({
               src={url}
               alt={label}
               data-testid={`photo-viewer-${kind}`}
-              className="max-h-[60dvh] w-full rounded-card bg-surface-2 object-contain"
+              className="max-h-[60dvh] w-full rounded-lg bg-surface-200 object-contain"
             />
           )}
           {writable ? (
             <div className="flex flex-wrap gap-2">
-              <Button variant="primary" icon="image" disabled={busy} onClick={() => setSheet('picker')}>
+              <Button variant="primary" disabled={busy} onClick={() => setSheet('picker')}>
                 Đổi ảnh
               </Button>
-              <Button variant="danger" icon="delete" disabled={busy} onClick={() => setSheet('confirm')}>
+              <Button variant="destructive" disabled={busy} onClick={() => setSheet('confirm')}>
                 Xoá ảnh
               </Button>
             </div>
           ) : (
-            <p className="text-small text-text-2">Khách nhóm và khách lưu trữ chỉ xem ảnh.</p>
+            <p className="text-caption text-ink-muted">Khách nhóm và khách lưu trữ chỉ xem ảnh.</p>
           )}
         </div>
-      </Sheet>
+      </PhotoSheet>
 
-      <Sheet
+      <PhotoSheet
         open={sheet === 'picker'}
         onOpenChange={(open) => {
           if (!open) {
@@ -319,19 +366,13 @@ export function ProfilePhotoFrame({
       >
         <div className="space-y-3">
           <div className="grid gap-2 sm:grid-cols-2">
-            <Button
-              variant="primary"
-              icon="image"
-              disabled={busy || uploading}
-              onClick={() => inputRef.current?.click()}
-            >
+            <Button variant="primary" disabled={busy || uploading} onClick={() => inputRef.current?.click()}>
               Chọn từ máy
             </Button>
             <Button
               variant="secondary"
-              icon="copy"
-              disabled={busy || uploading}
-              loading={reading}
+              disabled={busy || uploading || reading}
+              aria-busy={reading || undefined}
               onClick={() => void readClipboard()}
             >
               Dán từ clipboard
@@ -349,23 +390,23 @@ export function ProfilePhotoFrame({
               event.currentTarget.value = '';
             }}
           />
-          <p className="text-small text-text-2">
+          <p className="text-caption text-ink-muted">
             Mẹo: sao chép ảnh rồi bấm Ctrl/Cmd+V khi hộp thoại đang mở, hoặc dùng “Dán từ clipboard”.
           </p>
           {notice && (
-            <p role="alert" className="text-small text-danger">
+            <p role="alert" className="text-caption text-alert-text">
               {notice}
             </p>
           )}
           {uploading && (
-            <p role="status" className="text-small text-text-2">
+            <p role="status" className="text-caption text-ink-muted">
               Đang tải ảnh…
             </p>
           )}
         </div>
-      </Sheet>
+      </PhotoSheet>
 
-      <Sheet
+      <PhotoSheet
         open={sheet === 'confirm'}
         onOpenChange={(open) => {
           if (!open) setSheet(url ? 'viewer' : null);
@@ -377,18 +418,11 @@ export function ProfilePhotoFrame({
           <Button className="flex-1" onClick={() => setSheet('viewer')}>
             Huỷ
           </Button>
-          <Button
-            className="flex-1"
-            variant="danger"
-            icon="delete"
-            loading={removing}
-            disabled={busy}
-            onClick={() => void remove()}
-          >
+          <Button className="flex-1" variant="destructive" disabled={busy} onClick={() => void remove()}>
             Xoá ảnh
           </Button>
         </div>
-      </Sheet>
+      </PhotoSheet>
     </div>
   );
 }

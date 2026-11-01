@@ -12,8 +12,8 @@ import { taskKindOf } from '@/config/taskKinds';
 import type { Customer } from '@/domain/customer';
 import type { BriefFact } from '@/domain/customer/brief';
 import { interactionTitle, LEAD_FORM_KIND } from '@/domain/customer/interactions';
-import { callAttemptsOf, sourceListOf } from '@/domain/customer/normalize';
-import type { CustomerTimelineEntry } from '@/domain/customer/timeline';
+import { callAttemptsOf, normStage, sourceListOf } from '@/domain/customer/normalize';
+import { type CustomerTimelineEntry, customerTimeline } from '@/domain/customer/timeline';
 import { fmtClock, type TaskDueInfo, taskDayLabel } from '@/domain/deadlines';
 import { callResultLabel, displayText, intakeLabel, sourceLabel } from '@/ui/display';
 
@@ -75,6 +75,33 @@ export function withTaskKinds(customer: Customer, entries: readonly CustomerTime
     const kind = Number.isInteger(index) ? tasks[index]?.kind : undefined;
     return kind ? { ...entry, taskKind: kind } : entry;
   });
+}
+
+/** Dòng thời gian gọn dùng trong tấm khách; bổ sung bậc hiện tại nếu lịch sử cũ chưa có mốc. */
+export function customerSheetTimeline(customer: Customer, now: number): ProfileTimelineEntry[] {
+  const entries = withTaskKinds(customer, customerTimeline(customer));
+  const currentStage = normStage(customer.care_stage);
+  if (!currentStage) return entries;
+  const hasCurrentStage = entries.some(
+    (entry) => entry.kind === 'stage' && normStage(entry.title.replace(/^Bậc: /, '')) === currentStage,
+  );
+  if (hasCurrentStage) return entries;
+
+  const lastStage = entries.filter((entry) => entry.kind === 'stage').sort((a, b) => b.at.localeCompare(a.at))[0];
+  const at =
+    customer.care_stage_updated_at ||
+    (lastStage ? new Date(now).toISOString() : customer.registered_at || customer.created_at);
+  if (!at || !Number.isFinite(Date.parse(at))) return entries;
+
+  return [
+    ...entries,
+    {
+      id: `stage-current:${at}`,
+      at,
+      kind: 'stage' as const,
+      title: `Bậc: ${currentStage}`,
+    },
+  ].sort((a, b) => b.at.localeCompare(a.at));
 }
 
 // ── Hồ sơ v3 (D-023): dữ liệu trình bày, chỉ đọc domain/config. ──

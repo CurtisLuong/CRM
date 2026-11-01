@@ -8,6 +8,53 @@ Bộ tài liệu được biên soạn ngày 06/10/2026; đây không phải ng�
 
 Chỉ đọc file này khi cần tiếp nối công việc hoặc task phụ thuộc trạng thái triển khai/test.
 
+## APK 1.8: gửi tài liệu kèm tệp qua Zalo (2026-10-31, tối)
+
+- Curtis: trong vỏ Android, gửi tài liệu chỉ chép chữ + mở Zalo, tệp không đi. Nguyên nhân: WebView không có `navigator.share` → nhánh `<a download>` không chạy. U-06 (luna; BLOCKED vì `tests/android/app-update.test.ts` cố định versionCode 8 → Lead nới ≥ 8): plugin `ShareFiles` (hợp đồng `docs/ARCHITECTURE.md` §7), web gọi khi có plugin, APK cũ → nhánh cũ + nhắc cập nhật; Lead đổi mã lỗi plugin → chữ tiếng Việt. CI build APK OK (nhánh + main), `app-releases/latest.json` = 1.8 / versionCode 9. 1263 unit + 749/751 e2e (m5 ≥7 thẻ + u04 chập chờn, lặp lại qua). `main` = `67ea46d`. Chưa thử máy thật (nhiều tệp vào Zalo). **Rollback:** web `main` về `7982295`; APK 1.8 chạy được với web cũ.
+
+## Thẻ Khách hàng ưu tiên đủ tên (2026-10-31, chiều)
+
+- Curtis (ảnh Android): tên bị che vì nhãn "Quá SLA" + lần chạm; hai thứ trùng ý → chỉ giữ SLA; ưu tiên đủ tên, loại căn, dự án, phần khác "…". Lead: bỏ lần chạm khi có nhãn hạn (mobile + bảng máy tính), tên co sau nhãn (nhãn tối thiểu ▲); U-05d (luna, 1 lần): "Chưa rõ…" co trước, dự án đủ; Lead sửa dấu " · " mất khoảng trắng trong dòng flex. Test M5/U-05b chỉnh theo luật mới. 1253 unit + 750/751 e2e (u04 Thủ tục chập chờn). `main` = `7982295` (`index-CBFV6yud.js`). **Rollback:** `main` về `a97553f`.
+
+## Thẻ khách có loại căn + dự án; tiêu đề mục không đậm (2026-10-31)
+
+- Curtis: thẻ khách phải có loại căn + dự án quan tâm, ngay sau tên; tiêu đề mục bỏ in đậm. Telegram 1a, 2b → D-029: dòng "loại căn · dự án" dưới tên ở 6 màn; Khách hàng điện thoại bậc dạng vạch, bỏ SĐT, 64px; Hôm nay/Công việc dòng riêng cả bề ngang (nới L1 Hôm nay: ≥ 1 thẻ trọn + đầu thẻ 2; thẻ việc ≤ 170px); loại căn mã chuẩn, dự án tên ngắn `src/config/projectShort.ts` (chỉ giao diện). Worker luna (U-05, U-05b, U-05c — 4 lượt do đặc tả: thiếu giới hạn e2e, không đo 360px, glob `{}`); Lead sửa luật lần chạm theo M5 + nới 2 test theo D-029. 1253 unit + 745/746 e2e (u04 Thủ tục chập chờn, lặp lại qua). `main` = `a97553f`, Cloudflare đã build (`index-CWS1CpBO.js`). **Rollback:** `main` về `e79ec3e`.
+
+## Tuổi / Mệnh / Cung thành ô riêng (2026-10-30, tối)
+
+- Curtis: chữ phụ tuổi/mệnh/cung dưới Ngày sinh làm ô cao lệch, Hôn nhân tụt. Sửa (Telegram 1a 2a): Ngày sinh | Tuổi, Mệnh (nạp âm) | Cung là ô chỉ đọc có nhãn, khung như ô khác; nhãn Ngày sinh cao bằng nhãn ô khác; nạp âm dài xuống 2 dòng ở 360px thì ô cùng hàng giãn bằng. Màn Thêm khách dùng cùng ô. Test `tests/e2e/profile-dob-cells.spec.ts`; `cl03-profile-compact.spec.ts` đổi câu kiểm theo lựa chọn của Curtis. 1239 unit + 725 e2e xanh. `main` = `e79ec3e`, Cloudflare đã build (`index-DHyxFRIO.js`). **Rollback:** `main` về `b9f6e88`.
+
+## Nhật ký Dòng thời gian một khuôn (2026-10-30, tối)
+
+- Curtis: nút Sửa nhảy đầu/giữa/cuối, ngày lặp. Sửa (Curtis chọn qua Telegram): mỗi mục = icon + tên + **một** ngày ở dòng tên (dạng kit "T6 16/10 13:16"); khung chỉ khi có ghi chú — chữ trái, nút Sửa cố định cuối dòng trên; bỏ icon lặp (ẩn đúng vòng tròn kit); "Hạn" bỏ giây; tab hồ sơ trượt cùng nhịp thanh đầu (transform). Test `tests/e2e/profile-timeline-layout.spec.ts` (đủ loại mục, đo vị trí); `profile.spec.ts` đổi câu kiểm ngày theo lựa chọn của Curtis. 1239 unit + 716 e2e xanh. `main` = `b9f6e88`, Cloudflare đã build (`index-7jKcFteM.js`). **Rollback:** `main` về `3ec797c`.
+
+## Nhật ký Dòng thời gian bị nhét cột 32px (2026-10-30, chiều)
+
+- Curtis gửi ảnh Android: tab Dòng thời gian của hồ sơ xuống dòng từng chữ, tràn khung. Nguyên nhân: tab ẩn vòng tròn bậc của kit `Timeline` nhưng hàng vẫn là lưới `32px | 1fr` → nội dung rơi vào cột 32px. Sửa `[&>ol>li]:grid-cols-1` (`src/features/profile/timeline.tsx`), test `tests/e2e/profile-timeline-width.spec.ts` (code cũ đo 32px). `main` = `3ec797c` (Curtis duyệt Telegram), Cloudflare đã build (`index-B-s3KrsG.js`). **Rollback:** `main` về `cec8c33`.
+
+## Thanh đầu kiểu Facebook + ngăn kéo chừa status bar (2026-10-30)
+
+- Curtis gửi ảnh vỏ Android: tấm khách và Lọc khách tràn lên status bar, không bấm được nút Đóng. Sửa: `SheetContent` đệm `safe-area-inset-top/bottom`, `DialogContent` chừa hai mép; thanh đầu khung app trên điện thoại ẩn khi cuộn xuống (vuốt lên), hiện khi cuộn lên, dải nền status bar luôn giữ; tab dính hồ sơ theo `--app-header-top`. Kiểm bằng Chromium giả lập status bar 32px (CDP `Emulation.setSafeAreaInsetsOverride`), chưa thử máy thật. `main` = `cec8c33` (Curtis duyệt qua Telegram), Cloudflare đã build (`index-BGblD2TL.js`). **Rollback:** `main` về `fa64f0f`.
+
+## Sửa thanh đầu trên Android (2026-10-29, chiều)
+
+- Curtis gửi ảnh vỏ Android: thanh đầu trùng status bar, nút gọi của dòng khách đè lên khi cuộn. Sửa: thanh đầu cao `56px + env(safe-area-inset-top)` (trước cố định 56px nên phần đệm ăn vào nội dung, đẩy nút lên status bar), lớp z-30 (trước z-5); tab dính hồ sơ dời theo. `main` = `fa64f0f` (merge `factory` @ `a4c638f`), Cloudflare đã build (`index-C6mebC2P.js`). **Rollback:** `main` về `a0532a5`.
+- Kiểm: check 1239; e2e cả bộ 701 đạt + 3 ca r3-01 (Lead dùng `@/ui/Toast` ở Thông báo → đổi sang thanh xác nhận bằng kit, chạy lại đạt); test mới `header-overlay.spec.ts` trượt trên code cũ. Safe-area không giả lập được trên Chromium → **chờ Curtis thử máy thật**.
+
+## UI mới mọi màn (R2–R5) + góp ý đợt U lên production (2026-10-29)
+
+- **Curtis duyệt "merge main và push" 2026-10-29** sau khi xem preview `factory`. `main` = `a0532a5` (merge `factory` @ `fa1f4e2`; `origin/main` = `6012270`, không xung đột; cây `main` trùng `factory`). Lead push thẳng `main`; Cloudflare project `crm` tự build `crm-cop.pages.dev`. **Rollback:** đưa `main` về `6012270`.
+- Gồm: mọi màn theo bản UI "Realty CRM" (R2–R5: Khách hàng + tấm xem nhanh, Hồ sơ, Thông báo, Hiệu quả, Thêm khách, Thao tác nhanh, Công việc, Cài đặt, Giỏ hàng, danh sách phụ, Tài liệu) + đợt U: Thông báo chỉ Tạm hoãn (2 giờ/4 giờ/8 giờ/1 ngày, mặc định 8 giờ), bỏ nút Lọc cũ, tiêu đề mục chữ HOA, Thao tác nhanh (nhật ký 2 dòng, bỏ Ghi cuộc gọi, phiên gọi chạy ở `/thao-tac-nhanh`), trang Mẫu tin Zalo `/mau-zalo`, trang Thủ tục `/thu-tuc`.
+- **Không đổi** SQL, Supabase, Worker, vỏ Android → không migration, không APK mới. Mục `hidden` cũ của tín hiệu giữ nguyên trong `ui_state`.
+- Kiểm: `npm run check` 1239 test; `npm run e2e` cả bộ 698/701 (3 ca pf06 tìm "dũng" → sửa phụ đề lệnh, chạy lại đạt); sau đó 2 sửa nhỏ (nhật ký 2 dòng, toast hoãn) chạy lại e2e liên quan. Ảnh 360/1280 sáng/tối bằng dữ liệu mẫu. Chưa thử máy thật Android/vỏ app.
+
+## Bản UI "Realty CRM" R0+R1 + Tài liệu gửi khách (bản thử) lên production (2026-10-28)
+
+- **Curtis duyệt "merge vào main" 2026-10-28** sau khi thử preview `factory`. `main` = `6012270` (merge `factory` @ `8bbc806`; trước đó gộp `origin/main` 85dd7c9 — chỉ có merge commit PR #1–#3, không xung đột). Lead push thẳng `main`; Cloudflare project `crm` tự build `crm-cop.pages.dev`. **Rollback:** đưa `main` về `85dd7c9` (bản production trước).
+- Gồm: token/màu mới (D-028), khung mới (menu trái 64/232px, thanh tab dưới, thanh đầu 56px), Hôm nay mới (R1-02), chế độ dữ liệu mẫu (**không hiện trên production** — URL Supabase production), Tài liệu gửi khách bản thử (SK-01/02: lưu trên máy, chưa đồng bộ; vỏ Android chưa chia sẻ tệp được → tải tệp + mở Zalo), thông báo "Có bản mới" nổi trên thanh tab + tự hỏi bản mới mỗi 30 phút.
+- **Không đổi** SQL, Supabase, Worker, vỏ Android → không migration, không APK mới.
+- Kiểm: `npm run check` 1227 test; `npm run e2e` trên cây merge 534 đạt + 2 trượt (`dm01` chập chờn do 2 tiêu đề lúc chuyển màn — Lead sửa test, chạy lại xanh). Chưa thử máy thật Android/vỏ app.
+
 ## Hồ sơ desktop 2 cột PF-07 lên production (2026-10-21)
 
 - 2026-10-22 (3): CL-03 (hồ sơ gọn: ngày sinh đủ năm hoặc chỉ ngày/tháng → tuổi, mệnh, cung; ô trống ẩn sau "Bổ sung"; ô ngắn 2 cột; Nhu cầu theo đợt + Người cùng quyết định sang tab Nhu cầu & căn → Nâng cao) + worker pool Factory (chỉ script). Curtis duyệt merge. `main` = `805c0c9` (cây file giống hệt `factory` b3663f6; 1100 unit + 418 e2e xanh, build xanh). Push GitHub → Cloudflare deployment `fe7fa0b7`; trang thật có bundle mới. Không có SQL. Rollback: deployment `f9a969a2` (be3b43f).

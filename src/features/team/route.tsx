@@ -1,17 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { FeatureRoute } from '@/app/routes';
+import { Avatar, EmptyState, PageHeader } from '@/components/crm';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { toast as sonnerToast } from '@/components/ui/sonner';
 import { useCustomers, useRepositoryAccount } from '@/data/hooks';
-import { Avatar, Badge, Button, useToast } from '@/ui';
 import { memberLabel, type TeamMember } from './model';
 
 const FIELD =
-  'min-h-11 w-full rounded-control border border-border-strong bg-surface px-3 text-body text-text focus-visible:outline-2 focus-visible:outline-focus';
+  'min-h-11 w-full rounded-sm border border-line bg-surface-100 px-3 text-body text-ink focus-visible:outline-2 focus-visible:outline-ion';
 const cacheKey = (id: string) => `crm_team:${id}`;
 
 function Team() {
   const account = useRepositoryAccount();
   const customers = useCustomers();
-  const toast = useToast();
   const userId = account?.sync.local.userId || '';
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [email, setEmail] = useState('');
@@ -95,11 +97,11 @@ function Team() {
     try {
       await action();
       await refresh();
-      toast({ title: success, description: 'Danh sách nhóm đã cập nhật.' });
+      sonnerToast.success(success, { description: 'Danh sách nhóm đã cập nhật.' });
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : String(cause || 'Thử lại.');
       setError(message);
-      toast({ title: 'Chưa cập nhật được nhóm', description: message, tone: 'error' });
+      sonnerToast.error('Chưa cập nhật được nhóm', { description: message });
     } finally {
       setBusy(false);
     }
@@ -128,47 +130,47 @@ function Team() {
   };
 
   return (
-    <main className="mx-auto w-full max-w-3xl space-y-4 p-4 pb-24 lg:p-6">
-      <header className="space-y-1">
-        <h1 className="text-title">Đồng nghiệp</h1>
-        <p className="text-small text-text-2">
-          Trưởng nhóm thêm thành viên bằng email. Người theo dõi chỉ xem khách; chỉ người phụ trách được sửa.
-        </p>
-      </header>
+    <main className="mx-auto w-full max-w-5xl space-y-4 p-4 pb-24 lg:p-6">
+      <PageHeader
+        title="Đồng nghiệp"
+        count={members.length}
+        noun="người"
+        subtitle="Trưởng nhóm thêm thành viên bằng email. Người theo dõi chỉ xem khách; chỉ người phụ trách được sửa."
+        sticky={false}
+      />
       {userId && loadState === 'offline' && (
-        <p role="status" className="rounded-control border border-border bg-surface-2 p-3 text-small text-text-2">
+        <p role="status" className="rounded-md border border-line bg-surface-200 p-3 text-caption text-ink-muted">
           Ngoại tuyến.{' '}
           {members.length ? 'Đang hiển thị danh sách đã lưu trên thiết bị.' : 'Kết nối mạng để tải danh sách nhóm.'}
         </p>
       )}
       {userId && loadState === 'error' && (
-        <p role="alert" className="rounded-control bg-danger/10 p-3 text-small text-danger">
+        <p role="alert" className="rounded-md bg-alert-tint p-3 text-caption text-alert-text">
           {loadError}
         </p>
       )}
       {error && (
-        <p role="alert" className="rounded-control bg-danger/10 p-3 text-small text-danger">
+        <p role="alert" className="rounded-md bg-alert-tint p-3 text-caption text-alert-text">
           {error}
         </p>
       )}
 
-      <section
-        className="space-y-3 rounded-card border border-border bg-surface p-4 shadow-e1"
-        aria-labelledby="team-name-title"
-      >
-        <h2 id="team-name-title" className="text-section">
+      <section className="space-y-3 rounded-md border border-line bg-surface-100 p-4" aria-labelledby="team-name-title">
+        <h2 id="team-name-title" className="text-title">
           Tên hiển thị của bạn
         </h2>
-        <p className="text-small text-text-2">Đồng nghiệp sẽ thấy tên này trong danh sách nhóm và khi nhận khách.</p>
+        <p className="text-caption text-ink-muted">
+          Đồng nghiệp sẽ thấy tên này trong danh sách nhóm và khi nhận khách.
+        </p>
         <div className="flex flex-col gap-2 sm:flex-row">
-          <input
+          <Input
             aria-label="Tên hiển thị"
             className={FIELD}
             maxLength={80}
             value={myName}
             onChange={(e) => setMyName(e.target.value)}
           />
-          <Button onClick={saveName} loading={busy} disabled={!myName.trim() || !userId || loadState !== 'ready'}>
+          <Button onClick={saveName} disabled={busy || !myName.trim() || !userId || loadState !== 'ready'}>
             Lưu tên
           </Button>
         </div>
@@ -176,23 +178,24 @@ function Team() {
 
       {admin && (
         <section
-          className="space-y-3 rounded-card border border-border bg-surface p-4 shadow-e1"
+          className="space-y-3 rounded-md border border-line bg-surface-100 p-4"
           aria-labelledby="team-add-title"
         >
-          <h2 id="team-add-title" className="text-section">
+          <h2 id="team-add-title" className="text-title">
             Thêm đồng nghiệp
           </h2>
-          <p className="text-small text-text-2">Người nhận cần tạo tài khoản trong ứng dụng trước.</p>
+          <p className="text-caption text-ink-muted">Người nhận cần tạo tài khoản trong ứng dụng trước.</p>
           <div className="flex flex-col gap-2 sm:flex-row">
-            <input
+            <Input
               type="email"
+              id="team-member-email"
               aria-label="Email đồng nghiệp"
               className={FIELD}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="ten@example.com"
             />
-            <Button variant="primary" onClick={addMember} loading={busy}>
+            <Button variant="primary" onClick={addMember} disabled={busy}>
               Thêm
             </Button>
           </div>
@@ -200,33 +203,42 @@ function Team() {
       )}
 
       <section
-        className="overflow-hidden rounded-card border border-border bg-surface"
+        className="overflow-hidden rounded-md border border-line bg-surface-100"
         aria-labelledby="team-list-title"
       >
-        <div className="flex items-center justify-between gap-3 border-b border-border p-4">
+        <div className="flex items-center justify-between gap-3 border-b border-line p-4">
           <div>
-            <h2 id="team-list-title" className="text-section">
+            <h2 id="team-list-title" className="text-title">
               Thành viên
             </h2>
-            <p className="text-small text-text-2">{members.length} người trong nhóm</p>
+            <p className="text-caption text-ink-muted">{members.length} người trong nhóm</p>
           </div>
-          {admin && <Badge variant="count">Trưởng nhóm</Badge>}
+          {admin && (
+            <span className="rounded-full border border-line bg-surface-200 px-2 py-1 text-caption">Trưởng nhóm</span>
+          )}
         </div>
         {members.length ? (
           <ul className="divide-y divide-border">
             {members.map((member) => (
-              <li key={member.user_id} className="flex items-center gap-3 p-4">
+              <li
+                key={member.user_id}
+                className="flex min-h-16 items-center gap-3 border-b border-line p-4 last:border-b-0"
+              >
                 <Avatar name={memberLabel(member)} size={40} />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-body-strong">
+                  <p className="truncate text-body font-semibold">
                     {memberLabel(member)}
                     {member.is_me ? ' · Bạn' : ''}
                   </p>
-                  <p className="truncate text-small text-text-2">{member.email || 'Chưa có email'}</p>
+                  <p className="truncate text-caption text-ink-muted">{member.email || 'Chưa có email'}</p>
                 </div>
-                {member.is_admin && <Badge>Trưởng nhóm</Badge>}
+                {member.is_admin && (
+                  <span className="rounded-full border border-line bg-surface-200 px-2 py-1 text-caption">
+                    Trưởng nhóm
+                  </span>
+                )}
                 {admin && !member.is_me && !member.is_admin && (
-                  <Button variant="danger" onClick={() => removeMember(member)} loading={busy}>
+                  <Button variant="destructive" onClick={() => removeMember(member)} disabled={busy}>
                     Xoá
                   </Button>
                 )}
@@ -234,20 +246,38 @@ function Team() {
             ))}
           </ul>
         ) : (
-          <div className="space-y-2 p-4 text-body text-text-2">
-            <p role="status">
-              {!userId
-                ? 'Bạn chưa đăng nhập. Đăng nhập để xem đồng nghiệp.'
-                : loadState === 'loading'
-                  ? 'Đang tải danh sách nhóm…'
-                  : loadState === 'ready'
-                    ? 'Nhóm chưa có thành viên. Nhờ trưởng nhóm thêm đồng nghiệp bằng email.'
-                    : loadState === 'offline'
-                      ? 'Chưa có danh sách nhóm đã lưu trên thiết bị.'
-                      : 'Danh sách nhóm chưa tải được. Vui lòng thử lại.'}
-            </p>
-            {userId && loadState !== 'loading' && <Button onClick={() => void refresh()}>Tải lại</Button>}
-          </div>
+          <EmptyState
+            compact
+            title={
+              !userId
+                ? 'Bạn chưa đăng nhập'
+                : loadState === 'ready'
+                  ? 'Nhóm chưa có thành viên'
+                  : loadState === 'loading'
+                    ? 'Đang tải danh sách nhóm…'
+                    : 'Chưa có danh sách nhóm'
+            }
+            text={
+              !userId
+                ? 'Đăng nhập để xem đồng nghiệp.'
+                : loadState === 'ready'
+                  ? 'Nhờ trưởng nhóm thêm đồng nghiệp bằng email.'
+                  : loadState === 'offline'
+                    ? 'Kết nối mạng để tải danh sách nhóm.'
+                    : 'Danh sách nhóm chưa tải được. Vui lòng thử lại.'
+            }
+            actions={
+              userId && loadState !== 'loading' ? (
+                admin && loadState === 'ready' ? (
+                  <Button onClick={() => document.getElementById('team-member-email')?.focus()}>
+                    Thêm đồng nghiệp
+                  </Button>
+                ) : (
+                  <Button onClick={() => void refresh()}>Tải lại</Button>
+                )
+              ) : undefined
+            }
+          />
         )}
       </section>
     </main>

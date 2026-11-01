@@ -128,7 +128,7 @@ const cardOf = (page: Page, name: string) => page.locator(`[data-card]:has(butto
 const countText = (page: Page, count: number) => page.getByText(`${count} khách`, { exact: true });
 
 async function openFilters(page: Page) {
-  await page.getByRole('button', { name: /^Lọc/ }).click();
+  await page.getByRole('button', { name: /^Bộ lọc/ }).click();
   const sheet = sheetOf(page);
   await expect(sheet).toBeVisible();
   return sheet;
@@ -158,7 +158,7 @@ test('CL-01: chip không số, hàng phễu + đếm + Xoá lọc, ngày đăng 
   await expect(page.getByRole('button', { name: 'Khách nhóm', exact: true })).toBeVisible();
 
   // L2 — một hàng: phễu · N khách · (Xoá lọc khi khác mặc định).
-  await expect(page.getByRole('button', { name: /^Lọc/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Bộ lọc/ })).toBeVisible();
   await expect(countText(page, 5)).toBeVisible();
   await expect(page.getByRole('button', { name: 'Xoá lọc' })).toHaveCount(0);
   await noHorizontalScroll(page);

@@ -153,10 +153,10 @@ test('CL-03: ô trống ẩn sau Bổ sung, ngày sinh ra tuổi/mệnh/cung, nh
     menh: 'Mệnh Kim — Hải Trung Kim (Ất Sửu, 1985 AL)',
     cung: 'Sư Tử',
   });
-  await expect(dobGroup).toContainText('41 tuổi');
-  await expect(dobGroup).toContainText('Mệnh Kim');
-  await expect(dobGroup).toContainText('Hải Trung Kim');
-  await expect(dobGroup).toContainText('Cung Sư Tử');
+  // Curtis 30/10 (Telegram 1a): Tuổi, Mệnh (nạp âm), Cung mỗi thứ một ô chỉ đọc có nhãn.
+  await expect(dobGroup.getByLabel('Tuổi', { exact: true })).toHaveText('41');
+  await expect(dobGroup.getByLabel('Mệnh', { exact: true })).toHaveText('Hải Trung Kim');
+  await expect(dobGroup.getByLabel('Cung', { exact: true })).toHaveText('Sư Tử');
   // Không hiện ISO / mã lưu.
   await expect(dobGroup).not.toContainText('1985-08-15');
 
@@ -169,9 +169,9 @@ test('CL-03: ô trống ẩn sau Bổ sung, ngày sinh ra tuổi/mệnh/cung, nh
       return { dob: row.dob, menh: row.menh, cung: row.cung };
     })
     .toEqual({ dob: '--08-15', menh: null, cung: 'Sư Tử' });
-  await expect(dobGroup).not.toContainText('41 tuổi');
-  await expect(dobGroup).not.toContainText('Mệnh Kim');
-  await expect(dobGroup).toContainText('Cung Sư Tử');
+  await expect(dobGroup.getByLabel('Tuổi', { exact: true })).toHaveCount(0);
+  await expect(dobGroup.getByLabel('Mệnh', { exact: true })).toHaveCount(0);
+  await expect(dobGroup.getByLabel('Cung', { exact: true })).toHaveText('Sư Tử');
 
   // L4: ô ngắn 2 ô một hàng ở 360px; Giới tính và SĐT cùng hàng; không cuộn ngang.
   const phoneBox = await page.getByLabel('Số điện thoại').boundingBox();

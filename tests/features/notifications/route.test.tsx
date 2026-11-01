@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NotificationsPage } from '@/features/notifications/route';
+import { ToastProvider } from '@/ui/Toast';
 
 const state = vi.hoisted(() => ({
   account: null as unknown,
@@ -39,9 +40,12 @@ describe('notifications route', () => {
     state.customers = [{ id: 'c1', owner_id: 'u1', full_name: 'Lan' }];
     state.remoteState = true;
     render(
-      <MemoryRouter>
-        <NotificationsPage />
-      </MemoryRouter>,
+      // Hoãn tín hiệu báo bằng toast có Hoàn tác (U-01) → cần ToastProvider như app.
+      <ToastProvider>
+        <MemoryRouter>
+          <NotificationsPage />
+        </MemoryRouter>
+      </ToastProvider>,
     );
     expect(await screen.findByText(/Khách cần gọi/)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Mở hồ sơ' }));

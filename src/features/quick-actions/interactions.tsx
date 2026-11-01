@@ -2,7 +2,8 @@ import { useState } from 'react';
 import type { RepositoryAccount } from '@/data/repositories/session';
 import type { Customer } from '@/domain/customer';
 import { appendInteractionPatch, createInteraction, type InteractionKind } from '@/domain/customer/interactions';
-import { Button, Sheet, useToast } from '@/ui';
+import { useToast } from '@/ui/Toast';
+import { Button, ActionSheet as Sheet } from './kit';
 import { openQuickAction } from './store';
 
 export function InteractionRecorder({
@@ -50,9 +51,9 @@ export function InteractionRecorder({
         </Button>
       ) : (
         <section className="flex flex-wrap items-center gap-2" aria-label="Ghi tương tác">
-          <span className="text-small text-text-2">Ghi tương tác:</span>
+          <span className="text-caption text-ink-muted">Ghi tương tác:</span>
           <Button
-            className="min-h-9 px-3"
+            className="min-h-11 px-3"
             disabled={!writable || busy}
             loading={busy}
             onClick={() => void record('meeting')}
@@ -60,7 +61,7 @@ export function InteractionRecorder({
             Đã gặp
           </Button>
           <Button
-            className="min-h-9 px-3"
+            className="min-h-11 px-3"
             disabled={!writable || busy}
             loading={busy}
             onClick={() => void record('project_view')}
@@ -69,7 +70,7 @@ export function InteractionRecorder({
           </Button>
           {showCallAction && (
             <Button
-              className="min-h-9 px-3"
+              className="min-h-11 px-3"
               disabled={!writable || busy}
               onClick={() => openQuickAction(customer.id, 'outcome')}
             >
@@ -77,7 +78,7 @@ export function InteractionRecorder({
             </Button>
           )}
           {error && (
-            <p role="alert" className="w-full text-small text-danger">
+            <p role="alert" className="w-full text-caption text-alert-text">
               {error}
             </p>
           )}
@@ -104,7 +105,7 @@ export function InteractionRecorder({
               </Button>
             )}
             {error && (
-              <p role="alert" className="w-full text-small text-danger">
+              <p role="alert" className="w-full text-caption text-alert-text">
                 {error}
               </p>
             )}

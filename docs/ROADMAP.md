@@ -33,6 +33,21 @@
 
 Chỉ viết task cho milestone đang làm. Thứ tự: M0 → M1 → M2 → M3 → M4 → M5.
 
+## Bản UI "Realty CRM" (D-028) — 28/10/2026
+
+Curtis thiết kế lại UI bằng Claude Design (`realty-crm-ui/`). Giao diện mới, **luật nghiệp vụ giữ nguyên** (bậc, SLA, D-010, D-015 qua `src/lib/crm`). Luật giao diện: `docs/DESIGN.md`.
+
+| # | Tên | Nội dung | Ai | Nghiệm thu |
+|---|---|---|---|---|
+| **R0** ☑ 2026-10-28 | Nền | Token mới (tên cũ trỏ vào) · `src/components/ui` + `src/components/crm` · `src/lib/crm` nối config/domain · `BottomNav` · `/dev/ui-kit` · test chặn màu thô · xoá DS v4 + `src/ui/shadcn` | Lead | `npm run check` xanh; ảnh `/dev/ui-kit` 360/1280 sáng/tối; **Curtis duyệt ảnh** |
+| **R1** | Khung + Hôm nay | `AppShell` mới thay `RootLayout` (giữ Back Android, ⌘K, đồng bộ) · Hôm nay = `ActionItem` xếp đỏ→vàng→xanh + `StatTile` + phiên gọi | Worker | L1 360×780; e2e Hôm nay |
+| **R2** | Khách hàng | `DataTable` (desktop) / `LeadRow` (điện thoại) + `FilterBar` + Sheet khách (`SlaMeter` → `Timeline` → chi tiết) | Worker | e2e danh sách + hồ sơ |
+| **R3** | Thông báo | `NotificationCenter` theo nhóm tín hiệu D-015 | Worker | e2e thông báo |
+| **R4** | Hiệu quả | `ChartCard` + `MetricCard`/`FunnelChart`/`StageAgingChart` | Worker | e2e Hiệu quả |
+| **R5** | Form + dọn | Form (thêm khách, ghi cuộc gọi…) bằng `TextField`/`SelectField`/`DatePicker` · xoá `src/ui/*` cũ, `/dev/ui`, tên token cũ | Worker + Lead | Không còn import `@/ui` ngoài `display`/`Icon`/`BlockBoundary` |
+
+Chỉ viết task cho milestone đang làm; R1 chờ Curtis duyệt ảnh R0. Mỗi màn: Lead viết lại e2e theo bố cục mới trước khi giao worker (như B5 bên dưới).
+
 ## Lưới an toàn (B5)
 
 - FACT: e2e có sẵn cho Hôm nay, Hồ sơ, Khách hàng, Công việc, Hiệu quả (`tests/e2e/*.spec.ts`) + unit `npm run check`.

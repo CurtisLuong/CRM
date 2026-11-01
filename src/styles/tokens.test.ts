@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
-// Kiểm token theo DESIGN_SYSTEM.md §2.1: đủ cặp sáng/tối, 2 khối tối khớp nhau, tương phản WCAG AA.
+// Kiểm token theo docs/DESIGN.md §1: đủ cặp sáng/tối, 2 khối tối khớp nhau, tương phản WCAG AA, tên cũ trỏ về tên mới.
 // Đọc file thô bằng fs: vitest không nạp CSS (`?raw` trả chuỗi rỗng).
 const css = readFileSync(fileURLToPath(new URL('./tokens.css', import.meta.url)), 'utf8');
 
@@ -36,37 +36,33 @@ function contrast(a: string, b: string): number {
 }
 
 const COLOR_TOKENS = [
-  '--bg',
-  '--surface',
-  '--surface-2',
-  '--surface-3',
-  '--text',
-  '--text-2',
-  '--text-3',
-  '--border',
-  '--border-strong',
-  '--accent',
-  '--accent-fg',
-  '--accent-soft',
-  '--danger',
-  '--danger-bg',
-  '--warning',
-  '--warning-bg',
-  '--success',
-  '--success-bg',
-  '--ai',
-  '--ai-bg',
-  '--hairline',
-  '--accent-tonal',
-  '--track',
-  '--bar',
+  '--surface-0',
+  '--surface-100',
+  '--surface-200',
+  '--line',
+  '--ink',
+  '--ink-muted',
+  '--ion',
+  '--on-ion',
+  '--ion-tint',
+  ...['ok', 'soon', 'alert'].flatMap((l) => [
+    `--signal-${l}`,
+    `--signal-${l}-text`,
+    `--signal-${l}-tint`,
+    `--on-signal-${l}`,
+  ]),
+  '--chart-1',
+  '--chart-2',
+  '--chart-3',
+  '--chart-prev',
+  '--scrim',
 ];
 
 describe('tokens.css', () => {
   it('đủ mọi token màu ở cả sáng và tối', () => {
     for (const t of COLOR_TOKENS) {
-      expect(light[t], `sáng ${t}`).toMatch(/^#[0-9a-f]{6}$/);
-      expect(dark[t], `tối ${t}`).toMatch(/^#[0-9a-f]{6}$/);
+      expect(light[t], `sáng ${t}`).toMatch(/^#[0-9a-f]{6}([0-9a-f]{2})?$/);
+      expect(dark[t], `tối ${t}`).toMatch(/^#[0-9a-f]{6}([0-9a-f]{2})?$/);
     }
   });
 
@@ -74,25 +70,30 @@ describe('tokens.css', () => {
     expect(darkAuto).toEqual(dark);
   });
 
+  it('tên cũ (D-023) chỉ trỏ vào token mới, không có mã màu riêng', () => {
+    const legacy = css.slice(css.indexOf('TÊN CŨ'));
+    for (const m of legacy.matchAll(/(--[\w-]+):\s*([^;]+);/g))
+      expect(m[2], `${m[1]} phải là var(--…)`).toMatch(/^var\(--[\w-]+\)$|^0 0 #0000$/);
+  });
+
   it.each([
     ['sáng', light],
     ['tối', dark],
   ])('tương phản đạt AA (%s)', (_name, t) => {
     const c = (fg: string, bg: string) => contrast(t[fg] as string, t[bg] as string);
-    for (const bg of ['--bg', '--surface', '--surface-2']) {
-      for (const fg of ['--text', '--text-2', '--text-3'])
+    for (const bg of ['--surface-0', '--surface-100', '--surface-200']) {
+      for (const fg of ['--ink', '--ink-muted', '--ion'])
         expect(c(fg, bg), `${fg} trên ${bg}`).toBeGreaterThanOrEqual(4.5);
+      for (const l of ['ok', 'soon', 'alert'])
+        expect(c(`--signal-${l}-text`, bg), `chữ ${l} trên ${bg}`).toBeGreaterThanOrEqual(4.5);
     }
-    expect(c('--border-strong', '--surface')).toBeGreaterThanOrEqual(3);
-    expect(c('--accent-fg', '--accent')).toBeGreaterThanOrEqual(4.5);
-    expect(c('--accent', '--surface')).toBeGreaterThanOrEqual(4.5);
-    expect(c('--accent', '--accent-soft')).toBeGreaterThanOrEqual(4.5);
-    // v4: icon nút trên thẻ gọn (nền tonal) và thanh SLA cần ≥ 3:1 (WCAG 1.4.11 thành phần đồ hoạ).
-    expect(c('--accent', '--accent-tonal')).toBeGreaterThanOrEqual(3);
-    expect(c('--bar', '--track')).toBeGreaterThanOrEqual(3);
-    for (const s of ['--danger', '--warning', '--success', '--ai']) {
-      expect(c(s, `${s}-bg`), `${s} trên nền riêng`).toBeGreaterThanOrEqual(4.5);
-      expect(c(s, '--surface'), `${s} trên --surface`).toBeGreaterThanOrEqual(4.5);
+    expect(c('--on-ion', '--ion')).toBeGreaterThanOrEqual(4.5);
+    expect(c('--ion', '--ion-tint')).toBeGreaterThanOrEqual(4.5);
+    for (const l of ['ok', 'soon', 'alert']) {
+      expect(c(`--signal-${l}-text`, `--signal-${l}-tint`), `chữ ${l} trên nền ${l}`).toBeGreaterThanOrEqual(4.5);
+      expect(c(`--on-signal-${l}`, `--signal-${l}`), `chữ trên khối ${l}`).toBeGreaterThanOrEqual(4.5);
     }
+    // Viền ô nhập (--input = ink-muted) và thanh biểu đồ cần ≥ 3:1 (WCAG 1.4.11 thành phần đồ hoạ).
+    expect(c('--chart-1', '--surface-100')).toBeGreaterThanOrEqual(3);
   });
 });

@@ -1,6 +1,9 @@
 import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import type { Customer } from '@/domain/customer';
-import { Button, IconButton, useToast } from '@/ui';
+import { Icon } from '@/ui/Icon';
+import { useToast } from '@/ui/Toast';
 import { ProfileTextField } from './advanced';
 import { LONG_FIELD, SHORT_FIELD } from './fields';
 import { ChoiceField, hasFieldValue } from './info';
@@ -172,18 +175,20 @@ function ProjectPicker({ customer, writable, online, catalog, onSave, open, onTo
   if (!writable) {
     return (
       <div className="space-y-1">
-        <p className="text-small text-text-2">Dự án quan tâm</p>
+        <p className="text-caption text-ink-muted">Dự án quan tâm</p>
         {rawNames.length ? (
           <ul className="space-y-1" aria-label="Dự án quan tâm">
             {rawNames.map((name) => (
               <li key={name} className="text-body [overflow-wrap:anywhere]">
                 {name}
-                {!active.has(projectKey(name)) && <span className="text-small text-text-3"> (cũ/đã ngừng dùng)</span>}
+                {!active.has(projectKey(name)) && (
+                  <span className="text-caption text-ink-muted"> (cũ/đã ngừng dùng)</span>
+                )}
               </li>
             ))}
           </ul>
         ) : (
-          <p className="text-body text-text-2">Chưa có dự án quan tâm.</p>
+          <p className="text-body text-ink-muted">Chưa có dự án quan tâm.</p>
         )}
       </div>
     );
@@ -193,16 +198,15 @@ function ProjectPicker({ customer, writable, online, catalog, onSave, open, onTo
     <div className="space-y-2">
       <Button
         variant="ghost"
-        block
         aria-label={`Dự án quan tâm: ${rawNames.length ? rawNames.join(', ') : 'Chưa có dự án quan tâm'}`}
         aria-expanded={open}
         aria-controls="profile-project-picker"
         onClick={onToggle}
-        className="min-h-11 w-full justify-start rounded-control border border-border-strong bg-surface px-3 text-left"
+        className="min-h-11 w-full min-w-0 max-w-full shrink justify-start rounded-sm border border-line bg-surface-100 px-3 text-left"
       >
         <span className="flex min-w-0 flex-col items-start gap-0.5 [overflow-wrap:anywhere]">
-          <span className="text-small text-text-2">Dự án quan tâm</span>
-          <span className={`text-body ${rawNames.length ? 'text-text' : 'text-text-2'}`}>
+          <span className="text-caption text-ink-muted">Dự án quan tâm</span>
+          <span className={`text-body ${rawNames.length ? 'text-ink' : 'text-ink-muted'}`}>
             {rawNames.length ? rawNames.join(', ') : 'Chưa có dự án quan tâm.'}
           </span>
         </span>
@@ -225,13 +229,15 @@ function ProjectPicker({ customer, writable, online, catalog, onSave, open, onTo
                       <span className="min-w-0 [overflow-wrap:anywhere]">{row.name}</span>
                     </label>
                     {canEdit && (
-                      <IconButton
-                        icon="delete"
+                      <Button
                         variant="ghost"
-                        label={`Lưu trữ dự án ${row.name}`}
+                        size="icon"
+                        aria-label={`Lưu trữ dự án ${row.name}`}
                         disabled={!online || !!archiving}
                         onClick={() => void archive(row)}
-                      />
+                      >
+                        <Icon name="delete" size={20} />
+                      </Button>
                     )}
                   </li>
                 );
@@ -243,7 +249,7 @@ function ProjectPicker({ customer, writable, online, catalog, onSave, open, onTo
               {legacy.map((name) => (
                 <li key={name} className="flex min-h-11 items-center gap-2">
                   <span className="min-w-0 flex-1 text-body [overflow-wrap:anywhere]">
-                    {name} <span className="text-small text-text-3">(cũ/đã ngừng dùng)</span>
+                    {name} <span className="text-caption text-ink-muted">(cũ/đã ngừng dùng)</span>
                   </span>
                   {canEdit && (
                     <Button
@@ -258,20 +264,22 @@ function ProjectPicker({ customer, writable, online, catalog, onSave, open, onTo
               ))}
             </ul>
           )}
-          {!active.size && !legacy.length && <p className="text-body text-text-2">Chưa có dự án nào trong danh mục.</p>}
+          {!active.size && !legacy.length && (
+            <p className="text-body text-ink-muted">Chưa có dự án nào trong danh mục.</p>
+          )}
           {canEdit && !online && (
-            <p className="text-small text-text-2">
+            <p className="text-caption text-ink-muted">
               Cần mạng để thêm hoặc lưu trữ dự án; vẫn chọn được dự án đã có trên máy.
             </p>
           )}
           {canEdit &&
             (adding ? (
-              <div className="space-y-2 rounded-control border border-dashed border-border-strong bg-surface-2 p-3">
-                <label className="block space-y-1 text-small text-text-2">
+              <div className="space-y-2 rounded-sm border border-dashed border-line bg-surface-200 p-3">
+                <label className="block space-y-1 text-caption text-ink-muted">
                   Tên dự án mới
                   <input
                     aria-label="Tên dự án mới"
-                    className="min-h-11 w-full rounded-control border border-border-strong bg-surface px-3 text-body"
+                    className="min-h-11 w-full rounded-sm border border-line bg-surface-100 px-3 text-body"
                     value={draft}
                     disabled={saving}
                     onChange={(event) => {
@@ -282,12 +290,12 @@ function ProjectPicker({ customer, writable, online, catalog, onSave, open, onTo
                   />
                 </label>
                 {error && (
-                  <p role="alert" className="text-small text-danger">
+                  <p role="alert" className="text-caption text-alert-text">
                     {error}
                   </p>
                 )}
                 <div className="flex flex-wrap gap-2">
-                  <Button variant="primary" loading={saving} disabled={!online} onClick={() => void add()}>
+                  <Button variant="primary" disabled={!online || saving} onClick={() => void add()}>
                     Thêm dự án
                   </Button>
                   <Button
@@ -303,7 +311,7 @@ function ProjectPicker({ customer, writable, online, catalog, onSave, open, onTo
                 </div>
               </div>
             ) : (
-              <Button variant="secondary" icon="add" disabled={!online} onClick={() => setAdding(true)}>
+              <Button variant="secondary" disabled={!online} onClick={() => setAdding(true)}>
                 Thêm mới
               </Button>
             ))}
@@ -447,7 +455,7 @@ export function ProfileNeedsFields({
   const ordered = [...NEEDS_FIELDS.filter((key) => key !== 'projects'), 'projects' as const];
 
   return (
-    <div className="space-y-3">
+    <Card className="min-w-0 w-full max-w-full space-y-3 overflow-hidden p-4">
       <div className="flex flex-wrap gap-3">
         {ordered.filter(isVisible).map((key) => (
           <div key={key} className={key === 'projects' ? LONG_FIELD : SHORT_FIELD}>
@@ -456,10 +464,10 @@ export function ProfileNeedsFields({
         ))}
       </div>
       {writable && (hidden > 0 || showEmpty) && (
-        <Button variant="secondary" block aria-expanded={showEmpty} onClick={onToggleSupplement}>
+        <Button variant="secondary" className="w-full" aria-expanded={showEmpty} onClick={onToggleSupplement}>
           {showEmpty ? 'Thu gọn' : `Bổ sung (${hidden})`}
         </Button>
       )}
-    </div>
+    </Card>
   );
 }

@@ -51,7 +51,7 @@ export function AiCoach({
               <li key={item}>{item}</li>
             ))}
           </ul>
-          {result.luu_y_du_lieu && <p className="mt-2 text-small text-warning">{result.luu_y_du_lieu}</p>}
+          {result.luu_y_du_lieu && <p className="mt-2 text-label text-soon-text">{result.luu_y_du_lieu}</p>}
           <div className="mt-2 flex flex-wrap gap-3">
             {links
               .filter((link) => link.href.startsWith('/') && !link.href.startsWith('//'))

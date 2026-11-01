@@ -215,8 +215,8 @@ Port {module v1} (legacy/js/...) sang {đích v2} theo task {T-ID}.
 ### B.5 Làm UI một màn
 
 ```text
-Làm màn {tên} theo task {T-ID}. Đọc DESIGN_SYSTEM.md (§2–4) và UX_GUIDELINES.md (§3 + mục của màn).
-Dùng component src/ui, token tokens.css. Kiểm tra sáng + tối, 360/390/1280px, dấu tiếng Việt, số chạm theo §3.
+Làm màn {tên} theo task {T-ID}. Đọc DESIGN.md và UX_GUIDELINES.md (§3 + mục của màn); xem mẫu ở /dev/ui-kit.
+Dùng component src/components/ui + src/components/crm, token tokens.css. Kiểm tra sáng + tối, 360/390/1280px, dấu tiếng Việt, số chạm theo §3.
 Chụp màn hình bằng trình duyệt làm bằng chứng. Không đổi logic domain/data trong task UI.
 ```
 

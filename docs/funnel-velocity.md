@@ -24,7 +24,7 @@ Cấu hình (sửa số ở đây là đổi toàn app): `js/velocity.js` → `V
 
 Đồng hồ: Đăng kí mới = từ lúc đăng ký đến cuộc gọi đầu; Đang tiếp cận = cuộc gọi đầu đến Đạt / Loại; các giai đoạn sau = từ lúc vào giai đoạn (khách cũ ở "Hỗ trợ hồ sơ" tính từ lúc vào bậc đó).
 
-Màu: quá mục tiêu = nhãn **vàng**, quá hạn mức = **đỏ đậm** (cùng màu nhãn đếm ngược, `docs/DESIGN_SYSTEM.md`).
+Màu: quá mục tiêu = nhãn **vàng**, quá hạn mức = **đỏ đậm** (tín hiệu `soon` / `alert`, `docs/DESIGN.md` §2–3).
 
 ## Tự chuyển + hoàn tác
 

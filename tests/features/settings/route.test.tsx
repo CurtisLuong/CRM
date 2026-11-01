@@ -37,12 +37,14 @@ describe('settings route', () => {
     render(route.element);
     fireEvent.click(await screen.findByRole('button', { name: 'Lưu cài đặt' }));
     await screen.findByText('Đã lưu trên thiết bị; đồng bộ sẽ thử lại khi có mạng.');
-    expect(saveZaloTemplatesRemote).toHaveBeenCalledTimes(1);
+    // U-03: mẫu Zalo lưu ở trang /mau-zalo; Cài đặt không còn ghi mẫu (tránh hai trang ghi đè nhau).
+    expect(saveZaloTemplatesRemote).not.toHaveBeenCalled();
+    expect(saveAiSettingsRemote).toHaveBeenCalledTimes(1);
 
     Object.defineProperty(navigator, 'onLine', { configurable: true, value: true });
     fireEvent(window, new Event('online'));
-    await waitFor(() => expect(saveZaloTemplatesRemote).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(saveAiSettingsRemote).toHaveBeenCalledTimes(2));
     await screen.findByText('Đã đồng bộ cài đặt đã lưu trên thiết bị.');
-    expect(saveAiSettingsRemote).toHaveBeenCalledTimes(2);
+    expect(saveZaloTemplatesRemote).not.toHaveBeenCalled();
   });
 });

@@ -1,5 +1,5 @@
 /*
- * Font tự host (DESIGN_SYSTEM.md §2.2). Mỗi file CSS của @fontsource chứa đủ subset vietnamese/latin-ext/latin
+ * Font tự host (docs/DESIGN.md §1). Mỗi file CSS của @fontsource chứa đủ subset vietnamese/latin-ext/latin
  * với unicode-range → trình duyệt chỉ tải phần cần. Không thêm weight ngoài danh sách này.
  */
 @import "@fontsource/be-vietnam-pro/400.css";

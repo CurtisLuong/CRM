@@ -1,14 +1,14 @@
 import { Link } from 'react-router';
+import { Button } from '@/components/ui/button';
 import { META_LEAD_ADS_ANCHOR, META_LEAD_ADS_ID } from '@/config/integrations';
 import { useIntegrationHealth } from '@/data/hooks';
-import { Button } from '@/ui';
 import { metaLeadAdsAlert } from './model';
 
 const TONE = {
-  warning: 'border-l-warning bg-warning-bg',
-  danger: 'border-l-danger bg-danger-bg',
+  warning: 'border-l-alert bg-alert-tint',
+  danger: 'border-l-alert bg-alert-tint',
 } as const;
-const FRAME = 'border-y border-r border-border border-l-4';
+const FRAME = 'border-y border-r border-line border-l-4';
 
 /**
  * Một dòng cảnh báo trước danh sách Khách mới; không chặn danh sách hay nút Gọi.
@@ -21,9 +21,9 @@ export function MetaLeadAdsBanner() {
   return (
     <section
       aria-label="Cảnh báo kết nối Facebook"
-      className={`flex flex-col items-start gap-2 rounded-card p-3 ${FRAME} ${TONE[alert.tone]}`}
+      className={`flex flex-col items-start gap-2 rounded-md p-3 ${FRAME} ${TONE[alert.tone]}`}
     >
-      <p className="text-small text-text">{alert.text}</p>
+      <p className="text-caption text-ink">{alert.text}</p>
       <Button asChild variant="secondary">
         <Link to={`/cai-dat#${META_LEAD_ADS_ANCHOR}`}>Mở Cài đặt</Link>
       </Button>

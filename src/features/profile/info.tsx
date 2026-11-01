@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
+import { Field } from '@/components/crm/form-fields';
+import { Card } from '@/components/ui/card';
 import { OCCUPATIONS } from '@/config/occupations';
 import type { Customer } from '@/domain/customer';
 import { ProfileTextField } from './advanced';
@@ -7,7 +9,7 @@ import { DobField } from './dob-field';
 import { LONG_FIELD, SHORT_FIELD } from './fields';
 
 const FIELD =
-  'min-h-11 w-full rounded-control border border-border-strong bg-surface px-3 text-body text-text focus-visible:outline-2 focus-visible:outline-focus disabled:opacity-60';
+  'min-h-11 w-full rounded-sm border border-line bg-surface-100 px-3 text-body text-ink focus-visible:outline-2 focus-visible:outline-ion disabled:opacity-60';
 
 export const GENDER_OPTIONS = [
   { value: 'nam', label: 'Nam' },
@@ -48,7 +50,8 @@ type InfoProps = {
 
 /** Khu "Thông tin chính" của tab Trí nhớ: ô ngắn nửa hàng, ô dài cả hàng, ô trống ẩn sau "Bổ sung". */
 export function ProfileInfoFields({ customer, writable, busy, now, showEmpty, onSaveField, onSaveDob }: InfoProps) {
-  const rows: { key: string; short: boolean; always?: boolean; node: ReactNode }[] = [
+  // bare: ô tự đặt khung (Ngày sinh kèm các ô Tuổi/Mệnh/Cung).
+  const rows: { key: string; short: boolean; always?: boolean; bare?: boolean; node: ReactNode }[] = [
     {
       key: 'full_name',
       short: false,
@@ -91,6 +94,7 @@ export function ProfileInfoFields({ customer, writable, busy, now, showEmpty, on
     {
       key: 'dob',
       short: true,
+      bare: true,
       node: <DobField value={customer.dob} disabled={!writable} now={now} onSave={onSaveDob} />,
     },
     {
@@ -149,13 +153,19 @@ export function ProfileInfoFields({ customer, writable, busy, now, showEmpty, on
     (row) => row.always || showEmpty || inherited.has(row.key) || hasFieldValue(customer[row.key as keyof Customer]),
   );
   return (
-    <div className="flex flex-wrap gap-3">
-      {visible.map((row) => (
-        <div key={row.key} className={row.short ? SHORT_FIELD : LONG_FIELD}>
-          {row.node}
-        </div>
-      ))}
-    </div>
+    <Card className="min-w-0 w-full p-4">
+      <div className="flex flex-wrap gap-3">
+        {visible.map((row) =>
+          row.bare ? (
+            <Fragment key={row.key}>{row.node}</Fragment>
+          ) : (
+            <div key={row.key} className={row.short ? SHORT_FIELD : LONG_FIELD}>
+              {row.node}
+            </div>
+          ),
+        )}
+      </div>
+    </Card>
   );
 }
 
@@ -177,8 +187,7 @@ export function ChoiceField({
   const current = value == null ? '' : String(value);
   const preservesUnknown = current !== '' && !options.some((option) => option.value === current);
   return (
-    <div className="block space-y-1 text-small text-text-2">
-      <label htmlFor={id}>{label}</label>
+    <Field id={id} label={label} className="[&_label]:block [&_label]:min-h-9">
       <select
         id={id}
         value={current}
@@ -197,6 +206,6 @@ export function ChoiceField({
           </option>
         ))}
       </select>
-    </div>
+    </Field>
   );
 }

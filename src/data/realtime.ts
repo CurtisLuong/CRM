@@ -2,6 +2,7 @@ import type { CustomerSync } from './sync';
 
 /** Debounced row notifications; old sessions and disposed channels cannot mutate cache. */
 export function startLive(sync: CustomerSync, callbacks: { onChange?: () => void; onResync?: () => void } = {}) {
+  if (sync.demoMode) return () => {};
   let stopped = false;
   let joinedOnce = false;
   let timer: ReturnType<typeof setTimeout> | undefined;

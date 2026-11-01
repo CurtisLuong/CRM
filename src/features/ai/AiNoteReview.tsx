@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Button } from '@/components/ui/button';
 import { APT_TYPES } from '@/config/aptTypes';
 import { FOLLOWUP_CONFIG } from '@/config/followup';
 import { OCCUPATIONS } from '@/config/occupations';
@@ -6,7 +7,6 @@ import { TASK_KIND_PICK } from '@/config/taskKinds';
 import type { RepositoryAccount } from '@/data/repositories/session';
 import type { Customer } from '@/domain/customer';
 import { buildAiContext } from '@/domain/customer/aiContext';
-import { Button } from '@/ui';
 import { type AiParseNote, aiAvailable, aiCallWindow, buildAiApprovalPatch, getAiSettings, requestAi } from './model';
 import { useAiScope } from './useAiScope';
 
@@ -179,36 +179,38 @@ export function AiNoteReview({
   const tasks = result?.viec || [];
   const callWindow = result?.hen_goi ? aiCallWindow(result.hen_goi) : null;
   return (
-    <section className="rounded-control border border-border bg-surface-2 p-3" aria-label="Gợi ý cập nhật từ AI">
-      <Button disabled={!note.trim() || note.length > 1500} loading={busy} variant="ai" onClick={() => void generate()}>
+    <section className="rounded-sm border border-line bg-ion-tint p-3" aria-label="Gợi ý cập nhật từ AI">
+      <Button disabled={busy || !note.trim() || note.length > 1500} variant="primary" onClick={() => void generate()}>
         Lưu + AI · xem đề xuất
       </Button>
-      <p className="mt-1 text-small text-text-2">AI chỉ tạo đề xuất. Chọn từng mục và bấm duyệt để cập nhật hồ sơ.</p>
-      <p className="mt-1 text-small text-text-2">
+      <p className="mt-1 text-label text-ink-muted">
+        AI chỉ tạo đề xuất. Chọn từng mục và bấm duyệt để cập nhật hồ sơ.
+      </p>
+      <p className="mt-1 text-label text-ink-muted">
         {note.length}/1.500 ký tự gửi AI. Ghi chú gốc không bị cắt hoặc sửa.
       </p>
       {note.length > 1500 && (
-        <p role="alert" className="text-small text-warning">
+        <p role="alert" className="text-label text-soon-text">
           Ghi chú quá dài cho AI. Bạn vẫn có thể lưu ghi chú gốc bằng nút Lưu của màn hình.
         </p>
       )}
       {result && (
         <div className="mt-3 space-y-3" data-testid="ai-note-review">
           {!!result.thay_doi?.length && (
-            <p className="text-small">Thay đổi so với dữ liệu cũ: {result.thay_doi.join(' · ')}</p>
+            <p className="text-label">Thay đổi so với dữ liệu cũ: {result.thay_doi.join(' · ')}</p>
           )}
           {!!result.phan_doi?.length && (
-            <p className="text-small">
+            <p className="text-label">
               Băn khoăn được nêu (chỉ xem, chưa ghi vào trường khác): {result.phan_doi.join(' · ')}
             </p>
           )}
           {!!result.nguoi_quyet_dinh?.length && (
             <fieldset>
-              <legend className="text-body-strong">Người cùng quyết định · thêm mới, giữ nguyên người đã có</legend>
+              <legend className="font-semibold">Người cùng quyết định · thêm mới, giữ nguyên người đã có</legend>
               {result.nguoi_quyet_dinh.map((person, index) => (
                 <label
                   key={`${person.ten}:${person.vai_tro}:${person.ghi_chu}`}
-                  className="flex min-h-11 items-start gap-2 py-2 text-small"
+                  className="flex min-h-11 items-start gap-2 py-2 text-label"
                 >
                   <input
                     type="checkbox"
@@ -224,9 +226,9 @@ export function AiNoteReview({
           )}
           {!!fields.length && (
             <fieldset className="space-y-2">
-              <legend className="text-body-strong">Thông tin đề xuất</legend>
+              <legend className="font-semibold">Thông tin đề xuất</legend>
               {fields.map(([key, value]) => (
-                <label key={key} className="flex min-h-11 items-start gap-2 border-b border-border py-2 text-small">
+                <label key={key} className="flex min-h-11 items-start gap-2 border-b border-line py-2 text-label">
                   <input
                     className="mt-1"
                     type="checkbox"
@@ -247,11 +249,11 @@ export function AiNoteReview({
           )}
           {!!tasks.length && (
             <fieldset className="space-y-2">
-              <legend className="text-body-strong">Việc đề xuất</legend>
+              <legend className="font-semibold">Việc đề xuất</legend>
               {tasks.map((task, index) => (
                 <label
                   key={`${task.ben}:${task.key || task.text}:${task.date || ''}:${task.time || ''}`}
-                  className="flex min-h-11 items-start gap-2 border-b border-border py-2 text-small"
+                  className="flex min-h-11 items-start gap-2 border-b border-line py-2 text-label"
                 >
                   <input
                     className="mt-1"
@@ -270,7 +272,7 @@ export function AiNoteReview({
             </fieldset>
           )}
           {result.hen_goi?.date && (
-            <label className="flex min-h-11 items-start gap-2 border-b border-border py-2 text-small">
+            <label className="flex min-h-11 items-start gap-2 border-b border-line py-2 text-label">
               <input
                 className="mt-1"
                 type="checkbox"
@@ -287,20 +289,20 @@ export function AiNoteReview({
             </label>
           )}
           {!!result.chua_chac?.length && (
-            <p className="text-small text-warning">Chưa chắc, cần xác nhận: {result.chua_chac.join(' · ')}</p>
+            <p className="text-label text-soon-text">Chưa chắc, cần xác nhận: {result.chua_chac.join(' · ')}</p>
           )}
-          <Button variant="primary" disabled={!selected.length} loading={saving} onClick={() => void apply()}>
+          <Button variant="primary" disabled={saving || !selected.length} onClick={() => void apply()}>
             Duyệt và lưu các mục đã chọn
           </Button>
           {saved && (
-            <p role="status" className="text-small text-success">
+            <p role="status" className="text-label text-ok-text">
               Đã lưu các mục bạn duyệt trên thiết bị.
             </p>
           )}
         </div>
       )}
       {error && (
-        <p role="alert" className="mt-2 text-small text-danger">
+        <p role="alert" className="mt-2 text-label text-alert-text">
           {error}
         </p>
       )}

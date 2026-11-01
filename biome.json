@@ -7,6 +7,31 @@
   "formatter": { "enabled": true, "indentStyle": "space", "indentWidth": 2, "lineWidth": 120 },
   "javascript": { "formatter": { "quoteStyle": "single", "trailingCommas": "all", "semicolons": "always" } },
   "css": { "parser": { "tailwindDirectives": true } },
-  "linter": { "enabled": true, "rules": { "preset": "recommended" } },
-  "assist": { "actions": { "source": { "organizeImports": "on" } } }
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "recommended",
+      "style": {
+        "noRestrictedImports": {
+          "level": "error",
+          "options": {
+            "paths": { "cn": "Dùng cn từ '@/lib/utils' (đã khai báo token cỡ chữ/bo góc của Design System)." }
+          }
+        }
+      }
+    }
+  },
+  "assist": { "actions": { "source": { "organizeImports": "on" } } },
+  "overrides": [
+    {
+      "includes": ["src/components/**", "src/features/ui-kit/**"],
+      "linter": {
+        "rules": {
+          "a11y": { "useSemanticElements": "off", "useKeyWithClickEvents": "off" },
+          "suspicious": { "noArrayIndexKey": "off", "noDoubleEquals": "off" },
+          "style": { "noNonNullAssertion": "off" }
+        }
+      }
+    }
+  ]
 }

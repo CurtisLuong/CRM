@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { isDemo } from '@/demo/mode';
 import { openUserDB } from './legacyImport';
 import { startProbe } from './probe';
 import { startLive } from './realtime';
@@ -90,11 +91,12 @@ export class AccountAuth {
     }
   }
   async boot() {
-    if (this.disposed || this.unsubscribe) return;
+    if (this.disposed || this.unsubscribe || isDemo()) return;
     const epoch = this.epoch;
     const eventRevision = this.authEventRevision;
     // Subscribe before the initial session/cache/network work; no signout event can be missed.
     const { data: listener } = this.client.auth.onAuthStateChange((_event, session) => {
+      if (isDemo()) return;
       const epoch = this.epoch;
       const eventRevision = ++this.authEventRevision;
       // Leave the Supabase auth lock before opening cache or issuing queries.
@@ -111,6 +113,7 @@ export class AccountAuth {
     await this.setAccount(data.session?.user ?? (!this.online() ? rememberedUser(this.storage) : null));
   }
   async signIn(email: string, password: string) {
+    if (isDemo()) throw new Error('Hãy thoát dữ liệu mẫu trước khi đăng nhập.');
     const epoch = this.epoch;
     const { data, error } = await this.client.auth.signInWithPassword({ email: email.trim(), password });
     if (error) throw error;

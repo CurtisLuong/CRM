@@ -106,7 +106,8 @@ test('admin can manage team and a server-rejected assignment rolls back in local
   await expect.poll(() => addBody).toContain('new@example.test');
 
   await page.goto('/khach-hang');
-  await page.getByText('Khách E2E Nhóm', { exact: true }).first().click();
+  // Điện thoại: dòng khách phủ nút "Mở …" trong suốt lên trên chữ → bấm vào nút đó (R2-01).
+  await page.getByRole('button', { name: 'Mở Khách E2E Nhóm', exact: true }).filter({ visible: true }).first().click();
   await page.getByRole('button', { name: 'Giao khách' }).click();
   await page.getByLabel('Người nhận khách').selectOption('t310-recipient');
   await page.getByLabel('Ghi chú giao khách').fill('Hẹn xem nhà mẫu thứ 7');

@@ -1,6 +1,6 @@
 /**
- * Component dùng chung của v2 (DESIGN_SYSTEM.md §3). Feature import từ '@/ui'; không tạo component trùng chức năng.
- * AppShell + CommandPalette thuộc T2.C3. Gallery: /dev/ui.
+ * CŨ (D-023) — chỉ cho màn chưa chuyển sang bộ component mới (D-028, docs/DESIGN.md §11).
+ * Màn mới / làm lại import '@/components/ui' + '@/components/crm'. Gallery cũ: /dev/ui; mới: /dev/ui-kit.
  */
 export { Badge, type BadgeVariant, type Tone } from './Badge';
 export { BlockBoundary } from './BlockBoundary';

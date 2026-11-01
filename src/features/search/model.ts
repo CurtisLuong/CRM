@@ -2,7 +2,19 @@ import { CARE_STAGE_DISPLAY, CARE_STAGE_DROPPED, CARE_STAGE_NURTURE, CARE_STAGE_
 import type { Customer } from '@/domain/customer';
 import { isQualified, leadStatus, normStage } from '@/domain/customer/normalize';
 import { compile, highlight, match, type SearchDoc } from '@/domain/search/search';
-import type { PaletteItem } from '@/ui/CommandPalette';
+
+type PaletteItem = {
+  id: string;
+  label: string;
+  sub?: string;
+  icon?: import('@/config/icons').IconName;
+  group: string;
+  keywords?: string;
+  shortcut?: string[];
+  labelHtml?: string;
+  collapsed?: boolean;
+  onSelect: () => void;
+};
 
 /**
  * Tìm toàn app (PF-06): phân nhóm khách theo luật nghiệp vụ 5–6 → Bảng lệnh vẽ dòng phụ + "Xem thêm".

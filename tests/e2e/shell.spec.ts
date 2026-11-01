@@ -99,10 +99,11 @@ test('Menu: đổi giao diện sang Tối', async ({ page }) => {
 test('desktop: rail thay bottom nav, mở rộng/thu gọn và nhớ lựa chọn', async ({ page }) => {
   test.skip(!isDesktop(page), 'chỉ desktop ≥1024px');
   await page.goto('/');
-  const rail = nav(page);
-  await expect(rail).toHaveClass(/w-\[72px\]/);
-  await rail.getByRole('button', { name: 'Mở rộng thanh bên' }).click();
-  await expect(rail).toHaveClass(/w-60/);
+  // D-028 (docs/DESIGN.md §5): menu trái thu gọn 64px, mở rộng 232px; mặc định thu gọn, nhớ lựa chọn sau tải lại.
+  const width = async () => Math.round((await nav(page).boundingBox())?.width ?? 0);
+  await expect.poll(width).toBe(64);
+  await nav(page).getByRole('button', { name: 'Mở rộng thanh bên' }).click();
+  await expect.poll(width).toBe(232);
   await page.reload();
-  await expect(nav(page)).toHaveClass(/w-60/);
+  await expect.poll(width).toBe(232);
 });

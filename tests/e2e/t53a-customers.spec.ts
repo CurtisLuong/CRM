@@ -55,8 +55,8 @@ async function seedCustomers(page: Page) {
     db.close();
   });
   await page.goto('/khach-hang');
-  // v3 (D-023): bộ lọc nằm trong sheet "Lọc"; đóng sheet bằng nút "Xem N khách".
-  await page.getByRole('button', { name: /^Lọc/ }).click();
+  // v3 (D-023): bộ lọc nằm trong sheet mở bằng nút "Bộ lọc"; đóng sheet bằng nút "Xem N khách".
+  await page.getByRole('button', { name: /^Bộ lọc/ }).click();
   await expect(page.getByLabel('Lọc trạng thái')).toBeVisible();
   await page.getByLabel('Lọc trạng thái').selectOption('all');
   await page.getByRole('button', { name: 'Xem 500 khách' }).click();
@@ -132,7 +132,7 @@ for (const theme of ['light', 'dark'] as const) {
       await page.mouse.move(width / 2, 200);
       await wheelToBoundary(page, -1);
       await expect(search).toBeInViewport();
-      await expect(page.getByRole('button', { name: /^Lọc/ })).toBeInViewport();
+      await expect(page.getByRole('button', { name: /^Bộ lọc/ })).toBeInViewport();
       await expect(list.getByText('Nguyễn Thị Ánh 000', { exact: true })).toBeAttached();
       expect(await items.count()).toBeLessThan(25);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
