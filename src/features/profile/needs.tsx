@@ -1,12 +1,14 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import type { Customer } from '@/domain/customer';
+import { formatPricePerM2 } from '@/features/catalog/model';
 import { Icon } from '@/ui/Icon';
 import { useToast } from '@/ui/Toast';
 import { ProfileTextField } from './advanced';
 import { LONG_FIELD, SHORT_FIELD } from './fields';
 import { ChoiceField, hasFieldValue } from './info';
+import { formatVndShort, PRICE_ESTIMATE_MISSING, type PriceEstimate } from './model';
 
 export const PURPOSE_OPTIONS = ['Ở', 'Đầu tư', 'Cho tặng'].map((value) => ({ value, label: value }));
 
@@ -28,7 +30,6 @@ export const NEEDS_FIELDS = [
   'apt_type',
   'projects',
   'apt_area',
-  'finance',
   'building_code',
   'apt_code',
   'apt_direction',
@@ -335,6 +336,8 @@ type NeedsProps = {
   online: boolean;
   projectsOpen: boolean;
   onToggleProjects: () => void;
+  /** Giá ước tính (diện tích × giá/m² Giỏ hàng) — thay ô "Tài chính sẵn có" trùng với Vốn hiện có. */
+  estimate?: PriceEstimate;
 };
 
 /**
@@ -354,7 +357,9 @@ export function ProfileNeedsFields({
   online,
   projectsOpen,
   onToggleProjects,
+  estimate,
 }: NeedsProps) {
+  const estimateId = useId();
   const hidden = needsHiddenCount(customer, stayVisible);
 
   const field = (key: NeedsField) => {
@@ -386,16 +391,6 @@ export function ProfileNeedsFields({
             type="number"
             disabled={!writable}
             onSave={(value) => onSaveField('apt_area', value === '' ? null : Number(value))}
-          />
-        );
-      case 'finance':
-        return (
-          <ProfileTextField
-            label="Tài chính sẵn có (VNĐ)"
-            value={customer.finance}
-            type="number"
-            disabled={!writable}
-            onSave={(value) => onSaveField('finance', value === '' ? null : Number(value))}
           />
         );
       case 'building_code':
@@ -457,11 +452,29 @@ export function ProfileNeedsFields({
   return (
     <Card className="min-w-0 w-full max-w-full space-y-3 overflow-hidden p-4">
       <div className="flex flex-wrap gap-3">
-        {ordered.filter(isVisible).map((key) => (
-          <div key={key} className={key === 'projects' ? LONG_FIELD : SHORT_FIELD}>
+        {ordered.filter(isVisible).flatMap((key) => [
+          <div key={key} data-jump={key} className={key === 'projects' ? LONG_FIELD : SHORT_FIELD}>
             {field(key)}
-          </div>
-        ))}
+          </div>,
+          // Ngay sau Diện tích: tự tính, không phải ô nhập nên không tính vào "Bổ sung".
+          ...(key === 'apt_area' && estimate
+            ? [
+                <div key="estimate" className={`${SHORT_FIELD} flex flex-col gap-1.5`}>
+                  <span id={estimateId} className="block min-h-9 text-label text-ink-muted">
+                    Giá ước tính
+                  </span>
+                  <output aria-labelledby={estimateId} className="flex min-h-11 items-center text-body-strong">
+                    {'total' in estimate ? `≈ ${formatVndShort(estimate.total)}` : '—'}
+                  </output>
+                  <span className="block text-caption text-ink-muted">
+                    {'total' in estimate
+                      ? `${estimate.area.toLocaleString('vi-VN')} m² × ${formatPricePerM2(estimate.pricePerM2)} triệu/m²`
+                      : PRICE_ESTIMATE_MISSING[estimate.missing]}
+                  </span>
+                </div>,
+              ]
+            : []),
+        ])}
       </div>
       {writable && (hidden > 0 || showEmpty) && (
         <Button variant="secondary" className="w-full" aria-expanded={showEmpty} onClick={onToggleSupplement}>

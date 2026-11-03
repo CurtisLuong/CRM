@@ -161,14 +161,19 @@ type Props = {
   onSaveField?: (field: string, value: unknown) => void;
   /** Lưu một khoá trong cột JSONB advanced, luôn giữ khoá cũ + khoá lạ. */
   onSaveAdvanced: (key: string, value: unknown) => void;
+  openSignal?: number;
 };
 
 /**
  * Khu "Nâng cao" cuối tab Trí nhớ: mặc định đóng mỗi lần mở hồ sơ.
  * Gồm Bối cảnh sống (ô gộp), Tài sản (3 ô), trường cũ khác. Ngày sinh không còn ở đây (CL-03).
  */
-export function ProfileAdvanced({ customer, writable, onSaveAdvanced }: Props) {
+export function ProfileAdvanced({ customer, writable, onSaveAdvanced, openSignal }: Props) {
   const [open, setOpen] = useState(false);
+  // Đổi số = mở khối (bấm "Còn thiếu: Tài chính" ở thẻ Đã biết).
+  useEffect(() => {
+    if (openSignal) setOpen(true);
+  }, [openSignal]);
   const panelId = useId();
   const advanced = customer.advanced || {};
   const assetLegacy = legacyValues(advanced, ASSET_LEGACY);
@@ -204,16 +209,23 @@ export function ProfileAdvanced({ customer, writable, onSaveAdvanced }: Props) {
           <fieldset className="space-y-2">
             <legend className="text-body font-semibold">Tài sản</legend>
             {PROFILE_ASSET_FIELDS.map((field) => (
-              <ProfileTextField
-                key={field.key}
-                label={field.label}
-                value={advanced[field.key]}
-                disabled={!writable}
-                type="number"
-                placeholder={field.ph}
-                onSave={(value) => saveNumber(field.key, value)}
-              />
+              <div key={field.key} data-jump={field.key}>
+                <ProfileTextField
+                  label={field.label}
+                  value={advanced[field.key]}
+                  disabled={!writable}
+                  type="number"
+                  placeholder={field.ph}
+                  onSave={(value) => saveNumber(field.key, value)}
+                />
+              </div>
             ))}
+            {/* Vốn ghi lúc nhập khách (ô cũ "Tài chính sẵn có") — hiện để không tưởng là trống (D-012). */}
+            {!displayText(advanced.capital) && !!displayText(customer.finance) && (
+              <p className="text-caption text-ink-muted">
+                Vốn ghi lúc nhập khách: <span className="text-body">{displayText(customer.finance)}</span>
+              </p>
+            )}
             {assetLegacy.map((row) => (
               <p key={row.key} className="text-caption text-ink-muted">
                 {row.label}: <span className="text-body">{row.value}</span>{' '}

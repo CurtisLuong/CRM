@@ -57,7 +57,10 @@ export function customerBrief(customer: Customer): BriefFact[] {
       label: 'Tài chính',
       value: known(
         [
-          customer.finance ? `Vốn ${customer.finance}` : '',
+          // Vốn hiện có (Trí nhớ) là nơi sửa; finance = vốn ghi lúc nhập khách (form/AI) — dùng khi chưa có.
+          text(advanced.capital) || text(customer.finance)
+            ? `Vốn ${text(advanced.capital) || text(customer.finance)}`
+            : '',
           budgetMax != null ? `Ngân sách đợt quan tâm ${budgetMax}` : '',
           advanced.loan_need ? `Vay ${advanced.loan_need}` : '',
           advanced.monthly_payment ? `Trả tháng ${advanced.monthly_payment}` : '',

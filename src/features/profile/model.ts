@@ -425,3 +425,46 @@ export function editedTimelineNotePatch(
 
   return null;
 }
+
+/** Giỏ hàng tối thiểu để ước giá: giá hiệu lực căn > toà > dự án (cùng thứ tự máy tính vay). */
+export type PriceCatalog = {
+  projectByName: (name: unknown) => { id?: unknown } | null;
+  buildingByCode: (projectId: unknown, code: unknown) => { id?: unknown } | null;
+  unitByCode: (buildingId: unknown, code: unknown) => unknown;
+  unitPrice: (unit: unknown) => number | null;
+  buildingPrice: (building: unknown) => number | null;
+  projectPrice: (project: unknown) => number | null;
+};
+
+export type PriceEstimate =
+  | { total: number; area: number; pricePerM2: number }
+  | { missing: 'area' | 'project' | 'price' };
+
+/** Giá ước tính = diện tích × đơn giá/m² trong Giỏ hàng. Chỉ để xem — không ghi vào hồ sơ. */
+export function estimatePrice(customer: Customer, catalog: PriceCatalog | null): PriceEstimate {
+  const area = Number(customer.apt_area);
+  if (!(area > 0)) return { missing: 'area' };
+  const projectName = Array.isArray(customer.projects) ? customer.projects.find((name) => !!name) : null;
+  const project = projectName && catalog ? catalog.projectByName(projectName) : null;
+  if (!project) return { missing: 'project' };
+  const building = catalog?.buildingByCode(project.id, customer.building_code) ?? null;
+  const unit = building ? catalog?.unitByCode(building.id, customer.apt_code) : null;
+  const price = Number(
+    unit ? catalog?.unitPrice(unit) : building ? catalog?.buildingPrice(building) : catalog?.projectPrice(project),
+  );
+  if (!(price > 0)) return { missing: 'price' };
+  return { total: area * price, area, pricePerM2: price };
+}
+
+/** 2340000000 → "2,34 tỷ"; 850000000 → "850 triệu". */
+export function formatVndShort(value: number): string {
+  if (value >= 1_000_000_000)
+    return `${(value / 1_000_000_000).toLocaleString('vi-VN', { maximumFractionDigits: 2 })} tỷ`;
+  return `${(value / 1_000_000).toLocaleString('vi-VN', { maximumFractionDigits: 1 })} triệu`;
+}
+
+export const PRICE_ESTIMATE_MISSING: Record<'area' | 'project' | 'price', string> = {
+  area: 'Cần diện tích',
+  project: 'Cần dự án quan tâm',
+  price: 'Dự án chưa có giá/m² trong Giỏ hàng',
+};

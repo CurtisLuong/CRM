@@ -13,6 +13,17 @@ import { hasSaleTouch, lastTouchMs } from '@/domain/signals';
 import { fmt, status } from '@/domain/velocity';
 
 export type CustomerGroup = 'potential' | 'new' | 'team';
+export const CUSTOMER_GROUP_LABEL: Record<CustomerGroup, string> = {
+  potential: 'Tiềm năng',
+  new: 'Khách mới',
+  team: 'Khách nhóm',
+};
+
+/** Nhóm của 1 khách — cùng luật với v1FilterCustomers: của đồng nghiệp → Khách nhóm; chưa Đạt → Khách mới. */
+export function customerGroupOf(c: Customer, ownerId: string): CustomerGroup {
+  if (c.owner_id && c.owner_id !== ownerId) return 'team';
+  return isQualified(c) ? 'potential' : 'new';
+}
 /** Preset ngày đăng ký; `custom` đọc thêm `dateFrom`/`dateTo` (CL-01 L4). */
 export type DatePreset = 'all' | 'yesterday' | 'today' | 'week' | 'month' | 'custom';
 export type CustomerFilters = {

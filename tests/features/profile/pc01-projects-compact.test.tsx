@@ -91,7 +91,8 @@ describe('PC-01 — ô gọn Dự án quan tâm', () => {
     const onSaveProjects = vi.fn(async () => true);
     const needs = render(<NeedsHarness onSaveProjects={onSaveProjects} />);
 
-    const needsButton = screen.getByRole('button', { name: 'Bổ sung (8)' });
+    // Curtis 03/11: bỏ ô nhập "Tài chính sẵn có" (thành Giá ước tính tự tính) → bớt 1 ô trống.
+    const needsButton = screen.getByRole('button', { name: 'Bổ sung (7)' });
     await user.click(needsButton);
     expect(screen.getByRole('button', { name: 'Thu gọn' }).getAttribute('aria-expanded')).toBe('true');
     needs.unmount();

@@ -36,6 +36,7 @@ import { Icon } from '@/ui/Icon';
 import { useToast } from '../../ui/Toast';
 import { CalendarRange } from './CalendarRange';
 import {
+  CUSTOMER_GROUP_LABEL,
   type CustomerFilters,
   type CustomerGroup,
   customDateLabel,
@@ -768,9 +769,9 @@ function Customers() {
   );
 
   const groupOptions: { value: CustomerGroup; label: string }[] = [
-    { value: 'potential', label: 'Tiềm năng' },
-    { value: 'new', label: 'Khách mới' },
-    ...(team.length || counts.team ? [{ value: 'team' as const, label: 'Khách nhóm' }] : []),
+    { value: 'potential', label: CUSTOMER_GROUP_LABEL.potential },
+    { value: 'new', label: CUSTOMER_GROUP_LABEL.new },
+    ...(team.length || counts.team ? [{ value: 'team' as const, label: CUSTOMER_GROUP_LABEL.team }] : []),
   ];
   const itemHeight = desktop ? DESKTOP_ITEM_HEIGHT : MOBILE_ITEM_HEIGHT;
   const range = virtualWindow(

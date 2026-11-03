@@ -86,8 +86,9 @@ describe('CP-01 — tab mặc định và ô nhu cầu', () => {
     expect(screen.queryByLabelText('Loại căn')).toBeNull();
     expect(screen.queryByLabelText('Mã căn')).toBeNull();
 
-    // 9 ô, 2 ô đã có giá trị (0 tính là có) → còn 7 ô trống đang ẩn.
-    const toggle = screen.getByRole('button', { name: 'Bổ sung (7)' });
+    // 8 ô nhập (Curtis 03/11: "Tài chính sẵn có" thành Giá ước tính tự tính), 2 ô đã có giá trị
+    // (0 tính là có) → còn 6 ô trống đang ẩn.
+    const toggle = screen.getByRole('button', { name: 'Bổ sung (6)' });
     expect(toggle.getAttribute('aria-expanded')).toBe('false');
     await user.click(toggle);
     expect(toggle.getAttribute('aria-expanded')).toBe('true');
