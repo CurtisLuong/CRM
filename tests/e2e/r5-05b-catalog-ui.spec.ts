@@ -76,7 +76,10 @@ for (const width of [360, 1280]) {
     await seedCatalog(page);
     await page.goto('/gio-hang');
     await expect(page.getByRole('heading', { name: 'Giỏ hàng' })).toBeVisible();
-    await page.getByLabel('Chọn dự án').selectOption('r505b-project');
+    // Curtis 03/11: ô "Chọn dự án" mở drawer danh sách dự án.
+    await page.getByRole('button', { name: /^Chọn dự án/ }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Dự án Thử Nghiệm', exact: true }).click();
+    await expect(page.getByRole('dialog')).toBeHidden();
     if (width >= 1024) {
       const table = page.getByRole('table', { name: 'Danh sách căn' });
       await expect(table).toBeVisible();
@@ -89,8 +92,12 @@ for (const width of [360, 1280]) {
       await expect(page.locator('article').filter({ hasText: 'Toà T1' })).toBeVisible();
     }
 
-    await expect(page.getByLabel('Giá dự án')).toBeVisible();
-    await expect(page.getByText('triệu/m²').first()).toBeVisible();
+    // Form dự án chỉ hiện trong drawer khi bấm Sửa.
+    await expect(page.getByLabel('Giá dự án')).toBeHidden();
+    await page.getByRole('button', { name: /^Chọn dự án/ }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Sửa dự án Dự án Thử Nghiệm' }).click();
+    await expect(page.getByRole('dialog').getByLabel('Giá dự án')).toBeVisible();
+    await expect(page.getByRole('dialog').getByText('triệu/m²').first()).toBeVisible();
     const horizontalOverflow = await page.evaluate(() => ({
       scrollWidth: document.documentElement.scrollWidth,
       width: window.innerWidth,
