@@ -26,6 +26,7 @@ type TextFieldProps = {
   multiline?: boolean;
   /** Gợi ý trong ô (chỉ cho ô mới của PF-01). */
   placeholder?: string;
+  hint?: string;
   /** 'number' cho ô tiền VNĐ; mặc định chữ. */
   type?: 'text' | 'number';
   onSave: (value: string) => void;
@@ -41,6 +42,7 @@ export function ProfileTextField({
   disabled,
   multiline,
   placeholder,
+  hint,
   type = 'text',
   onSave,
 }: TextFieldProps) {
@@ -83,6 +85,7 @@ export function ProfileTextField({
           value={draft}
           disabled={disabled}
           placeholder={placeholder}
+          hint={hint}
           onChange={(e) => setDraft(e.target.value)}
           onBlur={save}
         />
