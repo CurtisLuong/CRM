@@ -8,6 +8,10 @@ Bộ tài liệu được biên soạn ngày 06/10/2026; đây không phải ng�
 
 Chỉ đọc file này khi cần tiếp nối công việc hoặc task phụ thuộc trạng thái triển khai/test.
 
+## APK 1.8: gửi tài liệu kèm tệp qua Zalo (2026-10-31, tối)
+
+- Curtis: trong vỏ Android, gửi tài liệu chỉ chép chữ + mở Zalo, tệp không đi. Nguyên nhân: WebView không có `navigator.share` → nhánh `<a download>` không chạy. U-06 (luna; BLOCKED vì `tests/android/app-update.test.ts` cố định versionCode 8 → Lead nới ≥ 8): plugin `ShareFiles` (hợp đồng `docs/ARCHITECTURE.md` §7), web gọi khi có plugin, APK cũ → nhánh cũ + nhắc cập nhật; Lead đổi mã lỗi plugin → chữ tiếng Việt. CI build APK OK (nhánh + main), `app-releases/latest.json` = 1.8 / versionCode 9. 1263 unit + 749/751 e2e (m5 ≥7 thẻ + u04 chập chờn, lặp lại qua). `main` = `67ea46d`. Chưa thử máy thật (nhiều tệp vào Zalo). **Rollback:** web `main` về `7982295`; APK 1.8 chạy được với web cũ.
+
 ## Thẻ Khách hàng ưu tiên đủ tên (2026-10-31, chiều)
 
 - Curtis (ảnh Android): tên bị che vì nhãn "Quá SLA" + lần chạm; hai thứ trùng ý → chỉ giữ SLA; ưu tiên đủ tên, loại căn, dự án, phần khác "…". Lead: bỏ lần chạm khi có nhãn hạn (mobile + bảng máy tính), tên co sau nhãn (nhãn tối thiểu ▲); U-05d (luna, 1 lần): "Chưa rõ…" co trước, dự án đủ; Lead sửa dấu " · " mất khoảng trắng trong dòng flex. Test M5/U-05b chỉnh theo luật mới. 1253 unit + 750/751 e2e (u04 Thủ tục chập chờn). `main` = `7982295` (`index-CBFV6yud.js`). **Rollback:** `main` về `a97553f`.
