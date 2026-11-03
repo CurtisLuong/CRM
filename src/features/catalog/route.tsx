@@ -4,10 +4,13 @@ import { toast as notify } from 'sonner';
 import type { FeatureRoute } from '@/app/routes';
 import { type Column, DataTable, TextField } from '@/components/crm';
 import { Button } from '@/components/ui/button';
+import { Toaster } from '@/components/ui/sonner';
 import { CARE_DONE_STAGES } from '@/config/stages';
 import { useCustomers, useRepositoryAccount } from '@/data/hooks';
 import type { Customer } from '@/domain/customer';
 import { customersForUnit, match as matchCustomer, price as totalPrice } from '@/domain/matching/property';
+import { displayDate } from '@/ui/display';
+import { CatalogDrawer } from './CatalogDrawer';
 import {
   downloadCatalogTemplate,
   formatPricePerM2,
@@ -87,7 +90,13 @@ function CatalogPage() {
   const [aptTypeForm, setAptTypeForm] = useState({ id: '', name: '', area: '' });
   const [buildingForm, setBuildingForm] = useState<BuildingForm>(emptyBuilding);
   const [buildingEditing, setBuildingEditing] = useState('');
-  const [buildingTypesEditing, setBuildingTypesEditing] = useState(false);
+  const [drawer, setDrawer] = useState<'picker' | 'project' | 'type' | 'building' | 'buildingTypes' | 'unit' | null>(
+    null,
+  );
+  const openDrawer = (next: NonNullable<typeof drawer>) => {
+    setError('');
+    setDrawer(next);
+  };
   const [buildingTypeDraft, setBuildingTypeDraft] = useState<Record<string, { selected: boolean; area: string }>>({});
   const [unitForm, setUnitForm] = useState<UnitForm>(emptyUnit);
   const [unitEditing, setUnitEditing] = useState('');
@@ -124,6 +133,34 @@ function CatalogPage() {
   const buildings = projectId ? catalog?.buildingsOf(projectId) || [] : [];
   const project = projectId ? catalog?.project(projectId) : null;
   const building = buildingId ? catalog?.building(buildingId) : null;
+  const unitDraft = {
+    project_id: projectId,
+    building_id: buildingId,
+    apt_type: unitForm.apt_type,
+    area_m2: asNumber(unitForm.area_m2),
+    price_per_m2_override: asPrice(unitForm.price_per_m2_override),
+  };
+  const buildingDraft = {
+    project_id: projectId,
+    approved_price_per_m2: asPrice(buildingForm.approved_price_per_m2),
+    handover_date: buildingForm.handover_date || null,
+  };
+  const unitPriceHint =
+    !unitForm.price_per_m2_override.trim() && catalog?.unitPriceSource(unitDraft)
+      ? `Theo ${catalog.unitPriceSource(unitDraft)}: ${formatPricePerM2(catalog.unitPrice(unitDraft))} triệu/m²`
+      : undefined;
+  const unitAreaHint =
+    !unitForm.area_m2.trim() && catalog?.unitAreaSource(unitDraft)
+      ? `Theo ${catalog.unitAreaSource(unitDraft)}: ${catalog.unitArea(unitDraft)} m²`
+      : undefined;
+  const buildingPriceHint =
+    !buildingForm.approved_price_per_m2.trim() && catalog?.buildingPriceSource(buildingDraft)
+      ? `Theo ${catalog.buildingPriceSource(buildingDraft)}: ${formatPricePerM2(catalog.buildingPrice(buildingDraft))} triệu/m²`
+      : undefined;
+  const buildingHandoverHint =
+    !buildingForm.handover_date && catalog?.buildingHandoverSource(buildingDraft)
+      ? `Theo ${catalog.buildingHandoverSource(buildingDraft)}: ${displayDate(catalog.buildingHandover(buildingDraft))}`
+      : undefined;
   const visibleUnits = (() => {
     if (!catalog) return [];
     return catalog.units().filter((unit) => {
@@ -277,7 +314,7 @@ function CatalogPage() {
         <span className="text-numeric">{price == null ? '—' : `${formatPricePerM2(price)} triệu/m²`}</span>
       ),
     },
-    { key: 'handover', label: 'Bàn giao', render: ({ handover }) => handover || 'Theo dự án/chưa có' },
+    { key: 'handover', label: 'Bàn giao', render: ({ handover }) => displayDate(handover) || 'Theo dự án/chưa có' },
     {
       key: 'units',
       label: 'Số căn',
@@ -368,6 +405,7 @@ function CatalogPage() {
     const row = catalog?.project(id);
     if (!row) return;
     setProjectEditing(id);
+    openDrawer('project');
     setProjectForm({
       name: row.name || '',
       typical_price_per_m2: formatPricePerM2(row.typical_price_per_m2),
@@ -412,10 +450,12 @@ function CatalogPage() {
       } else {
         const created = await catalog.addProject(patch.name, patch);
         setProjectId(created.id);
+        setBuildingId('');
         notify.success('Đã thêm dự án');
       }
       setProjectEditing('');
       setProjectForm(emptyProject);
+      setDrawer(null);
       setRevision((value) => value + 1);
     } catch (raw) {
       setError(raw instanceof Error ? raw.message : 'Không lưu được dự án.');
@@ -435,6 +475,7 @@ function CatalogPage() {
           typical_area_m2: asNumber(aptTypeForm.area),
         });
         setAptTypeForm({ id: '', name: '', area: '' });
+        setDrawer(null);
       },
       aptTypeForm.id ? 'Đã lưu loại căn' : 'Đã thêm loại căn',
     );
@@ -442,7 +483,9 @@ function CatalogPage() {
   const editBuilding = (id: string) => {
     const row = catalog?.building(id);
     if (!row) return;
+    setProjectId(row.project_id);
     setBuildingEditing(id);
+    openDrawer('building');
     setBuildingForm({
       code: row.code || '',
       approved_price_per_m2: formatPricePerM2(row.approved_price_per_m2),
@@ -464,6 +507,7 @@ function CatalogPage() {
         setBuildingId(catalog?.buildingByCode(projectId, form.code)?.id || buildingId);
         setBuildingEditing('');
         setBuildingForm(emptyBuilding);
+        setDrawer(null);
       },
       buildingEditing ? 'Đã lưu toà' : 'Đã thêm toà',
     );
@@ -484,7 +528,7 @@ function CatalogPage() {
         }),
       ),
     );
-    setBuildingTypesEditing(true);
+    openDrawer('buildingTypes');
   };
   const saveBuildingTypes = () =>
     run(async () => {
@@ -495,7 +539,7 @@ function CatalogPage() {
           .filter(([, value]) => value.selected)
           .map(([apt_type, value]) => ({ apt_type, area_m2: asNumber(value.area) })),
       );
-      setBuildingTypesEditing(false);
+      setDrawer(null);
     }, 'Đã lưu loại căn của toà');
 
   const editUnit = (id: string) => {
@@ -504,6 +548,7 @@ function CatalogPage() {
     setBuildingId(row.building_id);
     setProjectId(row.project_id);
     setUnitEditing(id);
+    openDrawer('unit');
     setUnitForm({
       code: row.code || '',
       apt_type: row.apt_type || '',
@@ -532,6 +577,7 @@ function CatalogPage() {
         await catalog?.saveUnit(payload);
         setUnitEditing('');
         setUnitForm(emptyUnit);
+        setDrawer(null);
       },
       unitEditing ? 'Đã lưu căn' : 'Đã thêm căn',
     );
@@ -617,7 +663,7 @@ function CatalogPage() {
           </label>
         </div>
       </header>
-      {error && (
+      {error && !drawer && (
         <p role="alert" className="rounded-md border border-alert/40 bg-alert-tint p-3 text-caption text-alert-text">
           {error}
         </p>
@@ -651,12 +697,38 @@ function CatalogPage() {
         </section>
       )}
 
-      <section className="grid gap-4 xl:grid-cols-[minmax(260px,0.8fr)_minmax(0,1.6fr)]">
+      <section className="space-y-4 rounded-lg border border-line bg-surface-100 p-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="secondary"
+            className="min-w-0 flex-1 justify-start whitespace-normal text-left"
+            aria-label={`Chọn dự án: ${project?.name || (projects.length ? 'Tất cả dự án' : 'Chưa có dự án')}`}
+            onClick={() => openDrawer('picker')}
+          >
+            {project?.name || (projects.length ? 'Tất cả dự án' : 'Chưa có dự án')}
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setProjectEditing('');
+              setProjectForm(emptyProject);
+              openDrawer('project');
+            }}
+          >
+            {projects.length ? '+ Thêm' : 'Thêm dự án'}
+          </Button>
+        </div>
         {projectId && (
           <div className="mt-4 border-t border-line pt-4">
             <div className="flex items-center justify-between gap-2">
               <h3 className="text-heading">Loại căn của dự án</h3>
-              <Button variant="secondary" onClick={() => setAptTypeForm({ id: '', name: '', area: '' })}>
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setAptTypeForm({ id: '', name: '', area: '' });
+                  openDrawer('type');
+                }}
+              >
                 + Thêm loại
               </Button>
             </div>
@@ -674,13 +746,14 @@ function CatalogPage() {
                     <button
                       type="button"
                       className="min-h-11 text-caption text-ion"
-                      onClick={() =>
+                      onClick={() => {
+                        openDrawer('type');
                         setAptTypeForm({
                           id: type.id,
                           name: type.apt_type,
                           area: type.typical_area_m2 == null ? '' : String(type.typical_area_m2),
-                        })
-                      }
+                        });
+                      }}
                     >
                       Sửa
                     </button>
@@ -698,178 +771,16 @@ function CatalogPage() {
                 </div>
               ))}
             </div>
-            <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
-              <label className={labelClass}>
-                Tên loại căn
-                <input
-                  className={fieldClass}
-                  value={aptTypeForm.name}
-                  onChange={(e) => setAptTypeForm({ ...aptTypeForm, name: e.target.value })}
-                  placeholder="2N-2WC"
-                />
-              </label>
-              <TextField
-                label="Diện tích điển hình"
-                suffix="m²"
-                numeric
-                value={aptTypeForm.area}
-                onChange={(e) => setAptTypeForm({ ...aptTypeForm, area: e.target.value })}
-              />
-              <div className="flex items-end gap-2">
-                <Button disabled={saving} onClick={() => void saveAptType()}>
-                  {aptTypeForm.id ? 'Lưu loại' : 'Thêm loại'}
-                </Button>
-                {aptTypeForm.id && (
-                  <Button variant="ghost" onClick={() => setAptTypeForm({ id: '', name: '', area: '' })}>
-                    Huỷ
-                  </Button>
-                )}
-              </div>
-            </div>
           </div>
         )}
 
-        <div className="space-y-4 rounded-lg border border-line bg-surface-100 p-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-section-head">Dự án</h2>
-            <Button
-              variant="secondary"
-              onClick={() => {
-                setProjectEditing('');
-                setProjectForm(emptyProject);
-              }}
-            >
-              + Thêm
-            </Button>
-          </div>
-          <label className={labelClass}>
-            Chọn dự án
-            <select
-              className={fieldClass}
-              value={projectId}
-              onChange={(event) => {
-                setProjectId(event.target.value);
-                setBuildingId('');
-                setUnitEditing('');
-              }}
-            >
-              <option value="">Tất cả dự án</option>
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <div className="max-h-56 space-y-1 overflow-auto">
-            {projects.map((p) => (
-              <div key={p.id} className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5">
-                <button
-                  type="button"
-                  className="min-h-11 flex-1 text-left text-body text-ink"
-                  onClick={() => {
-                    setProjectId(p.id);
-                    setBuildingId('');
-                  }}
-                >
-                  {p.name}
-                </button>
-                <button type="button" className="min-h-11 px-2 text-caption text-ion" onClick={() => editProject(p.id)}>
-                  Sửa
-                </button>
-                <button
-                  type="button"
-                  className="min-h-11 px-2 text-caption text-alert-text"
-                  onClick={() => {
-                    if (window.confirm(`Lưu trữ dự án “${p.name}”? Toà và căn vẫn được giữ nguyên.`)) {
-                      void run(() => catalog.archiveProject(p.id), 'Đã lưu trữ dự án');
-                      if (projectId === p.id) {
-                        setProjectId('');
-                        setBuildingId('');
-                      }
-                    }
-                  }}
-                >
-                  Lưu trữ
-                </button>
-              </div>
-            ))}
-          </div>
-          <div className="border-t border-line pt-4">
-            <h3 className="text-heading">{projectEditing ? 'Sửa dự án' : 'Thông tin dự án mới'}</h3>
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              <label className={`${labelClass} sm:col-span-2`}>
-                Tên dự án
-                <input
-                  className={fieldClass}
-                  value={projectForm.name}
-                  onChange={(e) => setProjectForm({ ...projectForm, name: e.target.value })}
-                />
-              </label>
-              <TextField
-                label="Giá dự án"
-                suffix="triệu/m²"
-                numeric
-                value={projectForm.typical_price_per_m2}
-                onChange={(e) => setProjectForm({ ...projectForm, typical_price_per_m2: e.target.value })}
-              />
-              <label className={labelClass}>
-                Bàn giao dự kiến
-                <input
-                  type="date"
-                  className={fieldClass}
-                  value={projectForm.handover_date}
-                  onChange={(e) => setProjectForm({ ...projectForm, handover_date: e.target.value })}
-                />
-              </label>
-              <TextField
-                label="VAT"
-                suffix="%"
-                numeric
-                value={projectForm.vat_rate}
-                onChange={(e) => setProjectForm({ ...projectForm, vat_rate: e.target.value })}
-              />
-              <TextField
-                label="KPBT"
-                suffix="%"
-                numeric
-                value={projectForm.kpbt_rate}
-                onChange={(e) => setProjectForm({ ...projectForm, kpbt_rate: e.target.value })}
-              />
-              <TextField
-                label="Nhận sổ sau bàn giao"
-                suffix="tháng"
-                numeric
-                value={projectForm.title_after_months}
-                onChange={(e) => setProjectForm({ ...projectForm, title_after_months: e.target.value })}
-              />
-            </div>
-            <div className="mt-3 flex gap-2">
-              <Button disabled={saving} onClick={() => void saveProject()}>
-                {projectEditing ? 'Lưu dự án' : 'Thêm dự án'}
-              </Button>
-              {projectEditing && (
-                <Button
-                  variant="ghost"
-                  onClick={() => {
-                    setProjectEditing('');
-                    setProjectForm(emptyProject);
-                  }}
-                >
-                  Huỷ
-                </Button>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="space-y-4 rounded-lg border border-line bg-surface-100 p-4">
-          <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-end justify-between gap-2">
             <h2 className="text-section-head">Toà và căn</h2>
             <label className={labelClass}>
               Chọn toà
               <select
-                className={`${fieldClass} min-w-48`}
+                className={fieldClass}
                 disabled={!projectId}
                 value={buildingId}
                 onChange={(e) => setBuildingId(e.target.value)}
@@ -883,47 +794,29 @@ function CatalogPage() {
               </select>
             </label>
           </div>
-          <div className="grid gap-3 rounded-md border border-line p-3 sm:grid-cols-2">
-            <label className={labelClass}>
-              {buildingEditing ? 'Mã toà' : 'Thêm toà — mã'}
-              <input
-                className={fieldClass}
-                value={buildingForm.code}
-                onChange={(e) => setBuildingForm({ ...buildingForm, code: e.target.value })}
-              />
-            </label>
-            <TextField
-              label="Giá duyệt toà"
-              suffix="triệu/m²"
-              numeric
-              value={buildingForm.approved_price_per_m2}
-              onChange={(e) => setBuildingForm({ ...buildingForm, approved_price_per_m2: e.target.value })}
-            />
-            <label className={labelClass}>
-              Bàn giao riêng của toà
-              <input
-                type="date"
-                className={fieldClass}
-                value={buildingForm.handover_date}
-                onChange={(e) => setBuildingForm({ ...buildingForm, handover_date: e.target.value })}
-              />
-            </label>
-            <div className="flex items-end gap-2">
-              <Button disabled={saving || !projectId} onClick={() => void saveBuilding()}>
-                {buildingEditing ? 'Lưu toà' : 'Thêm toà'}
-              </Button>
-              {buildingEditing && (
-                <Button
-                  variant="ghost"
-                  onClick={() => {
-                    setBuildingEditing('');
-                    setBuildingForm(emptyBuilding);
-                  }}
-                >
-                  Huỷ
-                </Button>
-              )}
-            </div>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="secondary"
+              disabled={!projectId}
+              onClick={() => {
+                setBuildingEditing('');
+                setBuildingForm(emptyBuilding);
+                openDrawer('building');
+              }}
+            >
+              Thêm toà
+            </Button>
+            <Button
+              variant="secondary"
+              disabled={!buildingId}
+              onClick={() => {
+                setUnitEditing('');
+                setUnitForm(emptyUnit);
+                openDrawer('unit');
+              }}
+            >
+              Thêm căn
+            </Button>
           </div>
           {buildings.length > 0 && (
             <>
@@ -942,7 +835,7 @@ function CatalogPage() {
                     key={row.id}
                     className={`rounded-md border p-3 ${buildingId === row.id ? 'border-ion bg-ion-tint' : 'border-line bg-surface-100'}`}
                   >
-                    <div className="flex items-start justify-between gap-2">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
                       <button
                         type="button"
                         className="min-h-11 flex-1 text-left font-semibold"
@@ -956,7 +849,7 @@ function CatalogPage() {
                       </span>
                     </div>
                     <p className="text-caption text-ink-muted">
-                      {units} căn · Bàn giao: {handover || 'theo dự án/chưa có'}
+                      {units} căn · Bàn giao: {displayDate(handover) || 'theo dự án/chưa có'}
                     </p>
                     <div className="mt-2 flex gap-2">
                       <Button variant="secondary" onClick={() => editBuilding(row.id)}>
@@ -982,168 +875,28 @@ function CatalogPage() {
           {building && (
             <div className="rounded-md bg-surface-200 p-3 text-caption text-ink-muted">
               Giá hiệu lực: {formatPricePerM2(catalog.buildingPrice(building)) || 'chưa có'} triệu/m² · bàn giao:{' '}
-              {catalog.buildingHandover(building) || 'theo dự án/chưa có'}
+              {displayDate(catalog.buildingHandover(building)) || 'theo dự án/chưa có'}
             </div>
-          )}
-          {building && (
-            <section className="rounded-md border border-line p-3">
-              <div className="flex items-center justify-between gap-2">
-                <h3 className="text-heading">Loại căn được phép ở toà {building.code}</h3>
-                <Button
-                  variant="secondary"
-                  onClick={buildingTypesEditing ? () => setBuildingTypesEditing(false) : beginBuildingTypesEdit}
-                >
-                  {buildingTypesEditing ? 'Huỷ' : 'Tuỳ chỉnh'}
-                </Button>
-              </div>
-              {buildingTypesEditing ? (
-                <div className="mt-2 space-y-2">
-                  {catalog.projectTypes(projectId).map((type) => {
-                    const value = buildingTypeDraft[type.apt_type] || { selected: false, area: '' };
-                    return (
-                      <div key={type.id} className="grid items-center gap-2 sm:grid-cols-[1fr_1fr_auto]">
-                        <label className="flex min-h-11 items-center gap-2 text-caption">
-                          <input
-                            type="checkbox"
-                            checked={value.selected}
-                            onChange={(e) =>
-                              setBuildingTypeDraft({
-                                ...buildingTypeDraft,
-                                [type.apt_type]: { ...value, selected: e.target.checked },
-                              })
-                            }
-                          />
-                          {type.apt_type}
-                        </label>
-                        <TextField
-                          label="Diện tích riêng"
-                          suffix="m²"
-                          numeric
-                          value={value.area}
-                          onChange={(e) =>
-                            setBuildingTypeDraft({
-                              ...buildingTypeDraft,
-                              [type.apt_type]: { ...value, area: e.target.value },
-                            })
-                          }
-                          placeholder={`${type.typical_area_m2 || 'theo dự án'}`}
-                        />
-                        <span className="text-caption text-ink-muted">
-                          {value.selected ? 'Được dùng' : 'Không chọn'}
-                        </span>
-                      </div>
-                    );
-                  })}
-                  <Button disabled={saving} onClick={() => void saveBuildingTypes()}>
-                    Lưu loại toà
-                  </Button>
-                </div>
-              ) : (
-                <p className="mt-2 text-caption text-ink-muted">
-                  {catalog.buildingTypes(building.id).length
-                    ? catalog
-                        .buildingTypes(building.id)
-                        .map((item) => item.apt_type)
-                        .join(' · ')
-                    : 'Toà dùng mọi loại đã khai báo ở dự án.'}
-                </p>
-              )}
-            </section>
           )}
 
-          <div className="border-t border-line pt-4">
-            <h3 className="text-heading">{unitEditing ? 'Sửa căn' : 'Thêm căn'}</h3>
-            <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <label className={labelClass}>
-                Mã căn
-                <input
-                  className={fieldClass}
-                  value={unitForm.code}
-                  onChange={(e) => setUnitForm({ ...unitForm, code: e.target.value })}
-                />
-              </label>
-              <label className={labelClass}>
-                Loại căn
-                <input
-                  className={fieldClass}
-                  list="catalog-types"
-                  value={unitForm.apt_type}
-                  onChange={(e) => setUnitForm({ ...unitForm, apt_type: e.target.value })}
-                />
-                <datalist id="catalog-types">
-                  {project &&
-                    catalog.projectTypes(project.id).map((type) => <option key={type.id} value={type.apt_type} />)}
-                </datalist>
-              </label>
-              <TextField
-                label="Tầng"
-                suffix="tầng"
-                numeric
-                value={unitForm.floor}
-                onChange={(e) => setUnitForm({ ...unitForm, floor: e.target.value })}
-              />
-              <label className={labelClass}>
-                Hướng
-                <select
-                  className={fieldClass}
-                  value={unitForm.direction}
-                  onChange={(e) => setUnitForm({ ...unitForm, direction: e.target.value })}
-                >
-                  <option value="">Chưa rõ</option>
-                  {DIRECTIONS.map((direction) => (
-                    <option key={direction}>{direction}</option>
-                  ))}
-                </select>
-              </label>
-              <TextField
-                label="Diện tích"
-                suffix="m²"
-                numeric
-                value={unitForm.area_m2}
-                onChange={(e) => setUnitForm({ ...unitForm, area_m2: e.target.value })}
-                placeholder={
-                  unitForm.apt_type && project
-                    ? `theo loại (${catalog.typicalArea(project.id, buildingId || null, unitForm.apt_type) || '—'})`
-                    : ''
-                }
-              />
-              <TextField
-                label="Giá riêng"
-                suffix="triệu/m²"
-                numeric
-                value={unitForm.price_per_m2_override}
-                onChange={(e) => setUnitForm({ ...unitForm, price_per_m2_override: e.target.value })}
-              />
-              <label className={labelClass}>
-                Tình trạng
-                <select
-                  className={fieldClass}
-                  value={unitForm.status}
-                  onChange={(e) => setUnitForm({ ...unitForm, status: e.target.value })}
-                >
-                  <option value="available">Còn</option>
-                  <option value="holding">Giữ chỗ</option>
-                  <option value="sold">Đã bán</option>
-                </select>
-              </label>
-              <div className="flex items-end gap-2">
-                <Button disabled={saving || !buildingId} onClick={() => void saveUnit()}>
-                  {unitEditing ? 'Lưu căn' : 'Thêm căn'}
+          {building && (
+            <section className="rounded-md border border-line p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h3 className="text-heading">Loại căn được phép ở toà {building.code}</h3>
+                <Button variant="secondary" onClick={beginBuildingTypesEdit}>
+                  Tuỳ chỉnh
                 </Button>
-                {unitEditing && (
-                  <Button
-                    variant="ghost"
-                    onClick={() => {
-                      setUnitEditing('');
-                      setUnitForm(emptyUnit);
-                    }}
-                  >
-                    Huỷ
-                  </Button>
-                )}
               </div>
-            </div>
-          </div>
+              <p className="mt-2 text-caption text-ink-muted">
+                {catalog.buildingTypes(building.id).length
+                  ? catalog
+                      .buildingTypes(building.id)
+                      .map((item) => item.apt_type)
+                      .join(' · ')
+                  : 'Toà dùng mọi loại đã khai báo ở dự án.'}
+              </p>
+            </section>
+          )}
         </div>
       </section>
 
@@ -1332,7 +1085,7 @@ function CatalogPage() {
         <div className="grid gap-3 sm:grid-cols-2 lg:hidden">
           {unitRows.map(({ unit, projectName, buildingCode, area, amount, matching }) => (
             <article key={unit.id} className="rounded-md border border-line bg-surface-100 p-3">
-              <div className="flex items-start justify-between gap-2">
+              <div className="flex flex-wrap items-start justify-between gap-2">
                 <div className="min-w-0">
                   <h3 className="font-semibold">
                     {projectName} · {buildingCode} · {unit.code}
@@ -1391,6 +1144,341 @@ function CatalogPage() {
           </Button>
         )}
       </section>
+
+      {/* Khung app hiện dùng toast cũ; màn này cần nơi hiển thị Sonner. */}
+      <Toaster closeButton={false} offset={80} mobileOffset={80} />
+      <CatalogDrawer
+        open={drawer !== null}
+        onClose={() => {
+          if (!saving) {
+            setDrawer(null);
+            setError('');
+          }
+        }}
+        title={
+          drawer === 'picker'
+            ? 'Chọn dự án'
+            : drawer === 'project'
+              ? projectEditing
+                ? `Sửa dự án ${projectForm.name}`
+                : 'Thêm dự án'
+              : drawer === 'type'
+                ? aptTypeForm.id
+                  ? `Sửa loại căn ${aptTypeForm.name}`
+                  : 'Thêm loại căn'
+                : drawer === 'building'
+                  ? buildingEditing
+                    ? `Sửa toà ${catalog.building(buildingEditing)?.code || buildingForm.code}`
+                    : 'Thêm toà'
+                  : drawer === 'buildingTypes'
+                    ? `Loại căn của toà ${building?.code || ''}`
+                    : unitEditing
+                      ? `Sửa căn ${unitForm.code}`
+                      : 'Thêm căn'
+        }
+        error={error}
+        saving={saving}
+        saveLabel={
+          drawer === 'project'
+            ? 'Lưu dự án'
+            : drawer === 'building'
+              ? 'Lưu toà'
+              : drawer === 'unit'
+                ? 'Lưu căn'
+                : drawer === 'buildingTypes'
+                  ? 'Lưu loại toà'
+                  : 'Lưu loại'
+        }
+        onSave={
+          drawer === 'picker'
+            ? undefined
+            : () => {
+                if (drawer === 'project') void saveProject();
+                else if (drawer === 'type') void saveAptType();
+                else if (drawer === 'building') void saveBuilding();
+                else if (drawer === 'buildingTypes') void saveBuildingTypes();
+                else if (drawer === 'unit') void saveUnit();
+              }
+        }
+      >
+        {drawer === 'picker' && (
+          <div className="space-y-2">
+            <Button
+              variant="ghost"
+              className="w-full justify-start"
+              onClick={() => {
+                setProjectId('');
+                setBuildingId('');
+                setDrawer(null);
+              }}
+            >
+              Tất cả dự án
+            </Button>
+            {projects.map((p) => (
+              <div key={p.id} className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5">
+                <button
+                  type="button"
+                  className="min-h-11 min-w-0 flex-1 break-words text-left text-body text-ink"
+                  onClick={() => {
+                    setProjectId(p.id);
+                    setBuildingId('');
+                    setDrawer(null);
+                  }}
+                >
+                  {p.name}
+                </button>
+                <button
+                  type="button"
+                  aria-label={`Sửa dự án ${p.name}`}
+                  className="min-h-11 px-2 text-caption text-ion"
+                  onClick={() => editProject(p.id)}
+                >
+                  Sửa
+                </button>
+                <button
+                  type="button"
+                  aria-label={`Lưu trữ dự án ${p.name}`}
+                  className="min-h-11 px-2 text-caption text-alert-text"
+                  onClick={() => {
+                    if (window.confirm(`Lưu trữ dự án “${p.name}”? Toà và căn vẫn được giữ nguyên.`)) {
+                      void run(() => catalog.archiveProject(p.id), 'Đã lưu trữ dự án');
+                      if (projectId === p.id) {
+                        setProjectId('');
+                        setBuildingId('');
+                      }
+                    }
+                  }}
+                >
+                  Lưu trữ
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        {drawer === 'project' && (
+          <div>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <label className={`${labelClass} sm:col-span-2`}>
+                Tên dự án
+                <input
+                  className={fieldClass}
+                  value={projectForm.name}
+                  onChange={(e) => setProjectForm({ ...projectForm, name: e.target.value })}
+                />
+              </label>
+              <TextField
+                label="Giá dự án"
+                suffix="triệu/m²"
+                numeric
+                value={projectForm.typical_price_per_m2}
+                onChange={(e) => setProjectForm({ ...projectForm, typical_price_per_m2: e.target.value })}
+              />
+              <label className={labelClass}>
+                Bàn giao dự kiến
+                <input
+                  type="date"
+                  className={fieldClass}
+                  value={projectForm.handover_date}
+                  onChange={(e) => setProjectForm({ ...projectForm, handover_date: e.target.value })}
+                />
+              </label>
+              <TextField
+                label="VAT"
+                suffix="%"
+                numeric
+                value={projectForm.vat_rate}
+                onChange={(e) => setProjectForm({ ...projectForm, vat_rate: e.target.value })}
+              />
+              <TextField
+                label="KPBT"
+                suffix="%"
+                numeric
+                value={projectForm.kpbt_rate}
+                onChange={(e) => setProjectForm({ ...projectForm, kpbt_rate: e.target.value })}
+              />
+              <TextField
+                label="Nhận sổ sau bàn giao"
+                suffix="tháng"
+                numeric
+                value={projectForm.title_after_months}
+                onChange={(e) => setProjectForm({ ...projectForm, title_after_months: e.target.value })}
+              />
+            </div>
+          </div>
+        )}
+        {drawer === 'type' && (
+          <div className="grid gap-3">
+            <label className={labelClass}>
+              Tên loại căn
+              <input
+                className={fieldClass}
+                value={aptTypeForm.name}
+                onChange={(e) => setAptTypeForm({ ...aptTypeForm, name: e.target.value })}
+                placeholder="2N-2WC"
+              />
+            </label>
+            <TextField
+              label="Diện tích điển hình"
+              suffix="m²"
+              numeric
+              value={aptTypeForm.area}
+              onChange={(e) => setAptTypeForm({ ...aptTypeForm, area: e.target.value })}
+            />
+          </div>
+        )}
+        {drawer === 'building' && (
+          <div className="grid gap-3">
+            <label className={labelClass}>
+              Mã toà
+              <input
+                className={fieldClass}
+                value={buildingForm.code}
+                onChange={(e) => setBuildingForm({ ...buildingForm, code: e.target.value })}
+              />
+            </label>
+            <TextField
+              label="Giá duyệt toà"
+              hint={buildingPriceHint}
+              placeholder={buildingPriceHint}
+              suffix="triệu/m²"
+              numeric
+              value={buildingForm.approved_price_per_m2}
+              onChange={(e) => setBuildingForm({ ...buildingForm, approved_price_per_m2: e.target.value })}
+            />
+            <label className={labelClass}>
+              Bàn giao riêng của toà
+              <input
+                type="date"
+                className={fieldClass}
+                aria-describedby="building-handover-hint"
+                value={buildingForm.handover_date}
+                onChange={(e) => setBuildingForm({ ...buildingForm, handover_date: e.target.value })}
+              />
+            </label>
+            <p id="building-handover-hint" className="text-caption text-ink-muted">
+              {buildingHandoverHint}
+            </p>
+          </div>
+        )}
+        {drawer === 'buildingTypes' && (
+          <div className="space-y-4">
+            {catalog.projectTypes(projectId).map((type) => {
+              const value = buildingTypeDraft[type.apt_type] || { selected: false, area: '' };
+              return (
+                <div key={type.id} className="grid items-center gap-2 sm:grid-cols-[1fr_1fr_auto]">
+                  <label className="flex min-h-11 items-center gap-2 text-caption">
+                    <input
+                      type="checkbox"
+                      checked={value.selected}
+                      onChange={(e) =>
+                        setBuildingTypeDraft({
+                          ...buildingTypeDraft,
+                          [type.apt_type]: { ...value, selected: e.target.checked },
+                        })
+                      }
+                    />
+                    {type.apt_type}
+                  </label>
+                  <TextField
+                    label={`Diện tích riêng ${type.apt_type}`}
+                    suffix="m²"
+                    numeric
+                    value={value.area}
+                    onChange={(e) =>
+                      setBuildingTypeDraft({
+                        ...buildingTypeDraft,
+                        [type.apt_type]: { ...value, area: e.target.value },
+                      })
+                    }
+                    placeholder={String(catalog.typicalArea(projectId, null, type.apt_type) ?? '')}
+                    hint={
+                      !value.area.trim() && catalog.typicalArea(projectId, null, type.apt_type) != null
+                        ? `Theo dự án: ${catalog.typicalArea(projectId, null, type.apt_type)} m²`
+                        : undefined
+                    }
+                  />
+                  <span className="text-caption text-ink-muted">{value.selected ? 'Được dùng' : 'Không chọn'}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+        {drawer === 'unit' && (
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className={labelClass}>
+              Mã căn
+              <input
+                className={fieldClass}
+                value={unitForm.code}
+                onChange={(e) => setUnitForm({ ...unitForm, code: e.target.value })}
+              />
+            </label>
+            <label className={labelClass}>
+              Loại căn
+              <input
+                className={fieldClass}
+                list="catalog-types"
+                value={unitForm.apt_type}
+                onChange={(e) => setUnitForm({ ...unitForm, apt_type: e.target.value })}
+              />
+              <datalist id="catalog-types">
+                {project &&
+                  catalog.projectTypes(project.id).map((type) => <option key={type.id} value={type.apt_type} />)}
+              </datalist>
+            </label>
+            <TextField
+              label="Tầng"
+              suffix="tầng"
+              numeric
+              value={unitForm.floor}
+              onChange={(e) => setUnitForm({ ...unitForm, floor: e.target.value })}
+            />
+            <label className={labelClass}>
+              Hướng
+              <select
+                className={fieldClass}
+                value={unitForm.direction}
+                onChange={(e) => setUnitForm({ ...unitForm, direction: e.target.value })}
+              >
+                <option value="">Chưa rõ</option>
+                {DIRECTIONS.map((direction) => (
+                  <option key={direction}>{direction}</option>
+                ))}
+              </select>
+            </label>
+            <TextField
+              label="Diện tích"
+              suffix="m²"
+              numeric
+              value={unitForm.area_m2}
+              onChange={(e) => setUnitForm({ ...unitForm, area_m2: e.target.value })}
+              hint={unitAreaHint}
+              placeholder={unitAreaHint}
+            />
+            <TextField
+              label="Giá riêng"
+              hint={unitPriceHint}
+              placeholder={unitPriceHint}
+              suffix="triệu/m²"
+              numeric
+              value={unitForm.price_per_m2_override}
+              onChange={(e) => setUnitForm({ ...unitForm, price_per_m2_override: e.target.value })}
+            />
+            <label className={labelClass}>
+              Tình trạng
+              <select
+                className={fieldClass}
+                value={unitForm.status}
+                onChange={(e) => setUnitForm({ ...unitForm, status: e.target.value })}
+              >
+                <option value="available">Còn</option>
+                <option value="holding">Giữ chỗ</option>
+                <option value="sold">Đã bán</option>
+              </select>
+            </label>
+          </div>
+        )}
+      </CatalogDrawer>
     </main>
   );
 }
