@@ -10,11 +10,12 @@ import {
   pickCustomer,
   retryDelayMs,
 } from './mapping.js';
+import { PAGE_TOKEN_KEYS, pageFor } from './pages.js';
 
 export const MAX_ATTEMPTS = 15;
 
 const SECRET_KEYS = [
-  'FB_PAGE_ACCESS_TOKEN',
+  ...PAGE_TOKEN_KEYS,
   'FB_APP_SECRET',
   'FB_MANUAL_SECRET',
   'FB_VERIFY_TOKEN',
@@ -29,10 +30,11 @@ function text(value) {
 export function redactError(error, env = {}) {
   let message = (error && error.message) || String(error) || 'Lỗi không rõ';
   message = message.replace(/\d{8,}/g, '[số]');
-  for (const key of SECRET_KEYS) {
-    const secret = env[key];
-    if (typeof secret === 'string' && secret.length >= 4) message = message.split(secret).join('[ẩn]');
-  }
+  // Che chuỗi dài trước — token này có thể chứa token khác bên trong.
+  const secrets = SECRET_KEYS.map((key) => env[key])
+    .filter((secret) => typeof secret === 'string' && secret.length >= 4)
+    .sort((a, b) => b.length - a.length);
+  for (const secret of secrets) message = message.split(secret).join('[ẩn]');
   return message.slice(0, 500);
 }
 
@@ -46,10 +48,15 @@ export function connectionMessage(kind, message = '') {
   return `Chưa cấu hình đủ để nhận lead Facebook: ${message}`;
 }
 
+// Token đúng Page chứa lead; ctx cũ (không có graphFor) dùng Page chính.
+function graphOf(ctx, row) {
+  return typeof ctx.graphFor === 'function' ? ctx.graphFor(row.page_id) : ctx.graph;
+}
+
 async function loadLead(ctx, row) {
   const payload = row.payload || {};
   if (payload.lead && typeof payload.lead === 'object') return payload.lead;
-  return ctx.graph.fetchLead(row.lead_id);
+  return graphOf(ctx, row).fetchLead(row.lead_id);
 }
 
 async function attachToCustomer(ctx, { target, interaction, baseLog, leadId, nowIso }) {
@@ -183,8 +190,10 @@ export async function processQueueItem(ctx, row) {
     }
 
     // Lỗi cấu hình: KHÔNG gọi Graph, KHÔNG đốt lượt thử.
-    if (!ctx.env.FB_PAGE_ACCESS_TOKEN && !(row.payload && row.payload.lead)) {
-      const error = new Error('Thiếu FB_PAGE_ACCESS_TOKEN (token đọc lead)');
+    const page = pageFor(ctx.env, row.page_id);
+    if (!(page && page.token) && !(row.payload && row.payload.lead)) {
+      const key = page && page.index > 1 ? `FB_PAGE_ACCESS_TOKEN_${page.index}` : 'FB_PAGE_ACCESS_TOKEN';
+      const error = new Error(`Thiếu ${key} (token đọc lead)`);
       error.kind = 'config';
       throw error;
     }
@@ -195,7 +204,7 @@ export async function processQueueItem(ctx, row) {
     }
 
     const lead = await loadLead(ctx, row);
-    const formName = text(row.payload && row.payload.form_name) || (await ctx.graph.formName(lead.form_id || row.form_id));
+    const formName = text(row.payload && row.payload.form_name) || (await graphOf(ctx, row).formName(lead.form_id || row.form_id));
     const parsed = parseFieldData(lead.field_data);
     const at = createdTimeIso(lead.created_time != null ? lead.created_time : row.payload && row.payload.created_time, nowIso);
     const campaign = campaignFor(lead, formName);

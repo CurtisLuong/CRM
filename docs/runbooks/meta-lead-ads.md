@@ -173,6 +173,21 @@ Kết quả dạng `{"forms":3,"found":40,"queued":12,"already":28}`: `queued` =
 
 > **Meta có tự báo token hết hạn không?** Meta **không** có webhook báo token hết hạn (HYPOTHESIS — không tìm thấy trong tài liệu). Token System User đặt "Never" không hết hạn theo thời gian, chỉ mất khi bị thu hồi. Vì vậy Worker tự kiểm token mỗi ngày bằng `debug_token` và cảnh báo trước 7 ngày; lỗi token cũng được phát hiện ngay ở lượt gọi Graph đầu tiên.
 
+## 11b. Thêm Page thứ 2 (Page khác, kể cả ở Business portfolio khác)
+
+> Thêm 2026-11-03. Dùng chung app `So Khach CRM` và System User `crm-lead-reader`, **không** tạo app mới. Mỗi Page cần token riêng (token Page chỉ đọc được lead của chính Page đó). Worker nhận tối đa 5 Page: Page chính `FB_PAGE_ID`/`FB_PAGE_ACCESS_TOKEN`, Page thêm `FB_PAGE_ID_2`/`FB_PAGE_ACCESS_TOKEN_2` … `_5`.
+
+1. **Không** dùng "Add an app" bằng App ID ở portfolio mới — làm vậy là xin **chuyển chủ** app sang portfolio mới.
+2. Page ở portfolio khác → chia sẻ Page sang portfolio cũ (nơi có app): portfolio mới → **Accounts → Pages** → chọn Page → **Assign partner** → Business ID của portfolio cũ → **Full control** (hoặc quản lý Page + Leads).
+3. Portfolio cũ → **System users → crm-lead-reader → Assign assets → Pages** → Page mới → **Full control**.
+4. Nếu Page mới có **Leads access**: portfolio mới → **Integrations → Leads access** → Page mới → **CRMs** → **Assign CRMs** → `So Khach CRM`.
+5. Lấy token: **System users → crm-lead-reader → Generate new token** → app `So Khach CRM` → **Never** → tích đủ quyền như mục 5 bước 3 → copy. (Tạo token mới **không** làm hỏng token cũ.) Mở `https://graph.facebook.com/v26.0/me/accounts?fields=id,name,access_token&access_token=TOKEN_HE_THONG` → ở dòng Page mới: `id` → `FB_PAGE_ID_2`, `access_token` → `FB_PAGE_ACCESS_TOKEN_2`. Không thấy Page mới trong danh sách = bước 3 chưa xong.
+6. Cloudflare → **intake-worker** → **Settings → Variables and Secrets** → thêm 2 secret `FB_PAGE_ID_2`, `FB_PAGE_ACCESS_TOKEN_2` (Type = Secret).
+7. Đăng ký Page mới nhận webhook: Graph API Explorer → app `So Khach CRM` → **User or Page** = Page mới → **POST** `me/subscribed_apps?subscribed_fields=leadgen` → `"success": true`. (Webhook ở mục 8 bước 1 làm 1 lần cho cả app, không làm lại.)
+8. Kéo bù lead từ ngày chiến dịch mới bắt đầu (mục 10) — kéo bù quét mọi Page.
+
+Lỗi của Page thêm hiện trên app kèm "Page số 2". Lead của Page chưa có token nằm ở hàng chờ (không đốt lượt thử), tự vào trong ≤ 1 giờ sau khi thêm token.
+
 ## 12. Phương án dự phòng: Make / Zapier
 
 Nếu Meta không cấp được quyền đọc lead: Make (hoặc Zapier) "Facebook Lead Ads → Watch new leads" → module **HTTP POST** tới `https://intake-worker.luongninja.workers.dev/fb/manual`, header `X-Intake-Secret: <FB_MANUAL_SECRET>`, body JSON:

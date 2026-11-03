@@ -1,6 +1,8 @@
 // Tình trạng kết nối Meta — 1 dòng `integration_health` (id 'meta_lead_ads') cho app đọc (ML-02).
 // Kiểm token + webhook tối đa 1 lần/24 giờ (hoặc ngay khi có lỗi token); mỗi lượt cron vẫn
 // cập nhật số lead đang chờ / đã dừng tự thử.
+import { configuredPages, missingPageSecrets } from './pages.js';
+
 export const INTEGRATION_ID = 'meta_lead_ads';
 
 export const REQUIRED_SECRETS = [
@@ -45,6 +47,77 @@ function expiryWarning(days, atMs) {
   return `Token Facebook hết hạn sau ${days} ngày (${when}) — tạo token mới trước ngày đó.`;
 }
 
+function isLeadgen(app) {
+  return Array.isArray(app && app.subscribed_fields) && app.subscribed_fields.includes('leadgen');
+}
+
+/** Kiểm token + webhook của 1 Page. */
+async function checkPage(graph, before) {
+  const result = { token: before || null, tokenError: null, subscribed: undefined, webhookError: null };
+  try {
+    const data = await graph.debugToken();
+    result.token = (data && data.data) || data || null;
+  } catch (error) {
+    if (error && error.code === 'budget') throw error;
+    result.tokenError = (error && error.kind) || 'transient';
+    if (result.tokenError === 'token' || result.tokenError === 'permission') {
+      result.token = { is_valid: false, scopes: (before && before.scopes) || [] };
+    }
+  }
+  try {
+    const apps = await graph.subscribedApps();
+    result.subscribed = (Array.isArray(apps && apps.data) ? apps.data : []).some(isLeadgen);
+  } catch (error) {
+    if (error && error.code === 'budget') throw error;
+    result.webhookError = (error && error.kind) || 'transient';
+  }
+  return result;
+}
+
+function minPositive(values) {
+  const list = values.map(Number).filter((value) => Number.isFinite(value) && value > 0);
+  return list.length ? Math.min(...list) : 0;
+}
+
+/**
+ * Gộp kết quả nhiều Page thành 1 tình trạng: hỏng ở Page nào = hỏng; quyền = phần chung;
+ * hạn token = sớm nhất. `failingIndex` = số thứ tự Page lỗi đầu tiên (để câu báo nêu Page nào).
+ */
+function mergeChecks(checks) {
+  if (checks.length <= 1) {
+    const only = checks[0] || { token: null, tokenError: null, subscribed: undefined, webhookError: null };
+    return { ...only, failingIndex: null };
+  }
+  const tokens = checks.map((check) => check.token).filter(Boolean);
+  const scopeLists = tokens.filter((t) => Array.isArray(t.scopes)).map((t) => t.scopes);
+  const failing = checks.find(
+    (check) =>
+      (check.token && check.token.is_valid === false) ||
+      (check.token && Array.isArray(check.token.scopes) && !check.token.scopes.includes('leads_retrieval')) ||
+      check.subscribed === false,
+  );
+  const known = checks.filter((check) => check.subscribed !== undefined);
+  return {
+    token: tokens.length
+      ? {
+          is_valid: tokens.every((t) => t.is_valid !== false),
+          scopes: scopeLists.length ? scopeLists.reduce((acc, list) => acc.filter((s) => list.includes(s))) : undefined,
+          expires_at: minPositive(tokens.map((t) => t.expires_at)),
+          data_access_expires_at: minPositive(tokens.map((t) => t.data_access_expires_at)),
+        }
+      : null,
+    tokenError: (checks.find((check) => check.tokenError) || {}).tokenError || null,
+    webhookError: (checks.find((check) => check.webhookError) || {}).webhookError || null,
+    subscribed: known.length ? known.every((check) => check.subscribed) : undefined,
+    failingIndex: failing ? failing.page.index : null,
+  };
+}
+
+/** " của Page số 2" khi có nhiều Page và lỗi nằm ở 1 Page cụ thể. */
+function pageNote(details, lead = ' của Page số') {
+  return details && details.pages && details.failing_page ? `${lead} ${details.failing_page}` : '';
+}
+
 async function readSnapshot(ctx) {
   try {
     return countPending(await ctx.store.queueSnapshot());
@@ -62,7 +135,7 @@ export async function runHealthCheck(env, ctx, { force = false, forcedError = nu
   const now = ctx.now();
   const nowMs = now.getTime();
   const ownerId = env.FB_LEAD_OWNER_ID || null;
-  const missing = REQUIRED_SECRETS.filter((name) => !env[name]);
+  const missing = [...REQUIRED_SECRETS.filter((name) => !env[name]), ...missingPageSecrets(env)];
   const canStore = Boolean(env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY);
 
   let existing = null;
@@ -96,30 +169,33 @@ export async function runHealthCheck(env, ctx, { force = false, forcedError = nu
 
     if (!forcedError && (force || stale)) {
       details.token_checked_at = now.toISOString();
-      try {
-        const data = await ctx.graph.debugToken();
-        token = (data && data.data) || data || null;
-        details.token = token;
-        delete details.token_error;
-      } catch (error) {
-        if (error && error.code === 'budget') throw error;
-        details.token_error = (error && error.kind) || 'transient';
-        if (details.token_error === 'token' || details.token_error === 'permission') {
-          token = { is_valid: false, scopes: (token && token.scopes) || [] };
-          details.token = token;
-        }
+      const pages = configuredPages(env).filter((page) => page.token);
+      const previous = details.pages && typeof details.pages === 'object' ? details.pages : {};
+      const checks = [];
+      for (const page of pages) {
+        const graph = typeof ctx.graphFor === 'function' ? ctx.graphFor(page.id) : ctx.graph;
+        const before = page.index === 1 ? details.token : previous[page.id] && previous[page.id].token;
+        checks.push({ page, ...(await checkPage(graph, before)) });
       }
-      try {
-        const apps = await ctx.graph.subscribedApps();
-        const list = Array.isArray(apps && apps.data) ? apps.data : [];
-        webhookSubscribed = list.some(
-          (app) => Array.isArray(app && app.subscribed_fields) && app.subscribed_fields.includes('leadgen'),
-        );
+      const merged = mergeChecks(checks);
+      token = merged.token;
+      details.token = token;
+      if (merged.tokenError) details.token_error = merged.tokenError;
+      else delete details.token_error;
+      if (merged.webhookError) details.webhook_error = merged.webhookError;
+      else delete details.webhook_error;
+      if (merged.subscribed !== undefined) {
+        webhookSubscribed = merged.subscribed;
         details.webhook_subscribed = webhookSubscribed;
-        delete details.webhook_error;
-      } catch (error) {
-        if (error && error.code === 'budget') throw error;
-        details.webhook_error = (error && error.kind) || 'transient';
+      }
+      if (checks.length > 1) {
+        details.pages = Object.fromEntries(
+          checks.map((check) => [check.page.id, { index: check.page.index, token: check.token, webhook_subscribed: check.subscribed }]),
+        );
+        details.failing_page = merged.failingIndex;
+      } else {
+        delete details.pages;
+        delete details.failing_page;
       }
     }
 
@@ -155,11 +231,10 @@ export async function runHealthCheck(env, ctx, { force = false, forcedError = nu
       delete details.token_checked_at;
     } else if (!valid) {
       status = 'error';
-      message = 'Token Facebook không còn hiệu lực — tạo token mới trong Meta rồi cập nhật cho Worker.';
+      message = `Token Facebook${pageNote(details)} không còn hiệu lực — tạo token mới trong Meta rồi cập nhật cho Worker.`;
     } else if (missingScope) {
       status = 'error';
-      message =
-        'Token Facebook thiếu quyền đọc lead (leads_retrieval) — cấp lại quyền trong Meta rồi cập nhật token.';
+      message = `Token Facebook${pageNote(details)} thiếu quyền đọc lead (leads_retrieval) — cấp lại quyền trong Meta rồi cập nhật token.`;
     } else if (snapshot.stuck.length > 0) {
       status = 'error';
       message = `Có ${snapshot.stuck.length} lead không tự ghi được vào CRM — cần xử lý tay (xem hướng dẫn Meta Lead Ads, mục "Khi có cảnh báo").`;
@@ -173,7 +248,7 @@ export async function runHealthCheck(env, ctx, { force = false, forcedError = nu
         : 'Có lead đang chờ quá 1 giờ — kiểm tra kết nối Facebook.';
     } else if (webhookSubscribed === false && !webhookRecent) {
       status = 'warning';
-      message = 'Page chưa đăng ký nhận lead qua webhook — bật leadgen trong cài đặt Meta để lead về ngay.';
+      message = `Page${pageNote(details, ' số')} chưa đăng ký nhận lead qua webhook — bật leadgen trong cài đặt Meta để lead về ngay.`;
     }
   }
 
