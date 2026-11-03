@@ -4,6 +4,7 @@ import { createBudget, MAX_FETCHES_PER_RUN } from './budget.js';
 import { createProjectRules } from './campaignProjects.js';
 import { createGraph } from './graph.js';
 import { runHealthCheck } from './health.js';
+import { configuredPages, envForPage, pageFor } from './pages.js';
 import { connectionMessage, processQueueItem, redactError } from './process.js';
 import { createStore } from './store.js';
 
@@ -15,11 +16,20 @@ export function createRun(env, { now, maxFetches = MAX_FETCHES_PER_RUN } = {}) {
   const budget = createBudget(maxFetches);
   const store = createStore(env, { budget, now: clock });
   const graph = createGraph(env, { budget, now: clock });
+  const graphs = new Map();
+  // Graph dùng token của đúng Page chứa lead (chung ngân sách fetch của lượt).
+  function graphFor(pageId) {
+    const page = pageFor(env, pageId);
+    if (!page || page.index === 1) return graph;
+    if (!graphs.has(page.id)) graphs.set(page.id, createGraph(envForPage(env, page), { budget, now: clock }));
+    return graphs.get(page.id);
+  }
   return {
     env,
     budget,
     store,
     graph,
+    graphFor,
     now: clock,
     projectFor: createProjectRules(store, env.FB_LEAD_OWNER_ID),
     lastLeadAt: null,
@@ -86,39 +96,55 @@ export function makeQueueRow({ leadId, pageId, formId, formName, via, env, lead,
   };
 }
 
-/** Quét lead trong 48h gần nhất (lưới an toàn cho webhook) → chỉ ĐƯA VÀO HÀNG CHỜ. */
+/** Quét lead trong 48h gần nhất (lưới an toàn cho webhook) → chỉ ĐƯA VÀO HÀNG CHỜ. Quét mọi Page có token. */
 export async function pollRecentLeads(ctx) {
   const env = ctx.env;
-  if (!env.FB_PAGE_ID || !env.FB_PAGE_ACCESS_TOKEN) return { forms: 0, found: 0, queued: 0, skipped: true };
+  const pages = configuredPages(env).filter((page) => page.token);
+  if (!pages.length) return { forms: 0, found: 0, queued: 0, skipped: true };
   const since = Math.floor(ctx.now().getTime() / 1000) - POLL_LOOKBACK_H * 3600;
-  const data = await ctx.graph.listForms();
-  const forms = Array.isArray(data && data.data) ? data.data : [];
   const rows = [];
+  let formCount = 0;
   let found = 0;
   let truncated = false;
-  for (const form of forms) {
+  let firstError = null;
+  for (const page of pages) {
     if (ctx.budget.left() < 4) break;
-    const { leads, more } = await ctx.graph.leadsOfForm(form.id, since, null, { reserve: 3 });
-    if (more) truncated = true; // trang còn lại: lượt cron sau đọc tiếp (lead đã vào hàng chờ được bỏ qua)
-    found += leads.length;
-    for (const lead of leads) {
-      rows.push(
-        makeQueueRow({
-          leadId: lead.id,
-          pageId: env.FB_PAGE_ID,
-          formId: lead.form_id || form.id,
-          formName: form.name || null,
-          via: 'poll',
-          env,
-          lead,
-          nowIso: ctx.now().toISOString(),
-        }),
-      );
+    const graph = ctx.graphFor(page.id);
+    let forms;
+    try {
+      const data = await graph.listForms();
+      forms = Array.isArray(data && data.data) ? data.data : [];
+    } catch (error) {
+      if (error && error.code === 'budget') throw error;
+      // 1 Page lỗi token không được chặn việc quét Page khác.
+      if (!firstError) firstError = error;
+      continue;
+    }
+    formCount += forms.length;
+    for (const form of forms) {
+      if (ctx.budget.left() < 4) break;
+      const { leads, more } = await graph.leadsOfForm(form.id, since, null, { reserve: 3 });
+      if (more) truncated = true; // trang còn lại: lượt cron sau đọc tiếp (lead đã vào hàng chờ được bỏ qua)
+      found += leads.length;
+      for (const lead of leads) {
+        rows.push(
+          makeQueueRow({
+            leadId: lead.id,
+            pageId: page.id,
+            formId: lead.form_id || form.id,
+            formName: form.name || null,
+            via: 'poll',
+            env,
+            lead,
+            nowIso: ctx.now().toISOString(),
+          }),
+        );
+      }
     }
   }
   let inserted = [];
   if (rows.length && ctx.budget.left() >= 1) inserted = await ctx.store.enqueue(rows);
-  return { forms: forms.length, found, queued: inserted.length, truncated };
+  return { forms: formCount, found, queued: inserted.length, truncated, error: firstError };
 }
 
 export async function processDueBatch(ctx, limit) {
@@ -154,6 +180,7 @@ export async function runCron(env, options = {}) {
     summary.forms = poll.forms;
     summary.found = poll.found;
     summary.queued = poll.queued;
+    if (poll.error) throw poll.error;
   } catch (error) {
     if (!error || error.code !== 'budget') {
       console.error('fb poll lỗi', JSON.stringify({ error: redactError(error, env) }));
@@ -194,18 +221,23 @@ export async function runBackfill(env, body = {}) {
     return { status: 400, body: { error: 'Ngày không hợp lệ — dùng dạng YYYY-MM-DD và since ≤ until.' } };
   }
 
+  // Mỗi form kèm Page của nó để đọc lead bằng đúng token.
   let forms;
   try {
     if (body.form_id) {
-      const name = await ctx.graph.formName(String(body.form_id));
-      forms = [{ id: String(body.form_id), name }];
+      const page = pageFor(env, body.page_id);
+      const name = await ctx.graphFor(page && page.id).formName(String(body.form_id));
+      forms = [{ id: String(body.form_id), name, pageId: page ? page.id : env.FB_PAGE_ID || null }];
     } else {
-      if (!env.FB_PAGE_ID) return { status: 400, body: { error: 'Thiếu FB_PAGE_ID để lấy danh sách form.' } };
-      const data = await ctx.graph.listForms();
-      forms = (Array.isArray(data && data.data) ? data.data : []).map((form) => ({
-        id: String(form.id),
-        name: form.name || null,
-      }));
+      const pages = configuredPages(env).filter((page) => page.token);
+      if (!pages.length) return { status: 400, body: { error: 'Thiếu FB_PAGE_ID để lấy danh sách form.' } };
+      forms = [];
+      for (const page of pages) {
+        const data = await ctx.graphFor(page.id).listForms();
+        for (const form of Array.isArray(data && data.data) ? data.data : []) {
+          forms.push({ id: String(form.id), name: form.name || null, pageId: page.id });
+        }
+      }
     }
   } catch (error) {
     if (error && error.code === 'budget') {
@@ -226,7 +258,7 @@ export async function runBackfill(env, body = {}) {
     }
     let leads;
     try {
-      const page = await ctx.graph.leadsOfForm(form.id, range.since, range.until, { reserve: 2 });
+      const page = await ctx.graphFor(form.pageId).leadsOfForm(form.id, range.since, range.until, { reserve: 2 });
       leads = page.leads;
       if (page.more) truncated = true;
     } catch (error) {
@@ -240,7 +272,7 @@ export async function runBackfill(env, body = {}) {
     const rows = leads.map((lead) =>
       makeQueueRow({
         leadId: lead.id,
-        pageId: env.FB_PAGE_ID,
+        pageId: form.pageId,
         formId: lead.form_id || form.id,
         formName: form.name || null,
         via: 'backfill',
