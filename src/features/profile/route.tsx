@@ -16,13 +16,14 @@ import { factPatch } from '@/domain/customer/facts';
 import { callAttemptsOf, normStage, openTasksOf } from '@/domain/customer/normalize';
 import { canEditTeamInfo, isTeamInfoPatch } from '@/domain/customer/teamEdit';
 import { customerTimeline } from '@/domain/customer/timeline';
-import { callScheduleLabel, countdownTag, taskDueInfo } from '@/domain/deadlines';
+import { callScheduleLabel, countdownTag, dashWhen, taskDueInfo } from '@/domain/deadlines';
 import { forStage } from '@/domain/followup';
 import { planSlaUndo } from '@/domain/velocity/automation';
 import { bookingSteps, status as slaStatus } from '@/domain/velocity/engine';
 import { AiBrief } from '@/features/ai/AiBrief';
 import { CUSTOMER_GROUP_LABEL, customerGroupOf } from '@/features/customers/model';
 import { customerUnit, loanPath } from '@/features/loan/model';
+import { callDraftOf, callDuration, pendingCallsOf } from '@/features/quick-actions/model';
 import { openQuickAction } from '@/features/quick-actions/store';
 import { fmtDur, slaFor, slaMeterFor } from '@/lib/crm';
 import { Icon } from '@/ui/Icon';
@@ -563,10 +564,13 @@ function Profile() {
   const callStart = c.next_call_at ? Date.parse(c.next_call_at) : Number.NaN;
   const callTag = countdownTag(callStart, c.next_call_end ? Date.parse(c.next_call_end) : callStart, false, now);
   const callWhen = callScheduleLabel(c, now);
+  // Cuộc gọi (thường từ nhật ký máy) chưa ghi kết quả → nhắc ngay trong "Việc tiếp theo" để ghi.
+  const pendingCalls = otherOwner ? [] : pendingCallsOf(c);
   // Việc đến hạn/quá hạn đứng đầu hồ sơ, vạch đỏ để không bỏ quên (D-010).
   const tones = [
     ...tasks.map((task) => dueTone(taskDueInfo(task, now))),
     callTag?.state === 'missed' ? ('over' as const) : callTag?.state === 'due' ? ('soon' as const) : undefined,
+    pendingCalls.length ? ('soon' as const) : undefined,
   ];
   const nextTone = tones.includes('over') ? 'over' : tones.includes('soon') ? 'soon' : undefined;
   const asked = briefParts.missing.find((item) => item.key === missingKey) ?? null;
@@ -675,8 +679,31 @@ function Profile() {
                 Thêm việc
               </Button>
             </div>
-            {tasks.length || callWhen ? (
+            {tasks.length || callWhen || pendingCalls.length ? (
               <ul className="mt-2 space-y-3">
+                {pendingCalls.map((attempt) => {
+                  const ms = Date.parse(attempt.at);
+                  const dur = callDuration(attempt.duration);
+                  return (
+                    <li key={`pending-${attempt.at}`} className="flex items-start gap-3">
+                      <Icon name="call" size={20} className="mt-0.5 text-soon-text" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-body-strong">Cuộc gọi chưa ghi kết quả</p>
+                        <p className="mt-1 text-caption text-ink-muted">
+                          {dashWhen(ms, now)}
+                          {dur ? ` · ${dur}` : ''}
+                        </p>
+                      </div>
+                      <Button
+                        disabled={!writable}
+                        aria-label={`Ghi kết quả cuộc gọi ${dashWhen(ms, now)}`}
+                        onClick={() => openQuickAction(c.id, 'outcome', callDraftOf(attempt))}
+                      >
+                        Ghi kết quả
+                      </Button>
+                    </li>
+                  );
+                })}
                 {callWhen && (
                   <li className="flex items-start gap-3">
                     <Icon name="call" size={20} className="mt-0.5 text-ink-muted" />
