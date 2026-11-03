@@ -48,6 +48,7 @@ describe('notifications route', () => {
       </ToastProvider>,
     );
     expect(await screen.findByText(/Khách cần gọi/)).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Mở hồ sơ' }));
+    // Bấm tên khách = mở hồ sơ (Curtis 03/11: bỏ nút "Mở hồ sơ" riêng).
+    fireEvent.click(screen.getByRole('button', { name: 'Mở hồ sơ Lan' }));
   });
 });

@@ -1,14 +1,18 @@
+import { ChevronDown } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import type { FeatureRoute } from '@/app/routes';
-import { EmptyState, NotificationGroup, SignalBadge } from '@/components/crm';
+import { EmptyState, SignalBadge } from '@/components/crm';
 import { Button } from '@/components/ui/button';
 import { SIGNALS_CONFIG, type SignalGroup } from '@/config/signals';
 import type { Signal } from '@/domain/signals';
-import { type Level, NOTIF_TYPES, type NotifType } from '@/lib/crm';
+import { NOTIF_TYPES, type NotifType } from '@/lib/crm';
 import { notificationLevel } from './model';
 import { useNotificationSignals } from './use-signals';
 
+const DEFAULT_SNOOZE = SIGNALS_CONFIG.snoozeDurations[2];
+
+/** "Hoãn 8 giờ ▾": bấm "Hoãn" = hoãn mặc định; bấm "8 giờ ▾" mở danh sách, chọn là hoãn luôn (1 chạm). */
 function SnoozeControl({
   title,
   customer,
@@ -26,35 +30,37 @@ function SnoozeControl({
       ? `Tạm hoãn nhóm tín hiệu ${title}`
       : `Tạm hoãn tín hiệu ${title}`;
   return (
-    <span className="relative inline-flex items-center gap-1">
-      <Button
+    <span className="inline-flex items-center text-label font-medium text-ion">
+      <button
         type="button"
-        variant="ghost"
-        onClick={() => onSnooze(SIGNALS_CONFIG.snoozeDurations[2].milliseconds)}
+        onClick={() => onSnooze(DEFAULT_SNOOZE.milliseconds)}
         aria-label={label}
+        className="min-h-11 cursor-pointer pr-1 hover:underline"
       >
-        Hoãn 8 giờ
-      </Button>
-      <select
-        aria-label={`Chọn thời gian hoãn${customer ? ` cho ${customer}` : ''}`}
-        defaultValue=""
-        onChange={(event) => {
-          const duration = SIGNALS_CONFIG.snoozeDurations.find((item) => item.label === event.target.value);
-          if (duration) onSnooze(duration.milliseconds);
-          event.target.value = '';
-        }}
-        className="min-h-11 max-w-20 rounded-sm border border-line bg-surface-100 px-2 text-sm text-ink"
-      >
-        <option value="" disabled>
-          Khác
-        </option>
-        {SIGNALS_CONFIG.snoozeDurations.map((duration) => (
-          <option key={duration.label} value={duration.label}>
-            {duration.label}
-            {duration.milliseconds === SIGNALS_CONFIG.snoozeDurations[2].milliseconds ? ' · Mặc định' : ''}
+        {bulk ? 'Hoãn cả nhóm' : 'Hoãn'}
+      </button>
+      <span className="relative inline-flex min-h-11 items-center gap-0.5 underline decoration-dotted underline-offset-4">
+        {DEFAULT_SNOOZE.label}
+        <ChevronDown aria-hidden className="size-4" />
+        <select
+          aria-label={`Chọn thời gian hoãn${customer ? ` cho ${customer}` : ''}`}
+          value=""
+          onChange={(event) => {
+            const duration = SIGNALS_CONFIG.snoozeDurations.find((item) => item.label === event.target.value);
+            if (duration) onSnooze(duration.milliseconds);
+          }}
+          className="absolute inset-0 cursor-pointer opacity-0"
+        >
+          <option value="" disabled>
+            Chọn thời gian
           </option>
-        ))}
-      </select>
+          {SIGNALS_CONFIG.snoozeDurations.map((duration) => (
+            <option key={duration.label} value={duration.label}>
+              Hoãn {duration.label}
+            </option>
+          ))}
+        </select>
+      </span>
     </span>
   );
 }
@@ -70,8 +76,6 @@ function snoozeConfirmation(until: number) {
   const day = date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
   return `Đã hoãn đến ${sameDay ? '' : `${day} `}${time}`;
 }
-
-const LEVEL_RANK: Record<Level, number> = { alert: 0, soon: 1, ok: 2 };
 
 function notificationType(signal: Signal): NotifType {
   return signal.group ?? 'system';
@@ -136,36 +140,60 @@ export function NotificationsPage() {
       ) : (
         <div className="flex flex-col gap-3">
           {grouped.map(([type, items]) => {
-            const levels = items.map((signal) => notificationLevel(signal, now));
-            const level = levels.reduce((urgent, current) =>
-              LEVEL_RANK[current] < LEVEL_RANK[urgent] ? current : urgent,
-            );
             const typeDef = NOTIF_TYPES[type];
-            if (items.length >= 3) {
-              const groupSignals = items.flatMap((signal) => {
-                const customer = byId.get(signal.customerId);
-                return customer ? [{ signal, customer }] : [];
-              });
-              return (
-                <NotificationGroup
-                  key={type}
-                  type={type}
-                  level={level}
-                  unread
-                  reason={`${items.length} tín hiệu cùng loại`}
-                  items={groupSignals.map(({ signal, customer }) => ({
-                    customer: customer.full_name,
-                    reason: signal.reason,
-                    context: (
-                      <span className="inline-flex flex-wrap items-center gap-2">
-                        <span>{signal.title}</span>
+            const rows = items.flatMap((signal) => {
+              const customer = byId.get(signal.customerId);
+              return customer ? [{ signal, customer }] : [];
+            });
+            if (!rows.length) return null;
+            return (
+              <section
+                key={type}
+                aria-label={typeDef.title}
+                className="overflow-hidden rounded-md border border-line bg-surface-100"
+              >
+                <div className="flex min-h-11 flex-wrap items-center justify-between gap-x-3 px-3 pt-1">
+                  <h2 className="m-0 flex items-center gap-2 text-body font-semibold">
+                    {typeDef.title}
+                    <span className="grid h-5 place-items-center rounded-full border border-line bg-surface-200 px-[7px] font-mono text-xs">
+                      {rows.length}
+                    </span>
+                  </h2>
+                  {/* Hoãn cả nhóm chỉ khi đủ dài để đáng dùng (≥ 3 khách). */}
+                  {rows.length >= 3 && (
+                    <SnoozeControl
+                      title={typeDef.title}
+                      bulk
+                      onSnooze={(duration) =>
+                        snooze(
+                          rows.map(({ signal }) => signal),
+                          duration,
+                        )
+                      }
+                    />
+                  )}
+                </div>
+                <ul className="m-0 list-none p-0">
+                  {rows.map(({ signal, customer }) => (
+                    <li key={signal.id} className="flex min-w-0 flex-col border-t border-line px-3 pt-2">
+                      <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
                         <button
                           type="button"
-                          className="font-medium text-ion hover:underline"
+                          aria-label={`Mở hồ sơ ${customer.full_name}`}
                           onClick={() => navigate(`/ho-so/${customer.id}`)}
+                          className="min-w-0 cursor-pointer text-left text-body font-semibold text-ink [overflow-wrap:anywhere] hover:text-ion hover:underline"
                         >
-                          Mở hồ sơ {customer.full_name}
+                          {customer.full_name}
                         </button>
+                        <SignalBadge level={notificationLevel(signal, now)} size="sm">
+                          {signal.reason}
+                        </SignalBadge>
+                      </div>
+                      {/* Một số tín hiệu có lý do = tiêu đề: không lặp lại cùng một chữ. */}
+                      {signal.title !== signal.reason && (
+                        <p className="m-0 mt-0.5 text-caption text-ink-muted">{signal.title}</p>
+                      )}
+                      <div>
                         <SnoozeControl
                           title={typeDef.title}
                           customer={customer.full_name}
@@ -174,62 +202,12 @@ export function NotificationsPage() {
                             showSnoozed(result);
                           }}
                         />
-                      </span>
-                    ),
-                  }))}
-                  bulkControl={
-                    <SnoozeControl
-                      title={typeDef.title}
-                      bulk
-                      onSnooze={(duration) =>
-                        snooze(
-                          groupSignals.map(({ signal }) => signal),
-                          duration,
-                        )
-                      }
-                    />
-                  }
-                  // Màn Thông báo là danh sách đầy đủ: hiện hết khách trong nhóm (số chuông = số thẻ, không có trang "xem tất cả").
-                  preview={groupSignals.length}
-                  defaultOpen
-                />
-              );
-            }
-            return items.map((signal) => {
-              const customer = byId.get(signal.customerId);
-              if (!customer) return null;
-              return (
-                <article
-                  key={signal.id}
-                  className="flex min-w-0 flex-col gap-3 rounded-md border border-line bg-surface-100 p-3 sm:flex-row sm:items-center"
-                >
-                  <div className="min-w-0 flex-1">
-                    <h2 className="m-0 text-body font-semibold">
-                      {typeDef.title} · {customer.full_name}
-                    </h2>
-                    <p className="m-0 mt-1 text-caption text-ink-muted">{signal.title}</p>
-                    <div className="mt-2">
-                      <SignalBadge level={notificationLevel(signal, now)} size="sm">
-                        {signal.reason}
-                      </SignalBadge>
-                    </div>
-                  </div>
-                  <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
-                    <Button type="button" variant="ghost" onClick={() => navigate(`/ho-so/${customer.id}`)}>
-                      Mở hồ sơ
-                    </Button>
-                    <SnoozeControl
-                      title={typeDef.title}
-                      customer={customer.full_name}
-                      onSnooze={(duration) => {
-                        const result = snoozeSignal(signal, duration);
-                        showSnoozed(result);
-                      }}
-                    />
-                  </div>
-                </article>
-              );
-            });
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            );
           })}
         </div>
       )}
