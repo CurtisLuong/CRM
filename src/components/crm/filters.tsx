@@ -272,7 +272,18 @@ export function FilterSection({
   );
 }
 
-export function FilterChip({ label, value, onRemove }: { label?: string; value: string; onRemove?: () => void }) {
+export function FilterChip({
+  label,
+  value,
+  onRemove,
+  removeLabel,
+}: {
+  label?: string;
+  value: string;
+  onRemove?: () => void;
+  /** Tên nút × cho trình đọc màn hình; mặc định "Bỏ lọc <nhãn> <giá trị>". */
+  removeLabel?: string;
+}) {
   return (
     <span className="inline-flex h-7 items-center gap-1 whitespace-nowrap rounded-full border border-ion bg-ion-tint pl-2.5 pr-1 text-xs font-medium text-ink">
       {label && <span className="text-ink-muted">{label}:</span>}
@@ -280,9 +291,10 @@ export function FilterChip({ label, value, onRemove }: { label?: string; value: 
       {onRemove && (
         <button
           type="button"
-          aria-label={`Bỏ lọc ${label ?? ''} ${value}`}
+          aria-label={removeLabel ?? `Bỏ lọc ${label ?? ''} ${value}`}
           onClick={onRemove}
-          className="grid size-[22px] cursor-pointer place-items-center rounded-full text-ink-muted hover:bg-surface-100 hover:text-ink"
+          // Vùng chạm rộng hơn hình × (≈ 42px) — trên điện thoại đây là nút xoá lọc duy nhất.
+          className="relative grid size-[22px] cursor-pointer place-items-center rounded-full text-ink-muted after:absolute after:-inset-2.5 after:content-[''] hover:bg-surface-100 hover:text-ink"
         >
           <X className="size-3" />
         </button>
@@ -367,7 +379,7 @@ export function FilterBar({
   sortFields,
   onSort,
 }: {
-  chips?: { label?: string; value: string; onRemove?: () => void }[];
+  chips?: { label?: string; value: string; onRemove?: () => void; removeLabel?: string }[];
   onOpen?: () => void;
   onClearAll?: () => void;
   result?: number;

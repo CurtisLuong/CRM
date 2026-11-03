@@ -36,6 +36,7 @@ import { Icon } from '@/ui/Icon';
 import { useToast } from '../../ui/Toast';
 import { CalendarRange } from './CalendarRange';
 import {
+  CUSTOMER_GROUP_LABEL,
   type CustomerFilters,
   type CustomerGroup,
   customDateLabel,
@@ -768,9 +769,9 @@ function Customers() {
   );
 
   const groupOptions: { value: CustomerGroup; label: string }[] = [
-    { value: 'potential', label: 'Tiềm năng' },
-    { value: 'new', label: 'Khách mới' },
-    ...(team.length || counts.team ? [{ value: 'team' as const, label: 'Khách nhóm' }] : []),
+    { value: 'potential', label: CUSTOMER_GROUP_LABEL.potential },
+    { value: 'new', label: CUSTOMER_GROUP_LABEL.new },
+    ...(team.length || counts.team ? [{ value: 'team' as const, label: CUSTOMER_GROUP_LABEL.team }] : []),
   ];
   const itemHeight = desktop ? DESKTOP_ITEM_HEIGHT : MOBILE_ITEM_HEIGHT;
   const range = virtualWindow(
@@ -958,22 +959,18 @@ function Customers() {
           }}
         />
       </div>
-      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1.5">
-        <div className="min-w-0 flex-1">
-          <FilterBar
-            result={visible.length}
-            onOpen={() => setFilterOpen(true)}
-            onClearAll={clearFilters}
-            chips={
-              isFilterDirty(group, filters) ? [{ label: 'Bộ lọc', value: 'Đang áp dụng', onRemove: clearFilters }] : []
-            }
-          />
-        </div>
-        {isFilterDirty(group, filters) && (
-          <KitButton variant="ghost" className="shrink-0" onClick={clearFilters}>
-            Xoá lọc
-          </KitButton>
-        )}
+      <div className="mt-1">
+        {/* Dấu × trên chip "Đang áp dụng" là nút Xoá lọc — không thêm nút chữ thứ hai (Curtis 03/11). */}
+        <FilterBar
+          result={visible.length}
+          onOpen={() => setFilterOpen(true)}
+          onClearAll={clearFilters}
+          chips={
+            isFilterDirty(group, filters)
+              ? [{ label: 'Bộ lọc', value: 'Đang áp dụng', onRemove: clearFilters, removeLabel: 'Xoá lọc' }]
+              : []
+          }
+        />
       </div>
 
       {list}

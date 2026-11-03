@@ -1,4 +1,4 @@
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { CLOSE_REASONS } from '@/config/reasons';
 import type { Customer } from '@/domain/customer';
@@ -124,7 +124,7 @@ export function CustomerContactPrefs({
   if (!showChannel && !showSlot && !showDoNotContact && !showDncReason) return null;
 
   return (
-    <section className="space-y-3">
+    <section data-jump="contact" className="space-y-3">
       <h2 className="text-section-head">Tuỳ chọn liên hệ</h2>
       <div className="flex flex-wrap gap-3">
         {showChannel && (
@@ -396,7 +396,7 @@ export function CustomerHousehold({ customer, writable, onSave, now }: BaseProps
   };
 
   return (
-    <section className="space-y-3">
+    <section data-jump="household" className="space-y-3">
       <h2 className="text-section-head">Người cùng quyết định</h2>
       {(customer.household || []).filter(Boolean).map((person, index) => (
         <p key={person?.id || index} className="text-body">
@@ -587,8 +587,17 @@ export function CustomerNeedsAdvanced({
   now = Date.now(),
   projectCatalog,
   children,
-}: BaseProps & { projectCatalog?: InterestProjectCatalog | null; children?: ReactNode }) {
+  openSignal,
+}: BaseProps & {
+  projectCatalog?: InterestProjectCatalog | null;
+  children?: ReactNode;
+  /** Đổi số = mở khối (bấm "Còn thiếu: Người quyết định" ở thẻ Đã biết). */
+  openSignal?: number;
+}) {
   const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (openSignal) setOpen(true);
+  }, [openSignal]);
   return (
     <section aria-label="Nhu cầu nâng cao" className="space-y-3">
       <Button variant="secondary" className="w-full" aria-expanded={open} onClick={() => setOpen(!open)}>

@@ -13,6 +13,23 @@ export type CallDraft = {
   editAt?: string;
   estimateSec?: number;
 };
+/** Mở bảng kết quả GẮN VÀO cuộc gọi có sẵn (sửa đúng phần tử, không thêm cuộc mới). */
+export function callDraftOf(attempt: CallAttempt & { at: string }): CallDraft {
+  return {
+    at: attempt.at,
+    editAt: attempt.at,
+    duration: attempt.duration,
+    origin: attempt.origin ?? 'manual',
+    device_id: attempt.device_id ?? undefined,
+    direction: attempt.direction ?? undefined,
+  };
+}
+/** Cuộc gọi chưa ghi kết quả, mới nhất trước (cùng tập với tín hiệu S09). */
+export function pendingCallsOf(c: Customer): (CallAttempt & { at: string })[] {
+  return callAttemptsOf(c)
+    .filter((a): a is CallAttempt & { at: string } => !a.result && !!a.at && Number.isFinite(Date.parse(a.at)))
+    .sort((a, b) => b.at.localeCompare(a.at));
+}
 export type NextMode = 'suggested' | 'custom' | 'none' | 'drop';
 export function previewCall(c: Customer, draft: CallDraft, result: CallResult | null) {
   const attempt = { at: draft.at, result };

@@ -14,6 +14,7 @@ import { InteractionRecorder } from './interactions';
 import { Button, IconButton, Input, OutcomePicker, ActionSheet as Sheet, SlotPicker, Textarea } from './kit';
 import {
   type CallDraft,
+  callDraftOf,
   callDuration,
   callSuggestion,
   initialSchedule,
@@ -89,16 +90,7 @@ export function CallHistoryActions({ customer }: { customer: Customer }) {
             variant="secondary"
             // Nút kit cao cố định + không xuống dòng: mở cho chữ giãn tối đa 2 dòng (Curtis 29/10).
             className="h-auto min-h-11 w-full justify-start whitespace-normal py-2"
-            onClick={() =>
-              openQuickAction(customer.id, 'outcome', {
-                at: attempt.at,
-                editAt: attempt.at,
-                duration: attempt.duration,
-                origin: attempt.origin ?? 'manual',
-                device_id: attempt.device_id ?? undefined,
-                direction: attempt.direction ?? undefined,
-              })
-            }
+            onClick={() => openQuickAction(customer.id, 'outcome', callDraftOf(attempt))}
           >
             <span className="w-full break-words text-left [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] overflow-hidden">
               {pending ? 'Ghi kết quả' : 'Sửa kết quả'} cuộc gọi · {when} · {result}

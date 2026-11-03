@@ -14,6 +14,7 @@ import { snoozePromise, undoPromiseSnooze } from '@/domain/deadlines/promises';
 import { forStage } from '@/domain/followup';
 import { applySlaPlan, planSlaAutomation, slaPlanMessage } from '@/domain/velocity/automation';
 import { CustomerSheet } from '@/features/customer-sheet/CustomerSheet';
+import { callDraftOf, pendingCallsOf } from '@/features/quick-actions/model';
 import { openQuickAction } from '@/features/quick-actions/store';
 import { ACTION_BY_ID, type ActionId, NOTIF_TYPES, slaMeterFor } from '@/lib/crm';
 import { customerNeed } from '@/lib/crm/customer-need';
@@ -289,7 +290,11 @@ export function TodayPage() {
                 .catch(() => setNotice('Chưa hoàn tất được việc.'));
             }
           : card.action === 'outcome'
-            ? () => openQuickAction(customer.id, 'outcome')
+            ? () => {
+                // Gắn vào cuộc gọi đang chờ — không có draft thì bảng kết quả thêm cuộc MỚI, cuộc cũ vẫn treo.
+                const pending = pendingCallsOf(customer)[0];
+                openQuickAction(customer.id, 'outcome', pending ? callDraftOf(pending) : undefined);
+              }
             : open;
     const meter = slaMeterFor(customer, now);
     return (

@@ -13,18 +13,19 @@ import { useCustomer, useRepositoryAccount } from '@/data/hooks';
 import type { Customer } from '@/domain/customer';
 import { customerBrief } from '@/domain/customer/brief';
 import { factPatch } from '@/domain/customer/facts';
-import { callAttemptsOf, normStage, openTasksOf, sourceListOf } from '@/domain/customer/normalize';
+import { callAttemptsOf, normStage, openTasksOf } from '@/domain/customer/normalize';
 import { canEditTeamInfo, isTeamInfoPatch } from '@/domain/customer/teamEdit';
 import { customerTimeline } from '@/domain/customer/timeline';
-import { taskDueInfo } from '@/domain/deadlines';
+import { callScheduleLabel, countdownTag, dashWhen, taskDueInfo } from '@/domain/deadlines';
 import { forStage } from '@/domain/followup';
 import { planSlaUndo } from '@/domain/velocity/automation';
 import { bookingSteps, status as slaStatus } from '@/domain/velocity/engine';
 import { AiBrief } from '@/features/ai/AiBrief';
+import { CUSTOMER_GROUP_LABEL, customerGroupOf } from '@/features/customers/model';
 import { customerUnit, loanPath } from '@/features/loan/model';
+import { callDraftOf, callDuration, pendingCallsOf } from '@/features/quick-actions/model';
 import { openQuickAction } from '@/features/quick-actions/store';
 import { fmtDur, slaFor, slaMeterFor } from '@/lib/crm';
-import { sourceLabel } from '@/ui/display';
 import { Icon } from '@/ui/Icon';
 import { AddTaskSheet } from './add-task';
 import { ProfileTextField as Field, LegacyAssistField, ProfileAdvanced } from './advanced';
@@ -37,8 +38,10 @@ import { CustomerMemory, CustomerNeedsAdvanced, contactPrefsHiddenCount } from '
 import {
   bookingStepPatch,
   dueTone,
+  estimatePrice,
   extraFacts,
   lastTouchOf,
+  type PriceCatalog,
   splitBrief,
   stageChoiceRows,
   type TaskDueValue,
@@ -76,6 +79,10 @@ function Profile() {
   const [projectsOpen, setProjectsOpen] = useState(false);
   const [stageOpen, setStageOpen] = useState(false);
   const [missingKey, setMissingKey] = useState('');
+  // Bấm "Còn thiếu: …" → mở đúng tab/khối rồi cuộn tới ô cần điền (Curtis 03/11).
+  const [jump, setJump] = useState<{ target: string; serial: number } | null>(null);
+  const [assetsOpenSignal, setAssetsOpenSignal] = useState(0);
+  const [needsAdvancedSignal, setNeedsAdvancedSignal] = useState(0);
   const [docCount, setDocCount] = useState(0);
   const [, bumpCatalog] = useState(0);
   const [catalogLoadFailed, setCatalogLoadFailed] = useState(false);
@@ -176,6 +183,22 @@ function Profile() {
       unsubscribe?.();
     };
   }, [catalog]);
+
+  // Ô đích có thể chỉ xuất hiện sau khi tab/khối vừa mở render xong → thử vài khung hình.
+  useEffect(() => {
+    if (!jump) return;
+    let frame = 0;
+    let tries = 0;
+    const find = () => {
+      const target = document.querySelector<HTMLElement>(`[data-jump="${jump.target}"]`);
+      if (target) {
+        target.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        target.querySelector<HTMLElement>('input, select, textarea, button')?.focus({ preventScroll: true });
+      } else if (tries++ < 20) frame = requestAnimationFrame(find);
+    };
+    frame = requestAnimationFrame(find);
+    return () => cancelAnimationFrame(frame);
+  }, [jump]);
 
   if (!customer) {
     return (
@@ -338,7 +361,13 @@ function Profile() {
             : undefined
         }
       />
-      <ProfileAdvanced customer={c} writable={infoWritable} now={now} onSaveAdvanced={setAdvancedField} />
+      <ProfileAdvanced
+        customer={c}
+        writable={infoWritable}
+        now={now}
+        onSaveAdvanced={setAdvancedField}
+        openSignal={assetsOpenSignal}
+      />
     </div>
   );
   const needsContent = (
@@ -367,6 +396,7 @@ function Profile() {
           }}
           catalog={catalog}
           online={browserOnline && !!account?.sync.isOnline()}
+          estimate={estimatePrice(c, (account?.catalog as PriceCatalog | undefined) ?? null)}
         />
         <Button variant="primary" onClick={() => navigate(loanPath({ customerId: c.id, ...customerUnit(c) }))}>
           Tính vay cho khách này
@@ -414,6 +444,7 @@ function Profile() {
         onSave={(patch, message) => void save(patch, message)}
         now={now}
         projectCatalog={catalog}
+        openSignal={needsAdvancedSignal}
       >
         <section className="space-y-3">
           <h2 className="text-title">Sở thích bất động sản</h2>
@@ -488,6 +519,33 @@ function Profile() {
     },
   ];
 
+  const goTo = (tab: string, target: string) => {
+    setTab(tab);
+    setJump((current) => ({ target, serial: (current?.serial ?? 0) + 1 }));
+  };
+  const jumpToMissing = (key: string) => {
+    if (key === 'purpose') {
+      keepNeedVisible('purpose');
+      goTo('needs', 'purpose');
+    } else if (key === 'need') {
+      setProjectsOpen(true);
+      goTo('needs', 'projects');
+    } else if (key === 'finance') {
+      setAssetsOpenSignal((value) => value + 1);
+      goTo('memory', 'capital');
+    } else if (key === 'decision') {
+      setNeedsAdvancedSignal((value) => value + 1);
+      goTo('needs', 'household');
+    } else if (key === 'contact_preference') {
+      setSupplementOpen(true);
+      goTo('memory', 'contact');
+    } else if (key === 'promise') {
+      if (writable) setAddOpen(true);
+    } else if (writable) {
+      // Vướng mắc / Liên hệ cuối: ghi ngay một ghi chú cho khách.
+      openQuickAction(c.id, 'note');
+    }
+  };
   const briefParts = splitBrief(brief);
   const lastTouch = lastTouchOf(c, now);
   const extra = extraFacts(c, now);
@@ -500,13 +558,24 @@ function Profile() {
       : `còn ${fmtDur(Math.max(0, slaMeter.max - slaMeter.elapsed))}`
     : null;
   const stageOptions = stageChoiceRows(stage);
+  // Dưới tên: nhóm khách (cùng chip ở màn Khách hàng); nguồn đã có ở phần thông tin bên dưới.
+  const groupText = CUSTOMER_GROUP_LABEL[customerGroupOf(c, account?.sync.local.userId ?? c.owner_id ?? '')];
+  // Hẹn gọi nằm ở trường riêng (next_call_at), không phải next_tasks → thêm 1 dòng đầu "Việc tiếp theo".
+  const callStart = c.next_call_at ? Date.parse(c.next_call_at) : Number.NaN;
+  const callTag = countdownTag(callStart, c.next_call_end ? Date.parse(c.next_call_end) : callStart, false, now);
+  const callWhen = callScheduleLabel(c, now);
+  // Cuộc gọi (thường từ nhật ký máy) chưa ghi kết quả → nhắc ngay trong "Việc tiếp theo" để ghi.
+  const pendingCalls = otherOwner ? [] : pendingCallsOf(c);
   // Việc đến hạn/quá hạn đứng đầu hồ sơ, vạch đỏ để không bỏ quên (D-010).
-  const tones = tasks.map((task) => dueTone(taskDueInfo(task, now)));
+  const tones = [
+    ...tasks.map((task) => dueTone(taskDueInfo(task, now))),
+    callTag?.state === 'missed' ? ('over' as const) : callTag?.state === 'due' ? ('soon' as const) : undefined,
+    pendingCalls.length ? ('soon' as const) : undefined,
+  ];
   const nextTone = tones.includes('over') ? 'over' : tones.includes('soon') ? 'soon' : undefined;
   const asked = briefParts.missing.find((item) => item.key === missingKey) ?? null;
   // Khách của đồng nghiệp: SLA không thuộc phạm vi chăm sóc của mình → không hiện nút hoàn tác (L3).
   const undoPlan = account && !otherOwner ? planSlaUndo(c, now, account.sync.local.userId) : null;
-  const sourceText = sourceListOf(c.source).map(sourceLabel).filter(Boolean).join(' · ');
 
   return (
     <main
@@ -574,7 +643,7 @@ function Profile() {
                   </span>
                 ) : null}
                 <span className="rounded-sm border border-line bg-surface-100 px-2 py-1 text-caption text-ink-muted">
-                  {sourceText || 'Chưa rõ nguồn'}
+                  {groupText}
                 </span>
               </div>
               {!otherOwner && slaMeter && (
@@ -610,8 +679,51 @@ function Profile() {
                 Thêm việc
               </Button>
             </div>
-            {tasks.length ? (
+            {tasks.length || callWhen || pendingCalls.length ? (
               <ul className="mt-2 space-y-3">
+                {pendingCalls.map((attempt) => {
+                  const ms = Date.parse(attempt.at);
+                  const dur = callDuration(attempt.duration);
+                  return (
+                    <li key={`pending-${attempt.at}`} className="flex items-start gap-3">
+                      <Icon name="call" size={20} className="mt-0.5 text-soon-text" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-body-strong">Cuộc gọi chưa ghi kết quả</p>
+                        <p className="mt-1 text-caption text-ink-muted">
+                          {dashWhen(ms, now)}
+                          {dur ? ` · ${dur}` : ''}
+                        </p>
+                      </div>
+                      <Button
+                        disabled={!writable}
+                        aria-label={`Ghi kết quả cuộc gọi ${dashWhen(ms, now)}`}
+                        onClick={() => openQuickAction(c.id, 'outcome', callDraftOf(attempt))}
+                      >
+                        Ghi kết quả
+                      </Button>
+                    </li>
+                  );
+                })}
+                {callWhen && (
+                  <li className="flex items-start gap-3">
+                    <Icon name="call" size={20} className="mt-0.5 text-ink-muted" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-body-strong">
+                        Hẹn gọi lại{c.next_call_reason ? ` · ${c.next_call_reason}` : ''}
+                      </p>
+                      <div className="mt-1 flex flex-wrap items-center gap-2 text-caption text-ink-muted">
+                        <span>{callWhen}</span>
+                        {callTag && callTag.state !== 'far' && (
+                          <span
+                            className={`rounded-sm px-2 py-1 text-caption ${callTag.state === 'missed' ? 'bg-alert-tint text-alert-text' : 'bg-soon-tint text-soon-text'}`}
+                          >
+                            {callTag.text}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </li>
+                )}
                 {tasks.map((task) => {
                   const due = taskDueInfo(task, now);
                   const kindInfo = taskKindOf(task.kind);
@@ -741,8 +853,10 @@ function Profile() {
                   <button
                     key={item.key}
                     type="button"
-                    aria-expanded={missingKey === item.key}
-                    onClick={() => setMissingKey(missingKey === item.key ? '' : item.key)}
+                    onClick={() => {
+                      setMissingKey(item.key);
+                      jumpToMissing(item.key);
+                    }}
                     className="inline-flex min-h-9 items-center rounded-full border border-dashed border-line px-3 text-caption text-ink-muted hover:bg-surface-200"
                   >
                     {item.label}
