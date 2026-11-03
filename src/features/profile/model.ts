@@ -434,26 +434,42 @@ export type PriceCatalog = {
   unitPrice: (unit: unknown) => number | null;
   buildingPrice: (building: unknown) => number | null;
   projectPrice: (project: unknown) => number | null;
+  unitArea?: (unit: unknown) => number | null;
+  typicalArea?: (projectId: unknown, buildingId: unknown, aptType: unknown) => number | null;
 };
 
 export type PriceEstimate =
-  | { total: number; area: number; pricePerM2: number }
-  | { missing: 'area' | 'project' | 'price' };
+  | { total: number; area: number; pricePerM2: number; areaSource?: 'catalog' }
+  | { missing: 'area' | 'project' | 'price'; area?: number; areaSource?: 'catalog' };
 
 /** Giá ước tính = diện tích × đơn giá/m² trong Giỏ hàng. Chỉ để xem — không ghi vào hồ sơ. */
 export function estimatePrice(customer: Customer, catalog: PriceCatalog | null): PriceEstimate {
-  const area = Number(customer.apt_area);
-  if (!(area > 0)) return { missing: 'area' };
-  const projectName = Array.isArray(customer.projects) ? customer.projects.find((name) => !!name) : null;
-  const project = projectName && catalog ? catalog.projectByName(projectName) : null;
-  if (!project) return { missing: 'project' };
-  const building = catalog?.buildingByCode(project.id, customer.building_code) ?? null;
+  const ownArea = Number(customer.apt_area);
+  // Catalog cũ chưa hỗ trợ diện tích: giữ nhánh trả về sớm khi khách chưa nhập số riêng.
+  if (!(ownArea > 0) && !catalog?.unitArea && !catalog?.typicalArea) return { missing: 'area' };
+  const project =
+    (Array.isArray(customer.projects) &&
+      customer.projects.map((name) => catalog?.projectByName(name)).find((row) => !!row)) ||
+    null;
+  const building = project ? catalog?.buildingByCode(project.id, customer.building_code) : null;
   const unit = building ? catalog?.unitByCode(building.id, customer.apt_code) : null;
+  // Chỉ đọc diện tích hiệu lực từ Giỏ hàng; không điền ngược vào apt_area của khách.
+  const unitArea = unit ? catalog?.unitArea?.(unit) : null;
+  const area =
+    ownArea > 0
+      ? ownArea
+      : unitArea != null && unitArea > 0
+        ? unitArea
+        : Number(project && catalog?.typicalArea?.(project.id, building?.id ?? null, customer.apt_type));
+  if (!(area > 0)) return { missing: 'area' };
+  if (!project) return { missing: 'project' };
+  // Giữ nguyên dạng kết quả cũ khi khách đã nhập diện tích riêng.
+  const inherited = ownArea > 0 ? {} : { areaSource: 'catalog' as const };
   const price = Number(
     unit ? catalog?.unitPrice(unit) : building ? catalog?.buildingPrice(building) : catalog?.projectPrice(project),
   );
-  if (!(price > 0)) return { missing: 'price' };
-  return { total: area * price, area, pricePerM2: price };
+  if (!(price > 0)) return { missing: 'price', ...(ownArea > 0 ? {} : { area, ...inherited }) };
+  return { total: area * price, area, pricePerM2: price, ...inherited };
 }
 
 /** 2340000000 → "2,34 tỷ"; 850000000 → "850 triệu". */

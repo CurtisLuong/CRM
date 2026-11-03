@@ -360,7 +360,9 @@ export function ProfileNeedsFields({
   estimate,
 }: NeedsProps) {
   const estimateId = useId();
-  const hidden = needsHiddenCount(customer, stayVisible);
+  const inheritedArea = estimate?.areaSource === 'catalog' ? estimate.area : undefined;
+  const visible = inheritedArea ? new Set([...stayVisible, 'apt_area']) : stayVisible;
+  const hidden = needsHiddenCount(customer, visible);
 
   const field = (key: NeedsField) => {
     switch (key) {
@@ -388,6 +390,8 @@ export function ProfileNeedsFields({
           <ProfileTextField
             label="Diện tích (m²)"
             value={customer.apt_area}
+            placeholder={inheritedArea?.toLocaleString('vi-VN')}
+            hint={inheritedArea ? `${inheritedArea.toLocaleString('vi-VN')} m² · theo Giỏ hàng` : undefined}
             type="number"
             disabled={!writable}
             onSave={(value) => onSaveField('apt_area', value === '' ? null : Number(value))}
@@ -445,7 +449,7 @@ export function ProfileNeedsFields({
     }
   };
 
-  const isVisible = (key: NeedsField) => showEmpty || stayVisible.has(key) || hasNeedValue(customer[key]);
+  const isVisible = (key: NeedsField) => showEmpty || visible.has(key) || hasNeedValue(customer[key]);
   // Ô ngắn xếp trước để luôn đủ 2 ô/hàng ở 360px; dự án (tên dài) chiếm cả hàng cuối.
   const ordered = [...NEEDS_FIELDS.filter((key) => key !== 'projects'), 'projects' as const];
 
