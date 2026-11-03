@@ -27,7 +27,7 @@ test('U-04 Thủ tục: menu, đối tượng, chép nội dung và hiển thị
   await page.getByRole('option', { name: /K8 · Cán bộ, công chức, viên chức/ }).click();
   await expect(page.getByText('Chưa có danh sách hồ sơ cho đối tượng này.')).toBeVisible();
   await page.getByRole('button', { name: 'Chép mục A' }).click();
-  await expect(page.getByText('Đã chép')).toBeVisible();
+  await expect(page.getByText('Đã chép', { exact: true })).toBeVisible();
   expect(await page.evaluate(() => navigator.clipboard.readText())).toContain('29 triệu');
 
   for (const width of [360, 390, 1280]) {
