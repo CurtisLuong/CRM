@@ -296,8 +296,8 @@ test('CL-01: lịch Tuỳ chọn dùng được ở giao diện tối', async ({
   const day = sheet.getByRole('button', { name: 'Chọn 10/10/2026' });
   await expect(day).toBeVisible();
   const box = await day.boundingBox();
-  expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
-  expect(box?.width ?? 0).toBeGreaterThanOrEqual(44);
+  expect(box?.height ?? 0).toBeGreaterThanOrEqual(43.99); // chừa sai số làm tròn px lẻ (43,99998 ở 360px)
+  expect(box?.width ?? 0).toBeGreaterThanOrEqual(43.99);
   await day.click();
   await sheet.getByRole('button', { name: 'Chọn 15/10/2026' }).click();
   await expect(sheet.getByText('10/10 – 15/10', { exact: true })).toBeVisible();
