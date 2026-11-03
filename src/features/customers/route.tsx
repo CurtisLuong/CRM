@@ -958,22 +958,18 @@ function Customers() {
           }}
         />
       </div>
-      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1.5">
-        <div className="min-w-0 flex-1">
-          <FilterBar
-            result={visible.length}
-            onOpen={() => setFilterOpen(true)}
-            onClearAll={clearFilters}
-            chips={
-              isFilterDirty(group, filters) ? [{ label: 'Bộ lọc', value: 'Đang áp dụng', onRemove: clearFilters }] : []
-            }
-          />
-        </div>
-        {isFilterDirty(group, filters) && (
-          <KitButton variant="ghost" className="shrink-0" onClick={clearFilters}>
-            Xoá lọc
-          </KitButton>
-        )}
+      <div className="mt-1">
+        {/* Dấu × trên chip "Đang áp dụng" là nút Xoá lọc — không thêm nút chữ thứ hai (Curtis 03/11). */}
+        <FilterBar
+          result={visible.length}
+          onOpen={() => setFilterOpen(true)}
+          onClearAll={clearFilters}
+          chips={
+            isFilterDirty(group, filters)
+              ? [{ label: 'Bộ lọc', value: 'Đang áp dụng', onRemove: clearFilters, removeLabel: 'Xoá lọc' }]
+              : []
+          }
+        />
       </div>
 
       {list}
