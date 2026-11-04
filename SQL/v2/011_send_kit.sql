@@ -8,7 +8,7 @@
 --   - bucket riêng tư 'send-kit': tệp thật, đường dẫn {owner_id}/{item_id}/{file_id}.{ext}.
 -- Quyền:
 --   - XEM (bảng + tệp): người tạo; trưởng nhóm; mọi thành viên nhóm thấy mục của thành viên nhóm khác.
---   - SỬA / XOÁ MỀM: người tạo hoặc trưởng nhóm. Không ai đổi được người tạo.
+--   - SỬA / XOÁ MỀM: người tạo hoặc trưởng nhóm (kể cả thêm tệp vào thư mục người tạo). Không ai đổi được người tạo.
 --   - Không mở DELETE trên bảng (xoá = đặt deleted_at).
 --   - Tệp: mỗi tệp tối đa 50MB (giới hạn gói Free); ảnh, PDF, video.
 --
@@ -124,7 +124,10 @@ create policy "send_kit_obj_select" on storage.objects
 drop policy if exists "send_kit_obj_insert" on storage.objects;
 create policy "send_kit_obj_insert" on storage.objects
   for insert to authenticated with check (
-    bucket_id = 'send-kit' and (storage.foldername(name))[1] = auth.uid()::text
+    bucket_id = 'send-kit'
+    and ((storage.foldername(name))[1] = auth.uid()::text
+      -- trưởng nhóm sửa mục của đồng nghiệp (thêm tệp) → tệp vẫn nằm thư mục người tạo
+      or (public.is_admin() and public.send_kit_folder_owner(name) is not null))
   );
 
 drop policy if exists "send_kit_obj_delete" on storage.objects;
