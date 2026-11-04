@@ -728,7 +728,8 @@ function SendKitPage() {
                   {rows.map((item) => (
                     <Card key={item.id} className="bg-surface-200">
                       <CardContent className="flex flex-wrap items-center gap-3 p-3">
-                        <div className="min-w-0 flex-1">
+                        {/* basis-56: 360px không đủ chỗ thì nút xuống dòng, không ép tên còn mỗi dòng một chữ */}
+                        <div className="min-w-0 flex-1 basis-56">
                           <h3 className="font-semibold">{item.title}</h3>
                           <ItemStatus item={item} userId={userId} demo={demo} />
                           {item.text && (
