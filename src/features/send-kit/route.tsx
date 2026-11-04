@@ -9,6 +9,7 @@ import { Sheet, SheetBody, SheetContent, SheetFooter, SheetHeader, SheetTitle } 
 import { toast } from '@/components/ui/sonner';
 import { Textarea } from '@/components/ui/textarea';
 import { useCustomers, useRepositoryAccount } from '@/data/hooks';
+import { sendKitFileError } from '@/data/repositories/sendKit';
 import { appendInteractionPatch, createInteraction } from '@/domain/customer/interactions';
 import {
   defaultProject,
@@ -32,6 +33,7 @@ const sizeLabel = (files: SendKitFile[]) => `${files.length} tệp · ${formatBy
 function ImagePreview({ file }: { file: SendKitFile }) {
   const [url, setUrl] = useState('');
   useEffect(() => {
+    if (file.cached === false) return;
     const objectUrl = URL.createObjectURL(file.blob);
     setUrl(objectUrl);
     return () => URL.revokeObjectURL(objectUrl);
@@ -39,8 +41,19 @@ function ImagePreview({ file }: { file: SendKitFile }) {
   return url ? <img src={url} alt={file.name} className="size-14 rounded-sm object-cover" /> : null;
 }
 
+function ItemStatus({ item, userId, demo }: { item: SendKitItem; userId: string; demo: boolean }) {
+  return (
+    <span className="block text-caption text-ink-muted">
+      {item.ownerId && item.ownerId !== userId && <span className="block">👤 {item.ownerName || 'Đồng nghiệp'}</span>}
+      {!demo && item.pending !== false && <span className="block">Chưa đồng bộ</span>}
+    </span>
+  );
+}
+
 function SendKitPage() {
   const account = useRepositoryAccount();
+  const demo = isDemo();
+  const repository = demo ? undefined : account?.sendKit;
   const customers = useCustomers();
   const [params] = useSearchParams();
   const navigate = useNavigate();
@@ -59,6 +72,8 @@ function SendKitPage() {
   const [project, setProject] = useState('');
   const [files, setFiles] = useState<SendKitFile[]>([]);
   const [error, setError] = useState('');
+  const [syncMessage, setSyncMessage] = useState('');
+  const [syncReady, setSyncReady] = useState(false);
   const [catalogProjects, setCatalogProjects] = useState<string[]>([]);
   const [confirmText, setConfirmText] = useState(false);
   const [activeProject, setActiveProject] = useState<string | null>(null);
@@ -66,6 +81,7 @@ function SendKitPage() {
   const [pasteHelpMessage, setPasteHelpMessage] = useState('');
   const initializedCustomer = useRef<string | null>(null);
   const shownProjects = useRef(new Set<string>());
+  const knownItems = useRef(new Set<string>());
 
   const projectNames = useMemo(() => {
     const fromCustomers = customers.flatMap((row) =>
@@ -82,15 +98,35 @@ function SendKitPage() {
     }
     let active = true;
     setLoading(true);
-    void listSendKitItems(userId)
+    setSyncReady(false);
+    const update = () => {
+      if (!active || !repository) return;
+      const snapshot = repository.getSnapshot();
+      setItems(snapshot.items);
+      setSyncMessage(snapshot.loadError || snapshot.syncError);
+    };
+    const unsubscribe = repository?.subscribe(update);
+    const synchronize = () => {
+      void repository?.synchronize().finally(() => active && setSyncReady(true));
+    };
+    const resume = () => {
+      if (document.visibilityState === 'visible') synchronize();
+    };
+    void (repository ? repository.list() : listSendKitItems(userId))
       .then((rows) => {
-        if (active) setItems(rows);
+        if (active) {
+          setItems(rows);
+          synchronize();
+        }
       })
       .catch((reason: unknown) => {
         if (active) setError(reason instanceof Error ? reason.message : 'Không đọc được kho tài liệu.');
       })
       .finally(() => active && setLoading(false));
-    if (!isDemo())
+    window.addEventListener('online', synchronize);
+    window.addEventListener('focus', synchronize);
+    document.addEventListener('visibilitychange', resume);
+    if (!demo)
       void account?.catalog.load().then(() => {
         if (active)
           setCatalogProjects(
@@ -102,16 +138,35 @@ function SendKitPage() {
       });
     return () => {
       active = false;
+      unsubscribe?.();
+      window.removeEventListener('online', synchronize);
+      window.removeEventListener('focus', synchronize);
+      document.removeEventListener('visibilitychange', resume);
     };
-  }, [userId, account]);
+  }, [userId, account, repository, demo]);
 
   useEffect(() => {
     if (!customer || loading || initializedCustomer.current === customer.id) return;
+    if (!items.length && repository && !syncReady) return;
     const initialProject = defaultProject(customer.projects ?? [], items);
     initializedCustomer.current = customer.id;
     shownProjects.current = new Set([initialProject === null ? '__all__' : normalizeProject(initialProject)]);
     setActiveProject(initialProject);
     setSelected(selectFirstShownProject(items, new Set(), initialProject, true));
+  }, [customer, items, loading, repository, syncReady]);
+
+  useEffect(() => {
+    if (!customer || loading || initializedCustomer.current !== customer.id) return;
+    const available = new Set(items.map((item) => item.id));
+    const arrived = items.filter((item) => !knownItems.current.has(item.id));
+    knownItems.current = available;
+    setSelected((old) => {
+      const next = new Set([...old].filter((id) => available.has(id)));
+      for (const item of arrived) {
+        if (item.project === null || shownProjects.current.has(normalizeProject(item.project))) next.add(item.id);
+      }
+      return next.size === old.size && [...next].every((id) => old.has(id)) ? old : next;
+    });
   }, [customer, items, loading]);
 
   const projectOptions = useMemo(
@@ -143,6 +198,7 @@ function SendKitPage() {
     setFormOpen(true);
   };
   const beginEdit = (item: SendKitItem) => {
+    if (repository && !repository.canEdit(item)) return;
     setEditing(item);
     setTitle(item.title);
     setText(item.text);
@@ -162,16 +218,20 @@ function SendKitPage() {
     try {
       const now = Date.now();
       const item: SendKitItem = {
+        ...editing,
         id: editing?.id ?? crypto.randomUUID(),
         title: title.trim(),
         text: text.trim(),
         project: project || null,
         files,
-        order: editing?.order ?? items.length,
+        order: editing?.order ?? Math.max(-1, ...items.map((row) => row.order)) + 1,
         updatedAt: now,
       };
-      await saveSendKitItem(userId, item);
-      setItems((old) => [...old.filter((row) => row.id !== item.id), item].sort((a, b) => a.order - b.order));
+      if (repository) await repository.save(item);
+      else {
+        await saveSendKitItem(userId, item);
+        setItems((old) => [...old.filter((row) => row.id !== item.id), item].sort((a, b) => a.order - b.order));
+      }
       setFormOpen(false);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Không lưu được tài liệu.');
@@ -182,10 +242,13 @@ function SendKitPage() {
   const removeItem = async (item: SendKitItem) => {
     if (!userId) return;
     try {
-      await deleteSendKitItem(userId, item.id);
-      const next = items.filter((row) => row.id !== item.id).map((row, index) => ({ ...row, order: index }));
-      await reorderSendKitItems(userId, next);
-      setItems(next);
+      if (repository) await repository.remove(item.id);
+      else {
+        await deleteSendKitItem(userId, item.id);
+        const next = items.filter((row) => row.id !== item.id).map((row, index) => ({ ...row, order: index }));
+        await reorderSendKitItems(userId, next);
+        setItems(next);
+      }
       setSelected((old) => {
         const selection = new Set(old);
         selection.delete(item.id);
@@ -197,19 +260,28 @@ function SendKitPage() {
   };
   const move = async (item: SendKitItem, offset: -1 | 1) => {
     if (!userId) return;
+    if (repository && !repository.canEdit(item)) return;
     const next = [...items];
     const index = next.findIndex((row) => row.id === item.id);
-    const target = index + offset;
+    let target = index + offset;
+    while (repository) {
+      const adjacent = next[target];
+      if (!adjacent || repository.canEdit(adjacent)) break;
+      target += offset;
+    }
     if (target < 0 || target >= next.length) return;
     const current = next[index];
     const adjacent = next[target];
     if (!current || !adjacent) return;
     next[index] = adjacent;
     next[target] = current;
-    const ordered = next.map((row, order) => ({ ...row, order }));
+    const ordered = next.map((row, order) => (!repository || repository.canEdit(row) ? { ...row, order } : row));
     try {
-      await reorderSendKitItems(userId, ordered);
-      setItems(ordered);
+      if (repository) await repository.reorder(ordered);
+      else {
+        await reorderSendKitItems(userId, ordered);
+        setItems(ordered);
+      }
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Không đổi được thứ tự.');
     }
@@ -217,15 +289,16 @@ function SendKitPage() {
 
   const share = async () => {
     if (!account || !customer || !userId || !writable || saving) return;
-    const chosen = items.filter((item) => selected.has(item.id)).sort((a, b) => a.order - b.order);
+    let chosen = items.filter((item) => selected.has(item.id)).sort((a, b) => a.order - b.order);
     if (!chosen.length) return;
     setSaving(true);
     setError('');
-    const message = sendKitText(chosen, selected, customer);
-    const attachments = selectedFiles(chosen, selected);
-    const titles = chosen.map((item) => item.title).join(', ');
     const nativeShare = nativeShareFilesContext();
     try {
+      if (repository) chosen = await repository.ensureFiles(chosen.map((item) => item.id));
+      const message = sendKitText(chosen, selected, customer);
+      const attachments = selectedFiles(chosen, selected);
+      const titles = chosen.map((item) => item.title).join(', ');
       if (attachments.length && nativeShare.plugin) {
         if (message) await navigator.clipboard.writeText(message);
         await shareFilesWithNativePlugin(nativeShare.plugin, attachments, message, async () => {
@@ -400,6 +473,11 @@ function SendKitPage() {
             Khách nhóm · Chỉ xem. Gửi tài liệu bị tắt.
           </p>
         )}
+        {syncMessage && (
+          <p role="status" className="text-label text-ink-muted">
+            {syncMessage}
+          </p>
+        )}
         <div className="sticky top-0 z-20 -mx-4 flex flex-col gap-2 border-y border-line bg-surface-100 p-3 shadow-sm sm:flex-row">
           <label className="flex min-w-0 flex-1 flex-col gap-1 text-label">
             Dự án
@@ -448,6 +526,7 @@ function SendKitPage() {
                 />
                 <span className="min-w-0 flex-1">
                   <span className="block font-semibold">{item.title}</span>
+                  <ItemStatus item={item} userId={userId} demo={demo} />
                   <span className="text-label text-ink-muted">
                     {item.files.length ? sizeLabel(item.files) : 'Chỉ có chữ'}
                   </span>
@@ -474,6 +553,7 @@ function SendKitPage() {
                 />
                 <span className="min-w-0 flex-1">
                   <span className="block font-semibold">{item.title}</span>
+                  <ItemStatus item={item} userId={userId} demo={demo} />
                   <span className="text-label text-ink-muted">
                     {item.files.length ? sizeLabel(item.files) : 'Chỉ có chữ'}
                   </span>
@@ -568,7 +648,14 @@ function SendKitPage() {
           Thêm tài liệu
         </Button>
       </header>
-      <p className="text-label text-ink-muted">Bản thử: tài liệu lưu trên máy này, chưa đồng bộ sang máy khác</p>
+      {demo && (
+        <p className="text-label text-ink-muted">Bản thử: tài liệu lưu trên máy này, chưa đồng bộ sang máy khác</p>
+      )}
+      {syncMessage && (
+        <p role="status" className="text-label text-ink-muted">
+          {syncMessage}
+        </p>
+      )}
       <div className="sticky top-0 z-20 -mx-4 flex flex-col gap-2 border-y border-line bg-surface-100 p-3 shadow-sm sm:flex-row">
         <label className="flex min-w-0 flex-1 flex-col gap-1 text-label">
           Dự án
@@ -641,8 +728,10 @@ function SendKitPage() {
                   {rows.map((item) => (
                     <Card key={item.id} className="bg-surface-200">
                       <CardContent className="flex flex-wrap items-center gap-3 p-3">
-                        <div className="min-w-0 flex-1">
+                        {/* basis-56: 360px không đủ chỗ thì nút xuống dòng, không ép tên còn mỗi dòng một chữ */}
+                        <div className="min-w-0 flex-1 basis-56">
                           <h3 className="font-semibold">{item.title}</h3>
+                          <ItemStatus item={item} userId={userId} demo={demo} />
                           {item.text && (
                             <p className="line-clamp-2 whitespace-pre-wrap text-label text-ink-muted">{item.text}</p>
                           )}
@@ -660,30 +749,40 @@ function SendKitPage() {
                             </div>
                           )}
                         </div>
-                        <div className="flex flex-wrap gap-1">
-                          <Button
-                            variant="ghost"
-                            aria-label={`Lên ${item.title}`}
-                            disabled={items.indexOf(item) === 0}
-                            onClick={() => void move(item, -1)}
-                          >
-                            ↑
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            aria-label={`Xuống ${item.title}`}
-                            disabled={items.indexOf(item) === items.length - 1}
-                            onClick={() => void move(item, 1)}
-                          >
-                            ↓
-                          </Button>
-                          <Button variant="secondary" onClick={() => beginEdit(item)}>
-                            Sửa
-                          </Button>
-                          <Button variant="destructive" onClick={() => void removeItem(item)}>
-                            Xoá
-                          </Button>
-                        </div>
+                        {(!repository || repository.canEdit(item)) && (
+                          <div className="flex flex-wrap gap-1">
+                            <Button
+                              variant="ghost"
+                              aria-label={`Lên ${item.title}`}
+                              disabled={
+                                !items
+                                  .slice(0, items.indexOf(item))
+                                  .some((row) => !repository || repository.canEdit(row))
+                              }
+                              onClick={() => void move(item, -1)}
+                            >
+                              ↑
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              aria-label={`Xuống ${item.title}`}
+                              disabled={
+                                !items
+                                  .slice(items.indexOf(item) + 1)
+                                  .some((row) => !repository || repository.canEdit(row))
+                              }
+                              onClick={() => void move(item, 1)}
+                            >
+                              ↓
+                            </Button>
+                            <Button variant="secondary" onClick={() => beginEdit(item)}>
+                              Sửa
+                            </Button>
+                            <Button variant="destructive" onClick={() => void removeItem(item)}>
+                              Xoá
+                            </Button>
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
                   ))}
@@ -737,13 +836,18 @@ function SendKitPage() {
                 multiple
                 accept="image/*,video/*,application/pdf"
                 onChange={(event) => {
-                  const added = Array.from(event.target.files ?? []).map((file) => ({
-                    id: crypto.randomUUID(),
-                    name: file.name,
-                    type: file.type,
-                    size: file.size,
-                    blob: file,
-                  }));
+                  const picked = Array.from(event.target.files ?? []);
+                  const errors = picked.map(sendKitFileError).filter(Boolean);
+                  setError(errors.join(' '));
+                  const added = picked
+                    .filter((file) => !sendKitFileError(file))
+                    .map((file) => ({
+                      id: crypto.randomUUID(),
+                      name: file.name,
+                      type: file.type,
+                      size: file.size,
+                      blob: file,
+                    }));
                   setFiles((old) => [...old, ...added]);
                   event.target.value = '';
                 }}
