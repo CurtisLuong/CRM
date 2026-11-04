@@ -1,17 +1,10 @@
+import type { SendKitFileData, SendKitItemData } from '@/data/repositories/sendKit';
 import type { Customer } from '@/domain/customer';
 import { fillGreeting } from '@/domain/followup';
 import { compile, match, prepare } from '@/domain/search';
 
-export type SendKitFile = { id: string; name: string; type: string; size: number; blob: Blob };
-export type SendKitItem = {
-  id: string;
-  title: string;
-  text: string;
-  project: string | null;
-  files: SendKitFile[];
-  order: number;
-  updatedAt: number;
-};
+export type SendKitFile = SendKitFileData;
+export type SendKitItem = SendKitItemData;
 
 export function normalizeProject(name: string): string {
   return name.trim().replace(/\s+/g, ' ').toLocaleLowerCase('vi');

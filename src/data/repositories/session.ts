@@ -6,11 +6,13 @@ import { createSyncStatus, type SyncSnapshot } from '../syncStatus';
 import { createCatalogRepository } from './catalog';
 import { CustomerRepository } from './customers';
 import { createRemoteRepository } from './remote';
+import { createSendKitRepository } from './sendKit';
 export type RepositoryAccount = {
   customers: CustomerRepository;
   remote: ReturnType<typeof createRemoteRepository>;
   catalog: ReturnType<typeof createCatalogRepository>;
   sync: CustomerSync;
+  sendKit?: ReturnType<typeof createSendKitRepository>;
 };
 export class RepositorySession {
   private account: RepositoryAccount | null = null;
@@ -36,6 +38,7 @@ export class RepositorySession {
               sync,
               remote: createRemoteRepository(sync, customers),
               catalog: createCatalogRepository(sync, options.storage),
+              sendKit: createSendKitRepository(sync, options.idb, options.storage),
             };
             this.cleanup.push(customers.subscribe(this.emit), sync.status.subscribe(this.emit));
             void customers.refresh().catch(options.onError ?? (() => {}));
