@@ -471,7 +471,7 @@ function SendKitPage() {
             {syncMessage}
           </p>
         )}
-        <div className="sticky top-0 z-20 -mx-4 flex flex-col gap-2 border-y border-line bg-surface-100 p-3 shadow-sm sm:flex-row">
+        <div className="sticky top-0 z-20 -mx-4 flex flex-col gap-2 border-y border-line bg-surface-100 p-3 shadow-sm sm:mx-0 sm:flex-row sm:items-end sm:rounded-md sm:border-x">
           <label className="flex min-w-0 flex-1 flex-col gap-1 text-label">
             Dự án
             <select
@@ -649,7 +649,7 @@ function SendKitPage() {
           {syncMessage}
         </p>
       )}
-      <div className="sticky top-0 z-20 -mx-4 flex flex-col gap-2 border-y border-line bg-surface-100 p-3 shadow-sm sm:flex-row">
+      <div className="sticky top-0 z-20 -mx-4 flex flex-col gap-2 border-y border-line bg-surface-100 p-3 shadow-sm sm:mx-0 sm:flex-row sm:items-end sm:rounded-md sm:border-x">
         <label className="flex min-w-0 flex-1 flex-col gap-1 text-label">
           Dự án
           <select
