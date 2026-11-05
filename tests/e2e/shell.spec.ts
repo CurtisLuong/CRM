@@ -60,7 +60,7 @@ test('ô tìm ở header mở Bảng lệnh; Esc đóng', async ({ page }) => {
   await expect(page.getByRole('dialog')).toBeHidden();
 });
 
-test('Back Android: đóng sheet ＋ trước → lùi màn → về Hôm nay → hết (false)', async ({ page }) => {
+test('Back Android: đóng sheet ＋ trước → về Hôm nay → báo thoát → hết (false)', async ({ page }) => {
   await page.goto('/');
   await nav(page).getByRole('button', { name: 'Công việc' }).click();
   await expect(page).toHaveURL('/cong-viec');
@@ -74,6 +74,32 @@ test('Back Android: đóng sheet ＋ trước → lùi màn → về Hôm nay �
   expect(await back(page)).toBe(true);
   await expect(page).toHaveURL('/');
 
+  // 05/11: lần đầu chỉ báo, lần back tiếp theo trong 2 giây mới thoát.
+  expect(await back(page)).toBe(true);
+  await expect(page.getByText('Bấm back lần nữa để thoát')).toBeVisible();
+  expect(await back(page)).toBe(false);
+});
+
+test('Back Android: danh sách khách → drawer → back đóng drawer → về Hôm nay, không lặp', async ({ page }) => {
+  test.skip(isDesktop(page), 'Back Android chỉ có trên điện thoại');
+  await page.goto('/today');
+  await page.getByRole('button', { name: 'Xem bằng dữ liệu mẫu' }).click();
+  await page.goto('/');
+  await nav(page).getByRole('button', { name: 'Khách hàng' }).click();
+  await expect(page).toHaveURL('/khach-hang');
+  for (let round = 0; round < 2; round++) {
+    await page.getByRole('button', { name: /^Mở / }).first().click();
+    await expect(page).toHaveURL(/\/khach-hang\/.+/);
+    await expect(page.getByRole('dialog')).toBeVisible();
+    expect(await back(page)).toBe(true);
+    await expect(page.getByRole('dialog')).toBeHidden();
+    await expect(page).toHaveURL('/khach-hang');
+  }
+  expect(await back(page)).toBe(true);
+  await expect(page).toHaveURL('/');
+  await expect(page.getByRole('dialog')).toBeHidden();
+  expect(await back(page)).toBe(true);
+  await expect(page.getByText('Bấm back lần nữa để thoát')).toBeVisible();
   expect(await back(page)).toBe(false);
 });
 
