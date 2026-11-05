@@ -131,9 +131,14 @@ test('Việc tiếp theo · Lần trước · Đã biết theo thứ tự, đún
   const chip = known.getByRole('button', { name: 'Người quyết định' });
   await chip.click();
   await expect(known.getByText(/Có thể hỏi:/)).toBeVisible();
-  const y = async (name: string) =>
-    (await page.getByRole('region', { name, exact: true }).boundingBox())?.y ?? Number.POSITIVE_INFINITY;
-  expect(await y('Việc tiếp theo')).toBeLessThan(await y('Lần trước'));
+  // Đo hai khối trong cùng một khung hình: đo lần lượt thì trang có thể đang cuộn giữa hai lần (chập chờn 05/11).
+  const nextEl = await next.elementHandle();
+  const lastEl = await last.elementHandle();
+  const [nextTop, lastTop] = await page.evaluate(
+    ([a, b]) => [a?.getBoundingClientRect().top ?? Infinity, b?.getBoundingClientRect().top ?? Infinity],
+    [nextEl, lastEl] as const,
+  );
+  expect(nextTop).toBeLessThan(lastTop);
 });
 
 test('Dòng thời gian lọc theo loại; nhãn tiếng Việt', async ({ page }) => {
