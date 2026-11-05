@@ -17,9 +17,11 @@ import {
   callDraftOf,
   callDuration,
   callSuggestion,
+  initialCallResult,
   initialSchedule,
   localDay,
   type NextMode,
+  nextModeFor,
   saveCall,
   scheduleFor,
   schedulePatch,
@@ -334,13 +336,15 @@ function ActionSheet({
   const [now] = useState(Date.now);
   const [draft] = useState<CallDraft>(() => given ?? { at: new Date(now).toISOString(), origin: 'manual' });
   const existing = draft.editAt ? callAttemptsOf(c).find((a) => a.at === draft.editAt) : null;
-  const [result, setResult] = useState<CallResult | null>((existing?.result as CallResult) ?? null);
+  const [result, setResult] = useState(() => initialCallResult(draft, (existing?.result as CallResult) ?? null));
   const [note, setNote] = useState(existing?.note ?? '');
   const [interimNote, setInterimNote] = useState('');
   const noteRef = useRef(note);
   noteRef.current = note;
   const voiceInput = useRef<VoiceNoteInputHandle>(null);
-  const [mode, setMode] = useState<NextMode>('suggested');
+  const [mode, setMode] = useState<NextMode>(() =>
+    nextModeFor(callSuggestion(c, draft, result, now, account.customers.getSnapshot())),
+  );
   const [schedule, setSchedule] = useState(() => initialSchedule(c, now));
   const [customTime, setCustomTime] = useState('');
   const [busy, setBusy] = useState(false),
@@ -384,7 +388,7 @@ function ActionSheet({
     setResult(value);
     setError('');
     const sug = callSuggestion(c, draft, value, now, account.customers.getSnapshot());
-    setMode(sug?.kind === 'ask' ? 'custom' : sug?.kind === 'drop' && sug.auto ? 'drop' : 'suggested');
+    setMode(nextModeFor(sug));
     setEditSchedule(false);
   };
   const appendTranscript = (transcript: string) => {
@@ -401,7 +405,12 @@ function ActionSheet({
     setNote(value);
     setInterimNote('');
   };
-  const run = async (fn: () => Promise<unknown>, close = true, successTitle = 'Đã lưu trên máy') => {
+  const run = async (
+    fn: () => Promise<unknown>,
+    close = true,
+    successTitle = 'Đã lưu trên máy',
+    onUndo?: () => void,
+  ) => {
     if (busy) return;
     setBusy(true);
     setError('');
@@ -412,6 +421,7 @@ function ActionSheet({
         toast({
           title: successTitle,
           description: account.sync.isOnline() ? 'Đang đồng bộ.' : 'Ngoại tuyến · Chờ đồng bộ.',
+          onUndo,
         });
         onClose();
       }
@@ -422,43 +432,63 @@ function ActionSheet({
     }
   };
   const save = () =>
-    run(async () => {
-      // Dừng nghe bên trong run: cờ busy bật trước nên bấm Lưu lần hai không tạo ghi chú trùng.
-      await voiceInput.current?.stop();
-      const savedNote = noteRef.current;
-      if (kind === 'note') {
-        if (!savedNote.trim()) throw new Error('Nhập ghi chú trước khi lưu.');
-        return account.customers.addNote(c.id, savedNote);
-      }
-      if (kind === 'schedule') {
-        if (+schedule.start <= Date.now()) throw new Error('Chọn lịch gọi trong tương lai.');
-        return account.customers.update(c.id, schedulePatch(schedule));
-      }
-      if (!result) throw new Error('Chọn kết quả cuộc gọi.');
-      let custom = mode === 'custom' ? schedule : null;
-      if (suggestion?.kind === 'ask' && mode !== 'none') {
-        if (!customTime) throw new Error('Xác nhận đúng giờ khách hẹn.');
-        const start = new Date(customTime);
-        custom = {
-          kind: 'schedule',
-          start,
-          end: new Date(start),
-          reason: 'Khách hẹn gọi lại',
-          label: start.toLocaleString('vi-VN'),
-        };
-      }
-      return saveCall(
-        account.customers,
-        c.id,
-        draft,
-        result,
-        savedNote,
-        mode,
-        custom,
-        Date.now(),
-        account.customers.getSnapshot(),
-      );
-    });
+    run(
+      async () => {
+        // Dừng nghe bên trong run: cờ busy bật trước nên bấm Lưu lần hai không tạo ghi chú trùng.
+        await voiceInput.current?.stop();
+        const savedNote = noteRef.current;
+        if (kind === 'note') {
+          if (!savedNote.trim()) throw new Error('Nhập ghi chú trước khi lưu.');
+          return account.customers.addNote(c.id, savedNote);
+        }
+        if (kind === 'schedule') {
+          if (+schedule.start <= Date.now()) throw new Error('Chọn lịch gọi trong tương lai.');
+          return account.customers.update(c.id, schedulePatch(schedule));
+        }
+        if (!result) throw new Error('Chọn kết quả cuộc gọi.');
+        let custom = mode === 'custom' ? schedule : null;
+        if (suggestion?.kind === 'ask' && mode !== 'none') {
+          if (!customTime) throw new Error('Xác nhận đúng giờ khách hẹn.');
+          const start = new Date(customTime);
+          custom = {
+            kind: 'schedule',
+            start,
+            end: new Date(start),
+            reason: 'Khách hẹn gọi lại',
+            label: start.toLocaleString('vi-VN'),
+          };
+        }
+        return saveCall(
+          account.customers,
+          c.id,
+          draft,
+          result,
+          savedNote,
+          mode,
+          custom,
+          Date.now(),
+          account.customers.getSnapshot(),
+        );
+      },
+      true,
+      'Đã lưu trên máy',
+      kind === 'outcome' && !editingRecorded && mode === 'drop' && suggestion?.kind === 'drop' && suggestion.auto
+        ? () => {
+            if (account.sync.local.isClosed) return;
+            // Chỉ hoàn tác việc loại và lịch bị xoá; giữ nguyên cuộc gọi vừa xác nhận.
+            void account.customers
+              .update(c.id, {
+                disqualified_at: c.disqualified_at ?? null,
+                disqualify_reason: c.disqualify_reason ?? null,
+                disqualify_note: c.disqualify_note ?? null,
+                next_call_at: c.next_call_at ?? null,
+                next_call_end: c.next_call_end ?? null,
+                next_call_reason: c.next_call_reason ?? null,
+              })
+              .catch(() => toast({ title: 'Chưa hoàn tác được. Thử lại.', tone: 'error' }));
+          }
+        : undefined,
+    );
   const title =
     kind === 'outcome'
       ? editingRecorded

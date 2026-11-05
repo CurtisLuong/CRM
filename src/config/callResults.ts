@@ -28,6 +28,9 @@ export const CALL_RESULT_MISS = [
 // < N giây = cuộc ngắn; ≥ N giây = có trao đổi.
 export const SHORT_CALL_SEC = 30;
 
+// Chọn sẵn kết quả trên tấm sau gọi (D-030), độc lập với ngưỡng cuộc ngắn cũ.
+export const CALL_OUTCOME_TALKED_SEC = 60;
+
 // Gợi ý kết quả theo THỜI LƯỢNG (zero / short / long) + LỚP KHÁCH (chốt 2026-10-07).
 export const CALL_RESULT_SETS = {
   lead: {

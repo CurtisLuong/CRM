@@ -142,10 +142,15 @@ export function ActionSheet({
 const choice =
   'cursor-pointer rounded-md border border-line bg-surface-100 text-ink hover:bg-surface-200 data-[state=checked]:border-ion data-[state=checked]:bg-ion-tint data-[state=checked]:text-ink';
 const MAIN: ReadonlyArray<{ value: CallResult; label: string; icon: IconName }> = [
-  { value: 'talked', label: 'Nói chuyện được', icon: 'talked' },
-  { value: 'no_answer', label: 'Không nghe / không liên lạc', icon: 'call_again' },
+  { value: 'talked', label: CALL_RESULTS.talked, icon: 'talked' },
   { value: 'busy', label: 'Bận, hẹn lại', icon: 'call_sched' },
-  { value: 'wrong_number', label: 'Sai số / không phù hợp', icon: 'drop' },
+  { value: 'no_answer', label: 'Không nghe', icon: 'call_again' },
+];
+const OTHER: ReadonlyArray<{ value: CallResult; label: string }> = [
+  { value: 'unreachable', label: 'Thuê bao' },
+  { value: 'wrong_number', label: CALL_RESULTS.wrong_number },
+  { value: 'hung_up', label: CALL_RESULTS.hung_up },
+  { value: 'line_busy', label: CALL_RESULTS.line_busy },
 ];
 export function OutcomePicker({
   value,
@@ -154,9 +159,8 @@ export function OutcomePicker({
   value: CallResult | null;
   onValueChange: (value: CallResult) => void;
 }) {
-  const inMain = MAIN.some((item) => item.value === value);
-  const [more, setMore] = useState(value !== null && !inMain);
-  const rest = (Object.keys(CALL_RESULTS) as CallResult[]).filter((key) => !MAIN.some((item) => item.value === key));
+  const [more, setMore] = useState(false);
+  const showMore = more || OTHER.some((item) => item.value === value);
   return (
     <RadioGroup.Root
       aria-label="Kết quả cuộc gọi"
@@ -164,14 +168,14 @@ export function OutcomePicker({
       onValueChange={(v) => onValueChange(v as CallResult)}
       className="flex flex-col gap-2"
     >
-      <div className="grid grid-cols-2 gap-2">
+      <div className="flex flex-col gap-2">
         {MAIN.map((item) => (
           <RadioGroup.Item
             key={item.value}
             value={item.value}
             className={cn(
               choice,
-              'flex min-h-16 flex-col items-start justify-center gap-1 px-3 py-2 text-left text-body-strong',
+              'flex min-h-14 w-full items-center gap-3 whitespace-nowrap px-3 py-2 text-left text-body-strong',
             )}
           >
             <Icon name={item.icon} size={20} />
@@ -179,11 +183,15 @@ export function OutcomePicker({
           </RadioGroup.Item>
         ))}
       </div>
-      {more ? (
+      {showMore ? (
         <div className="flex flex-wrap gap-2">
-          {rest.map((key) => (
-            <RadioGroup.Item key={key} value={key} className={cn(choice, 'min-h-11 rounded-full px-4 text-caption')}>
-              {CALL_RESULTS[key]}
+          {OTHER.map((item) => (
+            <RadioGroup.Item
+              key={item.value}
+              value={item.value}
+              className={cn(choice, 'min-h-11 rounded-full px-4 text-caption')}
+            >
+              {item.label}
             </RadioGroup.Item>
           ))}
         </div>
