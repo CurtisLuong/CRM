@@ -67,6 +67,8 @@ for (const viewport of [360, 1280]) {
       },
     ]);
     await page.getByRole('button', { name: 'Lưu tài liệu' }).click();
+    // Chờ lưu xong rồi mới chuyển trang — goto ngay làm rơi lần ghi IndexedDB (chập chờn GH 03/11, GN-01 05/11).
+    await expect(page.getByRole('heading', { name: 'Ảnh dự án Hải Phòng' })).toBeVisible();
 
     await page.goto('/tai-lieu?customer=dm01-05');
     await expect(page.getByRole('heading', { name: 'Gia Hân · Khách mới' })).toBeVisible();
