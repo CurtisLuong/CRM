@@ -72,7 +72,7 @@ test('Ghi chú → Đã gọi → kết quả được lưu vào nhật ký cu�
   await page.getByRole('button', { name: 'Ghi chú', exact: true }).click();
   await page.getByRole('button', { name: 'Đã gọi', exact: true }).click();
   await expect(page.getByRole('heading', { name: /Kết quả cuộc gọi/ })).toBeVisible();
-  await page.getByRole('radio', { name: 'Không nghe / không liên lạc' }).click();
+  await page.getByRole('radio', { name: 'Không nghe', exact: true }).click();
   await page.getByRole('button', { name: 'Lưu', exact: true }).click();
 
   await expect(page.getByRole('region', { name: 'Nhật ký cuộc gọi Khách PC-02' })).toContainText('Không nghe máy');

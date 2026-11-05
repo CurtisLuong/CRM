@@ -32,8 +32,14 @@ Khi ghi cuộc gọi (bấm 📞 rồi quay lại app, hoặc bấm "Ghi cuộc 
 | Lần 5 | Lần 4 hỏng | Cách lần 4 ít nhất 96h | Khung có tỉ lệ **nói chuyện được** cao nhất trong nhật ký gọi của bạn (cần ≥5 cuộc/khung; chưa đủ dữ liệu → D → C → B → A), trừ khung giờ đăng ký | 20:00–20:45 T4 tuần sau (D) |
 | Hết vòng | Lần 5 hỏng | — | Mặc định **"Loại + nhắn Zalo"**: bấm Lưu → khách tự chuyển Loại "Không liên lạc được" và mở hộp Zalo (mẫu "Gọi chưa được"). Chọn "Để sau" nếu muốn giữ. | Tự đổi trạng thái |
 
+- **Cúp máy 2 lần liên tiếp** (2 cuộc gần nhất đều "Cúp máy"): không chờ đủ 5 lần — bấm Lưu → khách tự chuyển Loại "Cúp máy" (có Hoàn tác như hết vòng). Cúp máy 1 lần, hoặc cúp máy xen kẽ kết quả khác → vẫn tính vào nhịp 5 lần như trên (D-030).
 - Gợi ý **lần 1** hiện trong hộp Khách mới (khách chưa gọi, chưa có lịch): "📅 Gợi ý gọi lần 1: … [Hẹn gọi theo gợi ý]".
 - Chủ nhật được bỏ qua (theo `skipSunday`). Lỡ tay loại → mở khách trong Khách mới (lọc Đã loại) → khôi phục như thường.
+
+#### Màn Kết quả cuộc gọi (D-030)
+
+- 3 nút chính: **Nói chuyện được · Bận, hẹn lại · Không nghe**. Ít gặp (< 10%) nằm trong **Khác…**: **Thuê bao** (tạm không liên lạc được, gọi lại sau) · **Sai số** (số sai bản chất — hỏi lại khách trên kênh quảng cáo, nghi phá campaign) · **Cúp máy** · **Máy bận** (đang nghe cuộc khác, gọi lại lúc khác).
+- Có thời lượng máy thì chọn sẵn: **≥ 60 giây → Nói chuyện được · 1–59 giây → Bận, hẹn lại · 0 giây → Không nghe**. Ghi tay không có thời lượng → không chọn sẵn. Chọn sẵn vẫn đổi được.
 
 #### Khách Tiềm năng và các kết quả khác
 

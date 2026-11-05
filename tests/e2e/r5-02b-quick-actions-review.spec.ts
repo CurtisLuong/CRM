@@ -81,8 +81,8 @@ test('R5-02b: textarea nhiều dòng, nhãn kết quả và label mẫu tin', as
   await expect(callSheet).toBeVisible();
   const callNote = callSheet.getByRole('textbox', { name: 'Ghi chú cuộc gọi' });
   expect((await callNote.boundingBox())?.height).toBeGreaterThan(44);
-  // 4 lựa chọn chính giữ nhãn chọn nhanh của v2 (dài hơn nhãn lưu); các kết quả còn lại lấy từ CALL_RESULTS.
-  for (const label of ['Nói chuyện được', 'Không nghe / không liên lạc', 'Bận, hẹn lại', 'Sai số / không phù hợp']) {
+  // Curtis 05/11 (D-030): 3 lựa chọn chính; Thuê bao / Sai số / Cúp máy / Máy bận nằm trong "Khác…".
+  for (const label of ['Nói chuyện được', 'Bận, hẹn lại', 'Không nghe']) {
     await expect(callSheet.getByRole('radio', { name: label, exact: true })).toBeVisible();
   }
   await page.keyboard.press('Escape');
