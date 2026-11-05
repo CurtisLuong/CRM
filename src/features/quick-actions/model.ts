@@ -1,8 +1,16 @@
-import { CALL_RESULTS, type CallResult } from '@/config/callResults';
+import { CALL_OUTCOME_TALKED_SEC, CALL_RESULTS, type CallResult } from '@/config/callResults';
 import { type CallSlotKey, FOLLOWUP_CONFIG } from '@/config/followup';
 import type { CustomerRepository, Data } from '@/data/repositories/customers';
 import { type CallAttempt, type Customer, callAttemptsOf, isQualified } from '@/domain/customer';
-import { afterCall, firstCall, forStage, parseRange, type ScheduleSuggestion, scheduleLabel } from '@/domain/followup';
+import {
+  afterCall,
+  type FollowupSuggestion,
+  firstCall,
+  forStage,
+  parseRange,
+  type ScheduleSuggestion,
+  scheduleLabel,
+} from '@/domain/followup';
 
 export type CallDraft = {
   at: string;
@@ -31,6 +39,17 @@ export function pendingCallsOf(c: Customer): (CallAttempt & { at: string })[] {
     .sort((a, b) => b.at.localeCompare(a.at));
 }
 export type NextMode = 'suggested' | 'custom' | 'none' | 'drop';
+/** Giữ kết quả đã ghi; chỉ thời lượng máy mới được dùng để chọn sẵn. */
+export function initialCallResult(draft: CallDraft, recorded: CallResult | null = null): CallResult | null {
+  if (recorded) return recorded;
+  const seconds = draft.duration;
+  if (seconds == null || !Number.isFinite(seconds) || seconds < 0) return null;
+  return seconds >= CALL_OUTCOME_TALKED_SEC ? 'talked' : seconds > 0 ? 'busy' : 'no_answer';
+}
+/** Chọn sẵn và bấm tay phải đưa tới cùng bước tiếp theo. */
+export function nextModeFor(suggestion: FollowupSuggestion | null): NextMode {
+  return suggestion?.kind === 'ask' ? 'custom' : suggestion?.kind === 'drop' && suggestion.auto ? 'drop' : 'suggested';
+}
 export function previewCall(c: Customer, draft: CallDraft, result: CallResult | null) {
   const attempt = { at: draft.at, result };
   return draft.editAt
@@ -125,7 +144,11 @@ export async function saveCall(
     Object.assign(patch, {
       disqualified_at: new Date(now).toISOString(),
       disqualify_reason: suggestion.code,
-      disqualify_note: suggestion.auto ? 'Hết vòng gọi theo nhịp — chuyển nhắn Zalo/SMS' : null,
+      disqualify_note: suggestion.auto
+        ? suggestion.code === 'cup_may'
+          ? suggestion.text
+          : 'Hết vòng gọi theo nhịp — chuyển nhắn Zalo/SMS'
+        : null,
       ...schedulePatch(null),
     });
   const attempt: CallAttempt = {

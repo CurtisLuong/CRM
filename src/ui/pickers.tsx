@@ -9,15 +9,20 @@ import { Icon } from './Icon';
 const CHOICE =
   'rounded-control border border-border-strong bg-surface text-text transition-colors duration-(--dur-fast) hover:bg-surface-2 data-[state=checked]:border-accent data-[state=checked]:bg-accent-soft data-[state=checked]:text-accent';
 
-/** 4 kết quả lớn (DESIGN_SYSTEM §3). Nhãn ngắn gộp; mã lưu lấy từ CALL_RESULTS (không đổi nghĩa). */
+/** Nhãn ngắn trên tấm kết quả; nhãn lịch sử vẫn lấy nguyên CALL_RESULTS. */
 const MAIN: ReadonlyArray<{ value: CallResult; label: string; icon: IconName }> = [
-  { value: 'talked', label: 'Nói chuyện được', icon: 'talked' },
-  { value: 'no_answer', label: 'Không nghe / không liên lạc', icon: 'call_again' },
+  { value: 'talked', label: CALL_RESULTS.talked, icon: 'talked' },
   { value: 'busy', label: 'Bận, hẹn lại', icon: 'call_sched' },
-  { value: 'wrong_number', label: 'Sai số / không phù hợp', icon: 'drop' },
+  { value: 'no_answer', label: 'Không nghe', icon: 'call_again' },
+];
+const OTHER: ReadonlyArray<{ value: CallResult; label: string }> = [
+  { value: 'unreachable', label: 'Thuê bao' },
+  { value: 'wrong_number', label: CALL_RESULTS.wrong_number },
+  { value: 'hung_up', label: CALL_RESULTS.hung_up },
+  { value: 'line_busy', label: CALL_RESULTS.line_busy },
 ];
 
-/** Chọn kết quả cuộc gọi: 4 nút lớn + "Khác" mở đủ CALL_RESULTS. */
+/** Chọn kết quả cuộc gọi: 3 nút lớn + "Khác…" mở các ca hiếm (D-030). */
 export function OutcomePicker({
   value,
   onValueChange,
@@ -27,9 +32,8 @@ export function OutcomePicker({
   onValueChange: (v: CallResult) => void;
   className?: string;
 }) {
-  const inMain = MAIN.some((m) => m.value === value);
-  const [more, setMore] = useState(value !== null && !inMain);
-  const rest = (Object.keys(CALL_RESULTS) as CallResult[]).filter((k) => !MAIN.some((m) => m.value === k));
+  const [more, setMore] = useState(false);
+  const showMore = more || OTHER.some((item) => item.value === value);
   return (
     <RadioGroup.Root
       aria-label="Kết quả cuộc gọi"
@@ -37,14 +41,14 @@ export function OutcomePicker({
       onValueChange={(v) => onValueChange(v as CallResult)}
       className={cn('flex flex-col gap-2', className)}
     >
-      <div className="grid grid-cols-2 gap-2">
+      <div className="flex flex-col gap-2">
         {MAIN.map((m) => (
           <RadioGroup.Item
             key={m.value}
             value={m.value}
             className={cn(
               CHOICE,
-              'flex min-h-16 flex-col items-start justify-center gap-1 px-3 py-2 text-left text-body-strong',
+              'flex min-h-14 w-full items-center gap-3 whitespace-nowrap px-3 py-2 text-left text-body-strong',
             )}
           >
             <Icon name={m.icon} size={20} />
@@ -52,11 +56,15 @@ export function OutcomePicker({
           </RadioGroup.Item>
         ))}
       </div>
-      {more ? (
+      {showMore ? (
         <div className="flex flex-wrap gap-2">
-          {rest.map((k) => (
-            <RadioGroup.Item key={k} value={k} className={cn(CHOICE, 'min-h-11 rounded-full px-4 text-small')}>
-              {CALL_RESULTS[k]}
+          {OTHER.map((item) => (
+            <RadioGroup.Item
+              key={item.value}
+              value={item.value}
+              className={cn(CHOICE, 'min-h-11 rounded-full px-4 text-small')}
+            >
+              {item.label}
             </RadioGroup.Item>
           ))}
         </div>

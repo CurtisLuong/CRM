@@ -9,6 +9,7 @@ export const LEAD_DROP_REASONS: Readonly<Record<string, string>> = {
   khong_du_dieu_kien: 'Không đủ điều kiện',
   khong_lien_lac_duoc: 'Không liên lạc được',
   so_sai: 'Số sai',
+  cup_may: 'Cúp máy',
   no_xau: 'Nợ xấu',
   do_gia: 'Dò giá',
   to_mo: 'Tò mò',
