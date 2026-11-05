@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router';
+import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import type { FeatureRoute } from '@/app/routes';
 import { ActionButton, ChipGroup, type Column, DataTable, FilterBar, LeadRow } from '@/components/crm';
 import { Button as KitButton } from '@/components/ui/button';
@@ -253,6 +253,14 @@ function SortToggle<K extends keyof SortChoice>({ label, value, choices, onChang
 function Customers() {
   const params = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  // Mở drawer từ danh sách = thêm 1 bước lịch sử; đóng thì lùi đúng bước đó. Đẩy thêm /khach-hang
+  // làm back Android lặp danh sách ↔ drawer (Curtis 05/11).
+  const openCustomer = (id: string) => navigate(`/khach-hang/${id}`, { state: { fromList: true } });
+  const closeCustomer = () =>
+    (location.state as { fromList?: boolean } | null)?.fromList
+      ? navigate(-1)
+      : navigate('/khach-hang', { replace: true });
   const account = useRepositoryAccount();
   const rows = useCustomers();
   const syncStatus = useSyncStatus();
@@ -799,7 +807,11 @@ function Customers() {
                   type="button"
                   aria-label={`Mở ${customer.full_name}`}
                   className="min-w-0 max-w-[60%] shrink-0 truncate text-left font-semibold text-ink hover:text-ion"
-                  onClick={() => navigate(`/khach-hang/${customer.id}`)}
+                  onClick={(event) => {
+                    // Dòng bảng cũng mở khách: không để bấm lan lên, kẻo ghi 2 bước lịch sử.
+                    event.stopPropagation();
+                    openCustomer(customer.id);
+                  }}
                 >
                   {customer.full_name}
                 </button>
@@ -867,7 +879,7 @@ function Customers() {
               caption="Danh sách khách"
               columns={tableColumns}
               rows={slice}
-              onRowClick={(customer) => navigate(`/khach-hang/${customer.id}`)}
+              onRowClick={(customer) => openCustomer(customer.id)}
               empty={<div className="p-8 text-center text-body text-ink-muted">Không tìm thấy khách khớp bộ lọc.</div>}
             />
           </div>
@@ -896,14 +908,14 @@ function Customers() {
                         time={sub.lead?.text}
                         // Lần chạm chỉ khi không có nhãn hạn: "Quá SLA N ngày" đã nói cùng ý (Curtis 31/10).
                         lastTouch={!sub.lead ? sub.rest.split(' · ')[0] : undefined}
-                        onClick={() => navigate(`/khach-hang/${customer.id}`)}
+                        onClick={() => openCustomer(customer.id)}
                       />
                     </div>
                     <button
                       type="button"
                       aria-label={`Mở ${customer.full_name}`}
                       className="absolute inset-y-0 left-0 right-14 z-10 cursor-pointer opacity-0"
-                      onClick={() => navigate(`/khach-hang/${customer.id}`)}
+                      onClick={() => openCustomer(customer.id)}
                     />
                     <ActionButton
                       action="call"
@@ -1068,7 +1080,7 @@ function Customers() {
         customer={selected}
         userId={userId}
         canAssign={canAssign}
-        onOpenChange={(open) => !open && (params.id ? navigate('/khach-hang') : setSelectedLocal(null))}
+        onOpenChange={(open) => !open && (params.id ? closeCustomer() : setSelectedLocal(null))}
         onOpenProfile={(customer) => navigate(`/ho-so/${customer.id}`)}
         onAssign={openAssignment}
       />

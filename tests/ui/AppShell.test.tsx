@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { appCommands, collectCommands } from '@/app/commands';
-import { handleBack } from '@/app/layout.back';
+import { EXIT_WINDOW_MS, handleBack, installCRMBack } from '@/app/layout.back';
 import { NAV_TABS, tabForPath } from '@/app/layout.nav';
 import { AppShell } from '@/ui/AppShell';
 
@@ -44,10 +44,18 @@ describe('handleBack (window.CRMBack)', () => {
     el.remove();
   });
 
-  it('không lớp nổi: lùi lịch sử → về Hôm nay → hết (false)', () => {
-    const a = deps();
+  it('không lớp nổi: màn con lùi lịch sử → tab chính về Hôm nay → hết (false)', () => {
+    const a = deps({ pathname: () => '/ho-so/1' });
     expect(handleBack(a)).toBe(true);
     expect(a.goBack).toHaveBeenCalled();
+
+    // Tab chính là gốc: dù còn lịch sử vẫn về Hôm nay (05/11 — tránh lặp danh sách ↔ drawer khách).
+    const tab = deps({ pathname: () => '/khach-hang' });
+    expect(handleBack(tab)).toBe(true);
+    expect(tab.goHome).toHaveBeenCalled();
+    expect(tab.goBack).not.toHaveBeenCalled();
+
+    expect(handleBack(deps({ pathname: () => '/today' }))).toBe(false);
 
     const b = deps({ canGoBack: () => false });
     expect(handleBack(b)).toBe(true);
@@ -55,6 +63,21 @@ describe('handleBack (window.CRMBack)', () => {
 
     const c = deps({ canGoBack: () => false, pathname: () => '/' });
     expect(handleBack(c)).toBe(false);
+  });
+
+  it('ở Hôm nay: back lần 1 báo "back lần nữa để thoát"; lần 2 trong 2 giây mới thoát', () => {
+    let t = 1000;
+    const warnExit = vi.fn();
+    const remove = installCRMBack(deps({ pathname: () => '/', warnExit }), () => t);
+    expect(window.CRMBack?.()).toBe(true);
+    expect(warnExit).toHaveBeenCalledTimes(1);
+    t += EXIT_WINDOW_MS;
+    expect(window.CRMBack?.()).toBe(false);
+    t += EXIT_WINDOW_MS + 1;
+    expect(window.CRMBack?.()).toBe(true);
+    expect(warnExit).toHaveBeenCalledTimes(2);
+    remove();
+    expect(window.CRMBack).toBeUndefined();
   });
 });
 

@@ -7,7 +7,7 @@ import { NotificationBell } from '@/features/notifications/Bell';
 import { QuickActionsHost } from '@/features/quick-actions/QuickActions';
 import { CustomerSearchBridge } from '@/features/search/SearchBridge';
 import { SyncIssuesSheet } from '@/features/sync/SyncIssuesSheet';
-import { BlockBoundary, ToastProvider } from '@/ui';
+import { BlockBoundary, ToastProvider, useToast } from '@/ui';
 import { CommandPalette, type PaletteItem } from '@/ui/CommandPalette';
 import { SyncIndicator } from '@/ui/chrome';
 import { AppUpdatePrompt } from './AppUpdatePrompt';
@@ -26,6 +26,24 @@ function readRail(): boolean {
   } catch {
     return false;
   }
+}
+
+/** Back của vỏ Android: đóng lớp nổi trên cùng → lùi trong app → về Hôm nay → hỏi trước khi thoát. Nằm trong ToastProvider để báo. */
+function AndroidBack() {
+  const navigate = useNavigate();
+  const toast = useToast();
+  useEffect(
+    () =>
+      installCRMBack({
+        pathname: () => window.location.pathname,
+        canGoBack: () => ((window.history.state as { idx?: number } | null)?.idx ?? 0) > 0,
+        goBack: () => navigate(-1),
+        goHome: () => navigate('/', { replace: true }),
+        warnExit: () => toast({ title: 'Bấm back lần nữa để thoát', durationMs: 2000 }),
+      }),
+    [navigate, toast],
+  );
+  return null;
 }
 
 /** Route có thể đặt tiêu đề header: `{ path, element, handle: { title: 'Hồ sơ khách' } }`. */
@@ -92,18 +110,6 @@ export function RootLayout() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, []);
-
-  // Back của vỏ Android: đóng lớp nổi trên cùng → lùi trong app → về Hôm nay.
-  useEffect(
-    () =>
-      installCRMBack({
-        pathname: () => window.location.pathname,
-        canGoBack: () => ((window.history.state as { idx?: number } | null)?.idx ?? 0) > 0,
-        goBack: () => navigate(-1),
-        goHome: () => navigate('/', { replace: true }),
-      }),
-    [navigate],
-  );
 
   const setSidebarCollapsed = useCallback((collapsed: boolean) => {
     const expanded = !collapsed;
@@ -191,6 +197,7 @@ export function RootLayout() {
         <AppUpdatePrompt />
         <QuickActionsHost />
         <SyncIssuesSheet open={syncOpen} onOpenChange={setSyncOpen} />
+        <AndroidBack />
       </ToastProvider>
     </TooltipProvider>
   );
