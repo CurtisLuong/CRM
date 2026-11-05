@@ -1,5 +1,6 @@
 import { ZALO_TEMPLATES_DEFAULT, type ZaloTemplate } from '@/config/followup';
 import type { Customer } from '@/domain/customer';
+import { effectiveGender } from '@/domain/customer/genderFromName';
 import { normalizePhone, phoneDigits } from '@/domain/customer/phone';
 import { fillGreeting, suggestTemplate, upgradeTplText } from '@/domain/followup';
 
@@ -11,9 +12,10 @@ export function contactPhones(c: Customer) {
     .filter((p, i, all) => all.findIndex((x) => phoneDigits(x) === phoneDigits(p)) === i);
 }
 export function defaultTemplates(c: Customer, now: number, custom?: readonly ZaloTemplate[]) {
+  const greetingCustomer = { ...c, gender: effectiveGender(c) };
   const list = (custom ?? ZALO_TEMPLATES_DEFAULT)
     .filter((t) => t.text.trim())
-    .map((t) => ({ ...t, text: fillGreeting(upgradeTplText(t.id, t.text), c) }));
+    .map((t) => ({ ...t, text: fillGreeting(upgradeTplText(t.id, t.text), greetingCustomer) }));
   const preferred = suggestTemplate(c, now);
   return list.sort((a, b) => Number(b.id === preferred) - Number(a.id === preferred));
 }

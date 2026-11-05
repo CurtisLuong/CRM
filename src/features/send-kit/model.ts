@@ -1,5 +1,6 @@
 import type { SendKitFileData, SendKitItemData } from '@/data/repositories/sendKit';
 import type { Customer } from '@/domain/customer';
+import { effectiveGender } from '@/domain/customer/genderFromName';
 import { fillGreeting } from '@/domain/followup';
 import { compile, match, prepare } from '@/domain/search';
 
@@ -84,10 +85,11 @@ export function selectFirstShownProject(
 }
 
 export function sendKitText(items: SendKitItem[], selected: Set<string>, customer: Customer): string {
+  const greetingCustomer = { ...customer, gender: effectiveGender(customer) };
   return items
     .filter((item) => selected.has(item.id))
     .sort((a, b) => a.order - b.order)
-    .map((item) => fillGreeting(item.text, customer).trim())
+    .map((item) => fillGreeting(item.text, greetingCustomer).trim())
     .filter(Boolean)
     .join('\n\n');
 }
