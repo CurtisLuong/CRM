@@ -71,7 +71,6 @@ const SAME: [string, unknown, string][] = [
   ['CALL_RESULT_SETS', CALL_RESULT_SETS, 'CRMCalls.CALL_RESULT_SETS'],
   ['SHORT_CALL_SEC', SHORT_CALL_SEC, 'CRMCalls.SHORT_CALL_SEC'],
   // reasons.ts
-  ['LEAD_DROP_REASONS', LEAD_DROP_REASONS, 'LEAD_DROP_REASONS'],
   ['LEAD_DROP_TOP', LEAD_DROP_TOP, 'LEAD_DROP_TOP'],
   // aptTypes.ts
   ['APT_TYPES', APT_TYPES, 'APT_TYPES'],
@@ -90,6 +89,10 @@ const SAME: [string, unknown, string][] = [
 describe('src/config = giá trị v1 (deep equal)', () => {
   it.each(SAME)('%s', (_name, mine, expr) => {
     expect(mine).toStrictEqual(v1(expr));
+  });
+
+  it('LEAD_DROP_REASONS = v1 + cup_may (D-030, chỉ thêm mã)', () => {
+    expect(LEAD_DROP_REASONS).toStrictEqual({ ...v1<Record<string, string>>('LEAD_DROP_REASONS'), cup_may: 'Cúp máy' });
   });
 
   it('MIN = 1 phút như velocity.js', () => {
