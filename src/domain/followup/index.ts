@@ -356,6 +356,15 @@ export function afterCall(
   const n = trailingMisses(attempts);
   if (!q) {
     // KHÁCH MỚI: nhịp 5 lần xoay khung A/B/C/D
+    if (r === 'hung_up' && attempts[attempts.length - 2]?.result === 'hung_up') {
+      return {
+        kind: 'drop',
+        code: 'cup_may',
+        auto: true,
+        text: 'Cúp máy 2 lần liên tiếp → chuyển Loại "Cúp máy".',
+        fallback: null,
+      };
+    }
     if (n >= C.leadMaxAttempts) {
       return {
         kind: 'drop',

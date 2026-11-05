@@ -1,9 +1,11 @@
 import type { ReactNode } from 'react';
 import { Fragment, useState } from 'react';
 import { Field } from '@/components/crm/form-fields';
+import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { OCCUPATIONS } from '@/config/occupations';
 import type { Customer } from '@/domain/customer';
+import { guessGenderFromName } from '@/domain/customer/genderFromName';
 import { ProfileTextField } from './advanced';
 import { DobField } from './dob-field';
 import { LONG_FIELD, SHORT_FIELD } from './fields';
@@ -50,6 +52,8 @@ type InfoProps = {
 
 /** Khu "Thông tin chính" của tab Trí nhớ: ô ngắn nửa hàng, ô dài cả hàng, ô trống ẩn sau "Bổ sung". */
 export function ProfileInfoFields({ customer, writable, busy, now, showEmpty, onSaveField, onSaveDob }: InfoProps) {
+  const guessedGender = !hasFieldValue(customer.gender) ? guessGenderFromName(customer.full_name) : null;
+  const guessedLabel = GENDER_OPTIONS.find((option) => option.value === guessedGender)?.label;
   // bare: ô tự đặt khung (Ngày sinh kèm các ô Tuổi/Mệnh/Cung).
   const rows: { key: string; short: boolean; always?: boolean; bare?: boolean; node: ReactNode }[] = [
     {
@@ -81,14 +85,27 @@ export function ProfileInfoFields({ customer, writable, busy, now, showEmpty, on
     {
       key: 'gender',
       short: true,
+      always: !!guessedGender,
       node: (
-        <ChoiceField
-          label="Giới tính"
-          value={customer.gender}
-          disabled={!writable || busy}
-          options={GENDER_OPTIONS}
-          onSave={(value) => onSaveField('gender', value)}
-        />
+        <div className="space-y-1.5">
+          <ChoiceField
+            label="Giới tính"
+            value={customer.gender}
+            disabled={!writable || busy}
+            options={GENDER_OPTIONS}
+            onSave={(value) => onSaveField('gender', value)}
+          />
+          {guessedGender && (
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-caption text-ink-muted">{guessedLabel} · đoán từ tên</p>
+              {writable && (
+                <Button size="sm" disabled={busy} onClick={() => onSaveField('gender', guessedGender)}>
+                  Lưu {guessedLabel}
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
       ),
     },
     {

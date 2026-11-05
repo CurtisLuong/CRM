@@ -39,6 +39,7 @@ Lựa chọn nền tảng ban đầu (Supabase, Cloudflare Pages, local-first) k
 | D-027 | Bản UI mới dùng shadcn/ui (Radix) trên Tailwind v4 | Đã duyệt 2026-10-28; token + component theo D-028 | Bổ sung D-011; D-023 sẽ được thay khi có design system mới |
 | D-028 | Bản UI "Realty CRM" (Claude Design, `realty-crm-ui/`) thay Design System v4 | Curtis yêu cầu 2026-10-28; nền đã port vào `factory`, màn chuyển dần | Thay D-023 (giữ L1–L5); bổ sung D-027 |
 | D-029 | Thẻ khách luôn có "loại căn · dự án" (chữ rút gọn chỉ ở giao diện); nới ngân sách màn đầu Hôm nay | Đã duyệt 2026-10-31 (Telegram 1a, 2b) | Sửa mốc D-023 L1 cho Hôm nay (≥ 2 thẻ trọn → ≥ 1 thẻ trọn + đầu thẻ 2) |
+| D-030 | Kết quả cuộc gọi: 3 nút chính + Khác; chọn sẵn theo thời lượng (60s); khách mới cúp máy 2 lần liên tiếp → tự Loại "Cúp máy" | Curtis yêu cầu 2026-11-05 | Mở rộng tự chuyển của D-008/followup (thêm 1 điều kiện tự loại) |
 
 ## Ba loại kết quả
 
@@ -462,3 +463,13 @@ Ví dụ và mẫu trong bộ tài liệu không phải sự chấp thuận cho 
   - Chữ rút gọn chỉ ở giao diện, DB giữ giá trị gốc: loại căn hiện mã chuẩn ("2N-2WC"); dự án hiện tên ngắn theo `src/config/projectShort.ts` ("Vin Tràng Cát" → "Vin TC", "Marquee Homes" → "Marquee", cụm "Nhà ở xã hội" → "NOXH"). Dự án mới: Curtis đặt quy tắc, thêm vào file đó.
 - Không đổi: D-012 (không ghi tên ngắn vào dữ liệu), hồ sơ/form/xuất Excel dùng tên đầy đủ.
 
+### D-030 — Kết quả cuộc gọi: 3 nút chính, chọn sẵn theo thời lượng, cúp máy 2 lần → tự loại
+
+- Ngày: 2026-11-05 · Loại: luật nghiệp vụ + giao diện (Curtis yêu cầu trong terminal, kèm ảnh màn Kết quả cuộc gọi)
+- Quyết định:
+  - Nút chính: Nói chuyện được (`talked`) · Bận, hẹn lại (`busy`) · Không nghe (`no_answer`). "Khác…": Thuê bao (`unreachable`) · Sai số (`wrong_number`) · Cúp máy (`hung_up`) · Máy bận (`line_busy`) — các ca này < 10%. Mã lưu không đổi nghĩa.
+  - Chọn sẵn khi có thời lượng máy: ≥ 60s → `talked`, 1–59s → `busy`, 0s → `no_answer`; không có thời lượng → không chọn sẵn.
+  - Khách mới (chưa Đạt): 2 cuộc gần nhất liên tiếp đều `hung_up` → tự chuyển Loại với lý do mới `cup_may` "Cúp máy" (auto như hết vòng 5 lần, có Hoàn tác). Khách Tiềm năng giữ nguyên.
+  - Ý nghĩa Curtis giải thích: Thuê bao = tạm không liên lạc được, gọi sau được; Sai số = số sai bản chất, hỏi lại trên kênh quảng cáo, nhiều khả năng phá campaign; Máy bận = đang nghe cuộc khác, gọi lúc khác. Các luật gợi ý hiện có cho 3 mã này giữ nguyên.
+- Không đổi: D-010 thời hạn, nhịp 5 lần cho các ca hỏng khác, AI chỉ đề xuất.
+- Tài liệu: `docs/huong-dan-follow-up.md`.
