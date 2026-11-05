@@ -163,7 +163,15 @@ function toRow(item: SendKitItemData): SendKitRow {
 
 export function createSendKitRepository(sync: CustomerSync, idb?: IDBFactory, storage?: Storage) {
   const uid = sync.local.userId;
-  const assertOpen = () => sync.local.assertOpen();
+  let stopped = false;
+  let started = false;
+  let fileViews = 0;
+  const cleanup: (() => void)[] = [];
+  const current = () => !stopped && !sync.local.isClosed;
+  const assertOpen = () => {
+    if (stopped) throw new Error('Phiên dữ liệu đã đóng.');
+    sync.local.assertOpen();
+  };
   const listeners = new Set<() => void>();
   let members: Member[] = [];
   const teamKey = `crm_send_kit_team:${uid}`;
@@ -175,9 +183,12 @@ export function createSendKitRepository(sync: CustomerSync, idb?: IDBFactory, st
   let snapshot = { items: [] as SendKitItemData[], loadError: '', syncError: '' };
   let running: Promise<void> | null = null;
   let requested = false;
+  let requestedFiles = false;
+  const deleted = new Map<string, number>();
+  let eventRevision = 0;
   const downloads = new Map<string, Promise<Blob>>();
   function emit(rows: SendKitItemData[] = snapshot.items) {
-    if (sync.local.isClosed) return;
+    if (!current()) return;
     snapshot = { ...snapshot, items: rows.filter((item) => !item.deletedAt).sort((a, b) => a.order - b.order) };
     for (const listener of listeners) listener();
   }
@@ -187,7 +198,7 @@ export function createSendKitRepository(sync: CustomerSync, idb?: IDBFactory, st
     emit(rows);
     return rows;
   }
-  const online = () => !sync.demoMode && !sync.local.isClosed && sync.isOnline();
+  const online = () => !sync.demoMode && current() && sync.isOnline();
   function writable(item: SendKitItemData) {
     if (!canEditSendKitItem(item, uid, admin())) throw new Error('Chỉ người tạo hoặc trưởng nhóm được sửa tài liệu.');
   }
@@ -293,17 +304,26 @@ export function createSendKitRepository(sync: CustomerSync, idb?: IDBFactory, st
       throw new Error('Chưa xác nhận được tài liệu đã đồng bộ.');
     await local((items) => mergeSendKitItems(items, [saved], uid, members));
   }
-  async function synchronizeOnce() {
+  async function synchronizeOnce(downloadFiles: boolean) {
     if (!online()) return;
     try {
       const [remote] = await Promise.all([
-        pagedFetch<SendKitRow>(sync.client, 'send_kit_items', '*', () => !sync.local.isClosed),
+        pagedFetch<SendKitRow>(sync.client, 'send_kit_items', '*', current),
         loadTeam().catch(() => {}),
       ]);
       assertOpen();
       snapshot = { ...snapshot, loadError: '', syncError: '' };
-      const merged = await local((items) => mergeSendKitItems(items, remote, uid, members));
       const existing = new Set(remote.map((item) => item.id));
+      const deletions = new Map(deleted);
+      const merged = await local((items) =>
+        mergeSendKitItems(items, remote, uid, members).map((item) =>
+          // Chỉ sự kiện DELETE xác nhận mới được ẩn mục vắng; giữ blob và bản đang chờ đẩy.
+          deletions.has(item.id) && !existing.has(item.id) && item.pending === false
+            ? { ...item, deletedAt: item.deletedAt ?? new Date().toISOString() }
+            : item,
+        ),
+      );
+      for (const [id, revision] of deletions) if (deleted.get(id) === revision) deleted.delete(id);
       for (const candidate of merged) {
         if (!online()) return;
         if (!candidate.pending || !canEditSendKitItem(candidate, uid, admin())) continue;
@@ -319,33 +339,94 @@ export function createSendKitRepository(sync: CustomerSync, idb?: IDBFactory, st
         }
       }
     } catch {
-      if (sync.local.isClosed) return;
+      if (!current()) return;
       snapshot = { ...snapshot, loadError: SEND_KIT_LOAD_ERROR };
       emit();
       return;
     }
-    // Tải ngay để lần mở sau gửi được cả khi mất mạng. Lỗi không làm mất metadata.
+    // Đồng bộ nền chỉ kéo metadata; màn đang mở mới chuẩn bị tệp để gửi offline.
     for (const item of snapshot.items) {
       for (const file of item.files) {
-        if (!online()) return;
+        if (!online() || (!downloadFiles && !fileViews)) return;
         if (file.cached === false) await cacheFile(file).catch(() => {});
       }
     }
   }
-  function synchronize(): Promise<void> {
+  function synchronize(options: { downloadFiles?: boolean } = {}): Promise<void> {
     if (!online()) return Promise.resolve();
     requested = true;
+    requestedFiles ||= options.downloadFiles ?? true;
     if (!running) {
       running = (async () => {
         while (requested && online()) {
           requested = false;
-          await synchronizeOnce();
+          const downloadFiles = requestedFiles;
+          requestedFiles = false;
+          await synchronizeOnce(downloadFiles);
         }
       })().finally(() => {
         running = null;
       });
     }
     return running;
+  }
+  const synchronizeBackground = () => {
+    void synchronize({ downloadFiles: false });
+  };
+  function dispose() {
+    if (stopped) return;
+    stopped = true;
+    requested = false;
+    requestedFiles = false;
+    deleted.clear();
+    for (const stop of cleanup) stop();
+    cleanup.length = 0;
+    listeners.clear();
+  }
+  function start() {
+    if (started || !current()) return dispose;
+    started = true;
+    if (sync.demoMode) return dispose;
+    const resume = () => {
+      if (document.visibilityState === 'visible') synchronizeBackground();
+    };
+    window.addEventListener('online', synchronizeBackground);
+    window.addEventListener('focus', synchronizeBackground);
+    document.addEventListener('visibilitychange', resume);
+    cleanup.push(() => {
+      window.removeEventListener('online', synchronizeBackground);
+      window.removeEventListener('focus', synchronizeBackground);
+      document.removeEventListener('visibilitychange', resume);
+    });
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    cleanup.push(() => clearTimeout(timer));
+    try {
+      let liveStatus = '';
+      const channel = sync.client
+        .channel(`crm-send-kit-${uid}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'send_kit_items' }, (payload) => {
+          if (!current()) return;
+          const id = (payload.eventType === 'DELETE' ? payload.old : payload.new).id;
+          if (typeof id !== 'string' || !id) return;
+          if (payload.eventType === 'DELETE') deleted.set(id, ++eventRevision);
+          else deleted.delete(id);
+          clearTimeout(timer);
+          timer = setTimeout(synchronizeBackground, 300);
+        })
+        .subscribe((status) => {
+          if (!current()) return;
+          // Bắt kịp cả khoảng chờ nối kênh lần đầu và các lần nối lại.
+          if (status === 'SUBSCRIBED' && liveStatus !== status) synchronizeBackground();
+          liveStatus = status;
+        });
+      cleanup.push(() => {
+        void sync.client.removeChannel(channel).catch(() => {});
+      });
+    } catch {
+      // Thiếu Realtime vẫn đồng bộ được khi mở hoặc quay lại app.
+    }
+    synchronizeBackground();
+    return dispose;
   }
   return {
     getSnapshot: () => snapshot,
@@ -359,6 +440,18 @@ export function createSendKitRepository(sync: CustomerSync, idb?: IDBFactory, st
     },
     canEdit: (item: SendKitItemData) => canEditSendKitItem(item, uid, admin()),
     synchronize,
+    start,
+    dispose,
+    watchFiles() {
+      assertOpen();
+      fileViews++;
+      let active = true;
+      return () => {
+        if (!active) return;
+        active = false;
+        fileViews--;
+      };
+    },
     async save(item: SendKitItemData) {
       for (const file of item.files) {
         const invalid = sendKitFileError(file);
@@ -382,7 +475,7 @@ export function createSendKitRepository(sync: CustomerSync, idb?: IDBFactory, st
         };
         return [...items.filter((row) => row.id !== item.id), saved];
       });
-      void synchronize();
+      synchronizeBackground();
     },
     async remove(id: string) {
       await local((items) =>
@@ -397,7 +490,7 @@ export function createSendKitRepository(sync: CustomerSync, idb?: IDBFactory, st
           };
         }),
       );
-      void synchronize();
+      synchronizeBackground();
     },
     async reorder(ordered: SendKitItemData[]) {
       await local((items) =>
@@ -408,7 +501,7 @@ export function createSendKitRepository(sync: CustomerSync, idb?: IDBFactory, st
           return { ...item, order, updatedAt: Math.max(Date.now(), item.updatedAt + 1), pending: true };
         }),
       );
-      void synchronize();
+      synchronizeBackground();
     },
     async ensureFiles(ids: string[]) {
       const items = await local();

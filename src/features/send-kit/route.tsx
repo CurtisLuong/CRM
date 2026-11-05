@@ -106,11 +106,9 @@ function SendKitPage() {
       setSyncMessage(snapshot.loadError || snapshot.syncError);
     };
     const unsubscribe = repository?.subscribe(update);
+    const stopFiles = repository?.watchFiles();
     const synchronize = () => {
-      void repository?.synchronize().finally(() => active && setSyncReady(true));
-    };
-    const resume = () => {
-      if (document.visibilityState === 'visible') synchronize();
+      void repository?.synchronize({ downloadFiles: false }).finally(() => active && setSyncReady(true));
     };
     void (repository ? repository.list() : listSendKitItems(userId))
       .then((rows) => {
@@ -123,9 +121,6 @@ function SendKitPage() {
         if (active) setError(reason instanceof Error ? reason.message : 'Không đọc được kho tài liệu.');
       })
       .finally(() => active && setLoading(false));
-    window.addEventListener('online', synchronize);
-    window.addEventListener('focus', synchronize);
-    document.addEventListener('visibilitychange', resume);
     if (!demo)
       void account?.catalog.load().then(() => {
         if (active)
@@ -139,9 +134,7 @@ function SendKitPage() {
     return () => {
       active = false;
       unsubscribe?.();
-      window.removeEventListener('online', synchronize);
-      window.removeEventListener('focus', synchronize);
-      document.removeEventListener('visibilitychange', resume);
+      stopFiles?.();
     };
   }, [userId, account, repository, demo]);
 
