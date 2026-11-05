@@ -33,14 +33,16 @@ export class RepositorySession {
           this.account = null;
           if (sync) {
             const customers = new CustomerRepository(sync);
+            const sendKit = createSendKitRepository(sync, options.idb, options.storage);
             this.account = {
               customers,
               sync,
               remote: createRemoteRepository(sync, customers),
               catalog: createCatalogRepository(sync, options.storage),
-              sendKit: createSendKitRepository(sync, options.idb, options.storage),
+              sendKit,
             };
             this.cleanup.push(customers.subscribe(this.emit), sync.status.subscribe(this.emit));
+            this.cleanup.push(sendKit.start());
             void customers.refresh().catch(options.onError ?? (() => {}));
           }
           this.emit();

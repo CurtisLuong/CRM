@@ -106,11 +106,9 @@ function SendKitPage() {
       setSyncMessage(snapshot.loadError || snapshot.syncError);
     };
     const unsubscribe = repository?.subscribe(update);
+    const stopFiles = repository?.watchFiles();
     const synchronize = () => {
-      void repository?.synchronize().finally(() => active && setSyncReady(true));
-    };
-    const resume = () => {
-      if (document.visibilityState === 'visible') synchronize();
+      void repository?.synchronize({ downloadFiles: false }).finally(() => active && setSyncReady(true));
     };
     void (repository ? repository.list() : listSendKitItems(userId))
       .then((rows) => {
@@ -123,9 +121,6 @@ function SendKitPage() {
         if (active) setError(reason instanceof Error ? reason.message : 'Không đọc được kho tài liệu.');
       })
       .finally(() => active && setLoading(false));
-    window.addEventListener('online', synchronize);
-    window.addEventListener('focus', synchronize);
-    document.addEventListener('visibilitychange', resume);
     if (!demo)
       void account?.catalog.load().then(() => {
         if (active)
@@ -139,9 +134,7 @@ function SendKitPage() {
     return () => {
       active = false;
       unsubscribe?.();
-      window.removeEventListener('online', synchronize);
-      window.removeEventListener('focus', synchronize);
-      document.removeEventListener('visibilitychange', resume);
+      stopFiles?.();
     };
   }, [userId, account, repository, demo]);
 
@@ -478,7 +471,7 @@ function SendKitPage() {
             {syncMessage}
           </p>
         )}
-        <div className="sticky top-0 z-20 -mx-4 flex flex-col gap-2 border-y border-line bg-surface-100 p-3 shadow-sm sm:flex-row">
+        <div className="sticky top-0 z-20 -mx-4 flex flex-col gap-2 border-y border-line bg-surface-100 p-3 shadow-sm sm:mx-0 sm:flex-row sm:items-end sm:rounded-md sm:border-x">
           <label className="flex min-w-0 flex-1 flex-col gap-1 text-label">
             Dự án
             <select
@@ -656,7 +649,7 @@ function SendKitPage() {
           {syncMessage}
         </p>
       )}
-      <div className="sticky top-0 z-20 -mx-4 flex flex-col gap-2 border-y border-line bg-surface-100 p-3 shadow-sm sm:flex-row">
+      <div className="sticky top-0 z-20 -mx-4 flex flex-col gap-2 border-y border-line bg-surface-100 p-3 shadow-sm sm:mx-0 sm:flex-row sm:items-end sm:rounded-md sm:border-x">
         <label className="flex min-w-0 flex-1 flex-col gap-1 text-label">
           Dự án
           <select
