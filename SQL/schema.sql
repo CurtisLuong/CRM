@@ -218,3 +218,4 @@ on conflict (name, owner_id) do nothing;
 --      SQL/v2/009_lead_campaign_projects.sql → bảng quy tắc tên chiến dịch → dự án (người nhận lead sửa, Worker đọc)
 --      SQL/v2/010_team_info_edit.sql        → khách nhóm (D-025): người theo dõi được UPDATE, trigger chỉ cho đổi cột thông tin hồ sơ (cần SQL/add_team_assign.sql)
 --      SQL/v2/011_send_kit.sql             → Tài liệu gửi khách (SK-03): bảng send_kit_items (dùng chung nhóm, xoá mềm) + bucket riêng tư send-kit 50MB/tệp (cần SQL/add_team_assign.sql)
+--      SQL/v2/012_send_kit_realtime.sql    → Realtime cho send_kit_items (SK-04; cần 011)
