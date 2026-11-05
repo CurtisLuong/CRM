@@ -166,8 +166,19 @@ describe('parity trực tiếp với v1', () => {
       for (let i = 0; i < 300; i++) {
         const { c, attempts, now } = randomCase();
         const opts = { statsCustomers: stats };
+        // D-030 (05/11): khách mới cúp máy 2 lần liên tiếp → tự loại "Cúp máy"; v1 không có luật này.
+        const lastTwo = attempts.slice(-2).map((a) => a.result);
+        const d030 = !c.qualified_at && lastTwo.length === 2 && lastTwo.every((r) => r === 'hung_up');
         expect(json(afterCall(c, attempts, now, opts)), `afterCall #${i}`).toStrictEqual(
-          callV1(now, 'afterCall', c, attempts),
+          d030
+            ? {
+                kind: 'drop',
+                code: 'cup_may',
+                auto: true,
+                text: 'Cúp máy 2 lần liên tiếp → chuyển Loại "Cúp máy".',
+                fallback: null,
+              }
+            : callV1(now, 'afterCall', c, attempts),
         );
         expect(json(firstCall(c, now)), `firstCall #${i}`).toStrictEqual(callV1(now, 'firstCall', c));
         expect(suggestTemplates(c, now), `suggestTemplates #${i}`).toStrictEqual(callV1(now, 'suggestTemplates', c));
