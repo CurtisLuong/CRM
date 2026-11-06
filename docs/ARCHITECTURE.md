@@ -225,7 +225,7 @@ Xung đột: last-write-wins theo updated_at cho cột thường; insert dùng u
 
 - **Tên DB giữ nguyên**: `crm_khach_hang__<userId>` (stores `customers` keyPath `id`, `queue` keyPath `opId` autoIncrement, `meta` keyPath `key`); DB gốc `crm_khach_hang` chỉ đọc để nhập một lần (logic `legacy-imported`). v2 **phải** flush được queue do v1 ghi và ngược lại (test T2.A2).
 - Pull chỉ thay cache khi queue rỗng và local không đổi trong lúc kéo (`paged-fetch`: kéo theo `id`, đếm chính xác).
-- `assertWritable`: chỉ người phụ trách ghi (D-003); giao khách đi qua queue với cờ `assign`. Ngoại lệ D-025: `CustomerRepository.write` cho người không phụ trách vá **chỉ** `TEAM_INFO_FIELDS` (`src/domain/customer/teamEdit.ts`), server chặn cùng danh sách bằng trigger `guard_customer_team_edit` (`SQL/v2/010_team_info_edit.sql`).
+- `assertWritable`: chỉ người phụ trách ghi (D-003); giao khách đi qua queue với cờ `assign`. Ngoại lệ D-025: `CustomerRepository.write` cho người không phụ trách vá **chỉ** `TEAM_INFO_FIELDS` (`src/domain/customer/teamEdit.ts`), server chặn cùng danh sách bằng trigger `guard_customer_team_edit` (`SQL/v2/010_team_info_edit.sql`). D-032 nới thêm `TEAM_LOG_FIELDS` (cuộc gọi, tương tác; bậc/lịch gọi/loại chỉ đổi kèm cuộc gọi) — `isTeamWritePatch`, `SQL/v2/014_team_log_edit.sql`.
 - Realtime cần `SQL/add_realtime_customers.sql`; không có thì probe vẫn chạy.
 - Catalog cache riêng theo tài khoản (`crm_catalog_v2:<userId>`); không mặc định áp chi tiết queue khách cho catalog.
 - Tự xử lý SLA (`runSlaAutomation`) chạy ở client khi nạp danh sách, chỉ khách mình phụ trách; v2 tách thành `planSlaAutomation()` thuần + executor (mốc `{auto:'sla'}` trong lịch sử để hoàn tác).

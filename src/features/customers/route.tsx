@@ -22,13 +22,7 @@ import { isQualified, normStage, sourceListOf } from '@/domain/customer/normaliz
 import { apartmentGroup } from '@/domain/search/search';
 import { CustomerSheet as QuickCustomerSheet } from '@/features/customer-sheet/CustomerSheet';
 import { openQuickAction } from '@/features/quick-actions/store';
-import {
-  type AssignmentMode,
-  assignmentFollowers,
-  assignmentNote,
-  canAssignCustomer,
-  type TeamMember,
-} from '@/features/team/model';
+import { AssignCustomerSheet, canAssignWithTeam, type TeamPerson, toMembers } from '@/features/team/AssignSheet';
 import type { Level, Stage } from '@/lib/crm';
 import { customerNeed } from '@/lib/crm/customer-need';
 import { cn } from '@/lib/utils';
@@ -64,15 +58,6 @@ type SavedSegment = {
   filters: CustomerFilters;
   sort: SortChoice;
   view: 'list' | 'cards';
-};
-type TeamPerson = {
-  user_id?: string;
-  id?: string;
-  name?: string;
-  full_name?: string;
-  email?: string;
-  is_admin?: boolean;
-  is_me?: boolean;
 };
 const STORE = 'crm_v2_customer_segments';
 // Chiều sắp xếp 3 tầng nhớ theo người dùng trên thiết bị (L4).
@@ -277,10 +262,6 @@ function Customers() {
   const [team, setTeam] = useState<TeamPerson[]>([]);
   const [selectedLocal, setSelectedLocal] = useState<Customer | null>(null);
   const [assignOpen, setAssignOpen] = useState(false);
-  const [assignTo, setAssignTo] = useState('');
-  const [assignMode, setAssignMode] = useState<AssignmentMode>('keep');
-  const [assignNote, setAssignNote] = useState('');
-  const [assignBusy, setAssignBusy] = useState(false);
   const selected = params.id ? (rows.find((c) => c.id === params.id) ?? null) : selectedLocal;
   const [saving, setSaving] = useState(false);
   const [segmentName, setSegmentName] = useState('');
@@ -542,55 +523,10 @@ function Customers() {
   };
 
   const counts = customerGroupCounts(rows, userId);
-  const teamMembers = team
-    .map((person) => ({
-      user_id: person.user_id || person.id || '',
-      full_name: person.full_name || person.name,
-      email: person.email,
-      is_admin: person.is_admin,
-      is_me: person.is_me,
-    }))
-    .filter((person) => person.user_id) as TeamMember[];
-  const canAssign = !!selected && canAssignCustomer(selected, userId, teamMembers) && teamMembers.length > 1;
-  const assignableMembers = selected ? teamMembers.filter((person) => person.user_id !== selected.owner_id) : [];
+  const teamMembers = toMembers(team);
+  const canAssign = canAssignWithTeam(selected, userId, teamMembers);
   const openAssignment = () => {
-    if (!selected || !canAssign) return;
-    setAssignTo('');
-    setAssignMode('keep');
-    setAssignNote('');
-    setAssignOpen(true);
-  };
-  const saveAssignment = async () => {
-    if (!selected || !account || !assignTo || assignBusy) return;
-    const recipient = teamMembers.find((person) => person.user_id === assignTo);
-    if (!recipient || !canAssignCustomer(selected, userId, teamMembers)) return;
-    const keep = assignMode === 'keep' && assignTo !== userId;
-    const followers = assignmentFollowers(selected.followers, userId, assignTo, keep ? 'keep' : 'handoff');
-    const note = assignmentNote(recipient, assignTo, userId, keep ? 'keep' : 'handoff', assignNote);
-    setAssignBusy(true);
-    try {
-      await account.customers.update(
-        selected.id,
-        { owner_id: assignTo, followers },
-        { assign: true, assignmentNote: note },
-      );
-      setAssignOpen(false);
-      toast({
-        title:
-          assignTo === userId
-            ? 'Đã lấy khách về'
-            : `Đã giao cho ${recipient.full_name || recipient.email || 'đồng nghiệp'}`,
-        description: account.sync.isOnline() ? 'Đang đồng bộ.' : 'Ngoại tuyến · thay đổi đã xếp hàng đồng bộ.',
-      });
-    } catch (error) {
-      toast({
-        title: 'Chưa giao được khách',
-        description: error instanceof Error ? error.message : 'Thử lại.',
-        tone: 'error',
-      });
-    } finally {
-      setAssignBusy(false);
-    }
+    if (selected && canAssign) setAssignOpen(true);
   };
 
   const controls = (
@@ -1084,93 +1020,13 @@ function Customers() {
         onOpenProfile={(customer) => navigate(`/ho-so/${customer.id}`)}
         onAssign={openAssignment}
       />
-      <CustomerSheet
+      <AssignCustomerSheet
+        account={account}
+        customer={selected}
+        members={teamMembers}
         open={assignOpen}
-        onOpenChange={(open) => {
-          if (!assignBusy) setAssignOpen(open);
-        }}
-        title={`Giao khách${selected ? `: ${selected.full_name || ''}` : ''}`}
-        description="Giao khách đi qua hàng đợi đồng bộ; quyền ghi vẫn thuộc người phụ trách."
-        footer={
-          <>
-            <Button className="flex-1" onClick={() => setAssignOpen(false)} disabled={assignBusy}>
-              Huỷ
-            </Button>
-            <Button
-              variant="primary"
-              className="flex-1"
-              onClick={() => void saveAssignment()}
-              loading={assignBusy}
-              disabled={!assignTo}
-            >
-              Xác nhận giao
-            </Button>
-          </>
-        }
-      >
-        {selected && (
-          <div className="space-y-4">
-            <label className="block space-y-1 text-label text-ink-muted">
-              <span>Người nhận</span>
-              <select
-                aria-label="Người nhận khách"
-                value={assignTo}
-                onChange={(event) => setAssignTo(event.target.value)}
-                className="min-h-11 w-full rounded-md border border-line bg-surface-100 px-3 text-body text-ink"
-              >
-                <option value="">Chọn người nhận</option>
-                {assignableMembers.map((person) => (
-                  <option key={person.user_id} value={person.user_id}>
-                    {person.user_id === userId ? 'Tôi (lấy lại)' : person.full_name || person.email || 'Đồng nghiệp'}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {assignTo !== userId && (
-              <fieldset className="space-y-2">
-                <legend className="text-label text-ink-muted">Sau khi giao</legend>
-                <label className="flex min-h-11 items-center gap-3 rounded-md border border-line p-3 text-body">
-                  <input
-                    type="radio"
-                    name="assign-mode"
-                    value="keep"
-                    checked={assignMode === 'keep'}
-                    onChange={() => setAssignMode('keep')}
-                  />
-                  <span>
-                    Tôi vẫn theo dõi{' '}
-                    <span className="block text-label text-ink-muted">Tôi chỉ xem; người nhận là người phụ trách.</span>
-                  </span>
-                </label>
-                <label className="flex min-h-11 items-center gap-3 rounded-md border border-line p-3 text-body">
-                  <input
-                    type="radio"
-                    name="assign-mode"
-                    value="handoff"
-                    checked={assignMode === 'handoff'}
-                    onChange={() => setAssignMode('handoff')}
-                  />
-                  <span>
-                    Giao hẳn <span className="block text-label text-ink-muted">Khách rời danh sách của tôi.</span>
-                  </span>
-                </label>
-              </fieldset>
-            )}
-            <label className="block space-y-1 text-label text-ink-muted">
-              <span>Ghi chú cho người nhận (tuỳ chọn)</span>
-              <textarea
-                aria-label="Ghi chú giao khách"
-                value={assignNote}
-                onChange={(event) => setAssignNote(event.target.value)}
-                rows={3}
-                maxLength={500}
-                className="w-full rounded-md border border-line bg-surface-100 p-3 text-body text-ink"
-                placeholder="Ví dụ: khách hẹn xem nhà mẫu thứ 7"
-              />
-            </label>
-          </div>
-        )}
-      </CustomerSheet>
+        onOpenChange={setAssignOpen}
+      />
     </main>
   );
 }

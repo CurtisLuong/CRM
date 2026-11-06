@@ -2,6 +2,7 @@ import { CALL_OUTCOME_TALKED_SEC, CALL_RESULTS, type CallResult } from '@/config
 import { type CallSlotKey, FOLLOWUP_CONFIG } from '@/config/followup';
 import type { CustomerRepository, Data } from '@/data/repositories/customers';
 import { type CallAttempt, type Customer, callAttemptsOf, isQualified } from '@/domain/customer';
+import { canLogHistory } from '@/domain/customer/teamEdit';
 import {
   afterCall,
   type FollowupSuggestion,
@@ -122,8 +123,7 @@ export async function saveCall(
   stats: Customer[] = [],
 ) {
   const c = await repo.get(id);
-  if (!c || c.archived_at || c.owner_id !== repo.sync.local.userId)
-    throw new Error('Khách không còn thuộc quyền chỉnh sửa.');
+  if (!c || !canLogHistory(c, repo.sync.local.userId)) throw new Error('Khách không còn thuộc quyền chỉnh sửa.');
   const existingCall = draft.editAt ? callAttemptsOf(c).find((a) => a.at === draft.editAt) : null;
   if (draft.editAt && !existingCall) throw new Error('Cuộc gọi đã thay đổi. Mở lại để kiểm tra.');
   // Editing an already-recorded call changes only its outcome and note. Keep the

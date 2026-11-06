@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { RepositoryAccount } from '@/data/repositories/session';
 import type { Customer } from '@/domain/customer';
 import { appendInteractionPatch, createInteraction, type InteractionKind } from '@/domain/customer/interactions';
+import { canLogHistory } from '@/domain/customer/teamEdit';
 import { useToast } from '@/ui/Toast';
 import { Button, ActionSheet as Sheet } from './kit';
 import { openQuickAction } from './store';
@@ -21,7 +22,8 @@ export function InteractionRecorder({
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const writable = customer.owner_id === account.sync.local.userId && !customer.archived_at;
+  // D-032: người đang thấy khách đã giao/khách nhóm vẫn ghi tương tác giùm.
+  const writable = canLogHistory(customer, account.sync.local.userId);
   const record = async (kind: InteractionKind) => {
     if (!writable || busy) return;
     setBusy(true);

@@ -40,6 +40,7 @@ Lựa chọn nền tảng ban đầu (Supabase, Cloudflare Pages, local-first) k
 | D-028 | Bản UI "Realty CRM" (Claude Design, `realty-crm-ui/`) thay Design System v4 | Curtis yêu cầu 2026-10-28; nền đã port vào `factory`, màn chuyển dần | Thay D-023 (giữ L1–L5); bổ sung D-027 |
 | D-029 | Thẻ khách luôn có "loại căn · dự án" (chữ rút gọn chỉ ở giao diện); nới ngân sách màn đầu Hôm nay | Đã duyệt 2026-10-31 (Telegram 1a, 2b) | Sửa mốc D-023 L1 cho Hôm nay (≥ 2 thẻ trọn → ≥ 1 thẻ trọn + đầu thẻ 2) |
 | D-030 | Kết quả cuộc gọi: 3 nút chính + Khác; chọn sẵn theo thời lượng (60s); khách mới cúp máy 2 lần liên tiếp → tự Loại "Cúp máy" | Curtis yêu cầu 2026-11-05 | Mở rộng tự chuyển của D-008/followup (thêm 1 điều kiện tự loại) |
+| D-032 | Khách ở mọi bậc giao được; nút Giao (icon) ở đầu hồ sơ; người đang thấy khách đã giao/khách nhóm **ghi giùm** cuộc gọi, tương tác, ghi chú — chỉ Gọi/Zalo/Hẹn khoá | Curtis yêu cầu 2026-11-06 | Nới D-025 (thêm quyền ghi lịch sử cho người theo dõi/trưởng nhóm); SQL 014 |
 | D-031 | Máy tính vay thêm **phí mỗi căn** (dự án → toà → căn ghi đè); Giá dự kiến = thuần + phí + VAT + KPBT; phí đóng đợt 1, không vay | Curtis yêu cầu 2026-11-06 | Đổi công thức máy tính vay (thêm 1 khoản); phí 0 = như cũ |
 
 ## Ba loại kết quả
@@ -463,6 +464,17 @@ Ví dụ và mẫu trong bộ tài liệu không phải sự chấp thuận cho 
   - Thẻ Hôm nay / Công việc: dòng nhu cầu cả bề ngang; thẻ được cao thêm. Màn đầu Hôm nay 360×780: ≥ 1 thẻ trọn + đầu thẻ 2 (trước: ≥ 2 thẻ trọn, D-023 L1); thẻ việc ≤ 170px (trước 150px).
   - Chữ rút gọn chỉ ở giao diện, DB giữ giá trị gốc: loại căn hiện mã chuẩn ("2N-2WC"); dự án hiện tên ngắn theo `src/config/projectShort.ts` ("Vin Tràng Cát" → "Vin TC", "Marquee Homes" → "Marquee", cụm "Nhà ở xã hội" → "NOXH"). Dự án mới: Curtis đặt quy tắc, thêm vào file đó.
 - Không đổi: D-012 (không ghi tên ngắn vào dữ liệu), hồ sơ/form/xuất Excel dùng tên đầy đủ.
+
+### D-032 — Giao khách mọi bậc; người theo dõi ghi giùm lịch sử
+
+- Ngày: 2026-11-06 · Loại: đổi nguyên tắc quyền (nới D-025) + giao diện (Curtis yêu cầu trong terminal)
+- Quyết định:
+  - Khách ở mọi bậc giao được (đang chăm, đã gọi nhiều cuộc). Nút **Giao khách** dạng icon (không chữ) ở dải đầu hồ sơ, sau bậc · nhịp SLA · nhóm khách; ngăn tóm tắt ở Hôm nay cũng có nút như Khách hàng. Ai giao được giữ nguyên D-003 (người phụ trách, trưởng nhóm).
+  - Người đang thấy khách của đồng nghiệp (đã giao nhưng vẫn theo dõi, trưởng nhóm) **ghi giùm** đủ như bình thường: kết quả cuộc gọi (gồm lịch gọi lại/bậc/loại do kết quả đó sinh ra), sửa kết quả, tương tác (đã gặp, đã xem dự án), ghi chú. **Khoá:** Gọi, Zalo, Hẹn (đặt lịch riêng); đổi bậc tay, thêm việc, ảnh, tài liệu, lưu trữ vẫn của người phụ trách.
+  - Bậc / lịch gọi / loại chỉ được đổi **kèm** một cuộc gọi được ghi (app `isTeamWritePatch` + trigger 014 kiểm cùng luật).
+- Server: `SQL/v2/014_team_log_edit.sql` nới danh sách cột của `guard_customer_team_edit` (chỉ thêm quyền, không đụng dữ liệu). Chưa chạy thì cuộc gọi ghi giùm nằm chờ trong máy (server từ chối, khách khác vẫn đồng bộ), chạy xong tự đẩy lên.
+- Biết trước: người theo dõi bấm "Hoàn tác" việc tự loại sau cuộc gọi sẽ bị server từ chối (không kèm cuộc gọi) — hiếm, người phụ trách hoàn tác được.
+- Tài liệu: `docs/huong-dan-nhom.md`, `AGENTS.md`/`CLAUDE.md` luật 3, `docs/ARCHITECTURE.md`.
 
 ### D-031 — Phí mỗi căn trong máy tính vay
 

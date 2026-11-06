@@ -16,6 +16,7 @@ import { applySlaPlan, planSlaAutomation, slaPlanMessage } from '@/domain/veloci
 import { CustomerSheet } from '@/features/customer-sheet/CustomerSheet';
 import { callDraftOf, pendingCallsOf } from '@/features/quick-actions/model';
 import { openQuickAction } from '@/features/quick-actions/store';
+import { AssignCustomerSheet, canAssignWithTeam, useTeamMembers } from '@/features/team/AssignSheet';
 import { ACTION_BY_ID, type ActionId, NOTIF_TYPES, slaMeterFor } from '@/lib/crm';
 import { customerNeed } from '@/lib/crm/customer-need';
 import {
@@ -74,6 +75,10 @@ export function TodayPage() {
   const [notice, setNotice] = useState('');
   const [now, setNow] = useState(() => Date.now());
   const [quickCustomerId, setQuickCustomerId] = useState<string | null>(null);
+  const [assignCustomerId, setAssignCustomerId] = useState<string | null>(null);
+  // Giao khách ở mọi bậc (Curtis 06/11): ngăn tóm tắt ở Hôm nay cũng có nút Giao khách như màn Khách hàng.
+  const teamMembers = useTeamMembers(account);
+  const quickCustomer = customers.find((customer) => customer.id === quickCustomerId) ?? null;
   const [showSummary, setShowSummary] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
   const [openCollapsed, setOpenCollapsed] = useState<Record<string, boolean>>({});
@@ -523,10 +528,22 @@ export function TodayPage() {
         </Button>
       )}
       <CustomerSheet
-        customer={customers.find((customer) => customer.id === quickCustomerId) ?? null}
+        customer={quickCustomer}
         userId={account.sync.local.userId}
+        canAssign={canAssignWithTeam(quickCustomer, account.sync.local.userId, teamMembers)}
+        onAssign={(customer) => {
+          setQuickCustomerId(null);
+          setAssignCustomerId(customer.id);
+        }}
         onOpenChange={(open) => !open && setQuickCustomerId(null)}
         onOpenProfile={(customer) => navigate(`/ho-so/${customer.id}`)}
+      />
+      <AssignCustomerSheet
+        account={account}
+        customer={customers.find((customer) => customer.id === assignCustomerId) ?? null}
+        members={teamMembers}
+        open={!!assignCustomerId}
+        onOpenChange={(open) => !open && setAssignCustomerId(null)}
       />
     </main>
   );

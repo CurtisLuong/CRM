@@ -25,6 +25,7 @@ import { CUSTOMER_GROUP_LABEL, customerGroupOf } from '@/features/customers/mode
 import { loanPath } from '@/features/loan/model';
 import { callDraftOf, callDuration, pendingCallsOf } from '@/features/quick-actions/model';
 import { openQuickAction } from '@/features/quick-actions/store';
+import { AssignCustomerSheet, canAssignWithTeam, useTeamMembers } from '@/features/team/AssignSheet';
 import { fmtDur, slaFor, slaMeterFor } from '@/lib/crm';
 import { Icon } from '@/ui/Icon';
 import { AddTaskSheet } from './add-task';
@@ -91,8 +92,11 @@ function Profile() {
   const [browserOnline, setBrowserOnline] = useState(() => typeof navigator === 'undefined' || navigator.onLine);
   // CP-03: Thêm việc mở danh sách 5 loại trước, không dùng window.prompt.
   const [addOpen, setAddOpen] = useState(false);
+  const [assignOpen, setAssignOpen] = useState(false);
+  const teamMembers = useTeamMembers(account);
   const writable = !!customer && !!account && customer.owner_id === account.sync.local.userId && !customer.archived_at;
-  // Khách nhóm (D-025): người đang thấy khách sửa được thông tin hồ sơ + ghi chú; việc chăm sóc vẫn của người phụ trách.
+  // Khách nhóm (D-025) / khách đã giao (D-032): người đang thấy khách sửa thông tin + ghi giùm cuộc gọi, tương tác,
+  // ghi chú; Gọi, Zalo, Hẹn, bậc, việc vẫn của người phụ trách.
   const teamInfo = !writable && !!account && canEditTeamInfo(customer, account.sync.local.userId);
   const infoWritable = writable || teamInfo;
   const readOnly = !!customer && !infoWritable;
@@ -503,8 +507,8 @@ function Profile() {
       />
       {teamInfo && (
         <p className="text-caption text-ink-muted">
-          Khách của đồng nghiệp: bạn sửa được thông tin và thêm ghi chú; bậc, cuộc gọi, lịch, ảnh và tài liệu do người
-          phụ trách quản lý.
+          Khách của đồng nghiệp: bạn sửa được thông tin và ghi giùm kết quả cuộc gọi, tương tác, ghi chú. Gọi, Zalo,
+          hẹn, bậc, việc, ảnh và tài liệu do người phụ trách quản lý.
         </p>
       )}
     </div>
@@ -613,7 +617,7 @@ function Profile() {
                     )}
                     {teamInfo && (
                       <span className="rounded-sm border border-line px-2 py-1 text-caption text-ink-muted">
-                        Khách nhóm · sửa thông tin
+                        Khách nhóm · ghi giùm
                       </span>
                     )}
                   </div>
@@ -644,6 +648,17 @@ function Profile() {
                 <span className="rounded-sm border border-line bg-surface-100 px-2 py-1 text-caption text-ink-muted">
                   {groupText}
                 </span>
+                {canAssignWithTeam(c, account?.sync.local.userId ?? '', teamMembers) && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Giao khách"
+                    title="Giao khách"
+                    onClick={() => setAssignOpen(true)}
+                  >
+                    <Icon name="assign" size={20} />
+                  </Button>
+                )}
               </div>
               {!otherOwner && slaMeter && (
                 <div className="space-y-1.5">
@@ -694,7 +709,7 @@ function Profile() {
                         </p>
                       </div>
                       <Button
-                        disabled={!writable}
+                        disabled={!infoWritable}
                         aria-label={`Ghi kết quả cuộc gọi ${dashWhen(ms, now)}`}
                         onClick={() => openQuickAction(c.id, 'outcome', callDraftOf(attempt))}
                       >
@@ -933,6 +948,14 @@ function Profile() {
           openQuickAction(c.id, 'schedule');
         }}
         onSave={saveNewTask}
+      />
+
+      <AssignCustomerSheet
+        account={account}
+        customer={c}
+        members={teamMembers}
+        open={assignOpen}
+        onOpenChange={setAssignOpen}
       />
 
       <Sheet open={stageOpen} onOpenChange={setStageOpen}>

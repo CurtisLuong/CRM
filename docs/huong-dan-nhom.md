@@ -14,11 +14,11 @@
 Người tự đăng ký mà bạn chưa thêm vào nhóm: không thấy ai trong nhóm, không được giao khách.
 
 ## Giao khách
-Mở hồ sơ khách (hoặc hộp Khách mới) → **👥 Giao khách** → chọn người nhận → chọn 1 trong 2:
+Khách ở **mọi bậc** đều giao được (kể cả đang chăm, đã gọi nhiều cuộc). Bấm icon **⇄ Giao khách** ở đầu hồ sơ (cạnh bậc, nhịp SLA, nhóm khách), hoặc nút Giao khách trong ngăn tóm tắt ở màn Hôm nay / Khách hàng → chọn người nhận → chọn 1 trong 2:
 
 | Chọn | Kết quả |
 |---|---|
-| **Tôi vẫn theo dõi** | Đồng nghiệp phụ trách. Khách chuyển sang nhóm **Khách nhóm** với nhãn `👤 Tên`, bạn **sửa được thông tin hồ sơ và thêm ghi chú** (D-025); đổi bậc, ghi cuộc gọi, hẹn lịch vẫn là việc của người phụ trách. Không tính SLA cho bạn. |
+| **Tôi vẫn theo dõi** | Đồng nghiệp phụ trách. Khách chuyển sang nhóm **Khách nhóm** với nhãn `👤 Tên`, bạn **sửa được thông tin hồ sơ và ghi giùm lịch sử**: kết quả cuộc gọi, tương tác (đã gặp, đã xem dự án), ghi chú — đủ như bình thường (D-025, D-032). Nút **Gọi, Zalo, Hẹn** khoá; đổi bậc tay, thêm việc vẫn là việc của người phụ trách. Không tính SLA cho bạn. |
 | **Giao hẳn** | Đồng nghiệp phụ trách. Khách biến khỏi danh sách của bạn. Là trưởng nhóm, bạn vẫn xem được ở nhóm **Khách nhóm**. |
 
 - Có ô ghi chú cho người nhận (vd "khách hẹn xem nhà mẫu thứ 7"). Việc giao được ghi vào dòng thời gian chăm sóc của khách.
@@ -30,14 +30,15 @@ Mở hồ sơ khách (hoặc hộp Khách mới) → **👥 Giao khách** → ch
 Tab **Khách hàng** chia 3 nhóm (dải tab ngay dưới thanh tìm kiếm):
 - **Tiềm năng**: khách bạn đang phụ trách (đã Đạt).
 - **Khách mới**: khách mới bạn đang phụ trách (chưa Đạt).
-- **Khách nhóm**: khách đồng nghiệp phụ trách mà bạn thấy được — khách đã giao nhưng bạn vẫn theo dõi; trưởng nhóm thấy thêm mọi khách của nhóm (kể cả khách đã giao hẳn). Thẻ có nhãn `👤 Tên người phụ trách`; mở ra sửa được thông tin + ghi chú, việc chăm sóc vẫn khoá.
+- **Khách nhóm**: khách đồng nghiệp phụ trách mà bạn thấy được — khách đã giao nhưng bạn vẫn theo dõi; trưởng nhóm thấy thêm mọi khách của nhóm (kể cả khách đã giao hẳn). Thẻ có nhãn `👤 Tên người phụ trách`; mở ra sửa được thông tin + ghi giùm cuộc gọi, tương tác, ghi chú; Gọi/Zalo/Hẹn khoá.
   - Trưởng nhóm: Bộ lọc (icon phễu) → **Người phụ trách**: Tất cả · Tôi đang theo dõi · từng đồng nghiệp.
 
 ## Ai được làm gì
 | | Người phụ trách | Người theo dõi | Trưởng nhóm (khách người khác) |
 |---|---|---|---|
 | Xem hồ sơ | ✓ | ✓ | ✓ |
-| Sửa, ghi chú, ghi cuộc gọi, đổi tiến độ | ✓ | — | — |
+| Sửa thông tin, ghi chú, ghi kết quả cuộc gọi, ghi tương tác | ✓ | ✓ (D-032, cần SQL 014) | ✓ |
+| Gọi, Zalo, Hẹn, đổi bậc tay, thêm việc | ✓ | — | — |
 | Giao khách / lấy lại | ✓ | — | ✓ |
 | Xoá khách | ✓ | — | ✓ |
 | Hiện trong Việc hôm nay, chuông nhắc, thống kê Tổng quan | ✓ | — | — |

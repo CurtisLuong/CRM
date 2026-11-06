@@ -115,14 +115,17 @@ describe('quick actions touch budget', () => {
     expect(logCall).toHaveBeenCalledWith('quick-1', { result: 'talked', note: 'Đã trao đổi' }, { editAt: attempt.at });
   });
 
-  it('does not offer call editing for another owner’s customer', () => {
+  // D-032 (Curtis 06/11): khách đã giao/khách nhóm đang thấy → được sửa kết quả giùm; khách lưu trữ thì không.
+  it('offers call editing for a followed colleague’s customer but not for an archived one', () => {
     mockSession.account = account;
     const otherOwner = {
       ...customer,
       owner_id: 'u2',
       call_attempts: [{ at: '2026-10-10T03:00:00Z', result: 'talked' }],
     };
-    const { container } = render(<CallHistoryActions customer={otherOwner as Customer} />);
+    const { container, rerender } = render(<CallHistoryActions customer={otherOwner as Customer} />);
+    expect(container.textContent).toContain('Sửa kết quả');
+    rerender(<CallHistoryActions customer={{ ...otherOwner, archived_at: '2026-10-11T00:00:00Z' } as Customer} />);
     expect(container.textContent).toBe('');
   });
 
