@@ -472,6 +472,7 @@ Ví dụ và mẫu trong bộ tài liệu không phải sự chấp thuận cho 
   - Giá thuần = giá duyệt × diện tích. **Giá dự kiến = giá thuần + phí + giá thuần × VAT + giá thuần × KPBT** (phí không chịu VAT/KPBT). Dòng tổng "Giá FULL" đổi tên "Giá dự kiến" (máy tính vay, báo giá in, Giỏ hàng).
   - Phí đóng trọn ở **đợt 1**, khách tự trả: ngân hàng không giải ngân phần phí kể cả khi chọn giải ngân từ đợt 1.
   - **Ngân hàng cho vay dựa trên giá thuần + VAT, loại trừ phí và KPBT** (Curtis xác nhận 2026-11-06): khoản vay tối đa = tỷ lệ vay × (giá thuần + VAT); phần giải ngân từng đợt trừ KPBT và phí. Thẻ "Giá & vay" trên hồ sơ dùng cùng công thức (70% × giá gồm VAT).
+  - **Tự điền + trần 80%** (Curtis 2026-11-06, LF-03): Giá thuần tự tính = diện tích × đơn giá; nhập tay thì ghi đè, xoá trống về tự tính. Số tiền vay tự động **70%**; nhập tay ghi đè nhưng **không vượt 80%** (giới hạn luật, trên giá thuần + VAT); nhập số tiền thì % tự tính lại, sửa % thì số tiền theo; xoá trống về 70%.
 - Không đổi: VAT/KPBT, tiến độ, lãi; phí 0 cho kết quả y như v1 (test parity giữ nguyên).
 - Tài liệu: `docs/loan-module.md` §5.
 
