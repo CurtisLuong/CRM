@@ -36,6 +36,8 @@ export interface MatchCatalog<U extends MatchUnit = MatchUnit> {
   project(id: string): MatchProject | null | undefined;
   unitArea(unit: U): number | null | undefined;
   unitPrice(unit: U): number | null | undefined;
+  /** Phí mỗi căn (đ) theo căn > toà > dự án; không có = 0 (LF-01). */
+  unitFee?(unit: U): number | null | undefined;
 }
 
 export interface UnitMatch {
@@ -56,7 +58,7 @@ export function typeCompatible(wanted: unknown, actual: unknown): boolean {
   );
 }
 
-/** Giá FULL (gồm VAT + KPBT) của căn; thiếu dự án / thiếu cả giá nhập tay lẫn diện tích × đơn giá → null. */
+/** Giá dự kiến (giá thuần + phí + VAT + KPBT) của căn; thiếu dự án / thiếu cả giá nhập tay lẫn diện tích × đơn giá → null. */
 export function price<U extends MatchUnit>(unit: U, catalog: MatchCatalog<U>): number | null {
   const p = catalog.project(unit.project_id);
   const area = catalog.unitArea(unit);
@@ -68,6 +70,7 @@ export function price<U extends MatchUnit>(unit: U, catalog: MatchCatalog<U>): n
     netPriceOverride: unit.net_price_override,
     vatRate: p.vat_rate == null ? 5 : Number(p.vat_rate),
     kpbtRate: p.kpbt_rate == null ? 2 : Number(p.kpbt_rate),
+    fee: catalog.unitFee?.(unit) ?? null,
   }).full;
 }
 

@@ -273,6 +273,7 @@ function CalculatorForm({
         code: '',
         pricePerM2: Number(p?.typical_price_per_m2) || s.unit.pricePerM2,
         netOverride: null,
+        fee: p ? (catalog?.projectFee(p) ?? null) : s.unit.fee,
       },
       dates: {
         ...s.dates,
@@ -288,6 +289,7 @@ function CalculatorForm({
       code: '',
       pricePerM2: Number(b?.approved_price_per_m2) || Number(project?.typical_price_per_m2) || state.unit.pricePerM2,
       netOverride: null,
+      fee: b ? (catalog?.buildingFee(b) ?? null) : project ? (catalog?.projectFee(project) ?? null) : state.unit.fee,
     });
     if (b?.handover_date) dates({ handoverDate: b.handover_date });
   };
@@ -302,6 +304,7 @@ function CalculatorForm({
             pricePerM2:
               Number(u.price_per_m2_override) || Number(building?.approved_price_per_m2) || state.unit.pricePerM2,
             netOverride: u.net_price_override ? Number(u.net_price_override) : null,
+            fee: catalog?.unitFee(u) ?? null,
           }
         : {}),
     });
@@ -392,6 +395,7 @@ function CalculatorForm({
             value={state.unit.netOverride}
             onChange={(n) => unit({ netOverride: n })}
           />
+          <NumberInput label="Phí (đ/căn)" value={state.unit.fee ?? null} onChange={(n) => unit({ fee: n })} />
           <Field label="Ngày ký hợp đồng">
             <input
               type="date"
@@ -727,7 +731,7 @@ function LoanResults({
     <Group title="Kết quả tạm tính">
       <dl className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {[
-          ['Giá FULL', r.price.full],
+          ['Giá dự kiến', r.price.full],
           ['Khoản vay', r.loan.amount],
           ['Khách tự trả', r.loan.customerTotal],
           ['Trả cao nhất / tháng', r.maxPayment],
@@ -751,6 +755,9 @@ function LoanResults({
           [`VAT ${r.price.vatRate}%`, money(r.price.vat)],
           [`Giá gồm VAT`, money(r.price.gross)],
           [`KPBT ${r.price.kpbtRate}%`, money(r.price.kpbt)],
+          // Phí: khách tự trả ở đợt 1, ngân hàng không cho vay (LF-01).
+          ...(r.price.fee ? [[`Phí (đóng đợt 1)`, money(r.price.fee)]] : []),
+          [`Giá dự kiến`, money(r.price.full)],
         ]}
       />
       <DataTable

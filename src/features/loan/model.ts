@@ -18,6 +18,8 @@ export type LoanUnit = {
   area: number;
   pricePerM2: number;
   netOverride: number | null;
+  /** Phí mỗi căn (đ) — theo Giỏ hàng căn > toà > dự án, sửa tay được (LF-01). */
+  fee?: number | null;
   [key: string]: unknown;
 };
 export type LoanState = {
@@ -50,10 +52,12 @@ export function applyCatalog(state: LoanState, catalog: RepositoryAccount['catal
   if (!p) return state;
   const b = catalog.buildingByCode(p.id, state.unit.building);
   const u = b ? catalog.unitByCode(b.id, state.unit.code) : null;
+  const fee = u ? catalog.unitFee(u) : b ? catalog.buildingFee(b) : catalog.projectFee(p);
   return {
     ...state,
     unit: {
       ...state.unit,
+      fee,
       pricePerM2:
         Number(u?.price_per_m2_override) ||
         Number(b?.approved_price_per_m2) ||
@@ -111,6 +115,7 @@ export function initialState(prefill: Partial<LoanUnit> = {}, now = new Date()):
       area: 53.6,
       pricePerM2: 19911530,
       netOverride: null,
+      fee: null,
       ...supplied,
     },
     dates: { contractDate: today, handoverDate: '', titleAfterMonths: 1.5 },
@@ -130,6 +135,7 @@ export function buildInput(state: LoanState, project?: Record<string, unknown> |
       area: state.unit.area,
       pricePerM2: state.unit.pricePerM2,
       netPriceOverride: state.unit.netOverride,
+      fee: state.unit.fee,
       vatRate: project?.vat_rate == null ? 5 : Number(project.vat_rate),
       kpbtRate: project?.kpbt_rate == null ? 2 : Number(project.kpbt_rate),
     },
