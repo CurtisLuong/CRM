@@ -155,6 +155,7 @@ function NeedsHarness({ onSave }: { onSave: (key: keyof Customer, value: unknown
   );
 }
 
+// Curtis 06/11: Giá căn = thuần × (1 + VAT 5% + KPBT 2%) + phí: 1,5 tỷ thuần → 1,605; 1,125 → 1,204.
 it('gợi ý hiện ngay; chỉ lưu khi nhập/xoá, xoá thì quay về Giỏ hàng', async () => {
   const user = userEvent.setup();
   const onSave = vi.fn();
@@ -163,7 +164,7 @@ it('gợi ý hiện ngay; chỉ lưu khi nhập/xoá, xoá thì quay về Giỏ 
   expect(input.value).toBe('');
   expect(input.placeholder).toBe('60');
   expect(screen.getByText('60 m² · theo Giỏ hàng')).toBeTruthy();
-  expect((screen.getByLabelText('Giá căn (tỷ)') as HTMLInputElement).value).toBe('1,5');
+  expect((screen.getByLabelText('Giá căn (tỷ)') as HTMLInputElement).value).toBe('1,605');
   expect(screen.getByRole('button', { name: 'Mở rộng (5)' })).toBeTruthy();
   await user.click(input);
   await user.tab();
@@ -172,13 +173,13 @@ it('gợi ý hiện ngay; chỉ lưu khi nhập/xoá, xoá thì quay về Giỏ 
   await user.type(input, '45');
   await user.tab();
   expect(onSave).toHaveBeenLastCalledWith('apt_area', 45);
-  expect((screen.getByLabelText('Giá căn (tỷ)') as HTMLInputElement).value).toBe('1,125');
+  expect((screen.getByLabelText('Giá căn (tỷ)') as HTMLInputElement).value).toBe('1,204');
   expect(screen.queryByText('60 m² · theo Giỏ hàng')).toBeNull();
 
   await user.clear(input);
   await user.tab();
   expect(onSave).toHaveBeenLastCalledWith('apt_area', null);
   expect(onSave).toHaveBeenCalledTimes(2);
-  expect((screen.getByLabelText('Giá căn (tỷ)') as HTMLInputElement).value).toBe('1,5');
+  expect((screen.getByLabelText('Giá căn (tỷ)') as HTMLInputElement).value).toBe('1,605');
   expect(screen.getByText('60 m² · theo Giỏ hàng')).toBeTruthy();
 });

@@ -79,13 +79,14 @@ function Harness({
 }
 
 describe('ô Giá căn (tỷ)', () => {
+  // Curtis 06/11: ước tính = Giá dự kiến 68,6 × 30 tr = 2,058 tỷ thuần + VAT 5% + KPBT 2% = 2,202 tỷ.
   it('chưa nhập: điền sẵn ước tính, mở/rời ô không ghi; sửa thì lưu VNĐ; xoá thì về ước tính', async () => {
     const user = userEvent.setup();
     const onSave = vi.fn();
     render(<Harness start={{ apt_area: 68.6 }} onSave={onSave} />);
     const input = screen.getByLabelText('Giá căn (tỷ)') as HTMLInputElement;
-    expect(input.value).toBe('2,058');
-    expect(screen.getByText('Ước tính · 68,6 m² × 30 triệu/m²')).toBeTruthy();
+    expect(input.value).toBe('2,202');
+    expect(screen.getByText('Ước tính · 68,6 m² × 30 triệu/m² + VAT 5% + KPBT 2%')).toBeTruthy();
     await user.click(input);
     await user.tab();
     expect(onSave).not.toHaveBeenCalled();
@@ -95,12 +96,12 @@ describe('ô Giá căn (tỷ)', () => {
     await user.tab();
     expect(onSave).toHaveBeenLastCalledWith('apt_price', 2_200_000_000);
     expect(input.value).toBe('2,2');
-    expect(screen.getByText('Ước tính ≈ 2,06 tỷ')).toBeTruthy();
+    expect(screen.getByText('Ước tính ≈ 2,2 tỷ')).toBeTruthy();
 
     await user.clear(input);
     await user.tab();
     expect(onSave).toHaveBeenLastCalledWith('apt_price', null);
-    expect(input.value).toBe('2,058');
+    expect(input.value).toBe('2,202');
   });
 
   it('sai dạng: báo lỗi, không lưu', async () => {

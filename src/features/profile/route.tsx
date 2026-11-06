@@ -44,6 +44,7 @@ import {
   formatVndShort,
   lastTouchOf,
   type PriceCatalog,
+  priceRates,
   profileLoan,
   splitBrief,
   stageChoiceRows,
@@ -333,8 +334,10 @@ function Profile() {
   const completeTask = async (at: string) => {
     if (account && writable) await account.customers.completeTask(c.id, at);
   };
-  const estimate = estimatePrice(c, (account?.catalog as PriceCatalog | undefined) ?? null);
-  const loanInfo = profileLoan(c, estimate);
+  const priceCatalog = (account?.catalog as PriceCatalog | undefined) ?? null;
+  const estimate = estimatePrice(c, priceCatalog);
+  const rates = priceRates(c, priceCatalog);
+  const loanInfo = profileLoan(c, estimate, rates);
   // Phân cấp thông tin (Curtis 06/11): ô cơ bản trống ẩn sau "Mở rộng"; "Nâng cao" chỉ hiện khi đã mở rộng
   // hoặc ô cơ bản đã đủ. Người chỉ xem không có "Mở rộng" nên luôn thấy "Nâng cao".
   const memoryHidden = infoHiddenCount(c) + contactPrefsHiddenCount(c);
@@ -413,6 +416,7 @@ function Profile() {
           catalog={catalog}
           online={browserOnline && !!account?.sync.isOnline()}
           estimate={estimate}
+          rates={rates}
         />
       </section>
       {stage === CARE_STAGE_BOOKING && (

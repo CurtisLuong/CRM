@@ -438,23 +438,60 @@ export type PriceCatalog = {
   projectPrice: (project: unknown) => number | null;
   unitArea?: (unit: unknown) => number | null;
   typicalArea?: (projectId: unknown, buildingId: unknown, aptType: unknown) => number | null;
+  // Phí mỗi căn theo căn > toà > dự án (D-031); catalog cũ không có thì phí 0.
+  unitFee?: (unit: unknown) => number | null;
+  buildingFee?: (building: unknown) => number | null;
+  projectFee?: (project: unknown) => number | null;
 };
 
-export type PriceEstimate =
-  | { total: number; area: number; pricePerM2: number; areaSource?: 'catalog' }
-  | { missing: 'area' | 'project' | 'price'; area?: number; areaSource?: 'catalog' };
-
-/** Giá ước tính = diện tích × đơn giá/m² trong Giỏ hàng. Chỉ để xem — không ghi vào hồ sơ. */
-export function estimatePrice(customer: Customer, catalog: PriceCatalog | null): PriceEstimate {
-  const ownArea = Number(customer.apt_area);
-  // Catalog cũ chưa hỗ trợ diện tích: giữ nhánh trả về sớm khi khách chưa nhập số riêng.
-  if (!(ownArea > 0) && !catalog?.unitArea && !catalog?.typicalArea) return { missing: 'area' };
+/** Dự án / toà / căn của khách trong Giỏ hàng (dự án đầu tiên có trong Giỏ hàng). */
+function catalogRows(customer: Customer, catalog: PriceCatalog | null) {
+  // Catalog rút gọn (chỉ danh sách dự án) không tra được giá → coi như chưa có dự án.
+  if (typeof catalog?.projectByName !== 'function') return { project: null, building: null, unit: null };
   const project =
     (Array.isArray(customer.projects) &&
       customer.projects.map((name) => catalog?.projectByName(name)).find((row) => !!row)) ||
     null;
   const building = project ? catalog?.buildingByCode(project.id, customer.building_code) : null;
   const unit = building ? catalog?.unitByCode(building.id, customer.apt_code) : null;
+  return { project, building, unit };
+}
+
+/** Tỷ lệ VAT, KPBT của dự án + phí của căn — để ra Giá dự kiến như máy tính vay (D-031). */
+export type PriceRates = { vatRate: number; kpbtRate: number; fee: number };
+export const DEFAULT_PRICE_RATES: PriceRates = { vatRate: 5, kpbtRate: 2, fee: 0 };
+export function priceRates(customer: Customer, catalog: PriceCatalog | null): PriceRates {
+  const { project, building, unit } = catalogRows(customer, catalog);
+  if (!project) return DEFAULT_PRICE_RATES;
+  const p = project as { vat_rate?: unknown; kpbt_rate?: unknown };
+  const fee = Number(
+    unit ? catalog?.unitFee?.(unit) : building ? catalog?.buildingFee?.(building) : catalog?.projectFee?.(project),
+  );
+  return {
+    vatRate: p.vat_rate == null ? 5 : Number(p.vat_rate),
+    kpbtRate: p.kpbt_rate == null ? 2 : Number(p.kpbt_rate),
+    fee: fee > 0 ? fee : 0,
+  };
+}
+/** Giá căn = Giá dự kiến = thuần + VAT + KPBT + phí (Curtis 06/11, cùng hàm máy tính vay). */
+export function expectedPrice(net: number, rates: PriceRates): number {
+  return calcPrice({ netPriceOverride: net, ...rates }).full;
+}
+/** Ngược lại: giá căn anh nhập (gồm VAT, KPBT, phí) → giá thuần để máy tính vay và số vay dùng. */
+export function netFromExpected(full: number, rates: PriceRates): number {
+  return Math.round((full - rates.fee) / (1 + (rates.vatRate + rates.kpbtRate) / 100));
+}
+
+export type PriceEstimate =
+  | { total: number; area: number; pricePerM2: number; areaSource?: 'catalog' }
+  | { missing: 'area' | 'project' | 'price'; area?: number; areaSource?: 'catalog' };
+
+/** Giá thuần ước tính (`total`) = diện tích × đơn giá/m² trong Giỏ hàng. Chỉ để xem — không ghi vào hồ sơ. */
+export function estimatePrice(customer: Customer, catalog: PriceCatalog | null): PriceEstimate {
+  const ownArea = Number(customer.apt_area);
+  // Catalog cũ chưa hỗ trợ diện tích: giữ nhánh trả về sớm khi khách chưa nhập số riêng.
+  if (!(ownArea > 0) && !catalog?.unitArea && !catalog?.typicalArea) return { missing: 'area' };
+  const { project, building, unit } = catalogRows(customer, catalog);
   // Chỉ đọc diện tích hiệu lực từ Giỏ hàng; không điền ngược vào apt_area của khách.
   const unitArea = unit ? catalog?.unitArea?.(unit) : null;
   const area =
@@ -489,25 +526,24 @@ export function parsePriceTy(raw: string): number | null | undefined {
 }
 
 /**
- * Thẻ "Giá & vay" trên hồ sơ (Curtis 06/11): giá căn anh nhập (`apt_price`) thắng giá ước tính;
- * số vay tính bằng đúng hàm của máy tính vay (tỉ lệ mặc định trên giá gồm VAT) để hai nơi khớp nhau.
+ * Thẻ "Giá & vay" trên hồ sơ (Curtis 06/11): giá căn (`apt_price`) = Giá dự kiến gồm VAT + KPBT + phí; anh nhập
+ * thì thắng ước tính. Số vay = 70% × (thuần + VAT), không gồm KPBT và phí (D-031) — cùng hàm máy tính vay.
  */
-export function profileLoan(customer: Customer, estimate: PriceEstimate) {
+export function profileLoan(customer: Customer, estimate: PriceEstimate, rates: PriceRates = DEFAULT_PRICE_RATES) {
   const saved = Number(customer.apt_price) > 0 ? Number(customer.apt_price) : null;
   const area = 'area' in estimate && Number(estimate.area) > 0 ? Number(estimate.area) : 0;
   const pricePerM2 = 'total' in estimate ? estimate.pricePerM2 : 0;
-  const price = saved ?? ('total' in estimate ? estimate.total : null);
+  const net = saved != null ? netFromExpected(saved, rates) : 'total' in estimate ? estimate.total : null;
+  const price = saved ?? (net == null ? null : expectedPrice(net, rates));
   const ltv = DEFAULT_LOAN.ltv;
   const loan =
-    price == null
-      ? null
-      : Math.round((calcPrice({ area, pricePerM2, netPriceOverride: price }).gross * Number(ltv)) / 100);
+    net == null ? null : Math.round((calcPrice({ ...rates, netPriceOverride: net }).gross * Number(ltv)) / 100);
   const prefill: LoanPrefill = {
     customerId: customer.id,
     ...customerUnit(customer),
     ...(area > 0 ? { area } : {}),
     ...(pricePerM2 > 0 ? { pricePerM2 } : {}),
-    ...(saved != null ? { netOverride: saved } : {}),
+    ...(saved != null && net != null ? { netOverride: net } : {}),
   };
   return { price, manual: saved != null, loan, ltv: Number(ltv), prefill };
 }

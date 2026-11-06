@@ -9,7 +9,16 @@ import { useToast } from '@/ui/Toast';
 import { fieldId, ProfileTextField } from './advanced';
 import { LONG_FIELD, SHORT_FIELD } from './fields';
 import { ChoiceField, hasFieldValue } from './info';
-import { formatPriceTy, formatVndShort, PRICE_ESTIMATE_MISSING, type PriceEstimate, parsePriceTy } from './model';
+import {
+  DEFAULT_PRICE_RATES,
+  expectedPrice,
+  formatPriceTy,
+  formatVndShort,
+  PRICE_ESTIMATE_MISSING,
+  type PriceEstimate,
+  type PriceRates,
+  parsePriceTy,
+} from './model';
 
 export const PURPOSE_OPTIONS = ['Ở', 'Đầu tư', 'Cho tặng'].map((value) => ({ value, label: value }));
 
@@ -345,6 +354,8 @@ type NeedsProps = {
   onToggleProjects: () => void;
   /** Giá ước tính (diện tích × giá/m² Giỏ hàng) — thay ô "Tài chính sẵn có" trùng với Vốn hiện có. */
   estimate?: PriceEstimate;
+  /** VAT, KPBT, phí của căn để ô Giá căn ra Giá dự kiến (D-031). */
+  rates?: PriceRates;
 };
 
 /**
@@ -365,6 +376,7 @@ export function ProfileNeedsFields({
   projectsOpen,
   onToggleProjects,
   estimate,
+  rates = DEFAULT_PRICE_RATES,
 }: NeedsProps) {
   const inheritedArea = estimate?.areaSource === 'catalog' ? estimate.area : undefined;
   const hidden = needsHiddenFor(customer, stayVisible, estimate);
@@ -473,6 +485,7 @@ export function ProfileNeedsFields({
                   <PriceField
                     customer={customer}
                     estimate={estimate}
+                    rates={rates}
                     disabled={!writable}
                     onSave={(value) => onSaveField('apt_price', value)}
                   />
@@ -497,18 +510,21 @@ export function ProfileNeedsFields({
 function PriceField({
   customer,
   estimate,
+  rates,
   disabled,
   onSave,
 }: {
   customer: Customer;
   estimate: PriceEstimate;
+  rates: PriceRates;
   disabled: boolean;
   onSave: (value: number | null) => void;
 }) {
   const label = 'Giá căn (tỷ)';
   const stored = customer.apt_price;
   const saved = Number(stored) > 0 ? Number(stored) : null;
-  const estimated = 'total' in estimate ? estimate.total : null;
+  // Giá căn = Giá dự kiến: thuần (diện tích × đơn giá) + VAT + KPBT + phí (Curtis 06/11).
+  const estimated = 'total' in estimate ? expectedPrice(estimate.total, rates) : null;
   const raw = saved != null ? formatPriceTy(saved) : estimated != null ? formatPriceTy(estimated) : '';
   const [draft, setDraft] = useState(raw);
   const [error, setError] = useState('');
@@ -517,7 +533,7 @@ function PriceField({
   const legacyText = saved == null && stored != null && String(stored).trim() !== '' ? String(stored) : null;
   const basis =
     'total' in estimate
-      ? `${estimate.area.toLocaleString('vi-VN')} m² × ${formatPricePerM2(estimate.pricePerM2)} triệu/m²`
+      ? `${estimate.area.toLocaleString('vi-VN')} m² × ${formatPricePerM2(estimate.pricePerM2)} triệu/m² + VAT ${rates.vatRate.toLocaleString('vi-VN')}% + KPBT ${rates.kpbtRate.toLocaleString('vi-VN')}%${rates.fee > 0 ? ` + phí ${formatVndShort(rates.fee)}` : ''}`
       : PRICE_ESTIMATE_MISSING[estimate.missing];
   const hint =
     saved == null
