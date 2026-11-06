@@ -1,7 +1,7 @@
 import { expect, type Page, test } from '@playwright/test';
 
 // CL-04 (Curtis 06/11): "Đã nói chuyện — chờ phân loại" khó hiểu và không có nút Đạt/Loại; hồ sơ không có chỗ
-// chuyển Khách mới → Tiềm năng. Giờ: thẻ Hôm nay mở hộp Phân loại, hồ sơ khách mới có Đạt / Loại…, hộp kết quả
+// chuyển Khách mới → Tiềm năng. Giờ: thẻ Hôm nay mở hộp Phân loại, hồ sơ khách mới có Chuyển tiềm năng / Loại / Giao (một hàng đáy thẻ, phương án A), hộp kết quả
 // cuộc gọi "Nói chuyện được" có Phân loại khách (Để sau / Đạt / Loại).
 const USER = 'cl04-user';
 const DB = `crm_khach_hang__${encodeURIComponent(USER)}`;
@@ -112,19 +112,52 @@ test('CL-04: thẻ Hôm nay "Đã nói chuyện" mở hộp Phân loại → Đ�
   await expect(section).toHaveCount(0);
 });
 
-test('CL-04: hồ sơ khách mới có Đạt / Loại…; chưa nói chuyện thì Đạt khoá, Loại cần lý do', async ({ page }) => {
-  await seed(page, [lead('cl04-b', 'Trần Phúc', [{ at: ago(1), result: 'busy' }])]);
+test('CL-04: hồ sơ khách mới có Chuyển tiềm năng / Loại; chưa nói chuyện thì Chuyển khoá, Loại cần lý do; tuổi cạnh tên', async ({
+  page,
+}) => {
+  // Sinh 01/01 của năm (nay − 36) → luôn 36 tuổi.
+  const dob = `${new Date().getFullYear() - 36}-01-01`;
+  await seed(page, [
+    { ...lead('cl04-b', 'Trần Phúc', [{ at: ago(1), result: 'busy' }]), dob },
+    lead('cl04-d', 'Không Năm Sinh', []),
+  ]);
   await page.goto('/ho-so/cl04-b');
   await expect(page.getByRole('heading', { level: 1, name: 'Trần Phúc' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Đạt → Tiềm năng' })).toBeDisabled();
-  await page.getByRole('button', { name: 'Loại…' }).click();
-  const drop = page.getByRole('button', { name: 'Loại', exact: true });
+  // Tuổi cạnh tên: cỡ bằng SĐT (14px), nét mảnh hơn SĐT một bậc.
+  const age = page.getByText('36 tuổi', { exact: true });
+  await expect(age).toBeVisible();
+  const style = await age.evaluate((el) => ({
+    size: getComputedStyle(el).fontSize,
+    weight: getComputedStyle(el).fontWeight,
+  }));
+  const phoneStyle = await page
+    .locator('header p.font-mono')
+    .first()
+    .evaluate((el) => ({ size: getComputedStyle(el).fontSize, weight: getComputedStyle(el).fontWeight }));
+  expect(style.size).toBe(phoneStyle.size);
+  expect(Number(style.weight)).toBe(Number(phoneStyle.weight) - 100);
+
+  // Một hàng đáy thẻ: Chuyển tiềm năng · Loại (khách mới, nhóm 1 người nên không có Giao).
+  const promote = page.getByRole('button', { name: 'Chuyển tiềm năng', exact: true });
+  const dropOpen = page.getByRole('button', { name: 'Loại', exact: true });
+  await expect(promote).toBeDisabled();
+  const a = await promote.boundingBox();
+  const b = await dropOpen.boundingBox();
+  expect(Math.abs((a?.y ?? 0) - (b?.y ?? 99))).toBeLessThanOrEqual(1);
+  expect(a?.width ?? 0).toBeGreaterThan(b?.width ?? 0);
+  await dropOpen.click();
+  const drop = page.getByRole('dialog').getByRole('button', { name: 'Loại', exact: true });
   await expect(drop).toBeDisabled();
   await page.getByLabel('Lý do loại').selectOption('gia_cao');
   await drop.click();
   await expect.poll(async () => (await readCustomer(page, 'cl04-b')).disqualify_reason).toBe('gia_cao');
-  await expect(page.getByRole('button', { name: 'Loại…' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Chuyển tiềm năng', exact: true })).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+
+  // Chưa có năm sinh → không hiện tuổi.
+  await page.goto('/ho-so/cl04-d');
+  await expect(page.getByRole('heading', { level: 1, name: 'Không Năm Sinh' })).toBeVisible();
+  await expect(page.getByText(/^\d+ tuổi$/)).toHaveCount(0);
 });
 
 test('CL-04: ghi "Nói chuyện được" cho khách mới → chọn Đạt ngay trong hộp kết quả', async ({ page }) => {
@@ -144,5 +177,5 @@ test('CL-04: ghi "Nói chuyện được" cho khách mới → chọn Đạt nga
   await expect.poll(async () => (await readCustomer(page, 'cl04-c')).qualified_at).toBeTruthy();
   const row = await readCustomer(page, 'cl04-c');
   expect((row.call_attempts as { result: string }[]).at(-1)?.result).toBe('talked');
-  await expect(page.getByRole('button', { name: 'Đạt → Tiềm năng' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Chuyển tiềm năng', exact: true })).toHaveCount(0);
 });
