@@ -227,7 +227,7 @@ for (const theme of ['light', 'dark'] as const) {
     await page.getByLabel('Mục đích mua').scrollIntoViewIfNeeded();
     await page.screenshot({ path: info.outputPath(`cp01-needs-default-${theme}.png`) });
 
-    const supplement = page.getByRole('button', { name: /^(Bổ sung|Thu gọn)/ });
+    const supplement = page.getByRole('button', { name: /^(Mở rộng \(\d+\)|Thu gọn)$/ });
     await expect(supplement).toHaveAttribute('aria-expanded', 'false');
     await supplement.click();
     await expect(supplement).toHaveAttribute('aria-expanded', 'true');
@@ -247,6 +247,9 @@ for (const theme of ['light', 'dark'] as const) {
 
     // Sở thích BĐS nằm trong cùng nút Nâng cao với Nhu cầu theo đợt + Người cùng quyết định.
     await expect(page.getByText('Sở thích bất động sản')).toHaveCount(0);
+    // 06/11: Nâng cao nằm dưới Mở rộng (phân cấp thông tin).
+    const openMore = page.getByRole('button', { name: /^Mở rộng \(\d+\)$/ });
+    if (await openMore.count()) await openMore.click();
     await expect(page.getByRole('button', { name: 'Nâng cao' })).toHaveCount(1);
     await page.getByRole('button', { name: 'Nâng cao' }).click();
     await expect(page.getByText('Sở thích bất động sản')).toBeVisible();

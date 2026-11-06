@@ -6,6 +6,13 @@ import type { Customer } from '@/domain/customer';
 import { route } from '@/features/profile/route';
 import { ToastProvider } from '@/ui';
 
+/** 06/11: "Nâng cao" nằm dưới "Mở rộng" (phân cấp thông tin) — mở "Mở rộng" trước nếu đang đóng. */
+async function nangCao(user: { click: (el: Element) => Promise<void> }) {
+  const more = screen.queryByRole('button', { name: /^Mở rộng \(\d+\)$/ });
+  if (more) await user.click(more);
+  return screen.getByRole('button', { name: 'Nâng cao' });
+}
+
 const update = vi.fn();
 let customer: Customer;
 const account = {
@@ -50,7 +57,7 @@ describe('PF-01 — khu Nâng cao mặc định đóng', () => {
     const user = userEvent.setup();
     await openMemory(user);
     expect(screen.queryByLabelText('Bối cảnh sống')).toBeNull();
-    const toggle = screen.getByRole('button', { name: 'Nâng cao' });
+    const toggle = await nangCao(user);
     expect(toggle.getAttribute('aria-expanded')).toBe('false');
 
     await user.click(toggle);
@@ -71,7 +78,7 @@ describe('PF-01 — khu Nâng cao mặc định đóng', () => {
     } as Customer;
     const user = userEvent.setup();
     await openMemory(user);
-    await user.click(screen.getByRole('button', { name: 'Nâng cao' }));
+    await user.click(await nangCao(user));
     const assets = screen.getByRole('group', { name: 'Tài sản' });
     expect(within(assets).getAllByRole('spinbutton')).toHaveLength(3);
     expect(within(assets).getByLabelText('Giá trị tài sản')).toBeTruthy();
@@ -84,7 +91,7 @@ describe('PF-01 — khu Nâng cao mặc định đóng', () => {
   it('chép ghi cũ chỉ điền vào ô, chưa lưu; rời ô mới ghi advanced giữ khoá cũ + khoá lạ', async () => {
     const user = userEvent.setup();
     await openMemory(user);
-    await user.click(screen.getByRole('button', { name: 'Nâng cao' }));
+    await user.click(await nangCao(user));
     expect(screen.getByText('Giai đoạn cuộc sống')).toBeTruthy();
     expect(screen.getByText('Nỗi đau hiện tại')).toBeTruthy();
     await user.click(screen.getByRole('button', { name: 'Chép ghi cũ vào ô' }));
@@ -115,7 +122,7 @@ describe('PF-01 — khu Nâng cao mặc định đóng', () => {
     } as Customer;
     const user = userEvent.setup();
     await openMemory(user);
-    await user.click(screen.getByRole('button', { name: 'Nâng cao' }));
+    await user.click(await nangCao(user));
     expect((screen.getByLabelText('Bối cảnh sống') as HTMLTextAreaElement).value).toBe('Đã ghi trước đó');
     expect(screen.queryByRole('button', { name: 'Chép ghi cũ vào ô' })).toBeNull();
     expect(screen.queryByText('Giai đoạn cuộc sống')).toBeNull();
@@ -127,7 +134,7 @@ describe('PF-01 — Sở thích bất động sản ở tab Nhu cầu & căn', (
     const user = userEvent.setup();
     wrap();
     await user.click(screen.getByRole('tab', { name: 'Nhu cầu & căn' }));
-    await user.click(screen.getByRole('button', { name: 'Nâng cao' }));
+    await user.click(await nangCao(user));
     const section = screen.getByRole('heading', { name: 'Sở thích bất động sản' }).parentElement as HTMLElement;
     expect(within(section).getAllByRole('textbox')).toHaveLength(3);
     expect(within(section).getByLabelText('Khu vực')).toBeTruthy();

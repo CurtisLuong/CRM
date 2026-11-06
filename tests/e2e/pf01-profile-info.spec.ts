@@ -96,6 +96,9 @@ for (const theme of ['light', 'dark'] as const) {
 
     // Mặc định đóng: ô gộp chưa hiện.
     await expect(page.getByLabel('Bối cảnh sống')).toHaveCount(0);
+    // 06/11: Nâng cao nằm dưới Mở rộng (phân cấp thông tin).
+    const openMore = page.getByRole('button', { name: /^Mở rộng \(\d+\)$/ });
+    if (await openMore.count()) await openMore.click();
     const toggle = page.getByRole('button', { name: 'Nâng cao' });
     await expect(toggle).toHaveAttribute('aria-expanded', 'false');
     await toggle.click();

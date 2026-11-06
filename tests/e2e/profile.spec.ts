@@ -215,6 +215,9 @@ for (const theme of ['light', 'dark'] as const) {
     await expect(page.getByText('Đã lưu trên thiết bị', { exact: true }).first()).toBeVisible();
     // 2026-10-22 (Curtis): Nhu cầu theo đợt + Người cùng quyết định chuyển sang tab Nhu cầu & căn, khu Nâng cao.
     await page.getByRole('tab', { name: 'Nhu cầu & căn' }).click();
+    // 06/11: Nâng cao nằm dưới Mở rộng (phân cấp thông tin).
+    const openMore = page.getByRole('button', { name: /^Mở rộng \(\d+\)$/ });
+    if (await openMore.count()) await openMore.click();
     await page.getByRole('button', { name: 'Nâng cao' }).click();
     await page.getByLabel('Dự án quan tâm mới').selectOption('Dự án thứ hai');
     await page.getByRole('button', { name: 'Thêm đợt' }).click();
@@ -227,7 +230,7 @@ for (const theme of ['light', 'dark'] as const) {
     await page.waitForTimeout(300);
     // Trí nhớ ẩn ô chưa có giá trị dưới nút "Bổ sung" (Curtis 2026-10-22); "Không liên hệ" đang tắt → nằm trong Bổ sung.
     await page.getByRole('tab', { name: 'Trí nhớ' }).click();
-    await page.getByRole('button', { name: /^(Bổ sung|Thu gọn)/ }).click();
+    await page.getByRole('button', { name: /^(Mở rộng \(\d+\)|Thu gọn)$/ }).click();
     const doNotContact = page.getByRole('checkbox', { name: /Không liên hệ/ });
     await doNotContact.click();
     await expect(doNotContact).toBeChecked();
@@ -313,7 +316,8 @@ for (const theme of ['light', 'dark'] as const) {
     expect(afterBookingStep.care_stage_updated_at).toBe('2026-10-15T00:00:00.000Z');
     expect(afterBookingStep.care_stage_history).toHaveLength(2);
     expect(afterBookingStep.booking_steps).toMatchObject({ x_future_step: 'keep' });
-    await page.getByRole('button', { name: 'Tính vay cho khách này' }).click();
+    // 06/11: nút Tính vay chuyển lên thẻ Giá & vay trên hàng tab.
+    await page.getByRole('region', { name: 'Giá và vay' }).getByRole('button', { name: 'Tính vay' }).click();
     await expect(page).toHaveURL(new RegExp(`customerId=${customerId}`));
     await expect(page.getByLabel('Mã căn', { exact: true })).toHaveValue('B1201');
     if (testInfo.project.name === 'phone-390') {

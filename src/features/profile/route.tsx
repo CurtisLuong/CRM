@@ -22,7 +22,7 @@ import { planSlaUndo } from '@/domain/velocity/automation';
 import { bookingSteps, status as slaStatus } from '@/domain/velocity/engine';
 import { AiBrief } from '@/features/ai/AiBrief';
 import { CUSTOMER_GROUP_LABEL, customerGroupOf } from '@/features/customers/model';
-import { customerUnit, loanPath } from '@/features/loan/model';
+import { loanPath } from '@/features/loan/model';
 import { callDraftOf, callDuration, pendingCallsOf } from '@/features/quick-actions/model';
 import { openQuickAction } from '@/features/quick-actions/store';
 import { fmtDur, slaFor, slaMeterFor } from '@/lib/crm';
@@ -40,14 +40,16 @@ import {
   dueTone,
   estimatePrice,
   extraFacts,
+  formatVndShort,
   lastTouchOf,
   type PriceCatalog,
+  profileLoan,
   splitBrief,
   stageChoiceRows,
   type TaskDueValue,
   withTaskKinds,
 } from './model';
-import { hasNeedValue, NEEDS_FIELDS, ProfileNeedsFields, type ProjectCatalog } from './needs';
+import { hasNeedValue, NEEDS_FIELDS, needsHiddenFor, ProfileNeedsFields, type ProjectCatalog } from './needs';
 import { ProfilePhotoFrame } from './photos';
 import { ProfileTimeline } from './timeline';
 
@@ -327,6 +329,14 @@ function Profile() {
   const completeTask = async (at: string) => {
     if (account && writable) await account.customers.completeTask(c.id, at);
   };
+  const estimate = estimatePrice(c, (account?.catalog as PriceCatalog | undefined) ?? null);
+  const loanInfo = profileLoan(c, estimate);
+  // Phân cấp thông tin (Curtis 06/11): ô cơ bản trống ẩn sau "Mở rộng"; "Nâng cao" chỉ hiện khi đã mở rộng
+  // hoặc ô cơ bản đã đủ. Người chỉ xem không có "Mở rộng" nên luôn thấy "Nâng cao".
+  const memoryHidden = infoHiddenCount(c) + contactPrefsHiddenCount(c);
+  const showMemoryAdvanced = !infoWritable || supplementOpen || memoryHidden === 0;
+  const showNeedsAdvanced =
+    !infoWritable || needsSupplementOpen || needsHiddenFor(c, needsVisible.keys, estimate) === 0;
   const timelineContent = (
     <ProfileTimeline customer={c} entries={timeline} writable={writable} busy={busy} onSave={save} />
   );
@@ -355,19 +365,21 @@ function Profile() {
           infoWritable
             ? {
                 open: supplementOpen,
-                count: infoHiddenCount(c) + contactPrefsHiddenCount(c),
+                count: memoryHidden,
                 onToggle: () => setSupplementOpen(!supplementOpen),
               }
             : undefined
         }
       />
-      <ProfileAdvanced
-        customer={c}
-        writable={infoWritable}
-        now={now}
-        onSaveAdvanced={setAdvancedField}
-        openSignal={assetsOpenSignal}
-      />
+      {showMemoryAdvanced && (
+        <ProfileAdvanced
+          customer={c}
+          writable={infoWritable}
+          now={now}
+          onSaveAdvanced={setAdvancedField}
+          openSignal={assetsOpenSignal}
+        />
+      )}
     </div>
   );
   const needsContent = (
@@ -396,11 +408,8 @@ function Profile() {
           }}
           catalog={catalog}
           online={browserOnline && !!account?.sync.isOnline()}
-          estimate={estimatePrice(c, (account?.catalog as PriceCatalog | undefined) ?? null)}
+          estimate={estimate}
         />
-        <Button variant="primary" onClick={() => navigate(loanPath({ customerId: c.id, ...customerUnit(c) }))}>
-          Tính vay cho khách này
-        </Button>
       </section>
       {stage === CARE_STAGE_BOOKING && (
         <section className="space-y-3">
@@ -438,40 +447,42 @@ function Profile() {
           </Button>
         </section>
       )}
-      <CustomerNeedsAdvanced
-        customer={c}
-        writable={infoWritable}
-        onSave={(patch, message) => void save(patch, message)}
-        now={now}
-        projectCatalog={catalog}
-        openSignal={needsAdvancedSignal}
-      >
-        <section className="space-y-3">
-          <h2 className="text-title">Sở thích bất động sản</h2>
-          {PROFILE_PREF_FIELDS.map((field) =>
-            field.key === PROFILE_PREF_CONDITIONS.key ? (
-              <LegacyAssistField
-                key={field.key}
-                label={field.label}
-                value={c.advanced?.[field.key]}
-                disabled={!infoWritable}
-                placeholder={field.ph}
-                legacy={legacyValues(c.advanced || {}, PREF_CONDITIONS_LEGACY)}
-                onSave={(value) => setAdvancedField(field.key, value)}
-              />
-            ) : (
-              <Field
-                key={field.key}
-                label={field.label}
-                value={c.advanced?.[field.key]}
-                disabled={!infoWritable}
-                placeholder={field.ph}
-                onSave={(value) => setAdvancedField(field.key, value)}
-              />
-            ),
-          )}
-        </section>
-      </CustomerNeedsAdvanced>
+      {showNeedsAdvanced && (
+        <CustomerNeedsAdvanced
+          customer={c}
+          writable={infoWritable}
+          onSave={(patch, message) => void save(patch, message)}
+          now={now}
+          projectCatalog={catalog}
+          openSignal={needsAdvancedSignal}
+        >
+          <section className="space-y-3">
+            <h2 className="text-title">Sở thích bất động sản</h2>
+            {PROFILE_PREF_FIELDS.map((field) =>
+              field.key === PROFILE_PREF_CONDITIONS.key ? (
+                <LegacyAssistField
+                  key={field.key}
+                  label={field.label}
+                  value={c.advanced?.[field.key]}
+                  disabled={!infoWritable}
+                  placeholder={field.ph}
+                  legacy={legacyValues(c.advanced || {}, PREF_CONDITIONS_LEGACY)}
+                  onSave={(value) => setAdvancedField(field.key, value)}
+                />
+              ) : (
+                <Field
+                  key={field.key}
+                  label={field.label}
+                  value={c.advanced?.[field.key]}
+                  disabled={!infoWritable}
+                  placeholder={field.ph}
+                  onSave={(value) => setAdvancedField(field.key, value)}
+                />
+              ),
+            )}
+          </section>
+        </CustomerNeedsAdvanced>
+      )}
     </div>
   );
   const docsContent = (
@@ -503,20 +514,6 @@ function Profile() {
     { value: 'memory', label: 'Trí nhớ', content: memoryContent },
     { value: 'timeline', label: 'Dòng thời gian', count: timeline.length, content: timelineContent },
     { value: 'docs', label: 'Tài liệu', count: docCount, content: docsContent },
-    {
-      value: 'loan',
-      label: 'Tính vay',
-      content: (
-        <section className="space-y-3">
-          <p className="text-body text-ink-muted">
-            Mở máy tính vay với khách và căn đang xem. Thao tác này không sửa hồ sơ.
-          </p>
-          <Button variant="primary" onClick={() => navigate(loanPath({ customerId: c.id, ...customerUnit(c) }))}>
-            Mở máy tính vay
-          </Button>
-        </section>
-      ),
-    },
   ];
 
   const goTo = (tab: string, target: string) => {
@@ -531,9 +528,11 @@ function Profile() {
       setProjectsOpen(true);
       goTo('needs', 'projects');
     } else if (key === 'finance') {
+      setSupplementOpen(true);
       setAssetsOpenSignal((value) => value + 1);
       goTo('memory', 'capital');
     } else if (key === 'decision') {
+      setNeedsSupplementOpen(true);
       setNeedsAdvancedSignal((value) => value + 1);
       goTo('needs', 'household');
     } else if (key === 'contact_preference') {
@@ -791,6 +790,38 @@ function Profile() {
           {actionBar(
             'fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface-0 px-4 pt-2 pb-[calc(8px+env(safe-area-inset-bottom))] shadow-overlay xl:hidden',
           )}
+
+          {/* Giá & vay ngay trên hàng tab (Curtis 06/11, mockup B): thay nút trong tab Nhu cầu và tab Tính vay cũ. */}
+          <section
+            aria-label="Giá và vay"
+            className="flex flex-wrap items-center gap-3 rounded-md border border-line bg-surface-100 py-3 pr-3 pl-4 max-xl:order-5"
+          >
+            <dl className="grid min-w-0 flex-1 basis-40 grid-cols-2 gap-x-3 gap-y-1">
+              <div className="min-w-0">
+                <dt className="text-overline text-ink-muted">Giá căn</dt>
+                <dd className="font-mono text-body-strong tabular-nums">
+                  {loanInfo.price == null ? '—' : `≈ ${formatVndShort(loanInfo.price)}`}
+                </dd>
+              </div>
+              <div className="min-w-0">
+                <dt className="text-overline text-ink-muted">Vay {loanInfo.ltv}%</dt>
+                <dd className="font-mono text-body-strong tabular-nums">
+                  {loanInfo.loan == null ? '—' : `≈ ${formatVndShort(loanInfo.loan)}`}
+                </dd>
+              </div>
+              <dd className="col-span-2 text-caption text-ink-muted">
+                {loanInfo.manual
+                  ? 'Giá anh nhập · vay tính trên giá gồm VAT'
+                  : loanInfo.price != null
+                    ? 'Giá ước tính · vay tính trên giá gồm VAT'
+                    : 'Chưa đủ dữ liệu để ước giá'}
+              </dd>
+            </dl>
+            <Button variant="primary" onClick={() => navigate(loanPath(loanInfo.prefill))}>
+              <Icon name="loan" size={20} />
+              Tính vay
+            </Button>
+          </section>
 
           <div className="max-xl:order-5">
             <TabsPrimitive value={tab} onValueChange={setTab}>

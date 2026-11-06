@@ -92,13 +92,13 @@ describe('PC-01 — ô gọn Dự án quan tâm', () => {
     const needs = render(<NeedsHarness onSaveProjects={onSaveProjects} />);
 
     // Curtis 03/11: bỏ ô nhập "Tài chính sẵn có" (thành Giá ước tính tự tính) → bớt 1 ô trống.
-    const needsButton = screen.getByRole('button', { name: 'Bổ sung (7)' });
+    const needsButton = screen.getByRole('button', { name: 'Mở rộng (7)' });
     await user.click(needsButton);
     expect(screen.getByRole('button', { name: 'Thu gọn' }).getAttribute('aria-expanded')).toBe('true');
     needs.unmount();
 
     render(<MemoryHarness />);
-    const memoryButton = screen.getByRole('button', { name: 'Bổ sung (3)' });
+    const memoryButton = screen.getByRole('button', { name: 'Mở rộng (3)' });
     await user.click(memoryButton);
     expect(screen.getByRole('button', { name: 'Thu gọn' }).getAttribute('aria-expanded')).toBe('true');
   });
