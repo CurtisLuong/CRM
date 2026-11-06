@@ -163,7 +163,7 @@ it('gợi ý hiện ngay; chỉ lưu khi nhập/xoá, xoá thì quay về Giỏ 
   expect(input.value).toBe('');
   expect(input.placeholder).toBe('60');
   expect(screen.getByText('60 m² · theo Giỏ hàng')).toBeTruthy();
-  expect(screen.getByLabelText('Giá ước tính').textContent).toBe('≈ 1,5 tỷ');
+  expect((screen.getByLabelText('Giá căn (tỷ)') as HTMLInputElement).value).toBe('1,5');
   expect(screen.getByRole('button', { name: 'Bổ sung (5)' })).toBeTruthy();
   await user.click(input);
   await user.tab();
@@ -172,13 +172,13 @@ it('gợi ý hiện ngay; chỉ lưu khi nhập/xoá, xoá thì quay về Giỏ 
   await user.type(input, '45');
   await user.tab();
   expect(onSave).toHaveBeenLastCalledWith('apt_area', 45);
-  expect(screen.getByLabelText('Giá ước tính').textContent).toBe('≈ 1,13 tỷ');
+  expect((screen.getByLabelText('Giá căn (tỷ)') as HTMLInputElement).value).toBe('1,125');
   expect(screen.queryByText('60 m² · theo Giỏ hàng')).toBeNull();
 
   await user.clear(input);
   await user.tab();
   expect(onSave).toHaveBeenLastCalledWith('apt_area', null);
   expect(onSave).toHaveBeenCalledTimes(2);
-  expect(screen.getByLabelText('Giá ước tính').textContent).toBe('≈ 1,5 tỷ');
+  expect((screen.getByLabelText('Giá căn (tỷ)') as HTMLInputElement).value).toBe('1,5');
   expect(screen.getByText('60 m² · theo Giỏ hàng')).toBeTruthy();
 });

@@ -21,6 +21,32 @@ const daysInMonth = (month: number, year: number | null) => {
   return [4, 6, 9, 11].includes(month) ? 30 : 31;
 };
 
+/**
+ * Định dạng khi đang gõ: bàn phím số điện thoại không có "/", nên tự chèn — "03061998" → "03/06/1998".
+ * Gõ dấu phân cách sau 1 chữ số thì đệm 0 ("3/6/1998" → "03/06/1998"). Ngày, tháng tối đa 2 số; năm 4 số.
+ */
+export function formatDobTyping(raw: string): string {
+  const LIMITS = [2, 2, 4];
+  const parts: string[] = [];
+  let current = '';
+  for (const ch of raw) {
+    if (/\d/.test(ch)) {
+      if (current.length === LIMITS[parts.length]) {
+        if (parts.length === 2) break;
+        parts.push(current);
+        current = '';
+      }
+      current += ch;
+    } else if (/[/.\-\s]/.test(ch) && current && parts.length < 2) {
+      parts.push(current.padStart(2, '0'));
+      current = '';
+    }
+  }
+  const text = [...parts, current].filter((part, index) => part || index < parts.length).join('/');
+  // Giữ "/" cuối người dùng vừa gõ để gõ tiếp tháng/năm.
+  return current === '' && parts.length > 0 ? `${text}/` : text;
+}
+
 export type DobInput = { dob: string | null; error: string | null };
 
 /**

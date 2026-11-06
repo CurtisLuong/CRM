@@ -171,6 +171,22 @@ test('hồ sơ: thiếu năm sinh → chỉ ô Cung; ngày sinh dạng lạ → 
   await expect(group.locator('output')).toHaveCount(0);
 });
 
+test('hồ sơ: gõ số liền "03061998" (bàn phím số không có /) → tự tách 03/06/1998, lưu, hiện Tuổi/Mệnh/Cung', async ({
+  page,
+}) => {
+  await openMemory(page, 'dob-no-year');
+  const group = page.getByRole('group', { name: 'Ngày sinh' });
+  const input = group.getByRole('textbox', { name: 'Ngày sinh — ngày/tháng/năm' });
+  await input.fill('');
+  await input.pressSequentially('03061998');
+  await expect(input).toHaveValue('03/06/1998');
+  await input.press('Enter');
+  await expect(group.getByLabel('Tuổi', { exact: true })).toHaveText('28');
+  await expect(group.getByLabel('Mệnh', { exact: true })).toBeVisible();
+  await expect(group.getByLabel('Cung', { exact: true })).toHaveText('Song Tử');
+  await expect(group).not.toContainText('không hợp lệ');
+});
+
 test('Thêm khách: gõ ngày sinh → ô Tuổi, Mệnh, Cung như hồ sơ', async ({ page }) => {
   await open(page, 'dob-full', '/intake');
   await page.getByRole('button', { name: 'Thêm thông tin' }).click();

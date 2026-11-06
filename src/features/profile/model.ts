@@ -472,6 +472,20 @@ export function estimatePrice(customer: Customer, catalog: PriceCatalog | null):
   return { total: area * price, area, pricePerM2: price, ...inherited };
 }
 
+/** Ô "Giá căn (tỷ)": 2058000000 → "2,058". Lưu vẫn theo VNĐ như form Thêm khách (`apt_price`). */
+export function formatPriceTy(value: number): string {
+  return (value / 1_000_000_000).toLocaleString('vi-VN', { maximumFractionDigits: 3 });
+}
+
+/** "2,06" / "2.06" (tỷ) → 2060000000; rỗng → null; sai dạng → undefined (không lưu). */
+export function parsePriceTy(raw: string): number | null | undefined {
+  const text = raw.trim().replace(/\s/g, '');
+  if (!text) return null;
+  if (!/^\d+([.,]\d+)?$/.test(text)) return undefined;
+  const value = Math.round(Number(text.replace(',', '.')) * 1_000_000_000);
+  return value > 0 ? value : undefined;
+}
+
 /** 2340000000 → "2,34 tỷ"; 850000000 → "850 triệu". */
 export function formatVndShort(value: number): string {
   if (value >= 1_000_000_000)

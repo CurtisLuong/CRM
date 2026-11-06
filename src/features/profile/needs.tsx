@@ -1,14 +1,15 @@
-import { useId, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { TextField } from '@/components/crm/form-fields';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import type { Customer } from '@/domain/customer';
 import { formatPricePerM2 } from '@/features/catalog/model';
 import { Icon } from '@/ui/Icon';
 import { useToast } from '@/ui/Toast';
-import { ProfileTextField } from './advanced';
+import { fieldId, ProfileTextField } from './advanced';
 import { LONG_FIELD, SHORT_FIELD } from './fields';
 import { ChoiceField, hasFieldValue } from './info';
-import { formatVndShort, PRICE_ESTIMATE_MISSING, type PriceEstimate } from './model';
+import { formatPriceTy, formatVndShort, PRICE_ESTIMATE_MISSING, type PriceEstimate, parsePriceTy } from './model';
 
 export const PURPOSE_OPTIONS = ['Ở', 'Đầu tư', 'Cho tặng'].map((value) => ({ value, label: value }));
 
@@ -359,7 +360,6 @@ export function ProfileNeedsFields({
   onToggleProjects,
   estimate,
 }: NeedsProps) {
-  const estimateId = useId();
   const inheritedArea = estimate?.areaSource === 'catalog' ? estimate.area : undefined;
   const visible = inheritedArea ? new Set([...stayVisible, 'apt_area']) : stayVisible;
   const hidden = needsHiddenCount(customer, visible);
@@ -460,21 +460,16 @@ export function ProfileNeedsFields({
           <div key={key} data-jump={key} className={key === 'projects' ? LONG_FIELD : SHORT_FIELD}>
             {field(key)}
           </div>,
-          // Ngay sau Diện tích: tự tính, không phải ô nhập nên không tính vào "Bổ sung".
+          // Ngay sau Diện tích: ô Giá căn, trống thì điền sẵn giá ước tính; không tính vào "Bổ sung".
           ...(key === 'apt_area' && estimate
             ? [
-                <div key="estimate" className={`${SHORT_FIELD} flex flex-col gap-1.5`}>
-                  <span id={estimateId} className="block min-h-9 text-label text-ink-muted">
-                    Giá ước tính
-                  </span>
-                  <output aria-labelledby={estimateId} className="flex min-h-11 items-center text-body-strong">
-                    {'total' in estimate ? `≈ ${formatVndShort(estimate.total)}` : '—'}
-                  </output>
-                  <span className="block text-caption text-ink-muted">
-                    {'total' in estimate
-                      ? `${estimate.area.toLocaleString('vi-VN')} m² × ${formatPricePerM2(estimate.pricePerM2)} triệu/m²`
-                      : PRICE_ESTIMATE_MISSING[estimate.missing]}
-                  </span>
+                <div key="estimate" className={SHORT_FIELD}>
+                  <PriceField
+                    customer={customer}
+                    estimate={estimate}
+                    disabled={!writable}
+                    onSave={(value) => onSaveField('apt_price', value)}
+                  />
                 </div>,
               ]
             : []),
@@ -486,5 +481,76 @@ export function ProfileNeedsFields({
         </Button>
       )}
     </Card>
+  );
+}
+
+/**
+ * Ô "Giá căn (tỷ)" ghi `apt_price` (VNĐ). Chưa nhập thì điền sẵn giá ước tính (Curtis 06/11) nhưng
+ * chỉ ghi khi người dùng sửa — mở hồ sơ không tự ghi, ước tính vẫn theo diện tích/Giỏ hàng.
+ */
+function PriceField({
+  customer,
+  estimate,
+  disabled,
+  onSave,
+}: {
+  customer: Customer;
+  estimate: PriceEstimate;
+  disabled: boolean;
+  onSave: (value: number | null) => void;
+}) {
+  const label = 'Giá căn (tỷ)';
+  const stored = customer.apt_price;
+  const saved = Number(stored) > 0 ? Number(stored) : null;
+  const estimated = 'total' in estimate ? estimate.total : null;
+  const raw = saved != null ? formatPriceTy(saved) : estimated != null ? formatPriceTy(estimated) : '';
+  const [draft, setDraft] = useState(raw);
+  const [error, setError] = useState('');
+  useEffect(() => setDraft(raw), [raw]);
+  // Ghi cũ dạng chữ (vd. "2 tỷ") không đọc được thành số → hiện ra, không coi là trống (D-012).
+  const legacyText = saved == null && stored != null && String(stored).trim() !== '' ? String(stored) : null;
+  const basis =
+    'total' in estimate
+      ? `${estimate.area.toLocaleString('vi-VN')} m² × ${formatPricePerM2(estimate.pricePerM2)} triệu/m²`
+      : PRICE_ESTIMATE_MISSING[estimate.missing];
+  const hint =
+    saved == null
+      ? estimated != null
+        ? `Ước tính · ${basis}`
+        : basis
+      : estimated != null && Math.abs(estimated - saved) >= 1_000_000
+        ? `Ước tính ≈ ${formatVndShort(estimated)}`
+        : undefined;
+  const save = () => {
+    if (draft === raw) return;
+    const value = parsePriceTy(draft);
+    if (value === undefined) {
+      setError('Nhập giá theo tỷ, ví dụ 2,06.');
+      return;
+    }
+    setError('');
+    onSave(value);
+  };
+  return (
+    <div className="space-y-1">
+      {legacyText && <p className="text-ink-muted [overflow-wrap:anywhere]">Đang lưu: {legacyText}</p>}
+      <TextField
+        id={fieldId(label)}
+        label={label}
+        className="[&_label]:block [&_label]:min-h-9"
+        type="text"
+        inputMode="decimal"
+        numeric
+        value={draft}
+        disabled={disabled}
+        hint={error ? undefined : hint}
+        error={error || undefined}
+        onChange={(event) => setDraft(event.target.value)}
+        onBlur={save}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter') event.currentTarget.blur();
+        }}
+      />
+    </div>
   );
 }
