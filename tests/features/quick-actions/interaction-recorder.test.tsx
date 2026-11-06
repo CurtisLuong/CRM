@@ -47,7 +47,8 @@ describe('InteractionRecorder call action', () => {
     expect(screen.queryByRole('button', { name: 'Đã gọi' })).toBeNull();
   });
 
-  it('opens the outcome action from the interaction sheet and is unavailable to other owners or archived customers', async () => {
+  // D-032 (Curtis 06/11): khách đồng nghiệp đang thấy (đã giao, vẫn theo dõi) → ghi giùm được; lưu trữ thì không.
+  it('opens the outcome action from the interaction sheet, also for a followed colleague, not for archived customers', async () => {
     const user = userEvent.setup();
     const { rerender } = render(
       <ToastProvider>
@@ -66,7 +67,7 @@ describe('InteractionRecorder call action', () => {
         <InteractionRecorder account={account} customer={{ ...customer, owner_id: 'other' }} />
       </ToastProvider>,
     );
-    expect(screen.getByRole('button', { name: 'Đã gọi' }).hasAttribute('disabled')).toBe(true);
+    expect(screen.getByRole('button', { name: 'Đã gọi' }).hasAttribute('disabled')).toBe(false);
 
     rerender(
       <ToastProvider>

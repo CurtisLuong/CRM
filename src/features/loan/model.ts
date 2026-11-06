@@ -4,6 +4,7 @@ import {
   BANK_PRESETS,
   type ComputeInput,
   type ComputeResult,
+  calcPrice,
   DEFAULT_LOAN,
   DEFAULT_SCHEDULE,
   type LoanParams,
@@ -29,6 +30,10 @@ export type LoanState = {
   [key: string]: unknown;
 };
 export type LoanPrefill = Partial<LoanUnit> & { customerId?: string };
+/** Luật vay (Curtis 06/11): để trống = tự động 70%; nhập tay không được vượt 80% (giá thuần + VAT). */
+export const LTV_AUTO = Number(DEFAULT_LOAN.ltv);
+export const LTV_MAX = 80;
+export const ltvOf = (amount: number, gross: number) => (gross > 0 ? Math.round((amount / gross) * 10000) / 100 : 0);
 export const money = (n: number) => Math.round(n).toLocaleString('vi-VN');
 export function loanPath(prefill: LoanPrefill = {}) {
   const params = new URLSearchParams();
@@ -130,19 +135,28 @@ export function buildInput(state: LoanState, project?: Record<string, unknown> |
       ? { ...m, due: { ...m.due, value: state.dates.titleAfterMonths } }
       : m,
   );
-  return {
-    unit: {
-      area: state.unit.area,
-      pricePerM2: state.unit.pricePerM2,
-      netPriceOverride: state.unit.netOverride,
-      fee: state.unit.fee,
-      vatRate: project?.vat_rate == null ? 5 : Number(project.vat_rate),
-      kpbtRate: project?.kpbt_rate == null ? 2 : Number(project.kpbt_rate),
-    },
-    dates: state.dates,
-    schedule,
-    loan: state.loan,
+  const unit = {
+    area: state.unit.area,
+    pricePerM2: state.unit.pricePerM2,
+    netPriceOverride: state.unit.netOverride,
+    fee: state.unit.fee,
+    vatRate: project?.vat_rate == null ? 5 : Number(project.vat_rate),
+    kpbtRate: project?.kpbt_rate == null ? 2 : Number(project.kpbt_rate),
   };
+  return { unit, dates: state.dates, schedule, loan: cappedLoan(state.loan, calcPrice(unit).gross) };
+}
+/**
+ * Khoản vay hiệu lực: số tiền nhập tay (nếu có) kẹp ở 80% và kéo tỷ lệ theo (phiếu in đúng %);
+ * không nhập tay thì tỷ lệ kẹp ở 80%. Trong giới hạn thì giữ nguyên object (khớp v1).
+ */
+export function cappedLoan(loan: LoanParams, gross: number): LoanParams {
+  const cap = Math.round((gross * LTV_MAX) / 100);
+  const override = loan.loanOverride == null || loan.loanOverride === '' ? null : Number(loan.loanOverride);
+  if (override) {
+    const amount = Math.min(override, cap);
+    return { ...loan, loanOverride: amount, ltv: ltvOf(amount, gross) };
+  }
+  return Number(loan.ltv) > LTV_MAX ? { ...loan, ltv: LTV_MAX } : loan;
 }
 export function validateState(state: LoanState): string | null {
   if (!Number.isFinite(state.unit.area) || state.unit.area <= 0) return 'Diện tích phải lớn hơn 0.';

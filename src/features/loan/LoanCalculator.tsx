@@ -8,7 +8,7 @@ import { useCustomers, useRepositoryAccount } from '@/data/hooks';
 import type { Data } from '@/data/repositories/customers';
 import type { RepositoryAccount } from '@/data/repositories/session';
 import { type Customer, isQualified } from '@/domain/customer';
-import { BANK_PRESETS, type BankPreset, type ComputeResult, compute, type Numeric } from '@/domain/loan';
+import { BANK_PRESETS, type BankPreset, type ComputeResult, calcPrice, compute, type Numeric } from '@/domain/loan';
 import {
   applyCatalog,
   buildInput,
@@ -17,6 +17,9 @@ import {
   type LoanPrefill,
   type LoanState,
   type LoanUnit,
+  LTV_AUTO,
+  LTV_MAX,
+  ltvOf,
   money,
   presetParams,
   quoteSummary,
@@ -48,6 +51,8 @@ function NumberInput({
   step = 'any',
   suffix,
   scale = 1,
+  auto,
+  hint,
   className = '',
 }: {
   label: string;
@@ -59,13 +64,27 @@ function NumberInput({
   suffix?: string;
   /** Hiện/nhập theo đơn vị lớn hơn (1e6 = triệu), lưu vẫn theo đồng (Curtis 06/11: bớt số 0). */
   scale?: number;
+  /** Số tự tính hiện khi chưa nhập tay; xoá trống rồi rời ô thì về lại số này (Curtis 06/11). */
+  auto?: number;
+  hint?: string;
   className?: string;
 }) {
-  const shown = value == null || value === '' ? '' : Number(value) / scale;
+  // Ô tự điền: giữ chữ đang gõ (kể cả rỗng) tới khi rời ô, không bật lại số tự tính dưới tay.
+  const [draft, setDraft] = useState<string | null>(null);
+  const current = value == null || value === '' ? auto : Number(value);
+  const shown =
+    auto !== undefined && draft !== null
+      ? draft
+      : current == null
+        ? ''
+        : auto !== undefined
+          ? Math.round((current / scale) * 1000) / 1000
+          : current / scale;
   return (
     <TextField
       className={`w-full ${className}`}
       label={label}
+      hint={hint}
       type="number"
       inputMode="decimal"
       numeric
@@ -74,7 +93,11 @@ function NumberInput({
       max={max}
       step={step}
       value={shown}
-      onChange={(e) => onChange(e.target.value === '' ? null : Math.round(Number(e.target.value) * scale * 1e6) / 1e6)}
+      onBlur={() => setDraft(null)}
+      onChange={(e) => {
+        if (auto !== undefined) setDraft(e.target.value);
+        onChange(e.target.value === '' ? null : Math.round(Number(e.target.value) * scale * 1e6) / 1e6);
+      }}
     />
   );
 }
@@ -198,7 +221,12 @@ function CalculatorForm({
     const s = initialState(prefill);
     const saved = store?.readSettings();
     if (saved?.loan && Array.isArray(saved.loan.rateTiers) && Array.isArray(saved.loan.prepayFees))
-      s.loan = { ...s.loan, ...saved.loan, loanOverride: null };
+      s.loan = {
+        ...s.loan,
+        ...saved.loan,
+        loanOverride: null,
+        ltv: Math.min(Number(saved.loan.ltv) || LTV_AUTO, LTV_MAX),
+      };
     return account ? applyCatalogKeeping(s, account.catalog, keep.current) : s;
   });
   const touched = useRef(false);
@@ -260,6 +288,13 @@ function CalculatorForm({
     touched.current = true;
     setState((s) => ({ ...s, dates: { ...s.dates, ...patch } }));
   };
+  // Giá thuần / số tiền vay tự điền theo công thức; nhập tay thì ghi đè, xoá trống thì về tự tính.
+  const priceInput = buildInput(state, project).unit ?? {};
+  const autoNet = calcPrice({ ...priceInput, netPriceOverride: null }).net;
+  const gross = calcPrice(priceInput).gross;
+  const maxLoan = Math.round((gross * LTV_MAX) / 100);
+  const manualLoan = state.loan.loanOverride ? Math.min(Number(state.loan.loanOverride), maxLoan) : null;
+  const shownLtv = manualLoan != null ? ltvOf(manualLoan, gross) : Math.min(Number(state.loan.ltv) || 0, LTV_MAX);
   const validation = validateState(state);
   let result: ComputeResult | null = null,
     computeError = validation;
@@ -433,10 +468,13 @@ function CalculatorForm({
             onChange={(n) => unit({ fee: n })}
           />
           <NumberInput
-            label="Giá thuần nhập tay (tuỳ chọn)"
-            suffix="đ"
+            label="Giá thuần"
+            suffix="tr"
+            scale={1_000_000}
             className={WIDE}
             value={state.unit.netOverride}
+            auto={autoNet}
+            hint={state.unit.netOverride ? 'Đã nhập tay · xoá trống để tự tính lại' : 'Tự tính = diện tích × đơn giá'}
             onChange={(n) => unit({ netOverride: n })}
           />
           <Field label="Ngày ký hợp đồng">
@@ -523,9 +561,13 @@ function CalculatorForm({
           <NumberInput
             label="Tỷ lệ vay"
             suffix="%"
-            value={state.loan.ltv}
-            max={100}
-            onChange={(n) => loan({ ltv: n ?? 0 })}
+            value={shownLtv}
+            auto={LTV_AUTO}
+            max={LTV_MAX}
+            hint={`Tối đa ${LTV_MAX}%`}
+            onChange={(n) =>
+              loan({ ltv: n == null ? LTV_AUTO : Math.min(Math.max(n, 0), LTV_MAX), loanOverride: null })
+            }
           />
           <NumberInput
             label="Thời hạn vay"
@@ -537,11 +579,22 @@ function CalculatorForm({
             onChange={(n) => loan({ termYears: n ?? 0 })}
           />
           <NumberInput
-            label="Số tiền vay nhập tay (tuỳ chọn)"
-            suffix="đ"
+            label="Số tiền vay"
+            suffix="tr"
+            scale={1_000_000}
             className={WIDE}
-            value={state.loan.loanOverride}
-            onChange={(n) => loan({ loanOverride: n })}
+            value={manualLoan}
+            auto={Math.round((gross * shownLtv) / 100)}
+            hint={
+              manualLoan != null
+                ? `Đã nhập tay · tối đa ${LTV_MAX}% = ${money(maxLoan)}đ · xoá trống về ${LTV_AUTO}%`
+                : `Theo tỷ lệ vay · tối đa ${LTV_MAX}% = ${money(maxLoan)}đ`
+            }
+            onChange={(n) => {
+              if (n == null) return loan({ loanOverride: null, ltv: LTV_AUTO });
+              const amount = Math.min(Math.max(Math.round(n), 0), maxLoan);
+              loan({ loanOverride: amount, ltv: ltvOf(amount, gross) });
+            }}
           />
           <NumberInput
             label="Lãi thả nổi giả định"

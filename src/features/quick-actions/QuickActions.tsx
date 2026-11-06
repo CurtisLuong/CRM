@@ -6,6 +6,7 @@ import { useRepositoryAccount } from '@/data/hooks';
 import type { RepositoryAccount } from '@/data/repositories/session';
 import { type CallAttempt, type Customer, callAttemptsOf } from '@/domain/customer';
 import { appendInteractionPatch, createInteraction } from '@/domain/customer/interactions';
+import { canLogHistory } from '@/domain/customer/teamEdit';
 import type { ScheduleSuggestion } from '@/domain/followup';
 import { AiNoteReview } from '@/features/ai/AiNoteReview';
 import { AiZaloDraft } from '@/features/ai/AiZaloDraft';
@@ -35,6 +36,13 @@ const FIELD =
   'h-11 w-full rounded-sm border border-input bg-surface-100 px-3 text-body text-ink focus-visible:outline-2 focus-visible:outline-ion';
 
 export { openQuickAction } from './store';
+
+/** Khách mình: mọi thao tác. Khách đã giao/khách nhóm (D-032): chỉ ghi kết quả cuộc gọi và ghi chú. */
+function mayOpen(c: Customer, kind: string, userId: string) {
+  if (!c.archived_at && c.owner_id === userId) return true;
+  return (kind === 'outcome' || kind === 'note') && canLogHistory(c, userId);
+}
+
 /** Reusable on rows, detail action bars and calling sessions. Does not require navigation. */
 export function useCall(c: Customer) {
   return () => openQuickAction(c.id, 'call');
@@ -42,6 +50,8 @@ export function useCall(c: Customer) {
 export function QuickActionButtons({ customer }: { customer: Customer }) {
   const account = useRepositoryAccount();
   const writable = !!account && customer.owner_id === account.sync.local.userId && !customer.archived_at;
+  // D-032: khách đã giao/khách nhóm vẫn ghi chú được; Gọi, Zalo, Hẹn chỉ người phụ trách.
+  const loggable = !!account && canLogHistory(customer, account.sync.local.userId);
   return (
     <fieldset className="flex flex-wrap gap-2" aria-label={`Hành động cho ${customer.full_name}`}>
       <legend className="sr-only">Hành động cho {customer.full_name}</legend>
@@ -57,7 +67,7 @@ export function QuickActionButtons({ customer }: { customer: Customer }) {
           key={kind}
           icon={icon}
           label={label}
-          disabled={!writable}
+          disabled={kind === 'note' ? !loggable : !writable}
           onClick={() => openQuickAction(customer.id, kind)}
         />
       ))}
@@ -66,11 +76,10 @@ export function QuickActionButtons({ customer }: { customer: Customer }) {
   );
 }
 
-/** Calls stay in their original aggregate; completed calls can be corrected by their owner. */
+/** Calls stay in their original aggregate; completed calls can be corrected by their owner (D-032: or a follower). */
 export function CallHistoryActions({ customer }: { customer: Customer }) {
   const account = useRepositoryAccount();
-  const writable = !!account && customer.owner_id === account.sync.local.userId && !customer.archived_at;
-  if (!writable) return null;
+  if (!account || !canLogHistory(customer, account.sync.local.userId)) return null;
   const calls = callAttemptsOf(customer);
   return (
     <section className="flex flex-col gap-2" aria-label={`Nhật ký cuộc gọi ${customer.full_name}`}>
@@ -156,7 +165,7 @@ export function QuickActionsHost({
   useEffect(() => {
     if (!request || !account || account.sync.local.isClosed) return;
     const c = account.customers.getSnapshot().find((c) => c.id === request.customerId);
-    if (!c || c.archived_at || c.owner_id !== account.sync.local.userId) {
+    if (!c || !mayOpen(c, request.kind, account.sync.local.userId)) {
       toast({ title: 'Khách này chỉ được xem.' });
       clearQuickAction();
       return;
@@ -211,7 +220,7 @@ export function QuickActionsHost({
   }, []);
   if (!account || !active) return null;
   const c = account.customers.getSnapshot().find((c) => c.id === active.customerId);
-  if (!c || c.archived_at || c.owner_id !== account.sync.local.userId) return null;
+  if (!c || !mayOpen(c, active.kind, account.sync.local.userId)) return null;
   const close = () => {
     setActive(null);
     waitingZalo.current = false;

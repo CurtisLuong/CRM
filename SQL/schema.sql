@@ -220,3 +220,4 @@ on conflict (name, owner_id) do nothing;
 --      SQL/v2/011_send_kit.sql             → Tài liệu gửi khách (SK-03): bảng send_kit_items (dùng chung nhóm, xoá mềm) + bucket riêng tư send-kit 50MB/tệp (cần SQL/add_team_assign.sql)
 --      SQL/v2/012_send_kit_realtime.sql    → Realtime cho send_kit_items (SK-04; cần 011)
 --      SQL/v2/013_catalog_fee.sql          → Phí mỗi căn: cột fee ở projects/buildings/units (dự án → toà → căn ghi đè; LF-01)
+--      SQL/v2/014_team_log_edit.sql        → khách đã giao/khách nhóm: người theo dõi ghi giùm cuộc gọi, tương tác, ghi chú (D-032; nới trigger của 010)

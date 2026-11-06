@@ -90,12 +90,12 @@ describe('ghi khách đồng nghiệp (repo)', () => {
     local.close();
   });
 
-  it('đổi bậc, ghi cuộc gọi, thêm việc, lưu trữ, đổi nguồn → chặn, không ghi gì', async () => {
+  // D-032 (06/11): ghi cuộc gọi giùm được phép — xem tests/data/d032-team-log.test.ts.
+  it('đổi bậc, thêm việc, lưu trữ, đổi nguồn → chặn, không ghi gì', async () => {
     const { local, repo } = await setup(colleague);
     await expect(repo.update('c1', { care_stage: 'Xem dự án' })).rejects.toMatchObject(READ_ONLY);
     await expect(repo.update('c1', { source: ['zalo'] })).rejects.toMatchObject(READ_ONLY);
     await expect(repo.update('c1', { occupation: 'x', next_call_at: NOW })).rejects.toMatchObject(READ_ONLY);
-    await expect(repo.logCall('c1', { at: NOW, result: 'talked' })).rejects.toMatchObject(READ_ONLY);
     await expect(repo.addTask('c1', 'Gọi lại', { due: NOW }, 'call')).rejects.toMatchObject(READ_ONLY);
     await expect(repo.addCareLog('c1', 'ghi lịch sử')).rejects.toMatchObject(READ_ONLY);
     await expect(repo.remove('c1')).rejects.toMatchObject(READ_ONLY);
