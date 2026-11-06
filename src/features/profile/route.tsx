@@ -617,7 +617,7 @@ function Profile() {
                     )}
                     {teamInfo && (
                       <span className="rounded-sm border border-line px-2 py-1 text-caption text-ink-muted">
-                        Khách nhóm · ghi giùm
+                        Khách nhóm · sửa thông tin
                       </span>
                     )}
                   </div>
