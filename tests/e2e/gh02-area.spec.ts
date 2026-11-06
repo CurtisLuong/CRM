@@ -132,12 +132,13 @@ for (const theme of ['light', 'dark'] as const) {
     await openProfile(page);
     await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
     const area = page.getByLabel('Diện tích (m²)', { exact: true });
-    const estimate = page.getByLabel('Giá ước tính', { exact: true });
-    await expect(estimate).toHaveText('≈ 1,5 tỷ');
+    // 06/11: Giá ước tính thành ô Giá căn (tỷ), điền sẵn ước tính.
+    const estimate = page.getByLabel('Giá căn (tỷ)', { exact: true });
+    await expect(estimate).toHaveValue('1,5');
     await expect(area).toHaveValue('');
     await expect(area).toHaveAttribute('placeholder', '60');
     await expect(page.getByText('60 m² · theo Giỏ hàng', { exact: true })).toBeVisible();
-    await expect(page.getByText('60 m² × 25 triệu/m²', { exact: true })).toBeVisible();
+    await expect(page.getByText('Ước tính · 60 m² × 25 triệu/m²', { exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Bổ sung (5)', exact: true })).toBeVisible();
 
     // Mở hồ sơ và chỉ chạm/rời ô không được ghi khách hoặc tạo queue.
@@ -149,22 +150,22 @@ for (const theme of ['light', 'dark'] as const) {
 
     await area.fill('45');
     await area.blur();
-    await expect(estimate).toHaveText('≈ 1,13 tỷ');
+    await expect(estimate).toHaveValue('1,125');
     await expect(page.getByText('60 m² · theo Giỏ hàng', { exact: true })).toHaveCount(0);
     expect((await readLocal(page)).customers[0].apt_area).toBe(45);
     await page.reload();
     await expect(area).toHaveValue('45');
-    await expect(estimate).toHaveText('≈ 1,13 tỷ');
+    await expect(estimate).toHaveValue('1,125');
 
     await area.fill('');
     await area.blur();
-    await expect(estimate).toHaveText('≈ 1,5 tỷ');
+    await expect(estimate).toHaveValue('1,5');
     await expect(page.getByText('60 m² · theo Giỏ hàng', { exact: true })).toBeVisible();
     expect((await readLocal(page)).customers[0].apt_area).toBeNull();
     await page.reload();
     await expect(area).toHaveValue('');
     await expect(area).toHaveAttribute('placeholder', '60');
-    await expect(estimate).toHaveText('≈ 1,5 tỷ');
+    await expect(estimate).toHaveValue('1,5');
     expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
   });
 }

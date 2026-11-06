@@ -17,7 +17,8 @@ import { legacyDraft, legacyValues, showLegacy } from './fields';
 const FIELD =
   'min-h-11 w-full rounded-sm border border-line bg-surface-100 px-3 text-body text-ink focus-visible:outline-2 focus-visible:outline-ion disabled:opacity-60';
 
-const fieldId = (label: string) => `profile-field-${label.toLocaleLowerCase('vi').replace(/[^\p{L}\p{N}]+/gu, '-')}`;
+export const fieldId = (label: string) =>
+  `profile-field-${label.toLocaleLowerCase('vi').replace(/[^\p{L}\p{N}]+/gu, '-')}`;
 
 type TextFieldProps = {
   label: string;

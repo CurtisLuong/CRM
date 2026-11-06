@@ -1,6 +1,6 @@
 import { useEffect, useId, useState } from 'react';
 import { Field, TextField } from '@/components/crm/form-fields';
-import { type DobView, dobView, parseDobInput } from './dob';
+import { type DobView, dobView, formatDobTyping, parseDobInput } from './dob';
 import { SHORT_FIELD } from './fields';
 
 type Props = {
@@ -52,7 +52,7 @@ export function DobField({ value, disabled, now, onSave }: Props) {
           disabled={disabled}
           value={draft}
           placeholder="15/08/1985 hoặc 15/08"
-          onChange={(event) => setDraft(event.target.value)}
+          onChange={(event) => setDraft(formatDobTyping(event.target.value))}
           onBlur={commit}
           onKeyDown={(event) => {
             if (event.key === 'Enter') event.currentTarget.blur();
