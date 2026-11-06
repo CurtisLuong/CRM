@@ -75,7 +75,7 @@ hàng đợi offline của `db.js`) → mất mạng sẽ báo lỗi, tính + PD
 | Đợt 1–5 | % × giá gồm VAT |
 | Đợt nhận sổ (`role: title`) | % × giá thuần, **không VAT** |
 | Đợt bàn giao (`role: handover`) | Giá dự kiến − các đợt khác (gồm KPBT + phần VAT dồn từ đợt nhận sổ) |
-| Khoản vay | Tỷ lệ vay × giá gồm VAT. Ngân hàng giải ngân từ đợt 2, không tính KPBT và phí |
+| Khoản vay | Tỷ lệ vay × (giá thuần + VAT) — **loại trừ phí và KPBT** (Curtis 06/11). Ngân hàng giải ngân từ đợt 2, không giải ngân KPBT và phí |
 | Lãi kỳ | Dư nợ thực tế × lãi năm × số ngày thực tế ÷ 365 |
 | Gốc kỳ | Dư nợ ÷ số kỳ còn lại (gốc giảm dần, tự tính lại mỗi lần giải ngân thêm) |
 | Ân hạn | Tính từ lần giải ngân đầu hoặc cuối (chọn trong form) |

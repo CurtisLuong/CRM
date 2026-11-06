@@ -470,7 +470,8 @@ Ví dụ và mẫu trong bộ tài liệu không phải sự chấp thuận cho 
 - Quyết định:
   - Mỗi dự án có một **phí** chung (số tiền cố định mỗi căn, đ); toà và căn nhập riêng thì ghi đè cấp cha — cùng cách như giá duyệt. Cột `fee` ở `projects`/`buildings`/`units` (`SQL/v2/013_catalog_fee.sql`); trống = theo cấp cha, cả 3 trống = 0.
   - Giá thuần = giá duyệt × diện tích. **Giá dự kiến = giá thuần + phí + giá thuần × VAT + giá thuần × KPBT** (phí không chịu VAT/KPBT). Dòng tổng "Giá FULL" đổi tên "Giá dự kiến" (máy tính vay, báo giá in, Giỏ hàng).
-  - Phí đóng trọn ở **đợt 1**, khách tự trả: ngân hàng không giải ngân phần phí kể cả khi chọn giải ngân từ đợt 1. Khoản vay vẫn = tỷ lệ vay × giá gồm VAT.
+  - Phí đóng trọn ở **đợt 1**, khách tự trả: ngân hàng không giải ngân phần phí kể cả khi chọn giải ngân từ đợt 1.
+  - **Ngân hàng cho vay dựa trên giá thuần + VAT, loại trừ phí và KPBT** (Curtis xác nhận 2026-11-06): khoản vay tối đa = tỷ lệ vay × (giá thuần + VAT); phần giải ngân từng đợt trừ KPBT và phí. Thẻ "Giá & vay" trên hồ sơ dùng cùng công thức (70% × giá gồm VAT).
 - Không đổi: VAT/KPBT, tiến độ, lãi; phí 0 cho kết quả y như v1 (test parity giữ nguyên).
 - Tài liệu: `docs/loan-module.md` §5.
 
