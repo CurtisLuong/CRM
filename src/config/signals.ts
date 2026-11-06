@@ -35,7 +35,7 @@ export const SIGNAL_GROUPS: Record<SignalGroup, { title: string; contact: boolea
   today: { title: 'Hẹn gọi còn lại hôm nay', contact: true },
   new: { title: 'Khách mới chưa gọi', contact: true },
   retry: { title: 'Gọi lại khách chưa liên lạc được', contact: true },
-  decide: { title: 'Đã nói chuyện — chờ phân loại', contact: true },
+  decide: { title: 'Đã nói chuyện — chọn Đạt hay Loại', contact: true },
   pending: { title: 'Cuộc gọi chưa ghi chú', contact: false },
   hot: { title: 'Khách nóng đang nguội', contact: true },
   warm: { title: 'Khách đang chăm lâu chưa liên hệ', contact: true },

@@ -93,7 +93,7 @@ test('demo giữ dữ liệu local, chặn mạng, sống qua reload và xoá ri
     'Hẹn gọi còn lại hôm nay',
     'Khách mới chưa gọi',
     'Gọi lại khách chưa liên lạc được',
-    'Đã nói chuyện — chờ phân loại',
+    'Đã nói chuyện — chọn Đạt hay Loại', // Curtis 06/11: đổi tên cho rõ việc cần làm
     'Cuộc gọi chưa ghi chú',
     'Khách nóng đang nguội',
     'Khách đang chăm lâu chưa liên hệ',

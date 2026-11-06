@@ -10,6 +10,8 @@ import { canLogHistory } from '@/domain/customer/teamEdit';
 import type { ScheduleSuggestion } from '@/domain/followup';
 import { AiNoteReview } from '@/features/ai/AiNoteReview';
 import { AiZaloDraft } from '@/features/ai/AiZaloDraft';
+import { canClassify, DropReasonFields } from '@/features/leads/ClassifySheet';
+import { disqualifyLead, type LeadDropReason, qualifyLead } from '@/features/leads/model';
 import { useToast } from '@/ui/Toast';
 import { InteractionRecorder } from './interactions';
 import { Button, IconButton, Input, OutcomePicker, ActionSheet as Sheet, SlotPicker, Textarea } from './kit';
@@ -366,6 +368,13 @@ function ActionSheet({
   const [launched, setLaunched] = useState(false);
   const [editSchedule, setEditSchedule] = useState(kind === 'schedule');
   const editingRecorded = !!(existing?.result && draft.editAt);
+  // Curtis 06/11: khách mới vừa "Nói chuyện được" → phân loại ngay trong hộp kết quả (Đạt / Loại / Để sau).
+  const [classify, setClassify] = useState<'later' | 'qualify' | 'drop'>('later');
+  const [dropReason, setDropReason] = useState<LeadDropReason | ''>('');
+  const [dropNote, setDropNote] = useState('');
+  const showClassify =
+    kind === 'outcome' && !editingRecorded && result === 'talked' && canClassify(c, account.sync.local.userId);
+  const classifyChoice = showClassify ? classify : 'later';
   const suggestion = editingRecorded ? null : callSuggestion(c, draft, result, now, account.customers.getSnapshot());
   const suggested =
     suggestion?.kind === 'schedule' ? suggestion : suggestion?.kind === 'drop' ? suggestion.fallback : null;
@@ -455,6 +464,9 @@ function ActionSheet({
           return account.customers.update(c.id, schedulePatch(schedule));
         }
         if (!result) throw new Error('Chọn kết quả cuộc gọi.');
+        if (classifyChoice === 'drop' && !dropReason) throw new Error('Chọn lý do loại khách.');
+        if (classifyChoice === 'drop' && dropReason === 'khac' && !dropNote.trim())
+          throw new Error('Lý do “Khác” cần mô tả thêm.');
         let custom = mode === 'custom' ? schedule : null;
         if (suggestion?.kind === 'ask' && mode !== 'none') {
           if (!customTime) throw new Error('Xác nhận đúng giờ khách hẹn.');
@@ -467,7 +479,7 @@ function ActionSheet({
             label: start.toLocaleString('vi-VN'),
           };
         }
-        return saveCall(
+        const saved = await saveCall(
           account.customers,
           c.id,
           draft,
@@ -478,6 +490,11 @@ function ActionSheet({
           Date.now(),
           account.customers.getSnapshot(),
         );
+        // Phân loại sau khi cuộc gọi đã ghi: Đạt cần có cuộc "Nói chuyện được" (vừa ghi xong).
+        if (classifyChoice === 'qualify') await qualifyLead(account.customers, c.id);
+        if (classifyChoice === 'drop' && dropReason)
+          await disqualifyLead(account.customers, c.id, dropReason, dropNote);
+        return saved;
       },
       true,
       'Đã lưu trên máy',
@@ -652,6 +669,38 @@ function ActionSheet({
                   Không hẹn gọi tiếp
                 </label>
               </section>
+            )}
+            {showClassify && (
+              <fieldset className="flex flex-col gap-2">
+                <legend className="text-body-strong">Phân loại khách</legend>
+                {(
+                  [
+                    ['later', 'Để sau'],
+                    ['qualify', 'Đạt → Tiềm năng'],
+                    ['drop', 'Loại'],
+                  ] as const
+                ).map(([value, label]) => (
+                  <label key={value} className="flex min-h-11 items-center gap-2 text-body">
+                    <input
+                      type="radio"
+                      name="call-classify"
+                      value={value}
+                      checked={classify === value}
+                      onChange={() => setClassify(value)}
+                    />
+                    {label}
+                  </label>
+                ))}
+                {classify === 'drop' && (
+                  <DropReasonFields
+                    reason={dropReason}
+                    note={dropNote}
+                    onReason={setDropReason}
+                    onNote={setDropNote}
+                    disabled={busy}
+                  />
+                )}
+              </fieldset>
             )}
           </>
         )}

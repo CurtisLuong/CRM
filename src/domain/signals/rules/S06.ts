@@ -20,7 +20,7 @@ export default {
         'S06',
         c,
         talked ? 'decide' : 'retry',
-        talked ? 'Đã nói chuyện — chờ phân loại' : `Đã gọi ${calls.length} lần`,
+        talked ? 'Đã nói chuyện — chọn Đạt hay Loại' : `Đã gọi ${calls.length} lần`,
         'P1',
         talked ? ['classify'] : ['call'],
         { calls },
