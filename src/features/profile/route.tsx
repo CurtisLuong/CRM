@@ -22,6 +22,8 @@ import { planSlaUndo } from '@/domain/velocity/automation';
 import { bookingSteps, status as slaStatus } from '@/domain/velocity/engine';
 import { AiBrief } from '@/features/ai/AiBrief';
 import { CUSTOMER_GROUP_LABEL, customerGroupOf } from '@/features/customers/model';
+import { ClassifyLeadSheet, canClassify } from '@/features/leads/ClassifySheet';
+import { hasTalked, qualifyLead } from '@/features/leads/model';
 import { loanPath } from '@/features/loan/model';
 import { callDraftOf, callDuration, pendingCallsOf } from '@/features/quick-actions/model';
 import { openQuickAction } from '@/features/quick-actions/store';
@@ -94,6 +96,7 @@ function Profile() {
   // CP-03: Thêm việc mở danh sách 5 loại trước, không dùng window.prompt.
   const [addOpen, setAddOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
+  const [classifyOpen, setClassifyOpen] = useState(false);
   const teamMembers = useTeamMembers(account);
   const writable = !!customer && !!account && customer.owner_id === account.sync.local.userId && !customer.archived_at;
   // Khách nhóm (D-025) / khách đã giao (D-032): người đang thấy khách sửa thông tin + ghi giùm cuộc gọi, tương tác,
@@ -664,6 +667,32 @@ function Profile() {
                   </Button>
                 )}
               </div>
+              {/* Khách mới (Curtis 06/11): chuyển Tiềm năng / Loại ngay trên hồ sơ — "Đổi bậc" không làm việc này. */}
+              {account && canClassify(c, account.sync.local.userId) && (
+                <div className="flex gap-2">
+                  <Button
+                    variant="primary"
+                    className="min-w-0 flex-1"
+                    disabled={busy || !hasTalked(c)}
+                    title={hasTalked(c) ? undefined : 'Cần một cuộc gọi "Nói chuyện được" trước khi Đạt'}
+                    onClick={() =>
+                      void qualifyLead(account.customers, c.id)
+                        .then(() => toast({ title: 'Đã chuyển sang Tiềm năng' }))
+                        .catch((e) =>
+                          toast({ title: 'Chưa chuyển được', description: String(e?.message ?? e), tone: 'error' }),
+                        )
+                    }
+                  >
+                    Đạt → Tiềm năng
+                  </Button>
+                  <Button className="min-w-0 flex-1" disabled={busy} onClick={() => setClassifyOpen(true)}>
+                    Loại…
+                  </Button>
+                </div>
+              )}
+              {account && canClassify(c, account.sync.local.userId) && !hasTalked(c) && (
+                <p className="text-caption text-ink-muted">Đạt cần ít nhất một cuộc gọi "Nói chuyện được".</p>
+              )}
               {!otherOwner && slaMeter && (
                 <div className="space-y-1.5">
                   <SlaMeter {...slaMeter} />
@@ -954,6 +983,7 @@ function Profile() {
         onSave={saveNewTask}
       />
 
+      <ClassifyLeadSheet account={account} customer={c} open={classifyOpen} onOpenChange={setClassifyOpen} />
       <AssignCustomerSheet
         account={account}
         customer={c}

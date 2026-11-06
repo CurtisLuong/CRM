@@ -14,6 +14,7 @@ import { snoozePromise, undoPromiseSnooze } from '@/domain/deadlines/promises';
 import { forStage } from '@/domain/followup';
 import { applySlaPlan, planSlaAutomation, slaPlanMessage } from '@/domain/velocity/automation';
 import { CustomerSheet } from '@/features/customer-sheet/CustomerSheet';
+import { ClassifyLeadSheet, canClassify } from '@/features/leads/ClassifySheet';
 import { callDraftOf, pendingCallsOf } from '@/features/quick-actions/model';
 import { openQuickAction } from '@/features/quick-actions/store';
 import { AssignCustomerSheet, canAssignWithTeam, useTeamMembers } from '@/features/team/AssignSheet';
@@ -76,6 +77,7 @@ export function TodayPage() {
   const [now, setNow] = useState(() => Date.now());
   const [quickCustomerId, setQuickCustomerId] = useState<string | null>(null);
   const [assignCustomerId, setAssignCustomerId] = useState<string | null>(null);
+  const [classifyCustomerId, setClassifyCustomerId] = useState<string | null>(null);
   // Giao khách ở mọi bậc (Curtis 06/11): ngăn tóm tắt ở Hôm nay cũng có nút Giao khách như màn Khách hàng.
   const teamMembers = useTeamMembers(account);
   const quickCustomer = customers.find((customer) => customer.id === quickCustomerId) ?? null;
@@ -272,7 +274,9 @@ export function TodayPage() {
           ? 'Xong'
           : card.action === 'outcome'
             ? 'Ghi kết quả'
-            : 'Mở';
+            : group === 'decide' && canClassify(customer, account.sync.local.userId)
+              ? 'Phân loại'
+              : 'Mở';
     const actionAriaLabel = `${actionLabel} ${customer.full_name}${level === 'alert' ? ' · Làm ngay' : ''}`;
     const title =
       task?.text ||
@@ -300,7 +304,10 @@ export function TodayPage() {
                 const pending = pendingCallsOf(customer)[0];
                 openQuickAction(customer.id, 'outcome', pending ? callDraftOf(pending) : undefined);
               }
-            : open;
+            : // "Đã nói chuyện — chọn Đạt hay Loại": mở thẳng hộp Phân loại (Curtis 06/11).
+              group === 'decide' && canClassify(customer, account.sync.local.userId)
+              ? () => setClassifyCustomerId(customer.id)
+              : open;
     const meter = slaMeterFor(customer, now);
     return (
       <ActionItem
@@ -537,6 +544,12 @@ export function TodayPage() {
         }}
         onOpenChange={(open) => !open && setQuickCustomerId(null)}
         onOpenProfile={(customer) => navigate(`/ho-so/${customer.id}`)}
+      />
+      <ClassifyLeadSheet
+        account={account}
+        customer={customers.find((customer) => customer.id === classifyCustomerId) ?? null}
+        open={!!classifyCustomerId}
+        onOpenChange={(open) => !open && setClassifyCustomerId(null)}
       />
       <AssignCustomerSheet
         account={account}
