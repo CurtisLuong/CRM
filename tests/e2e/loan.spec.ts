@@ -12,7 +12,7 @@ for (const theme of ['light', 'dark'] as const) {
     await expect(page.getByRole('table', { name: 'Tiến độ thanh toán', exact: true })).toContainText('336.186.273');
     await expect(page.getByRole('button', { name: 'Lưu phương án', exact: true })).toBeDisabled();
     await context.setOffline(true);
-    await page.getByLabel('Tỷ lệ vay (% giá gồm VAT)', { exact: true }).fill('80');
+    await page.getByLabel('Tỷ lệ vay', { exact: true }).fill('80');
     await expect(page.getByRole('table', { name: 'Trả nợ theo năm', exact: true })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     await page.evaluate(() => window.scrollTo(0, 0));

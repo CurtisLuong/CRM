@@ -13,7 +13,7 @@ for (const theme of ['light', 'dark'] as const) {
     await expect(quote).not.toContainText('Phí');
     await expect(quote).toContainText('1.141.966.071');
 
-    await page.getByLabel('Phí (đ/căn)', { exact: true }).fill('50000000');
+    await page.getByLabel('Phí', { exact: true }).fill('50'); // 06/11: nhập theo triệu/căn;
     await expect(quote).toContainText('Phí (đóng đợt 1)');
     await expect(quote).toContainText('50.000.000');
     await expect(quote).toContainText('1.191.966.071');
