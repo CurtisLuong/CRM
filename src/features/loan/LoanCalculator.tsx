@@ -150,6 +150,22 @@ export function LoanCalculator({ prefill = {} }: { prefill?: LoanPrefill }) {
     </main>
   );
 }
+/** Áp Giỏ hàng nhưng diện tích + giá net mang từ hồ sơ khách (anh nhập tay) thắng số Giỏ hàng (Curtis 06/11). */
+function applyCatalogKeeping(
+  s: LoanState,
+  catalog: RepositoryAccount['catalog'],
+  keep: Pick<LoanPrefill, 'area' | 'netOverride'>,
+): LoanState {
+  const applied = applyCatalog(s, catalog);
+  return {
+    ...applied,
+    unit: {
+      ...applied.unit,
+      ...(keep.area ? { area: keep.area } : {}),
+      ...(keep.netOverride ? { netOverride: keep.netOverride } : {}),
+    },
+  };
+}
 function customerUnitSafe(c?: Customer) {
   return c ? customerUnit(c) : {};
 }
@@ -165,25 +181,14 @@ function CalculatorForm({
   prefill: LoanPrefill;
 }) {
   const store = useMemo(() => (account ? createLoanStore(account) : null), [account]);
-  // Diện tích + giá căn mang từ hồ sơ khách (anh nhập tay) thắng số trong Giỏ hàng (Curtis 06/11).
-  const fromCatalog = (s: LoanState): LoanState => {
-    if (!account) return s;
-    const applied = applyCatalog(s, account.catalog);
-    return {
-      ...applied,
-      unit: {
-        ...applied.unit,
-        ...(prefill.area ? { area: prefill.area } : {}),
-        ...(prefill.netOverride ? { netOverride: prefill.netOverride } : {}),
-      },
-    };
-  };
+  // Số mang từ hồ sơ khách giữ qua mỗi lần áp Giỏ hàng (ref: không làm effect tải Giỏ hàng chạy lại).
+  const keep = useRef({ area: prefill.area, netOverride: prefill.netOverride });
   const [state, setState] = useState<LoanState>(() => {
     const s = initialState(prefill);
     const saved = store?.readSettings();
     if (saved?.loan && Array.isArray(saved.loan.rateTiers) && Array.isArray(saved.loan.prepayFees))
       s.loan = { ...s.loan, ...saved.loan, loanOverride: null };
-    return fromCatalog(s);
+    return account ? applyCatalogKeeping(s, account.catalog, keep.current) : s;
   });
   const touched = useRef(false);
   const [consultant, setConsultant] = useState(() => store?.readSettings()?.consultant ?? { name: '', phone: '' });
@@ -205,7 +210,7 @@ function CalculatorForm({
       .then(() => {
         if (alive && !account.sync.local.isClosed) {
           setCatalogVersion((v) => v + 1);
-          if (!touched.current) setState((s) => fromCatalog(s));
+          if (!touched.current) setState((s) => applyCatalogKeeping(s, account.catalog, keep.current));
         }
       })
       .catch(() => {});

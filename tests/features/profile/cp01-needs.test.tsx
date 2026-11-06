@@ -143,7 +143,9 @@ describe('CP-01 — tab mặc định và ô nhu cầu', () => {
     await user.click(await nangCao(user));
     await user.click(screen.getByRole('tab', { name: 'Trí nhớ' }));
     await user.click(screen.getByRole('button', { name: /^(Mở rộng \(\d+\)|Thu gọn)$/ }));
-    expect(screen.getByRole('button', { name: /^(Mở rộng \(\d+\)|Thu gọn)$/ }).getAttribute('aria-expanded')).toBe('true');
+    expect(screen.getByRole('button', { name: /^(Mở rộng \(\d+\)|Thu gọn)$/ }).getAttribute('aria-expanded')).toBe(
+      'true',
+    );
 
     customer = base({ id: 'c2', purpose: 'Ở' });
     rerenderProfile(view);
@@ -151,12 +153,16 @@ describe('CP-01 — tab mặc định và ô nhu cầu', () => {
     await waitFor(() =>
       expect(screen.getByRole('tab', { name: 'Nhu cầu & căn' }).getAttribute('aria-selected')).toBe('true'),
     );
-    expect(screen.getByRole('button', { name: /^(Mở rộng \(\d+\)|Thu gọn)$/ }).getAttribute('aria-expanded')).toBe('false');
+    expect(screen.getByRole('button', { name: /^(Mở rộng \(\d+\)|Thu gọn)$/ }).getAttribute('aria-expanded')).toBe(
+      'false',
+    );
     // Mở rộng đóng → Nâng cao chưa hiện (06/11).
     expect(screen.queryByRole('button', { name: 'Nâng cao' })).toBeNull();
 
     await user.click(screen.getByRole('tab', { name: 'Trí nhớ' }));
-    expect(screen.getByRole('button', { name: /^(Mở rộng \(\d+\)|Thu gọn)$/ }).getAttribute('aria-expanded')).toBe('false');
+    expect(screen.getByRole('button', { name: /^(Mở rộng \(\d+\)|Thu gọn)$/ }).getAttribute('aria-expanded')).toBe(
+      'false',
+    );
   });
 
   it('một nút Nâng cao chứa Sở thích BĐS + Nhu cầu theo đợt + Người cùng quyết định, giữ khoá lạ advanced', async () => {
