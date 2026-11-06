@@ -3,6 +3,7 @@ import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { toast as notify } from 'sonner';
 import { type Column, EmptyState, DataTable as KitDataTable, TextField } from '@/components/crm';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useCustomers, useRepositoryAccount } from '@/data/hooks';
 import type { Data } from '@/data/repositories/customers';
 import type { RepositoryAccount } from '@/data/repositories/session';
@@ -25,12 +26,14 @@ import {
 import { printLoan } from './print';
 import { createLoanStore, type LoanQuote } from './store';
 
+const FORM_GRID = 'grid grid-cols-2 gap-3 lg:grid-cols-4';
+const WIDE = 'col-span-2';
 const FIELD =
   'h-11 w-full min-w-0 rounded-sm border border-input bg-surface-100 px-3 py-2 text-body text-ink focus:outline-2 focus:outline-ion';
-function Field({ label, children }: { label: string; children: ReactNode }) {
+function Field({ label, children, className = '' }: { label: string; children: ReactNode; className?: string }) {
   return (
     // biome-ignore lint/a11y/noLabelWithoutControl: The children always include the input or select, nested inside this label.
-    <label className="flex min-w-0 flex-col gap-1 text-label text-ink-muted">
+    <label className={`flex min-w-0 flex-col gap-1.5 text-label text-ink ${className}`}>
       <span>{label}</span>
       {children}
     </label>
@@ -43,6 +46,9 @@ function NumberInput({
   min = 0,
   max,
   step = 'any',
+  suffix,
+  scale = 1,
+  className = '',
 }: {
   label: string;
   value: Numeric | null | undefined;
@@ -50,20 +56,25 @@ function NumberInput({
   min?: number;
   max?: number;
   step?: string;
+  suffix?: string;
+  /** Hiện/nhập theo đơn vị lớn hơn (1e6 = triệu), lưu vẫn theo đồng (Curtis 06/11: bớt số 0). */
+  scale?: number;
+  className?: string;
 }) {
+  const shown = value == null || value === '' ? '' : Number(value) / scale;
   return (
     <TextField
-      className="w-full"
+      className={`w-full ${className}`}
       label={label}
       type="number"
       inputMode="decimal"
       numeric
-      suffix={label.includes('m²') ? 'm²' : label.includes('%') ? '%' : label.includes('tháng') ? 'tháng' : undefined}
+      suffix={suffix}
       min={min}
       max={max}
       step={step}
-      value={value ?? ''}
-      onChange={(e) => onChange(e.target.value === '' ? null : Number(e.target.value))}
+      value={shown}
+      onChange={(e) => onChange(e.target.value === '' ? null : Math.round(Number(e.target.value) * scale * 1e6) / 1e6)}
     />
   );
 }
@@ -336,9 +347,31 @@ function CalculatorForm({
   };
   return (
     <div className="flex flex-col gap-6">
+      {/* Curtis 06/11: tư vấn viên trên phiếu đưa lên đầu form. */}
+      <Group title="Tư vấn viên trên phiếu">
+        <div className={FORM_GRID}>
+          <Field label="Tên tư vấn viên">
+            <input
+              className={FIELD}
+              aria-label="Tên tư vấn viên"
+              value={consultant.name}
+              onChange={(e) => setConsultant((c) => ({ ...c, name: e.target.value }))}
+            />
+          </Field>
+          <Field label="Điện thoại">
+            <input
+              className={FIELD}
+              aria-label="Số điện thoại tư vấn viên"
+              value={consultant.phone}
+              onChange={(e) => setConsultant((c) => ({ ...c, phone: e.target.value }))}
+            />
+          </Field>
+        </div>
+      </Group>
       <Group title="Căn hộ và tiến độ">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <Field label="Dự án">
+        {/* Ô ngắn 2 ô/hàng (4 ở desktop), ô dài chiếm cả hàng — Curtis 06/11: trang tính vay dài quá. */}
+        <div className={FORM_GRID}>
+          <Field label="Dự án" className={WIDE}>
             <input
               aria-label="Dự án"
               className={FIELD}
@@ -384,18 +417,28 @@ function CalculatorForm({
               onChange={(e) => unit({ aptType: e.target.value })}
             />
           </Field>
-          <NumberInput label="Diện tích (m²)" value={state.unit.area} onChange={(n) => unit({ area: n ?? 0 })} />
+          <NumberInput label="Diện tích" suffix="m²" value={state.unit.area} onChange={(n) => unit({ area: n ?? 0 })} />
           <NumberInput
-            label="Đơn giá (đ/m²)"
+            label="Đơn giá"
+            suffix="tr/m²"
+            scale={1_000_000}
             value={state.unit.pricePerM2}
             onChange={(n) => unit({ pricePerM2: n ?? 0 })}
           />
           <NumberInput
-            label="Giá thuần nhập tay (đ, tuỳ chọn)"
+            label="Phí"
+            suffix="tr/căn"
+            scale={1_000_000}
+            value={state.unit.fee ?? null}
+            onChange={(n) => unit({ fee: n })}
+          />
+          <NumberInput
+            label="Giá thuần nhập tay (tuỳ chọn)"
+            suffix="đ"
+            className={WIDE}
             value={state.unit.netOverride}
             onChange={(n) => unit({ netOverride: n })}
           />
-          <NumberInput label="Phí (đ/căn)" value={state.unit.fee ?? null} onChange={(n) => unit({ fee: n })} />
           <Field label="Ngày ký hợp đồng">
             <input
               type="date"
@@ -415,7 +458,8 @@ function CalculatorForm({
             />
           </Field>
           <NumberInput
-            label="Nhận sổ sau bàn giao (tháng)"
+            label="Nhận sổ sau bàn giao"
+            suffix="tháng"
             value={state.dates.titleAfterMonths}
             onChange={(n) => dates({ titleAfterMonths: n ?? 0 })}
           />
@@ -447,8 +491,8 @@ function CalculatorForm({
         )}
       </Group>
       <Group title="Thông số vay">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <Field label="Gói vay">
+        <div className={FORM_GRID}>
+          <Field label="Gói vay" className={WIDE}>
             <select
               aria-label="Gói vay"
               className={FIELD}
@@ -477,18 +521,15 @@ function CalculatorForm({
             </select>
           </Field>
           <NumberInput
-            label="Tỷ lệ vay (% giá gồm VAT)"
+            label="Tỷ lệ vay"
+            suffix="%"
             value={state.loan.ltv}
             max={100}
             onChange={(n) => loan({ ltv: n ?? 0 })}
           />
           <NumberInput
-            label="Số tiền vay nhập tay (đ, tuỳ chọn)"
-            value={state.loan.loanOverride}
-            onChange={(n) => loan({ loanOverride: n })}
-          />
-          <NumberInput
-            label="Thời hạn vay (năm)"
+            label="Thời hạn vay"
+            suffix="năm"
             value={state.loan.termYears}
             min={1}
             max={50}
@@ -496,20 +537,29 @@ function CalculatorForm({
             onChange={(n) => loan({ termYears: n ?? 0 })}
           />
           <NumberInput
-            label="Lãi suất thả nổi giả định (%/năm)"
+            label="Số tiền vay nhập tay (tuỳ chọn)"
+            suffix="đ"
+            className={WIDE}
+            value={state.loan.loanOverride}
+            onChange={(n) => loan({ loanOverride: n })}
+          />
+          <NumberInput
+            label="Lãi thả nổi giả định"
+            suffix="%/năm"
             value={state.loan.floatingRate}
             max={100}
             onChange={(n) => loan({ floatingRate: n ?? 0 })}
           />
           <NumberInput
-            label="Tất toán sau (tháng)"
+            label="Tất toán sau"
+            suffix="tháng"
             value={state.loan.payoffMonth}
             min={1}
             max={Number(state.loan.termYears) * 12}
             step="1"
             onChange={(n) => loan({ payoffMonth: n ?? 0 })}
           />
-          <Field label="Tính lãi">
+          <Field label="Tính lãi" className={WIDE}>
             <select
               aria-label="Tính lãi"
               className={FIELD}
@@ -520,7 +570,7 @@ function CalculatorForm({
               <option value="monthly">Lãi năm / 12</option>
             </select>
           </Field>
-          <Field label="Bắt đầu giải ngân từ đợt">
+          <Field label="Bắt đầu giải ngân từ đợt" className={WIDE}>
             <select
               className={FIELD}
               value={state.loan.firstBankMilestone ?? 1}
@@ -534,12 +584,14 @@ function CalculatorForm({
             </select>
           </Field>
         </div>
+        <p className="text-caption text-ink-muted">Tỷ lệ vay tính trên giá thuần + VAT (không gồm phí và KPBT).</p>
         <div className="flex flex-col gap-2">
           <h3 className="text-body-strong">Bậc lãi suất ưu đãi</h3>
           {state.loan.rateTiers.map((tier, i) => (
             <div className="grid grid-cols-2 gap-3" key={`tier-${i}`}>
               <NumberInput
                 label={`Bậc ${i + 1}: số tháng`}
+                suffix="tháng"
                 value={tier.months}
                 min={1}
                 step="1"
@@ -548,7 +600,8 @@ function CalculatorForm({
                 }
               />
               <NumberInput
-                label={`Bậc ${i + 1}: lãi suất (%/năm)`}
+                label={`Bậc ${i + 1}: lãi suất`}
+                suffix="%/năm"
                 value={tier.rate}
                 max={100}
                 onChange={(n) =>
@@ -577,7 +630,8 @@ function CalculatorForm({
         {state.loan.graceEnabled && (
           <div className="grid grid-cols-2 gap-3">
             <NumberInput
-              label="Ân hạn gốc (tháng)"
+              label="Ân hạn gốc"
+              suffix="tháng"
               value={state.loan.graceMonths}
               onChange={(n) => loan({ graceMonths: n ?? 0 })}
             />
@@ -603,33 +657,12 @@ function CalculatorForm({
           />
         </Field>
       </Group>
-      <Group title="Tư vấn viên trên phiếu">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <Field label="Tên tư vấn viên">
-            <input
-              className={FIELD}
-              aria-label="Tên tư vấn viên"
-              value={consultant.name}
-              onChange={(e) => setConsultant((c) => ({ ...c, name: e.target.value }))}
-            />
-          </Field>
-          <Field label="Số điện thoại tư vấn viên">
-            <input
-              className={FIELD}
-              aria-label="Số điện thoại tư vấn viên"
-              value={consultant.phone}
-              onChange={(e) => setConsultant((c) => ({ ...c, phone: e.target.value }))}
-            />
-          </Field>
-        </div>
-        {store && <Button onClick={remember}>Nhớ thông số trên máy</Button>}
-      </Group>
       {computeError ? (
         <ErrorState title="Chưa đủ thông tin để tính" detail={computeError} />
       ) : (
         result && (
           <>
-            <LoanResults result={result} monthly={monthly} onMonthly={() => setMonthly(!monthly)} />
+            <LoanResults result={result} monthly={monthly} onMonthly={setMonthly} />
             <div className="flex flex-wrap gap-2">
               <Button
                 variant="primary"
@@ -655,6 +688,7 @@ function CalculatorForm({
               <Button disabled={!writable || !store || !result.schedule || busy} onClick={save}>
                 {busy ? 'Đang lưu…' : 'Lưu phương án'}
               </Button>
+              {store && <Button onClick={remember}>Nhớ thông số trên máy</Button>}
             </div>
           </>
         )
@@ -724,7 +758,7 @@ function LoanResults({
 }: {
   result: ComputeResult;
   monthly: boolean;
-  onMonthly: () => void;
+  onMonthly: (monthly: boolean) => void;
 }) {
   const s = r.schedule;
   return (
@@ -788,34 +822,42 @@ function LoanResults({
               money(p.lastPayment),
             ])}
           />
-          <DataTable
-            label="Trả nợ theo năm"
-            head={['Năm', 'TB/tháng (đ)', 'Gốc (đ)', 'Lãi (đ)', 'Tổng trả (đ)', 'Dư nợ (đ)']}
-            rows={s.years.map((y) => [
-              y.year,
-              money(y.avgPayment),
-              money(y.principal),
-              money(y.interest),
-              money(y.payment),
-              money(y.balance),
-            ])}
-          />
-          <Button onClick={onMonthly}>{monthly ? 'Ẩn' : 'Xem'} lịch từng tháng</Button>
-          {monthly && (
-            <DataTable
-              label="Trả nợ từng tháng"
-              head={['Tháng', 'Ngày', 'Lãi suất', 'Gốc (đ)', 'Lãi (đ)', 'Tổng trả (đ)', 'Dư nợ (đ)']}
-              rows={s.rows.map((m) => [
-                m.k,
-                m.date,
-                `${m.rate}%`,
-                money(m.principal),
-                money(m.interest),
-                money(m.payment),
-                money(m.balance),
-              ])}
-            />
-          )}
+          {/* Curtis 06/11: lịch trả theo năm / theo tháng là 2 tab — mở tab này thì tab kia thu gọn. */}
+          <Tabs value={monthly ? 'month' : 'year'} onValueChange={(v) => onMonthly(v === 'month')}>
+            <TabsList aria-label="Lịch trả nợ">
+              <TabsTrigger value="year">Theo năm</TabsTrigger>
+              <TabsTrigger value="month">Theo tháng</TabsTrigger>
+            </TabsList>
+            <TabsContent value="year" className="mt-3">
+              <DataTable
+                label="Trả nợ theo năm"
+                head={['Năm', 'TB/tháng (đ)', 'Gốc (đ)', 'Lãi (đ)', 'Tổng trả (đ)', 'Dư nợ (đ)']}
+                rows={s.years.map((y) => [
+                  y.year,
+                  money(y.avgPayment),
+                  money(y.principal),
+                  money(y.interest),
+                  money(y.payment),
+                  money(y.balance),
+                ])}
+              />
+            </TabsContent>
+            <TabsContent value="month" className="mt-3">
+              <DataTable
+                label="Trả nợ từng tháng"
+                head={['Tháng', 'Ngày', 'Lãi suất', 'Gốc (đ)', 'Lãi (đ)', 'Tổng trả (đ)', 'Dư nợ (đ)']}
+                rows={s.rows.map((m) => [
+                  m.k,
+                  m.date,
+                  `${m.rate}%`,
+                  money(m.principal),
+                  money(m.interest),
+                  money(m.payment),
+                  money(m.balance),
+                ])}
+              />
+            </TabsContent>
+          </Tabs>
         </>
       )}
       {r.payoff && (
