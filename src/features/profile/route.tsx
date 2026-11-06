@@ -618,7 +618,7 @@ function Profile() {
                   <Avatar name={c.full_name} size={56} />
                 )}
                 <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex flex-wrap items-baseline gap-2">
                     <h1 className="min-w-0 truncate text-title">{c.full_name}</h1>
                     {/* Curtis 06/11: có năm sinh thì hiện tuổi cạnh tên — cỡ bằng SĐT, nét mảnh hơn một bậc. */}
                     {age != null && (

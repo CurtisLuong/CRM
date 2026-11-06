@@ -135,6 +135,19 @@ test('CL-04: hồ sơ khách mới có Chuyển tiềm năng / Loại; chưa nó
     .first()
     .evaluate((el) => ({ size: getComputedStyle(el).fontSize, weight: getComputedStyle(el).fontWeight }));
   expect(style.size).toBe(phoneStyle.size);
+  // Curtis 06/11: tuổi thẳng chân chữ với tên (cùng đường baseline).
+  const baseline = (el: Element) => {
+    const probe = document.createElement('span');
+    probe.style.display = 'inline-block';
+    probe.style.height = '0';
+    el.appendChild(probe);
+    const y = probe.getBoundingClientRect().bottom;
+    probe.remove();
+    return y;
+  };
+  const nameBase = await page.getByRole('heading', { level: 1, name: 'Trần Phúc' }).evaluate(baseline);
+  const ageBase = await age.evaluate(baseline);
+  expect(Math.abs(nameBase - ageBase)).toBeLessThanOrEqual(1);
   expect(Number(style.weight)).toBe(Number(phoneStyle.weight) - 100);
 
   // Một hàng đáy thẻ: Chuyển tiềm năng · Loại (khách mới, nhóm 1 người nên không có Giao).
