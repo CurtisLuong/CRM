@@ -33,7 +33,7 @@ import { Icon } from '@/ui/Icon';
 import { AddTaskSheet } from './add-task';
 import { ProfileTextField as Field, LegacyAssistField, ProfileAdvanced } from './advanced';
 import { ArchiveCustomerSection, ArchivedBanner } from './archive';
-import { dobSavePatch } from './dob';
+import { dobSavePatch, dobView } from './dob';
 import { DocumentsSection } from './documents';
 import { advancedPatch, legacyValues } from './fields';
 import { infoHiddenCount, ProfileInfoFields } from './info';
@@ -568,6 +568,9 @@ function Profile() {
       : `còn ${fmtDur(Math.max(0, slaMeter.max - slaMeter.elapsed))}`
     : null;
   const stageOptions = stageChoiceRows(stage);
+  const age = dobView(c.dob, now).age;
+  const classifiable = !!account && canClassify(c, account.sync.local.userId);
+  const assignable = canAssignWithTeam(c, account?.sync.local.userId ?? '', teamMembers);
   // Dưới tên: nhóm khách (cùng chip ở màn Khách hàng); nguồn đã có ở phần thông tin bên dưới.
   const groupText = CUSTOMER_GROUP_LABEL[customerGroupOf(c, account?.sync.local.userId ?? c.owner_id ?? '')];
   // Hẹn gọi nằm ở trường riêng (next_call_at), không phải next_tasks → thêm 1 dòng đầu "Việc tiếp theo".
@@ -615,8 +618,12 @@ function Profile() {
                   <Avatar name={c.full_name} size={56} />
                 )}
                 <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex flex-wrap items-baseline gap-2">
                     <h1 className="min-w-0 truncate text-title">{c.full_name}</h1>
+                    {/* Curtis 06/11: có năm sinh thì hiện tuổi cạnh tên — cỡ bằng SĐT, nét mảnh hơn một bậc. */}
+                    {age != null && (
+                      <span className="shrink-0 text-[14px] leading-5 font-normal text-ink-muted">{age} tuổi</span>
+                    )}
                     {readOnly && (
                       <span className="rounded-sm border border-line px-2 py-1 text-caption text-ink-muted">
                         Chỉ xem
@@ -655,49 +662,55 @@ function Profile() {
                 <span className="rounded-sm border border-line bg-surface-100 px-2 py-1 text-caption text-ink-muted">
                   {groupText}
                 </span>
-                {canAssignWithTeam(c, account?.sync.local.userId ?? '', teamMembers) && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    aria-label="Giao khách"
-                    title="Giao khách"
-                    onClick={() => setAssignOpen(true)}
-                  >
-                    <Icon name="assign" size={20} />
-                  </Button>
-                )}
               </div>
-              {/* Khách mới (Curtis 06/11): chuyển Tiềm năng / Loại ngay trên hồ sơ — "Đổi bậc" không làm việc này. */}
-              {account && canClassify(c, account.sync.local.userId) && (
-                <div className="flex gap-2">
-                  <Button
-                    variant="primary"
-                    className="min-w-0 flex-1"
-                    disabled={busy || !hasTalked(c)}
-                    title={hasTalked(c) ? undefined : 'Cần một cuộc gọi "Nói chuyện được" trước khi Đạt'}
-                    onClick={() =>
-                      void qualifyLead(account.customers, c.id)
-                        .then(() => toast({ title: 'Đã chuyển sang Tiềm năng' }))
-                        .catch((e) =>
-                          toast({ title: 'Chưa chuyển được', description: String(e?.message ?? e), tone: 'error' }),
-                        )
-                    }
-                  >
-                    Đạt → Tiềm năng
-                  </Button>
-                  <Button className="min-w-0 flex-1" disabled={busy} onClick={() => setClassifyOpen(true)}>
-                    Loại…
-                  </Button>
-                </div>
-              )}
-              {account && canClassify(c, account.sync.local.userId) && !hasTalked(c) && (
-                <p className="text-caption text-ink-muted">Đạt cần ít nhất một cuộc gọi "Nói chuyện được".</p>
-              )}
               {!otherOwner && slaMeter && (
                 <div className="space-y-1.5">
                   <SlaMeter {...slaMeter} />
                   {slaTimeLabel && <p className="text-caption text-ink-muted">{slaTimeLabel}</p>}
                 </div>
+              )}
+              {/* Phương án A (Curtis 06/11): một hàng ở đáy thẻ — Chuyển tiềm năng (khách mới) · Loại · Giao.
+                  Khách tiềm năng chỉ còn Giao, vẫn đứng cột phải. */}
+              {(classifiable || assignable) && (
+                <div className="grid grid-cols-[2fr_1fr_1fr] gap-2 pt-1">
+                  {classifiable && (
+                    <>
+                      <Button
+                        variant="primary"
+                        className="min-w-0 px-2"
+                        disabled={busy || !hasTalked(c)}
+                        title={hasTalked(c) ? undefined : 'Cần một cuộc gọi "Nói chuyện được" trước khi chuyển'}
+                        onClick={() =>
+                          account &&
+                          void qualifyLead(account.customers, c.id)
+                            .then(() => toast({ title: 'Đã chuyển sang Tiềm năng' }))
+                            .catch((e) =>
+                              toast({ title: 'Chưa chuyển được', description: String(e?.message ?? e), tone: 'error' }),
+                            )
+                        }
+                      >
+                        Chuyển tiềm năng
+                      </Button>
+                      <Button className="min-w-0 px-2" disabled={busy} onClick={() => setClassifyOpen(true)}>
+                        Loại
+                      </Button>
+                    </>
+                  )}
+                  {assignable && (
+                    <Button
+                      className="col-start-3 min-w-0 px-2"
+                      aria-label="Giao khách"
+                      onClick={() => setAssignOpen(true)}
+                    >
+                      Giao
+                    </Button>
+                  )}
+                </div>
+              )}
+              {classifiable && !hasTalked(c) && (
+                <p className="text-caption text-ink-muted">
+                  Chuyển tiềm năng cần ít nhất một cuộc gọi "Nói chuyện được".
+                </p>
               )}
               <div className="-mx-4 hidden xl:block">{actionBar('px-4')}</div>
               {otherOwner && <p className="text-caption text-ink-muted">Người phụ trách khác · hồ sơ chỉ xem.</p>}

@@ -114,11 +114,12 @@ test('D-032: giao khách đang chăm từ hồ sơ, sau đó vẫn ghi giùm tư
   await open(page);
   const assign = page.getByRole('button', { name: 'Giao khách', exact: true });
   await expect(assign).toBeVisible();
-  // Icon không chữ, cùng dải với bậc, nhịp SLA và nhóm khách (đứng sau chip nhóm).
-  await expect(assign).toHaveText('');
-  const strip = assign.locator('xpath=..');
-  await expect(strip.getByRole('button', { name: /^Đổi bậc/ })).toBeVisible();
-  await expect(strip).toContainText('Tiềm năng');
+  // Phương án A (Curtis 06/11): nút chữ "Giao" ở hàng đáy thẻ, cột phải; khách tiềm năng chỉ còn nút này.
+  await expect(assign).toHaveText('Giao');
+  await expect(page.getByRole('button', { name: 'Chuyển tiềm năng', exact: true })).toHaveCount(0);
+  const stageBox = await page.getByRole('button', { name: /^Đổi bậc/ }).boundingBox();
+  const assignBox = await assign.boundingBox();
+  expect(assignBox?.y ?? 0).toBeGreaterThan(stageBox?.y ?? 0);
 
   await assign.click();
   await page.getByLabel('Người nhận khách').selectOption('d032-lan');
