@@ -13,11 +13,13 @@ import { ToastProvider } from '@/ui';
 // "Nâng cao" là lớp thông tin dưới "Mở rộng" — ô cơ bản đủ thì Nâng cao hiện ngay.
 
 const estimate: PriceEstimate = { total: 2_058_000_000, area: 68.6, pricePerM2: 30_000_000 };
+// Curtis 06/11 (sau PR-02): Giá căn = Giá dự kiến = thuần 2.058.000.000 + VAT 5% 102.900.000 + KPBT 2% 41.160.000
+// (+ phí 0) = 2.202.060.000. Số vay vẫn 70% × (thuần + VAT) = 1.512.630.000.
 
 describe('profileLoan', () => {
   it('chưa nhập giá: dùng giá ước tính, vay 70% giá gồm VAT 5%, mang diện tích + đơn giá sang máy tính vay', () => {
     const info = profileLoan({ id: 'c1', projects: ['Marquee Homes'] } as Customer, estimate);
-    expect(info).toMatchObject({ price: 2_058_000_000, manual: false, ltv: 70 });
+    expect(info).toMatchObject({ price: 2_202_060_000, manual: false, ltv: 70 });
     expect(info.loan).toBe(Math.round(2_058_000_000 * 1.05 * 0.7));
     expect(info.prefill).toEqual({
       customerId: 'c1',
@@ -27,11 +29,22 @@ describe('profileLoan', () => {
     });
   });
 
-  it('đã nhập giá căn: giá nhập ghi đè ước tính, gửi sang máy tính vay làm giá net', () => {
+  // Giá căn anh nhập là giá dự kiến (gồm VAT 5% + KPBT 2% + phí): 2,2 tỷ → thuần 2.200.000.000 / 1,07 = 2.056.074.766;
+  // vay 70% × (thuần + VAT 102.803.738) = 1.511.214.953; máy tính vay nhận giá thuần.
+  it('đã nhập giá căn: giá nhập ghi đè ước tính, tách ra giá thuần gửi sang máy tính vay', () => {
     const info = profileLoan({ id: 'c1', apt_price: 2_200_000_000 } as Customer, estimate);
     expect(info).toMatchObject({ price: 2_200_000_000, manual: true });
-    expect(info.loan).toBe(Math.round(2_200_000_000 * 1.05 * 0.7));
-    expect(info.prefill.netOverride).toBe(2_200_000_000);
+    expect(info.loan).toBe(1_511_214_953);
+    expect(info.prefill.netOverride).toBe(2_056_074_766);
+  });
+
+  it('có phí căn: giá dự kiến cộng phí, số vay không gồm phí', () => {
+    const rates = { vatRate: 5, kpbtRate: 2, fee: 30_000_000 };
+    const info = profileLoan({ id: 'c1' } as Customer, estimate, rates);
+    expect(info.price).toBe(2_232_060_000);
+    expect(info.loan).toBe(1_512_630_000);
+    const typed = profileLoan({ id: 'c1', apt_price: 2_232_060_000 } as Customer, estimate, rates);
+    expect(typed.prefill.netOverride).toBe(2_058_000_000);
   });
 
   it('thiếu dữ liệu: không có số', () => {
@@ -99,7 +112,7 @@ describe('thẻ Giá & vay', () => {
   it('nằm ngay trước hàng tab; không còn tab Tính vay và nút trong tab Nhu cầu', () => {
     wrap();
     const card = screen.getByRole('region', { name: 'Giá và vay' });
-    expect(card.textContent).toContain('≈ 2,06 tỷ');
+    expect(card.textContent).toContain('≈ 2,2 tỷ');
     expect(card.textContent).toContain('Vay 70%');
     expect(card.textContent).toContain('≈ 1,51 tỷ');
     expect(card.textContent).toContain('Giá ước tính');
@@ -121,7 +134,7 @@ describe('thẻ Giá & vay', () => {
     expect(readPrefill(new URLSearchParams(search))).toMatchObject({
       customerId: 'c1',
       area: 68.6,
-      netOverride: 2_200_000_000,
+      netOverride: 2_056_074_766,
     });
   });
 });

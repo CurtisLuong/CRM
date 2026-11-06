@@ -108,7 +108,8 @@ test('hồ sơ: nhóm dưới tên, hẹn gọi, giá ước tính, còn thiếu
   await expect(next.getByText('Hẹn gọi lại')).toBeVisible();
   await expect(next.getByText(/Hôm nay 14:00–15:00/)).toBeVisible();
 
-  await expect(page.getByLabel('Giá căn (tỷ)')).toHaveValue('2,25');
+  // Curtis 06/11: Giá căn = thuần 2,25 tỷ + VAT 5% + KPBT 2% = 2,4075 → '2,408'.
+  await expect(page.getByLabel('Giá căn (tỷ)')).toHaveValue('2,408');
   await expect(main.getByText('45 m² × 50 triệu/m²')).toBeVisible();
   await expect(page.getByLabel('Tài chính sẵn có (VNĐ)')).toHaveCount(0);
 
