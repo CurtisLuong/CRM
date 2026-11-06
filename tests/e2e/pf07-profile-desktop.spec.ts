@@ -142,7 +142,9 @@ test('Desktop: 4 nút Gọi · Zalo · Ghi chú · Hẹn cùng một hàng', asy
   }
 });
 
-test('Desktop: cột chính xếp liền mạch đầu hồ sơ → Việc tiếp theo → Lần trước → tab', async ({ page }, info) => {
+test('Desktop: cột chính xếp liền mạch đầu hồ sơ → Việc tiếp theo → Lần trước → Giá & vay → tab', async ({
+  page,
+}, info) => {
   desktopOnly(info.project.name);
   await open(page);
   for (const size of DESKTOP) {
@@ -150,7 +152,14 @@ test('Desktop: cột chính xếp liền mạch đầu hồ sơ → Việc tiế
     const head = await profileHeader(page).boundingBox();
     const tabs = await tablist(page).boundingBox();
     if (!head || !tabs) throw new Error('Thiếu đầu hồ sơ hoặc hàng tab');
-    const column = [head, await box(page, 'Việc tiếp theo'), await box(page, 'Lần trước'), tabs];
+    // 06/11: thẻ Giá & vay nằm sát trên hàng tab (Curtis chọn mockup B).
+    const column = [
+      head,
+      await box(page, 'Việc tiếp theo'),
+      await box(page, 'Lần trước'),
+      await box(page, 'Giá và vay'),
+      tabs,
+    ];
     for (let i = 1; i < column.length; i += 1) {
       const gap = column[i].y - bottom(column[i - 1]);
       // Không có khoảng trắng lớn do thẻ bên cạnh cao hơn (lưới hàng cũ để lại hàng trăm px).
