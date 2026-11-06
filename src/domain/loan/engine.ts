@@ -75,6 +75,8 @@ export interface UnitInput {
   netPriceOverride?: Numeric | null;
   vatRate?: Numeric | null;
   kpbtRate?: Numeric | null;
+  /** Phí mỗi căn (đ, số cố định; Giỏ hàng dự án → toà → căn) — không chịu VAT/KPBT (LF-01). */
+  fee?: Numeric | null;
 }
 
 export interface Price {
@@ -86,11 +88,14 @@ export interface Price {
   vat: number;
   kpbt: number;
   gross: number;
+  /** Giá dự kiến = giá thuần + phí + VAT + KPBT. */
   full: number;
+  /** Chỉ có khi phí > 0 — phí 0 giữ nguyên kết quả như v1 (parity). */
+  fee?: number;
 }
 
 /** Phần giá mà tiến độ thanh toán cần. */
-export type PriceTotals = Pick<Price, 'net' | 'vat' | 'gross' | 'kpbt' | 'full'>;
+export type PriceTotals = Pick<Price, 'net' | 'vat' | 'gross' | 'kpbt' | 'full' | 'fee'>;
 
 export interface MilestoneRow {
   index: number;
@@ -101,6 +106,8 @@ export interface MilestoneRow {
   amount: number;
   vat: number;
   kpbt: number;
+  /** Phí thu ở đợt 1 (khách tự trả, ngân hàng không cho vay); chỉ có ở đợt đó khi phí > 0. */
+  fee?: number;
 }
 
 export interface Milestones {
@@ -336,6 +343,7 @@ export function calcPrice(p: UnitInput): Price {
   const vat = round((net * vatRate) / 100);
   const kpbt = round((net * kpbtRate) / 100);
   const gross = net + vat;
+  const fee = Math.max(0, round(Number(p.fee) || 0));
   return {
     area,
     vatRate,
@@ -345,7 +353,8 @@ export function calcPrice(p: UnitInput): Price {
     vat,
     kpbt,
     gross,
-    full: gross + kpbt,
+    full: gross + kpbt + fee,
+    ...(fee > 0 ? { fee } : {}),
   };
 }
 
@@ -371,6 +380,7 @@ function dueDate(m: ScheduleItem, dates: ContractDates): number {
 //  - VAT phải thu đủ TRƯỚC đợt nhận sổ: phần VAT của đợt nhận sổ (+ phần lẻ làm tròn) dồn vào
 //    đợt KẾ CUỐI (đợt ngay trước đợt nhận sổ — thường chính là đợt bàn giao).
 //  - Kinh phí bảo trì (KPBT) thu ở đợt bàn giao (role 'handover').
+//  - Phí (nếu có) thu trọn ở đợt 1, ngân hàng không giải ngân phần phí.
 //  VD 10 đợt: Đ1 30% (+30% VAT) · Đ2–8 mỗi đợt 5% (+5% VAT) · Đ9 bàn giao 30% (+35% VAT) + KPBT
 //  · Đ10 nhận sổ 5% (không VAT).
 export function calcMilestones(
@@ -420,6 +430,12 @@ export function calcMilestones(
   const K = at(rows, kIdx);
   K.kpbt = price.kpbt;
   if (kIdx !== absorb) K.amount += price.kpbt;
+  // Phí: thu trọn ở đợt 1, khách tự trả (Curtis 06/11, LF-01).
+  if (price.fee) {
+    const F = at(rows, 0);
+    F.fee = price.fee;
+    if (absorb !== 0) F.amount += price.fee;
+  }
   // Đợt gánh = phần còn lại để tổng các đợt đúng bằng giá FULL (gồm VAT dư + làm tròn)
   const A = at(rows, absorb);
   A.amount = price.full - rows.reduce((s, r, i) => (i === absorb ? s : s + r.amount), 0);
@@ -462,7 +478,7 @@ export function allocateLoan(
 ): Allocation {
   const first = loan.firstBankMilestone == null ? 1 : Number(loan.firstBankMilestone);
   let eligibleSum = 0;
-  for (const r of ms.rows) if (r.index >= first) eligibleSum += r.amount - r.kpbt;
+  for (const r of ms.rows) if (r.index >= first) eligibleSum += r.amount - r.kpbt - (r.fee ?? 0);
   const maxByLtv = round((price.gross * (Number(loan.ltv) || 0)) / 100);
   let amount = loan.loanOverride ? round(Number(loan.loanOverride)) : maxByLtv;
   const notes: string[] = [];
@@ -477,7 +493,7 @@ export function allocateLoan(
   const rows: AllocatedRow[] = ms.rows.map((r) => {
     const o: AllocatedRow = { ...r, bank: 0, customer: r.amount };
     if (r.index >= first) {
-      const base = r.amount - r.kpbt;
+      const base = r.amount - r.kpbt - (r.fee ?? 0);
       const own = Math.min(base, ownInEligible);
       ownInEligible -= own;
       o.bank = base - own;

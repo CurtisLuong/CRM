@@ -103,7 +103,8 @@ describe('PDF content parity with v1', () => {
       customer: { name: 'Lan <script>x</script>' },
       consultant: { name: 'Curtis', phone: '0900000000' },
     };
-    expect(buildLoanPrintHTML(r, ctx)).toBe(old.buildHTML(r, ctx));
+    // LF-01 (06/11): dòng tổng đổi tên "Giá FULL" → "Giá dự kiến" (Curtis); phí 0 thì không có dòng Phí.
+    expect(buildLoanPrintHTML(r, ctx)).toBe(old.buildHTML(r, ctx).replace('<th>Giá FULL</th>', '<th>Giá dự kiến</th>'));
     expect(buildLoanPrintHTML(r, ctx)).toContain('&lt;script&gt;');
     expect(buildLoanPrintHTML(r, ctx)).toContain('Lịch trả nợ theo năm');
     expect(buildLoanPrintHTML(r, ctx)).toContain('Phương án tất toán sớm');

@@ -307,7 +307,9 @@ it('catalog load and every online write match real v1 requests, cache and output
     setItem: (k: string, v: string) => cache.set(k, v),
   } as unknown as Storage;
   const catalog = createCatalogRepository(new CustomerSync(local, two.client, () => true), storage);
-  const legacyCalls = (calls: any[]) => JSON.parse(JSON.stringify(calls).replaceAll(',archived_at', ''));
+  // LF-01 (06/11): v2 đọc thêm cột fee (phí mỗi căn) — v1 không có.
+  const legacyCalls = (calls: any[]) =>
+    JSON.parse(JSON.stringify(calls).replaceAll(',archived_at', '').replaceAll(',fee', ''));
   const steps: [string, any[]][] = [
     ['load', []],
     ['addProject', ['New', { x_unknown: 1 }]],

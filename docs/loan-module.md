@@ -70,10 +70,12 @@ hàng đợi offline của `db.js`) → mất mạng sẽ báo lỗi, tính + PD
 |---|---|
 | Giá thuần | Diện tích × đơn giá (hoặc nhập tay để khớp CĐT tuyệt đối) |
 | VAT / KPBT | 5% / 2% giá thuần (sửa theo dự án trong bảng `projects`) |
+| Phí (D-031) | Số tiền cố định mỗi căn; Giỏ hàng dự án → toà → căn (cấp con ghi đè). Không chịu VAT/KPBT. Đóng trọn ở **đợt 1**, khách tự trả (ngân hàng không cho vay) |
+| Giá dự kiến (trước đây "Giá FULL") | Giá thuần + phí + VAT + KPBT |
 | Đợt 1–5 | % × giá gồm VAT |
 | Đợt nhận sổ (`role: title`) | % × giá thuần, **không VAT** |
-| Đợt bàn giao (`role: handover`) | Giá FULL − các đợt khác (gồm KPBT + phần VAT dồn từ đợt nhận sổ) |
-| Khoản vay | Tỷ lệ vay × giá gồm VAT. Ngân hàng giải ngân từ đợt 2, không tính KPBT |
+| Đợt bàn giao (`role: handover`) | Giá dự kiến − các đợt khác (gồm KPBT + phần VAT dồn từ đợt nhận sổ) |
+| Khoản vay | Tỷ lệ vay × giá gồm VAT. Ngân hàng giải ngân từ đợt 2, không tính KPBT và phí |
 | Lãi kỳ | Dư nợ thực tế × lãi năm × số ngày thực tế ÷ 365 |
 | Gốc kỳ | Dư nợ ÷ số kỳ còn lại (gốc giảm dần, tự tính lại mỗi lần giải ngân thêm) |
 | Ân hạn | Tính từ lần giải ngân đầu hoặc cuối (chọn trong form) |

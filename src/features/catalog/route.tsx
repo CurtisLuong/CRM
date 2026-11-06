@@ -26,12 +26,13 @@ const labelClass = 'block text-label text-ink-muted';
 type ProjectForm = {
   name: string;
   typical_price_per_m2: string;
+  fee: string;
   vat_rate: string;
   kpbt_rate: string;
   handover_date: string;
   title_after_months: string;
 };
-type BuildingForm = { code: string; approved_price_per_m2: string; handover_date: string };
+type BuildingForm = { code: string; approved_price_per_m2: string; fee: string; handover_date: string };
 type UnitForm = {
   code: string;
   apt_type: string;
@@ -39,17 +40,19 @@ type UnitForm = {
   direction: string;
   area_m2: string;
   price_per_m2_override: string;
+  fee: string;
   status: string;
 };
 const emptyProject: ProjectForm = {
   name: '',
   typical_price_per_m2: '',
+  fee: '',
   vat_rate: '5',
   kpbt_rate: '2',
   handover_date: '',
   title_after_months: '1.5',
 };
-const emptyBuilding: BuildingForm = { code: '', approved_price_per_m2: '', handover_date: '' };
+const emptyBuilding: BuildingForm = { code: '', approved_price_per_m2: '', fee: '', handover_date: '' };
 const emptyUnit: UnitForm = {
   code: '',
   apt_type: '',
@@ -57,12 +60,13 @@ const emptyUnit: UnitForm = {
   direction: '',
   area_m2: '',
   price_per_m2_override: '',
+  fee: '',
   status: 'available',
 };
 const asPrice = (value: string) => parsePrice(value);
 const asNumber = (value: string) => (value.trim() ? Number(value.replace(',', '.')) : null);
 const money = (value: number | null) =>
-  value == null ? 'Chưa đủ dữ liệu giá' : `${Math.round(value).toLocaleString('vi-VN')} ₫ gồm VAT + KPBT`;
+  value == null ? 'Chưa đủ dữ liệu giá' : `${Math.round(value).toLocaleString('vi-VN')} ₫ gồm VAT + KPBT + phí`;
 
 function CatalogPage() {
   const account = useRepositoryAccount();
@@ -139,15 +143,26 @@ function CatalogPage() {
     apt_type: unitForm.apt_type,
     area_m2: asNumber(unitForm.area_m2),
     price_per_m2_override: asPrice(unitForm.price_per_m2_override),
+    fee: asPrice(unitForm.fee),
   };
   const buildingDraft = {
     project_id: projectId,
     approved_price_per_m2: asPrice(buildingForm.approved_price_per_m2),
+    fee: asPrice(buildingForm.fee),
     handover_date: buildingForm.handover_date || null,
   };
   const unitPriceHint =
     !unitForm.price_per_m2_override.trim() && catalog?.unitPriceSource(unitDraft)
       ? `Theo ${catalog.unitPriceSource(unitDraft)}: ${formatPricePerM2(catalog.unitPrice(unitDraft))} triệu/m²`
+      : undefined;
+  // Phí mỗi căn (LF-01): ô trống → theo toà → dự án, như giá.
+  const unitFeeHint =
+    !unitForm.fee.trim() && catalog?.unitFeeSource(unitDraft)
+      ? `Theo ${catalog.unitFeeSource(unitDraft)}: ${formatPricePerM2(catalog.unitFee(unitDraft))} triệu`
+      : undefined;
+  const buildingFeeHint =
+    !buildingForm.fee.trim() && catalog?.buildingFeeSource(buildingDraft)
+      ? `Theo ${catalog.buildingFeeSource(buildingDraft)}: ${formatPricePerM2(catalog.buildingFee(buildingDraft))} triệu`
       : undefined;
   const unitAreaHint =
     !unitForm.area_m2.trim() && catalog?.unitAreaSource(unitDraft)
@@ -409,6 +424,7 @@ function CatalogPage() {
     setProjectForm({
       name: row.name || '',
       typical_price_per_m2: formatPricePerM2(row.typical_price_per_m2),
+      fee: formatPricePerM2(row.fee),
       vat_rate: String(row.vat_rate ?? 5),
       kpbt_rate: String(row.kpbt_rate ?? 2),
       handover_date: row.handover_date || '',
@@ -421,6 +437,7 @@ function CatalogPage() {
     const patch = {
       name: projectForm.name.trim(),
       typical_price_per_m2: asPrice(projectForm.typical_price_per_m2),
+      fee: asPrice(projectForm.fee),
       vat_rate: asNumber(projectForm.vat_rate),
       kpbt_rate: asNumber(projectForm.kpbt_rate),
       handover_date: projectForm.handover_date || null,
@@ -489,6 +506,7 @@ function CatalogPage() {
     setBuildingForm({
       code: row.code || '',
       approved_price_per_m2: formatPricePerM2(row.approved_price_per_m2),
+      fee: formatPricePerM2(row.fee),
       handover_date: row.handover_date || '',
     });
   };
@@ -500,6 +518,7 @@ function CatalogPage() {
           id: buildingEditing || undefined,
           code: buildingForm.code.trim(),
           approved_price_per_m2: asPrice(buildingForm.approved_price_per_m2),
+          fee: asPrice(buildingForm.fee),
           handover_date: buildingForm.handover_date || null,
         };
         if (!form.project_id || !form.code) throw new Error('Chọn dự án và nhập mã toà.');
@@ -556,6 +575,7 @@ function CatalogPage() {
       direction: row.direction || '',
       area_m2: row.area_m2 == null ? '' : String(row.area_m2),
       price_per_m2_override: formatPricePerM2(row.price_per_m2_override),
+      fee: formatPricePerM2(row.fee),
       status: row.status || 'available',
     });
   };
@@ -572,6 +592,7 @@ function CatalogPage() {
           direction: unitForm.direction || null,
           area_m2: asNumber(unitForm.area_m2),
           price_per_m2_override: asPrice(unitForm.price_per_m2_override),
+          fee: asPrice(unitForm.fee),
           status: unitForm.status,
         };
         await catalog?.saveUnit(payload);
@@ -904,7 +925,7 @@ function CatalogPage() {
         <div>
           <h2 className="text-section-head">Tìm căn và khách phù hợp</h2>
           <p className="text-caption text-ink-muted">
-            Giá hiển thị gồm VAT + KPBT; thiếu giá hoặc diện tích không được tính là đạt lọc giá.
+            Giá hiển thị là giá dự kiến (gồm VAT + KPBT + phí); thiếu giá hoặc diện tích không được tính là đạt lọc giá.
           </p>
         </div>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -965,7 +986,7 @@ function CatalogPage() {
         {matchingCustomer && (
           <TextField
             label="Giá tối đa riêng để ghép khách"
-            suffix="triệu (đã gồm VAT + KPBT)"
+            suffix="triệu (giá dự kiến)"
             numeric
             value={matchingMaxPrice}
             onChange={(e) => setMatchingMaxPrice(e.target.value)}
@@ -1273,6 +1294,14 @@ function CatalogPage() {
                 value={projectForm.typical_price_per_m2}
                 onChange={(e) => setProjectForm({ ...projectForm, typical_price_per_m2: e.target.value })}
               />
+              <TextField
+                label="Phí mỗi căn"
+                hint="Cộng vào giá dự kiến, đóng đợt 1. Toà/căn nhập riêng thì ghi đè."
+                suffix="triệu"
+                numeric
+                value={projectForm.fee}
+                onChange={(e) => setProjectForm({ ...projectForm, fee: e.target.value })}
+              />
               <label className={labelClass}>
                 Bàn giao dự kiến
                 <input
@@ -1344,6 +1373,15 @@ function CatalogPage() {
               numeric
               value={buildingForm.approved_price_per_m2}
               onChange={(e) => setBuildingForm({ ...buildingForm, approved_price_per_m2: e.target.value })}
+            />
+            <TextField
+              label="Phí mỗi căn của toà"
+              hint={buildingFeeHint}
+              placeholder={buildingFeeHint}
+              suffix="triệu"
+              numeric
+              value={buildingForm.fee}
+              onChange={(e) => setBuildingForm({ ...buildingForm, fee: e.target.value })}
             />
             <label className={labelClass}>
               Bàn giao riêng của toà
@@ -1463,6 +1501,15 @@ function CatalogPage() {
               numeric
               value={unitForm.price_per_m2_override}
               onChange={(e) => setUnitForm({ ...unitForm, price_per_m2_override: e.target.value })}
+            />
+            <TextField
+              label="Phí riêng"
+              hint={unitFeeHint}
+              placeholder={unitFeeHint}
+              suffix="triệu"
+              numeric
+              value={unitForm.fee}
+              onChange={(e) => setUnitForm({ ...unitForm, fee: e.target.value })}
             />
             <label className={labelClass}>
               Tình trạng

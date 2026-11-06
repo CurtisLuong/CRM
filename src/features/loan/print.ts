@@ -76,7 +76,8 @@ export function buildLoanPrintHTML(r: ComputeResult, ctx: LoanPrintContext = {})
     '%)</th><td class="n">' +
     money(P.kpbt) +
     '</td></tr>' +
-    '<tr><th>Giá FULL</th><td class="n big">' +
+    (P.fee ? '<tr><th>Phí (đóng đợt 1)</th><td class="n">' + money(P.fee) + '</td></tr>' : '') +
+    '<tr><th>Giá dự kiến</th><td class="n big">' +
     money(P.full) +
     '</td></tr>' +
     '</table></div>' +

@@ -27,6 +27,20 @@ export function createCatalogRepository(sync: CustomerSync, storage: Storage = l
   const STATUS: Record<string, string> = { available: 'Còn', holding: 'Giữ chỗ', sold: 'Đã bán' };
   let data: CatalogData = { projects: [], buildings: [], units: [], projectTypes: [], buildingTypes: [] };
   const listeners: (() => void)[] = [];
+  // DB đã có cột fee (SQL/v2/013)? Lần đọc đầu thiếu cột → false: đọc/ghi như cũ, phí = 0.
+  let feeColumn = true;
+  const isMissingFeeColumn = (raw: any) => raw?.code === '42703' || /\bfee\b/.test(String(raw?.message || ''));
+  /** Trường fee để ghi: DB chưa có cột thì bỏ khi trống (để lưu toà/căn/dự án vẫn chạy); có số thì giữ để báo lỗi rõ. */
+  function feePatch(row: any): Data {
+    if (!row || !('fee' in row)) return {};
+    const fee = row.fee == null || row.fee === '' ? null : Math.max(0, Math.round(Number(row.fee)) || 0);
+    return fee == null && !feeColumn ? {} : { fee };
+  }
+  const withFee = (patch: any) => {
+    if (!patch || !('fee' in patch)) return patch;
+    const { fee: _fee, ...rest } = patch;
+    return { ...rest, ...feePatch(patch) };
+  };
 
   function visibleCatalog(rows: CatalogData): CatalogData {
     const projects = rows.projects.filter((row: any) => !row.archived_at);
@@ -126,23 +140,36 @@ export function createCatalogRepository(sync: CustomerSync, storage: Storage = l
       client = sb;
     const read = (table: any, columns: any) =>
       pagedFetch<Data & { id: string }>(client, table, columns, () => epoch === scopeEpoch && !sync.local.isClosed);
-    try {
-      const [p, b, u, pt, bt] = await Promise.all([
+    // Cột `fee` (SQL/v2/013) có thể chưa chạy trên DB: thiếu cột → đọc lại không có phí (phí = 0), không mất Giỏ hàng.
+    const readAll = (withFee: boolean) => {
+      const fee = withFee ? ',fee' : '';
+      return Promise.all([
         read(
           'projects',
-          'id,name,typical_price_per_m2,vat_rate,kpbt_rate,handover_date,title_after_months,payment_schedule,sort_order,created_at,archived_at',
+          `id,name,typical_price_per_m2,vat_rate,kpbt_rate,handover_date,title_after_months,payment_schedule,sort_order,created_at,archived_at${fee}`,
         ),
         read(
           'buildings',
-          'id,project_id,code,approved_price_per_m2,handover_date,note,sort_order,created_at,archived_at',
+          `id,project_id,code,approved_price_per_m2,handover_date,note,sort_order,created_at,archived_at${fee}`,
         ),
         read(
           'units',
-          'id,project_id,building_id,code,area_m2,floor,direction,apt_type,price_per_m2_override,net_price_override,status,note,archived_at',
+          `id,project_id,building_id,code,area_m2,floor,direction,apt_type,price_per_m2_override,net_price_override,status,note,archived_at${fee}`,
         ),
         read('project_apt_types', 'id,project_id,apt_type,typical_area_m2,sort_order,archived_at'),
         read('building_apt_types', 'id,building_id,project_id,apt_type,area_m2,archived_at'),
       ]);
+    };
+    try {
+      let rows: Awaited<ReturnType<typeof readAll>>;
+      try {
+        rows = await readAll(feeColumn);
+      } catch (raw) {
+        if (!feeColumn || !isMissingFeeColumn(raw)) throw raw;
+        feeColumn = false;
+        rows = await readAll(false);
+      }
+      const [p, b, u, pt, bt] = rows;
       if (epoch !== scopeEpoch || sync.local.isClosed) return false;
       data = visibleCatalog({ projects: p, buildings: b, units: u, projectTypes: pt, buildingTypes: bt });
       data.projects.sort(byOrder);
@@ -208,6 +235,26 @@ export function createCatalogRepository(sync: CustomerSync, storage: Storage = l
     return typicalArea(u.project_id, null, u.apt_type) ? 'dự án' : null;
   }
   const statusLabel = (s: any) => STATUS[s] || STATUS.available;
+  // ---------- Phí mỗi căn (đ/căn): riêng của căn > toà > dự án; không có = 0 (LF-01) ----------
+  const feeOf = (row: any) => (row?.fee == null || row.fee === '' ? null : +row.fee);
+  const projectFee = (p: any) => feeOf(p);
+  function buildingFee(b: any) {
+    if (!b) return null;
+    return feeOf(b) ?? projectFee(project(b.project_id));
+  }
+  function unitFee(u: any) {
+    if (!u) return null;
+    return feeOf(u) ?? buildingFee(building(u.building_id)) ?? projectFee(project(u.project_id));
+  }
+  function unitFeeSource(u: any) {
+    if (!u) return null;
+    if (feeOf(u) != null) return 'căn';
+    const b = building(u.building_id);
+    if (feeOf(b) != null) return 'toà';
+    return projectFee(project(u.project_id)) != null ? 'dự án' : null;
+  }
+  const buildingFeeSource = (b: any) =>
+    feeOf(b) != null ? 'toà' : projectFee(b && project(b.project_id)) != null ? 'dự án' : null;
 
   // ---------- Loại căn + diện tích điển hình ----------
   // Loại căn của dự án: [{ apt_type, typical_area_m2 }]
@@ -256,7 +303,7 @@ export function createCatalogRepository(sync: CustomerSync, storage: Storage = l
     const row = check(
       await sb
         .from('projects')
-        .insert(Object.assign({ name }, extra || {}))
+        .insert(Object.assign({ name }, withFee(extra) || {}))
         .select()
         .single(),
     );
@@ -266,7 +313,7 @@ export function createCatalogRepository(sync: CustomerSync, storage: Storage = l
   }
   async function updateProject(id: any, patch: any) {
     needOnline();
-    const row = check(await sb.from('projects').update(patch).eq('id', id).select().single());
+    const row = check(await sb.from('projects').update(withFee(patch)).eq('id', id).select().single());
     Object.assign(project(id), row);
     emit();
     return row;
@@ -290,6 +337,7 @@ export function createCatalogRepository(sync: CustomerSync, storage: Storage = l
       code: String(b.code || '').trim(),
       approved_price_per_m2: b.approved_price_per_m2 || null,
       handover_date: b.handover_date || null,
+      ...feePatch(b),
     };
     if (!payload.code) throw new Error('Thiếu mã toà');
     if (b.id) {
@@ -330,6 +378,7 @@ export function createCatalogRepository(sync: CustomerSync, storage: Storage = l
       apt_type: u.apt_type || null,
       price_per_m2_override: u.price_per_m2_override || null,
       status: u.status || 'available',
+      ...feePatch(u),
     };
     if (!payload.code) throw new Error('Thiếu mã căn');
     if (await ensureTypes([payload])) await load(); // loại căn mới → khai báo trước (ràng buộc DB)
@@ -675,6 +724,11 @@ export function createCatalogRepository(sync: CustomerSync, storage: Storage = l
     unitByCode,
     unitsOfProject,
     unitPrice,
+    projectFee,
+    buildingFee,
+    unitFee,
+    buildingFeeSource,
+    unitFeeSource,
     statusLabel,
     projectTypes,
     buildingTypeRows,

@@ -40,6 +40,7 @@ Lựa chọn nền tảng ban đầu (Supabase, Cloudflare Pages, local-first) k
 | D-028 | Bản UI "Realty CRM" (Claude Design, `realty-crm-ui/`) thay Design System v4 | Curtis yêu cầu 2026-10-28; nền đã port vào `factory`, màn chuyển dần | Thay D-023 (giữ L1–L5); bổ sung D-027 |
 | D-029 | Thẻ khách luôn có "loại căn · dự án" (chữ rút gọn chỉ ở giao diện); nới ngân sách màn đầu Hôm nay | Đã duyệt 2026-10-31 (Telegram 1a, 2b) | Sửa mốc D-023 L1 cho Hôm nay (≥ 2 thẻ trọn → ≥ 1 thẻ trọn + đầu thẻ 2) |
 | D-030 | Kết quả cuộc gọi: 3 nút chính + Khác; chọn sẵn theo thời lượng (60s); khách mới cúp máy 2 lần liên tiếp → tự Loại "Cúp máy" | Curtis yêu cầu 2026-11-05 | Mở rộng tự chuyển của D-008/followup (thêm 1 điều kiện tự loại) |
+| D-031 | Máy tính vay thêm **phí mỗi căn** (dự án → toà → căn ghi đè); Giá dự kiến = thuần + phí + VAT + KPBT; phí đóng đợt 1, không vay | Curtis yêu cầu 2026-11-06 | Đổi công thức máy tính vay (thêm 1 khoản); phí 0 = như cũ |
 
 ## Ba loại kết quả
 
@@ -462,6 +463,16 @@ Ví dụ và mẫu trong bộ tài liệu không phải sự chấp thuận cho 
   - Thẻ Hôm nay / Công việc: dòng nhu cầu cả bề ngang; thẻ được cao thêm. Màn đầu Hôm nay 360×780: ≥ 1 thẻ trọn + đầu thẻ 2 (trước: ≥ 2 thẻ trọn, D-023 L1); thẻ việc ≤ 170px (trước 150px).
   - Chữ rút gọn chỉ ở giao diện, DB giữ giá trị gốc: loại căn hiện mã chuẩn ("2N-2WC"); dự án hiện tên ngắn theo `src/config/projectShort.ts` ("Vin Tràng Cát" → "Vin TC", "Marquee Homes" → "Marquee", cụm "Nhà ở xã hội" → "NOXH"). Dự án mới: Curtis đặt quy tắc, thêm vào file đó.
 - Không đổi: D-012 (không ghi tên ngắn vào dữ liệu), hồ sơ/form/xuất Excel dùng tên đầy đủ.
+
+### D-031 — Phí mỗi căn trong máy tính vay
+
+- Ngày: 2026-11-06 · Loại: luật nghiệp vụ (Curtis yêu cầu trong terminal)
+- Quyết định:
+  - Mỗi dự án có một **phí** chung (số tiền cố định mỗi căn, đ); toà và căn nhập riêng thì ghi đè cấp cha — cùng cách như giá duyệt. Cột `fee` ở `projects`/`buildings`/`units` (`SQL/v2/013_catalog_fee.sql`); trống = theo cấp cha, cả 3 trống = 0.
+  - Giá thuần = giá duyệt × diện tích. **Giá dự kiến = giá thuần + phí + giá thuần × VAT + giá thuần × KPBT** (phí không chịu VAT/KPBT). Dòng tổng "Giá FULL" đổi tên "Giá dự kiến" (máy tính vay, báo giá in, Giỏ hàng).
+  - Phí đóng trọn ở **đợt 1**, khách tự trả: ngân hàng không giải ngân phần phí kể cả khi chọn giải ngân từ đợt 1. Khoản vay vẫn = tỷ lệ vay × giá gồm VAT.
+- Không đổi: VAT/KPBT, tiến độ, lãi; phí 0 cho kết quả y như v1 (test parity giữ nguyên).
+- Tài liệu: `docs/loan-module.md` §5.
 
 ### D-030 — Kết quả cuộc gọi: 3 nút chính, chọn sẵn theo thời lượng, cúp máy 2 lần → tự loại
 
