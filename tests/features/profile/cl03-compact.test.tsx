@@ -6,6 +6,13 @@ import type { Customer } from '@/domain/customer';
 import { route } from '@/features/profile/route';
 import { ToastProvider } from '@/ui';
 
+/** 06/11: "Nâng cao" nằm dưới "Mở rộng" (phân cấp thông tin) — mở "Mở rộng" trước nếu đang đóng. */
+async function nangCao(user: { click: (el: Element) => Promise<void> }) {
+  const more = screen.queryByRole('button', { name: /^Mở rộng \(\d+\)$/ });
+  if (more) await user.click(more);
+  return screen.getByRole('button', { name: 'Nâng cao' });
+}
+
 const update = vi.fn();
 let customer: Customer;
 const account = {
@@ -54,7 +61,7 @@ describe('CL-03 — hồ sơ gọn', () => {
     expect(screen.queryByLabelText('Nơi ở')).toBeNull();
     expect(screen.queryByRole('group', { name: 'Ngày sinh' })).toBeNull();
 
-    const toggle = screen.getByRole('button', { name: /^(Bổ sung|Thu gọn)/ });
+    const toggle = screen.getByRole('button', { name: /^(Mở rộng \(\d+\)|Thu gọn)$/ });
     expect(toggle.getAttribute('aria-expanded')).toBe('false');
     await user.click(toggle);
     expect(toggle.getAttribute('aria-expanded')).toBe('true');
@@ -76,7 +83,7 @@ describe('CL-03 — hồ sơ gọn', () => {
     expect(screen.queryByLabelText('Thu nhập')).toBeNull();
     expect(screen.queryByLabelText('Nơi ở')).toBeNull();
     expect(screen.queryByRole('group', { name: 'Ngày sinh' })).toBeNull();
-    expect(screen.queryByRole('button', { name: /^(Bổ sung|Thu gọn)/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^(Mở rộng \(\d+\)|Thu gọn)$/ })).toBeNull();
   });
 
   it('Nhu cầu theo đợt + Người cùng quyết định chỉ hiện sau Nâng cao ở tab Nhu cầu & căn', async () => {
@@ -85,7 +92,7 @@ describe('CL-03 — hồ sơ gọn', () => {
     await user.click(screen.getByRole('tab', { name: 'Nhu cầu & căn' }));
     expect(screen.queryByText('Nhu cầu theo đợt')).toBeNull();
     expect(screen.queryByLabelText('Dự án quan tâm mới')).toBeNull();
-    const toggle = screen.getByRole('button', { name: 'Nâng cao' });
+    const toggle = await nangCao(user);
     expect(toggle.getAttribute('aria-expanded')).toBe('false');
     await user.click(toggle);
     expect(toggle.getAttribute('aria-expanded')).toBe('true');
@@ -98,7 +105,7 @@ describe('CL-03 — hồ sơ gọn', () => {
     const user = userEvent.setup();
     wrap();
     await user.click(screen.getByRole('tab', { name: 'Trí nhớ' }));
-    await user.click(screen.getByRole('button', { name: /^(Bổ sung|Thu gọn)/ }));
+    await user.click(screen.getByRole('button', { name: /^(Mở rộng \(\d+\)|Thu gọn)$/ }));
     await user.type(screen.getByRole('textbox', { name: 'Ngày sinh — ngày/tháng/năm' }), '15/08/1985');
     await user.tab();
     expect(update).toHaveBeenLastCalledWith(

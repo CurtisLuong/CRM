@@ -15,6 +15,8 @@ import { interactionTitle, LEAD_FORM_KIND } from '@/domain/customer/interactions
 import { callAttemptsOf, normStage, sourceListOf } from '@/domain/customer/normalize';
 import { type CustomerTimelineEntry, customerTimeline } from '@/domain/customer/timeline';
 import { fmtClock, type TaskDueInfo, taskDayLabel } from '@/domain/deadlines';
+import { calcPrice, DEFAULT_LOAN } from '@/domain/loan';
+import { customerUnit, type LoanPrefill } from '@/features/loan/model';
 import { callResultLabel, displayText, intakeLabel, sourceLabel } from '@/ui/display';
 
 /** Checklist state belongs to booking_steps; it must never move the stage SLA clock. */
@@ -484,6 +486,30 @@ export function parsePriceTy(raw: string): number | null | undefined {
   if (!/^\d+([.,]\d+)?$/.test(text)) return undefined;
   const value = Math.round(Number(text.replace(',', '.')) * 1_000_000_000);
   return value > 0 ? value : undefined;
+}
+
+/**
+ * Thẻ "Giá & vay" trên hồ sơ (Curtis 06/11): giá căn anh nhập (`apt_price`) thắng giá ước tính;
+ * số vay tính bằng đúng hàm của máy tính vay (tỉ lệ mặc định trên giá gồm VAT) để hai nơi khớp nhau.
+ */
+export function profileLoan(customer: Customer, estimate: PriceEstimate) {
+  const saved = Number(customer.apt_price) > 0 ? Number(customer.apt_price) : null;
+  const area = 'area' in estimate && Number(estimate.area) > 0 ? Number(estimate.area) : 0;
+  const pricePerM2 = 'total' in estimate ? estimate.pricePerM2 : 0;
+  const price = saved ?? ('total' in estimate ? estimate.total : null);
+  const ltv = DEFAULT_LOAN.ltv;
+  const loan =
+    price == null
+      ? null
+      : Math.round((calcPrice({ area, pricePerM2, netPriceOverride: price }).gross * Number(ltv)) / 100);
+  const prefill: LoanPrefill = {
+    customerId: customer.id,
+    ...customerUnit(customer),
+    ...(area > 0 ? { area } : {}),
+    ...(pricePerM2 > 0 ? { pricePerM2 } : {}),
+    ...(saved != null ? { netOverride: saved } : {}),
+  };
+  return { price, manual: saved != null, loan, ltv: Number(ltv), prefill };
 }
 
 /** 2340000000 → "2,34 tỷ"; 850000000 → "850 triệu". */

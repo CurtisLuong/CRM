@@ -139,7 +139,7 @@ for (const theme of ['light', 'dark'] as const) {
     await expect(area).toHaveAttribute('placeholder', '60');
     await expect(page.getByText('60 m² · theo Giỏ hàng', { exact: true })).toBeVisible();
     await expect(page.getByText('Ước tính · 60 m² × 25 triệu/m²', { exact: true })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Bổ sung (5)', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Mở rộng (5)', exact: true })).toBeVisible();
 
     // Mở hồ sơ và chỉ chạm/rời ô không được ghi khách hoặc tạo queue.
     expect(await readLocal(page)).toEqual({ customers: rows, queue: [] });

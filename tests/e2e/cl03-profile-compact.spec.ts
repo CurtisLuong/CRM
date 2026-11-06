@@ -127,7 +127,7 @@ test('CL-03: ô trống ẩn sau Bổ sung, ngày sinh ra tuổi/mệnh/cung, nh
   await expect(page.getByLabel('Nơi ở')).toHaveCount(0);
   await expect(page.getByRole('group', { name: 'Ngày sinh' })).toHaveCount(0);
 
-  const supplement = page.getByRole('button', { name: /^(Bổ sung|Thu gọn)/ });
+  const supplement = page.getByRole('button', { name: /^(Mở rộng \(\d+\)|Thu gọn)$/ });
   await expect(supplement).toBeVisible();
   await expect(supplement).toHaveAttribute('aria-expanded', 'false');
   await supplement.click();
@@ -185,6 +185,9 @@ test('CL-03: ô trống ẩn sau Bổ sung, ngày sinh ra tuổi/mệnh/cung, nh
   await page.getByRole('tab', { name: 'Nhu cầu & căn' }).click();
   await expect(page.getByText('Nhu cầu theo đợt', { exact: true })).toHaveCount(0);
   await expect(page.getByLabel('Dự án quan tâm mới')).toHaveCount(0);
+  // 06/11: Nâng cao nằm dưới Mở rộng (phân cấp thông tin).
+  const openMore = page.getByRole('button', { name: /^Mở rộng \(\d+\)$/ });
+  if (await openMore.count()) await openMore.click();
   const needsAdvanced = page.getByRole('button', { name: 'Nâng cao' });
   await expect(needsAdvanced).toHaveAttribute('aria-expanded', 'false');
   await needsAdvanced.click();

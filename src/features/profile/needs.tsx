@@ -61,6 +61,12 @@ export function hasNeedValue(value: unknown): boolean {
 }
 
 /** Số ô còn trống và đang ẩn; ô vừa xoá trong phiên này vẫn hiện nên không tính. */
+/** Số ô Nhu cầu đang ẩn sau "Mở rộng" — diện tích kế thừa Giỏ hàng tính là đã có. */
+export function needsHiddenFor(customer: Customer, stayVisible: ReadonlySet<string>, estimate?: PriceEstimate): number {
+  const visible = estimate?.areaSource === 'catalog' ? new Set([...stayVisible, 'apt_area']) : stayVisible;
+  return needsHiddenCount(customer, visible);
+}
+
 export function needsHiddenCount(customer: Customer, stayVisible: ReadonlySet<string> = new Set()): number {
   return NEEDS_FIELDS.filter((key) => !stayVisible.has(key) && !hasNeedValue(customer[key])).length;
 }
@@ -361,8 +367,8 @@ export function ProfileNeedsFields({
   estimate,
 }: NeedsProps) {
   const inheritedArea = estimate?.areaSource === 'catalog' ? estimate.area : undefined;
+  const hidden = needsHiddenFor(customer, stayVisible, estimate);
   const visible = inheritedArea ? new Set([...stayVisible, 'apt_area']) : stayVisible;
-  const hidden = needsHiddenCount(customer, visible);
 
   const field = (key: NeedsField) => {
     switch (key) {
@@ -477,7 +483,7 @@ export function ProfileNeedsFields({
       </div>
       {writable && (hidden > 0 || showEmpty) && (
         <Button variant="secondary" className="w-full" aria-expanded={showEmpty} onClick={onToggleSupplement}>
-          {showEmpty ? 'Thu gọn' : `Bổ sung (${hidden})`}
+          {showEmpty ? 'Thu gọn' : `Mở rộng (${hidden})`}
         </Button>
       )}
     </Card>

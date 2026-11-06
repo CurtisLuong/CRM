@@ -7,6 +7,13 @@ import type { Customer } from '@/domain/customer';
 import { route } from '@/features/profile/route';
 import { ToastProvider } from '@/ui';
 
+/** 06/11: "Nâng cao" nằm dưới "Mở rộng" (phân cấp thông tin) — mở "Mở rộng" trước nếu đang đóng. */
+async function nangCao(user: { click: (el: Element) => Promise<void> }) {
+  const more = screen.queryByRole('button', { name: /^Mở rộng \(\d+\)$/ });
+  if (more) await user.click(more);
+  return screen.getByRole('button', { name: 'Nâng cao' });
+}
+
 const update = vi.fn();
 let customer: Customer;
 let online = false;
@@ -62,17 +69,11 @@ beforeEach(() => {
 });
 
 describe('CP-01 — tab mặc định và ô nhu cầu', () => {
-  it('mở hồ sơ mặc định tab Nhu cầu & căn, thứ tự needs → memory → timeline → docs → loan', () => {
+  it('mở hồ sơ mặc định tab Nhu cầu & căn, thứ tự needs → memory → timeline → docs (06/11: bỏ tab Tính vay)', () => {
     wrap();
     const list = screen.getByRole('tablist', { name: 'Nội dung hồ sơ khách' });
     const tabs = within(list).getAllByRole('tab');
-    expect(tabs.map((tab) => tab.textContent)).toEqual([
-      'Nhu cầu & căn',
-      'Trí nhớ',
-      'Dòng thời gian0',
-      'Tài liệu0',
-      'Tính vay',
-    ]);
+    expect(tabs.map((tab) => tab.textContent)).toEqual(['Nhu cầu & căn', 'Trí nhớ', 'Dòng thời gian0', 'Tài liệu0']);
     expect(tabs[0]?.getAttribute('aria-selected')).toBe('true');
   });
 
@@ -88,7 +89,7 @@ describe('CP-01 — tab mặc định và ô nhu cầu', () => {
 
     // 8 ô nhập (Curtis 03/11: "Tài chính sẵn có" thành Giá ước tính tự tính), 2 ô đã có giá trị
     // (0 tính là có) → còn 6 ô trống đang ẩn.
-    const toggle = screen.getByRole('button', { name: 'Bổ sung (6)' });
+    const toggle = screen.getByRole('button', { name: 'Mở rộng (6)' });
     expect(toggle.getAttribute('aria-expanded')).toBe('false');
     await user.click(toggle);
     expect(toggle.getAttribute('aria-expanded')).toBe('true');
@@ -130,7 +131,7 @@ describe('CP-01 — tab mặc định và ô nhu cầu', () => {
     wrap();
     expect(screen.getByRole('combobox', { name: 'Mục đích mua' })).toHaveProperty('disabled', true);
     expect(screen.queryByLabelText('Loại căn')).toBeNull();
-    expect(screen.queryByRole('button', { name: /^(Bổ sung|Thu gọn)/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^(Mở rộng \(\d+\)|Thu gọn)$/ })).toBeNull();
   });
 
   it('mở khách khác reset tab needs và đóng Bổ sung/Nâng cao', async () => {
@@ -138,11 +139,11 @@ describe('CP-01 — tab mặc định và ô nhu cầu', () => {
     const user = userEvent.setup();
     const view = wrap();
 
-    await user.click(screen.getByRole('button', { name: /^(Bổ sung|Thu gọn)/ }));
-    await user.click(screen.getByRole('button', { name: 'Nâng cao' }));
+    await user.click(screen.getByRole('button', { name: /^(Mở rộng \(\d+\)|Thu gọn)$/ }));
+    await user.click(await nangCao(user));
     await user.click(screen.getByRole('tab', { name: 'Trí nhớ' }));
-    await user.click(screen.getByRole('button', { name: /^(Bổ sung|Thu gọn)/ }));
-    expect(screen.getByRole('button', { name: /^(Bổ sung|Thu gọn)/ }).getAttribute('aria-expanded')).toBe('true');
+    await user.click(screen.getByRole('button', { name: /^(Mở rộng \(\d+\)|Thu gọn)$/ }));
+    expect(screen.getByRole('button', { name: /^(Mở rộng \(\d+\)|Thu gọn)$/ }).getAttribute('aria-expanded')).toBe('true');
 
     customer = base({ id: 'c2', purpose: 'Ở' });
     rerenderProfile(view);
@@ -150,11 +151,12 @@ describe('CP-01 — tab mặc định và ô nhu cầu', () => {
     await waitFor(() =>
       expect(screen.getByRole('tab', { name: 'Nhu cầu & căn' }).getAttribute('aria-selected')).toBe('true'),
     );
-    expect(screen.getByRole('button', { name: /^(Bổ sung|Thu gọn)/ }).getAttribute('aria-expanded')).toBe('false');
-    expect(screen.getByRole('button', { name: 'Nâng cao' }).getAttribute('aria-expanded')).toBe('false');
+    expect(screen.getByRole('button', { name: /^(Mở rộng \(\d+\)|Thu gọn)$/ }).getAttribute('aria-expanded')).toBe('false');
+    // Mở rộng đóng → Nâng cao chưa hiện (06/11).
+    expect(screen.queryByRole('button', { name: 'Nâng cao' })).toBeNull();
 
     await user.click(screen.getByRole('tab', { name: 'Trí nhớ' }));
-    expect(screen.getByRole('button', { name: /^(Bổ sung|Thu gọn)/ }).getAttribute('aria-expanded')).toBe('false');
+    expect(screen.getByRole('button', { name: /^(Mở rộng \(\d+\)|Thu gọn)$/ }).getAttribute('aria-expanded')).toBe('false');
   });
 
   it('một nút Nâng cao chứa Sở thích BĐS + Nhu cầu theo đợt + Người cùng quyết định, giữ khoá lạ advanced', async () => {
@@ -163,8 +165,9 @@ describe('CP-01 — tab mặc định và ô nhu cầu', () => {
     wrap();
 
     expect(screen.queryByText('Sở thích bất động sản')).toBeNull();
+    const toggle = await nangCao(user);
     expect(screen.getAllByRole('button', { name: 'Nâng cao' })).toHaveLength(1);
-    await user.click(screen.getByRole('button', { name: 'Nâng cao' }));
+    await user.click(toggle);
 
     expect(screen.getByText('Sở thích bất động sản')).toBeTruthy();
     expect(screen.getByText('Nhu cầu theo đợt')).toBeTruthy();
@@ -192,7 +195,7 @@ describe('CP-01 — tab mặc định và ô nhu cầu', () => {
     customer = base({ interests: [{ id: 'old', project: 'Đợt cũ', status: 'open', x_keep: 1 }] });
     const user = userEvent.setup();
     wrap();
-    await user.click(screen.getByRole('button', { name: 'Nâng cao' }));
+    await user.click(await nangCao(user));
 
     const select = screen.getByRole('combobox', { name: 'Dự án quan tâm mới' }) as HTMLSelectElement;
     expect(Array.from(select.options, (option) => option.value)).toEqual(['', 'Dự án A', 'Dự án B']);

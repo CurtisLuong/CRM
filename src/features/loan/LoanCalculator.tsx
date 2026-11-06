@@ -165,12 +165,25 @@ function CalculatorForm({
   prefill: LoanPrefill;
 }) {
   const store = useMemo(() => (account ? createLoanStore(account) : null), [account]);
+  // Diện tích + giá căn mang từ hồ sơ khách (anh nhập tay) thắng số trong Giỏ hàng (Curtis 06/11).
+  const fromCatalog = (s: LoanState): LoanState => {
+    if (!account) return s;
+    const applied = applyCatalog(s, account.catalog);
+    return {
+      ...applied,
+      unit: {
+        ...applied.unit,
+        ...(prefill.area ? { area: prefill.area } : {}),
+        ...(prefill.netOverride ? { netOverride: prefill.netOverride } : {}),
+      },
+    };
+  };
   const [state, setState] = useState<LoanState>(() => {
     const s = initialState(prefill);
     const saved = store?.readSettings();
     if (saved?.loan && Array.isArray(saved.loan.rateTiers) && Array.isArray(saved.loan.prepayFees))
       s.loan = { ...s.loan, ...saved.loan, loanOverride: null };
-    return account ? applyCatalog(s, account.catalog) : s;
+    return fromCatalog(s);
   });
   const touched = useRef(false);
   const [consultant, setConsultant] = useState(() => store?.readSettings()?.consultant ?? { name: '', phone: '' });
@@ -192,7 +205,7 @@ function CalculatorForm({
       .then(() => {
         if (alive && !account.sync.local.isClosed) {
           setCatalogVersion((v) => v + 1);
-          if (!touched.current) setState((s) => applyCatalog(s, account.catalog));
+          if (!touched.current) setState((s) => fromCatalog(s));
         }
       })
       .catch(() => {});

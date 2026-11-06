@@ -164,7 +164,7 @@ it('gợi ý hiện ngay; chỉ lưu khi nhập/xoá, xoá thì quay về Giỏ 
   expect(input.placeholder).toBe('60');
   expect(screen.getByText('60 m² · theo Giỏ hàng')).toBeTruthy();
   expect((screen.getByLabelText('Giá căn (tỷ)') as HTMLInputElement).value).toBe('1,5');
-  expect(screen.getByRole('button', { name: 'Bổ sung (5)' })).toBeTruthy();
+  expect(screen.getByRole('button', { name: 'Mở rộng (5)' })).toBeTruthy();
   await user.click(input);
   await user.tab();
   expect(onSave).not.toHaveBeenCalled();
