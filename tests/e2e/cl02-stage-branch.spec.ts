@@ -211,7 +211,8 @@ test('L3: hồ sơ khách của mình cùng dữ liệu vẫn có thanh SLA và 
   const head = header(page);
   // Đồng hồ SLA của kit (R2-02): "SLA <mục tiêu> · <hạn mức>", "quá 5n 00h", tín hiệu "Quá hạn".
   await expect(head).toContainText('SLA 10n · 20n');
-  await expect(head).toContainText('quá 5n');
+  // PF-10 (Curtis 08/11): bỏ dòng "quá 5n 00h" lặp dưới thanh — số quá hạn đọc ở đầu thanh ("+5n 00h").
+  await expect(head).toContainText('+5n 00h');
   await expect(head).toContainText('Quá hạn');
   await expectNoHorizontalScroll(page);
 

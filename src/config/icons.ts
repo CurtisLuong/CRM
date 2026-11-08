@@ -41,6 +41,7 @@ export const ICONS = {
   contract: 'Signature', // Kí HĐMB · Kí HĐ · Chốt (D-028)
   task: 'SquareCheckBig', // Việc · Việc tiếp theo
   drop: 'CircleX', // Loại / không chốt
+  qualify: 'UserCheck', // Chuyển khách mới → Tiềm năng (PF-10)
   nurture: 'Sprout', // Nuôi dài hạn
   sla: 'Timer', // SLA · tốc độ phễu
   // ── Tình trạng / nhắc việc (v1) ──
