@@ -91,6 +91,19 @@ export function contactPrefsHiddenCount(customer: Customer): number {
   return count;
 }
 
+/**
+ * PF-11 (Curtis 08/11): số ô liên hệ CHƯA ĐIỀN để quyết định ẩn nút Mở rộng — hộp "Không liên hệ" chưa bật là
+ * một lựa chọn hợp lệ, không tính là thiếu (nếu tính, nút không bao giờ biến mất với khách bình thường).
+ */
+export function contactPrefsMissingCount(customer: Customer): number {
+  const prefs = customer.contact_prefs || {};
+  return (
+    Number(!String(prefs.channel || '').trim()) +
+    Number(!String(prefs.slot || '').trim()) +
+    Number(!!prefs.do_not_contact && !String(prefs.dnc_reason || '').trim())
+  );
+}
+
 /** Tuỳ chọn liên hệ: kênh + khung giờ (ô ngắn nửa hàng) và "Không liên hệ". */
 export function CustomerContactPrefs({
   customer,

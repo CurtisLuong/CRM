@@ -203,14 +203,16 @@ describe('CP-02 tài liệu trong hồ sơ', () => {
     expect(await screen.findByText('Đã xoá tài liệu')).toBeTruthy();
   });
 
-  it('mở tệp lấy liên kết đã ký và mở tab mới', async () => {
+  // DV-01 (Curtis 08/11): tài liệu xem ngay trong app (trình xem giữa màn), không mở tab mới ra Supabase.
+  it('mở tệp lấy liên kết đã ký và xem trong trình xem của app, không mở tab mới', async () => {
     const user = userEvent.setup();
     const open = vi.spyOn(window, 'open').mockReturnValue(null);
     const { remote } = renderDocs({ remote: makeRemote([pdfDoc]) });
     await screen.findByText('Hợp đồng.pdf');
     await user.click(screen.getByRole('button', { name: 'Mở' }));
+    expect(await screen.findByRole('dialog', { name: 'Hợp đồng.pdf' })).toBeTruthy();
     await waitFor(() => expect(remote.signedDocUrl).toHaveBeenCalledWith('u1/c1/d2.pdf'));
-    expect(open).toHaveBeenCalledWith('https://docs.test/signed', '_blank', 'noopener,noreferrer');
+    expect(open).not.toHaveBeenCalled();
   });
 
   it('khách chỉ xem: không có nút tải lên hay xoá, vẫn mở được tệp', async () => {
