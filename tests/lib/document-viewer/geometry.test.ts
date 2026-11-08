@@ -32,8 +32,10 @@ describe('DV-01 zoom/pan', () => {
   });
   it('nhãn không lộ mime thô, nhận cả tệp thiếu mime', () => {
     expect(previewKind('Scan.PDF', '')).toBe('pdf');
-    expect(fileTypeLabel('Bảng.xlsx', 'application/octet-stream')).toBe('Excel');
-    expect(fileTypeLabel('Khác.bin', 'application/octet-stream')).toBe('Tệp đính kèm');
+    // DV-02: loại tệp = đuôi viết HOA; không đuôi thì suy từ mime; không suy được → "Tệp".
+    expect(fileTypeLabel('Bảng.xlsx', 'application/octet-stream')).toBe('XLSX');
+    expect(fileTypeLabel('Ảnh', 'image/png')).toBe('PNG');
+    expect(fileTypeLabel('Khác', 'application/octet-stream')).toBe('Tệp');
     expect(formatBytes(1024)).toBe('1 KB');
   });
 });
