@@ -2,7 +2,11 @@ import { useEffect, useState } from 'react';
 import { TextField } from '@/components/crm/form-fields';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { directionValue } from '@/config/directions';
+import { useRepositoryAccount } from '@/data/hooks';
 import type { Customer } from '@/domain/customer';
+import { factPatch } from '@/domain/customer/facts';
+import { DirectionField } from '@/features/catalog/direction-field';
 import { formatPricePerM2 } from '@/features/catalog/model';
 import { Icon } from '@/ui/Icon';
 import { useToast } from '@/ui/Toast';
@@ -19,6 +23,7 @@ import {
   type PriceRates,
   parsePriceTy,
 } from './model';
+import { UnitPicker } from './unit-picker';
 
 export const PURPOSE_OPTIONS = ['Ở', 'Đầu tư', 'Cho tặng'].map((value) => ({ value, label: value }));
 
@@ -379,9 +384,106 @@ export function ProfileNeedsFields({
   estimate,
   rates = DEFAULT_PRICE_RATES,
 }: NeedsProps) {
+  const account = useRepositoryAccount();
+  const inventory = account?.catalog;
+  const toast = useToast();
+  const [, bumpCatalog] = useState(0);
+  const [savingCode, setSavingCode] = useState(false);
+  const [catalogError, setCatalogError] = useState('');
+  const [kept, setKept] = useState({ id: customer.id, keys: new Set<string>() });
+  if (kept.id !== customer.id) setKept({ id: customer.id, keys: new Set() });
+  useEffect(() => inventory?.onChange(() => bumpCatalog((revision) => revision + 1)), [inventory]);
+
+  // Cùng thứ tự catalogRows của model: dự án đầu tiên trong projects có trong Giỏ hàng.
+  const project =
+    typeof inventory?.projectByName === 'function' && Array.isArray(customer.projects)
+      ? customer.projects.map((name) => inventory.projectByName(name)).find((row) => !!row)
+      : null;
+  const building = project ? inventory?.buildingByCode(project.id, customer.building_code) : null;
+  const disabledCode = !writable || busy || savingCode;
+
+  const saveCode = async (key: 'building_code' | 'apt_code', code: string): Promise<boolean> => {
+    if (!account || disabledCode) return false;
+    // Thêm Giỏ hàng có thể chờ server; lấy lại khách local để không ghi đè ô vừa được sửa trong lúc chờ.
+    const current = account.customers.getSnapshot?.().find((row) => row.id === customer.id) ?? customer;
+    const values: Record<string, unknown> = {};
+    if (code !== (current[key] ?? '')) values[key] = code || null;
+    if (
+      key === 'building_code' &&
+      code.trim().toLocaleLowerCase('vi') !==
+        String(current.building_code ?? '')
+          .trim()
+          .toLocaleLowerCase('vi') &&
+      hasNeedValue(current.apt_code)
+    ) {
+      const nextBuilding = project && inventory?.buildingByCode(project.id, code);
+      if (!nextBuilding || !inventory?.unitByCode(nextBuilding.id, current.apt_code)) values.apt_code = null;
+    }
+    const unit = key === 'apt_code' && building && inventory?.unitByCode(building.id, code);
+    if (unit) {
+      for (const [target, source] of [
+        ['apt_direction', 'direction'],
+        ['apt_floor', 'floor'],
+        ['apt_type', 'apt_type'],
+      ] as const) {
+        if (!hasNeedValue(current[target]) && hasNeedValue(unit[source])) {
+          values[target] = target === 'apt_direction' ? directionValue(unit[source]) : unit[source];
+        }
+      }
+    }
+    if (!Object.keys(values).length) return true;
+    // Một patch cho mã và các ô phụ thuộc; giữ nguồn fact và mọi khoá lạ của metadata.
+    let patch: Record<string, unknown> = {};
+    for (const [field, value] of Object.entries(values)) {
+      patch = { ...patch, ...factPatch({ ...current, ...patch } as Customer, field, value) };
+    }
+    setSavingCode(true);
+    try {
+      await account.customers.update(customer.id, patch);
+      setKept((prev) => ({ id: customer.id, keys: new Set([...prev.keys, ...Object.keys(values)]) }));
+      toast({ title: 'Đã lưu', description: online ? 'Đang đồng bộ.' : 'Ngoại tuyến · chờ đồng bộ.' });
+      return true;
+    } catch (raw) {
+      toast({ title: 'Chưa lưu được', description: errorMessage(raw, 'Thử lại.'), tone: 'error' });
+      return false;
+    } finally {
+      setSavingCode(false);
+    }
+  };
+
+  const addCode = async (key: 'building_code' | 'apt_code', code: string): Promise<boolean> => {
+    if (!inventory || !project || disabledCode) return false;
+    setCatalogError('');
+    let failed = '';
+    try {
+      if (key === 'building_code') {
+        if (!inventory.buildingByCode(project.id, code)) await inventory.saveBuilding({ project_id: project.id, code });
+      } else if (building && !inventory.unitByCode(building.id, code)) {
+        const details: Record<string, unknown> = {};
+        for (const [target, source] of [
+          ['direction', 'apt_direction'],
+          ['floor', 'apt_floor'],
+          ['apt_type', 'apt_type'],
+          ['area_m2', 'apt_area'],
+        ] as const) {
+          if (hasNeedValue(customer[source])) {
+            details[target] = target === 'direction' ? directionValue(customer.apt_direction) : customer[source];
+          }
+        }
+        await inventory.saveUnit({ building_id: building.id, code, ...details });
+      }
+    } catch (raw) {
+      failed = errorMessage(raw, 'Không thêm được vào Giỏ hàng.');
+    }
+    // Repository từ chối (mạng/quyền): mã vẫn được lưu local như khi nhập tay.
+    const saved = await saveCode(key, code);
+    if (failed) setCatalogError(failed);
+    return saved && !failed;
+  };
+
   const inheritedArea = estimate?.areaSource === 'catalog' ? estimate.area : undefined;
-  const hidden = needsHiddenFor(customer, stayVisible, estimate);
-  const visible = inheritedArea ? new Set([...stayVisible, 'apt_area']) : stayVisible;
+  const hidden = needsHiddenFor(customer, new Set([...stayVisible, ...kept.keys]), estimate);
+  const visible = new Set([...stayVisible, ...kept.keys, ...(inheritedArea ? ['apt_area'] : [])]);
 
   const field = (key: NeedsField) => {
     switch (key) {
@@ -417,15 +519,52 @@ export function ProfileNeedsFields({
           />
         );
       case 'building_code':
+        if (project && inventory && typeof inventory.buildingsOf === 'function') {
+          return (
+            <UnitPicker
+              key={`${customer.id}:${project.id}:building`}
+              label="Mã toà"
+              kind="toà"
+              value={customer.building_code}
+              rows={inventory.buildingsOf(project.id).map((row) => ({ id: String(row.id), code: String(row.code) }))}
+              disabled={disabledCode}
+              onSelect={(code) => {
+                setCatalogError('');
+                return saveCode('building_code', code);
+              }}
+              onAdd={(code) => addCode('building_code', code)}
+            />
+          );
+        }
         return (
           <ProfileTextField
             label="Mã toà"
             value={customer.building_code}
             disabled={!writable}
+            hint="Chọn dự án quan tâm có trong Giỏ hàng để chọn toà/căn"
             onSave={(value) => onSaveField('building_code', value)}
           />
         );
       case 'apt_code':
+        if (building && inventory && typeof inventory.unitsOf === 'function') {
+          return (
+            <UnitPicker
+              key={`${customer.id}:${building.id}:unit`}
+              label="Mã căn"
+              kind="căn"
+              value={customer.apt_code}
+              rows={inventory
+                .unitsOf(building.id)
+                .map((row: { id: unknown; code: unknown }) => ({ id: String(row.id), code: String(row.code) }))}
+              disabled={disabledCode}
+              onSelect={(code) => {
+                setCatalogError('');
+                return saveCode('apt_code', code);
+              }}
+              onAdd={(code) => addCode('apt_code', code)}
+            />
+          );
+        }
         return (
           <ProfileTextField
             label="Mã căn"
@@ -436,11 +575,11 @@ export function ProfileNeedsFields({
         );
       case 'apt_direction':
         return (
-          <ProfileTextField
-            label="Hướng"
+          <DirectionField
             value={customer.apt_direction}
-            disabled={!writable}
-            onSave={(value) => onSaveField('apt_direction', value)}
+            disabled={!writable || busy}
+            className="[&_label]:min-h-9"
+            onChange={(value) => onSaveField('apt_direction', value || null)}
           />
         );
       case 'apt_floor':
@@ -495,6 +634,11 @@ export function ProfileNeedsFields({
             : []),
         ])}
       </div>
+      {catalogError && (
+        <p role="alert" className="text-caption text-alert-text [overflow-wrap:anywhere]">
+          {catalogError}
+        </p>
+      )}
       {writable && onToggleSupplement && (hidden > 0 || showEmpty) && (
         <Button variant="secondary" className="w-full" aria-expanded={showEmpty} onClick={onToggleSupplement}>
           {showEmpty ? 'Thu gọn' : `Mở rộng (${hidden})`}

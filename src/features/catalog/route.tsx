@@ -5,12 +5,14 @@ import type { FeatureRoute } from '@/app/routes';
 import { type Column, DataTable, TextField } from '@/components/crm';
 import { Button } from '@/components/ui/button';
 import { Toaster } from '@/components/ui/sonner';
+import { DIRECTIONS, directionValue } from '@/config/directions';
 import { CARE_DONE_STAGES } from '@/config/stages';
 import { useCustomers, useRepositoryAccount } from '@/data/hooks';
 import type { Customer } from '@/domain/customer';
 import { customersForUnit, match as matchCustomer, price as totalPrice } from '@/domain/matching/property';
 import { displayDate } from '@/ui/display';
 import { CatalogDrawer } from './CatalogDrawer';
+import { DirectionField } from './direction-field';
 import {
   downloadCatalogTemplate,
   formatPricePerM2,
@@ -20,7 +22,6 @@ import {
   unitMatchesQuery,
 } from './model';
 
-const DIRECTIONS = ['Đông', 'Tây', 'Nam', 'Bắc', 'Đông Bắc', 'Đông Nam', 'Tây Bắc', 'Tây Nam'];
 const fieldClass = 'mt-1 h-11 w-full rounded-sm border border-input bg-surface-100 px-3 text-body text-ink';
 const labelClass = 'block text-label text-ink-muted';
 type ProjectForm = {
@@ -137,6 +138,12 @@ function CatalogPage() {
   const buildings = projectId ? catalog?.buildingsOf(projectId) || [] : [];
   const project = projectId ? catalog?.project(projectId) : null;
   const building = buildingId ? catalog?.building(buildingId) : null;
+  const directionChoices = [
+    ...new Set<string>([
+      ...DIRECTIONS,
+      ...(catalog?.units() || []).map((unit) => directionValue(unit.direction)).filter(Boolean),
+    ]),
+  ];
   const unitDraft = {
     project_id: projectId,
     building_id: buildingId,
@@ -189,7 +196,7 @@ function CatalogPage() {
           .includes(typeFilter.toLocaleLowerCase('vi'))
       )
         return false;
-      if (directionFilter && unit.direction !== directionFilter) return false;
+      if (directionFilter && directionValue(unit.direction) !== directionFilter) return false;
       const area = catalog.unitArea(unit);
       const price = totalPrice(unit, catalog);
       const inRange = (value: number | null, min: string, max: string) => {
@@ -1007,7 +1014,7 @@ function CatalogPage() {
             Hướng
             <select className={fieldClass} value={directionFilter} onChange={(e) => setDirectionFilter(e.target.value)}>
               <option value="">Tất cả</option>
-              {DIRECTIONS.map((direction) => (
+              {directionChoices.map((direction) => (
                 <option key={direction}>{direction}</option>
               ))}
             </select>
@@ -1113,8 +1120,8 @@ function CatalogPage() {
                   </h3>
                   <p className="mt-1 text-caption text-ink-muted">
                     {unit.apt_type || 'Chưa rõ loại'} · {area == null ? 'Chưa rõ diện tích' : `${area} m²`} ·{' '}
-                    {unit.direction || 'Chưa rõ hướng'} · {unit.floor == null ? 'Chưa rõ tầng' : `Tầng ${unit.floor}`} ·{' '}
-                    {catalog.statusLabel(unit.status)}
+                    {directionValue(unit.direction) || 'Chưa rõ hướng'} ·{' '}
+                    {unit.floor == null ? 'Chưa rõ tầng' : `Tầng ${unit.floor}`} · {catalog.statusLabel(unit.status)}
                   </p>
                 </div>
                 <span className="shrink-0 text-right text-numeric">{money(amount)}</span>
@@ -1471,19 +1478,11 @@ function CatalogPage() {
               value={unitForm.floor}
               onChange={(e) => setUnitForm({ ...unitForm, floor: e.target.value })}
             />
-            <label className={labelClass}>
-              Hướng
-              <select
-                className={fieldClass}
-                value={unitForm.direction}
-                onChange={(e) => setUnitForm({ ...unitForm, direction: e.target.value })}
-              >
-                <option value="">Chưa rõ</option>
-                {DIRECTIONS.map((direction) => (
-                  <option key={direction}>{direction}</option>
-                ))}
-              </select>
-            </label>
+            <DirectionField
+              value={unitForm.direction}
+              disabled={saving}
+              onChange={(direction) => setUnitForm({ ...unitForm, direction })}
+            />
             <TextField
               label="Diện tích"
               suffix="m²"
