@@ -318,7 +318,10 @@ export function ZoomSurface({
               ),
             });
           } else if (state.pan && (pdf || state.pan.view.scale > minimum + 0.001)) {
-            schedule(panView(state.pan.view, state.pan.point, next, size, viewport));
+            const panned = panView(state.pan.view, state.pan.point, next, size, viewport);
+            // Neo lại sau mỗi bước: chạm mép rồi đảo chiều thì ảnh theo tay ngay (1:1), không phải bù đoạn vượt mép.
+            state.pan = { view: panned, point: next };
+            schedule(panned);
           }
         }}
         onPointerUp={(event) => end(event)}
