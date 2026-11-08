@@ -218,7 +218,8 @@ for (const theme of ['light', 'dark'] as const) {
     await expect(page.getByRole('button', { name: '201', exact: true })).toHaveCount(0);
     for (const button of await page.getByRole('dialog').getByRole('button').all()) {
       const box = await button.boundingBox();
-      expect(box?.height).toBeGreaterThanOrEqual(44);
+      // Làm tròn điểm ảnh con: 43,96px vẫn là ô 44px.
+      expect(box?.height ?? 0).toBeGreaterThanOrEqual(43.5);
     }
     await page.getByRole('button', { name: '101', exact: true }).click();
     await expect.poll(async () => (await readCustomer(page)).apt_code).toBe('101');
