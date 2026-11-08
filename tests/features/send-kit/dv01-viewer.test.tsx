@@ -81,7 +81,8 @@ describe('DV-01 kho tài liệu', () => {
   it('ô PDF mở đúng tệp, đổi tệp giữ vị trí và kiểm giới hạn có sẵn', async () => {
     const repository = setup();
     await userEvent.click(await screen.findByRole('button', { name: 'Xem Tệp 1.pdf' }));
-    expect(screen.getByRole('dialog', { name: 'Tệp 1.pdf' }).textContent).toContain('2/2');
+    // DV-02 (Curtis 08/11): tiêu đề trình xem = "{dự án}. {tiêu đề mục}" (mục Chung: tiêu đề mục); ảnh vẫn có alt = tên tệp.
+    expect(screen.getByRole('dialog', { name: 'Tài liệu mẫu' }).textContent).toContain('2/2');
     fireEvent.change(screen.getByLabelText('Chọn tệp thay thế'), {
       target: { files: [new File(['x'], 'sai.docx', { type: 'application/msword' })] },
     });
@@ -89,7 +90,9 @@ describe('DV-01 kho tài liệu', () => {
     expect(repository.save).not.toHaveBeenCalled();
     const added = new File(['new'], 'mới.pdf', { type: 'application/pdf' });
     fireEvent.change(screen.getByLabelText('Chọn tệp thay thế'), { target: { files: [added] } });
-    await screen.findByRole('dialog', { name: 'mới.pdf' });
+    await waitFor(() =>
+      expect(screen.getByRole('dialog', { name: 'Tài liệu mẫu' }).textContent).toContain('PDF · 3 B'),
+    );
     expect(state.items[0]?.files.map((file) => file.name)).toEqual(['Tệp 0.pdf', 'mới.pdf']);
     expect(state.items[0]?.order).toBe(0);
   });

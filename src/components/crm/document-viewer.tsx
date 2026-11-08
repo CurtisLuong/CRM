@@ -25,6 +25,8 @@ export type DocumentViewerProps = {
   fileId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Tiêu đề hiển thị (mục tài liệu); không truyền → tên tệp. */
+  title?: string;
   onFileChange?: (id: string) => void;
   onReplace?: (file: DocumentViewerFile, replacement: File) => Promise<void>;
   onDelete?: (file: DocumentViewerFile) => Promise<void>;
@@ -34,7 +36,7 @@ export type DocumentViewerProps = {
 
 /** Xem trước ảnh/PDF trong app; màn gọi cung cấp blob, quyền và thao tác lưu của riêng mình. */
 export function DocumentViewer(props: DocumentViewerProps) {
-  const { files, fileId, open, onOpenChange, onFileChange, onReplace, onDelete, onShare, busy = false } = props;
+  const { files, fileId, open, onOpenChange, title, onFileChange, onReplace, onDelete, onShare, busy = false } = props;
   const index = files.findIndex((file) => file.id === fileId);
   const file = files[index];
   const [blob, setBlob] = useState<Blob | null>(null);
@@ -91,6 +93,7 @@ export function DocumentViewer(props: DocumentViewerProps) {
   };
   if (!file) return null;
   const kind = previewKind(file.name, file.mime);
+  const heading = title?.trim() || file.name;
   const meta = [fileTypeLabel(file.name, file.mime), file.size != null ? formatBytes(file.size) : '']
     .filter(Boolean)
     .join(' · ');
@@ -112,7 +115,7 @@ export function DocumentViewer(props: DocumentViewerProps) {
           <header className="flex shrink-0 items-center gap-2 border-b border-line p-3">
             <div className="min-w-0 flex-1">
               <DialogTitle className="truncate text-body" title={file.name}>
-                {file.name}
+                {heading}
               </DialogTitle>
               <DialogDescription className="text-caption">
                 {meta}

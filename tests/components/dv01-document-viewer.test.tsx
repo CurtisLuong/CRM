@@ -21,7 +21,8 @@ describe('DV-01 viewer dùng chung', () => {
     const dialog = screen.getByRole('dialog', { name: file.name });
     expect(within(dialog).getByRole('heading', { name: file.name }).title).toBe(file.name);
     await screen.findByText('Chưa xem trước được loại tệp này');
-    expect(dialog.textContent).toContain('Word · 2 KB');
+    // DV-02: dòng phụ = đuôi tệp viết HOA + kích thước.
+    expect(dialog.textContent).toContain('DOCX · 2 KB');
     expect(dialog.textContent).not.toContain('application/msword');
     expect(screen.queryByRole('button', { name: 'Đổi tệp' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Xoá' })).toBeNull();

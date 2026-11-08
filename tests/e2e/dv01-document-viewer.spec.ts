@@ -85,7 +85,8 @@ for (const theme of ['light', 'dark'] as const) {
     await create(page, 'Ảnh thử', [image('Ảnh mẫu.svg')]);
     const trigger = page.getByRole('button', { name: 'Xem Ảnh mẫu.svg', exact: true });
     await trigger.click();
-    await expect(page.getByRole('dialog', { name: 'Ảnh mẫu.svg' })).toBeVisible();
+    // DV-02 (Curtis 08/11): tiêu đề trình xem = "{dự án}. {tiêu đề mục}" (mục Chung: tiêu đề mục); ảnh vẫn có alt = tên tệp.
+    await expect(page.getByRole('dialog', { name: 'Ảnh thử' })).toBeVisible();
     const img = page.getByRole('dialog').getByRole('img', { name: 'Ảnh mẫu.svg' });
     await expect(img).toBeVisible();
     await centered(page);
@@ -142,7 +143,8 @@ test('DV-01 kho tài liệu: đúng tệp, chia sẻ riêng tệp, đổi giữ 
   await demo(page);
   await create(page, 'Hai ảnh', [image('Một.svg'), image('Hai.svg')]);
   await page.getByRole('button', { name: 'Xem Hai.svg' }).click();
-  let dialog = page.getByRole('dialog', { name: 'Hai.svg' });
+  // DV-02 (Curtis 08/11): tiêu đề trình xem = "{dự án}. {tiêu đề mục}" (mục Chung: tiêu đề mục); ảnh vẫn có alt = tên tệp.
+  const dialog = page.getByRole('dialog', { name: 'Hai ảnh' });
   await expect(dialog.getByRole('img', { name: 'Hai.svg' })).toBeVisible();
   await expect(dialog.getByText('2/2')).toBeVisible();
   await dialog.getByRole('button', { name: 'Chia sẻ' }).click();
@@ -150,10 +152,11 @@ test('DV-01 kho tài liệu: đúng tệp, chia sẻ riêng tệp, đổi giữ 
     .poll(() => page.evaluate(() => (window as Window & { shares?: unknown[] }).shares))
     .toEqual([{ files: ['Hai.svg'] }]);
   await dialog.getByLabel('Chọn tệp thay thế').setInputFiles(image('Mới.svg'));
-  dialog = page.getByRole('dialog', { name: 'Mới.svg' });
+  await expect(dialog.getByRole('img', { name: 'Mới.svg' })).toBeVisible();
   await expect(dialog.getByText('2/2')).toBeVisible();
   await dialog.getByRole('button', { name: 'Tệp trước' }).click();
-  await expect(page.getByRole('dialog', { name: 'Một.svg' }).getByText('1/2')).toBeVisible();
+  await expect(dialog.getByRole('img', { name: 'Một.svg' })).toBeVisible();
+  await expect(dialog.getByText('1/2')).toBeVisible();
   await page.keyboard.press('Escape');
   await page.reload();
   await page.getByRole('button', { name: 'Xem Mới.svg' }).click();
@@ -163,13 +166,14 @@ test('DV-01 kho tài liệu: đúng tệp, chia sẻ riêng tệp, đổi giữ 
     await confirm.accept();
   });
   await page.getByRole('dialog').getByRole('button', { name: 'Xoá', exact: true }).click();
-  await expect(page.getByRole('dialog', { name: 'Một.svg' }).getByText('1/1')).toHaveCount(0);
+  await expect(dialog.getByRole('img', { name: 'Một.svg' })).toBeVisible();
+  await expect(dialog.getByText('1/1')).toHaveCount(0);
   page.once('dialog', async (confirm) => {
     expect(confirm.message()).toBe('Xoá cả tài liệu “Hai ảnh”?');
     await confirm.dismiss();
   });
   await page.getByRole('dialog').getByRole('button', { name: 'Xoá', exact: true }).click();
-  await expect(page.getByRole('dialog', { name: 'Một.svg' })).toBeVisible();
+  await expect(dialog.getByRole('img', { name: 'Một.svg' })).toBeVisible();
   page.once('dialog', async (confirm) => {
     expect(confirm.message()).toBe('Xoá cả tài liệu “Hai ảnh”?');
     await confirm.accept();
@@ -367,6 +371,6 @@ test('DV-01 cử chỉ điện thoại: chụm hai ngón, kéo, chạm đúp và
   await touch('touchStart', [{ x: cx + 60, y: cy }]);
   await touch('touchMove', [{ x: cx - 60, y: cy }]);
   await touch('touchEnd', []);
-  await expect(page.getByRole('dialog', { name: 'Hai.svg' })).toBeVisible();
+  await expect(page.getByRole('dialog', { name: 'Cử chỉ' }).getByRole('img', { name: 'Hai.svg' })).toBeVisible();
   await session.detach();
 });

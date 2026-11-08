@@ -477,11 +477,17 @@ function SendKitPage() {
     }
   };
   const canEditViewed = !!viewedItem && (!repository || repository.canEdit(viewedItem));
+  const viewerTitle = viewedItem
+    ? viewedItem.project
+      ? `${viewedItem.project}. ${viewedItem.title}`
+      : viewedItem.title
+    : undefined;
   const viewer = (
     <DocumentViewer
       files={viewerFiles}
       fileId={viewing?.fileId ?? ''}
       open={!!viewing}
+      title={viewerTitle}
       onOpenChange={(open) => {
         if (!open) setViewing(null);
       }}

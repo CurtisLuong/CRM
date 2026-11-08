@@ -8,7 +8,18 @@ import {
 } from 'react';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/ui/Icon';
-import { clampPan, fitScale, MAX_SCALE, type Point, type Size, type ViewTransform, zoomAt } from './geometry';
+import { clampPan, fitScale, MAX_SCALE, type Point, panView, type Size, type ViewTransform, zoomAt } from './geometry';
+
+type Pinch = { a: number; b: number; view: ViewTransform; distance: number; middle: Point };
+type Gesture = {
+  start: Point;
+  moved: boolean;
+  pinched: boolean;
+  pan: { view: ViewTransform; point: Point } | null;
+  pinch: Pinch | null;
+};
+const middleOf = (a: Point, b: Point): Point => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
+const distanceOf = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y);
 
 export function ZoomSurface({
   size,
@@ -22,20 +33,56 @@ export function ZoomSurface({
   children: (scale: number) => ReactNode;
 }) {
   const surface = useRef<HTMLElement>(null);
+  const box = useRef<HTMLDivElement>(null);
   const [viewport, setViewport] = useState<Size>({ width: 1, height: 1 });
   const minimum = fitScale(size, viewport, pdf);
   const [view, setView] = useState<ViewTransform>({ scale: minimum, x: 0, y: 0 });
+  // `current` = trạng thái đã cam kết (khớp layout); `pending` = trạng thái đang kéo/chụm (chỉ transform).
   const current = useRef(view);
+  const pending = useRef<ViewTransform | null>(null);
+  const frame = useRef(0);
   const pointers = useRef(new Map<number, Point>());
-  const gesture = useRef<{ start: Point; moved: boolean; pinched: boolean } | null>(null);
+  const gesture = useRef<Gesture | null>(null);
   const lastTap = useRef(0);
   const pointerType = useRef('mouse');
-  const change = (next: ViewTransform) => {
+
+  const clearFrame = () => {
+    if (frame.current) cancelAnimationFrame(frame.current);
+    frame.current = 0;
+  };
+  /** Gốc nội dung trên màn hình ứng với một view khi layout đang ở đúng view đó. */
+  const origin = (value: ViewTransform): Point => ({
+    x: Math.max(0, (viewport.width - size.width * value.scale) / 2) - value.x,
+    y: Math.max(0, (viewport.height - size.height * value.scale) / 2) - value.y,
+  });
+  /** Vẽ trạng thái mới bằng transform trên layout cũ — không đổi width/height, không layout lại. */
+  const paint = (next: ViewTransform) => {
+    const node = box.current;
+    if (!node) return;
+    if (next.scale === current.current.scale && next.x === current.current.x && next.y === current.current.y) {
+      node.style.transform = '';
+      return;
+    }
+    const from = origin(current.current);
+    const to = origin(next);
+    node.style.transform = `translate(${to.x - from.x}px, ${to.y - from.y}px) scale(${next.scale / current.current.scale})`;
+  };
+  const schedule = (next: ViewTransform) => {
+    pending.current = next;
+    if (frame.current) return;
+    frame.current = requestAnimationFrame(() => {
+      frame.current = 0;
+      if (pending.current) paint(pending.current);
+    });
+  };
+  const commit = (next: ViewTransform) => {
+    clearFrame();
+    pending.current = null;
     current.current = next;
     setView(next);
   };
   const zoom = (scale: number, anchor = { x: viewport.width / 2, y: viewport.height / 2 }) => {
-    change(zoomAt(current.current, scale, anchor, size, viewport, minimum));
+    commit(zoomAt(current.current, scale, anchor, size, viewport, minimum));
   };
   const toggleZoom = (anchor: Point) => zoom(current.current.scale > minimum + 0.001 ? minimum : minimum * 2, anchor);
 
@@ -54,16 +101,31 @@ export function ZoomSurface({
   }, []);
 
   useLayoutEffect(() => {
+    if (frame.current) cancelAnimationFrame(frame.current);
+    frame.current = 0;
+    pending.current = null;
     const next = { scale: minimum, x: 0, y: 0 };
     current.current = next;
     setView(next);
+    box.current?.style.removeProperty('transform');
   }, [minimum]);
 
+  // Cam kết xong mới đổi layout: cuộn tới đúng chỗ và bỏ transform trong cùng một khung hình.
   useLayoutEffect(() => {
-    if (!surface.current) return;
-    surface.current.scrollLeft = view.x;
-    surface.current.scrollTop = view.y;
+    const node = surface.current;
+    if (node) {
+      node.scrollLeft = view.x;
+      node.scrollTop = view.y;
+    }
+    box.current?.style.removeProperty('transform');
   }, [view]);
+
+  useEffect(
+    () => () => {
+      if (frame.current) cancelAnimationFrame(frame.current);
+    },
+    [],
+  );
 
   // Chỉ Ctrl/⌘ + lăn chuột chặn zoom trang; lăn thường vẫn cuộn PDF.
   useEffect(() => {
@@ -81,6 +143,9 @@ export function ZoomSurface({
         viewport,
         minimum,
       );
+      if (frame.current) cancelAnimationFrame(frame.current);
+      frame.current = 0;
+      pending.current = null;
       current.current = next;
       setView(next);
     };
@@ -92,12 +157,50 @@ export function ZoomSurface({
     const rect = event.currentTarget.getBoundingClientRect();
     return { x: event.clientX - rect.left, y: event.clientY - rect.top };
   };
+  const beginPinch = (state: Gesture) => {
+    const entries = [...pointers.current.entries()];
+    const first = entries[0];
+    const second = entries[1];
+    if (!first || !second) return;
+    const [a, pa] = first;
+    const [b, pb] = second;
+    state.pinched = true;
+    state.moved = true;
+    state.pan = null;
+    state.pinch = {
+      a,
+      b,
+      view: pending.current ?? current.current,
+      distance: Math.max(1, distanceOf(pa, pb)),
+      middle: middleOf(pa, pb),
+    };
+  };
+  const rebase = (state: Gesture) => {
+    const entries = [...pointers.current.entries()];
+    const [first, second] = entries;
+    if (!first) return;
+    if (second) {
+      beginPinch(state);
+      return;
+    }
+    state.pinch = null;
+    state.pan = { view: pending.current ?? current.current, point: first[1] };
+    state.moved = true;
+  };
   const end = (event: ReactPointerEvent<HTMLElement>, cancelled = false) => {
     const state = gesture.current;
     const endPoint = point(event);
     pointers.current.delete(event.pointerId);
-    if (!state || pointers.current.size) return;
-    if (!cancelled && !state.pinched) {
+    if (!state) return;
+    if (pointers.current.size) {
+      rebase(state);
+      return;
+    }
+    gesture.current = null;
+    const desired = pending.current ?? current.current;
+    commit(desired);
+    if (cancelled) return;
+    if (!state.pinched) {
       const dx = endPoint.x - state.start.x;
       const dy = endPoint.y - state.start.y;
       if (current.current.scale <= minimum + 0.001 && Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
@@ -110,7 +213,6 @@ export function ZoomSurface({
         } else lastTap.current = now;
       }
     }
-    gesture.current = null;
   };
 
   return (
@@ -139,7 +241,7 @@ export function ZoomSurface({
           <Icon name="zoom_in" />
         </Button>
         <span className="min-w-12 text-center text-caption text-ink-muted">{Math.round(view.scale * 100)}%</span>
-        <Button className="px-2" onClick={() => change({ scale: minimum, x: 0, y: 0 })}>
+        <Button className="px-2" onClick={() => commit({ scale: minimum, x: 0, y: 0 })}>
           <Icon name="fit_view" />
           <span>Vừa màn hình</span>
         </Button>
@@ -169,52 +271,57 @@ export function ZoomSurface({
           event.currentTarget.setPointerCapture(event.pointerId);
           const position = point(event);
           pointers.current.set(event.pointerId, position);
-          if (pointers.current.size === 1) gesture.current = { start: position, moved: false, pinched: false };
-          else if (gesture.current) gesture.current.pinched = true;
+          if (!gesture.current) {
+            gesture.current = {
+              start: position,
+              moved: false,
+              pinched: false,
+              pan: { view: current.current, point: position },
+              pinch: null,
+            };
+          }
+          if (pointers.current.size === 2 && gesture.current) beginPinch(gesture.current);
         }}
         onPointerMove={(event) => {
           const previous = pointers.current.get(event.pointerId);
           if (!previous) return;
           const next = point(event);
-          const before = [...pointers.current.values()];
           pointers.current.set(event.pointerId, next);
-          if (gesture.current && Math.hypot(next.x - gesture.current.start.x, next.y - gesture.current.start.y) > 8)
-            gesture.current.moved = true;
-          const after = [...pointers.current.values()];
-          if (before.length === 2 && after.length === 2) {
-            const [a, b] = before as [Point, Point];
-            const [c, d] = after as [Point, Point];
-            const distance = Math.hypot(a.x - b.x, a.y - b.y);
+          const state = gesture.current;
+          if (!state) return;
+          if (Math.hypot(next.x - state.start.x, next.y - state.start.y) > 8) state.moved = true;
+          if (state.pinch && pointers.current.has(state.pinch.a) && pointers.current.has(state.pinch.b)) {
+            const a = pointers.current.get(state.pinch.a);
+            const b = pointers.current.get(state.pinch.b);
+            if (!a || !b) return;
+            const distance = distanceOf(a, b);
             if (!distance) return;
-            const oldMiddle = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
-            const newMiddle = { x: (c.x + d.x) / 2, y: (c.y + d.y) / 2 };
-            const scaled = zoomAt(
-              current.current,
-              (current.current.scale * Math.hypot(c.x - d.x, c.y - d.y)) / distance,
-              oldMiddle,
+            const middle = middleOf(a, b);
+            const zoomed = zoomAt(
+              state.pinch.view,
+              (state.pinch.view.scale * distance) / state.pinch.distance,
+              state.pinch.middle,
               size,
               viewport,
               minimum,
             );
-            change({
-              scale: scaled.scale,
+            schedule({
+              scale: zoomed.scale,
               ...clampPan(
-                { x: scaled.x + oldMiddle.x - newMiddle.x, y: scaled.y + oldMiddle.y - newMiddle.y },
-                scaled.scale,
+                {
+                  x: zoomed.x + state.pinch.middle.x - middle.x,
+                  y: zoomed.y + state.pinch.middle.y - middle.y,
+                },
+                zoomed.scale,
                 size,
                 viewport,
               ),
             });
-          } else if (pdf || current.current.scale > minimum + 0.001) {
-            change({
-              scale: current.current.scale,
-              ...clampPan(
-                { x: current.current.x + previous.x - next.x, y: current.current.y + previous.y - next.y },
-                current.current.scale,
-                size,
-                viewport,
-              ),
-            });
+          } else if (state.pan && (pdf || state.pan.view.scale > minimum + 0.001)) {
+            const panned = panView(state.pan.view, state.pan.point, next, size, viewport);
+            // Neo lại sau mỗi bước: chạm mép rồi đảo chiều thì ảnh theo tay ngay (1:1), không phải bù đoạn vượt mép.
+            state.pan = { view: panned, point: next };
+            schedule(panned);
           }
         }}
         onPointerUp={(event) => end(event)}
@@ -231,6 +338,7 @@ export function ZoomSurface({
           }}
         >
           <div
+            ref={box}
             className="absolute"
             data-testid="document-content"
             style={{
@@ -238,6 +346,7 @@ export function ZoomSurface({
               height: size.height * view.scale,
               left: Math.max(0, (viewport.width - size.width * view.scale) / 2),
               top: Math.max(0, (viewport.height - size.height * view.scale) / 2),
+              transformOrigin: '0 0',
             }}
           >
             {children(view.scale)}
