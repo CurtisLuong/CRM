@@ -5,6 +5,7 @@ export * from './document-viewer';
 export * from './empty-state';
 export * from './filters';
 export * from './form-fields';
+export * from './form-section';
 export * from './lead';
 export * from './notifications';
 export * from './shell';

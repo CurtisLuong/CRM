@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import type { FeatureRoute } from '@/app/routes';
 import { ActionButton, Avatar, SlaMeter, StageChip } from '@/components/crm';
+import { FormSubsection } from '@/components/crm/form-section';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetBody, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { TabsContent, TabsList, Tabs as TabsPrimitive, TabsTrigger } from '@/components/ui/tabs';
@@ -35,7 +36,7 @@ import { ProfileTextField as Field, LegacyAssistField, ProfileAdvanced } from '.
 import { ArchiveCustomerSection, ArchivedBanner } from './archive';
 import { dobSavePatch, dobView } from './dob';
 import { DocumentsSection } from './documents';
-import { advancedPatch, legacyValues } from './fields';
+import { advancedPatch, LONG_FIELD, legacyValues } from './fields';
 import { infoHiddenCount, ProfileInfoFields } from './info';
 import { CustomerMemory, CustomerNeedsAdvanced, contactPrefsMissingCount } from './memory';
 import {
@@ -361,18 +362,15 @@ function Profile() {
   );
   const memoryContent = (
     <div key={c.id} className="space-y-5">
-      <section className="space-y-3">
-        <h2 className="text-title">Thông tin chính</h2>
-        <ProfileInfoFields
-          customer={c}
-          writable={infoWritable}
-          busy={busy}
-          now={now}
-          showEmpty={supplementOpen}
-          onSaveField={setField}
-          onSaveDob={(dob) => void save(dobSavePatch(c, dob), dob ? 'Đã lưu ngày sinh' : 'Đã xoá ngày sinh')}
-        />
-      </section>
+      <ProfileInfoFields
+        customer={c}
+        writable={infoWritable}
+        busy={busy}
+        now={now}
+        showEmpty={supplementOpen}
+        onSaveField={setField}
+        onSaveDob={(dob) => void save(dobSavePatch(c, dob), dob ? 'Đã lưu ngày sinh' : 'Đã xoá ngày sinh')}
+      />
       <CustomerMemory
         customer={c}
         writable={infoWritable}
@@ -432,31 +430,32 @@ function Profile() {
           projectCatalog={catalog}
           openSignal={needsAdvancedSignal}
         >
-          <section className="space-y-3">
-            <h2 className="text-title">Sở thích bất động sản</h2>
-            {PROFILE_PREF_FIELDS.map((field) =>
-              field.key === PROFILE_PREF_CONDITIONS.key ? (
-                <LegacyAssistField
-                  key={field.key}
-                  label={field.label}
-                  value={c.advanced?.[field.key]}
-                  disabled={!infoWritable}
-                  placeholder={field.ph}
-                  legacy={legacyValues(c.advanced || {}, PREF_CONDITIONS_LEGACY)}
-                  onSave={(value) => setAdvancedField(field.key, value)}
-                />
-              ) : (
-                <Field
-                  key={field.key}
-                  label={field.label}
-                  value={c.advanced?.[field.key]}
-                  disabled={!infoWritable}
-                  placeholder={field.ph}
-                  onSave={(value) => setAdvancedField(field.key, value)}
-                />
-              ),
-            )}
-          </section>
+          <FormSubsection title="Sở thích bất động sản">
+            {PROFILE_PREF_FIELDS.map((field) => (
+              <div key={field.key} className={LONG_FIELD}>
+                {field.key === PROFILE_PREF_CONDITIONS.key ? (
+                  <LegacyAssistField
+                    key={field.key}
+                    label={field.label}
+                    value={c.advanced?.[field.key]}
+                    disabled={!infoWritable}
+                    placeholder={field.ph}
+                    legacy={legacyValues(c.advanced || {}, PREF_CONDITIONS_LEGACY)}
+                    onSave={(value) => setAdvancedField(field.key, value)}
+                  />
+                ) : (
+                  <Field
+                    key={field.key}
+                    label={field.label}
+                    value={c.advanced?.[field.key]}
+                    disabled={!infoWritable}
+                    placeholder={field.ph}
+                    onSave={(value) => setAdvancedField(field.key, value)}
+                  />
+                )}
+              </div>
+            ))}
+          </FormSubsection>
         </CustomerNeedsAdvanced>
       )}
       {supplementToggle(needsSupplementOpen, needsHidden, () => setNeedsSupplementOpen(!needsSupplementOpen))}
@@ -901,8 +900,8 @@ function Profile() {
               <TabsList
                 aria-label="Nội dung hồ sơ khách"
                 // 5 tab không vừa 360px: cuộn ngang trong thanh tab thay vì ép chữ chồng lên nhau.
-                // Thanh đầu ẩn khi cuộn (điện thoại) → tab trượt lên cùng nhịp bằng transform, không nhảy `top` (bị thanh đầu đè giữa chừng).
-                className="sticky top-[calc(56px+env(safe-area-inset-top))] z-20 transition-transform duration-200 motion-reduce:transition-none max-md:[[data-header-hidden]_&]:-translate-y-14 gap-0 overflow-x-auto bg-surface-0 [scrollbar-width:none] [&_[role=tab]]:scroll-mt-14"
+                // Header hiện lại: tab xuống ngay để không chồng lên nhau; chỉ dịch tab lên sau khi header đã ẩn xong.
+                className="sticky top-[calc(56px+env(safe-area-inset-top))] z-20 transition-none max-md:[[data-header-hidden]_&]:-translate-y-14 max-md:[[data-header-hidden]_&]:transition-transform max-md:[[data-header-hidden]_&]:duration-200 max-md:[[data-header-hidden]_&]:delay-200 motion-reduce:!transition-none gap-0 overflow-x-auto bg-surface-0 [scrollbar-width:none] [&_[role=tab]]:scroll-mt-14"
               >
                 {tabs.map((item) => (
                   <TabsTrigger
