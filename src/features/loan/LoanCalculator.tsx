@@ -1,7 +1,9 @@
 // biome-ignore-all lint/suspicious/noArrayIndexKey: Loan table columns and rate-tier positions have fixed semantic order; only the last tier can be removed.
+
 import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { toast as notify } from 'sonner';
 import { type Column, EmptyState, DataTable as KitDataTable, TextField } from '@/components/crm';
+import { FormGrid, FormSection, FormSubsection, LONG_FIELD, SHORT_FIELD } from '@/components/crm/form-section';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useCustomers, useRepositoryAccount } from '@/data/hooks';
@@ -29,14 +31,13 @@ import {
 import { printLoan } from './print';
 import { createLoanStore, type LoanQuote } from './store';
 
-const FORM_GRID = 'grid grid-cols-2 gap-3 lg:grid-cols-4';
-const WIDE = 'col-span-2';
+const WIDE = LONG_FIELD;
 const FIELD =
   'h-11 w-full min-w-0 rounded-sm border border-input bg-surface-100 px-3 py-2 text-body text-ink focus:outline-2 focus:outline-ion';
 function Field({ label, children, className = '' }: { label: string; children: ReactNode; className?: string }) {
   return (
     // biome-ignore lint/a11y/noLabelWithoutControl: The children always include the input or select, nested inside this label.
-    <label className={`flex min-w-0 flex-col gap-1.5 text-label text-ink ${className}`}>
+    <label className={`flex min-w-0 flex-col gap-1.5 text-label text-ink ${className || SHORT_FIELD}`}>
       <span>{label}</span>
       {children}
     </label>
@@ -82,7 +83,7 @@ function NumberInput({
           : current / scale;
   return (
     <TextField
-      className={`w-full ${className}`}
+      className={className || SHORT_FIELD}
       label={label}
       hint={hint}
       type="number"
@@ -103,10 +104,9 @@ function NumberInput({
 }
 function Group({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="flex flex-col gap-3 border-t border-line pt-4">
-      <h2 className="text-section-head">{title}</h2>
-      {children}
-    </section>
+    <FormSection title={title}>
+      <div className={`${LONG_FIELD} space-y-3`}>{children}</div>
+    </FormSection>
   );
 }
 function ErrorState({ title, detail, onRetry }: { title: string; detail: string; onRetry?: () => void }) {
@@ -156,19 +156,21 @@ export function LoanCalculator({ prefill = {} }: { prefill?: LoanPrefill }) {
       <p className="text-caption text-ink-muted">
         Số liệu tạm tính để tham khảo. Lãi suất và phí là giả định; xác nhận với ngân hàng trước khi tư vấn.
       </p>
-      <Field label="Khách hàng (không bắt buộc)">
-        <select className={FIELD} value={selected} onChange={(e) => setSelected(e.target.value)}>
-          <option value="">Bảng tính độc lập</option>
-          {customer && !choices.some((c) => c.id === customer.id) && (
-            <option value={customer.id}>{customer.full_name}</option>
-          )}
-          {choices.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.full_name} · {c.phone}
-            </option>
-          ))}
-        </select>
-      </Field>
+      <FormSection title="Khách hàng (không bắt buộc)">
+        <Field className={LONG_FIELD} label="Khách hàng (không bắt buộc)">
+          <select className={FIELD} value={selected} onChange={(e) => setSelected(e.target.value)}>
+            <option value="">Bảng tính độc lập</option>
+            {customer && !choices.some((c) => c.id === customer.id) && (
+              <option value={customer.id}>{customer.full_name}</option>
+            )}
+            {choices.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.full_name} · {c.phone}
+              </option>
+            ))}
+          </select>
+        </Field>
+      </FormSection>
       {selected && !customer && (
         <p role="status" className="text-caption text-ink-muted">
           Đang tìm khách trong dữ liệu tài khoản. Chưa thể lưu phương án cho khách này.
@@ -384,7 +386,7 @@ function CalculatorForm({
     <div className="flex flex-col gap-6">
       {/* Curtis 06/11: tư vấn viên trên phiếu đưa lên đầu form. */}
       <Group title="Tư vấn viên trên phiếu">
-        <div className={FORM_GRID}>
+        <FormGrid>
           <Field label="Tên tư vấn viên">
             <input
               className={FIELD}
@@ -401,11 +403,11 @@ function CalculatorForm({
               onChange={(e) => setConsultant((c) => ({ ...c, phone: e.target.value }))}
             />
           </Field>
-        </div>
+        </FormGrid>
       </Group>
       <Group title="Căn hộ và tiến độ">
         {/* Ô ngắn 2 ô/hàng (4 ở desktop), ô dài chiếm cả hàng — Curtis 06/11: trang tính vay dài quá. */}
-        <div className={FORM_GRID}>
+        <FormGrid>
           <Field label="Dự án" className={WIDE}>
             <input
               aria-label="Dự án"
@@ -471,12 +473,16 @@ function CalculatorForm({
             label="Giá thuần"
             suffix="tr"
             scale={1_000_000}
-            className={WIDE}
             value={state.unit.netOverride}
             auto={autoNet}
             hint={state.unit.netOverride ? 'Đã nhập tay · xoá trống để tự tính lại' : 'Tự tính = diện tích × đơn giá'}
             onChange={(n) => unit({ netOverride: n })}
           />
+        </FormGrid>
+        <FormSubsection
+          title="Tiến độ"
+          className="[&_label>span:first-child]:min-h-10 sm:[&_label>span:first-child]:min-h-5"
+        >
           <Field label="Ngày ký hợp đồng">
             <input
               type="date"
@@ -501,7 +507,7 @@ function CalculatorForm({
             value={state.dates.titleAfterMonths}
             onChange={(n) => dates({ titleAfterMonths: n ?? 0 })}
           />
-        </div>
+        </FormSubsection>
         <p className="text-caption text-ink-muted">
           VAT {project?.vat_rate ?? 5}% · KPBT {project?.kpbt_rate ?? 2}%.{' '}
           {project
@@ -529,7 +535,7 @@ function CalculatorForm({
         )}
       </Group>
       <Group title="Thông số vay">
-        <div className={FORM_GRID}>
+        <FormGrid>
           <Field label="Gói vay" className={WIDE}>
             <select
               aria-label="Gói vay"
@@ -582,7 +588,6 @@ function CalculatorForm({
             label="Số tiền vay"
             suffix="tr"
             scale={1_000_000}
-            className={WIDE}
             value={manualLoan}
             auto={Math.round((gross * shownLtv) / 100)}
             hint={
@@ -636,12 +641,11 @@ function CalculatorForm({
               ))}
             </select>
           </Field>
-        </div>
+        </FormGrid>
         <p className="text-caption text-ink-muted">Tỷ lệ vay tính trên giá thuần + VAT (không gồm phí và KPBT).</p>
-        <div className="flex flex-col gap-2">
-          <h3 className="text-body-strong">Bậc lãi suất ưu đãi</h3>
+        <FormSubsection title="Bậc lãi suất ưu đãi">
           {state.loan.rateTiers.map((tier, i) => (
-            <div className="grid grid-cols-2 gap-3" key={`tier-${i}`}>
+            <FormGrid className={LONG_FIELD} key={`tier-${i}`}>
               <NumberInput
                 label={`Bậc ${i + 1}: số tháng`}
                 suffix="tháng"
@@ -661,9 +665,9 @@ function CalculatorForm({
                   loan({ rateTiers: state.loan.rateTiers.map((t, j) => (j === i ? { ...t, rate: n ?? 0 } : t)) })
                 }
               />
-            </div>
+            </FormGrid>
           ))}
-          <div className="flex gap-2">
+          <div className={`${LONG_FIELD} flex gap-2`}>
             <Button onClick={() => loan({ rateTiers: [...state.loan.rateTiers, { months: 12, rate: 6.5 }] })}>
               Thêm bậc lãi
             </Button>
@@ -671,7 +675,7 @@ function CalculatorForm({
               <Button onClick={() => loan({ rateTiers: state.loan.rateTiers.slice(0, -1) })}>Bỏ bậc cuối</Button>
             )}
           </div>
-        </div>
+        </FormSubsection>
         <label className="flex min-h-11 items-center gap-2 text-caption">
           <input
             type="checkbox"
@@ -681,7 +685,7 @@ function CalculatorForm({
           Ân hạn gốc
         </label>
         {state.loan.graceEnabled && (
-          <div className="grid grid-cols-2 gap-3">
+          <FormGrid>
             <NumberInput
               label="Ân hạn gốc"
               suffix="tháng"
@@ -699,7 +703,7 @@ function CalculatorForm({
                 <option value="last">Lần cuối</option>
               </select>
             </Field>
-          </div>
+          </FormGrid>
         )}
         <Field label="Phí tất toán theo năm vay (%; phân cách dấu phẩy)">
           <input

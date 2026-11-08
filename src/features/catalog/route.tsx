@@ -3,6 +3,7 @@ import { Link } from 'react-router';
 import { toast as notify } from 'sonner';
 import type { FeatureRoute } from '@/app/routes';
 import { type Column, DataTable, TextField } from '@/components/crm';
+import { FormGrid, FormSection, FormSubsection, LONG_FIELD, SHORT_FIELD } from '@/components/crm/form-section';
 import { Button } from '@/components/ui/button';
 import { Toaster } from '@/components/ui/sonner';
 import { DIRECTIONS, directionValue } from '@/config/directions';
@@ -22,8 +23,8 @@ import {
   unitMatchesQuery,
 } from './model';
 
-const fieldClass = 'mt-1 h-11 w-full rounded-sm border border-input bg-surface-100 px-3 text-body text-ink';
-const labelClass = 'block text-label text-ink-muted';
+const fieldClass = 'h-11 w-full min-w-0 rounded-sm border border-input bg-surface-100 px-3 text-body text-ink';
+const labelClass = 'flex min-w-0 flex-col gap-1.5 text-label text-ink-muted';
 type ProjectForm = {
   name: string;
   typical_price_per_m2: string;
@@ -928,102 +929,109 @@ function CatalogPage() {
         </div>
       </section>
 
-      <section className="space-y-3 rounded-lg border border-line bg-surface-100 p-4">
-        <div>
-          <h2 className="text-section-head">Tìm căn và khách phù hợp</h2>
-          <p className="text-caption text-ink-muted">
-            Giá hiển thị là giá dự kiến (gồm VAT + KPBT + phí); thiếu giá hoặc diện tích không được tính là đạt lọc giá.
-          </p>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <TextField
-            label="Tìm căn"
-            value={query}
-            onChange={(e) => {
-              setQuery(e.target.value);
-              setLimit(50);
-            }}
-            placeholder="Mã căn, dự án, toà, ghi chú"
-          />
-          <label className={labelClass}>
-            Tình trạng
-            <select className={fieldClass} value={status} onChange={(e) => setStatus(e.target.value)}>
-              <option value="">Tất cả</option>
-              <option value="available">Còn</option>
-              <option value="holding">Giữ chỗ</option>
-              <option value="sold">Đã bán</option>
-            </select>
-          </label>
-          <label className={labelClass}>
-            Dự án
-            <select
-              className={fieldClass}
-              value={projectId}
+      <section className="min-w-0 space-y-3">
+        <FormSection title="Tìm căn và khách phù hợp">
+          <div className={LONG_FIELD}>
+            <p className="text-caption text-ink-muted">
+              Giá hiển thị là giá dự kiến (gồm VAT + KPBT + phí); thiếu giá hoặc diện tích không được tính là đạt lọc
+              giá.
+            </p>
+          </div>
+          <FormGrid className={LONG_FIELD}>
+            <TextField
+              className={LONG_FIELD}
+              label="Tìm căn"
+              value={query}
               onChange={(e) => {
-                setProjectId(e.target.value);
-                setBuildingId('');
+                setQuery(e.target.value);
+                setLimit(50);
               }}
-            >
-              <option value="">Tất cả</option>
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className={labelClass}>
-            Khách cần tìm căn phù hợp
-            <select
-              className={fieldClass}
-              value={matchingCustomer}
-              onChange={(e) => setMatchingCustomer(e.target.value)}
-            >
-              <option value="">Không chọn khách</option>
-              {customers
-                .filter((c) => c.owner_id === userId && !c.disqualified_at && !c.archived_at)
-                .map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.full_name}
+              placeholder="Mã căn, dự án, toà, ghi chú"
+            />
+            <label className={`${SHORT_FIELD} ${labelClass}`}>
+              Tình trạng
+              <select className={fieldClass} value={status} onChange={(e) => setStatus(e.target.value)}>
+                <option value="">Tất cả</option>
+                <option value="available">Còn</option>
+                <option value="holding">Giữ chỗ</option>
+                <option value="sold">Đã bán</option>
+              </select>
+            </label>
+            <label className={`${SHORT_FIELD} ${labelClass}`}>
+              Dự án
+              <select
+                className={fieldClass}
+                value={projectId}
+                onChange={(e) => {
+                  setProjectId(e.target.value);
+                  setBuildingId('');
+                }}
+              >
+                <option value="">Tất cả</option>
+                {projects.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
                   </option>
                 ))}
-            </select>
-          </label>
-        </div>
-        {matchingCustomer && (
-          <TextField
-            label="Giá tối đa riêng để ghép khách"
-            suffix="triệu (giá dự kiến)"
-            numeric
-            value={matchingMaxPrice}
-            onChange={(e) => setMatchingMaxPrice(e.target.value)}
-            placeholder="Để trống nếu chưa xác định"
-          />
-        )}
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <label className={labelClass}>
-            Loại căn
-            <input
-              className={fieldClass}
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
-              placeholder="VD: 2N hoặc 2N-2WC"
+              </select>
+            </label>
+            <label className={`${SHORT_FIELD} ${labelClass}`}>
+              Khách cần tìm căn phù hợp
+              <select
+                className={fieldClass}
+                value={matchingCustomer}
+                onChange={(e) => setMatchingCustomer(e.target.value)}
+              >
+                <option value="">Không chọn khách</option>
+                {customers
+                  .filter((c) => c.owner_id === userId && !c.disqualified_at && !c.archived_at)
+                  .map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.full_name}
+                    </option>
+                  ))}
+              </select>
+            </label>
+          </FormGrid>
+          {matchingCustomer && (
+            <TextField
+              className={LONG_FIELD}
+              label="Giá tối đa riêng để ghép khách"
+              suffix="triệu (giá dự kiến)"
+              numeric
+              value={matchingMaxPrice}
+              onChange={(e) => setMatchingMaxPrice(e.target.value)}
+              placeholder="Để trống nếu chưa xác định"
             />
-          </label>
-          <label className={labelClass}>
-            Hướng
-            <select className={fieldClass} value={directionFilter} onChange={(e) => setDirectionFilter(e.target.value)}>
-              <option value="">Tất cả</option>
-              {directionChoices.map((direction) => (
-                <option key={direction}>{direction}</option>
-              ))}
-            </select>
-          </label>
-          <div className="min-w-0 space-y-1">
-            <p className={labelClass}>Tầng từ / đến</p>
-            <div className="flex min-w-0 gap-2">
+          )}
+          <FormGrid className={LONG_FIELD}>
+            <label className={`${SHORT_FIELD} ${labelClass}`}>
+              Loại căn
+              <input
+                className={fieldClass}
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+                placeholder="VD: 2N hoặc 2N-2WC"
+              />
+            </label>
+            <label className={`${SHORT_FIELD} ${labelClass}`}>
+              Hướng
+              <select
+                className={fieldClass}
+                value={directionFilter}
+                onChange={(e) => setDirectionFilter(e.target.value)}
+              >
+                <option value="">Tất cả</option>
+                {directionChoices.map((direction) => (
+                  <option key={direction}>{direction}</option>
+                ))}
+              </select>
+            </label>
+          </FormGrid>
+          <FormGrid className={LONG_FIELD}>
+            <FormSubsection title="Tầng từ / đến" className="min-w-0 basis-full lg:flex-1 lg:basis-0">
               <TextField
-                className="min-w-0 flex-1"
+                className="min-w-0 flex-1 basis-[calc(50%_-_0.375rem)]"
                 label="Tầng từ"
                 suffix="tầng"
                 numeric
@@ -1031,20 +1039,17 @@ function CatalogPage() {
                 onChange={(e) => setFloorMin(e.target.value)}
               />
               <TextField
-                className="min-w-0 flex-1"
+                className="min-w-0 flex-1 basis-[calc(50%_-_0.375rem)]"
                 label="Tầng đến"
                 suffix="tầng"
                 numeric
                 value={floorMax}
                 onChange={(e) => setFloorMax(e.target.value)}
               />
-            </div>
-          </div>
-          <div className="min-w-0 space-y-1">
-            <p className={labelClass}>Diện tích từ / đến</p>
-            <div className="flex min-w-0 gap-2">
+            </FormSubsection>
+            <FormSubsection title="Diện tích từ / đến" className="min-w-0 basis-full lg:flex-1 lg:basis-0">
               <TextField
-                className="min-w-0 flex-1"
+                className="min-w-0 flex-1 basis-[calc(50%_-_0.375rem)]"
                 label="Diện tích từ"
                 suffix="m²"
                 numeric
@@ -1052,20 +1057,17 @@ function CatalogPage() {
                 onChange={(e) => setAreaMin(e.target.value)}
               />
               <TextField
-                className="min-w-0 flex-1"
+                className="min-w-0 flex-1 basis-[calc(50%_-_0.375rem)]"
                 label="Diện tích đến"
                 suffix="m²"
                 numeric
                 value={areaMax}
                 onChange={(e) => setAreaMax(e.target.value)}
               />
-            </div>
-          </div>
-          <div className="min-w-0 space-y-1">
-            <p className={labelClass}>Giá từ / đến (đã gồm thuế)</p>
-            <div className="flex min-w-0 gap-2">
+            </FormSubsection>
+            <FormSubsection title="Giá từ / đến (đã gồm thuế)" className="min-w-0 basis-full lg:flex-1 lg:basis-0">
               <TextField
-                className="min-w-0 flex-1"
+                className="min-w-0 flex-1 basis-[calc(50%_-_0.375rem)]"
                 label="Giá từ"
                 suffix="triệu"
                 numeric
@@ -1073,16 +1075,16 @@ function CatalogPage() {
                 onChange={(e) => setPriceMin(e.target.value)}
               />
               <TextField
-                className="min-w-0 flex-1"
+                className="min-w-0 flex-1 basis-[calc(50%_-_0.375rem)]"
                 label="Giá đến"
                 suffix="triệu"
                 numeric
                 value={priceMax}
                 onChange={(e) => setPriceMax(e.target.value)}
               />
-            </div>
-          </div>
-        </div>
+            </FormSubsection>
+          </FormGrid>
+        </FormSection>
         {matchingCustomer && customerForMatch && (
           <div className="rounded-md bg-surface-200 p-3 text-caption">
             Đang đối chiếu theo dự án và loại căn đã ghi cho {customerForMatch.full_name}. Vốn sẵn có không được xem là
@@ -1284,67 +1286,70 @@ function CatalogPage() {
           </div>
         )}
         {drawer === 'project' && (
-          <div>
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              <label className={`${labelClass} sm:col-span-2`}>
-                Tên dự án
-                <input
-                  className={fieldClass}
-                  value={projectForm.name}
-                  onChange={(e) => setProjectForm({ ...projectForm, name: e.target.value })}
-                />
-              </label>
-              <TextField
-                label="Giá dự án"
-                suffix="triệu/m²"
-                numeric
-                value={projectForm.typical_price_per_m2}
-                onChange={(e) => setProjectForm({ ...projectForm, typical_price_per_m2: e.target.value })}
+          <FormSection title="Thông tin dự án">
+            <label className={`${LONG_FIELD} ${labelClass}`}>
+              Tên dự án
+              <input
+                className={fieldClass}
+                value={projectForm.name}
+                onChange={(e) => setProjectForm({ ...projectForm, name: e.target.value })}
               />
-              <TextField
-                label="Phí mỗi căn"
-                hint="Cộng vào giá dự kiến, đóng đợt 1. Toà/căn nhập riêng thì ghi đè."
-                suffix="triệu"
-                numeric
-                value={projectForm.fee}
-                onChange={(e) => setProjectForm({ ...projectForm, fee: e.target.value })}
+            </label>
+            <TextField
+              className={SHORT_FIELD}
+              label="Giá dự án"
+              suffix="triệu/m²"
+              numeric
+              value={projectForm.typical_price_per_m2}
+              onChange={(e) => setProjectForm({ ...projectForm, typical_price_per_m2: e.target.value })}
+            />
+            <TextField
+              className={SHORT_FIELD}
+              label="Phí mỗi căn"
+              hint="Cộng vào giá dự kiến, đóng đợt 1. Toà/căn nhập riêng thì ghi đè."
+              suffix="triệu"
+              numeric
+              value={projectForm.fee}
+              onChange={(e) => setProjectForm({ ...projectForm, fee: e.target.value })}
+            />
+            <label className={`${SHORT_FIELD} ${labelClass}`}>
+              Bàn giao dự kiến
+              <input
+                type="date"
+                className={fieldClass}
+                value={projectForm.handover_date}
+                onChange={(e) => setProjectForm({ ...projectForm, handover_date: e.target.value })}
               />
-              <label className={labelClass}>
-                Bàn giao dự kiến
-                <input
-                  type="date"
-                  className={fieldClass}
-                  value={projectForm.handover_date}
-                  onChange={(e) => setProjectForm({ ...projectForm, handover_date: e.target.value })}
-                />
-              </label>
-              <TextField
-                label="VAT"
-                suffix="%"
-                numeric
-                value={projectForm.vat_rate}
-                onChange={(e) => setProjectForm({ ...projectForm, vat_rate: e.target.value })}
-              />
-              <TextField
-                label="KPBT"
-                suffix="%"
-                numeric
-                value={projectForm.kpbt_rate}
-                onChange={(e) => setProjectForm({ ...projectForm, kpbt_rate: e.target.value })}
-              />
-              <TextField
-                label="Nhận sổ sau bàn giao"
-                suffix="tháng"
-                numeric
-                value={projectForm.title_after_months}
-                onChange={(e) => setProjectForm({ ...projectForm, title_after_months: e.target.value })}
-              />
-            </div>
-          </div>
+            </label>
+            <TextField
+              className={SHORT_FIELD}
+              label="VAT"
+              suffix="%"
+              numeric
+              value={projectForm.vat_rate}
+              onChange={(e) => setProjectForm({ ...projectForm, vat_rate: e.target.value })}
+            />
+            <TextField
+              className={SHORT_FIELD}
+              label="KPBT"
+              suffix="%"
+              numeric
+              value={projectForm.kpbt_rate}
+              onChange={(e) => setProjectForm({ ...projectForm, kpbt_rate: e.target.value })}
+            />
+            <TextField
+              className={SHORT_FIELD}
+              label="Nhận sổ sau bàn giao"
+              suffix="tháng"
+              numeric
+              value={projectForm.title_after_months}
+              onChange={(e) => setProjectForm({ ...projectForm, title_after_months: e.target.value })}
+            />
+          </FormSection>
         )}
         {drawer === 'type' && (
-          <div className="grid gap-3">
-            <label className={labelClass}>
+          <FormSection title="Loại căn">
+            <label className={`${SHORT_FIELD} ${labelClass}`}>
               Tên loại căn
               <input
                 className={fieldClass}
@@ -1354,17 +1359,18 @@ function CatalogPage() {
               />
             </label>
             <TextField
+              className={SHORT_FIELD}
               label="Diện tích điển hình"
               suffix="m²"
               numeric
               value={aptTypeForm.area}
               onChange={(e) => setAptTypeForm({ ...aptTypeForm, area: e.target.value })}
             />
-          </div>
+          </FormSection>
         )}
         {drawer === 'building' && (
-          <div className="grid gap-3">
-            <label className={labelClass}>
+          <FormSection title="Thông tin toà">
+            <label className={`${SHORT_FIELD} ${labelClass}`}>
               Mã toà
               <input
                 className={fieldClass}
@@ -1373,6 +1379,7 @@ function CatalogPage() {
               />
             </label>
             <TextField
+              className={SHORT_FIELD}
               label="Giá duyệt toà"
               hint={buildingPriceHint}
               placeholder={buildingPriceHint}
@@ -1382,6 +1389,7 @@ function CatalogPage() {
               onChange={(e) => setBuildingForm({ ...buildingForm, approved_price_per_m2: e.target.value })}
             />
             <TextField
+              className={SHORT_FIELD}
               label="Phí mỗi căn của toà"
               hint={buildingFeeHint}
               placeholder={buildingFeeHint}
@@ -1390,7 +1398,7 @@ function CatalogPage() {
               value={buildingForm.fee}
               onChange={(e) => setBuildingForm({ ...buildingForm, fee: e.target.value })}
             />
-            <label className={labelClass}>
+            <label className={`${SHORT_FIELD} ${labelClass}`}>
               Bàn giao riêng của toà
               <input
                 type="date"
@@ -1400,18 +1408,18 @@ function CatalogPage() {
                 onChange={(e) => setBuildingForm({ ...buildingForm, handover_date: e.target.value })}
               />
             </label>
-            <p id="building-handover-hint" className="text-caption text-ink-muted">
+            <p id="building-handover-hint" className={`${LONG_FIELD} text-caption text-ink-muted`}>
               {buildingHandoverHint}
             </p>
-          </div>
+          </FormSection>
         )}
         {drawer === 'buildingTypes' && (
-          <div className="space-y-4">
+          <FormSection title="Loại căn được dùng">
             {catalog.projectTypes(projectId).map((type) => {
               const value = buildingTypeDraft[type.apt_type] || { selected: false, area: '' };
               return (
-                <div key={type.id} className="grid items-center gap-2 sm:grid-cols-[1fr_1fr_auto]">
-                  <label className="flex min-h-11 items-center gap-2 text-caption">
+                <FormSubsection key={type.id} title={type.apt_type} className={LONG_FIELD}>
+                  <label className={`${SHORT_FIELD} flex min-h-11 items-center gap-2 text-caption`}>
                     <input
                       type="checkbox"
                       checked={value.selected}
@@ -1425,6 +1433,7 @@ function CatalogPage() {
                     {type.apt_type}
                   </label>
                   <TextField
+                    className={SHORT_FIELD}
                     label={`Diện tích riêng ${type.apt_type}`}
                     suffix="m²"
                     numeric
@@ -1442,15 +1451,17 @@ function CatalogPage() {
                         : undefined
                     }
                   />
-                  <span className="text-caption text-ink-muted">{value.selected ? 'Được dùng' : 'Không chọn'}</span>
-                </div>
+                  <span className={`${LONG_FIELD} text-caption text-ink-muted`}>
+                    {value.selected ? 'Được dùng' : 'Không chọn'}
+                  </span>
+                </FormSubsection>
               );
             })}
-          </div>
+          </FormSection>
         )}
         {drawer === 'unit' && (
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className={labelClass}>
+          <FormSection title="Thông tin căn">
+            <label className={`${SHORT_FIELD} ${labelClass}`}>
               Mã căn
               <input
                 className={fieldClass}
@@ -1458,7 +1469,7 @@ function CatalogPage() {
                 onChange={(e) => setUnitForm({ ...unitForm, code: e.target.value })}
               />
             </label>
-            <label className={labelClass}>
+            <label className={`${SHORT_FIELD} ${labelClass}`}>
               Loại căn
               <input
                 className={fieldClass}
@@ -1472,6 +1483,7 @@ function CatalogPage() {
               </datalist>
             </label>
             <TextField
+              className={SHORT_FIELD}
               label="Tầng"
               suffix="tầng"
               numeric
@@ -1479,11 +1491,13 @@ function CatalogPage() {
               onChange={(e) => setUnitForm({ ...unitForm, floor: e.target.value })}
             />
             <DirectionField
+              className={SHORT_FIELD}
               value={unitForm.direction}
               disabled={saving}
               onChange={(direction) => setUnitForm({ ...unitForm, direction })}
             />
             <TextField
+              className={SHORT_FIELD}
               label="Diện tích"
               suffix="m²"
               numeric
@@ -1493,6 +1507,7 @@ function CatalogPage() {
               placeholder={unitAreaHint}
             />
             <TextField
+              className={SHORT_FIELD}
               label="Giá riêng"
               hint={unitPriceHint}
               placeholder={unitPriceHint}
@@ -1502,6 +1517,7 @@ function CatalogPage() {
               onChange={(e) => setUnitForm({ ...unitForm, price_per_m2_override: e.target.value })}
             />
             <TextField
+              className={SHORT_FIELD}
               label="Phí riêng"
               hint={unitFeeHint}
               placeholder={unitFeeHint}
@@ -1510,7 +1526,7 @@ function CatalogPage() {
               value={unitForm.fee}
               onChange={(e) => setUnitForm({ ...unitForm, fee: e.target.value })}
             />
-            <label className={labelClass}>
+            <label className={`${SHORT_FIELD} ${labelClass}`}>
               Tình trạng
               <select
                 className={fieldClass}
@@ -1522,7 +1538,7 @@ function CatalogPage() {
                 <option value="sold">Đã bán</option>
               </select>
             </label>
-          </div>
+          </FormSection>
         )}
       </CatalogDrawer>
     </main>

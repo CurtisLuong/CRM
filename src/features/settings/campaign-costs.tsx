@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
+import { FormGrid, FormSubsection, LONG_FIELD, SHORT_FIELD } from '@/components/crm/form-section';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { SOURCES } from '@/config/sources';
 import type { RepositoryAccount } from '@/data/repositories/session';
 import type { Customer } from '@/domain/customer';
 import { type CampaignCost, campaignCostMetrics } from '@/domain/metrics/marketing';
 
-const FIELD = 'min-h-11 w-full rounded-md border border-input bg-surface-100 px-3 py-2 text-body text-ink';
+const FIELD = 'min-h-11 w-full min-w-0 rounded-md border border-input bg-surface-100 px-3 py-2 text-body text-ink';
 const dateNow = () => new Date().toISOString().slice(0, 10);
 const money = (n: number) => `${Math.round(n).toLocaleString('vi-VN')} ₫`;
 type CostRow = CampaignCost & { owner_id?: string; archived_at?: string | null };
@@ -149,142 +151,153 @@ export function CampaignCostsSection({
   };
 
   return (
-    <section aria-labelledby="campaign-costs-title" className="rounded-lg border border-line bg-surface-100 p-4">
-      <h2 id="campaign-costs-title" className="text-section-head">
+    <section aria-labelledby="campaign-costs-title" className="min-w-0 space-y-3">
+      <h2 id="campaign-costs-title" className="text-title">
         Chi phí campaign
       </h2>
-      <p className="mt-1 text-caption text-ink-muted">
-        Nhập theo kênh/campaign và khoảng ngày. Chỉ tài khoản của bạn; ẩn dòng là xoá mềm. Chi phí chỉ ghép với lead
-        đăng ký trong kỳ đã nhập.
-      </p>
-      {!account ? (
-        <p className="mt-3 text-caption text-ink-muted">Đăng nhập để quản lý chi phí theo tài khoản.</p>
-      ) : (
-        <>
-          <form className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2" onSubmit={(event) => void save(event)}>
-            <label className="flex flex-col gap-1 text-caption">
-              Kênh
-              <select className={FIELD} value={source} onChange={(event) => setSource(event.target.value)}>
-                <option value="">Mọi kênh</option>
-                {Object.entries(SOURCES).map(([key, label]) => (
-                  <option value={key} key={key}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="flex flex-col gap-1 text-caption">
-              Campaign (để trống = mọi campaign)
-              <input
-                className={FIELD}
-                maxLength={160}
-                value={campaign}
-                onChange={(event) => setCampaign(event.target.value)}
-              />
-            </label>
-            <label className="flex flex-col gap-1 text-caption">
-              Từ ngày
-              <input
-                className={FIELD}
-                type="date"
-                required
-                value={periodStart}
-                onChange={(event) => setPeriodStart(event.target.value)}
-              />
-            </label>
-            <label className="flex flex-col gap-1 text-caption">
-              Đến ngày
-              <input
-                className={FIELD}
-                type="date"
-                value={periodEnd}
-                onChange={(event) => setPeriodEnd(event.target.value)}
-              />
-            </label>
-            <label className="flex flex-col gap-1 text-caption">
-              Chi phí (VND)
-              <input
-                className={FIELD}
-                type="number"
-                min="0"
-                step="1"
-                required
-                inputMode="numeric"
-                value={amount}
-                onChange={(event) => setAmount(event.target.value)}
-              />
-            </label>
-            <label className="flex flex-col gap-1 text-caption">
-              Ghi chú (tuỳ chọn)
-              <input className={FIELD} maxLength={500} value={note} onChange={(event) => setNote(event.target.value)} />
-            </label>
-            <div className="flex flex-wrap items-center gap-3 sm:col-span-2">
-              <Button type="submit" variant="primary" disabled={loading || saving}>
-                Lưu chi phí
-              </Button>
-              {status && (
-                <p role="status" className="text-caption text-ink-muted">
-                  {status}
-                </p>
-              )}
-              {error && (
-                <p role="alert" className="text-caption text-alert-text">
-                  {error}
-                </p>
-              )}
-            </div>
-          </form>
-          <div className="mt-4 border-t border-line pt-3">
-            <h3 className="text-body-strong">Chi phí đã nhập</h3>
-            {loading ? (
-              <p className="mt-2 text-caption text-ink-muted">Đang tải…</p>
-            ) : metrics.length ? (
-              <div className="mt-2 flex flex-col gap-2">
-                {metrics.map((row) => (
-                  <article key={row.id} className="rounded-md border border-line p-3">
-                    <div className="flex flex-wrap items-start justify-between gap-2">
-                      <div>
-                        <h4 className="text-label">
-                          {SOURCES[row.source || ''] || row.source || 'Mọi kênh'} · {row.campaign || 'Mọi campaign'}
-                        </h4>
-                        <p className="text-xs text-ink-muted">
-                          {row.period_start} → {row.period_end || row.period_start}
-                        </p>
-                      </div>
-                      <Button
-                        aria-label={`Ẩn chi phí ${row.campaign || row.source || 'campaign'}`}
-                        onClick={() => void archive(row.id)}
-                      >
-                        Ẩn
-                      </Button>
-                    </div>
-                    <p className="mt-2 text-caption">
-                      Tổng chi phí: <strong>{money(row.amount)}</strong> · Lead {row.leadCount} · Đạt{' '}
-                      {row.qualifiedCount} · Booking {row.bookingCount}
+      <Card data-form-card className="min-w-0 p-4">
+        <p className="mt-1 text-caption text-ink-muted">
+          Nhập theo kênh/campaign và khoảng ngày. Chỉ tài khoản của bạn; ẩn dòng là xoá mềm. Chi phí chỉ ghép với lead
+          đăng ký trong kỳ đã nhập.
+        </p>
+        {!account ? (
+          <p className="mt-3 text-caption text-ink-muted">Đăng nhập để quản lý chi phí theo tài khoản.</p>
+        ) : (
+          <>
+            <form className="mt-3" onSubmit={(event) => void save(event)}>
+              <FormGrid>
+                <label className={`${SHORT_FIELD} flex flex-col justify-end gap-1 text-caption`}>
+                  Kênh
+                  <select className={FIELD} value={source} onChange={(event) => setSource(event.target.value)}>
+                    <option value="">Mọi kênh</option>
+                    {Object.entries(SOURCES).map(([key, label]) => (
+                      <option value={key} key={key}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className={`${SHORT_FIELD} flex flex-col justify-end gap-1 text-caption`}>
+                  Campaign (để trống = mọi campaign)
+                  <input
+                    className={FIELD}
+                    maxLength={160}
+                    value={campaign}
+                    onChange={(event) => setCampaign(event.target.value)}
+                  />
+                </label>
+                <label className={`${SHORT_FIELD} flex flex-col justify-end gap-1 text-caption`}>
+                  Từ ngày
+                  <input
+                    className={FIELD}
+                    type="date"
+                    required
+                    value={periodStart}
+                    onChange={(event) => setPeriodStart(event.target.value)}
+                  />
+                </label>
+                <label className={`${SHORT_FIELD} flex flex-col justify-end gap-1 text-caption`}>
+                  Đến ngày
+                  <input
+                    className={FIELD}
+                    type="date"
+                    value={periodEnd}
+                    onChange={(event) => setPeriodEnd(event.target.value)}
+                  />
+                </label>
+                <label className={`${SHORT_FIELD} flex flex-col justify-end gap-1 text-caption`}>
+                  Chi phí (VND)
+                  <input
+                    className={FIELD}
+                    type="number"
+                    min="0"
+                    step="1"
+                    required
+                    inputMode="numeric"
+                    value={amount}
+                    onChange={(event) => setAmount(event.target.value)}
+                  />
+                </label>
+                <label className={`${LONG_FIELD} flex flex-col gap-1 text-caption`}>
+                  Ghi chú (tuỳ chọn)
+                  <input
+                    className={FIELD}
+                    maxLength={500}
+                    value={note}
+                    onChange={(event) => setNote(event.target.value)}
+                  />
+                </label>
+                <div className={`${LONG_FIELD} flex flex-wrap items-center gap-3`}>
+                  <Button type="submit" variant="primary" disabled={loading || saving}>
+                    Lưu chi phí
+                  </Button>
+                  {status && (
+                    <p role="status" className="text-caption text-ink-muted">
+                      {status}
                     </p>
-                    {row.leadCount > 0 && (
-                      <p className="text-caption text-ink-muted">
-                        CPL {row.cpl == null ? '—' : money(row.cpl)} = chi phí / {row.leadCount} lead · Chi phí/Đạt{' '}
-                        {row.costPerQualified == null ? '—' : money(row.costPerQualified)} = chi phí /{' '}
-                        {row.qualifiedCount} · Chi phí/Booking{' '}
-                        {row.costPerBooking == null ? '—' : money(row.costPerBooking)} = chi phí / {row.bookingCount}
-                      </p>
-                    )}
-                    {!row.leadCount && (
-                      <p className="text-caption text-ink-muted">
-                        Chưa có lead khớp kỳ; chưa hiển thị chi phí/lead, chi phí/Đạt hoặc chi phí/Booking.
-                      </p>
-                    )}
-                    {row.note && <p className="mt-1 text-caption text-ink-muted">{row.note}</p>}
-                  </article>
-                ))}
+                  )}
+                  {error && (
+                    <p role="alert" className="text-caption text-alert-text">
+                      {error}
+                    </p>
+                  )}
+                </div>
+              </FormGrid>
+            </form>
+            <FormSubsection title="Chi phí đã nhập" className="mt-4 border-t border-line pt-3">
+              <div className={LONG_FIELD}>
+                {loading ? (
+                  <p className="mt-2 text-caption text-ink-muted">Đang tải…</p>
+                ) : metrics.length ? (
+                  <div className="mt-2 flex flex-col gap-2">
+                    {metrics.map((row) => (
+                      <article key={row.id} className="rounded-md border border-line p-3">
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                          <div>
+                            <h4 className="text-label">
+                              {SOURCES[row.source || ''] || row.source || 'Mọi kênh'} · {row.campaign || 'Mọi campaign'}
+                            </h4>
+                            <p className="text-xs text-ink-muted">
+                              {row.period_start} → {row.period_end || row.period_start}
+                            </p>
+                          </div>
+                          <Button
+                            aria-label={`Ẩn chi phí ${row.campaign || row.source || 'campaign'}`}
+                            onClick={() => void archive(row.id)}
+                          >
+                            Ẩn
+                          </Button>
+                        </div>
+                        <p className="mt-2 text-caption">
+                          Tổng chi phí: <strong>{money(row.amount)}</strong> · Lead {row.leadCount} · Đạt{' '}
+                          {row.qualifiedCount} · Booking {row.bookingCount}
+                        </p>
+                        {row.leadCount > 0 && (
+                          <p className="text-caption text-ink-muted">
+                            CPL {row.cpl == null ? '—' : money(row.cpl)} = chi phí / {row.leadCount} lead · Chi phí/Đạt{' '}
+                            {row.costPerQualified == null ? '—' : money(row.costPerQualified)} = chi phí /{' '}
+                            {row.qualifiedCount} · Chi phí/Booking{' '}
+                            {row.costPerBooking == null ? '—' : money(row.costPerBooking)} = chi phí /{' '}
+                            {row.bookingCount}
+                          </p>
+                        )}
+                        {!row.leadCount && (
+                          <p className="text-caption text-ink-muted">
+                            Chưa có lead khớp kỳ; chưa hiển thị chi phí/lead, chi phí/Đạt hoặc chi phí/Booking.
+                          </p>
+                        )}
+                        {row.note && <p className="mt-1 text-caption text-ink-muted">{row.note}</p>}
+                      </article>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-2 text-caption text-ink-muted">Chưa nhập chi phí campaign.</p>
+                )}
               </div>
-            ) : (
-              <p className="mt-2 text-caption text-ink-muted">Chưa nhập chi phí campaign.</p>
-            )}
-          </div>
-        </>
-      )}
+            </FormSubsection>
+          </>
+        )}
+      </Card>
     </section>
   );
 }

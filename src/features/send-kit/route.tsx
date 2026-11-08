@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router';
 import type { FeatureRoute } from '@/app/routes';
 import { isDemo } from '@/app/session';
 import { DocumentViewer, type DocumentViewerFile, EmptyState, SearchBar, TextField } from '@/components/crm';
+import { FormSection, LONG_FIELD, SHORT_FIELD } from '@/components/crm/form-section';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Sheet, SheetBody, SheetContent, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -913,77 +914,86 @@ function SendKitPage() {
           <SheetHeader>
             <SheetTitle id="send-kit-form-title">{editing ? 'Sửa tài liệu' : 'Thêm tài liệu'}</SheetTitle>
           </SheetHeader>
-          <SheetBody className="gap-3">
-            <TextField label="Tiêu đề" value={title} onChange={(event) => setTitle(event.target.value)} />
-            <label htmlFor="send-kit-text" className="flex flex-col gap-1.5 text-label">
-              Nội dung chữ
-              <Textarea
-                id="send-kit-text"
-                rows={5}
-                value={text}
-                onChange={(event) => setText(event.target.value)}
-                placeholder="Có thể dùng {ten}, {sale}, {du_an}"
+          <SheetBody className="gap-5">
+            <FormSection title="Thông tin tài liệu">
+              <TextField
+                className={LONG_FIELD}
+                label="Tiêu đề"
+                value={title}
+                onChange={(event) => setTitle(event.target.value)}
               />
-            </label>
-            <label className="flex flex-col gap-1 text-label">
-              Thuộc nhóm
-              <select
-                className="min-h-11 w-full rounded-sm border border-line bg-surface-100 px-3 py-2 text-body text-ink focus-visible:outline-2 focus-visible:outline-ion"
-                value={project}
-                onChange={(event) => setProject(event.target.value)}
-              >
-                <option value="">Chung</option>
-                {projectNames.map((name) => (
-                  <option key={name} value={name}>
-                    {name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="flex flex-col gap-1 text-label">
-              Tệp đính kèm
-              <input
-                className="min-h-11 w-full rounded-sm border border-line bg-surface-100 px-3 py-2 text-body text-ink focus-visible:outline-2 focus-visible:outline-ion"
-                type="file"
-                multiple
-                accept="image/*,video/*,application/pdf"
-                onChange={(event) => {
-                  const picked = Array.from(event.target.files ?? []);
-                  const errors = picked.map(sendKitFileError).filter(Boolean);
-                  setError(errors.join(' '));
-                  const added = picked
-                    .filter((file) => !sendKitFileError(file))
-                    .map((file) => ({
-                      id: crypto.randomUUID(),
-                      name: file.name,
-                      type: file.type,
-                      size: file.size,
-                      blob: file,
-                    }));
-                  setFiles((old) => [...old, ...added]);
-                  event.target.value = '';
-                }}
-              />
-            </label>
-            {files.map((file) => (
-              <div key={file.id} className="flex items-center gap-2 text-label">
-                <span className="min-w-0 flex-1 truncate">
-                  {file.name} · {formatBytes(file.size)}
-                </span>
-                <Button
-                  variant="ghost"
-                  aria-label={`Bỏ tệp ${file.name}`}
-                  onClick={() => setFiles((old) => old.filter((row) => row.id !== file.id))}
+              <label htmlFor="send-kit-text" className={`${LONG_FIELD} flex flex-col gap-1.5 text-label`}>
+                Nội dung chữ
+                <Textarea
+                  id="send-kit-text"
+                  rows={5}
+                  value={text}
+                  onChange={(event) => setText(event.target.value)}
+                  placeholder="Có thể dùng {ten}, {sale}, {du_an}"
+                />
+              </label>
+              <label className={`${SHORT_FIELD} flex flex-col gap-1 text-label`}>
+                Thuộc nhóm
+                <select
+                  className="min-h-11 w-full rounded-sm border border-line bg-surface-100 px-3 py-2 text-body text-ink focus-visible:outline-2 focus-visible:outline-ion"
+                  value={project}
+                  onChange={(event) => setProject(event.target.value)}
                 >
-                  Bỏ
-                </Button>
-              </div>
-            ))}
-            {error && (
-              <p role="alert" className="text-label text-alert-text">
-                {error}
-              </p>
-            )}
+                  <option value="">Chung</option>
+                  {projectNames.map((name) => (
+                    <option key={name} value={name}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </FormSection>
+            <FormSection title="Tệp đính kèm">
+              <label className={`${LONG_FIELD} flex flex-col gap-1 text-label`}>
+                Tệp đính kèm
+                <input
+                  className="min-h-11 w-full rounded-sm border border-line bg-surface-100 px-3 py-2 text-body text-ink focus-visible:outline-2 focus-visible:outline-ion"
+                  type="file"
+                  multiple
+                  accept="image/*,video/*,application/pdf"
+                  onChange={(event) => {
+                    const picked = Array.from(event.target.files ?? []);
+                    const errors = picked.map(sendKitFileError).filter(Boolean);
+                    setError(errors.join(' '));
+                    const added = picked
+                      .filter((file) => !sendKitFileError(file))
+                      .map((file) => ({
+                        id: crypto.randomUUID(),
+                        name: file.name,
+                        type: file.type,
+                        size: file.size,
+                        blob: file,
+                      }));
+                    setFiles((old) => [...old, ...added]);
+                    event.target.value = '';
+                  }}
+                />
+              </label>
+              {files.map((file) => (
+                <div key={file.id} className={`${LONG_FIELD} flex items-center gap-2 text-label`}>
+                  <span className="min-w-0 flex-1 truncate">
+                    {file.name} · {formatBytes(file.size)}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    aria-label={`Bỏ tệp ${file.name}`}
+                    onClick={() => setFiles((old) => old.filter((row) => row.id !== file.id))}
+                  >
+                    Bỏ
+                  </Button>
+                </div>
+              ))}
+              {error && (
+                <p role="alert" className={`${LONG_FIELD} text-label text-alert-text`}>
+                  {error}
+                </p>
+              )}
+            </FormSection>
           </SheetBody>
           <SheetFooter className="justify-end">
             <Button variant="secondary" onClick={() => setFormOpen(false)}>
