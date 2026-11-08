@@ -68,6 +68,7 @@ import {
   toast,
 } from '@/components/ui';
 import { ACTIONS, STAGES, stageDef } from '@/lib/crm';
+import { DocumentViewerDemo } from './DocumentViewerDemo';
 import { CUSTOMERS, type Customer, JOURNEY_AN, NOTIFS, NOW } from './demo-data';
 
 function Section({
@@ -518,6 +519,10 @@ export function UiKit() {
             </Button>
             <LostDialog />
           </div>
+        </Section>
+
+        <Section id="documents" title="Trình xem tài liệu">
+          <DocumentViewerDemo />
         </Section>
 
         <Section id="notifications" title="7 · Thông báo">

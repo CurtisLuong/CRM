@@ -1,6 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { DocumentViewer, type DocumentViewerFile } from '@/components/crm';
 import { Button } from '@/components/ui/button';
 import type { IconName } from '@/config/icons';
+import { shareDocumentFile } from '@/features/send-kit/nativeShare';
+import { OfflineDocumentError } from '@/lib/document-viewer/files';
 import { Icon } from '@/ui/Icon';
 import { useToast } from '@/ui/Toast';
 
@@ -137,6 +140,27 @@ export function DocumentsSection({
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [deletingId, setDeletingId] = useState('');
+  const [viewingId, setViewingId] = useState('');
+  const viewerFiles = useMemo<DocumentViewerFile[]>(
+    () =>
+      docs.map((doc) => ({
+        id: doc.id,
+        name: documentName(doc),
+        mime: doc.mime || '',
+        size: doc.size,
+        load: async (signal) => {
+          if (!remote) throw new Error('Chưa tải được tệp');
+          if (!online || navigator.onLine === false) throw new OfflineDocumentError();
+          const url = await remote.signedDocUrl(doc.storage_path);
+          signal.throwIfAborted();
+          if (!url) throw new Error('Chưa tải được tệp');
+          const response = await fetch(url, { signal });
+          if (!response.ok) throw new Error('Chưa tải được tệp');
+          return response.blob();
+        },
+      })),
+    [docs, remote, online],
+  );
 
   useEffect(() => {
     let alive = true;
@@ -201,6 +225,7 @@ export function DocumentsSection({
       await remote.deleteDocument(doc);
       const next = docs.filter((item) => item.id !== doc.id);
       setDocs(next);
+      setViewingId((current) => (current === doc.id ? '' : current));
       onCountChange?.(next.length);
       toast({ title: 'Đã xoá tài liệu' });
     } catch (reason) {
@@ -214,18 +239,28 @@ export function DocumentsSection({
     }
   };
 
-  const open = async (doc: ProfileDocument) => {
-    if (!remote) return;
+  const replace = async (file: DocumentViewerFile, replacement: File) => {
+    const previous = docs.find((doc) => doc.id === file.id);
+    if (!previous || !remote || !writable || uploading || busy) return;
+    setUploading(true);
     try {
-      const url = await remote.signedDocUrl(doc.storage_path);
-      if (url) window.open(url, '_blank', 'noopener,noreferrer');
-      else toast({ title: 'Chưa mở được tài liệu', description: 'Cần mạng để lấy liên kết.', tone: 'error' });
+      const added = await remote.uploadDocument(customerId, replacement, previous.kind ?? undefined, replacement.name);
+      // Bản mới đã an toàn; nếu xoá bản cũ lỗi, vẫn giữ cả hai trong danh sách để không che mất tệp.
+      try {
+        await remote.deleteDocument(previous);
+        setDocs((current) => current.map((doc) => (doc.id === previous.id ? added : doc)));
+      } catch {
+        setDocs((current) => [...current, added]);
+        onCountChange?.(docs.length + 1);
+        setViewingId((current) => (current === file.id ? added.id : current));
+        throw new Error('Đã tải tệp mới; chưa xoá được tệp cũ. Thử xoá lại từ danh sách.');
+      }
+      setViewingId((current) => (current === file.id ? added.id : current));
+      toast({ title: 'Đã đổi tệp' });
     } catch (reason) {
-      toast({
-        title: 'Chưa mở được tài liệu',
-        description: reason instanceof Error ? reason.message : 'Thử lại.',
-        tone: 'error',
-      });
+      throw reason instanceof Error ? reason : new Error('Chưa đổi được tệp. Thử lại.');
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -233,6 +268,25 @@ export function DocumentsSection({
 
   return (
     <section className="space-y-4" aria-label="Tài liệu khách">
+      <DocumentViewer
+        files={viewerFiles}
+        fileId={viewingId}
+        open={!!viewingId}
+        onOpenChange={(value) => {
+          if (!value) setViewingId('');
+        }}
+        busy={busy || uploading || !!deletingId}
+        onShare={shareDocumentFile}
+        onReplace={writable ? replace : undefined}
+        onDelete={
+          writable
+            ? async (file) => {
+                const doc = docs.find((row) => row.id === file.id);
+                if (doc) await remove(doc);
+              }
+            : undefined
+        }
+      />
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-section-head">Tài liệu &amp; ảnh</h2>
         {writable && (
@@ -289,7 +343,7 @@ export function DocumentsSection({
                     </div>
                   </div>
                   <div className="flex shrink-0 gap-2">
-                    <Button onClick={() => void open(doc)}>Mở</Button>
+                    <Button onClick={() => setViewingId(doc.id)}>Mở</Button>
                     {writable && (
                       <Button
                         variant="ghost"

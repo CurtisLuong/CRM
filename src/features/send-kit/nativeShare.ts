@@ -59,6 +59,7 @@ export async function shareFilesWithNativePlugin(
   files: SendKitFile[],
   text: string,
   onSent: () => Promise<void>,
+  preferPackage: string | null = 'com.zing.zalo',
 ) {
   const nativeFiles = await Promise.all(
     files.map(async (file) => ({
@@ -68,7 +69,7 @@ export async function shareFilesWithNativePlugin(
     })),
   );
   const result = await plugin
-    .share({ files: nativeFiles, text, preferPackage: 'com.zing.zalo' })
+    .share({ files: nativeFiles, ...(text ? { text } : {}), ...(preferPackage ? { preferPackage } : {}) })
     .catch((reason: unknown) => {
       // Mã lỗi của plugin không hiện cho người dùng (D-023 L3).
       const code = reason && typeof reason === 'object' && 'code' in reason ? String(reason.code) : '';
@@ -77,4 +78,30 @@ export async function shareFilesWithNativePlugin(
     });
   await onSent();
   return result;
+}
+
+/** Chia sẻ riêng tệp đang xem, không kèm chữ hoặc ghi tương tác gửi khách. */
+export async function shareDocumentFile(file: { name: string; mime: string }, blob: Blob): Promise<void> {
+  const native = nativeShareFilesContext();
+  if (native.plugin) {
+    await shareFilesWithNativePlugin(
+      native.plugin,
+      [{ id: 'preview', name: file.name, type: file.mime || blob.type, size: blob.size, blob }],
+      '',
+      async () => {},
+      null,
+    );
+    return;
+  }
+  const attachment = new File([blob], file.name, { type: file.mime || blob.type || 'application/octet-stream' });
+  if (typeof navigator.share === 'function' && (!navigator.canShare || navigator.canShare({ files: [attachment] }))) {
+    await navigator.share({ files: [attachment] });
+    return;
+  }
+  const url = URL.createObjectURL(attachment);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = file.name;
+  link.click();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

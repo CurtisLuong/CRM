@@ -1,6 +1,7 @@
 // Biểu đồ KHÔNG ở đây: import '@/components/crm/charts' và tải lười (Recharts ~100KB gzip, DESIGN.md §8).
 export * from './actions';
 export * from './data-table';
+export * from './document-viewer';
 export * from './empty-state';
 export * from './filters';
 export * from './form-fields';

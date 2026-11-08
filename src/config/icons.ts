@@ -78,6 +78,14 @@ export const ICONS = {
   delete: 'Trash2', // Xoá ảnh / tài liệu
   image: 'Image', // Ảnh đại diện / ảnh bìa
   file: 'File', // Tệp đính kèm
+  close: 'X', // Đóng trình xem
+  share: 'Share2', // Chia sẻ tệp
+  replace_file: 'Replace', // Đổi tệp
+  zoom_in: 'ZoomIn', // Phóng to
+  zoom_out: 'ZoomOut', // Thu nhỏ
+  fit_view: 'Scan', // Vừa màn hình
+  original_size: 'Maximize', // Kích thước gốc
+  file_previous: 'ChevronLeft', // Tệp trước
   // ── Menu có nhóm (PF-04, 2026-10-21) ──
   archive: 'Archive', // Khách đã lưu trữ
   quick: 'Zap', // Thao tác nhanh
