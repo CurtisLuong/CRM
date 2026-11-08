@@ -1,5 +1,6 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { TextField } from '@/components/crm/form-fields';
+import { CollapsibleFormSection, FormSubsection } from '@/components/crm/form-section';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -11,8 +12,7 @@ import {
 } from '@/config/advanced';
 import type { Customer } from '@/domain/customer';
 import { displayText } from '@/ui/display';
-import { Icon } from '@/ui/Icon';
-import { legacyDraft, legacyValues, showLegacy } from './fields';
+import { LONG_FIELD, legacyDraft, legacyValues, SHORT_FIELD, showLegacy } from './fields';
 
 const FIELD =
   'min-h-11 w-full rounded-sm border border-line bg-surface-100 px-3 text-body text-ink focus-visible:outline-2 focus-visible:outline-ion disabled:opacity-60';
@@ -178,7 +178,6 @@ export function ProfileAdvanced({ customer, writable, onSaveAdvanced, openSignal
   useEffect(() => {
     if (openSignal) setOpen(true);
   }, [openSignal]);
-  const panelId = useId();
   const advanced = customer.advanced || {};
   const assetLegacy = legacyValues(advanced, ASSET_LEGACY);
   const unknown = Object.entries(advanced).filter(([key]) => !PROFILE_ADVANCED_KEYS.includes(key));
@@ -189,19 +188,9 @@ export function ProfileAdvanced({ customer, writable, onSaveAdvanced, openSignal
   };
 
   return (
-    <section aria-label="Hồ sơ nâng cao" className="space-y-3">
-      <Button
-        variant="secondary"
-        className="w-full"
-        aria-expanded={open}
-        aria-controls={panelId}
-        onClick={() => setOpen(!open)}
-      >
-        <span className="flex-1 text-left">Nâng cao</span>
-        <Icon name={open ? 'up' : 'expand'} size={20} className="text-ink-muted" />
-      </Button>
-      {open && (
-        <div id={panelId} className="space-y-4">
+    <CollapsibleFormSection title="Nâng cao" aria-label="Hồ sơ nâng cao" open={open} onOpenChange={setOpen}>
+      <FormSubsection title={PROFILE_LIFE_CONTEXT.label}>
+        <div className={LONG_FIELD}>
           <LegacyAssistField
             label={PROFILE_LIFE_CONTEXT.label}
             value={advanced[PROFILE_LIFE_CONTEXT.key]}
@@ -210,46 +199,44 @@ export function ProfileAdvanced({ customer, writable, onSaveAdvanced, openSignal
             legacy={legacyValues(advanced, LIFE_CONTEXT_LEGACY)}
             onSave={(value) => onSaveAdvanced(PROFILE_LIFE_CONTEXT.key, value)}
           />
-          <fieldset className="space-y-2">
-            <legend className="text-body font-semibold">Tài sản</legend>
-            {PROFILE_ASSET_FIELDS.map((field) => (
-              <div key={field.key} data-jump={field.key}>
-                <ProfileTextField
-                  label={field.label}
-                  value={advanced[field.key]}
-                  disabled={!writable}
-                  type="number"
-                  placeholder={field.ph}
-                  onSave={(value) => saveNumber(field.key, value)}
-                />
-              </div>
-            ))}
-            {/* Vốn ghi lúc nhập khách (ô cũ "Tài chính sẵn có") — hiện để không tưởng là trống (D-012). */}
-            {!displayText(advanced.capital) && !!displayText(customer.finance) && (
-              <p className="text-caption text-ink-muted">
-                Vốn ghi lúc nhập khách: <span className="text-body">{displayText(customer.finance)}</span>
-              </p>
-            )}
-            {assetLegacy.map((row) => (
-              <p key={row.key} className="text-caption text-ink-muted">
-                {row.label}: <span className="text-body">{row.value}</span>{' '}
-                <span className="text-ink-muted">(ghi cũ được giữ nguyên)</span>
-              </p>
-            ))}
-          </fieldset>
-          {/* "Nguồn và độ mới" (field_meta) Curtis cho ẩn 2026-10-21: dữ liệu vẫn ghi cho AI/độ mới, không hiện. */}
-          {unknown.length > 0 && (
-            <div className="space-y-1">
-              <h2 className="text-section-head">Trường cũ khác</h2>
-              {unknown.map(([key, value]) => (
-                <p key={key} className="text-caption text-ink-muted">
-                  {key}: {displayText(value)} <span className="text-ink-muted">(trường cũ được giữ nguyên)</span>
-                </p>
-              ))}
-            </div>
-          )}
         </div>
+      </FormSubsection>
+      <FormSubsection title="Tài sản" role="group" aria-label="Tài sản">
+        {PROFILE_ASSET_FIELDS.map((field) => (
+          <div key={field.key} data-jump={field.key} className={SHORT_FIELD}>
+            <ProfileTextField
+              label={field.label}
+              value={advanced[field.key]}
+              disabled={!writable}
+              type="number"
+              placeholder={field.ph}
+              onSave={(value) => saveNumber(field.key, value)}
+            />
+          </div>
+        ))}
+        {/* Vốn ghi lúc nhập khách (ô cũ "Tài chính sẵn có") — hiện để không tưởng là trống (D-012). */}
+        {!displayText(advanced.capital) && !!displayText(customer.finance) && (
+          <p className={`${LONG_FIELD} text-caption text-ink-muted`}>
+            Vốn ghi lúc nhập khách: <span className="text-body">{displayText(customer.finance)}</span>
+          </p>
+        )}
+        {assetLegacy.map((row) => (
+          <p key={row.key} className={`${LONG_FIELD} text-caption text-ink-muted`}>
+            {row.label}: <span className="text-body">{row.value}</span>{' '}
+            <span className="text-ink-muted">(ghi cũ được giữ nguyên)</span>
+          </p>
+        ))}
+      </FormSubsection>
+      {/* "Nguồn và độ mới" (field_meta) Curtis cho ẩn 2026-10-21: dữ liệu vẫn ghi cho AI/độ mới, không hiện. */}
+      {unknown.length > 0 && (
+        <FormSubsection title="Trường cũ khác">
+          {unknown.map(([key, value]) => (
+            <p key={key} className={`${LONG_FIELD} text-caption text-ink-muted [overflow-wrap:anywhere]`}>
+              {key}: {displayText(value)} <span className="text-ink-muted">(trường cũ được giữ nguyên)</span>
+            </p>
+          ))}
+        </FormSubsection>
       )}
-    </section>
+    </CollapsibleFormSection>
   );
 }

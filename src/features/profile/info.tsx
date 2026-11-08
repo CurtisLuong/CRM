@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react';
 import { Fragment, useState } from 'react';
 import { Field } from '@/components/crm/form-fields';
+import { FormSection } from '@/components/crm/form-section';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { OCCUPATIONS } from '@/config/occupations';
 import type { Customer } from '@/domain/customer';
 import { guessGenderFromName } from '@/domain/customer/genderFromName';
@@ -170,19 +170,17 @@ export function ProfileInfoFields({ customer, writable, busy, now, showEmpty, on
     (row) => row.always || showEmpty || inherited.has(row.key) || hasFieldValue(customer[row.key as keyof Customer]),
   );
   return (
-    <Card className="min-w-0 w-full p-4">
-      <div className="flex flex-wrap gap-3">
-        {visible.map((row) =>
-          row.bare ? (
-            <Fragment key={row.key}>{row.node}</Fragment>
-          ) : (
-            <div key={row.key} className={row.short ? SHORT_FIELD : LONG_FIELD}>
-              {row.node}
-            </div>
-          ),
-        )}
-      </div>
-    </Card>
+    <FormSection title="Thông tin chính">
+      {visible.map((row) =>
+        row.bare ? (
+          <Fragment key={row.key}>{row.node}</Fragment>
+        ) : (
+          <div key={row.key} className={row.short ? SHORT_FIELD : LONG_FIELD}>
+            {row.node}
+          </div>
+        ),
+      )}
+    </FormSection>
   );
 }
 
