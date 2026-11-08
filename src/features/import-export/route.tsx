@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import type { FeatureRoute } from '@/app/routes';
 import { EmptyState, Segmented } from '@/components/crm';
+import { FormSection, FormSubsection, LONG_FIELD, SHORT_FIELD } from '@/components/crm/form-section';
 import { Button } from '@/components/ui';
 import { useCustomers, useRepositoryAccount } from '@/data/hooks';
 import { normalizePhoneVN } from '@/domain/customer/phone';
@@ -151,13 +152,14 @@ function ImportExportPage() {
         </p>
       </header>
       {!account && <EmptyState title="Chưa đăng nhập" text="Đăng nhập để nhập hoặc xuất dữ liệu khách." />}
-      <section className="rounded-lg border border-line bg-surface-100 p-4">
-        <h2 className="text-section-head">Xuất Excel</h2>
-        <p className="mt-1 text-caption text-ink-muted">{owned.length} khách do bạn phụ trách trên thiết bị.</p>
-        <fieldset className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+      <FormSection title="Xuất Excel">
+        <p className={`${LONG_FIELD} text-caption text-ink-muted`}>
+          {owned.length} khách do bạn phụ trách trên thiết bị.
+        </p>
+        <fieldset className={`${LONG_FIELD} flex min-w-0 flex-wrap gap-3 pl-3 sm:pl-4`}>
           <legend className="mb-2 text-label">Chọn cột xuất</legend>
           {IO_FIELDS.map((field) => (
-            <label key={field.key} className="flex min-h-11 items-center gap-2 text-caption">
+            <label key={field.key} className={`${SHORT_FIELD} flex min-h-11 items-center gap-2 text-caption`}>
               <input
                 type="checkbox"
                 checked={selected.includes(field.key)}
@@ -179,10 +181,9 @@ function ImportExportPage() {
         >
           Xuất {owned.length} khách
         </Button>
-      </section>
-      <section className="rounded-lg border border-line bg-surface-100 p-4">
-        <h2 className="text-section-head">Nhập Excel / CSV</h2>
-        <p className="mt-1 text-caption text-ink-muted">
+      </FormSection>
+      <FormSection title="Nhập Excel / CSV">
+        <p className={`${LONG_FIELD} text-caption text-ink-muted`}>
           Nhập chỉ thêm khách mới; SĐT trùng được bỏ qua, không ghi đè hồ sơ hiện có. Có thể nhập offline.
         </p>
         <input
@@ -196,7 +197,7 @@ function ImportExportPage() {
           Chọn file
         </Button>
         {filename && rows.length > 0 && (
-          <div className="mt-4 flex flex-col gap-3">
+          <div className={`${LONG_FIELD} flex flex-col gap-3`}>
             <p className="text-caption text-ink-muted">
               {filename} · {rows.length} dòng
             </p>
@@ -212,11 +213,10 @@ function ImportExportPage() {
                 onChange={(value) => setHeaderRow(value === 'yes')}
               />
             </div>
-            <div className="flex flex-col gap-2">
-              <h3 className="text-label">Ghép cột</h3>
+            <FormSubsection title="Ghép cột">
               {mapping.map((key, index) => (
                 <label
-                  className="grid grid-cols-[minmax(0,1fr)_minmax(9rem,1fr)] items-center gap-2 text-caption"
+                  className={`${SHORT_FIELD} flex min-w-0 flex-col gap-1 text-caption`}
                   // biome-ignore lint/suspicious/noArrayIndexKey: Spreadsheet column position is its stable identity.
                   key={index}
                 >
@@ -249,8 +249,8 @@ function ImportExportPage() {
                   </select>
                 </label>
               ))}
-            </div>
-            <div className="overflow-x-auto rounded-md border border-line">
+            </FormSubsection>
+            <div className="max-w-full overflow-x-auto rounded-md border border-line">
               <table className="min-w-full text-left text-caption">
                 <caption className="p-2 text-left text-ink-muted">Xem trước tối đa 3 dòng</caption>
                 <thead>
@@ -290,7 +290,7 @@ function ImportExportPage() {
             </Button>
           </div>
         )}
-      </section>
+      </FormSection>
       {status && (
         <p role="status" className="rounded-md bg-surface-200 p-3 text-caption text-ink-muted">
           {status}

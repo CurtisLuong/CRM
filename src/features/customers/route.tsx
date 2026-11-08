@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import type { FeatureRoute } from '@/app/routes';
 import { ActionButton, ChipGroup, type Column, DataTable, FilterBar, LeadRow } from '@/components/crm';
+import { FormGrid, FormSection, FormSubsection, LONG_FIELD, SHORT_FIELD } from '@/components/crm/form-section';
 import { Button as KitButton } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -530,9 +531,10 @@ function Customers() {
   };
 
   const controls = (
+    // Trong ngăn kéo chỉ một lớp (tiêu đề ngăn kéo đã có): không bọc khu + thẻ để lịch đủ rộng ô 44px.
     <div className="space-y-3">
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-        <label className="text-label text-ink-muted">
+      <FormGrid className={LONG_FIELD}>
+        <label className={`${SHORT_FIELD} flex flex-col justify-end gap-1.5 text-label text-ink-muted`}>
           Trạng thái
           <select
             aria-label="Lọc trạng thái"
@@ -563,7 +565,7 @@ function Customers() {
             ))}
           </select>
         </label>
-        <label className="text-label text-ink-muted">
+        <label className={`${SHORT_FIELD} flex flex-col justify-end gap-1.5 text-label text-ink-muted`}>
           Bậc chăm sóc
           <select
             aria-label="Lọc bậc chăm sóc"
@@ -582,7 +584,7 @@ function Customers() {
             })}
           </select>
         </label>
-        <label className="text-label text-ink-muted">
+        <label className={`${SHORT_FIELD} flex flex-col justify-end gap-1.5 text-label text-ink-muted`}>
           Ngày đăng ký
           <select
             aria-label="Lọc ngày đăng ký"
@@ -606,7 +608,7 @@ function Customers() {
             </option>
           </select>
         </label>
-        <label className="text-label text-ink-muted">
+        <label className={`${SHORT_FIELD} flex flex-col justify-end gap-1.5 text-label text-ink-muted`}>
           Loại căn
           <select
             aria-label="Lọc loại căn"
@@ -622,7 +624,7 @@ function Customers() {
             ))}
           </select>
         </label>
-        <label className="text-label text-ink-muted">
+        <label className={`${SHORT_FIELD} flex flex-col justify-end gap-1.5 text-label text-ink-muted`}>
           Kênh
           <select
             aria-label="Lọc kênh"
@@ -639,7 +641,7 @@ function Customers() {
           </select>
         </label>
         {group === 'team' && team.some((p) => p.is_me && p.is_admin) && (
-          <label className="text-label text-ink-muted">
+          <label className={`${SHORT_FIELD} flex flex-col justify-end gap-1.5 text-label text-ink-muted`}>
             Người phụ trách
             <select
               aria-label="Lọc người phụ trách"
@@ -660,9 +662,9 @@ function Customers() {
             </select>
           </label>
         )}
-      </div>
+      </FormGrid>
       {calendarOpen && dateDraft && (
-        <div className="space-y-1">
+        <div className={`${LONG_FIELD} space-y-1`}>
           <p className="font-semibold text-body">Chọn ngày đăng ký</p>
           <CalendarRange
             from={dateDraft.from}
@@ -679,36 +681,37 @@ function Customers() {
           Chọn lại ngày
         </Button>
       )}
-      <fieldset className="space-y-1 rounded-md border border-line p-3">
-        <legend className="px-1 font-semibold text-body">Sắp xếp</legend>
-        <SortToggle<'registered'>
-          label="Ngày đăng ký"
-          value={sort.registered}
-          choices={[
-            { value: 'desc', text: 'Mới nhất', arrow: '↓' },
-            { value: 'asc', text: 'Cũ nhất', arrow: '↑' },
-          ]}
-          onChange={(value) => changeSort({ ...sort, registered: value })}
-        />
-        <SortToggle<'touch'>
-          label="Lần tương tác"
-          value={sort.touch}
-          choices={[
-            { value: 'untouched', text: 'Chưa tương tác trước', arrow: '↑' },
-            { value: 'recent', text: 'Gần nhất trước', arrow: '↓' },
-          ]}
-          onChange={(value) => changeSort({ ...sort, touch: value })}
-        />
-        <SortToggle<'name'>
-          label="Tên"
-          value={sort.name}
-          choices={[
-            { value: 'asc', text: 'A–Z', arrow: '↑' },
-            { value: 'desc', text: 'Z–A', arrow: '↓' },
-          ]}
-          onChange={(value) => changeSort({ ...sort, name: value })}
-        />
-      </fieldset>
+      <FormSubsection title="Sắp xếp" className={LONG_FIELD}>
+        <div className={`${LONG_FIELD} space-y-1`}>
+          <SortToggle<'registered'>
+            label="Ngày đăng ký"
+            value={sort.registered}
+            choices={[
+              { value: 'desc', text: 'Mới nhất', arrow: '↓' },
+              { value: 'asc', text: 'Cũ nhất', arrow: '↑' },
+            ]}
+            onChange={(value) => changeSort({ ...sort, registered: value })}
+          />
+          <SortToggle<'touch'>
+            label="Lần tương tác"
+            value={sort.touch}
+            choices={[
+              { value: 'untouched', text: 'Chưa tương tác trước', arrow: '↑' },
+              { value: 'recent', text: 'Gần nhất trước', arrow: '↓' },
+            ]}
+            onChange={(value) => changeSort({ ...sort, touch: value })}
+          />
+          <SortToggle<'name'>
+            label="Tên"
+            value={sort.name}
+            choices={[
+              { value: 'asc', text: 'A–Z', arrow: '↑' },
+              { value: 'desc', text: 'Z–A', arrow: '↓' },
+            ]}
+            onChange={(value) => changeSort({ ...sort, name: value })}
+          />
+        </div>
+      </FormSubsection>
     </div>
   );
 
@@ -938,9 +941,8 @@ function Customers() {
       >
         <div className="space-y-4">
           {controls}
-          <div className="space-y-2 border-line border-t pt-4">
-            <p className="font-semibold text-body">Lưu tệp</p>
-            <div className="flex gap-2">
+          <FormSection title="Lưu tệp">
+            <div className={`${LONG_FIELD} flex gap-2`}>
               <input
                 aria-label="Tên tệp mới"
                 value={segmentName}
@@ -953,7 +955,7 @@ function Customers() {
               </Button>
             </div>
             {saved.length > 0 && (
-              <ul className="space-y-2">
+              <ul className={`${LONG_FIELD} space-y-2`}>
                 {saved.map((item) => (
                   <li key={item.id} className="flex items-center gap-2">
                     <button
@@ -971,7 +973,7 @@ function Customers() {
                 ))}
               </ul>
             )}
-          </div>
+          </FormSection>
         </div>
       </CustomerSheet>
 

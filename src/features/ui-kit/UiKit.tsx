@@ -70,6 +70,7 @@ import {
 import { ACTIONS, STAGES, stageDef } from '@/lib/crm';
 import { DocumentViewerDemo } from './DocumentViewerDemo';
 import { CUSTOMERS, type Customer, JOURNEY_AN, NOTIFS, NOW } from './demo-data';
+import { FormSectionDemo } from './FormSectionDemo';
 
 function Section({
   id,
@@ -413,6 +414,10 @@ export function UiKit() {
               <SearchBar shortcut="⌘K" />
             </div>
           </Panel>
+        </Section>
+
+        <Section id="form-sections" title="4b · Khu và mục con trong form">
+          <FormSectionDemo />
         </Section>
 
         <Section

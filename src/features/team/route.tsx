@@ -2,13 +2,14 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { FeatureRoute } from '@/app/routes';
 import { Avatar, EmptyState, PageHeader } from '@/components/crm';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { toast as sonnerToast } from '@/components/ui/sonner';
 import { useCustomers, useRepositoryAccount } from '@/data/hooks';
 import { memberLabel, type TeamMember } from './model';
 
 const FIELD =
-  'min-h-11 w-full rounded-sm border border-line bg-surface-100 px-3 text-body text-ink focus-visible:outline-2 focus-visible:outline-ion';
+  'min-h-11 w-full min-w-0 rounded-sm border border-line bg-surface-100 px-3 text-body text-ink focus-visible:outline-2 focus-visible:outline-ion';
 const cacheKey = (id: string) => `crm_team:${id}`;
 
 function Team() {
@@ -155,50 +156,51 @@ function Team() {
         </p>
       )}
 
-      <section className="space-y-3 rounded-md border border-line bg-surface-100 p-4" aria-labelledby="team-name-title">
+      <section className="min-w-0 space-y-3" aria-labelledby="team-name-title">
         <h2 id="team-name-title" className="text-title">
           Tên hiển thị của bạn
         </h2>
-        <p className="text-caption text-ink-muted">
-          Đồng nghiệp sẽ thấy tên này trong danh sách nhóm và khi nhận khách.
-        </p>
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <Input
-            aria-label="Tên hiển thị"
-            className={FIELD}
-            maxLength={80}
-            value={myName}
-            onChange={(e) => setMyName(e.target.value)}
-          />
-          <Button onClick={saveName} disabled={busy || !myName.trim() || !userId || loadState !== 'ready'}>
-            Lưu tên
-          </Button>
-        </div>
+        <Card data-form-card className="min-w-0 space-y-3 p-4">
+          <p className="text-caption text-ink-muted">
+            Đồng nghiệp sẽ thấy tên này trong danh sách nhóm và khi nhận khách.
+          </p>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Input
+              aria-label="Tên hiển thị"
+              className={FIELD}
+              maxLength={80}
+              value={myName}
+              onChange={(e) => setMyName(e.target.value)}
+            />
+            <Button onClick={saveName} disabled={busy || !myName.trim() || !userId || loadState !== 'ready'}>
+              Lưu tên
+            </Button>
+          </div>
+        </Card>
       </section>
 
       {admin && (
-        <section
-          className="space-y-3 rounded-md border border-line bg-surface-100 p-4"
-          aria-labelledby="team-add-title"
-        >
+        <section className="min-w-0 space-y-3" aria-labelledby="team-add-title">
           <h2 id="team-add-title" className="text-title">
             Thêm đồng nghiệp
           </h2>
-          <p className="text-caption text-ink-muted">Người nhận cần tạo tài khoản trong ứng dụng trước.</p>
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <Input
-              type="email"
-              id="team-member-email"
-              aria-label="Email đồng nghiệp"
-              className={FIELD}
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="ten@example.com"
-            />
-            <Button variant="primary" onClick={addMember} disabled={busy}>
-              Thêm
-            </Button>
-          </div>
+          <Card data-form-card className="min-w-0 space-y-3 p-4">
+            <p className="text-caption text-ink-muted">Người nhận cần tạo tài khoản trong ứng dụng trước.</p>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Input
+                type="email"
+                id="team-member-email"
+                aria-label="Email đồng nghiệp"
+                className={FIELD}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="ten@example.com"
+              />
+              <Button variant="primary" onClick={addMember} disabled={busy}>
+                Thêm
+              </Button>
+            </div>
+          </Card>
         </section>
       )}
 

@@ -1,9 +1,9 @@
 import { type ReactNode, useEffect, useState } from 'react';
+import { CollapsibleFormSection, FormGrid, FormSection, FormSubsection } from '@/components/crm/form-section';
 import { Button } from '@/components/ui/button';
 import { CLOSE_REASONS } from '@/config/reasons';
 import type { Customer } from '@/domain/customer';
 import { factFreshness, factPatch } from '@/domain/customer/facts';
-import { Icon } from '@/ui/Icon';
 import { LONG_FIELD, SHORT_FIELD } from './fields';
 
 type Save = (patch: Record<string, unknown>, message?: string) => void;
@@ -57,19 +57,18 @@ const FACT_LABELS: Record<string, string> = {
  */
 export function FactFreshnessSection({ customer, now = Date.now() }: { customer: Customer; now?: number }) {
   return (
-    <section className="space-y-2">
-      <h2 className="text-section-head">Nguồn và độ mới của dữ kiện</h2>
+    <FormSection title="Nguồn và độ mới của dữ kiện">
       {Object.entries(FACT_LABELS).map(([field, label]) => {
         const meta = customer.field_meta?.[field];
         const age = factFreshness(meta?.at, now);
         return (
-          <p key={field} className="text-caption text-ink-muted">
+          <p key={field} className={`${LONG_FIELD} text-caption text-ink-muted`}>
             {label}: {sourceName[meta?.by || ''] || 'Nguồn chưa ghi'} · {age.label}
           </p>
         );
       })}
-      <p className="text-caption text-ink-muted">Dữ kiện quá 90 ngày cần xác nhận lại.</p>
-    </section>
+      <p className={`${LONG_FIELD} text-caption text-ink-muted`}>Dữ kiện quá 90 ngày cần xác nhận lại.</p>
+    </FormSection>
   );
 }
 
@@ -137,69 +136,66 @@ export function CustomerContactPrefs({
   if (!showChannel && !showSlot && !showDoNotContact && !showDncReason) return null;
 
   return (
-    <section data-jump="contact" className="space-y-3">
-      <h2 className="text-section-head">Tuỳ chọn liên hệ</h2>
-      <div className="flex flex-wrap gap-3">
-        {showChannel && (
-          <label className={`flex flex-col gap-1 text-caption ${SHORT_FIELD}`}>
-            Kênh ưu tiên
-            <input
-              aria-label="Kênh liên hệ ưu tiên"
-              className="min-h-11 w-full rounded-sm border border-line bg-surface-100 px-3 text-body"
-              disabled={!writable}
-              value={channel}
-              onChange={(e) => setChannel(e.target.value)}
-              onBlur={() => channel !== (prefs.channel || '') && savePref('channel', channel.trim())}
-            />
-          </label>
-        )}
-        {showSlot && (
-          <label className={`flex flex-col gap-1 text-caption ${SHORT_FIELD}`}>
-            Khung giờ ưu tiên
-            <input
-              aria-label="Khung giờ liên hệ"
-              className="min-h-11 w-full rounded-sm border border-line bg-surface-100 px-3 text-body"
-              disabled={!writable}
-              value={slot}
-              onChange={(e) => setSlot(e.target.value)}
-              onBlur={() => slot !== (prefs.slot || '') && savePref('slot', slot.trim())}
-              placeholder="Ví dụ: 18:00–20:00"
-            />
-          </label>
-        )}
-        {showDoNotContact && (
-          <label className={`flex min-h-11 items-center gap-2 text-body ${LONG_FIELD}`}>
-            <input
-              type="checkbox"
-              disabled={!writable}
-              checked={!!prefs.do_not_contact}
-              onChange={(e) =>
-                onSave(
-                  markFact('contact_prefs', {
-                    ...prefs,
-                    do_not_contact: e.target.checked,
-                    dnc_at: e.target.checked ? new Date(now).toISOString() : null,
-                  }),
-                )
-              }
-            />
-            Không liên hệ · chặn gọi, Zalo và danh sách retarget
-          </label>
-        )}
-        {showDncReason && (
-          <label className={`flex flex-col gap-1 text-caption ${LONG_FIELD}`}>
-            Lý do không liên hệ
-            <input
-              className="min-h-11 w-full rounded-sm border border-line bg-surface-100 px-3 text-body"
-              disabled={!writable}
-              value={dncReason}
-              onChange={(e) => setDncReason(e.target.value)}
-              onBlur={() => dncReason !== (prefs.dnc_reason || '') && savePref('dnc_reason', dncReason.trim())}
-            />
-          </label>
-        )}
-      </div>
-    </section>
+    <FormSection title="Tuỳ chọn liên hệ" data-jump="contact">
+      {showChannel && (
+        <label className={`flex flex-col gap-1 text-caption ${SHORT_FIELD}`}>
+          Kênh ưu tiên
+          <input
+            aria-label="Kênh liên hệ ưu tiên"
+            className="min-h-11 w-full rounded-sm border border-line bg-surface-100 px-3 text-body"
+            disabled={!writable}
+            value={channel}
+            onChange={(e) => setChannel(e.target.value)}
+            onBlur={() => channel !== (prefs.channel || '') && savePref('channel', channel.trim())}
+          />
+        </label>
+      )}
+      {showSlot && (
+        <label className={`flex flex-col gap-1 text-caption ${SHORT_FIELD}`}>
+          Khung giờ ưu tiên
+          <input
+            aria-label="Khung giờ liên hệ"
+            className="min-h-11 w-full rounded-sm border border-line bg-surface-100 px-3 text-body"
+            disabled={!writable}
+            value={slot}
+            onChange={(e) => setSlot(e.target.value)}
+            onBlur={() => slot !== (prefs.slot || '') && savePref('slot', slot.trim())}
+            placeholder="Ví dụ: 18:00–20:00"
+          />
+        </label>
+      )}
+      {showDoNotContact && (
+        <label className={`flex min-h-11 items-center gap-2 text-body ${LONG_FIELD}`}>
+          <input
+            type="checkbox"
+            disabled={!writable}
+            checked={!!prefs.do_not_contact}
+            onChange={(e) =>
+              onSave(
+                markFact('contact_prefs', {
+                  ...prefs,
+                  do_not_contact: e.target.checked,
+                  dnc_at: e.target.checked ? new Date(now).toISOString() : null,
+                }),
+              )
+            }
+          />
+          Không liên hệ · chặn gọi, Zalo và danh sách retarget
+        </label>
+      )}
+      {showDncReason && (
+        <label className={`flex flex-col gap-1 text-caption ${LONG_FIELD}`}>
+          Lý do không liên hệ
+          <input
+            className="min-h-11 w-full rounded-sm border border-line bg-surface-100 px-3 text-body"
+            disabled={!writable}
+            value={dncReason}
+            onChange={(e) => setDncReason(e.target.value)}
+            onBlur={() => dncReason !== (prefs.dnc_reason || '') && savePref('dnc_reason', dncReason.trim())}
+          />
+        </label>
+      )}
+    </FormSection>
   );
 }
 
@@ -219,7 +215,8 @@ export function CustomerInterests({
   onSave,
   now,
   projectCatalog,
-}: BaseProps & { projectCatalog?: InterestProjectCatalog | null }) {
+  nested = false,
+}: BaseProps & { projectCatalog?: InterestProjectCatalog | null; nested?: boolean }) {
   const [project, setProject] = useState('');
   const [interestType, setInterestType] = useState('');
   const [interestBudget, setInterestBudget] = useState('');
@@ -256,14 +253,17 @@ export function CustomerInterests({
     onSave(markFact('interests', interests), 'Đã cập nhật đợt quan tâm');
   };
 
+  const Section = nested ? FormSubsection : FormSection;
   return (
-    <section className="space-y-3">
-      <h2 className="text-section-head">Nhu cầu theo đợt</h2>
+    <Section title="Nhu cầu theo đợt">
       {(customer.interests || []).map((interest, index) => {
         if (!interest) return null;
         const age = factFreshness(interest.at, now);
         return (
-          <article key={interest?.id || index} className="rounded-sm border border-line p-3">
+          <article
+            key={interest?.id || index}
+            className={`${LONG_FIELD} space-y-2 rounded-sm border border-line p-3 [overflow-wrap:anywhere]`}
+          >
             <p className="text-body font-semibold">
               {interest.project || 'Chưa rõ dự án'} · {interest.apt_type || 'Chưa rõ loại căn'}
             </p>
@@ -314,35 +314,37 @@ export function CustomerInterests({
           </article>
         );
       })}
-      <div className="grid gap-2 sm:grid-cols-2">
-        {projectCatalog ? (
-          <select
-            aria-label="Dự án quan tâm mới"
-            className="min-h-11 w-full min-w-0 rounded-sm border border-line bg-surface-100 px-3 text-body"
-            disabled={!writable}
-            value={project}
-            onChange={(e) => setProject(e.target.value)}
-          >
-            <option value="">— Chọn dự án —</option>
-            {catalogProjectNames(projectCatalog).map((name) => (
-              <option key={name} value={name}>
-                {name}
-              </option>
-            ))}
-          </select>
-        ) : (
-          <input
-            aria-label="Dự án quan tâm mới"
-            className="min-h-11 w-full min-w-0 rounded-sm border border-line bg-surface-100 px-3 text-body"
-            disabled={!writable}
-            value={project}
-            onChange={(e) => setProject(e.target.value)}
-            placeholder="Dự án mới — tạo đợt riêng"
-          />
-        )}
+      <FormGrid className={LONG_FIELD}>
+        <div className={SHORT_FIELD}>
+          {projectCatalog ? (
+            <select
+              aria-label="Dự án quan tâm mới"
+              className="min-h-11 w-full min-w-0 rounded-sm border border-line bg-surface-100 px-3 text-body"
+              disabled={!writable}
+              value={project}
+              onChange={(e) => setProject(e.target.value)}
+            >
+              <option value="">— Chọn dự án —</option>
+              {catalogProjectNames(projectCatalog).map((name) => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <input
+              aria-label="Dự án quan tâm mới"
+              className="min-h-11 w-full min-w-0 rounded-sm border border-line bg-surface-100 px-3 text-body"
+              disabled={!writable}
+              value={project}
+              onChange={(e) => setProject(e.target.value)}
+              placeholder="Dự án mới — tạo đợt riêng"
+            />
+          )}
+        </div>
         <input
           aria-label="Loại căn đợt mới"
-          className="min-h-11 rounded-sm border border-line bg-surface-100 px-3 text-body"
+          className={`${SHORT_FIELD} min-h-11 w-full rounded-sm border border-line bg-surface-100 px-3 text-body`}
           disabled={!writable}
           value={interestType}
           onChange={(e) => setInterestType(e.target.value)}
@@ -352,7 +354,7 @@ export function CustomerInterests({
           aria-label="Ngân sách đợt mới"
           type="number"
           min="0"
-          className="min-h-11 rounded-sm border border-line bg-surface-100 px-3 text-body"
+          className={`${SHORT_FIELD} min-h-11 w-full rounded-sm border border-line bg-surface-100 px-3 text-body`}
           disabled={!writable}
           value={interestBudget}
           onChange={(e) => setInterestBudget(e.target.value)}
@@ -360,7 +362,7 @@ export function CustomerInterests({
         />
         <input
           aria-label="Mục đích đợt mới"
-          className="min-h-11 rounded-sm border border-line bg-surface-100 px-3 text-body"
+          className={`${SHORT_FIELD} min-h-11 w-full rounded-sm border border-line bg-surface-100 px-3 text-body`}
           disabled={!writable}
           value={interestPurpose}
           onChange={(e) => setInterestPurpose(e.target.value)}
@@ -368,22 +370,30 @@ export function CustomerInterests({
         />
         <input
           aria-label="Thời điểm đợt mới"
-          className="min-h-11 rounded-sm border border-line bg-surface-100 px-3 text-body"
+          className={`${SHORT_FIELD} min-h-11 w-full rounded-sm border border-line bg-surface-100 px-3 text-body`}
           disabled={!writable}
           value={interestTimeline}
           onChange={(e) => setInterestTimeline(e.target.value)}
           placeholder="Thời điểm dự kiến"
         />
-        <Button disabled={!writable || !project.trim()} onClick={addInterest}>
-          Thêm đợt
-        </Button>
-      </div>
-    </section>
+        <div className={`${LONG_FIELD} flex justify-start`}>
+          <Button disabled={!writable || !project.trim()} onClick={addInterest}>
+            Thêm đợt
+          </Button>
+        </div>
+      </FormGrid>
+    </Section>
   );
 }
 
 /** Người cùng quyết định: thêm người, giữ nguyên thuộc tính lạ của mỗi phần tử. */
-export function CustomerHousehold({ customer, writable, onSave, now }: BaseProps) {
+export function CustomerHousehold({
+  customer,
+  writable,
+  onSave,
+  now,
+  nested = false,
+}: BaseProps & { nested?: boolean }) {
   const [member, setMember] = useState('');
   const [memberRole, setMemberRole] = useState('');
   const [memberPhone, setMemberPhone] = useState('');
@@ -408,20 +418,20 @@ export function CustomerHousehold({ customer, writable, onSave, now }: BaseProps
     setMemberNote('');
   };
 
+  const Section = nested ? FormSubsection : FormSection;
   return (
-    <section data-jump="household" className="space-y-3">
-      <h2 className="text-section-head">Người cùng quyết định</h2>
+    <Section title="Người cùng quyết định" data-jump="household">
       {(customer.household || []).filter(Boolean).map((person, index) => (
-        <p key={person?.id || index} className="text-body">
+        <p key={person?.id || index} className={`${LONG_FIELD} text-body [overflow-wrap:anywhere]`}>
           {person?.name || 'Chưa có tên'}
           {person?.role ? ` · ${person.role}` : ''}
           {person?.phone ? ` · ${person.phone}` : ''}
         </p>
       ))}
-      <div className="grid gap-2 sm:grid-cols-3">
+      <FormGrid className={LONG_FIELD}>
         <input
           aria-label="Tên người cùng quyết định"
-          className="min-h-11 rounded-sm border border-line bg-surface-100 px-3 text-body"
+          className={`${SHORT_FIELD} min-h-11 w-full rounded-sm border border-line bg-surface-100 px-3 text-body`}
           disabled={!writable}
           value={member}
           onChange={(e) => setMember(e.target.value)}
@@ -429,7 +439,7 @@ export function CustomerHousehold({ customer, writable, onSave, now }: BaseProps
         />
         <input
           aria-label="Vai trò người cùng quyết định"
-          className="min-h-11 rounded-sm border border-line bg-surface-100 px-3 text-body"
+          className={`${SHORT_FIELD} min-h-11 w-full rounded-sm border border-line bg-surface-100 px-3 text-body`}
           disabled={!writable}
           value={memberRole}
           onChange={(e) => setMemberRole(e.target.value)}
@@ -437,7 +447,7 @@ export function CustomerHousehold({ customer, writable, onSave, now }: BaseProps
         />
         <input
           aria-label="Số điện thoại người cùng quyết định"
-          className="min-h-11 rounded-sm border border-line bg-surface-100 px-3 text-body"
+          className={`${SHORT_FIELD} min-h-11 w-full rounded-sm border border-line bg-surface-100 px-3 text-body`}
           disabled={!writable}
           value={memberPhone}
           onChange={(e) => setMemberPhone(e.target.value)}
@@ -445,17 +455,19 @@ export function CustomerHousehold({ customer, writable, onSave, now }: BaseProps
         />
         <input
           aria-label="Ghi chú người cùng quyết định"
-          className="min-h-11 rounded-sm border border-line bg-surface-100 px-3 text-body"
+          className={`${LONG_FIELD} min-h-11 w-full rounded-sm border border-line bg-surface-100 px-3 text-body`}
           disabled={!writable}
           value={memberNote}
           onChange={(e) => setMemberNote(e.target.value)}
           placeholder="Ghi chú (tuỳ chọn)"
         />
-        <Button disabled={!writable || !member.trim()} onClick={addHousehold}>
-          Thêm người
-        </Button>
-      </div>
-    </section>
+        <div className={`${LONG_FIELD} flex justify-start`}>
+          <Button disabled={!writable || !member.trim()} onClick={addHousehold}>
+            Thêm người
+          </Button>
+        </div>
+      </FormGrid>
+    </Section>
   );
 }
 
@@ -473,9 +485,8 @@ export function CustomerClosure({ customer, writable, onSave, now }: BaseProps) 
     );
 
   return (
-    <section className="space-y-3">
-      <h2 className="text-section-head">Lý do kết thúc và điều kiện retarget</h2>
-      <label className="flex flex-col gap-1 text-caption">
+    <FormSection title="Lý do kết thúc và điều kiện retarget">
+      <label className={`${LONG_FIELD} flex flex-col gap-1 text-caption`}>
         Lý do
         <select
           aria-label="Lý do kết thúc"
@@ -492,7 +503,7 @@ export function CustomerClosure({ customer, writable, onSave, now }: BaseProps) 
           ))}
         </select>
       </label>
-      <label className="flex flex-col gap-1 text-caption">
+      <label className={`${LONG_FIELD} flex flex-col gap-1 text-caption`}>
         Ghi chú kết thúc
         <input
           className="min-h-11 rounded-sm border border-line bg-surface-100 px-3 text-body"
@@ -502,8 +513,10 @@ export function CustomerClosure({ customer, writable, onSave, now }: BaseProps) 
           onBlur={() => closeNote !== (customer.close_note || '') && closePatch('close_note', closeNote.trim())}
         />
       </label>
-      <div className="grid gap-2 sm:grid-cols-2">
-        <label className="flex flex-col gap-1 text-caption">
+      <FormGrid className={LONG_FIELD}>
+        <label
+          className={`${SHORT_FIELD} flex flex-col gap-1 text-caption [&>input]:min-w-0 [&>input]:w-full [&>input]:max-w-full [&>input]:shrink`}
+        >
           Liên hệ lại sau ngày
           <input
             type="date"
@@ -516,7 +529,9 @@ export function CustomerClosure({ customer, writable, onSave, now }: BaseProps) 
             }
           />
         </label>
-        <label className="flex flex-col gap-1 text-caption">
+        <label
+          className={`${SHORT_FIELD} flex flex-col gap-1 text-caption [&>input]:min-w-0 [&>input]:w-full [&>input]:max-w-full [&>input]:shrink`}
+        >
           Ngân sách tối đa (VNĐ)
           <input
             type="number"
@@ -531,8 +546,8 @@ export function CustomerClosure({ customer, writable, onSave, now }: BaseProps) 
             }
           />
         </label>
-      </div>
-      <label className="flex flex-col gap-1 text-caption">
+      </FormGrid>
+      <label className={`${LONG_FIELD} flex flex-col gap-1 text-caption`}>
         Loại căn phù hợp
         <input
           className="min-h-11 rounded-sm border border-line bg-surface-100 px-3 text-body"
@@ -551,7 +566,7 @@ export function CustomerClosure({ customer, writable, onSave, now }: BaseProps) 
           placeholder="Cách nhau bằng dấu phẩy"
         />
       </label>
-    </section>
+    </FormSection>
   );
 }
 
@@ -612,24 +627,17 @@ export function CustomerNeedsAdvanced({
     if (openSignal) setOpen(true);
   }, [openSignal]);
   return (
-    <section aria-label="Nhu cầu nâng cao" className="space-y-3">
-      <Button variant="secondary" className="w-full" aria-expanded={open} onClick={() => setOpen(!open)}>
-        <span className="flex-1 text-left">Nâng cao</span>
-        <Icon name={open ? 'up' : 'expand'} size={20} className="text-ink-muted" />
-      </Button>
-      {open && (
-        <div className="space-y-5">
-          {children}
-          <CustomerInterests
-            customer={customer}
-            writable={writable}
-            onSave={onSave}
-            now={now}
-            projectCatalog={projectCatalog}
-          />
-          <CustomerHousehold customer={customer} writable={writable} onSave={onSave} now={now} />
-        </div>
-      )}
-    </section>
+    <CollapsibleFormSection title="Nâng cao" aria-label="Nhu cầu nâng cao" open={open} onOpenChange={setOpen}>
+      {children}
+      <CustomerInterests
+        customer={customer}
+        writable={writable}
+        onSave={onSave}
+        now={now}
+        projectCatalog={projectCatalog}
+        nested
+      />
+      <CustomerHousehold customer={customer} writable={writable} onSave={onSave} now={now} nested />
+    </CollapsibleFormSection>
   );
 }

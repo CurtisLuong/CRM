@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router';
 import type { FeatureRoute } from '@/app/routes';
 import { useAppSession } from '@/app/session';
 import { ActionItem, ChipGroup, EmptyState } from '@/components/crm';
+import { FormSection, LONG_FIELD, SHORT_FIELD } from '@/components/crm/form-section';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CALL_APPOINTMENT, TASK_KINDS, taskKindOf } from '@/config/taskKinds';
@@ -17,7 +18,7 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/ui/Toast';
 import { TASK_GROUPS, type TaskGroupId, type TaskRow, type TaskSideFilter, taskRows, taskTiming } from './model';
 
-const FIELD = 'min-h-11 rounded-md border border-line bg-surface-100 px-3 text-body text-ink';
+const FIELD = 'min-w-0 w-full min-h-11 rounded-md border border-line bg-surface-100 px-3 text-body text-ink';
 const FILTER_SELECT =
   'min-h-11 rounded-md border border-input bg-surface-100 px-3 text-body text-ink hover:border-ink-muted focus-visible:border-ion focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ion';
 /** Nút phụ trong thẻ (Sửa/Dời): nhỏ, không chiếm chỗ của hành động chính. */
@@ -175,34 +176,36 @@ function TaskCard({
                   setShowEdit(false);
                 }}
               >
-                <label className="flex min-w-0 flex-col gap-1 text-label text-ink-muted">
-                  Nội dung việc
-                  <input
-                    aria-label={`Sửa nội dung: ${row.task.text}`}
-                    className={cn(FIELD, 'w-full min-w-0')}
-                    required
-                    value={editText}
-                    onChange={(event) => setEditText(event.target.value)}
-                  />
-                </label>
-                <label className="flex min-w-0 flex-col gap-1 text-label text-ink-muted">
-                  Hạn (để trống nếu không hạn)
-                  <input
-                    aria-label={`Sửa hạn: ${row.task.text}`}
-                    className={cn(FIELD, 'w-full min-w-0')}
-                    type="datetime-local"
-                    value={editDue}
-                    onChange={(event) => setEditDue(event.target.value)}
-                  />
-                </label>
-                <div className="flex flex-wrap gap-1.5">
-                  <Button type="submit" variant="primary" disabled={busy} className="min-h-9">
-                    Lưu sửa
-                  </Button>
-                  <Button type="button" disabled={busy} className="min-h-9" onClick={() => setShowEdit(false)}>
-                    Huỷ
-                  </Button>
-                </div>
+                <FormSection title="Sửa" className="[&_[data-form-card]>div]:items-end">
+                  <label className={`${LONG_FIELD} flex flex-col gap-1 text-label text-ink-muted`}>
+                    Nội dung việc
+                    <input
+                      aria-label={`Sửa nội dung: ${row.task.text}`}
+                      className={cn(FIELD, 'w-full min-w-0')}
+                      required
+                      value={editText}
+                      onChange={(event) => setEditText(event.target.value)}
+                    />
+                  </label>
+                  <label className={`${SHORT_FIELD} flex flex-col gap-1 text-label text-ink-muted`}>
+                    Hạn (để trống nếu không hạn)
+                    <input
+                      aria-label={`Sửa hạn: ${row.task.text}`}
+                      className={cn(FIELD, 'w-full min-w-0')}
+                      type="datetime-local"
+                      value={editDue}
+                      onChange={(event) => setEditDue(event.target.value)}
+                    />
+                  </label>
+                  <div className={`${LONG_FIELD} flex flex-wrap gap-1.5`}>
+                    <Button type="submit" variant="primary" disabled={busy} className="min-h-9">
+                      Lưu sửa
+                    </Button>
+                    <Button type="button" disabled={busy} className="min-h-9" onClick={() => setShowEdit(false)}>
+                      Huỷ
+                    </Button>
+                  </div>
+                </FormSection>
               </form>
             )}
             {/* Delete stays unavailable until v1 can read a tombstone without treating it as completed. */}
@@ -216,38 +219,40 @@ function TaskCard({
                   setShowSnooze(false);
                 }}
               >
-                <label className="flex min-w-0 flex-col gap-1 text-label text-ink-muted">
-                  Hạn mới
-                  <input
-                    aria-label={`Hạn mới: ${row.task.text}`}
-                    className={cn(FIELD, 'w-full min-w-0')}
-                    type="datetime-local"
-                    required
-                    value={snoozeDue}
-                    onChange={(event) => setSnoozeDue(event.target.value)}
-                  />
-                </label>
-                <label className="flex min-w-0 flex-col gap-1 text-label text-ink-muted">
-                  Lý do dời
-                  <select
-                    aria-label={`Lý do dời: ${row.task.text}`}
-                    className={cn(FIELD, 'w-full min-w-0')}
-                    value={snoozeReason}
-                    onChange={(event) => setSnoozeReason(event.target.value)}
-                  >
-                    <option>Em bận</option>
-                    <option>Khách bận</option>
-                    <option>Chờ thông tin</option>
-                  </select>
-                </label>
-                <div className="flex flex-wrap gap-1.5">
-                  <Button type="submit" variant="primary" disabled={busy} className="min-h-9">
-                    Lưu hạn mới
-                  </Button>
-                  <Button type="button" className="min-h-9" onClick={() => setShowSnooze(false)}>
-                    Huỷ
-                  </Button>
-                </div>
+                <FormSection title="Dời" className="[&_[data-form-card]>div]:items-end">
+                  <label className={`${SHORT_FIELD} flex flex-col gap-1 text-label text-ink-muted`}>
+                    Hạn mới
+                    <input
+                      aria-label={`Hạn mới: ${row.task.text}`}
+                      className={cn(FIELD, 'w-full min-w-0')}
+                      type="datetime-local"
+                      required
+                      value={snoozeDue}
+                      onChange={(event) => setSnoozeDue(event.target.value)}
+                    />
+                  </label>
+                  <label className={`${SHORT_FIELD} flex flex-col gap-1 text-label text-ink-muted`}>
+                    Lý do dời
+                    <select
+                      aria-label={`Lý do dời: ${row.task.text}`}
+                      className={cn(FIELD, 'w-full min-w-0')}
+                      value={snoozeReason}
+                      onChange={(event) => setSnoozeReason(event.target.value)}
+                    >
+                      <option>Em bận</option>
+                      <option>Khách bận</option>
+                      <option>Chờ thông tin</option>
+                    </select>
+                  </label>
+                  <div className={`${LONG_FIELD} flex flex-wrap gap-1.5`}>
+                    <Button type="submit" variant="primary" disabled={busy} className="min-h-9">
+                      Lưu hạn mới
+                    </Button>
+                    <Button type="button" className="min-h-9" onClick={() => setShowSnooze(false)}>
+                      Huỷ
+                    </Button>
+                  </div>
+                </FormSection>
               </form>
             )}
           </div>
@@ -353,14 +358,14 @@ function TasksPage() {
           {sync.pending ? `${sync.pending} thay đổi chờ đồng bộ` : 'Đã đồng bộ'}
         </p>
       </header>
-      <section className="rounded-md border border-line bg-surface-100 p-3">
+      <section className={showCreate ? 'min-w-0' : 'rounded-md border border-line bg-surface-100 p-3'}>
         {!showCreate ? (
           <Button variant="primary" onClick={() => setShowCreate(true)}>
             Thêm lời hứa
           </Button>
         ) : (
           <form
-            className="grid gap-3 sm:grid-cols-2"
+            className="min-w-0"
             onSubmit={async (event) => {
               event.preventDefault();
               if (createBusy) return;
@@ -400,96 +405,95 @@ function TasksPage() {
               }
             }}
           >
-            <label className="flex flex-col gap-1 text-label text-ink-muted sm:col-span-2">
-              Khách hàng
-              <select
-                aria-label="Khách hàng của lời hứa"
-                required
-                className={FIELD}
-                value={createCustomer}
-                onChange={(event) => setCreateCustomer(event.target.value)}
-              >
-                <option value="">Chọn khách hàng</option>
-                {customers
-                  .filter((entry) => entry.owner_id === account.sync.local.userId)
-                  .map((entry) => (
-                    <option key={entry.id} value={entry.id}>
-                      {entry.full_name} · {entry.phone}
-                    </option>
-                  ))}
-              </select>
-            </label>
-            <label className="flex flex-col gap-1 text-label text-ink-muted sm:col-span-2">
-              Việc cần làm
-              <input
-                aria-label="Nội dung lời hứa"
-                required
-                className={FIELD}
-                value={createText}
-                onChange={(event) => setCreateText(event.target.value)}
-                placeholder="Ví dụ: Gửi bảng giá căn 2 phòng ngủ"
-              />
-            </label>
-            <label className="flex flex-col gap-1 text-label text-ink-muted">
-              Cam kết
-              <select
-                aria-label="Loại lời hứa"
-                className={FIELD}
-                value={createSide}
-                onChange={(event) => setCreateSide(event.target.value as 'me' | 'customer')}
-              >
-                <option value="me">Em hứa</option>
-                <option value="customer">Khách hẹn</option>
-              </select>
-            </label>
-            <label className="flex flex-col gap-1 text-label text-ink-muted">
-              Loại việc
-              <select
-                aria-label="Loại việc mới"
-                className={FIELD}
-                value={createKind}
-                onChange={(event) => setCreateKind(event.target.value)}
-              >
-                {Object.entries(TASK_KINDS)
-                  .filter(([key]) => key !== 'call')
-                  .map(([key, value]) => (
-                    <option key={key} value={key}>
-                      {value.label}
-                    </option>
-                  ))}
-              </select>
-            </label>
-            <label className="flex flex-col gap-1 text-label text-ink-muted">
-              Hạn
-              <input
-                aria-label="Hạn lời hứa"
-                className={FIELD}
-                type="datetime-local"
-                value={createDue}
-                onChange={(event) => setCreateDue(event.target.value)}
-              />
-            </label>
-            <div className="flex items-end gap-2">
-              <Button type="submit" variant="primary" disabled={createBusy}>
-                Lưu lời hứa
-              </Button>
-              <Button type="button" onClick={() => setShowCreate(false)}>
-                Huỷ
-              </Button>
-            </div>
-            {createError && (
-              <p role="alert" className="text-label text-alert-text sm:col-span-2">
-                {createError}
-              </p>
-            )}
+            <FormSection title="Thêm lời hứa">
+              <label className={`${LONG_FIELD} flex flex-col gap-1 text-label text-ink-muted`}>
+                Khách hàng
+                <select
+                  aria-label="Khách hàng của lời hứa"
+                  required
+                  className={FIELD}
+                  value={createCustomer}
+                  onChange={(event) => setCreateCustomer(event.target.value)}
+                >
+                  <option value="">Chọn khách hàng</option>
+                  {customers
+                    .filter((entry) => entry.owner_id === account.sync.local.userId)
+                    .map((entry) => (
+                      <option key={entry.id} value={entry.id}>
+                        {entry.full_name} · {entry.phone}
+                      </option>
+                    ))}
+                </select>
+              </label>
+              <label className={`${LONG_FIELD} flex flex-col gap-1 text-label text-ink-muted`}>
+                Việc cần làm
+                <input
+                  aria-label="Nội dung lời hứa"
+                  required
+                  className={FIELD}
+                  value={createText}
+                  onChange={(event) => setCreateText(event.target.value)}
+                  placeholder="Ví dụ: Gửi bảng giá căn 2 phòng ngủ"
+                />
+              </label>
+              <label className={`${SHORT_FIELD} self-end flex flex-col gap-1 text-label text-ink-muted`}>
+                Cam kết
+                <select
+                  aria-label="Loại lời hứa"
+                  className={FIELD}
+                  value={createSide}
+                  onChange={(event) => setCreateSide(event.target.value as 'me' | 'customer')}
+                >
+                  <option value="me">Em hứa</option>
+                  <option value="customer">Khách hẹn</option>
+                </select>
+              </label>
+              <label className={`${SHORT_FIELD} self-end flex flex-col gap-1 text-label text-ink-muted`}>
+                Loại việc
+                <select
+                  aria-label="Loại việc mới"
+                  className={FIELD}
+                  value={createKind}
+                  onChange={(event) => setCreateKind(event.target.value)}
+                >
+                  {Object.entries(TASK_KINDS)
+                    .filter(([key]) => key !== 'call')
+                    .map(([key, value]) => (
+                      <option key={key} value={key}>
+                        {value.label}
+                      </option>
+                    ))}
+                </select>
+              </label>
+              <label className={`${SHORT_FIELD} self-end flex flex-col gap-1 text-label text-ink-muted`}>
+                Hạn
+                <input
+                  aria-label="Hạn lời hứa"
+                  className={FIELD}
+                  type="datetime-local"
+                  value={createDue}
+                  onChange={(event) => setCreateDue(event.target.value)}
+                />
+              </label>
+              <div className={`${LONG_FIELD} flex flex-wrap items-end gap-2`}>
+                <Button type="submit" variant="primary" disabled={createBusy}>
+                  Lưu lời hứa
+                </Button>
+                <Button type="button" onClick={() => setShowCreate(false)}>
+                  Huỷ
+                </Button>
+              </div>
+              {createError && (
+                <p role="alert" className={`${LONG_FIELD} text-label text-alert-text`}>
+                  {createError}
+                </p>
+              )}
+            </FormSection>
           </form>
         )}
       </section>
-      <section
-        aria-label="Lọc công việc"
-        className="grid grid-cols-1 gap-3 rounded-md border border-line bg-surface-100 p-3 sm:grid-cols-2"
-      >
-        <label className="flex flex-col gap-1 text-label text-ink-muted">
+      <FormSection title="Lọc công việc" aria-label="Lọc công việc">
+        <label className={`${SHORT_FIELD} flex flex-col gap-1 text-label text-ink-muted`}>
           Loại việc
           <select
             aria-label="Lọc theo loại việc"
@@ -505,7 +509,7 @@ function TasksPage() {
             ))}
           </select>
         </label>
-        <div className="flex flex-col gap-1.5 text-label text-ink-muted">
+        <div className={`${LONG_FIELD} flex flex-col gap-1.5 text-label text-ink-muted`}>
           <span>Cam kết</span>
           <ChipGroup
             label="Lọc theo người hứa"
@@ -519,7 +523,7 @@ function TasksPage() {
             ]}
           />
         </div>
-      </section>
+      </FormSection>
       {rows.length === 0 ? (
         <EmptyState
           title="Không có công việc phù hợp"

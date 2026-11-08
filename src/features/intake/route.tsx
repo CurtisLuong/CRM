@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { useBlocker, useNavigate, useParams } from 'react-router';
 import type { FeatureRoute } from '@/app/routes';
 import { SelectField, TextField } from '@/components/crm';
+import { FormGrid, FormSection, FormSubsection, LONG_FIELD, SHORT_FIELD } from '@/components/crm/form-section';
 import { Button } from '@/components/ui/button';
 import { APT_TYPES } from '@/config/aptTypes';
 import { SOURCE_DEFAULT, SOURCES } from '@/config/sources';
@@ -335,6 +336,7 @@ function IntakePage() {
   ) => (
     <TextField
       key={name}
+      className={name === 'care_stage_note' ? LONG_FIELD : `${SHORT_FIELD} self-end`}
       {...register(name)}
       label={label.replace(/ \*$/, '')}
       required={label.endsWith(' *')}
@@ -353,6 +355,7 @@ function IntakePage() {
   ) => (
     <SelectField
       key={name}
+      className={name === 'care_stage_note' ? LONG_FIELD : `${SHORT_FIELD} self-end`}
       label={label}
       options={[
         { value: '__none', label: '— Chưa rõ —' },
@@ -496,9 +499,8 @@ function IntakePage() {
         </section>
       )}
       <form onSubmit={handleSubmit(save)} className="flex flex-col gap-4" noValidate>
-        <section className="flex flex-col gap-3 rounded-lg border border-line bg-surface-100 p-4">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-title">Thông tin cá nhân</h2>
+        <FormSection title="Thông tin cá nhân">
+          <div className={`${LONG_FIELD} flex flex-wrap items-center justify-between gap-2`}>
             <Button type="button" onClick={() => fileInput.current?.click()} disabled={ocrBusy}>
               Nhập từ ảnh
             </Button>
@@ -518,27 +520,26 @@ function IntakePage() {
               {ocrStatus}
             </p>
           )}
-          <div className="grid gap-3 sm:grid-cols-2">
+          <FormGrid className={`${LONG_FIELD} items-end`}>
             {input('Họ tên *', 'full_name')}
             {input('Số điện thoại *', 'phone', 'tel', { autoComplete: 'tel' })}
-          </div>
-        </section>
-        <section className="flex flex-col gap-3 rounded-lg border border-line bg-surface-100 p-4">
-          <h2 className="text-title">Nguồn khách</h2>
-          <div className="grid gap-3 sm:grid-cols-2">
+          </FormGrid>
+        </FormSection>
+        <FormSection title="Nguồn khách">
+          <FormGrid className={`${LONG_FIELD} items-end`}>
             <SelectField
+              className={`${SHORT_FIELD} self-end`}
               label="Kênh"
               required
               options={Object.entries(SOURCES).map(([value, label]) => ({ value, label }))}
               value={values.source_channel}
               onValueChange={(value) => set('source_channel', value)}
             />
-          </div>
-        </section>
-        <section className="flex flex-col gap-3 rounded-lg border border-line bg-surface-100 p-4">
-          <h2 className="text-title">Nhu cầu căn hộ</h2>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="flex flex-col gap-1 text-caption text-ink-muted">
+          </FormGrid>
+        </FormSection>
+        <FormSection title="Nhu cầu căn hộ">
+          <FormGrid className={`${LONG_FIELD} items-end`}>
+            <label className={`${LONG_FIELD} flex flex-col gap-1 text-caption text-ink-muted`}>
               Dự án (có thể chọn nhiều)
               <select
                 multiple
@@ -559,6 +560,7 @@ function IntakePage() {
               </select>
             </label>
             <SelectField
+              className={`${SHORT_FIELD} self-end`}
               label="Loại căn"
               options={aptTypeOptions}
               placeholder="— Chưa rõ —"
@@ -574,13 +576,12 @@ function IntakePage() {
               }}
             />
             {customAptType ? input('Loại căn khác', 'apt_type') : null}
-          </div>
-        </section>
-        <section className="flex flex-col gap-3 rounded-lg border border-line bg-surface-100 p-4">
-          <h2 className="text-title">Chăm sóc</h2>
-          <div className="grid gap-3 sm:grid-cols-2">
+          </FormGrid>
+        </FormSection>
+        <FormSection title="Chăm sóc">
+          <FormGrid className={`${LONG_FIELD} items-end`}>
             {!customer && (
-              <label className="flex min-h-11 items-center gap-3 text-body text-ink">
+              <label className={`${LONG_FIELD} flex min-h-11 items-center gap-3 text-body text-ink`}>
                 <input
                   type="checkbox"
                   checked={values.qualify_now}
@@ -598,7 +599,7 @@ function IntakePage() {
                 {select('Tiến độ', 'care_stage', CARE_STAGE_PICKER_ORDER, stageOptionLabel)}
                 {select('Trạng thái liên lạc', 'contact_status', CONTACT_STATUSES)}
                 {input('Ghi chú cho lần đổi tiến độ', 'care_stage_note')}
-                <label className="flex flex-col gap-2 text-caption text-ink-muted sm:col-span-2">
+                <label className={`${LONG_FIELD} flex flex-col gap-2 text-caption text-ink-muted`}>
                   Mức quan tâm:{' '}
                   <strong className="text-body font-semibold text-ink">{Number(values.interest_level)}%</strong>
                   <input
@@ -611,10 +612,12 @@ function IntakePage() {
                 </label>
               </>
             )}
-            <div className="flex flex-col gap-2 sm:col-span-2">
-              <h3 className="text-body font-semibold text-ink">Ghi chú chăm sóc</h3>
+            <FormSubsection className={LONG_FIELD} title="Ghi chú chăm sóc">
               {manualNotes.map((note, index) => (
-                <div key={`${String(note.at ?? 'note')}-${String(note.text ?? '')}`} className="flex items-start gap-2">
+                <div
+                  key={`${String(note.at ?? 'note')}-${String(note.text ?? '')}`}
+                  className={`${LONG_FIELD} flex items-start gap-2`}
+                >
                   <textarea
                     aria-label={`Ghi chú ${index + 1}`}
                     value={String(note.text ?? '')}
@@ -634,7 +637,7 @@ function IntakePage() {
                   </Button>
                 </div>
               ))}
-              <div className="flex gap-2">
+              <div className={`${LONG_FIELD} flex gap-2`}>
                 <input
                   aria-label="Ghi chú mới"
                   value={newManualNote}
@@ -654,9 +657,9 @@ function IntakePage() {
                   Thêm
                 </Button>
               </div>
-            </div>
-          </div>
-        </section>
+            </FormSubsection>
+          </FormGrid>
+        </FormSection>
         <IntakeMore
           open={moreOpen}
           onToggle={() => setMoreOpen((current) => !current)}

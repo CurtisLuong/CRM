@@ -10,6 +10,7 @@ import type { FeatureRoute } from '@/app/routes';
 import { useAppSession } from '@/app/session';
 import { THEME_OPTIONS, type ThemePref, useThemePref } from '@/app/theme';
 import { EmptyState, SelectField } from '@/components/crm';
+import { FormSection, LONG_FIELD, SHORT_FIELD } from '@/components/crm/form-section';
 import { Button, Card, Textarea, toast } from '@/components/ui';
 import { useCustomers, useRepositoryAccount } from '@/data/hooks';
 import { CampaignCostsSection } from './campaign-costs';
@@ -204,12 +205,11 @@ export function SettingsPage() {
         </fieldset>
       </Card>
       {showAi && (
-        <section className="rounded-lg border border-line bg-surface-100 p-4">
-          <h2 className="text-section-head">Cài đặt Trợ lý AI</h2>
-          <p className="mt-1 text-caption text-ink-muted">
+        <FormSection title="Cài đặt Trợ lý AI">
+          <p className={`${LONG_FIELD} text-caption text-ink-muted`}>
             Chỉ cấu hình cách diễn đạt. AI không tự lưu hoặc gửi nội dung.
           </p>
-          <div className="mt-3">
+          <div className={SHORT_FIELD}>
             <SelectField
               label="Model"
               value={String(ai.model)}
@@ -217,7 +217,7 @@ export function SettingsPage() {
               onValueChange={(value) => setAi((current) => ({ ...current, model: value }))}
             />
           </div>
-          <label className="mt-3 flex flex-col gap-1 text-caption" htmlFor="settings-ai-style">
+          <label className={`${LONG_FIELD} flex flex-col gap-1 text-caption`} htmlFor="settings-ai-style">
             Phong cách viết
             <Textarea
               id="settings-ai-style"
@@ -227,10 +227,10 @@ export function SettingsPage() {
               onChange={(event) => setAi((current) => ({ ...current, style: event.target.value }))}
             />
           </label>
-          <Button className="mt-3" onClick={() => setAi((current) => ({ ...current, style: null }))}>
+          <Button className={LONG_FIELD} onClick={() => setAi((current) => ({ ...current, style: null }))}>
             Khôi phục phong cách mặc định
           </Button>
-        </section>
+        </FormSection>
       )}
       {!showAi && (
         <p className="rounded-md bg-surface-200 p-3 text-caption text-ink-muted">

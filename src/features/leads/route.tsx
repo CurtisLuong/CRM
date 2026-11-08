@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import type { FeatureRoute } from '@/app/routes';
 import { EmptyState, LeadRow, PageHeader } from '@/components/crm';
+import { FormSection, LONG_FIELD } from '@/components/crm/form-section';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetBody, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
@@ -157,9 +158,9 @@ function LeadSheet({ customer, onClose }: { customer: Customer | null; onClose: 
                   </Button>
                 </section>
               ) : (
-                <section className="flex flex-col gap-3 border-t border-line pt-4">
-                  <h2 className="text-section-head">Phân loại khách</h2>
+                <FormSection title="Phân loại khách">
                   <Button
+                    className={LONG_FIELD}
                     variant="primary"
                     disabled={!editable || !talked || busy}
                     onClick={() => {
@@ -168,7 +169,7 @@ function LeadSheet({ customer, onClose }: { customer: Customer | null; onClose: 
                   >
                     Đạt{!talked ? ' · cần nói chuyện được' : ''}
                   </Button>
-                  <label className="flex flex-col gap-1 text-label">
+                  <label className={`${LONG_FIELD} flex flex-col gap-1 text-label`}>
                     Lý do loại
                     <select
                       className={FIELD}
@@ -185,7 +186,7 @@ function LeadSheet({ customer, onClose }: { customer: Customer | null; onClose: 
                     </select>
                   </label>
                   {reason === 'khac' && (
-                    <label htmlFor="lead-disqualify-note" className="flex flex-col gap-1 text-caption">
+                    <label htmlFor="lead-disqualify-note" className={`${LONG_FIELD} flex flex-col gap-1 text-caption`}>
                       Ghi chú lý do khác
                       <Textarea
                         id="lead-disqualify-note"
@@ -197,6 +198,7 @@ function LeadSheet({ customer, onClose }: { customer: Customer | null; onClose: 
                     </label>
                   )}
                   <Button
+                    className={LONG_FIELD}
                     variant="destructive"
                     disabled={!editable || !reason || (reason === 'khac' && !note.trim()) || busy}
                     onClick={() => {
@@ -206,7 +208,7 @@ function LeadSheet({ customer, onClose }: { customer: Customer | null; onClose: 
                   >
                     Loại khách
                   </Button>
-                </section>
+                </FormSection>
               )}
               {error && (
                 <p role="alert" className="text-caption text-alert-text">

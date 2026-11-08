@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { FormGrid, FormSubsection, LONG_FIELD } from '@/components/crm/form-section';
 import { CALL_RESULTS, type CallResult } from '@/config/callResults';
 import type { CallSlotKey, ZaloTemplate } from '@/config/followup';
 import { type CallSource, installCallSource } from '@/data/callSource';
@@ -295,16 +296,18 @@ function ScheduleFields({
   });
   if (!days.some((d) => d.value === day)) days.push({ value: day, label: schedule.start.toLocaleDateString('vi-VN') });
   return (
-    <div className="flex flex-col gap-3">
-      <SlotPicker
-        days={days}
-        day={day}
-        slot={slot}
-        suggested={slot}
-        onDayChange={(d) => onChange(scheduleFor(d, slot, schedule.reason))}
-        onSlotChange={(s: CallSlotKey) => onChange(scheduleFor(day, s, schedule.reason))}
-      />
-      <label htmlFor="schedule-other-date" className="flex flex-col gap-1 text-caption">
+    <FormGrid className={LONG_FIELD}>
+      <div className={LONG_FIELD}>
+        <SlotPicker
+          days={days}
+          day={day}
+          slot={slot}
+          suggested={slot}
+          onDayChange={(d) => onChange(scheduleFor(d, slot, schedule.reason))}
+          onSlotChange={(s: CallSlotKey) => onChange(scheduleFor(day, s, schedule.reason))}
+        />
+      </div>
+      <label htmlFor="schedule-other-date" className={`${LONG_FIELD} flex flex-col gap-1 text-caption`}>
         Ngày khác
         <Input
           id="schedule-other-date"
@@ -318,7 +321,7 @@ function ScheduleFields({
           }}
         />
       </label>
-    </div>
+    </FormGrid>
   );
 }
 
@@ -567,6 +570,7 @@ function ActionSheet({
         )
       }
     >
+      {/* Ngăn kéo thao tác nhanh giữ một lớp (ít chạm, UX §3): không bọc thêm khu + thẻ; mục con vẫn thụt lề. */}
       <div className="flex flex-col gap-4">
         {kind === 'outcome' && (
           <>
@@ -596,8 +600,7 @@ function ActionSheet({
             </div>
             {result && note.trim() && <AiNoteReview account={account} customer={c} note={note} />}
             {result && (
-              <section className="flex flex-col gap-2">
-                <h3 className="text-body-strong">Bước tiếp theo</h3>
+              <FormSubsection title="Bước tiếp theo" className={`${LONG_FIELD} [&>div>*]:basis-full`}>
                 {suggested && mode === 'suggested' && (
                   <p className="text-caption text-ink-muted">
                     {suggested.label} · {suggested.reason}
@@ -668,10 +671,10 @@ function ActionSheet({
                   />
                   Không hẹn gọi tiếp
                 </label>
-              </section>
+              </FormSubsection>
             )}
             {showClassify && (
-              <fieldset className="flex flex-col gap-2">
+              <fieldset className={`${LONG_FIELD} flex flex-col gap-2 pl-3 sm:pl-4`}>
                 <legend className="text-body-strong">Phân loại khách</legend>
                 {(
                   [

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
+import { FormSection, LONG_FIELD } from '@/components/crm/form-section';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -141,8 +142,8 @@ export function ArchiveCustomerSection({ customer }: { customer: Customer }) {
             <SheetDescription id="archive-description">Khách sẽ ẩn khỏi danh sách, không xoá dữ liệu.</SheetDescription>
           </SheetHeader>
           <SheetBody>
-            <div className="space-y-3">
-              <label className="block space-y-1 text-label text-ink-muted">
+            <FormSection title="Lưu trữ khách">
+              <label className={`${LONG_FIELD} block space-y-1 text-label text-ink-muted`}>
                 <span>Lý do lưu trữ</span>
                 <select
                   aria-label="Lý do lưu trữ"
@@ -159,7 +160,7 @@ export function ArchiveCustomerSection({ customer }: { customer: Customer }) {
                   ))}
                 </select>
               </label>
-              <label className="block space-y-1 text-label text-ink-muted">
+              <label className={`${LONG_FIELD} block space-y-1 text-label text-ink-muted`}>
                 <span>Ghi chú {reason === 'khac' ? '(bắt buộc)' : '(tuỳ chọn)'}</span>
                 <textarea
                   aria-label="Ghi chú lý do lưu trữ"
@@ -170,12 +171,12 @@ export function ArchiveCustomerSection({ customer }: { customer: Customer }) {
                   className="min-h-20 w-full rounded-md border border-line bg-surface-100 px-3 py-2 text-body text-ink focus-visible:outline-2 focus-visible:outline-ion"
                 />
               </label>
-              <ul className="list-disc space-y-2 pl-5 text-body">
+              <ul className={`${LONG_FIELD} list-disc space-y-2 pl-5 text-body`}>
                 <li>Khách ẩn khỏi Danh sách khách, Hôm nay, Công việc và Thông báo; không còn nhắc gọi.</li>
                 <li>Ghi chú, cuộc gọi, lịch sử và tài liệu được giữ nguyên.</li>
                 <li>Khôi phục bất cứ lúc nào ở “Khách đã lưu trữ” (Tiện ích hoặc Bảng lệnh).</li>
               </ul>
-            </div>
+            </FormSection>
           </SheetBody>
           <SheetFooter>
             <Button className="flex-1" onClick={() => setOpen(false)} autoFocus>
