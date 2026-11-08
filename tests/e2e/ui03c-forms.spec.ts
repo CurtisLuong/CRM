@@ -123,6 +123,8 @@ async function install(page: Page, theme: 'light' | 'dark') {
 async function sameRow(first: Locator, second: Locator) {
   await expect(first).toBeVisible();
   await expect(second).toBeVisible();
+  // Ngăn kéo còn đang trượt vào thì boundingBox có thể rỗng → chờ đo được cả hai.
+  await expect.poll(async () => !!(await first.boundingBox()) && !!(await second.boundingBox())).toBe(true);
   const a = await first.boundingBox();
   const b = await second.boundingBox();
   if (!a || !b) throw new Error('Không đo được ô nhập');
@@ -162,6 +164,8 @@ for (const theme of ['light', 'dark'] as const) {
       await capture(page, testInfo, `settings-${theme}`);
 
       await page.goto('/mau-zalo');
+      // Mẫu mặc định hiện trước, rồi mới thay bằng mẫu đã lưu của tài khoản → chờ còn đúng 1 mẫu.
+      await expect(page.getByLabel('Tên mẫu', { exact: true })).toHaveCount(1);
       await expect(page.getByLabel('Tên mẫu', { exact: true })).toHaveValue('Mẫu kiểm thử');
       const content = page.getByLabel('Nội dung — Mẫu kiểm thử');
       await expect(content).toBeVisible();
@@ -204,7 +208,8 @@ for (const theme of ['light', 'dark'] as const) {
 
     test('Tài liệu thêm/sửa: các ô dài và tệp nằm trong khu riêng', async ({ page }, testInfo) => {
       await page.goto('/tai-lieu');
-      await page.getByRole('button', { name: 'Thêm tài liệu', exact: true }).click();
+      // Danh sách trống có 2 nút "Thêm tài liệu" (đầu trang + ô trống).
+      await page.getByRole('button', { name: 'Thêm tài liệu', exact: true }).first().click();
       await page.getByLabel('Tiêu đề', { exact: true }).fill('Tài liệu kiểm thử');
       await page.getByLabel('Nội dung chữ').fill('Nội dung có dấu để kiểm tra bố cục.');
       await capture(page, testInfo, `document-add-${theme}`);
