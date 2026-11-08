@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import type { FeatureRoute } from '@/app/routes';
 import { isDemo } from '@/app/session';
-import { EmptyState, SearchBar, TextField } from '@/components/crm';
+import { DocumentViewer, type DocumentViewerFile, EmptyState, SearchBar, TextField } from '@/components/crm';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Sheet, SheetBody, SheetContent, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -11,6 +11,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { useCustomers, useRepositoryAccount } from '@/data/hooks';
 import { sendKitFileError } from '@/data/repositories/sendKit';
 import { appendInteractionPatch, createInteraction } from '@/domain/customer/interactions';
+import { OfflineDocumentError } from '@/lib/document-viewer/files';
+import { Icon } from '@/ui/Icon';
 import {
   defaultProject,
   filterItems,
@@ -25,7 +27,7 @@ import {
   uniqueProjects,
   visibleItems,
 } from './model';
-import { nativeShareFilesContext, shareFilesWithNativePlugin } from './nativeShare';
+import { nativeShareFilesContext, shareDocumentFile, shareFilesWithNativePlugin } from './nativeShare';
 import { deleteSendKitItem, listSendKitItems, reorderSendKitItems, saveSendKitItem } from './store';
 
 const sizeLabel = (files: SendKitFile[]) => `${files.length} tệp · ${formatBytes(totalFileSize(files))}`;
@@ -33,12 +35,35 @@ const sizeLabel = (files: SendKitFile[]) => `${files.length} tệp · ${formatBy
 function ImagePreview({ file }: { file: SendKitFile }) {
   const [url, setUrl] = useState('');
   useEffect(() => {
-    if (file.cached === false) return;
+    if (file.cached === false) {
+      setUrl('');
+      return;
+    }
     const objectUrl = URL.createObjectURL(file.blob);
     setUrl(objectUrl);
     return () => URL.revokeObjectURL(objectUrl);
   }, [file]);
-  return url ? <img src={url} alt={file.name} className="size-14 rounded-sm object-cover" /> : null;
+  return url ? <img src={url} alt={file.name} className="size-14 rounded-sm object-cover" /> : <Icon name="image" />;
+}
+
+function FileTiles({ item, onOpen }: { item: SendKitItem; onOpen: (fileId: string) => void }) {
+  return (
+    <div className="mt-2 flex flex-wrap gap-2">
+      {item.files.map((file) => (
+        <Button
+          key={file.id}
+          className="h-auto min-h-14 max-w-full gap-2 p-1"
+          aria-label={`Xem ${file.name}`}
+          onClick={() => onOpen(file.id)}
+        >
+          {file.type.startsWith('image/') ? <ImagePreview file={file} /> : <Icon name="file" />}
+          <span className="max-w-36 truncate text-caption" title={file.name}>
+            {file.name}
+          </span>
+        </Button>
+      ))}
+    </div>
+  );
 }
 
 function ItemStatus({ item, userId, demo }: { item: SendKitItem; userId: string; demo: boolean }) {
@@ -79,6 +104,7 @@ function SendKitPage() {
   const [activeProject, setActiveProject] = useState<string | null>(null);
   const [searchText, setSearchText] = useState('');
   const [pasteHelpMessage, setPasteHelpMessage] = useState('');
+  const [viewing, setViewing] = useState<{ itemId: string; fileId: string } | null>(null);
   const initializedCustomer = useRef<string | null>(null);
   const shownProjects = useRef(new Set<string>());
   const knownItems = useRef(new Set<string>());
@@ -233,7 +259,7 @@ function SendKitPage() {
     }
   };
   const removeItem = async (item: SendKitItem) => {
-    if (!userId) return;
+    if (!userId) return false;
     try {
       if (repository) await repository.remove(item.id);
       else {
@@ -247,8 +273,10 @@ function SendKitPage() {
         selection.delete(item.id);
         return selection;
       });
+      return true;
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Không xoá được tài liệu.');
+      return false;
     }
   };
   const move = async (item: SendKitItem, offset: -1 | 1) => {
@@ -417,6 +445,104 @@ function SendKitPage() {
   const hiddenSelected = items.filter(
     (item) => selected.has(item.id) && !shownItems.some((visible) => visible.id === item.id),
   );
+  const viewedItem = items.find((item) => item.id === viewing?.itemId);
+  const viewerFiles = useMemo<DocumentViewerFile[]>(
+    () =>
+      (viewedItem?.files ?? []).map((file) => ({
+        id: file.id,
+        name: file.name,
+        mime: file.type,
+        size: file.size,
+        load: async (signal) => {
+          if (file.cached !== false) return file.blob;
+          if (navigator.onLine === false) throw new OfflineDocumentError();
+          if (!repository || !viewedItem) throw new Error('Chưa tải được tệp');
+          const loaded = await repository.ensureFiles([viewedItem.id]);
+          signal.throwIfAborted();
+          const attachment = loaded.find((item) => item.id === viewedItem.id)?.files.find((row) => row.id === file.id);
+          if (!attachment || attachment.cached === false) throw new Error('Chưa tải được tệp');
+          return attachment.blob;
+        },
+      })),
+    [viewedItem, repository],
+  );
+  const saveViewedFiles = async (nextFiles: SendKitFile[]) => {
+    if (!viewedItem || !userId || (repository && !repository.canEdit(viewedItem))) return;
+    const updated = { ...viewedItem, files: nextFiles, updatedAt: Date.now() };
+    if (repository) await repository.save(updated);
+    else {
+      await saveSendKitItem(userId, updated);
+      setItems((old) => old.map((item) => (item.id === updated.id ? updated : item)));
+    }
+  };
+  const canEditViewed = !!viewedItem && (!repository || repository.canEdit(viewedItem));
+  const viewer = (
+    <DocumentViewer
+      files={viewerFiles}
+      fileId={viewing?.fileId ?? ''}
+      open={!!viewing}
+      onOpenChange={(open) => {
+        if (!open) setViewing(null);
+      }}
+      onFileChange={(fileId) => setViewing((old) => old && { ...old, fileId })}
+      busy={saving}
+      onShare={shareDocumentFile}
+      onReplace={
+        canEditViewed
+          ? async (file, replacement) => {
+              if (!viewedItem) return;
+              const error = sendKitFileError(replacement);
+              if (error) throw new Error(error);
+              const added: SendKitFile = {
+                id: crypto.randomUUID(),
+                name: replacement.name,
+                type: replacement.type,
+                size: replacement.size,
+                blob: replacement,
+                cached: true,
+              };
+              await saveViewedFiles(viewedItem.files.map((row) => (row.id === file.id ? added : row)));
+              setViewing((current) =>
+                current?.itemId === viewedItem.id && current.fileId === file.id
+                  ? { itemId: viewedItem.id, fileId: added.id }
+                  : current,
+              );
+            }
+          : undefined
+      }
+      onDelete={
+        canEditViewed
+          ? async (file) => {
+              if (!viewedItem) return;
+              if (viewedItem.files.length === 1 && !viewedItem.text.trim()) {
+                if (!window.confirm(`Xoá cả tài liệu “${viewedItem.title}”?`)) return;
+                if (await removeItem(viewedItem))
+                  setViewing((current) => (current?.itemId === viewedItem.id ? null : current));
+                else throw new Error('Chưa xoá được tài liệu. Thử lại.');
+                return;
+              }
+              if (!window.confirm(`Xoá tệp “${file.name}”?`)) return;
+              const nextFiles = viewedItem.files.filter((row) => row.id !== file.id);
+              await saveViewedFiles(nextFiles);
+              const next =
+                nextFiles[
+                  Math.min(
+                    viewedItem.files.findIndex((row) => row.id === file.id),
+                    nextFiles.length - 1,
+                  )
+                ];
+              setViewing((current) =>
+                current?.itemId === viewedItem.id && current.fileId === file.id
+                  ? next
+                    ? { itemId: viewedItem.id, fileId: next.id }
+                    : null
+                  : current,
+              );
+            }
+          : undefined
+      }
+    />
+  );
   const projectValue = activeProject ?? '__all__';
   if (!account || !userId)
     return (
@@ -452,6 +578,7 @@ function SendKitPage() {
       customerProjectNames.some((name) => normalizeProject(name) === normalizeProject(activeProject));
     return (
       <main className="mx-auto flex max-w-3xl flex-col gap-4 p-4 pb-36">
+        {viewer}
         <header className="flex items-center justify-between gap-3">
           <div>
             <p className="text-label text-ink-muted">Gửi tài liệu</p>
@@ -507,24 +634,24 @@ function SendKitPage() {
           <section className="flex flex-col gap-2">
             <h2 className="text-title">Chung</h2>
             {commonItems.map((item) => (
-              <label
-                key={item.id}
-                className="flex min-h-12 items-start gap-3 rounded-sm border border-line bg-surface-100 p-3"
-              >
-                <input
-                  type="checkbox"
-                  className="mt-1 size-4 accent-current"
-                  checked={selected.has(item.id)}
-                  onChange={() => toggle(item.id)}
-                />
-                <span className="min-w-0 flex-1">
-                  <span className="block font-semibold">{item.title}</span>
-                  <ItemStatus item={item} userId={userId} demo={demo} />
-                  <span className="text-label text-ink-muted">
-                    {item.files.length ? sizeLabel(item.files) : 'Chỉ có chữ'}
+              <div key={item.id}>
+                <label className="flex min-h-12 items-start gap-3 rounded-sm border border-line bg-surface-100 p-3">
+                  <input
+                    type="checkbox"
+                    className="mt-1 size-4 accent-current"
+                    checked={selected.has(item.id)}
+                    onChange={() => toggle(item.id)}
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-semibold">{item.title}</span>
+                    <ItemStatus item={item} userId={userId} demo={demo} />
+                    <span className="text-label text-ink-muted">
+                      {item.files.length ? sizeLabel(item.files) : 'Chỉ có chữ'}
+                    </span>
                   </span>
-                </span>
-              </label>
+                </label>
+                <FileTiles item={item} onOpen={(fileId) => setViewing({ itemId: item.id, fileId })} />
+              </div>
             ))}
           </section>
         )}
@@ -534,24 +661,24 @@ function SendKitPage() {
               {activeProject === null ? 'Dự án' : `${activeProject}${activeIsCustomerProject ? ' · của khách' : ''}`}
             </h2>
             {projectItems.map((item) => (
-              <label
-                key={item.id}
-                className="flex min-h-12 items-start gap-3 rounded-sm border border-line bg-surface-100 p-3"
-              >
-                <input
-                  type="checkbox"
-                  className="mt-1 size-4 accent-current"
-                  checked={selected.has(item.id)}
-                  onChange={() => toggle(item.id)}
-                />
-                <span className="min-w-0 flex-1">
-                  <span className="block font-semibold">{item.title}</span>
-                  <ItemStatus item={item} userId={userId} demo={demo} />
-                  <span className="text-label text-ink-muted">
-                    {item.files.length ? sizeLabel(item.files) : 'Chỉ có chữ'}
+              <div key={item.id}>
+                <label className="flex min-h-12 items-start gap-3 rounded-sm border border-line bg-surface-100 p-3">
+                  <input
+                    type="checkbox"
+                    className="mt-1 size-4 accent-current"
+                    checked={selected.has(item.id)}
+                    onChange={() => toggle(item.id)}
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-semibold">{item.title}</span>
+                    <ItemStatus item={item} userId={userId} demo={demo} />
+                    <span className="text-label text-ink-muted">
+                      {item.files.length ? sizeLabel(item.files) : 'Chỉ có chữ'}
+                    </span>
                   </span>
-                </span>
-              </label>
+                </label>
+                <FileTiles item={item} onOpen={(fileId) => setViewing({ itemId: item.id, fileId })} />
+              </div>
             ))}
           </section>
         )}
@@ -632,6 +759,7 @@ function SendKitPage() {
   const groupNames = activeProject === null ? ['', ...projectOptions] : ['', activeProject];
   return (
     <main className="mx-auto flex max-w-4xl flex-col gap-4 p-4">
+      {viewer}
       <header className="flex items-center justify-between gap-3">
         <div>
           <p className="text-label text-ink-muted">Gửi nhanh qua Zalo</p>
@@ -731,16 +859,7 @@ function SendKitPage() {
                           <p className="text-label text-ink-muted">
                             {item.files.length ? sizeLabel(item.files) : 'Chỉ có chữ'}
                           </p>
-                          {item.files.some((file) => file.type.startsWith('image/')) && (
-                            <div className="mt-2 flex gap-2">
-                              {item.files
-                                .filter((file) => file.type.startsWith('image/'))
-                                .slice(0, 3)
-                                .map((file) => (
-                                  <ImagePreview key={file.id} file={file} />
-                                ))}
-                            </div>
-                          )}
+                          <FileTiles item={item} onOpen={(fileId) => setViewing({ itemId: item.id, fileId })} />
                         </div>
                         {(!repository || repository.canEdit(item)) && (
                           <div className="flex flex-wrap gap-1">
