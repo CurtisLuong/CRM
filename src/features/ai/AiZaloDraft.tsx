@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { FormSubsection, LONG_FIELD } from '@/components/crm/form-section';
 import { Button } from '@/components/ui/button';
 import type { RepositoryAccount } from '@/data/repositories/session';
 import type { Customer } from '@/domain/customer';
@@ -82,11 +83,15 @@ export function AiZaloDraft({
     }
   };
   return (
-    <section className="rounded-sm border border-ion/30 bg-ion-tint p-3" aria-label="Soạn Zalo bằng AI">
+    <FormSubsection
+      title="Soạn Zalo bằng AI"
+      className={`${LONG_FIELD} [&>div>*]:basis-full`}
+      aria-label="Soạn Zalo bằng AI"
+    >
       <label className="flex flex-col gap-1 text-label">
         Mục đích tin (tuỳ chọn)
         <input
-          className="min-h-11 rounded-sm border border-line bg-surface-100 px-3 text-body"
+          className="min-w-0 w-full min-h-11 rounded-sm border border-line bg-surface-100 px-3 text-body"
           value={goal}
           onChange={(event) => setGoal(event.target.value)}
           maxLength={300}
@@ -104,6 +109,6 @@ export function AiZaloDraft({
           {error}
         </p>
       )}
-    </section>
+    </FormSubsection>
   );
 }

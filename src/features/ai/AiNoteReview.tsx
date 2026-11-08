@@ -179,7 +179,11 @@ export function AiNoteReview({
   const tasks = result?.viec || [];
   const callWindow = result?.hen_goi ? aiCallWindow(result.hen_goi) : null;
   return (
-    <section className="rounded-sm border border-line bg-ion-tint p-3" aria-label="Gợi ý cập nhật từ AI">
+    <section
+      data-form-card
+      className="min-w-0 rounded-md border border-line bg-ion-tint p-4"
+      aria-label="Gợi ý cập nhật từ AI"
+    >
       <Button disabled={busy || !note.trim() || note.length > 1500} variant="primary" onClick={() => void generate()}>
         Lưu + AI · xem đề xuất
       </Button>
@@ -205,8 +209,8 @@ export function AiNoteReview({
             </p>
           )}
           {!!result.nguoi_quyet_dinh?.length && (
-            <fieldset>
-              <legend className="font-semibold">Người cùng quyết định · thêm mới, giữ nguyên người đã có</legend>
+            <fieldset data-form-subsection className="min-w-0 space-y-2 pl-3 sm:pl-4">
+              <legend className="text-section-head">Người cùng quyết định · thêm mới, giữ nguyên người đã có</legend>
               {result.nguoi_quyet_dinh.map((person, index) => (
                 <label
                   key={`${person.ten}:${person.vai_tro}:${person.ghi_chu}`}
@@ -217,7 +221,7 @@ export function AiNoteReview({
                     checked={selected.includes(`person:${index}`)}
                     onChange={(event) => toggle(`person:${index}`, event.target.checked)}
                   />
-                  <span>
+                  <span className="min-w-0 break-words">
                     {person.ten || 'Chưa rõ tên'} · {person.vai_tro} · {person.ghi_chu}
                   </span>
                 </label>
@@ -225,8 +229,8 @@ export function AiNoteReview({
             </fieldset>
           )}
           {!!fields.length && (
-            <fieldset className="space-y-2">
-              <legend className="font-semibold">Thông tin đề xuất</legend>
+            <fieldset data-form-subsection className="min-w-0 space-y-2 pl-3 sm:pl-4">
+              <legend className="text-section-head">Thông tin đề xuất</legend>
               {fields.map(([key, value]) => (
                 <label key={key} className="flex min-h-11 items-start gap-2 border-b border-line py-2 text-label">
                   <input
@@ -235,7 +239,7 @@ export function AiNoteReview({
                     checked={selected.includes(`field:${key}`)}
                     onChange={(event) => toggle(`field:${key}`, event.target.checked)}
                   />
-                  <span>
+                  <span className="min-w-0 break-words">
                     <b>{FIELD_LABELS[key]}:</b>{' '}
                     {key === 'finance' || key === 'apt_price'
                       ? money(value)
@@ -248,8 +252,8 @@ export function AiNoteReview({
             </fieldset>
           )}
           {!!tasks.length && (
-            <fieldset className="space-y-2">
-              <legend className="font-semibold">Việc đề xuất</legend>
+            <fieldset data-form-subsection className="min-w-0 space-y-2 pl-3 sm:pl-4">
+              <legend className="text-section-head">Việc đề xuất</legend>
               {tasks.map((task, index) => (
                 <label
                   key={`${task.ben}:${task.key || task.text}:${task.date || ''}:${task.time || ''}`}
@@ -261,7 +265,7 @@ export function AiNoteReview({
                     checked={selected.includes(`task:${index}`)}
                     onChange={(event) => toggle(`task:${index}`, event.target.checked)}
                   />
-                  <span>
+                  <span className="min-w-0 break-words">
                     {task.ben === 'khach' ? 'Khách hẹn: ' : 'Em hứa: '}
                     {task.text}
                     {task.date ? ` · ${task.date}` : ''}
@@ -279,7 +283,7 @@ export function AiNoteReview({
                 checked={selected.includes('call')}
                 onChange={(event) => toggle('call', event.target.checked)}
               />
-              <span>
+              <span className="min-w-0 break-words">
                 <b>Hẹn gọi:</b> {result.hen_goi.date}
                 {callWindow ? ` ${clock(callWindow.start)}–${clock(callWindow.end)}` : ''}
                 {result.hen_goi.slot ? ` · khung ${result.hen_goi.slot}` : ''}
