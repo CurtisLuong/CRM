@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { FormSection, LONG_FIELD } from '@/components/crm/form-section';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -157,8 +158,8 @@ export function AssignCustomerSheet({
         </SheetHeader>
         <SheetBody>
           {customer && (
-            <div className="space-y-4">
-              <label className="block space-y-1 text-label text-ink-muted">
+            <FormSection title="Giao khách">
+              <label className={`${LONG_FIELD} block space-y-1 text-label text-ink-muted`}>
                 <span>Người nhận</span>
                 <select
                   aria-label="Người nhận khách"
@@ -175,7 +176,7 @@ export function AssignCustomerSheet({
                 </select>
               </label>
               {assignTo !== userId && (
-                <fieldset className="space-y-2">
+                <fieldset className={`${LONG_FIELD} space-y-2 pl-3 sm:pl-4`}>
                   <legend className="text-label text-ink-muted">Sau khi giao</legend>
                   <label className="flex min-h-11 items-center gap-3 rounded-md border border-line p-3 text-body">
                     <input
@@ -206,7 +207,7 @@ export function AssignCustomerSheet({
                   </label>
                 </fieldset>
               )}
-              <label className="block space-y-1 text-label text-ink-muted">
+              <label className={`${LONG_FIELD} block space-y-1 text-label text-ink-muted`}>
                 <span>Ghi chú cho người nhận (tuỳ chọn)</span>
                 <textarea
                   aria-label="Ghi chú giao khách"
@@ -218,7 +219,7 @@ export function AssignCustomerSheet({
                   placeholder="Ví dụ: khách hẹn xem nhà mẫu thứ 7"
                 />
               </label>
-            </div>
+            </FormSection>
           )}
         </SheetBody>
         <SheetFooter>

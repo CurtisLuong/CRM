@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { FormSection, FormSubsection, LONG_FIELD } from '@/components/crm/form-section';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -46,7 +47,7 @@ export function DropReasonFields({
 }) {
   return (
     <>
-      <label className="flex flex-col gap-1 text-label">
+      <label className={`${LONG_FIELD} flex flex-col gap-1 text-label`}>
         Lý do loại
         <select
           aria-label="Lý do loại"
@@ -64,7 +65,7 @@ export function DropReasonFields({
         </select>
       </label>
       {reason === 'khac' && (
-        <label className="flex flex-col gap-1 text-label">
+        <label className={`${LONG_FIELD} flex flex-col gap-1 text-label`}>
           Ghi chú lý do khác
           <textarea
             aria-label="Ghi chú lý do khác"
@@ -137,10 +138,10 @@ export function ClassifyLeadSheet({
         </SheetHeader>
         <SheetBody>
           {customer && (
-            <div className="flex flex-col gap-4">
+            <FormSection title="Phân loại khách">
               <Button
                 variant="primary"
-                className="w-full"
+                className={`${LONG_FIELD} w-full`}
                 disabled={!talked || busy}
                 onClick={() =>
                   account && void run(() => qualifyLead(account.customers, customer.id), 'Đã chuyển sang Tiềm năng')
@@ -148,11 +149,11 @@ export function ClassifyLeadSheet({
               >
                 {talked ? 'Đạt → Tiềm năng' : 'Đạt · cần một cuộc "Nói chuyện được"'}
               </Button>
-              <div className="flex flex-col gap-3 border-t border-line pt-4">
+              <FormSubsection className={LONG_FIELD} title="Loại">
                 <DropReasonFields reason={reason} note={note} onReason={setReason} onNote={setNote} disabled={busy} />
                 <Button
                   variant="destructive"
-                  className="w-full"
+                  className={`${LONG_FIELD} w-full`}
                   disabled={!reason || busy}
                   onClick={() =>
                     account &&
@@ -162,17 +163,17 @@ export function ClassifyLeadSheet({
                 >
                   Loại
                 </Button>
-              </div>
+              </FormSubsection>
               {error && (
                 <p role="alert" className="text-caption text-alert-text">
                   {error}
                 </p>
               )}
-            </div>
+            </FormSection>
           )}
         </SheetBody>
         <SheetFooter>
-          <Button className="w-full" onClick={() => onOpenChange(false)} disabled={busy}>
+          <Button className={`${LONG_FIELD} w-full`} onClick={() => onOpenChange(false)} disabled={busy}>
             Để sau
           </Button>
         </SheetFooter>

@@ -247,7 +247,7 @@ export function SlotPicker({
         aria-label="Khung giờ gọi"
         value={slot ?? ''}
         onValueChange={(v) => onSlotChange(v as CallSlotKey)}
-        className="grid grid-cols-2 gap-2 sm:grid-cols-4"
+        className="grid min-w-0 grid-cols-2 gap-2"
       >
         {slots.map(([key, item]) => (
           <RadioGroup.Item

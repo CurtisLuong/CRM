@@ -1,4 +1,5 @@
 import { type FormEvent, useEffect, useState } from 'react';
+import { FormSection, FormSubsection, LONG_FIELD, SHORT_FIELD } from '@/components/crm/form-section';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -130,61 +131,73 @@ export function AddTaskSheet({
                 <Icon name={selected?.icon ?? 'task'} size={20} className="shrink-0 text-ink-muted" />
                 <span className="min-w-0">{selected?.label}</span>
               </p>
-              <label htmlFor="profile-task-text" className="flex min-w-0 flex-col gap-1 text-label text-ink-muted">
-                Nội dung việc
-                <Textarea
-                  id="profile-task-text"
-                  aria-label="Nội dung việc"
-                  className="min-h-20"
-                  rows={3}
-                  required
-                  value={text}
-                  disabled={busy}
-                  onChange={(event) => setText(event.target.value)}
-                  placeholder="Ví dụ: Gửi bảng giá căn 2 phòng ngủ"
-                />
-              </label>
-              <label htmlFor="profile-task-day" className="flex min-w-0 flex-col gap-1 text-label text-ink-muted">
-                Hạn (để trống nếu chưa có hạn)
-                <Input
-                  id="profile-task-day"
-                  aria-label="Ngày hạn"
-                  type="date"
-                  value={day}
-                  disabled={busy}
-                  onChange={(event) => setDay(event.target.value)}
-                />
-              </label>
-              {day && (
-                <>
-                  <label className="flex min-h-11 items-center gap-2 text-label text-ink-muted">
-                    <input
-                      type="checkbox"
-                      checked={allDay}
+              <FormSection title="Thông tin việc">
+                <label
+                  htmlFor="profile-task-text"
+                  className={`${LONG_FIELD} flex flex-col gap-1 text-label text-ink-muted`}
+                >
+                  Nội dung việc
+                  <Textarea
+                    id="profile-task-text"
+                    aria-label="Nội dung việc"
+                    className="min-h-20"
+                    rows={3}
+                    required
+                    value={text}
+                    disabled={busy}
+                    onChange={(event) => setText(event.target.value)}
+                    placeholder="Ví dụ: Gửi bảng giá căn 2 phòng ngủ"
+                  />
+                </label>
+                <FormSubsection title="Hạn" className={LONG_FIELD}>
+                  <label
+                    htmlFor="profile-task-day"
+                    className={`${SHORT_FIELD} sm:basis-[calc(50%_-_0.375rem)] xl:basis-[calc(50%_-_0.375rem)] self-end flex flex-col gap-1 text-label text-ink-muted`}
+                  >
+                    Hạn (để trống nếu chưa có hạn)
+                    <Input
+                      id="profile-task-day"
+                      aria-label="Ngày hạn"
+                      type="date"
+                      value={day}
                       disabled={busy}
-                      onChange={(event) => setAllDay(event.target.checked)}
-                    />{' '}
-                    Cả ngày (không cần giờ)
+                      onChange={(event) => setDay(event.target.value)}
+                    />
                   </label>
-                  {!allDay && (
-                    <label
-                      htmlFor="profile-task-time"
-                      className="flex min-w-0 flex-col gap-1 text-label text-ink-muted"
-                    >
-                      Giờ hạn
-                      <Input
-                        id="profile-task-time"
-                        aria-label="Giờ hạn"
-                        type="time"
-                        required
-                        value={time}
-                        disabled={busy}
-                        onChange={(event) => setTime(event.target.value)}
-                      />
-                    </label>
+                  {day && (
+                    <>
+                      <label
+                        className={`${LONG_FIELD} order-last flex min-h-11 items-center gap-2 text-label text-ink-muted`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={allDay}
+                          disabled={busy}
+                          onChange={(event) => setAllDay(event.target.checked)}
+                        />{' '}
+                        Cả ngày (không cần giờ)
+                      </label>
+                      {!allDay && (
+                        <label
+                          htmlFor="profile-task-time"
+                          className={`${SHORT_FIELD} sm:basis-[calc(50%_-_0.375rem)] xl:basis-[calc(50%_-_0.375rem)] self-end flex flex-col gap-1 text-label text-ink-muted`}
+                        >
+                          Giờ hạn
+                          <Input
+                            id="profile-task-time"
+                            aria-label="Giờ hạn"
+                            type="time"
+                            required
+                            value={time}
+                            disabled={busy}
+                            onChange={(event) => setTime(event.target.value)}
+                          />
+                        </label>
+                      )}
+                    </>
                   )}
-                </>
-              )}
+                </FormSubsection>
+              </FormSection>
               {error && (
                 <p role="alert" className="text-label text-alert-text">
                   {error}
