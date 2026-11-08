@@ -252,15 +252,16 @@ for (const theme of ['light', 'dark'] as const) {
     });
     const origin = await page.evaluate(() => performance.timeOrigin);
     await page.getByLabel('Mã toà', { exact: true }).click();
+    // Lead 08/11: nút thêm mang tên theo loại ("Thêm toà"/"Thêm căn") và luôn hiện.
     await page.getByLabel('Tìm hoặc nhập mã toà').fill('A9');
-    await page.getByRole('button', { name: 'Thêm', exact: true }).click();
+    await page.getByRole('button', { name: 'Thêm toà', exact: true }).click();
     await expect.poll(async () => (await readCustomer(page)).building_code).toBe('A9');
     const more = page.getByRole('button', { name: /^Mở rộng \(/ });
     if (await more.count()) await more.click();
     await page.getByLabel('Mã căn', { exact: true }).click();
     await expect(page.getByText('Chưa có', { exact: true })).toBeVisible();
     await page.getByLabel('Tìm hoặc nhập mã căn').fill('801');
-    await page.getByRole('button', { name: 'Thêm', exact: true }).click();
+    await page.getByRole('button', { name: 'Thêm căn', exact: true }).click();
     await expect.poll(async () => (await readCustomer(page)).apt_code).toBe('801');
     expect(writes.find((write) => write.table === 'units')?.payload).toMatchObject({
       code: '801',
@@ -295,7 +296,7 @@ test('PR-04: mất mạng/lỗi quyền không tạo Giỏ hàng nhưng lưu mã
   await context.setOffline(true);
   await page.getByLabel('Mã căn', { exact: true }).click();
   await page.getByLabel('Tìm hoặc nhập mã căn').fill('offline');
-  await page.getByRole('button', { name: 'Thêm', exact: true }).click();
+  await page.getByRole('button', { name: 'Thêm căn', exact: true }).click();
   await expect(page.getByRole('alert').filter({ hasText: 'Cần có mạng để sửa giỏ hàng.' })).toBeVisible();
   await expect.poll(async () => (await readCustomer(page)).apt_code).toBe('offline');
   expect(writes.length).toBe(initialWrites);
@@ -306,7 +307,7 @@ test('PR-04: mất mạng/lỗi quyền không tạo Giỏ hàng nhưng lưu mã
   deny();
   await page.getByLabel('Mã căn', { exact: true }).click();
   await page.getByLabel('Tìm hoặc nhập mã căn').fill('denied');
-  await page.getByRole('button', { name: 'Thêm', exact: true }).click();
+  await page.getByRole('button', { name: 'Thêm căn', exact: true }).click();
   await expect(page.getByRole('alert').filter({ hasText: 'Không có quyền sửa Giỏ hàng.' })).toBeVisible();
   await expect.poll(async () => (await readCustomer(page)).apt_code).toBe('denied');
   await noOverflow(page);
