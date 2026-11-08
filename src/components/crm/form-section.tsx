@@ -1,8 +1,8 @@
-import { ChevronDown, ChevronUp } from 'lucide-react';
 import { type ComponentProps, type ReactNode, useId } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { Icon } from '@/ui/Icon';
 
 // Cùng nhịp với thẻ Nhu cầu hiện tại; ô lẻ giãn kín phần hàng còn lại.
 export const SHORT_FIELD =
@@ -48,7 +48,6 @@ export function CollapsibleFormSection({
   ...props
 }: SectionProps & { open: boolean; onOpenChange: (open: boolean) => void; children: ReactNode }) {
   const panelId = useId();
-  const Chevron = open ? ChevronUp : ChevronDown;
   return (
     <section className={cn('min-w-0', className)} {...props}>
       <Card data-form-card className="min-w-0 p-4">
@@ -60,7 +59,7 @@ export function CollapsibleFormSection({
           onClick={() => onOpenChange(!open)}
         >
           <span className="flex-1 text-left">{title}</span>
-          <Chevron size={20} className="shrink-0 text-ink-muted" aria-hidden="true" />
+          <Icon name={open ? 'up' : 'expand'} size={20} className="shrink-0 text-ink-muted" />
         </Button>
         {open && (
           <div id={panelId} className="min-w-0 space-y-5 pt-4">
