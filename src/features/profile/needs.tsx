@@ -345,7 +345,8 @@ type NeedsProps = {
   showEmpty: boolean;
   /** Ô đã có giá trị lúc mở hồ sơ / vừa bị xoá trắng: vẫn hiện tới khi mở khách khác. */
   stayVisible: ReadonlySet<string>;
-  onToggleSupplement: () => void;
+  /** Không truyền = nút Mở rộng/Thu gọn do màn bên ngoài đặt (route để nút dưới Nâng cao, Curtis 08/11). */
+  onToggleSupplement?: () => void;
   onSaveField: (key: keyof Customer, value: unknown) => void;
   onSaveProjects: (names: string[], message?: string) => Promise<boolean>;
   catalog: ProjectCatalog | null;
@@ -494,7 +495,7 @@ export function ProfileNeedsFields({
             : []),
         ])}
       </div>
-      {writable && (hidden > 0 || showEmpty) && (
+      {writable && onToggleSupplement && (hidden > 0 || showEmpty) && (
         <Button variant="secondary" className="w-full" aria-expanded={showEmpty} onClick={onToggleSupplement}>
           {showEmpty ? 'Thu gọn' : `Mở rộng (${hidden})`}
         </Button>

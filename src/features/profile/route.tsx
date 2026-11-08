@@ -37,7 +37,7 @@ import { dobSavePatch, dobView } from './dob';
 import { DocumentsSection } from './documents';
 import { advancedPatch, legacyValues } from './fields';
 import { infoHiddenCount, ProfileInfoFields } from './info';
-import { CustomerMemory, CustomerNeedsAdvanced, contactPrefsHiddenCount } from './memory';
+import { CustomerMemory, CustomerNeedsAdvanced, contactPrefsMissingCount } from './memory';
 import {
   bookingStepPatch,
   dueTone,
@@ -344,10 +344,18 @@ function Profile() {
   const loanInfo = profileLoan(c, estimate, rates);
   // Phân cấp thông tin (Curtis 06/11): ô cơ bản trống ẩn sau "Mở rộng"; "Nâng cao" chỉ hiện khi đã mở rộng
   // hoặc ô cơ bản đã đủ. Người chỉ xem không có "Mở rộng" nên luôn thấy "Nâng cao".
-  const memoryHidden = infoHiddenCount(c) + contactPrefsHiddenCount(c);
+  // PF-11 (Curtis 08/11): nút Mở rộng/Thu gọn nằm DƯỚI "Nâng cao" — thu gọn thì ẩn cả ô trống lẫn Nâng cao;
+  // ô cơ bản đã đủ thì không còn nút (kể cả đang mở rộng), Nâng cao hiện thẳng.
+  const memoryHidden = infoHiddenCount(c) + contactPrefsMissingCount(c);
   const showMemoryAdvanced = !infoWritable || supplementOpen || memoryHidden === 0;
-  const showNeedsAdvanced =
-    !infoWritable || needsSupplementOpen || needsHiddenFor(c, needsVisible.keys, estimate) === 0;
+  const needsHidden = needsHiddenFor(c, needsVisible.keys, estimate);
+  const showNeedsAdvanced = !infoWritable || needsSupplementOpen || needsHidden === 0;
+  const supplementToggle = (open: boolean, count: number, onToggle: () => void) =>
+    infoWritable && count > 0 ? (
+      <Button variant="secondary" className="w-full" aria-expanded={open} onClick={onToggle}>
+        {open ? 'Thu gọn' : `Mở rộng (${count})`}
+      </Button>
+    ) : null;
   const timelineContent = (
     <ProfileTimeline customer={c} entries={timeline} writable={writable} busy={busy} onSave={save} />
   );
@@ -370,17 +378,8 @@ function Profile() {
         writable={infoWritable}
         onSave={(patch, message) => void save(patch, message)}
         now={now}
-        hideEmpty={!supplementOpen}
+        hideEmpty={!supplementOpen && memoryHidden > 0}
         sections={{ interests: false, household: false }}
-        supplement={
-          infoWritable
-            ? {
-                open: supplementOpen,
-                count: memoryHidden,
-                onToggle: () => setSupplementOpen(!supplementOpen),
-              }
-            : undefined
-        }
       />
       {showMemoryAdvanced && (
         <ProfileAdvanced
@@ -391,6 +390,7 @@ function Profile() {
           openSignal={assetsOpenSignal}
         />
       )}
+      {supplementToggle(supplementOpen, memoryHidden, () => setSupplementOpen(!supplementOpen))}
     </div>
   );
   const needsContent = (
@@ -409,7 +409,6 @@ function Profile() {
           busy={busy}
           showEmpty={needsSupplementOpen}
           stayVisible={needsVisible.keys}
-          onToggleSupplement={() => setNeedsSupplementOpen(!needsSupplementOpen)}
           projectsOpen={projectsOpen}
           onToggleProjects={() => setProjectsOpen(!projectsOpen)}
           onSaveField={setNeedField}
@@ -423,42 +422,7 @@ function Profile() {
           rates={rates}
         />
       </section>
-      {stage === CARE_STAGE_BOOKING && (
-        <section className="space-y-3">
-          <h2 className="text-title">Checklist Booking & làm hồ sơ</h2>
-          {bookingSteps(c, now).map((row) => (
-            <label key={row.key} className="flex min-h-12 items-center gap-3 border-b border-line py-2">
-              <input
-                type="checkbox"
-                checked={!!row.doneAt}
-                disabled={!writable}
-                onChange={(e) => void toggleBooking(row.key, e.target.checked)}
-              />
-              <span className="flex-1">
-                <span className="block text-body-strong">{row.label}</span>
-                <span className="text-caption text-ink-muted">{row.text}</span>
-              </span>
-              {row.due && (
-                <span
-                  className={`rounded-sm px-2 py-1 text-caption ${row.state === 'over' ? 'bg-alert-tint text-alert-text' : row.state === 'warn' ? 'bg-soon-tint text-soon-text' : 'bg-surface-200 text-ink-muted'}`}
-                >
-                  {new Date(row.due).toLocaleDateString('vi-VN')}
-                </span>
-              )}
-            </label>
-          ))}
-          <Button
-            variant="primary"
-            disabled={!writable}
-            onClick={() => {
-              if (window.confirm('Xác nhận khách đã ký HĐMB?'))
-                void save({ care_stage: VELOCITY_CONFIG.stageWon }, 'Đã ghi nhận ký HĐMB');
-            }}
-          >
-            Xác nhận đã ký HĐMB
-          </Button>
-        </section>
-      )}
+      {/* PF-11: Nâng cao + nút Mở rộng/Thu gọn liền dưới thẻ Nhu cầu (phần mở rộng của thẻ), Checklist Booking sau. */}
       {showNeedsAdvanced && (
         <CustomerNeedsAdvanced
           customer={c}
@@ -494,6 +458,43 @@ function Profile() {
             )}
           </section>
         </CustomerNeedsAdvanced>
+      )}
+      {supplementToggle(needsSupplementOpen, needsHidden, () => setNeedsSupplementOpen(!needsSupplementOpen))}
+      {stage === CARE_STAGE_BOOKING && (
+        <section className="space-y-3">
+          <h2 className="text-title">Checklist Booking & làm hồ sơ</h2>
+          {bookingSteps(c, now).map((row) => (
+            <label key={row.key} className="flex min-h-12 items-center gap-3 border-b border-line py-2">
+              <input
+                type="checkbox"
+                checked={!!row.doneAt}
+                disabled={!writable}
+                onChange={(e) => void toggleBooking(row.key, e.target.checked)}
+              />
+              <span className="flex-1">
+                <span className="block text-body-strong">{row.label}</span>
+                <span className="text-caption text-ink-muted">{row.text}</span>
+              </span>
+              {row.due && (
+                <span
+                  className={`rounded-sm px-2 py-1 text-caption ${row.state === 'over' ? 'bg-alert-tint text-alert-text' : row.state === 'warn' ? 'bg-soon-tint text-soon-text' : 'bg-surface-200 text-ink-muted'}`}
+                >
+                  {new Date(row.due).toLocaleDateString('vi-VN')}
+                </span>
+              )}
+            </label>
+          ))}
+          <Button
+            variant="primary"
+            disabled={!writable}
+            onClick={() => {
+              if (window.confirm('Xác nhận khách đã ký HĐMB?'))
+                void save({ care_stage: VELOCITY_CONFIG.stageWon }, 'Đã ghi nhận ký HĐMB');
+            }}
+          >
+            Xác nhận đã ký HĐMB
+          </Button>
+        </section>
       )}
     </div>
   );
