@@ -106,7 +106,8 @@ test('Đầu hồ sơ: nút bậc mở sheet chọn bậc; có thanh SLA', async
   await open(page);
   const stage = page.getByRole('button', { name: /Đổi bậc/ });
   await expect(stage).toContainText('Xem dự án');
-  await expect(page.getByText(/^(còn|quá) .+/).first()).toBeVisible();
+  // PF-10 (Curtis 08/11): bỏ dòng "còn/quá …" lặp dưới thanh; thanh SLA vẫn có nhãn "SLA <mục tiêu> · <hạn mức>".
+  await expect(page.getByText(/^SLA .+ · .+/).first()).toBeVisible();
   await stage.click();
   const sheet = page.getByRole('dialog', { name: /bậc/i });
   await expect(sheet).toBeVisible();

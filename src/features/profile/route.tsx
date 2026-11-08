@@ -28,7 +28,7 @@ import { loanPath } from '@/features/loan/model';
 import { callDraftOf, callDuration, pendingCallsOf } from '@/features/quick-actions/model';
 import { openQuickAction } from '@/features/quick-actions/store';
 import { AssignCustomerSheet, canAssignWithTeam, useTeamMembers } from '@/features/team/AssignSheet';
-import { fmtDur, slaFor, slaMeterFor } from '@/lib/crm';
+import { slaMeterFor } from '@/lib/crm';
 import { Icon } from '@/ui/Icon';
 import { AddTaskSheet } from './add-task';
 import { ProfileTextField as Field, LegacyAssistField, ProfileAdvanced } from './advanced';
@@ -257,13 +257,14 @@ function Profile() {
     if (!hasNeedValue(value)) keepNeedVisible(String(key));
     setField(key, value);
   };
-  const actionBar = (className = '') => (
-    <nav aria-label="Hành động nhanh" className={`flex min-w-0 items-center justify-between gap-2 ${className}`}>
+  // layout: thanh đáy điện thoại dàn hai mép; trong thẻ máy tính là lưới 4 ô bằng nhau (PF-10).
+  const actionBar = (className = '', layout = 'flex items-center justify-between') => (
+    <nav aria-label="Hành động nhanh" className={`${layout} min-w-0 gap-2 ${className}`}>
       <ActionButton
         action="call"
         label="Gọi"
         display="stacked"
-        className="md:w-auto md:flex-row md:px-4"
+        className="md:w-auto md:flex-row md:px-4 xl:min-h-11 xl:gap-2 xl:py-0 xl:text-sm"
         disabled={!writable}
         onClick={() => openQuickAction(c.id, 'call')}
       />
@@ -271,7 +272,7 @@ function Profile() {
         action="message"
         label="Zalo"
         display="stacked"
-        className="md:w-auto md:flex-row md:px-4"
+        className="md:w-auto md:flex-row md:px-4 xl:min-h-11 xl:gap-2 xl:py-0 xl:text-sm"
         disabled={!writable}
         onClick={() => openQuickAction(c.id, 'zalo')}
       />
@@ -279,7 +280,7 @@ function Profile() {
         action="note"
         label="Ghi chú"
         display="stacked"
-        className="md:w-auto md:flex-row md:px-4"
+        className="md:w-auto md:flex-row md:px-4 xl:min-h-11 xl:gap-2 xl:py-0 xl:text-sm"
         disabled={!infoWritable}
         onClick={() => openQuickAction(c.id, 'note')}
       />
@@ -287,7 +288,7 @@ function Profile() {
         action="call_sched"
         label="Hẹn"
         display="stacked"
-        className="md:w-auto md:flex-row md:px-4"
+        className="md:w-auto md:flex-row md:px-4 xl:min-h-11 xl:gap-2 xl:py-0 xl:text-sm"
         disabled={!writable}
         onClick={() => openQuickAction(c.id, 'schedule')}
       />
@@ -561,12 +562,6 @@ function Profile() {
   const extra = extraFacts(c, now);
   const stageLabel = CARE_STAGE_DISPLAY[stage] || stage || 'Chưa có bậc';
   const slaMeter = slaMeterFor(c, now);
-  const slaDisplay = slaMeter ? slaFor(slaMeter.stage, slaMeter.elapsed, slaMeter) : null;
-  const slaTimeLabel = slaMeter
-    ? slaDisplay?.status === 'over'
-      ? `quá ${slaDisplay.time.slice(1)}`
-      : `còn ${fmtDur(Math.max(0, slaMeter.max - slaMeter.elapsed))}`
-    : null;
   const stageOptions = stageChoiceRows(stage);
   const age = dobView(c.dob, now).age;
   const classifiable = !!account && canClassify(c, account.sync.local.userId);
@@ -664,55 +659,71 @@ function Profile() {
                 </span>
               </div>
               {!otherOwner && slaMeter && (
-                <div className="space-y-1.5">
-                  <SlaMeter {...slaMeter} />
-                  {slaTimeLabel && <p className="text-caption text-ink-muted">{slaTimeLabel}</p>}
-                </div>
+                // Bỏ dòng "còn/quá …" dưới thanh (Curtis 08/11): đầu thanh đã ghi đúng con số đó.
+                <SlaMeter {...slaMeter} />
               )}
-              {/* Phương án A (Curtis 06/11): một hàng ở đáy thẻ — Chuyển tiềm năng (khách mới) · Loại · Giao.
-                  Khách tiềm năng chỉ còn Giao, vẫn đứng cột phải. */}
-              {(classifiable || assignable) && (
-                <div className="grid grid-cols-[2fr_1fr_1fr] gap-2 pt-1">
-                  {classifiable && (
-                    <>
+              {/* PF-10 (Curtis 08/11, mockup B): sau vạch ngăn, hàng quyết định và hàng Gọi/Zalo/Ghi chú/Hẹn (máy tính)
+                  dùng chung lưới 4 cột nên mép nút thẳng nhau. Khách tiềm năng chỉ còn Giao, vẫn ở cột cuối. */}
+              <div
+                className={`-mx-4 space-y-2 border-t border-line px-4 pt-3 ${classifiable || assignable ? '' : 'max-xl:hidden'}`}
+              >
+                {(classifiable || assignable) && (
+                  <div className="grid grid-cols-4 gap-2">
+                    {classifiable && (
+                      <>
+                        <Button
+                          variant="primary"
+                          className="col-span-2 min-w-0 px-2"
+                          aria-label="Chuyển tiềm năng"
+                          disabled={busy || !hasTalked(c)}
+                          title={hasTalked(c) ? undefined : 'Cần một cuộc gọi "Nói chuyện được" trước khi chuyển'}
+                          onClick={() =>
+                            account &&
+                            void qualifyLead(account.customers, c.id)
+                              .then(() => toast({ title: 'Đã chuyển sang Tiềm năng' }))
+                              .catch((e) =>
+                                toast({
+                                  title: 'Chưa chuyển được',
+                                  description: String(e?.message ?? e),
+                                  tone: 'error',
+                                }),
+                              )
+                          }
+                        >
+                          <Icon name="qualify" size={20} />
+                          {/* 360px: ô 2 cột chỉ vừa "Tiềm năng" kèm icon. */}
+                          <span className="sm:hidden">Tiềm năng</span>
+                          <span className="max-sm:hidden">Chuyển tiềm năng</span>
+                        </Button>
+                        <Button
+                          className="min-w-0 gap-1.5 px-1.5"
+                          disabled={busy}
+                          onClick={() => setClassifyOpen(true)}
+                        >
+                          <Icon name="drop" size={20} />
+                          Loại
+                        </Button>
+                      </>
+                    )}
+                    {assignable && (
                       <Button
-                        variant="primary"
-                        className="min-w-0 px-2"
-                        disabled={busy || !hasTalked(c)}
-                        title={hasTalked(c) ? undefined : 'Cần một cuộc gọi "Nói chuyện được" trước khi chuyển'}
-                        onClick={() =>
-                          account &&
-                          void qualifyLead(account.customers, c.id)
-                            .then(() => toast({ title: 'Đã chuyển sang Tiềm năng' }))
-                            .catch((e) =>
-                              toast({ title: 'Chưa chuyển được', description: String(e?.message ?? e), tone: 'error' }),
-                            )
-                        }
+                        className="col-start-4 min-w-0 gap-1.5 px-1.5"
+                        aria-label="Giao khách"
+                        onClick={() => setAssignOpen(true)}
                       >
-                        Chuyển tiềm năng
+                        <Icon name="assign" size={20} />
+                        Giao
                       </Button>
-                      <Button className="min-w-0 px-2" disabled={busy} onClick={() => setClassifyOpen(true)}>
-                        Loại
-                      </Button>
-                    </>
-                  )}
-                  {assignable && (
-                    <Button
-                      className="col-start-3 min-w-0 px-2"
-                      aria-label="Giao khách"
-                      onClick={() => setAssignOpen(true)}
-                    >
-                      Giao
-                    </Button>
-                  )}
-                </div>
-              )}
-              {classifiable && !hasTalked(c) && (
-                <p className="text-caption text-ink-muted">
-                  Chuyển tiềm năng cần ít nhất một cuộc gọi "Nói chuyện được".
-                </p>
-              )}
-              <div className="-mx-4 hidden xl:block">{actionBar('px-4')}</div>
+                    )}
+                  </div>
+                )}
+                {classifiable && !hasTalked(c) && (
+                  <p className="text-caption text-ink-muted">
+                    Chuyển tiềm năng cần ít nhất một cuộc gọi "Nói chuyện được".
+                  </p>
+                )}
+                <div className="hidden xl:block">{actionBar('', 'grid grid-cols-4')}</div>
+              </div>
               {otherOwner && <p className="text-caption text-ink-muted">Người phụ trách khác · hồ sơ chỉ xem.</p>}
               {undoPlan && (
                 <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-line bg-surface-200 p-3">
