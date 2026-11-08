@@ -10,14 +10,46 @@ export function previewKind(name: string, mime: string): 'image' | 'pdf' | 'othe
   return 'other';
 }
 
+/** Mime hay gặp → đuôi viết HOA; chỉ dùng khi tên tệp không có đuôi. */
+const MIME_LABELS: Record<string, string> = {
+  'application/pdf': 'PDF',
+  'application/msword': 'DOC',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'DOCX',
+  'application/vnd.ms-excel': 'XLS',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'XLSX',
+  'application/vnd.ms-powerpoint': 'PPT',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'PPTX',
+  'application/json': 'JSON',
+  'application/zip': 'ZIP',
+  'text/plain': 'TXT',
+  'text/csv': 'CSV',
+  'image/jpeg': 'JPG',
+  'image/png': 'PNG',
+  'image/gif': 'GIF',
+  'image/webp': 'WEBP',
+  'image/heic': 'HEIC',
+  'image/heif': 'HEIF',
+  'image/bmp': 'BMP',
+  'image/tiff': 'TIFF',
+  'image/avif': 'AVIF',
+  'image/svg+xml': 'SVG',
+  'video/mp4': 'MP4',
+  'video/quicktime': 'MOV',
+  'video/webm': 'WEBM',
+};
+
+/** Loại tệp cho người dùng: ưu tiên đuôi viết HOA, thiếu đuôi mới suy từ mime. */
 export function fileTypeLabel(name: string, mime: string): string {
-  const kind = previewKind(name, mime);
-  if (kind === 'pdf') return 'PDF';
-  if (kind === 'image') return 'Ảnh';
-  if (/\.(docx?)$/i.test(name) || mime.includes('word')) return 'Word';
-  if (/\.(xlsx?)$/i.test(name) || mime.includes('sheet') || mime.includes('excel')) return 'Excel';
-  if (mime.startsWith('video/')) return 'Video';
-  return 'Tệp đính kèm';
+  const extension = /\.([a-z0-9]{1,8})$/i.exec(name.trim());
+  if (extension?.[1]) return extension[1].toUpperCase();
+  const clean = mime.split(';')[0]?.trim().toLowerCase() ?? '';
+  if (MIME_LABELS[clean]) return MIME_LABELS[clean];
+  // Ảnh lạ vẫn đoán được từ mime: image/tiff → TIFF; không để lộ mime thô.
+  if (clean.startsWith('image/')) {
+    const subtype = clean.slice('image/'.length).split('+')[0];
+    if (subtype) return subtype.toUpperCase();
+  }
+  return 'Tệp';
 }
 
 export function formatBytes(bytes: number): string {
