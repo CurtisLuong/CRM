@@ -18,6 +18,14 @@ export function clampPan(point: Point, scale: number, content: Size, viewport: S
   };
 }
 
+/** Kéo nội dung 1:1 với ngón tay/chuột: dịch đúng quãng di chuyển, dừng ở mép. */
+export function panView(current: ViewTransform, from: Point, to: Point, content: Size, viewport: Size): ViewTransform {
+  return {
+    scale: current.scale,
+    ...clampPan({ x: current.x + from.x - to.x, y: current.y + from.y - to.y }, current.scale, content, viewport),
+  };
+}
+
 /** Giữ nguyên điểm ảnh dưới ngón tay/chuột, kể cả khi ảnh chuyển từ giữa khung sang có cuộn. */
 export function zoomAt(
   current: ViewTransform,
