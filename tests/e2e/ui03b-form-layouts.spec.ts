@@ -148,9 +148,10 @@ async function sameRow(a: Locator, b: Locator) {
   expect(second.x).toBeGreaterThanOrEqual(first.x + first.width);
 }
 
-async function capture(page: Page, info: TestInfo, name: string, target?: Locator) {
+// grouped=false: ngăn kéo Thao tác nhanh giữ một lớp (ít chạm), không bọc khu + thẻ — chỉ đo tràn ngang.
+async function capture(page: Page, info: TestInfo, name: string, target?: Locator, grouped = true) {
   const root = target ?? page.locator('main').last();
-  await expect(root.locator('[data-form-card]').first()).toBeVisible();
+  if (grouped) await expect(root.locator('[data-form-card]').first()).toBeVisible();
   const overflow = await page.evaluate(() => {
     const containers = [document.documentElement, ...document.querySelectorAll('[role="dialog"], [data-form-card]')];
     return containers
@@ -165,7 +166,7 @@ async function capture(page: Page, info: TestInfo, name: string, target?: Locato
         .filter((node) => node.getClientRects().length > 0 && !node.closest('[data-form-card]'))
         .map((node) => node.getAttribute('aria-label') || node.tagName),
     );
-  expect(ungrouped).toEqual([]);
+  if (grouped) expect(ungrouped).toEqual([]);
   await expect(root.locator('[data-form-card] [data-form-card] [data-form-card]')).toHaveCount(0);
   await page.screenshot({ path: info.outputPath(`${name}.png`), fullPage: true });
 }
@@ -299,7 +300,7 @@ for (const theme of ['light', 'dark'] as const) {
         }
         if (kind === 'zalo' && process.env.VITE_WORKER_URL)
           await expect(dialog.getByLabel('Mục đích tin (tuỳ chọn)')).toBeVisible();
-        await capture(page, info, `quick-${kind}-${theme}`, dialog);
+        await capture(page, info, `quick-${kind}-${theme}`, dialog, false);
       });
     }
 

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { FormGrid, FormSection, FormSubsection, LONG_FIELD } from '@/components/crm/form-section';
+import { FormGrid, FormSubsection, LONG_FIELD } from '@/components/crm/form-section';
 import { CALL_RESULTS, type CallResult } from '@/config/callResults';
 import type { CallSlotKey, ZaloTemplate } from '@/config/followup';
 import { type CallSource, installCallSource } from '@/data/callSource';
@@ -570,18 +570,8 @@ function ActionSheet({
         )
       }
     >
-      <FormSection
-        title={
-          kind === 'outcome'
-            ? 'Nội dung cuộc gọi'
-            : kind === 'note'
-              ? 'Nội dung ghi chú'
-              : kind === 'schedule'
-                ? 'Lịch hẹn'
-                : 'Tin nhắn'
-        }
-        className="[&_[data-form-card]>div>*]:basis-full"
-      >
+      {/* Ngăn kéo thao tác nhanh giữ một lớp (ít chạm, UX §3): không bọc thêm khu + thẻ; mục con vẫn thụt lề. */}
+      <div className="flex flex-col gap-4">
         {kind === 'outcome' && (
           <>
             <OutcomePicker value={result} onValueChange={setOutcome} />
@@ -846,7 +836,7 @@ function ActionSheet({
         {!account.sync.isOnline() && (
           <p className="text-caption text-ink-muted">Ngoại tuyến · Thay đổi được lưu trên máy.</p>
         )}
-      </FormSection>
+      </div>
     </Sheet>
   );
 }
