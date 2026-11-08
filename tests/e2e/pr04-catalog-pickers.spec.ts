@@ -216,10 +216,9 @@ for (const theme of ['light', 'dark'] as const) {
     await page.getByLabel('Mã căn', { exact: true }).click();
     await expect(page.getByRole('button', { name: 'mã cũ', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: '201', exact: true })).toHaveCount(0);
+    // Popover còn đang phóng to khi mở → đo lại tới khi ổn định; 43,96px (làm tròn) vẫn là ô 44px.
     for (const button of await page.getByRole('dialog').getByRole('button').all()) {
-      const box = await button.boundingBox();
-      // Làm tròn điểm ảnh con: 43,96px vẫn là ô 44px.
-      expect(box?.height ?? 0).toBeGreaterThanOrEqual(43.5);
+      await expect.poll(async () => (await button.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(43.5);
     }
     await page.getByRole('button', { name: '101', exact: true }).click();
     await expect.poll(async () => (await readCustomer(page)).apt_code).toBe('101');

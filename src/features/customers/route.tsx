@@ -531,7 +531,8 @@ function Customers() {
   };
 
   const controls = (
-    <FormSection title="Bộ lọc">
+    // Trong ngăn kéo chỉ một lớp (tiêu đề ngăn kéo đã có): không bọc khu + thẻ để lịch đủ rộng ô 44px.
+    <div className="space-y-3">
       <FormGrid className={LONG_FIELD}>
         <label className={`${SHORT_FIELD} flex flex-col justify-end gap-1.5 text-label text-ink-muted`}>
           Trạng thái
@@ -711,7 +712,7 @@ function Customers() {
           />
         </div>
       </FormSubsection>
-    </FormSection>
+    </div>
   );
 
   const groupOptions: { value: CustomerGroup; label: string }[] = [

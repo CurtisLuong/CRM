@@ -145,7 +145,8 @@ async function sameRow(a: Locator, b: Locator) {
   const second = await b.boundingBox();
   if (!first || !second) throw new Error('Không đo được ô nhập');
   expect(Math.abs(first.y - second.y)).toBeLessThanOrEqual(2);
-  expect(second.x).toBeGreaterThanOrEqual(first.x + first.width);
+  // Lưới chia điểm ảnh con có thể chồng nhau < 1px.
+  expect(second.x).toBeGreaterThanOrEqual(first.x + first.width - 1);
 }
 
 // grouped=false: ngăn kéo Thao tác nhanh giữ một lớp (ít chạm), không bọc khu + thẻ — chỉ đo tràn ngang.
