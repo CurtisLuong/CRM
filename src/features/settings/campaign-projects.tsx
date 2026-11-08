@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
+import { FormSubsection, LONG_FIELD } from '@/components/crm/form-section';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import type { RepositoryAccount } from '@/data/repositories/session';
 import type { Customer } from '@/domain/customer';
 import { activeCampaignProject, type CampaignProjectRule, campaignFillCandidates, campaignProjectRows } from './model';
 
-const FIELD = 'min-h-11 w-full rounded-md border border-input bg-surface-100 px-3 py-2 text-body text-ink';
+const FIELD = 'min-h-11 w-full min-w-0 rounded-md border border-input bg-surface-100 px-3 py-2 text-body text-ink';
 const READ_ERROR =
   'Không tải được quy tắc dự án theo chiến dịch. Kiểm tra mạng hoặc quyền; chưa có dự án nào bị thay đổi.';
 const OFFLINE_TEXT = 'Cần mạng để sửa dự án theo chiến dịch.';
@@ -207,112 +209,115 @@ export function CampaignProjectsSection({
   };
 
   return (
-    <section aria-labelledby="campaign-projects-title" className="rounded-lg border border-line bg-surface-100 p-4">
-      <h2 id="campaign-projects-title" className="text-section-head">
+    <section aria-labelledby="campaign-projects-title" className="min-w-0 space-y-3">
+      <h2 id="campaign-projects-title" className="text-title">
         Dự án theo chiến dịch quảng cáo
       </h2>
-      <p className="mt-1 text-caption text-ink-muted">
-        Gán một lần để lead mới của chiến dịch tự có dự án. Quy tắc lưu trên tài khoản và cần mạng khi sửa.
-      </p>
-      {!account || !client ? (
-        <p className="mt-3 text-caption text-ink-muted">Đăng nhập để gán dự án theo chiến dịch quảng cáo.</p>
-      ) : (
-        <>
-          {loadState === 'loading' && <p className="mt-3 text-caption text-ink-muted">Đang tải quy tắc…</p>}
-          {loadState === 'offline' && (
-            <p role="status" className="mt-3 rounded-md bg-surface-200 px-3 py-2 text-caption text-ink-muted">
-              {OFFLINE_TEXT}
-            </p>
-          )}
-          {loadState === 'error' && (
-            <p role="alert" className="mt-3 text-caption text-alert-text">
-              {READ_ERROR}
-            </p>
-          )}
-          {ready && rows.length === 0 && <p className="mt-3 text-caption text-ink-muted">{EMPTY_TEXT}</p>}
-          {ready && rows.length > 0 && !projectNames.length && (
-            <p className="mt-3 text-caption text-ink-muted">
-              Chưa có dự án trong giỏ hàng. Thêm dự án ở Giỏ hàng rồi quay lại để gán theo chiến dịch.
-            </p>
-          )}
-          {rows.length > 0 && (
-            <div className="mt-3 flex flex-col gap-3">
-              {rows.map((row) => {
-                const assigned = ready ? row.project : null;
-                const selected = draft[row.campaign] ?? assigned ?? '';
-                const options =
-                  assigned && !projectNames.includes(assigned) ? [...projectNames, assigned] : projectNames;
-                const fillCount = ready && assigned ? campaignFillCandidates(customers, row.campaign).length : 0;
-                return (
-                  <article key={row.campaign} className="min-w-0 rounded-md border border-line p-3">
-                    <div className="flex min-w-0 flex-wrap items-start justify-between gap-2">
-                      <h3 className="min-w-0 text-body-strong [overflow-wrap:anywhere]">{row.campaign}</h3>
-                      <span className="shrink-0 text-caption text-ink-muted">{row.customerCount} khách</span>
-                    </div>
-                    {ready ? (
-                      <p className="mt-1 text-caption text-ink-muted">
-                        {assigned ? `Dự án đang gán: ${assigned}` : 'Chưa gán'}
-                      </p>
-                    ) : loadState === 'loading' ? (
-                      <p className="mt-1 text-caption text-ink-muted">Đang tải dự án đã gán…</p>
-                    ) : null}
-                    <div className="mt-3 flex min-w-0 flex-col gap-2">
-                      <label className="flex min-w-0 flex-col gap-1 text-caption text-ink-muted">
-                        Dự án cho chiến dịch này
-                        <select
-                          className={FIELD}
-                          aria-label={`Dự án cho chiến dịch ${row.campaign}`}
-                          value={selected}
-                          disabled={!canEdit || someBusy}
-                          onChange={(event) =>
-                            setDraft((current) => ({ ...current, [row.campaign]: event.target.value }))
-                          }
-                        >
-                          <option value="">Chọn dự án</option>
-                          {options.map((name) => (
-                            <option key={name} value={name}>
-                              {name}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          variant="primary"
-                          disabled={!canEdit || someBusy || !selected || selected === (assigned ?? '')}
-                          onClick={() => void assign(row.campaign)}
-                        >
-                          Lưu dự án
-                        </Button>
-                        {assigned && (
-                          <Button disabled={!canEdit || someBusy} onClick={() => void unassign(row.campaign)}>
-                            Bỏ gán
-                          </Button>
-                        )}
+      <Card data-form-card className="min-w-0 p-4">
+        <p className="mt-1 text-caption text-ink-muted">
+          Gán một lần để lead mới của chiến dịch tự có dự án. Quy tắc lưu trên tài khoản và cần mạng khi sửa.
+        </p>
+        {!account || !client ? (
+          <p className="mt-3 text-caption text-ink-muted">Đăng nhập để gán dự án theo chiến dịch quảng cáo.</p>
+        ) : (
+          <>
+            {loadState === 'loading' && <p className="mt-3 text-caption text-ink-muted">Đang tải quy tắc…</p>}
+            {loadState === 'offline' && (
+              <p role="status" className="mt-3 rounded-md bg-surface-200 px-3 py-2 text-caption text-ink-muted">
+                {OFFLINE_TEXT}
+              </p>
+            )}
+            {loadState === 'error' && (
+              <p role="alert" className="mt-3 text-caption text-alert-text">
+                {READ_ERROR}
+              </p>
+            )}
+            {ready && rows.length === 0 && <p className="mt-3 text-caption text-ink-muted">{EMPTY_TEXT}</p>}
+            {ready && rows.length > 0 && !projectNames.length && (
+              <p className="mt-3 text-caption text-ink-muted">
+                Chưa có dự án trong giỏ hàng. Thêm dự án ở Giỏ hàng rồi quay lại để gán theo chiến dịch.
+              </p>
+            )}
+            {rows.length > 0 && (
+              <div className="mt-3 flex flex-col gap-3">
+                {rows.map((row) => {
+                  const assigned = ready ? row.project : null;
+                  const selected = draft[row.campaign] ?? assigned ?? '';
+                  const options =
+                    assigned && !projectNames.includes(assigned) ? [...projectNames, assigned] : projectNames;
+                  const fillCount = ready && assigned ? campaignFillCandidates(customers, row.campaign).length : 0;
+                  return (
+                    <FormSubsection key={row.campaign} title={row.campaign} className="[overflow-wrap:anywhere]">
+                      <div className={LONG_FIELD}>
+                        <div className="flex min-w-0 flex-wrap items-start justify-between gap-2">
+                          <span className="shrink-0 text-caption text-ink-muted">{row.customerCount} khách</span>
+                        </div>
+                        {ready ? (
+                          <p className="mt-1 text-caption text-ink-muted">
+                            {assigned ? `Dự án đang gán: ${assigned}` : 'Chưa gán'}
+                          </p>
+                        ) : loadState === 'loading' ? (
+                          <p className="mt-1 text-caption text-ink-muted">Đang tải dự án đã gán…</p>
+                        ) : null}
+                        <div className="mt-3 flex min-w-0 flex-col gap-2">
+                          <label className="flex min-w-0 flex-col gap-1 text-caption text-ink-muted">
+                            Dự án cho chiến dịch này
+                            <select
+                              className={FIELD}
+                              aria-label={`Dự án cho chiến dịch ${row.campaign}`}
+                              value={selected}
+                              disabled={!canEdit || someBusy}
+                              onChange={(event) =>
+                                setDraft((current) => ({ ...current, [row.campaign]: event.target.value }))
+                              }
+                            >
+                              <option value="">Chọn dự án</option>
+                              {options.map((name) => (
+                                <option key={name} value={name}>
+                                  {name}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          <div className="flex flex-wrap gap-2">
+                            <Button
+                              variant="primary"
+                              disabled={!canEdit || someBusy || !selected || selected === (assigned ?? '')}
+                              onClick={() => void assign(row.campaign)}
+                            >
+                              Lưu dự án
+                            </Button>
+                            {assigned && (
+                              <Button disabled={!canEdit || someBusy} onClick={() => void unassign(row.campaign)}>
+                                Bỏ gán
+                              </Button>
+                            )}
+                          </div>
+                          {assigned && fillCount > 0 && (
+                            <Button disabled={!canEdit || someBusy} onClick={() => void fill(row.campaign, assigned)}>
+                              Điền dự án cho {fillCount} khách đang trống
+                            </Button>
+                          )}
+                        </div>
                       </div>
-                      {assigned && fillCount > 0 && (
-                        <Button disabled={!canEdit || someBusy} onClick={() => void fill(row.campaign, assigned)}>
-                          Điền dự án cho {fillCount} khách đang trống
-                        </Button>
-                      )}
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-          )}
-          {actionError && (
-            <p role="alert" className="mt-3 text-caption text-alert-text">
-              {actionError}
-            </p>
-          )}
-          {status && (
-            <p role="status" className="mt-3 text-caption text-success">
-              {status}
-            </p>
-          )}
-        </>
-      )}
+                    </FormSubsection>
+                  );
+                })}
+              </div>
+            )}
+            {actionError && (
+              <p role="alert" className="mt-3 text-caption text-alert-text">
+                {actionError}
+              </p>
+            )}
+            {status && (
+              <p role="status" className="mt-3 text-caption text-success">
+                {status}
+              </p>
+            )}
+          </>
+        )}
+      </Card>
     </section>
   );
 }

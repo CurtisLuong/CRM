@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import type { FeatureRoute } from '@/app/routes';
 import { useAppSession } from '@/app/session';
 import { EmptyState, TextField } from '@/components/crm';
-import { Button, Card, Textarea, toast } from '@/components/ui';
+import { FormSection, LONG_FIELD, SHORT_FIELD } from '@/components/crm/form-section';
+import { Button, Textarea, toast } from '@/components/ui';
 import { useRepositoryAccount } from '@/data/hooks';
 import { defaultTemplates, localSettingsKey, type SettingsTemplate, validTemplates } from '@/features/settings/model';
 
@@ -157,8 +158,9 @@ function ZaloTemplatesPage() {
       {loading && <p className="text-caption text-ink-muted">Đang tải mẫu tin từ tài khoản…</p>}
       <div className="flex flex-col gap-3">
         {templates.map((item) => (
-          <Card key={item.id} className="flex flex-col gap-3 p-4">
+          <FormSection key={item.id} title={item.name || 'Mẫu mới'} className="[&_h2]:[overflow-wrap:anywhere]">
             <TextField
+              className={SHORT_FIELD}
               label="Tên mẫu"
               aria-label="Tên mẫu"
               maxLength={60}
@@ -166,7 +168,7 @@ function ZaloTemplatesPage() {
               onChange={(event) => setTemplate(item.id, { name: event.target.value })}
               placeholder="Tên mẫu"
             />
-            <label className="flex flex-col gap-1 text-caption" htmlFor={`zalo-template-${item.id}`}>
+            <label className={`${LONG_FIELD} flex flex-col gap-1 text-caption`} htmlFor={`zalo-template-${item.id}`}>
               Nội dung {item.name ? `— ${item.name}` : 'mẫu mới'}
               <Textarea
                 id={`zalo-template-${item.id}`}
@@ -185,7 +187,7 @@ function ZaloTemplatesPage() {
                 Xoá mẫu
               </Button>
             )}
-          </Card>
+          </FormSection>
         ))}
       </div>
       <div className="sticky bottom-2 z-10 -mx-1 flex flex-wrap items-center gap-3 rounded-lg border border-line bg-surface-100/95 p-3 shadow-lg backdrop-blur">

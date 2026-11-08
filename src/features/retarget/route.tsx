@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import type { FeatureRoute } from '@/app/routes';
 import { EmptyState, LeadRow, PageHeader } from '@/components/crm';
+import { FormGrid, FormSection, FormSubsection, LONG_FIELD, SHORT_FIELD } from '@/components/crm/form-section';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast as sonnerToast } from '@/components/ui/sonner';
@@ -263,14 +264,13 @@ export function RetargetPage() {
         subtitle="Lọc khách bạn phụ trách, kiểm tra điều kiện rồi tự liên hệ."
         sticky={false}
       />
-      <section className="rounded-md border border-line bg-surface-100 p-4 " aria-label="Điều kiện lọc tệp">
-        <h2 className="text-title">Điều kiện tệp</h2>
-        <p className="mb-3 text-caption text-ink-muted">
+      <FormSection title="Điều kiện tệp" aria-label="Điều kiện lọc tệp">
+        <p className={`${LONG_FIELD} text-caption text-ink-muted`}>
           Khách đã tắt liên hệ và khách người khác phụ trách luôn bị loại. “Có thể liên hệ” không thay thế việc xác nhận
           đồng ý trong từng cuộc trao đổi.
         </p>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <label htmlFor="retarget-apt-type" className="text-label">
+        <FormGrid className={LONG_FIELD}>
+          <label htmlFor="retarget-apt-type" className={`${SHORT_FIELD} flex flex-col justify-end gap-1.5 text-label`}>
             Loại căn
             <Input
               id="retarget-apt-type"
@@ -280,7 +280,10 @@ export function RetargetPage() {
               placeholder="VD: 2N"
             />
           </label>
-          <label htmlFor="retarget-project-filter" className="text-label">
+          <label
+            htmlFor="retarget-project-filter"
+            className={`${SHORT_FIELD} flex flex-col justify-end gap-1.5 text-label`}
+          >
             Dự án đã quan tâm
             <Input
               id="retarget-project-filter"
@@ -289,7 +292,7 @@ export function RetargetPage() {
               onChange={(e) => setFilters({ ...filters, project: e.target.value })}
             />
           </label>
-          <label htmlFor="retarget-purpose" className="text-label">
+          <label htmlFor="retarget-purpose" className={`${SHORT_FIELD} flex flex-col justify-end gap-1.5 text-label`}>
             Mục đích
             <Input
               id="retarget-purpose"
@@ -299,7 +302,7 @@ export function RetargetPage() {
               placeholder="Ở, đầu tư…"
             />
           </label>
-          <label htmlFor="retarget-region" className="text-label">
+          <label htmlFor="retarget-region" className={`${SHORT_FIELD} flex flex-col justify-end gap-1.5 text-label`}>
             Khu vực
             <Input
               id="retarget-region"
@@ -309,7 +312,10 @@ export function RetargetPage() {
               placeholder="Hải Phòng…"
             />
           </label>
-          <label htmlFor="retarget-occupation" className="text-label">
+          <label
+            htmlFor="retarget-occupation"
+            className={`${SHORT_FIELD} flex flex-col justify-end gap-1.5 text-label`}
+          >
             Nghề nghiệp
             <Input
               id="retarget-occupation"
@@ -318,7 +324,7 @@ export function RetargetPage() {
               onChange={(e) => setFilters({ ...filters, occupation: e.target.value })}
             />
           </label>
-          <label htmlFor="retarget-timeline" className="text-label">
+          <label htmlFor="retarget-timeline" className={`${SHORT_FIELD} flex flex-col justify-end gap-1.5 text-label`}>
             Thời điểm mua dự kiến
             <Input
               id="retarget-timeline"
@@ -328,7 +334,10 @@ export function RetargetPage() {
               placeholder="VD: 6 tháng"
             />
           </label>
-          <label htmlFor="retarget-close-reason" className="text-label">
+          <label
+            htmlFor="retarget-close-reason"
+            className={`${SHORT_FIELD} flex flex-col justify-end gap-1.5 text-label`}
+          >
             Lý do kết thúc
             <select
               id="retarget-close-reason"
@@ -344,7 +353,10 @@ export function RetargetPage() {
               ))}
             </select>
           </label>
-          <label htmlFor="retarget-max-budget" className="text-label">
+          <label
+            htmlFor="retarget-max-budget"
+            className={`${SHORT_FIELD} flex flex-col justify-end gap-1.5 text-label`}
+          >
             Ngân sách tối đa khách (VND)
             <Input
               id="retarget-max-budget"
@@ -355,7 +367,10 @@ export function RetargetPage() {
               placeholder="Chỉ lọc khi có dữ liệu ngân sách"
             />
           </label>
-          <label htmlFor="retarget-contacted-before" className="text-label">
+          <label
+            htmlFor="retarget-contacted-before"
+            className={`${SHORT_FIELD} flex flex-col justify-end gap-1.5 text-label`}
+          >
             Liên hệ cuối trước ngày
             <Input
               id="retarget-contacted-before"
@@ -365,9 +380,9 @@ export function RetargetPage() {
               onChange={(e) => setFilters({ ...filters, contactedBefore: e.target.value })}
             />
           </label>
-        </div>
-        <div className="mt-3 flex flex-wrap items-end gap-2">
-          <label htmlFor="retarget-segment-name" className="min-w-48 flex-1 text-label">
+        </FormGrid>
+        <FormSubsection title="Tên tệp" className={LONG_FIELD}>
+          <label htmlFor="retarget-segment-name" className={`${LONG_FIELD} text-label`}>
             Tên tệp
             <Input
               id="retarget-segment-name"
@@ -388,9 +403,9 @@ export function RetargetPage() {
           >
             Xoá lọc
           </Button>
-        </div>
+        </FormSubsection>
         {saved.length > 0 && (
-          <section className="mt-3 flex flex-wrap gap-2" aria-label="Tệp đã lưu">
+          <section className={`${LONG_FIELD} flex flex-wrap gap-2`} aria-label="Tệp đã lưu">
             {saved.map((segment) => (
               <span key={segment.id} className="inline-flex gap-1">
                 <Button
@@ -411,15 +426,14 @@ export function RetargetPage() {
             ))}
           </section>
         )}
-      </section>
-      <section className="rounded-md border border-line bg-surface-100 p-4 " aria-label="Chiến dịch retarget">
-        <h2 className="text-title">Chiến dịch đo phản hồi</h2>
-        <p className="mb-3 text-caption text-ink-muted">
+      </FormSection>
+      <FormSection title="Chiến dịch đo phản hồi" aria-label="Chiến dịch retarget">
+        <p className={`${LONG_FIELD} text-caption text-ink-muted`}>
           Catalog hiện không cung cấp mốc xác minh giá/tồn cho màn này. Không hiển thị giá, tồn kho hay khẳng định căn
           còn bán; xác minh với nguồn bán trước khi đưa thông tin vào tin nhắn.
         </p>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <label htmlFor="retarget-campaign" className="text-label">
+        <FormGrid className={LONG_FIELD}>
+          <label htmlFor="retarget-campaign" className={`${SHORT_FIELD} flex flex-col justify-end gap-1.5 text-label`}>
             Tên chiến dịch
             <Input
               id="retarget-campaign"
@@ -429,7 +443,7 @@ export function RetargetPage() {
               placeholder="VD: Khách quan tâm Tràng Cát T10"
             />
           </label>
-          <label htmlFor="retarget-project" className="text-label">
+          <label htmlFor="retarget-project" className={`${SHORT_FIELD} flex flex-col justify-end gap-1.5 text-label`}>
             Dự án cần xác minh (tuỳ chọn)
             <Input
               id="retarget-project"
@@ -439,7 +453,10 @@ export function RetargetPage() {
               placeholder="Không tự chèn giá/tồn kho"
             />
           </label>
-          <label htmlFor="retarget-apt-type-message" className="text-label">
+          <label
+            htmlFor="retarget-apt-type-message"
+            className={`${SHORT_FIELD} flex flex-col justify-end gap-1.5 text-label`}
+          >
             Loại căn cần xác minh
             <Input
               id="retarget-apt-type-message"
@@ -449,7 +466,7 @@ export function RetargetPage() {
               placeholder="VD: 2N"
             />
           </label>
-          <label htmlFor="retarget-follow-up" className="text-label">
+          <label htmlFor="retarget-follow-up" className={`${SHORT_FIELD} flex flex-col justify-end gap-1.5 text-label`}>
             Ngày theo dõi sau khi gửi
             <Input
               id="retarget-follow-up"
@@ -459,7 +476,7 @@ export function RetargetPage() {
               onChange={(e) => setFollowUpDate(e.target.value)}
             />
           </label>
-          <label htmlFor="retarget-template" className="text-label sm:col-span-2">
+          <label htmlFor="retarget-template" className={`${LONG_FIELD} text-label`}>
             Mẫu tin · biến: {'{{ten}}'}, {'{{du_an}}'}, {'{{loai_can}}'}
             <Textarea
               id="retarget-template"
@@ -468,8 +485,8 @@ export function RetargetPage() {
               onChange={(e) => setTemplate(e.target.value)}
             />
           </label>
-        </div>
-        <div className="mt-3 flex flex-wrap gap-2">
+        </FormGrid>
+        <div className={`${LONG_FIELD} flex flex-wrap gap-2`}>
           <Button disabled={!selectedVisible.length} onClick={exportEligible}>
             Xuất {selectedVisible.length} khách đã chọn
           </Button>
@@ -494,7 +511,7 @@ export function RetargetPage() {
             phản hồi đã ghi nhận
           </Pill>
         </div>
-      </section>
+      </FormSection>
       {visible.length ? (
         <section
           className="overflow-hidden rounded-md border border-line bg-surface-100"
