@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Sheet, SheetBody, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { toast as notify } from '@/components/ui/sonner';
 import { CALL_RESULTS } from '@/config/callResults';
 import { TASK_KINDS, type TaskKind, taskKindOf } from '@/config/taskKinds';
@@ -20,6 +21,7 @@ import { fmtWhen } from '@/lib/crm';
 import { cn } from '@/lib/utils';
 import { Icon } from '@/ui/Icon';
 import {
+  limitTimelineView,
   type ProfileTimelineEntry,
   showsStageDetail,
   stageDisplayTitle,
@@ -92,7 +94,7 @@ function findDoneTask(customer: Customer, at: string, index: number): Task | nul
 
 /**
  * Tab "Dòng thời gian" của hồ sơ: lọc theo loại, sửa/xoá tại chỗ, đổi bậc 2 bước.
- * PF-02: mốc bậc là đầu nhóm sát lề trái; mục trong bậc thụt vào sau đường dọc; mỗi dòng có icon.
+ * TL-04: chung khuôn Hành trình; tab giới hạn 8 hoạt động, tấm mở toàn bộ kết quả lọc.
  */
 export function ProfileTimeline({
   customer,
@@ -113,13 +115,15 @@ export function ProfileTimeline({
   const [taskReopen, setTaskReopen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [filter, setFilter] = useState<TimelineFilter>('all');
   const counts = timelineCounts(entries);
-  const view = timelineView(entries, filter);
+  const fullView = timelineView(entries, filter);
+  const { view: previewView, hiddenCount } = limitTimelineView(fullView, 8);
   const stageDetail = showsStageDetail(filter);
   const allGroups = timelineGroups(entries);
   const hasArchive = filter === 'all' && entries.some((entry) => entry.kind === 'archive');
-  const isEmpty = view.grouped ? view.groups.length === 0 : view.flat.length === 0;
+  const isEmpty = fullView.grouped ? fullView.groups.length === 0 : fullView.flat.length === 0;
   const disabled = busy || saving;
 
   const canEditEntry = (entry: ProfileTimelineEntry) => {
@@ -420,7 +424,6 @@ export function ProfileTimeline({
     options: {
       detail: boolean;
       heading?: boolean;
-      stageIcon?: boolean;
       timeBelow?: boolean;
       duration?: string;
       trailing?: ReactNode;
@@ -434,11 +437,6 @@ export function ProfileTimeline({
           !entry.detail && canEditEntry(entry) && editingId !== entry.id && 'pr-11',
         )}
       >
-        {options.stageIcon && (
-          <span data-timeline-stage-icon="" className="relative z-[1] size-5 shrink-0 bg-surface-0">
-            <Icon name={timelineIcon(entry)} size={20} className="text-ion" />
-          </span>
-        )}
         <div className="flex min-w-0 flex-1 flex-wrap items-end gap-2">
           {options.heading ? (
             <h3 className="text-sm font-semibold leading-5">{displayTitleOf(entry)}</h3>
@@ -465,12 +463,7 @@ export function ProfileTimeline({
         )}
       </div>
       {options.timeBelow && (
-        <p
-          className={cn(
-            'mt-0.5 flex flex-wrap items-center gap-x-1 text-caption text-ink-muted',
-            options.stageIcon && 'ml-7',
-          )}
-        >
+        <p className="mt-0.5 flex flex-wrap items-center gap-x-1 text-caption text-ink-muted">
           {entry.automatic && <span className="rounded-sm border border-line px-2 py-0.5">Tự động · SLA</span>}
           {options.duration && <span data-stage-duration="">{options.duration}</span>}
           {options.duration && <span aria-hidden="true">·</span>}
@@ -480,7 +473,7 @@ export function ProfileTimeline({
         </p>
       )}
       {options.detail && (entry.detail || editingId === entry.id) && (
-        <div className={cn('mt-1', options.stageIcon && 'ml-7')}>
+        <div className="mt-1">
           <div
             data-timeline-note={editingId === entry.id ? undefined : ''}
             className={editingId === entry.id ? undefined : 'rounded-sm border border-line bg-surface-0 px-3 py-2'}
@@ -524,10 +517,10 @@ export function ProfileTimeline({
                   : 'message';
     return {
       action,
+      icon: <Icon name={timelineIcon(entry)} size={16} />,
       at: entry.at,
       title: (
         <span data-timeline-entry="" className="inline-flex min-w-0 flex-wrap items-center gap-2">
-          <Icon name={timelineIcon(entry)} size={16} className="shrink-0 text-ink-muted" />
           <span>{displayTitleOf(entry)}</span>
           {entry.kind === 'task' && entry.taskKind && (
             <span className="rounded-sm border border-line px-2 py-0.5 text-caption text-ink-muted">
@@ -558,8 +551,8 @@ export function ProfileTimeline({
   const currentStage = normStage(customer.care_stage);
   const endOfGroup = (groupIndex: number) => allGroups[groupIndex - 1]?.at;
 
-  return (
-    <div className="space-y-4">
+  const filters = (
+    <>
       {/* Hồ sơ đã lưu trữ là bản ghi lịch sử: giữ dòng thời gian đầy đủ, không cần bộ lọc. */}
       {!customer.archived_at && (
         <div className="flex flex-wrap gap-1.5">
@@ -588,6 +581,11 @@ export function ProfileTimeline({
           })}
         </div>
       )}
+    </>
+  );
+
+  const renderTimeline = (view: typeof fullView) => (
+    <>
       {isEmpty ? (
         <p className="text-body text-ink-muted">Chưa có hoạt động để hiển thị.</p>
       ) : hasArchive ? (
@@ -621,31 +619,27 @@ export function ProfileTimeline({
           })}
         </div>
       ) : view.grouped ? (
-        <div>
-          {view.groups.map((group, index) => {
+        <Timeline
+          now={new Date(now)}
+          stages={view.groups.map((group) => {
             const groupIndex = allGroups.findIndex((item) => item.id === group.id);
-            // Nhóm hiện tại = nhóm mới nhất và đúng bậc đang chăm sóc (lịch sử có thể lặp lại tên bậc cũ).
             const isCurrent =
               allGroups[0]?.id === group.id &&
               !!group.stage &&
               !!currentStage &&
               normStage(stageDisplayTitle(group.stage.title)) === currentStage;
             const duration = group.stage ? formatStageDuration(group.at, endOfGroup(groupIndex), new Date(now)) : '';
-            return (
-              <section key={group.id} data-timeline-group={group.id} className="relative pb-4 last:pb-0">
-                {index < view.groups.length - 1 && (
-                  <span
-                    aria-hidden="true"
-                    data-timeline-stage-rail=""
-                    className="absolute bottom-0 left-[9px] top-5 w-0.5 bg-line"
-                  />
-                )}
-                {group.stage ? (
-                  <article data-timeline-header="" className="relative">
-                    {entryText(group.stage, {
+            return {
+              id: group.id,
+              stage: group.stage ? stageDisplayTitle(group.stage.title) : 'Chưa có bậc',
+              start: group.at || group.rows[0]?.entry.at || new Date(now),
+              end: endOfGroup(groupIndex),
+              header: (
+                <article data-timeline-header="" className="relative pl-[34px] pt-3">
+                  {group.stage ? (
+                    entryText(group.stage, {
                       detail: stageDetail,
                       heading: true,
-                      stageIcon: true,
                       timeBelow: true,
                       duration,
                       trailing:
@@ -654,40 +648,54 @@ export function ProfileTimeline({
                             Đổi bậc
                           </Button>
                         ) : undefined,
-                    })}
-                  </article>
-                ) : (
-                  <article data-timeline-header="" className="relative flex items-end gap-2">
-                    <span data-timeline-stage-icon="" className="relative z-[1] size-5 shrink-0 bg-surface-0">
-                      <Icon name={group.icon} size={20} className="text-ink-muted" />
-                    </span>
+                    })
+                  ) : (
                     <h3 className="text-sm font-semibold leading-5">{group.title}</h3>
-                  </article>
-                )}
-                {/* Ẩn vòng tròn bậc và vòng tròn từng mục của kit (icon đã nằm trong dòng mục) → bỏ luôn cột của chúng, không thì nội dung bị nhét vào cột hẹp và icon lặp đôi (Curtis 30/10). */}
-                {group.rows.length > 0 && (
-                  <div className="ml-2 mt-2 pl-3 [&>ol>li]:grid-cols-1 [&>ol>li>span:nth-child(-n+2)]:hidden [&>ol>li>div>ol>li]:grid-cols-1 [&>ol>li>div>ol>li]:before:hidden [&>ol>li>div>ol>li>span:first-child]:hidden [&>ol>li>div>button]:hidden [&>ol>li>div>span]:hidden">
-                    <Timeline
-                      now={new Date(now)}
-                      stages={[
-                        {
-                          stage: group.stage ? stageDisplayTitle(group.stage.title) : 'Chưa có bậc',
-                          start: group.at || group.rows[0]?.entry.at || new Date(now),
-                          hideDuration: true,
-                          items: group.rows.map((row) => kitAction(row.entry)),
-                        },
-                      ]}
-                    />
-                  </div>
-                )}
-              </section>
-            );
+                  )}
+                </article>
+              ),
+              items: group.rows.map((row) => kitAction(row.entry)),
+            };
           })}
-        </div>
+        />
       ) : (
         <div className="space-y-3">{view.flat.map(flatRow)}</div>
       )}
+    </>
+  );
 
+  return (
+    <div className="space-y-4">
+      {filters}
+      {!historyOpen && renderTimeline(previewView)}
+      {hiddenCount > 0 && (
+        <Button
+          className="w-full"
+          onClick={() => {
+            cancelEdit();
+            setHistoryOpen(true);
+          }}
+        >
+          Xem toàn bộ lịch sử ({hiddenCount} mục)
+        </Button>
+      )}
+      <Sheet
+        open={historyOpen}
+        onOpenChange={(open) => {
+          cancelEdit();
+          setHistoryOpen(open);
+        }}
+      >
+        <SheetContent mobileHeight="90dvh" aria-describedby={undefined}>
+          <SheetHeader>
+            <SheetTitle>Lịch sử · {customer.full_name}</SheetTitle>
+          </SheetHeader>
+          <SheetBody>
+            {filters}
+            {historyOpen && renderTimeline(fullView)}
+          </SheetBody>
+        </SheetContent>
+      </Sheet>
       <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <DialogContent role="alertdialog" size="sm" tone="alert" aria-describedby="tl02-delete-description">
           <DialogHeader>

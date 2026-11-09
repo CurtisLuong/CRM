@@ -458,6 +458,29 @@ export function timelineView<T extends TimelineEntryLike>(
   };
 }
 
+/** Giới hạn hoạt động sau khi lọc; tiêu đề bậc không chiếm suất của dòng con. */
+export function limitTimelineView<T extends TimelineEntryLike>(view: TimelineView<T>, limit: number) {
+  const isActivity = (entry: T) => entry.kind !== 'stage' || !!entry.stageNote;
+  const total = view.ordered.filter(({ entry }) => isActivity(entry)).length;
+  const hiddenCount = Math.max(0, total - limit);
+  if (!hiddenCount) return { view, hiddenCount };
+
+  let remaining = limit;
+  const groups = view.groups.flatMap((group) => {
+    if (remaining <= 0) return [];
+    const rows = group.rows.slice(0, remaining);
+    remaining -= rows.length;
+    return [{ ...group, rows }];
+  });
+  remaining = limit;
+  const ordered = view.ordered.filter(({ entry }) => {
+    if (remaining <= 0) return false;
+    if (isActivity(entry)) remaining--;
+    return true;
+  });
+  return { view: { ...view, groups, ordered, flat: view.flat.slice(0, limit) }, hiddenCount };
+}
+
 /** Sửa ghi chú trên dòng thời gian: chỉ ghi chú tay và ghi chú bậc; giữ nguyên trường lạ (D-012). */
 export function editedTimelineNotePatch(
   customer: Customer,
