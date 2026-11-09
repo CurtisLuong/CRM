@@ -1,9 +1,11 @@
 import { type ReactNode, useEffect, useState } from 'react';
 import { CollapsibleFormSection, FormGrid, FormSection, FormSubsection } from '@/components/crm/form-section';
+import { MoneyField } from '@/components/crm/money-field';
 import { Button } from '@/components/ui/button';
 import { CLOSE_REASONS } from '@/config/reasons';
 import type { Customer } from '@/domain/customer';
 import { factFreshness, factPatch } from '@/domain/customer/facts';
+import { formatMoney, moneyValue } from '@/ui/display';
 import { LONG_FIELD, SHORT_FIELD } from './fields';
 
 type Save = (patch: Record<string, unknown>, message?: string) => void;
@@ -219,7 +221,8 @@ export function CustomerInterests({
 }: BaseProps & { projectCatalog?: InterestProjectCatalog | null; nested?: boolean }) {
   const [project, setProject] = useState('');
   const [interestType, setInterestType] = useState('');
-  const [interestBudget, setInterestBudget] = useState('');
+  const [interestBudget, setInterestBudget] = useState<number | null>(null);
+  const [budgetValid, setBudgetValid] = useState(true);
   const [interestPurpose, setInterestPurpose] = useState('');
   const [interestTimeline, setInterestTimeline] = useState('');
   const markFact = markFactOf(customer, now);
@@ -231,7 +234,7 @@ export function CustomerInterests({
       id: crypto.randomUUID(),
       project: name,
       apt_type: interestType.trim() || null,
-      budget_max: interestBudget ? Number(interestBudget) : null,
+      budget_max: interestBudget,
       purpose: interestPurpose.trim() || null,
       timeline: interestTimeline.trim() || null,
       status: 'open',
@@ -241,7 +244,7 @@ export function CustomerInterests({
     onSave(markFact('interests', interests), 'Đã thêm đợt quan tâm');
     setProject('');
     setInterestType('');
-    setInterestBudget('');
+    setInterestBudget(null);
     setInterestPurpose('');
     setInterestTimeline('');
   };
@@ -274,7 +277,7 @@ export function CustomerInterests({
             {interest.purpose && <p className="text-caption text-ink-muted">Mục đích: {interest.purpose}</p>}
             {interest.timeline && <p className="text-caption text-ink-muted">Thời điểm: {interest.timeline}</p>}
             {interest.budget_max != null && (
-              <p className="text-caption text-ink-muted">Ngân sách tối đa: {interest.budget_max}</p>
+              <p className="text-caption text-ink-muted">Ngân sách tối đa: {formatMoney(interest.budget_max)}</p>
             )}
             <label className="mt-2 flex flex-col gap-1 text-caption">
               Trạng thái đợt
@@ -350,15 +353,13 @@ export function CustomerInterests({
           onChange={(e) => setInterestType(e.target.value)}
           placeholder="Loại căn"
         />
-        <input
-          aria-label="Ngân sách đợt mới"
-          type="number"
-          min="0"
-          className={`${SHORT_FIELD} min-h-11 w-full rounded-sm border border-line bg-surface-100 px-3 text-body`}
+        <MoneyField
+          label="Ngân sách đợt mới"
+          className={SHORT_FIELD}
           disabled={!writable}
           value={interestBudget}
-          onChange={(e) => setInterestBudget(e.target.value)}
-          placeholder="Ngân sách tối đa (VNĐ)"
+          onChange={setInterestBudget}
+          onValidityChange={setBudgetValid}
         />
         <input
           aria-label="Mục đích đợt mới"
@@ -377,7 +378,7 @@ export function CustomerInterests({
           placeholder="Thời điểm dự kiến"
         />
         <div className={`${LONG_FIELD} flex justify-start`}>
-          <Button disabled={!writable || !project.trim()} onClick={addInterest}>
+          <Button disabled={!writable || !project.trim() || !budgetValid} onClick={addInterest}>
             Thêm đợt
           </Button>
         </div>
@@ -475,7 +476,6 @@ export function CustomerHousehold({
 export function CustomerClosure({ customer, writable, onSave, now }: BaseProps) {
   const [closeNote, setCloseNote] = useState(customer.close_note || '');
   const [retargetAfter, setRetargetAfter] = useState(customer.retarget_hint?.after || '');
-  const [retargetPrice, setRetargetPrice] = useState(String(customer.retarget_hint?.max_price ?? ''));
   const [retargetAptTypes, setRetargetAptTypes] = useState((customer.retarget_hint?.apt_types || []).join(', '));
   const markFact = markFactOf(customer, now);
   const retarget = customer.retarget_hint || {};
@@ -529,23 +529,13 @@ export function CustomerClosure({ customer, writable, onSave, now }: BaseProps) 
             }
           />
         </label>
-        <label
-          className={`${SHORT_FIELD} flex flex-col gap-1 text-caption [&>input]:min-w-0 [&>input]:w-full [&>input]:max-w-full [&>input]:shrink`}
-        >
-          Ngân sách tối đa (VNĐ)
-          <input
-            type="number"
-            min="0"
-            className="min-h-11 rounded-sm border border-line bg-surface-100 px-3 text-body"
-            disabled={!writable}
-            value={retargetPrice}
-            onChange={(e) => setRetargetPrice(e.target.value)}
-            onBlur={() =>
-              retargetPrice !== String(retarget.max_price ?? '') &&
-              closePatch('retarget_hint', { max_price: retargetPrice ? Number(retargetPrice) : null })
-            }
-          />
-        </label>
+        <MoneyField
+          label="Ngân sách tối đa"
+          className={SHORT_FIELD}
+          disabled={!writable}
+          value={moneyValue(retarget.max_price)}
+          onCommit={(value) => closePatch('retarget_hint', { max_price: value })}
+        />
       </FormGrid>
       <label className={`${LONG_FIELD} flex flex-col gap-1 text-caption`}>
         Loại căn phù hợp

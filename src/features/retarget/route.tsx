@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { FeatureRoute } from '@/app/routes';
 import { EmptyState, LeadRow, PageHeader } from '@/components/crm';
 import { FormGrid, FormSection, FormSubsection, LONG_FIELD, SHORT_FIELD } from '@/components/crm/form-section';
+import { MoneyField } from '@/components/crm/money-field';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast as sonnerToast } from '@/components/ui/sonner';
@@ -20,6 +21,7 @@ import {
 } from '@/domain/matching/segments';
 import { copyAndOpenZalo } from '@/features/quick-actions/zalo';
 import { customerNeed } from '@/lib/crm/customer-need';
+import { moneyValue } from '@/ui/display';
 
 type SavedSegment = { id: string; name: string; filters: RetargetFilters };
 const STORAGE = 'crm_v2_retarget_segments';
@@ -353,20 +355,14 @@ export function RetargetPage() {
               ))}
             </select>
           </label>
-          <label
-            htmlFor="retarget-max-budget"
-            className={`${SHORT_FIELD} flex flex-col justify-end gap-1.5 text-label`}
-          >
-            Ngân sách tối đa khách (VND)
-            <Input
-              id="retarget-max-budget"
-              className={FIELD}
-              inputMode="numeric"
-              value={filters.maxBudget}
-              onChange={(e) => setFilters({ ...filters, maxBudget: e.target.value.replace(/[^\d]/g, '') })}
-              placeholder="Chỉ lọc khi có dữ liệu ngân sách"
-            />
-          </label>
+          <MoneyField
+            id="retarget-max-budget"
+            className={`${SHORT_FIELD} justify-end`}
+            label="Ngân sách tối đa khách"
+            value={moneyValue(filters.maxBudget)}
+            onChange={(value) => setFilters({ ...filters, maxBudget: value == null ? '' : String(value) })}
+            hint="Chỉ lọc khi có dữ liệu ngân sách"
+          />
           <label
             htmlFor="retarget-contacted-before"
             className={`${SHORT_FIELD} flex flex-col justify-end gap-1.5 text-label`}

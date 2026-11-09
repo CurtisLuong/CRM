@@ -7,6 +7,7 @@ export * from './filters';
 export * from './form-fields';
 export * from './form-section';
 export * from './lead';
+export * from './money-field';
 export * from './notifications';
 export * from './shell';
 export * from './signal';

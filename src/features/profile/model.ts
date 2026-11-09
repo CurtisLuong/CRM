@@ -17,7 +17,7 @@ import { type CustomerTimelineEntry, customerTimeline } from '@/domain/customer/
 import { fmtClock, type TaskDueInfo, taskDayLabel } from '@/domain/deadlines';
 import { calcPrice, DEFAULT_LOAN } from '@/domain/loan';
 import { customerUnit, type LoanPrefill } from '@/features/loan/model';
-import { callResultLabel, displayText, intakeLabel, sourceLabel } from '@/ui/display';
+import { callResultLabel, displayText, formatMoney, intakeLabel, sourceLabel } from '@/ui/display';
 
 /** Checklist state belongs to booking_steps; it must never move the stage SLA clock. */
 export function bookingStepPatch(customer: Customer, key: string, checked: boolean, at: string) {
@@ -550,9 +550,7 @@ export function profileLoan(customer: Customer, estimate: PriceEstimate, rates: 
 
 /** 2340000000 → "2,34 tỷ"; 850000000 → "850 triệu". */
 export function formatVndShort(value: number): string {
-  if (value >= 1_000_000_000)
-    return `${(value / 1_000_000_000).toLocaleString('vi-VN', { maximumFractionDigits: 2 })} tỷ`;
-  return `${(value / 1_000_000).toLocaleString('vi-VN', { maximumFractionDigits: 1 })} triệu`;
+  return formatMoney(value);
 }
 
 export const PRICE_ESTIMATE_MISSING: Record<'area' | 'project' | 'price', string> = {
