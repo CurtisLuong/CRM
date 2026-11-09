@@ -132,7 +132,9 @@ async function checkLayout(scope: Locator) {
   const groups = scope.locator('[data-timeline-group]');
   for (const group of await groups.all()) {
     const header = group.locator('[data-timeline-header]');
-    const elements = [header.locator('h3'), header.locator('p'), header.locator('[data-timeline-note]')];
+    // TL-05 (Curtis 10/11): phần của bậc thẳng lề với icon hoạt động; chữ hoạt động thụt thêm 32px (24px icon + 8px).
+    const stageParts = [header.locator('h3'), header.locator('p'), header.locator('[data-timeline-note]')];
+    const elements: typeof stageParts = [];
     const activities = group.locator('ol > li');
     for (const activity of await activities.all()) {
       elements.push(activity.locator('[data-timeline-entry]'), activity.locator('[data-timeline-note]'));
@@ -140,8 +142,17 @@ async function checkLayout(scope: Locator) {
       await expect(icon).toHaveCSS('border-radius', /.*px|calc.*/);
       expect((await rect(icon)).width).toBe(24);
     }
+    const stageLefts = await Promise.all(
+      stageParts.map(async (element) => ((await element.count()) ? (await rect(element)).x : Number.NaN)),
+    );
+    const shownStage = stageLefts.filter(Number.isFinite);
+    expect(Math.max(...shownStage) - Math.min(...shownStage), 'phần bậc chung lề trái').toBeLessThanOrEqual(2);
     const lefts = await Promise.all(elements.map(async (element) => (await rect(element)).x));
-    expect(Math.max(...lefts) - Math.min(...lefts), 'mọi nội dung chung lề trái').toBeLessThanOrEqual(2);
+    expect(Math.max(...lefts) - Math.min(...lefts), 'chữ hoạt động chung lề trái').toBeLessThanOrEqual(2);
+    expect(
+      Math.abs(Math.min(...lefts) - Math.min(...shownStage) - 32),
+      'chữ hoạt động thụt 32px so với bậc',
+    ).toBeLessThanOrEqual(2);
     const rail = group.locator(':scope > [data-timeline-stage-rail]');
     if (await rail.count()) {
       const thick = await rect(rail);
