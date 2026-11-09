@@ -302,7 +302,8 @@ for (const theme of ['light', 'dark'] as const) {
     const done = page.locator('[data-timeline-entry]').filter({ hasText: 'Xong việc: Đã xem nhà mẫu' });
     await expect(done).toBeVisible();
     await expect(done.getByText('Tham quan')).toBeVisible();
-    await expect(done.locator('svg[data-icon="visit"]')).toBeVisible();
+    // TL-04 (09/11): icon loại nằm trong vòng tròn của <li> (khuôn Hành trình), ngoài dòng chữ.
+    await expect(done.locator('xpath=ancestor::li[1]').locator('svg[data-icon="visit"]').first()).toBeVisible();
 
     await page.goto('/cong-viec');
     await page.getByLabel('Lọc theo loại việc').selectOption('contract');
