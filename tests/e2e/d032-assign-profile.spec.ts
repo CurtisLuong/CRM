@@ -117,7 +117,8 @@ test('D-032: giao khách đang chăm từ hồ sơ, sau đó vẫn ghi giùm tư
   // Phương án A (Curtis 06/11): nút chữ "Giao" ở hàng đáy thẻ, cột phải; khách tiềm năng chỉ còn nút này.
   await expect(assign).toHaveText('Giao');
   await expect(page.getByRole('button', { name: 'Chuyển tiềm năng', exact: true })).toHaveCount(0);
-  const stageBox = await page.getByRole('button', { name: /^Đổi bậc/ }).boundingBox();
+  // TL-03: tab Dòng thời gian mở sẵn cũng có nút "Đổi bậc" → chọn chip cạnh tên ("Đổi bậc · …").
+  const stageBox = await page.getByRole('button', { name: /^Đổi bậc · / }).boundingBox();
   const assignBox = await assign.boundingBox();
   expect(assignBox?.y ?? 0).toBeGreaterThan(stageBox?.y ?? 0);
 

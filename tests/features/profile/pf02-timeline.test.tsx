@@ -48,8 +48,8 @@ describe('ProfileTimeline PF-02', () => {
     const headers = [...container.querySelectorAll('[data-timeline-header]')];
     expect(headers).toHaveLength(3);
     for (const header of headers) expect(header.querySelectorAll('svg')).toHaveLength(1);
-    // Đường dọc nối các mục con trong nhóm (cả 3 nhóm đều có mục con).
-    expect(container.querySelectorAll('[data-timeline-group] .border-l-2')).toHaveLength(3);
+    // TL-03 (09/11): một đường dọc liền nối các nhóm bậc (thay cho đường riêng mỗi nhóm).
+    expect(container.querySelectorAll('[data-timeline-stage-rail]').length).toBeGreaterThan(0);
   });
 
   it('lọc "Cuộc gọi" ẩn ghi chú và ghi chú của mốc bậc, giữ đầu nhóm có cuộc gọi', () => {

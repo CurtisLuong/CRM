@@ -150,10 +150,10 @@ for (const theme of ['light', 'dark'] as const) {
       const where = `mục "${item.text}"`;
       expect(item.textBox, where).not.toBeNull();
       expect(Math.abs(item.textBox!.left - item.body.left), `${where}: chữ bắt đầu từ trái`).toBeLessThanOrEqual(1);
+      // TL-03 (09/11): bút cách mép phải khung ≤ 12px và căn đáy dòng chữ cuối (đo kỹ ở tl03-timeline.spec.ts).
       if (item.button) {
-        expect(Math.abs(item.button.right - item.body.right), `${where}: Sửa sát phải`).toBeLessThanOrEqual(1);
-        expect(Math.abs(item.button.top - item.body.top), `${where}: Sửa ở dòng trên cùng`).toBeLessThanOrEqual(1);
-        expect(item.textBox!.right, `${where}: chữ không đè nút Sửa`).toBeLessThanOrEqual(item.button.left);
+        expect(item.body.right - item.button.right, `${where}: bút sát phải`).toBeLessThanOrEqual(12);
+        expect(item.textBox!.right, `${where}: chữ không đè bút`).toBeLessThanOrEqual(item.button.left + 1);
       }
     }
     const width = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth);

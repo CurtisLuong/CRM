@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent as tl03FireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { cloneElement, type ReactElement } from 'react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
@@ -80,8 +80,9 @@ function LoanProbe() {
   return <output aria-label="Trang vay">{location.search}</output>;
 }
 
-const wrap = () =>
-  render(
+// TL-03 (09/11): tab mở sẵn là Dòng thời gian → chuyển sang "Nhu cầu & căn" trước (Radix kích hoạt tab khi mousedown).
+const wrap = () => {
+  const view = render(
     <MemoryRouter initialEntries={['/ho-so/c1']}>
       <ToastProvider>
         <Routes>
@@ -91,6 +92,11 @@ const wrap = () =>
       </ToastProvider>
     </MemoryRouter>,
   );
+  const tab = screen.getByRole('tab', { name: 'Nhu cầu & căn' });
+  tl03FireEvent.mouseDown(tab);
+  tl03FireEvent.click(tab);
+  return view;
+};
 
 const base = (overrides: Partial<Customer> = {}) =>
   ({
