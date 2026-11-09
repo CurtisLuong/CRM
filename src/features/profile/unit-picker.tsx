@@ -26,6 +26,7 @@ export function UnitPicker({
   onAdd: (code: string) => Promise<boolean>;
 }) {
   const id = useId();
+  const searchId = useId();
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState('');
   const [saving, setSaving] = useState(false);
@@ -69,6 +70,7 @@ export function UnitPicker({
         </PopoverTrigger>
         <PopoverContent className="w-72 max-w-[calc(100vw-2rem)] space-y-2">
           <TextField
+            id={searchId}
             label={`Tìm hoặc nhập mã ${kind}`}
             value={draft}
             disabled={disabled || saving}
@@ -82,44 +84,55 @@ export function UnitPicker({
           />
           {!rows.length && <p className="text-caption text-ink-muted">Chưa có</p>}
           <fieldset aria-label={`${label} trong Giỏ hàng`} className="max-h-60 overflow-y-auto">
-            <Button
-              variant="ghost"
-              className="min-h-11 w-full justify-start"
-              disabled={disabled || saving}
-              onClick={() => void choose('')}
-            >
-              —
-            </Button>
-            {filtered.map((row) => (
-              <Button
-                key={row.id}
-                variant="ghost"
-                className="min-h-11 w-full justify-start whitespace-normal text-left [overflow-wrap:anywhere]"
-                disabled={disabled || saving}
-                onClick={() => void choose(row.code)}
-              >
-                {row.code}
-              </Button>
-            ))}
+            {[{ id: 'none', code: '' }, ...filtered].map((row) => {
+              const current = row.code ? codeKey(row.code) === codeKey(value ?? '') : !value;
+              return (
+                <Button
+                  key={row.id}
+                  variant="ghost"
+                  aria-pressed={current}
+                  className={`min-h-11 w-full justify-between gap-2 whitespace-normal text-left [overflow-wrap:anywhere] ${row.code ? '' : 'text-ink-muted'}`}
+                  disabled={disabled || saving}
+                  onClick={() => void choose(row.code)}
+                >
+                  {row.code || 'Không chọn'}
+                  {current && <Icon name="done" size={16} />}
+                </Button>
+              );
+            })}
             {!filtered.length && rows.length > 0 && <p className="text-caption text-ink-muted">Không có mã phù hợp.</p>}
           </fieldset>
-          {(unknown || !rows.length) && (
-            <div className="flex flex-wrap gap-2 border-t border-line pt-2">
+          {/* Nút thêm luôn hiện (Curtis 08/11): chưa nhập mã thì bấm để đưa con trỏ về ô nhập. */}
+          <div className="space-y-2 border-t border-line pt-2">
+            <div className="flex flex-wrap gap-2">
               <Button
                 variant="primary"
-                disabled={disabled || saving || !newCode}
-                onClick={() => void choose(newCode, true)}
+                className="min-h-11"
+                disabled={disabled || saving || (Boolean(newCode) && !unknown)}
+                onClick={() => (newCode ? void choose(newCode, true) : document.getElementById(searchId)?.focus())}
               >
-                Thêm
+                <Icon name="add" size={16} />
+                Thêm {kind}
               </Button>
-              {newCode && (
-                <Button variant="ghost" disabled={disabled || saving} onClick={() => void choose(newCode)}>
+              {unknown && (
+                <Button
+                  variant="ghost"
+                  className="min-h-11"
+                  disabled={disabled || saving}
+                  onClick={() => void choose(newCode)}
+                >
                   Lưu mã vào hồ sơ
                 </Button>
               )}
             </div>
-          )}
-          {!newCode && !rows.length && <p className="text-caption text-ink-muted">Nhập mã để thêm.</p>}
+            <p className="text-caption text-ink-muted">
+              {!newCode
+                ? `Nhập mã ${kind} mới ở ô trên rồi bấm Thêm ${kind}.`
+                : unknown
+                  ? `Thêm “${newCode}” vào Giỏ hàng của dự án.`
+                  : `“${newCode}” đã có, chọn ở danh sách trên.`}
+            </p>
+          </div>
         </PopoverContent>
       </Popover>
     </Field>

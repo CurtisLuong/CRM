@@ -118,6 +118,10 @@ async function ingest(page: Page, seconds: number) {
   ).toBe(1);
   const sheet = page.getByRole('dialog', { name: 'Kết quả cuộc gọi · Khách CR-01' });
   await expect(sheet).toBeVisible();
+  // UI-04 (09/11): tấm đáy trượt lên → chờ hiệu ứng xong rồi mới đo kích thước.
+  await sheet.evaluate(async (el) => {
+    await Promise.all(el.getAnimations({ subtree: true }).map((animation) => animation.finished));
+  });
   return sheet;
 }
 
@@ -129,6 +133,10 @@ async function manual(page: Page) {
     .click();
   const sheet = page.getByRole('dialog', { name: 'Kết quả cuộc gọi · Khách CR-01' });
   await expect(sheet).toBeVisible();
+  // UI-04 (09/11): tấm đáy trượt lên → chờ hiệu ứng xong rồi mới đo kích thước.
+  await sheet.evaluate(async (el) => {
+    await Promise.all(el.getAnimations({ subtree: true }).map((animation) => animation.finished));
+  });
   return sheet;
 }
 

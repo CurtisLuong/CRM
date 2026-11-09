@@ -194,3 +194,34 @@ export function unitMatchesQuery(fields: ReadonlyArray<readonly [string, unknown
   const ctx = compile(query);
   return !ctx.active || match(prepare(fields.map(([label, value]) => [label, value ?? ''] as const)), ctx).match;
 }
+
+/** Phạm vi cha → con, đầu vào lấy từ danh mục đang hoạt động của repository. */
+export function catalogBuildings<T extends { id: string; project_id: string }>(
+  buildings: readonly T[],
+  projectId: string,
+): T[] {
+  return buildings.filter((row) => !projectId || row.project_id === projectId);
+}
+
+export function projectSelection(
+  projectId: string,
+  buildingId: string,
+  buildings: readonly { id: string; project_id: string }[],
+): { projectId: string; buildingId: string } {
+  const building = buildings.find((row) => row.id === buildingId);
+  return { projectId, buildingId: building && (!projectId || building.project_id === projectId) ? buildingId : '' };
+}
+
+export function catalogScopeCounts(
+  buildings: readonly { id: string; project_id: string }[],
+  units: readonly { building_id?: unknown; project_id?: unknown }[],
+  projectId: string,
+  buildingId = '',
+): { buildings: number; units: number } {
+  return {
+    buildings: catalogBuildings(buildings, projectId).length,
+    units: units.filter(
+      (row) => (!projectId || row.project_id === projectId) && (!buildingId || row.building_id === buildingId),
+    ).length,
+  };
+}

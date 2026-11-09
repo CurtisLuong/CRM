@@ -14,6 +14,7 @@ export const ICONS = {
   customers: 'Users', // Khách hàng · Tiềm năng · Đang chăm sóc
   new_lead: 'UserPlus', // Khách mới · Thêm khách
   person: 'User', // Thông tin cá nhân
+  profile: 'ContactRound', // Mở hồ sơ khách
   apartment: 'Building2', // Căn hộ · Giỏ hàng
   loan: 'Calculator', // Tính vay
   note: 'NotebookPen', // Ghi chú · ghi chú cuộc gọi

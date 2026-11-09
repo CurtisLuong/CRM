@@ -217,7 +217,10 @@ for (const width of [360, 1280]) {
         handover_date: null,
       });
       await expect(page.getByText('Đã thêm toà', { exact: true })).toBeVisible();
-      await page.getByRole('combobox', { name: 'Chọn toà', exact: true }).selectOption('b1');
+      // GH-03 (09/11): chọn toà qua tấm "Chọn toà"; loại căn sửa trong tấm Sửa dự án / Sửa toà.
+      await page.getByRole('button', { name: /^Chọn toà:/ }).click();
+      await dialog.getByRole('button', { name: 'Chọn toà A', exact: true }).click();
+      await expect(dialog).toBeHidden();
 
       await unitRow(page, width, 'A-1201').getByRole('button', { name: 'Sửa', exact: true }).click();
       await expect(dialog.getByRole('heading', { name: 'Sửa căn A-1201' })).toBeVisible();
@@ -244,60 +247,46 @@ for (const width of [360, 1280]) {
       await expect(dialog.getByText('Theo dự án: 25 triệu/m²', { exact: true })).toBeVisible();
       await dialog.getByRole('button', { name: 'Đóng', exact: true }).click();
 
-      await page.getByRole('button', { name: '+ Thêm', exact: true }).click();
+      await page.getByRole('button', { name: 'Thêm dự án', exact: true }).click();
       await expect(dialog.getByRole('heading', { name: 'Thêm dự án', exact: true })).toBeVisible();
       await dialog.getByRole('button', { name: 'Huỷ', exact: true }).click();
       await page.getByRole('button', { name: /^Chọn dự án/ }).click();
       await dialog.getByRole('button', { name: `Sửa dự án ${PROJECT}`, exact: true }).click();
       await expect(dialog.getByLabel('Giá dự án', { exact: true })).toHaveValue('25');
       await checkLayout(page);
+      await dialog.getByRole('button', { name: '+ Thêm loại', exact: true }).click();
+      await dialog.getByLabel('Tên loại căn 2', { exact: true }).fill('3N');
+      await dialog.getByLabel('Diện tích điển hình 2', { exact: true }).fill('80');
       await dialog.getByRole('button', { name: 'Lưu dự án', exact: true }).click();
       await expect(dialog).toBeHidden();
-
-      await page.getByRole('button', { name: '+ Thêm loại', exact: true }).click();
-      await dialog.getByLabel('Tên loại căn', { exact: true }).fill('3N');
-      await dialog.getByLabel('Diện tích điển hình', { exact: true }).fill('80');
-      await dialog.getByRole('button', { name: 'Lưu loại', exact: true }).click();
-      await expect(dialog).toBeHidden();
       expect(tables.project_apt_types).toContainEqual(expect.objectContaining({ apt_type: '3N', typical_area_m2: 80 }));
-      await expect(page.getByText('3N · 80 m²', { exact: true })).toBeVisible();
-      await page
-        .getByText('3N · 80 m²', { exact: true })
-        .locator('..')
-        .getByRole('button', { name: 'Sửa', exact: true })
-        .click();
-      await expect(dialog.getByRole('heading', { name: 'Sửa loại căn 3N', exact: true })).toBeVisible();
+      await page.getByRole('button', { name: /^Chọn dự án/ }).click();
+      await dialog.getByRole('button', { name: `Sửa dự án ${PROJECT}`, exact: true }).click();
+      await expect(dialog.getByLabel('Tên loại căn 2', { exact: true })).toHaveValue('3N');
+      await expect(dialog.getByLabel('Diện tích điển hình 2', { exact: true })).toHaveValue('80');
       await dialog.getByRole('button', { name: 'Huỷ', exact: true }).click();
 
-      await page.getByRole('button', { name: 'Tuỳ chỉnh', exact: true }).click();
+      await page.getByRole('button', { name: /^Chọn toà:/ }).click();
+      await dialog.getByRole('button', { name: 'Sửa toà A', exact: true }).click();
+      await expect(dialog.getByRole('heading', { name: 'Sửa toà A', exact: true })).toBeVisible();
       await expect(dialog.getByLabel('Diện tích riêng 2N', { exact: true })).toHaveValue('62');
       await dialog.getByLabel('Diện tích riêng 2N', { exact: true }).fill('');
       await expect(dialog.getByText('Theo dự án: 60 m²', { exact: true })).toBeVisible();
-      await dialog.getByRole('button', { name: 'Lưu loại toà', exact: true }).click();
+      await dialog.getByRole('button', { name: 'Lưu toà', exact: true }).click();
       await expect(dialog).toBeHidden();
       await unitRow(page, width, 'A-1201').getByRole('button', { name: 'Sửa', exact: true }).click();
       await expect(dialog.getByText('Theo dự án: 60 m²', { exact: true })).toBeVisible();
       await dialog.getByRole('button', { name: 'Huỷ', exact: true }).click();
 
-      const buildingRow =
-        width < 1024
-          ? page.locator('article').filter({ hasText: 'Toà A' })
-          : page
-              .getByRole('table', { name: 'Danh sách toà' })
-              .getByRole('row')
-              .filter({ has: page.getByText('A', { exact: true }) });
-      await buildingRow.getByRole('button', { name: 'Sửa', exact: true }).click();
-      await expect(dialog.getByRole('heading', { name: 'Sửa toà A', exact: true })).toBeVisible();
-      await dialog.getByRole('button', { name: 'Huỷ', exact: true }).click();
       await page.getByRole('button', { name: 'Thêm căn', exact: true }).click();
       await expect(dialog.getByRole('heading', { name: 'Thêm căn', exact: true })).toBeVisible();
       await dialog.getByRole('button', { name: 'Huỷ', exact: true }).click();
       await checkLayout(page);
-      await page.getByRole('button', { name: '+ Thêm', exact: true }).click();
+      await page.getByRole('button', { name: 'Thêm dự án', exact: true }).click();
       await dialog.getByLabel('Tên dự án', { exact: true }).fill('Dự án mới đang chọn');
       await dialog.getByRole('button', { name: 'Lưu dự án', exact: true }).click();
       await expect(dialog).toBeHidden();
-      await expect(page.getByRole('combobox', { name: 'Chọn toà', exact: true })).toHaveValue('');
+      await expect(page.getByRole('button', { name: 'Chọn toà: Tất cả toà', exact: true })).toBeVisible();
       await expect(page.getByRole('button', { name: 'Thêm căn', exact: true })).toBeDisabled();
     });
   }

@@ -136,6 +136,23 @@ describe('PR-04 — toà/căn theo Giỏ hàng', () => {
     expect(update).not.toHaveBeenCalled();
   });
 
+  it('Curtis 08/11: danh sách có sẵn vẫn luôn có nút Thêm toà, dòng Không chọn, đánh dấu mã đang chọn', async () => {
+    const user = userEvent.setup();
+    render(<Harness patch={{ building_code: 'A1', apt_code: null }} />);
+    await user.click(screen.getByLabelText('Mã toà'));
+    expect(screen.getByRole('button', { name: 'A1' }).getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByRole('button', { name: 'A2' }).getAttribute('aria-pressed')).toBe('false');
+    const add = screen.getByRole('button', { name: 'Thêm toà' }) as HTMLButtonElement;
+    expect(add.disabled).toBe(false);
+    await user.click(add);
+    expect(document.activeElement).toBe(screen.getByLabelText('Tìm hoặc nhập mã toà'));
+    await user.keyboard('A2');
+    expect((screen.getByRole('button', { name: 'Thêm toà' }) as HTMLButtonElement).disabled).toBe(true);
+    await user.clear(screen.getByLabelText('Tìm hoặc nhập mã toà'));
+    await user.click(screen.getByRole('button', { name: 'Không chọn' }));
+    expect(update).toHaveBeenLastCalledWith('c1', expect.objectContaining({ building_code: null }));
+  });
+
   it('mã toà cũ giữ lựa chọn riêng, mã căn vẫn gõ được khi toà chưa có trong Giỏ hàng', async () => {
     const user = userEvent.setup();
     render(<Harness patch={{ building_code: 'toà cũ', apt_code: 'mã cũ', apt_direction: 'ĐN view hồ' }} />);
@@ -247,7 +264,7 @@ describe('PR-04 — toà/căn theo Giỏ hàng', () => {
     render(<Harness patch={{ building_code: 'A1', apt_direction: '  đông  nam ' }} />);
     await user.click(screen.getByLabelText('Mã căn'));
     await user.type(screen.getByLabelText('Tìm hoặc nhập mã căn'), '888');
-    await user.click(screen.getByRole('button', { name: 'Thêm' }));
+    await user.click(screen.getByRole('button', { name: 'Thêm căn' }));
     expect(catalog.saveUnit).toHaveBeenCalledWith({ building_id: 'a1', code: '888', direction: 'Đông Nam' });
     expect(update.mock.lastCall?.[1]).not.toHaveProperty('apt_direction');
   });
@@ -272,20 +289,21 @@ describe('PR-04 — toà/căn theo Giỏ hàng', () => {
     expect(update.mock.lastCall?.[1]).not.toHaveProperty('apt_code');
   });
 
+  // Lead 08/11: nút thêm mang tên theo loại ("Thêm toà"/"Thêm căn") và luôn hiện.
   it('Thêm toà khi danh sách trống, thêm căn mang theo các ô khách đã nhập', async () => {
     buildings = [];
     const user = userEvent.setup();
     render(<Harness patch={{ apt_direction: 'Đông', apt_floor: 12, apt_type: '2N', apt_area: 60 }} />);
     await user.click(screen.getByLabelText('Mã toà'));
     expect(screen.getByText('Chưa có')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Thêm' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Thêm toà' })).toBeTruthy();
     await user.type(screen.getByLabelText('Tìm hoặc nhập mã toà'), 'A9');
-    await user.click(screen.getByRole('button', { name: 'Thêm' }));
+    await user.click(screen.getByRole('button', { name: 'Thêm toà' }));
     expect(catalog.saveBuilding).toHaveBeenCalledWith({ project_id: 'p1', code: 'A9' });
     expect(update).toHaveBeenLastCalledWith('c1', expect.objectContaining({ building_code: 'A9' }));
     await user.click(screen.getByLabelText('Mã căn'));
     await user.type(screen.getByLabelText('Tìm hoặc nhập mã căn'), '1201');
-    await user.click(screen.getByRole('button', { name: 'Thêm' }));
+    await user.click(screen.getByRole('button', { name: 'Thêm căn' }));
     expect(catalog.saveUnit).toHaveBeenCalledWith({
       building_id: 'created-building',
       code: '1201',
@@ -303,7 +321,7 @@ describe('PR-04 — toà/căn theo Giỏ hàng', () => {
     render(<Harness patch={{ building_code: 'A1', apt_floor: 0 }} />);
     await user.click(screen.getByLabelText('Mã căn'));
     await user.type(screen.getByLabelText('Tìm hoặc nhập mã căn'), '999');
-    await user.click(screen.getByRole('button', { name: 'Thêm' }));
+    await user.click(screen.getByRole('button', { name: 'Thêm căn' }));
     expect(catalog.saveUnit).toHaveBeenCalledWith({ building_id: 'a1', code: '999', floor: 0 });
     await user.click(screen.getByLabelText('Mã căn'));
     await user.type(screen.getByLabelText('Tìm hoặc nhập mã căn'), 'tay');
@@ -320,7 +338,7 @@ describe('PR-04 — toà/căn theo Giỏ hàng', () => {
       render(<Harness patch={{ building_code: 'A1' }} />);
       await user.click(screen.getByLabelText(kind === 'toà' ? 'Mã toà' : 'Mã căn'));
       await user.type(screen.getByLabelText(`Tìm hoặc nhập mã ${kind}`), 'mã mới');
-      await user.click(screen.getByRole('button', { name: 'Thêm' }));
+      await user.click(screen.getByRole('button', { name: `Thêm ${kind}` }));
       expect(screen.getByRole('alert').textContent).toBe('Cần có mạng để sửa giỏ hàng.');
       expect(update).toHaveBeenLastCalledWith(
         'c1',
@@ -337,7 +355,7 @@ describe('PR-04 — toà/căn theo Giỏ hàng', () => {
     render(<Harness patch={{ building_code: 'A1' }} />);
     await user.click(screen.getByLabelText('Mã căn'));
     await user.type(screen.getByLabelText('Tìm hoặc nhập mã căn'), '999');
-    await user.click(screen.getByRole('button', { name: 'Thêm' }));
+    await user.click(screen.getByRole('button', { name: 'Thêm căn' }));
     expect(screen.getByRole('alert').textContent).toBe('Không có quyền sửa Giỏ hàng.');
     expect(update).toHaveBeenLastCalledWith('c1', expect.objectContaining({ apt_code: '999' }));
   });

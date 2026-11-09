@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+// UI-04 (09/11): nút đáy tấm xem nhanh đổi thành "Mở hồ sơ" (có icon).
+
 const realUserId = 'dm01-real-user';
 const demoUserId = 'dm01-preview';
 const dbName = (userId: string) => `crm_khach_hang__${encodeURIComponent(userId)}`;
@@ -106,7 +108,7 @@ test('demo giữ dữ liệu local, chặn mạng, sống qua reload và xoá ri
   // R2-04: "Mở" bật tấm xem nhanh; hồ sơ đầy đủ mở từ tấm.
   await page
     .getByRole('dialog', { name: 'Gia Hân · Khách mới' })
-    .getByRole('button', { name: 'Mở hồ sơ đầy đủ' })
+    .getByRole('button', { name: 'Mở hồ sơ', exact: true })
     .click();
   await expect(page.getByRole('heading', { level: 1, name: 'Gia Hân · Khách mới' })).toBeVisible();
   await page.getByRole('button', { name: 'Ghi chú', exact: true }).click();

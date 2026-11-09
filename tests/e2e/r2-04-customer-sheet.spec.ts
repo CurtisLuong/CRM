@@ -1,5 +1,7 @@
 import { expect, type Page, test } from '@playwright/test';
 
+// UI-04 (09/11): nút đáy tấm xem nhanh đổi thành "Mở hồ sơ" (có icon).
+
 const userId = 'r2-04-customer-sheet';
 const NOW = new Date('2026-10-28T10:30:00+07:00');
 const at = (day: number, hour: number, minute = 0) =>
@@ -162,7 +164,7 @@ for (const theme of ['light', 'dark'] as const) {
       await page.getByRole('button', { name: 'Mở Khách Xem Nhanh' }).click();
       await page
         .getByRole('dialog', { name: 'Khách Xem Nhanh' })
-        .getByRole('button', { name: 'Mở hồ sơ đầy đủ' })
+        .getByRole('button', { name: 'Mở hồ sơ', exact: true })
         .click();
       await expect(page).toHaveURL(/\/ho-so\/r2-04-customer$/);
     });
@@ -188,7 +190,7 @@ for (const theme of ['light', 'dark'] as const) {
       const sheet = page.getByRole('dialog', { name: 'Khách Xem Nhanh' });
       await expect(sheet).toBeVisible();
       await expect(page).toHaveURL('/today');
-      await expect(sheet.getByRole('button', { name: 'Mở hồ sơ đầy đủ' })).toBeVisible();
+      await expect(sheet.getByRole('button', { name: 'Mở hồ sơ', exact: true })).toBeVisible();
       await page.keyboard.press('Escape');
       await expect(sheet).toHaveCount(0);
       await expect(page).toHaveURL('/today');
