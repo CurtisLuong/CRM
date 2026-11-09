@@ -48,7 +48,9 @@ export function CatalogDrawer({
                 {error}
               </p>
             )}
-            {children}
+            <fieldset disabled={saving} className="min-w-0 space-y-4">
+              {children}
+            </fieldset>
           </SheetBody>
           {onSave && (
             <SheetFooter>
