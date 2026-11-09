@@ -73,9 +73,15 @@ export function customerTimeline(customer: Customer): CustomerTimelineEntry[] {
       kind: 'task',
       title: `Xong việc: ${task.text || 'Việc không tên'}`,
       // Giờ:phút ngày/tháng/năm, không kèm giây (Curtis 30/10).
-      detail: task.due
-        ? `Hạn ${new Date(task.due).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' })}`
-        : undefined,
+      detail:
+        [
+          typeof task.done_note === 'string' ? task.done_note : undefined,
+          task.due
+            ? `Hạn ${new Date(task.due).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' })}`
+            : undefined,
+        ]
+          .filter(Boolean)
+          .join('\n') || undefined,
     });
   }
   const meta = customer.field_meta && typeof customer.field_meta === 'object' ? customer.field_meta : {};
