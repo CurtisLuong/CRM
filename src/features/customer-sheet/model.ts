@@ -3,7 +3,12 @@ import { taskKindOf } from '@/config/taskKinds';
 import type { Customer } from '@/domain/customer';
 import { callReminder } from '@/domain/deadlines';
 import { computeSignals, type Signal } from '@/domain/signals';
-import { customerSheetTimeline, type ProfileTimelineEntry, timelineGroups } from '@/features/profile/model';
+import {
+  customerSheetTimeline,
+  type ProfileTimelineEntry,
+  stageDisplayTitle,
+  timelineGroups,
+} from '@/features/profile/model';
 import { LEVEL_ORDER, LEVEL_WORD, type Level, signalFor, slaFor, slaMeterFor } from '@/lib/crm';
 
 function urgencyOf(signal: Signal, customer: Customer, now: number, slaLevel: Level | null): Level | null {
@@ -70,9 +75,11 @@ export function customerJourney(customer: Customer, now: number): { stages: Time
   const stages = groups.map((group, index): TimelineStageGroup => {
     const start = group.at || group.rows.at(-1)?.entry.at || new Date(now).toISOString();
     return {
-      stage: group.stage?.title.replace(/^Bậc: /, '') || group.title,
+      stage: group.stage ? stageDisplayTitle(group.stage.title) : group.title,
       start,
       ...(index > 0 ? { end: groups[index - 1]?.at || start } : {}),
+      // Nhóm "Trước khi có mốc bậc" không phải một bậc → không hiện thời gian ở bậc.
+      ...(group.stage ? {} : { hideDuration: true }),
       items: group.rows.map(({ entry }) => journeyAction(entry)),
     };
   });

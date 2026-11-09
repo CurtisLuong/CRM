@@ -1,9 +1,9 @@
-import { Check, ChevronDown, X } from 'lucide-react';
+import { Check, ChevronDown, Pencil, X } from 'lucide-react';
 import * as React from 'react';
+import { Button } from '@/components/ui/button';
 import {
   ACTION_BY_ID,
   type ActionId,
-  fmtDur,
   fmtLimit,
   fmtWhen,
   hoursBetween,
@@ -32,6 +32,8 @@ export interface TimelineStageGroup {
   start: Date | string;
   /** When the next stage began; omit for the stage in progress. */
   end?: Date | string;
+  /** Màn tự vẽ thời gian ở bậc bên ngoài kit (tab Dòng thời gian) → không lặp lại. */
+  hideDuration?: boolean;
   items?: TimelineAction[];
 }
 
@@ -47,6 +49,37 @@ const DUR: Record<Level, string> = {
   alert: 'bg-alert-tint text-alert-text',
 };
 
+/** Định dạng thời gian ở một nhóm bậc; bỏ phần lẻ nhỏ hơn đơn vị đang hiển thị. */
+export function formatStageDuration(start: Date | string, end: Date | string | undefined, now: Date): string {
+  const minutes = Math.max(1, Math.floor((new Date(end ?? now).getTime() - new Date(start).getTime()) / 60_000));
+  const days = Math.floor(minutes / 1440);
+  const hours = Math.floor(minutes / 60) % 24;
+  const rest = minutes % 60;
+  const text = days
+    ? `${days} ngày${hours ? ` ${hours} giờ` : ''}`
+    : hours
+      ? `${hours} giờ${rest ? ` ${rest} phút` : ''}`
+      : `${rest} phút`;
+  return `${text}${end == null ? ' · đang ở' : ''}`;
+}
+
+/** Bút nhỏ trên dòng lịch sử, giữ vùng chạm đủ rộng. Quyền do màn truyền vào. */
+export function TimelineEditButton(props: { label: string; disabled?: boolean; onClick: () => void }) {
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      data-timeline-edit=""
+      className="text-ink-muted [&_svg]:size-3.5"
+      aria-label={props.label}
+      disabled={props.disabled}
+      onClick={props.onClick}
+    >
+      <Pencil />
+    </Button>
+  );
+}
+
 function Step({ item, now }: { item: TimelineAction; now: Date }) {
   const a = ACTION_BY_ID[item.action];
   return (
@@ -61,7 +94,7 @@ function Step({ item, now }: { item: TimelineAction; now: Date }) {
       </span>
       <div className="flex min-w-0 flex-col gap-1 pt-0.5">
         <div className="flex items-baseline justify-between gap-2">
-          <span className="text-[13px] font-semibold leading-5">{item.title ?? a.label}</span>
+          <span className="min-w-0 break-words text-sm font-medium leading-5">{item.title ?? a.label}</span>
           <time className="shrink-0 font-mono text-xs text-ink-muted" dateTime={new Date(item.at).toISOString()}>
             {fmtWhen(item.at, now)}
           </time>
@@ -77,9 +110,9 @@ function Step({ item, now }: { item: TimelineAction; now: Date }) {
           </span>
         )}
         {item.note && (
-          <p className="m-0 whitespace-pre-line rounded-sm border border-line bg-surface-0 px-3 py-2 text-sm">
+          <div className="m-0 whitespace-pre-line break-words rounded-sm border border-line bg-surface-0 px-3 py-2 text-sm font-medium">
             {item.note}
-          </p>
+          </div>
         )}
         {item.by && <span className="text-xs text-ink-muted">{item.by}</span>}
       </div>
@@ -147,13 +180,10 @@ function StageBlock({
           onClick={() => setOpen(!open)}
           className="flex min-h-7 w-full cursor-pointer items-center gap-2 text-left text-ink"
         >
-          <span className="flex min-w-0 flex-1 items-center gap-2 text-[15px] font-semibold leading-[22px]">
-            <span className={cn(live && 'text-ion')}>{st.label}</span>
-            {live && (
-              <span className="rounded-[4px] border border-ion px-1.5 font-mono text-[10px] font-semibold uppercase leading-4 tracking-wider text-ion">
-                đang diễn ra
-              </span>
-            )}
+          <span className="flex min-w-0 flex-1 items-center gap-2 text-sm font-semibold leading-5">
+            <span data-stage-title="" className={cn(live && 'text-ion')}>
+              {st.label}
+            </span>
           </span>
           {!st.end && sla?.level && (
             <span
@@ -164,12 +194,16 @@ function StageBlock({
               )}
             >
               <Glyph level={sla.level} pulse={live} />
-              {fmtDur(hours)}
-              {sla.status === 'over' && <span className="font-medium opacity-85">({sla.time})</span>}
+              {sla.word}
             </span>
           )}
           <ChevronDown className={cn('size-4 shrink-0 text-ink-muted transition-transform', !open && '-rotate-90')} />
         </button>
+        {!group.hideDuration && (
+          <span data-stage-duration="" className="text-caption text-ink-muted">
+            {formatStageDuration(group.start, group.end, now)}
+          </span>
+        )}
         <span className="font-mono text-xs text-ink-muted">
           {fmtWhen(group.start, now)}
           {!st.end && ` → ${end ? fmtWhen(end, now) : 'nay'}`} · {items.length} việc

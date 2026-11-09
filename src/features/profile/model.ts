@@ -337,6 +337,31 @@ export function timelineIcon(entry: TimelineEntryLike): IconName {
   }
 }
 
+/** Tên bậc hiển thị: customerTimeline đang giữ tiền tố "Bậc: " cho dữ liệu cũ, giao diện mới bỏ tiền tố. */
+export function stageDisplayTitle(title: string): string {
+  const name = title.startsWith('Bậc: ') ? title.slice('Bậc: '.length) : title;
+  return normStage(name) || name;
+}
+
+/** ID dòng thời gian → con trỏ tới phần tử đã lưu; đuôi ID là chỉ số nên giờ ISO có dấu ':' vẫn đọc đúng. */
+export type TimelineEntryTarget = {
+  kind: 'note' | 'stage' | 'call' | 'interaction' | 'task';
+  at: string;
+  index: number;
+};
+
+export function timelineEntryTarget(id: string): TimelineEntryTarget | null {
+  const first = id.indexOf(':');
+  const last = id.lastIndexOf(':');
+  if (first < 0 || last <= first) return null;
+  const kind = id.slice(0, first);
+  if (kind !== 'note' && kind !== 'stage' && kind !== 'call' && kind !== 'interaction' && kind !== 'task') return null;
+  const index = Number(id.slice(last + 1));
+  const at = id.slice(first + 1, last);
+  if (!Number.isInteger(index) || index < 0 || !at) return null;
+  return { kind, at, index };
+}
+
 /** Ghi chú của mốc bậc chỉ hiện ở "Tất cả" / "Bậc" (lọc "Cuộc gọi" không được lộ chữ ghi chú). */
 export function showsStageDetail(filter: TimelineFilter): boolean {
   return filter === 'all' || filter === 'stage';
