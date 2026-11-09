@@ -6,6 +6,18 @@ export type BriefFact = { key: string; label: string; value: string; question: s
 
 const text = (value: unknown) => (typeof value === 'string' || typeof value === 'number' ? String(value).trim() : '');
 
+/** Định dạng thuần, dùng lại qua ui/display để domain không phụ thuộc lớp UI. */
+export function formatMoney(value: unknown, monthly = false): string {
+  if (value == null || text(value) === '') return '';
+  const amount = Number(value);
+  if (!Number.isFinite(amount)) return text(value);
+  const billions = Math.abs(amount) >= 1_000_000_000;
+  const number = (amount / (billions ? 1_000_000_000 : 1_000_000)).toLocaleString('vi-VN', {
+    maximumFractionDigits: 3,
+  });
+  return `${number} ${billions ? 'tỷ' : 'triệu'}${monthly ? '/tháng' : ''}`;
+}
+
 /** Rule-only, offline-safe customer brief. Missing facts remain explicit; no inference is made. */
 export function customerBrief(customer: Customer): BriefFact[] {
   const latestCall = callAttemptsOf(customer).at(-1);
@@ -59,11 +71,11 @@ export function customerBrief(customer: Customer): BriefFact[] {
         [
           // Vốn hiện có (Trí nhớ) là nơi sửa; finance = vốn ghi lúc nhập khách (form/AI) — dùng khi chưa có.
           text(advanced.capital) || text(customer.finance)
-            ? `Vốn ${text(advanced.capital) || text(customer.finance)}`
+            ? `Vốn ${formatMoney(text(advanced.capital) || customer.finance)}`
             : '',
-          budgetMax != null ? `Ngân sách đợt quan tâm ${budgetMax}` : '',
-          advanced.loan_need ? `Vay ${advanced.loan_need}` : '',
-          advanced.monthly_payment ? `Trả tháng ${advanced.monthly_payment}` : '',
+          budgetMax != null ? `Ngân sách đợt quan tâm ${formatMoney(budgetMax)}` : '',
+          advanced.loan_need ? `Vay ${formatMoney(advanced.loan_need)}` : '',
+          advanced.monthly_payment ? `Trả tháng ${formatMoney(advanced.monthly_payment, true)}` : '',
         ]
           .filter(Boolean)
           .join(' · '),

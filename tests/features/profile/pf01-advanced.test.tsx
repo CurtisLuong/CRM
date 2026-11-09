@@ -80,7 +80,8 @@ describe('PF-01 — khu Nâng cao mặc định đóng', () => {
     await openMemory(user);
     await user.click(await nangCao(user));
     const assets = screen.getByRole('group', { name: 'Tài sản' });
-    expect(within(assets).getAllByRole('spinbutton')).toHaveLength(3);
+    // MN-01 (09/11): ô tiền là ô chữ nhập theo triệu (nhận dấu phẩy).
+    expect(within(assets).getAllByRole('textbox')).toHaveLength(3);
     expect(within(assets).getByLabelText('Giá trị tài sản')).toBeTruthy();
     expect(within(assets).getByLabelText('Vốn hiện có')).toBeTruthy();
     expect(within(assets).getByLabelText('Nhu cầu vay')).toBeTruthy();

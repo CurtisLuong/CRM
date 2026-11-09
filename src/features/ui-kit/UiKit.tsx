@@ -15,6 +15,7 @@ import {
   FilterBar,
   FilterSection,
   LeadRow,
+  MoneyField,
   NAV_DEFAULT,
   NotificationBell,
   NotificationCenter,
@@ -404,7 +405,8 @@ export function UiKit() {
               <TextField label="Số điện thoại" numeric inputMode="tel" defaultValue="0342 851 805" />
               <SelectField label="Giới tính" defaultValue="Nữ" options={['Nữ', 'Nam', 'Khác']} />
               <DatePicker label="Ngày sinh" defaultValue="10/06/1980" hint="46 tuổi · Mệnh Mộc · Song Tử" />
-              <TextField label="Thu nhập" optional numeric placeholder="25" suffix="triệu/tháng" />
+              <MoneyField label="Thu nhập" optional monthly value={25_000_000} />
+              <MoneyField label="Vốn hiện có" value={1_250_000_000} hint="Bấm sửa để nhập theo triệu" />
               <TextField label="SĐT người thân" numeric defaultValue="0912 34" error="Số điện thoại cần 10 chữ số" />
               <SelectField
                 label="Lý do kết thúc"

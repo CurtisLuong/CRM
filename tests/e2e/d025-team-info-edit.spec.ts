@@ -125,9 +125,10 @@ test('D-025: hồ sơ khách nhóm sửa được thông tin, việc chăm sóc 
   await page.getByRole('tab', { name: 'Trí nhớ' }).click();
   const income = page.getByLabel('Thu nhập');
   await expect(income).toBeEnabled();
-  await income.fill('35 triệu');
+  // MN-01 (09/11): Thu nhập là ô số triệu/tháng, lưu chữ chuẩn "{số} triệu/tháng".
+  await income.fill('35');
   await income.blur();
-  await expect.poll(async () => (await readState(page)).row.income).toBe('35 triệu');
+  await expect.poll(async () => (await readState(page)).row.income).toBe('35 triệu/tháng');
   const { row } = await readState(page);
   expect(row).toMatchObject({ owner_id: colleague.owner_id, care_stage: 'Đang chăm sóc', x_future: { kept: true } });
   // Gửi lên server đúng cột thông tin (server chặn cột khác — SQL/v2/010).

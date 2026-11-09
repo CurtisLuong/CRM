@@ -109,7 +109,8 @@ test('hồ sơ: nhóm dưới tên, hẹn gọi, giá ước tính, còn thiếu
   await expect(next.getByText(/Hôm nay 14:00–15:00/)).toBeVisible();
 
   // Curtis 06/11: Giá căn = thuần 2,25 tỷ + VAT 5% + KPBT 2% = 2,4075 → '2,408'.
-  await expect(page.getByLabel('Giá căn (tỷ)')).toHaveValue('2,408');
+  // MN-01 (09/11): ô tiền nhập theo triệu; ô Giá căn đổi nhãn thành "Giá căn", rời ô ≥ 1 tỷ hiện số tỷ.
+  await expect(page.getByLabel('Giá căn', { exact: true })).toHaveValue('2,408');
   await expect(main.getByText('45 m² × 50 triệu/m²')).toBeVisible();
   await expect(page.getByLabel('Tài chính sẵn có (VNĐ)')).toHaveCount(0);
 

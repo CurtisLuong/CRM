@@ -7,6 +7,7 @@ import { TASK_KIND_PICK } from '@/config/taskKinds';
 import type { RepositoryAccount } from '@/data/repositories/session';
 import type { Customer } from '@/domain/customer';
 import { buildAiContext } from '@/domain/customer/aiContext';
+import { formatMoney, parseIncome } from '@/ui/display';
 import { type AiParseNote, aiAvailable, aiCallWindow, buildAiApprovalPatch, getAiSettings, requestAi } from './model';
 import { useAiScope } from './useAiScope';
 
@@ -28,8 +29,6 @@ const clock = (value: Date) =>
     minute: '2-digit',
     hourCycle: 'h23',
   }).format(value);
-const money = (value: unknown) =>
-  typeof value === 'number' ? `${new Intl.NumberFormat('vi-VN').format(value)} ₫` : String(value ?? '');
 
 export function AiNoteReview({
   account,
@@ -242,10 +241,12 @@ export function AiNoteReview({
                   <span className="min-w-0 break-words">
                     <b>{FIELD_LABELS[key]}:</b>{' '}
                     {key === 'finance' || key === 'apt_price'
-                      ? money(value)
-                      : Array.isArray(value)
-                        ? value.join(', ')
-                        : String(value)}
+                      ? formatMoney(value)
+                      : key === 'income'
+                        ? formatMoney(parseIncome(String(value)), true) || String(value)
+                        : Array.isArray(value)
+                          ? value.join(', ')
+                          : String(value)}
                   </span>
                 </label>
               ))}

@@ -1,7 +1,7 @@
 /**
  * NGUỒN DUY NHẤT — D-012 (key JSONB đã lưu không đổi). Hồ sơ "Nâng cao" (cột JSONB customers.advanced):
  * dùng chung cho dựng form, lưu và hiển thị. Port nguyên giá trị từ legacy/js/app.js (ADVANCED_GROUPS).
- * type: 'textarea' | 'text' | 'number' (number = VNĐ).
+ * type: 'textarea' | 'text' | 'number' (number = lưu đồng, nhập triệu).
  */
 
 export type AdvancedField = { key: string; label: string; type: 'textarea' | 'text' | 'number'; ph: string };
@@ -77,10 +77,10 @@ export const ADVANCED_GROUPS: readonly AdvancedGroup[] = [
   {
     title: 'Năng lực tài chính',
     fields: [
-      { key: 'asset_value', label: 'Giá trị tài sản', type: 'number', ph: 'VNĐ' },
-      { key: 'capital', label: 'Vốn', type: 'number', ph: 'VNĐ' },
-      { key: 'loan_need', label: 'Nhu cầu vay', type: 'number', ph: 'VNĐ' },
-      { key: 'monthly_payment', label: 'Khoản trả hàng tháng chấp nhận', type: 'number', ph: 'VNĐ' },
+      { key: 'asset_value', label: 'Giá trị tài sản', type: 'number', ph: 'Nhập số triệu' },
+      { key: 'capital', label: 'Vốn', type: 'number', ph: 'Nhập số triệu' },
+      { key: 'loan_need', label: 'Nhu cầu vay', type: 'number', ph: 'Nhập số triệu' },
+      { key: 'monthly_payment', label: 'Khoản trả hàng tháng chấp nhận', type: 'number', ph: 'Nhập số triệu' },
       {
         key: 'financial_barriers',
         label: 'Rào cản tài chính',
@@ -116,11 +116,11 @@ export const PROFILE_PREF_CONDITIONS: AdvancedField = {
   ph: 'Cần có… / Không chấp nhận…',
 };
 
-/** Tài sản trong "Nâng cao": đúng 3 ô nhập (VNĐ). */
+/** Tài sản trong "Nâng cao": đúng 3 ô nhập theo triệu (lưu đồng). */
 export const PROFILE_ASSET_FIELDS: readonly AdvancedField[] = [
-  { key: 'asset_value', label: 'Giá trị tài sản', type: 'number', ph: 'VNĐ' },
-  { key: 'capital', label: 'Vốn hiện có', type: 'number', ph: 'VNĐ' },
-  { key: 'loan_need', label: 'Nhu cầu vay', type: 'number', ph: 'VNĐ' },
+  { key: 'asset_value', label: 'Giá trị tài sản', type: 'number', ph: 'Nhập số triệu' },
+  { key: 'capital', label: 'Vốn hiện có', type: 'number', ph: 'Nhập số triệu' },
+  { key: 'loan_need', label: 'Nhu cầu vay', type: 'number', ph: 'Nhập số triệu' },
 ];
 
 /** "Sở thích bất động sản" (tab Nhu cầu & căn): đúng 3 ô. */

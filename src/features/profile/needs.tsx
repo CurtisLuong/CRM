@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { TextField } from '@/components/crm/form-fields';
+import { MoneyField } from '@/components/crm/money-field';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { directionValue } from '@/config/directions';
@@ -8,6 +8,7 @@ import type { Customer } from '@/domain/customer';
 import { factPatch } from '@/domain/customer/facts';
 import { DirectionField } from '@/features/catalog/direction-field';
 import { formatPricePerM2 } from '@/features/catalog/model';
+import { moneyValue } from '@/ui/display';
 import { Icon } from '@/ui/Icon';
 import { useToast } from '@/ui/Toast';
 import { fieldId, ProfileTextField } from './advanced';
@@ -16,12 +17,10 @@ import { ChoiceField, hasFieldValue } from './info';
 import {
   DEFAULT_PRICE_RATES,
   expectedPrice,
-  formatPriceTy,
   formatVndShort,
   PRICE_ESTIMATE_MISSING,
   type PriceEstimate,
   type PriceRates,
-  parsePriceTy,
 } from './model';
 import { UnitPicker } from './unit-picker';
 
@@ -649,7 +648,7 @@ export function ProfileNeedsFields({
 }
 
 /**
- * Ô "Giá căn (tỷ)" ghi `apt_price` (VNĐ). Chưa nhập thì điền sẵn giá ước tính (Curtis 06/11) nhưng
+ * Ô "Giá căn" nhập theo triệu, ghi `apt_price` theo đồng. Chưa nhập thì điền sẵn giá ước tính (Curtis 06/11) nhưng
  * chỉ ghi khi người dùng sửa — mở hồ sơ không tự ghi, ước tính vẫn theo diện tích/Giỏ hàng.
  */
 function PriceField({
@@ -665,15 +664,11 @@ function PriceField({
   disabled: boolean;
   onSave: (value: number | null) => void;
 }) {
-  const label = 'Giá căn (tỷ)';
+  const label = 'Giá căn';
   const stored = customer.apt_price;
-  const saved = Number(stored) > 0 ? Number(stored) : null;
+  const saved = moneyValue(stored);
   // Giá căn = Giá dự kiến: thuần (diện tích × đơn giá) + VAT + KPBT + phí (Curtis 06/11).
   const estimated = 'total' in estimate ? expectedPrice(estimate.total, rates) : null;
-  const raw = saved != null ? formatPriceTy(saved) : estimated != null ? formatPriceTy(estimated) : '';
-  const [draft, setDraft] = useState(raw);
-  const [error, setError] = useState('');
-  useEffect(() => setDraft(raw), [raw]);
   // Ghi cũ dạng chữ (vd. "2 tỷ") không đọc được thành số → hiện ra, không coi là trống (D-012).
   const legacyText = saved == null && stored != null && String(stored).trim() !== '' ? String(stored) : null;
   const basis =
@@ -688,35 +683,17 @@ function PriceField({
       : estimated != null && Math.abs(estimated - saved) >= 1_000_000
         ? `Ước tính ≈ ${formatVndShort(estimated)}`
         : undefined;
-  const save = () => {
-    if (draft === raw) return;
-    const value = parsePriceTy(draft);
-    if (value === undefined) {
-      setError('Nhập giá theo tỷ, ví dụ 2,06.');
-      return;
-    }
-    setError('');
-    onSave(value);
-  };
   return (
     <div className="space-y-1">
       {legacyText && <p className="text-ink-muted [overflow-wrap:anywhere]">Đang lưu: {legacyText}</p>}
-      <TextField
+      <MoneyField
         id={fieldId(label)}
         label={label}
         className="[&_label]:block [&_label]:min-h-9"
-        type="text"
-        inputMode="decimal"
-        numeric
-        value={draft}
+        value={saved ?? estimated}
         disabled={disabled}
-        hint={error ? undefined : hint}
-        error={error || undefined}
-        onChange={(event) => setDraft(event.target.value)}
-        onBlur={save}
-        onKeyDown={(event) => {
-          if (event.key === 'Enter') event.currentTarget.blur();
-        }}
+        hint={hint}
+        onCommit={onSave}
       />
     </div>
   );
