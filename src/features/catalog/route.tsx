@@ -12,6 +12,7 @@ import { useCustomers, useRepositoryAccount } from '@/data/hooks';
 import type { Customer } from '@/domain/customer';
 import { customersForUnit, match as matchCustomer, price as totalPrice } from '@/domain/matching/property';
 import { displayDate } from '@/ui/display';
+import { Icon } from '@/ui/Icon';
 import { CatalogDrawer } from './CatalogDrawer';
 import { DirectionField } from './direction-field';
 import {
@@ -778,11 +779,14 @@ function CatalogPage() {
             <div className="flex min-w-0 gap-2">
               <Button
                 variant="secondary"
-                className="min-w-0 flex-1 justify-start whitespace-normal text-left h-auto min-h-11 break-words"
+                className="h-auto min-h-11 min-w-0 flex-1 justify-between gap-2 whitespace-normal break-words text-left"
                 aria-label={`Chọn dự án: ${project?.name || (projects.length ? 'Tất cả dự án' : 'Chưa có dự án')}`}
                 onClick={() => openDrawer('picker')}
               >
-                {project?.name || (projects.length ? 'Tất cả dự án' : 'Chưa có dự án')}
+                <span className="min-w-0">{project?.name || (projects.length ? 'Tất cả dự án' : 'Chưa có dự án')}</span>
+                <span aria-hidden="true" className="shrink-0 text-ink-muted">
+                  <Icon name="expand" size={16} />
+                </span>
               </Button>
               <Button variant="secondary" aria-label="Thêm dự án" onClick={addProject}>
                 + Thêm
@@ -797,14 +801,17 @@ function CatalogPage() {
             <div className="flex min-w-0 gap-2">
               <Button
                 variant="secondary"
-                className="min-w-0 flex-1 justify-start whitespace-normal text-left h-auto min-h-11 break-words"
+                className="h-auto min-h-11 min-w-0 flex-1 justify-between gap-2 whitespace-normal break-words text-left"
                 aria-label={`Chọn toà: ${building?.code || 'Tất cả toà'}`}
                 onClick={() => {
                   setBuildingQuery('');
                   openDrawer('buildingPicker');
                 }}
               >
-                {building?.code || 'Tất cả toà'}
+                <span className="min-w-0">{building?.code || 'Tất cả toà'}</span>
+                <span aria-hidden="true" className="shrink-0 text-ink-muted">
+                  <Icon name="expand" size={16} />
+                </span>
               </Button>
               <Button
                 variant="secondary"
@@ -1346,7 +1353,8 @@ function CatalogPage() {
                 >
                   <TextField
                     className={SHORT_FIELD}
-                    label={`Tên loại căn ${index + 1}`}
+                    label="Tên loại"
+                    aria-label={`Tên loại căn ${index + 1}`}
                     value={row.name}
                     disabled={row.archived || saving}
                     onChange={(e) =>
@@ -1357,7 +1365,8 @@ function CatalogPage() {
                   />
                   <TextField
                     className={SHORT_FIELD}
-                    label={`Diện tích điển hình ${index + 1}`}
+                    label="Diện tích"
+                    aria-label={`Diện tích điển hình ${index + 1}`}
                     suffix="m²"
                     numeric
                     value={row.area}

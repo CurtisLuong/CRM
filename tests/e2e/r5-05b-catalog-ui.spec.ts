@@ -84,12 +84,13 @@ for (const width of [360, 1280]) {
       const table = page.getByRole('table', { name: 'Danh sách căn' });
       await expect(table).toBeVisible();
       await expect(table.getByText('T1-1201')).toBeVisible();
-      await expect(page.getByRole('table', { name: 'Danh sách toà' }).getByText('T1')).toBeVisible();
+      // GH-03 (09/11): trang chính không còn danh sách toà; toà nằm trong ô Toà.
+      await expect(page.getByRole('button', { name: 'Chọn toà: Tất cả toà', exact: true })).toBeVisible();
     } else {
       await expect(page.getByRole('table', { name: 'Danh sách căn' })).toBeHidden();
       const card = page.locator('article').filter({ hasText: 'T1-1201' });
       await expect(card).toBeVisible();
-      await expect(page.locator('article').filter({ hasText: 'Toà T1' })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Chọn toà: Tất cả toà', exact: true })).toBeVisible();
     }
 
     // Form dự án chỉ hiện trong drawer khi bấm Sửa.
