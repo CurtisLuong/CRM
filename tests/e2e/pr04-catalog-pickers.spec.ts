@@ -271,6 +271,8 @@ for (const theme of ['light', 'dark'] as const) {
       area_m2: 60,
     });
     await navigate(page, '/gio-hang');
+    // GH-03 (09/11): bộ lọc ẩn dưới nút "Tìm căn".
+    await page.getByRole('button', { name: 'Tìm căn', exact: true }).click();
     await page.getByRole('textbox', { name: /Tìm căn/ }).fill('801');
     await expect(page.getByRole('status').filter({ hasText: '1 căn phù hợp' })).toBeVisible();
     await page.getByRole('button', { name: 'Sửa', exact: true }).filter({ visible: true }).click();
@@ -316,6 +318,8 @@ test('PR-04: mất mạng/lỗi quyền không tạo Giỏ hàng nhưng lưu mã
 test('PR-04: Giỏ hàng lọc hướng cũ và giữ hướng lạ khi sửa ô khác', async ({ page }) => {
   const { writes } = await openProfile(page, 'light');
   await navigate(page, '/gio-hang');
+  // GH-03 (09/11): bộ lọc ẩn dưới nút "Tìm căn".
+  await page.getByRole('button', { name: 'Tìm căn', exact: true }).click();
   const filter = page.getByRole('combobox', { name: 'Hướng', exact: true });
   await expect(filter.locator('option')).toHaveText([
     'Tất cả',

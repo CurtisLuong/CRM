@@ -223,15 +223,21 @@ for (const theme of ['light', 'dark'] as const) {
     test('Giỏ hàng: bộ lọc và từng ngăn kéo', async ({ page }, testInfo) => {
       test.setTimeout(90_000);
       await page.goto('/gio-hang');
+      // GH-03 (09/11): bộ lọc ẩn dưới nút "Tìm căn"; loại căn dự án/toà sửa trong tấm Sửa dự án/Sửa toà.
+      await page.getByRole('button', { name: 'Tìm căn', exact: true }).click();
       await sameRow(page.getByLabel('Tầng từ', { exact: true }), page.getByLabel('Tầng đến', { exact: true }));
       await capture(page, testInfo, `catalog-filter-${theme}`);
       await page.getByRole('button', { name: /^Chọn dự án/ }).click();
       await page.getByRole('dialog').getByRole('button', { name: PROJECT, exact: true }).click();
-      await page.getByRole('combobox', { name: 'Chọn toà', exact: true }).selectOption('b1');
       const dialog = page.getByRole('dialog');
+      await page.getByRole('button', { name: /^Chọn toà:/ }).click();
+      await dialog
+        .getByRole('button', { name: /^Chọn toà [^:]/ })
+        .first()
+        .click();
+      await expect(dialog).toBeHidden();
       const cases = [
-        { button: '+ Thêm', first: 'Giá dự án', second: 'Phí mỗi căn', name: 'project' },
-        { button: '+ Thêm loại', first: 'Tên loại căn', second: 'Diện tích điển hình', name: 'type' },
+        { button: 'Thêm dự án', first: 'Giá dự án', second: 'Phí mỗi căn', name: 'project' },
         { button: 'Thêm toà', first: 'Mã toà', second: 'Giá duyệt toà', name: 'building' },
         { button: 'Thêm căn', first: 'Mã căn', second: 'Loại căn', name: 'unit' },
       ];
@@ -241,7 +247,20 @@ for (const theme of ['light', 'dark'] as const) {
         await capture(page, testInfo, `catalog-${item.name}-${theme}`);
         await dialog.getByRole('button', { name: 'Huỷ', exact: true }).click();
       }
-      await page.getByRole('button', { name: 'Tuỳ chỉnh', exact: true }).click();
+      await page.getByRole('button', { name: /^Chọn dự án/ }).click();
+      await dialog.getByRole('button', { name: `Sửa dự án ${PROJECT}`, exact: true }).click();
+      await dialog.getByRole('button', { name: '+ Thêm loại', exact: true }).click();
+      await sameRow(
+        dialog.getByLabel(/^Tên loại căn \d+$/).last(),
+        dialog.getByLabel(/^Diện tích điển hình \d+$/).last(),
+      );
+      await capture(page, testInfo, `catalog-type-${theme}`);
+      await dialog.getByRole('button', { name: 'Huỷ', exact: true }).click();
+      await page.getByRole('button', { name: /^Chọn toà:/ }).click();
+      await dialog
+        .getByRole('button', { name: /^Sửa toà / })
+        .first()
+        .click();
       await sameRow(
         dialog.getByRole('checkbox').locator('..'),
         dialog.getByLabel('Diện tích riêng 2N', { exact: true }).locator('../..'),
