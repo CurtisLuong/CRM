@@ -31,6 +31,7 @@ import { openQuickAction } from '@/features/quick-actions/store';
 import { AssignCustomerSheet, canAssignWithTeam, useTeamMembers } from '@/features/team/AssignSheet';
 import { slaMeterFor } from '@/lib/crm';
 import { Icon } from '@/ui/Icon';
+import { useToast } from '@/ui/Toast';
 import { AddTaskSheet } from './add-task';
 import { ProfileTextField as Field, LegacyAssistField, ProfileAdvanced } from './advanced';
 import { ArchiveCustomerSection, ArchivedBanner } from './archive';
@@ -66,15 +67,9 @@ function Profile() {
   const navigate = useNavigate();
   const customer = useCustomer(id);
   const account = useRepositoryAccount();
-  const [notice, setNotice] = useState<{
-    title: string;
-    description?: string;
-    tone?: 'default' | 'error';
-    onUndo?: () => void;
-  } | null>(null);
-  const toast = (input: { title: string; description?: string; tone?: 'default' | 'error'; onUndo?: () => void }) => {
-    setNotice(input);
-  };
+  // Thông báo dùng lớp toast chung của app (tự tắt, nằm trên mọi lớp). Trước đây hồ sơ tự vẽ hộp riêng
+  // không tự tắt và bị kẹt dưới tấm đang mở (Curtis 09/11).
+  const toast = useToast();
   const [now, setNow] = useState(Date.now());
   const [busy, setBusy] = useState(false);
   // TL-03: mở hồ sơ bắt đầu ở Dòng thời gian.
@@ -1063,25 +1058,6 @@ function Profile() {
 
       {stageOpen && (
         <StageChangeSheet customer={c} busy={busy} onClose={() => setStageOpen(false)} onConfirm={onStage} />
-      )}
-      {notice && (
-        <div
-          role={notice.tone === 'error' ? 'alert' : 'status'}
-          className="fixed inset-x-4 bottom-20 z-[60] mx-auto flex max-w-md items-center gap-3 rounded-md border border-line bg-surface-200 p-3 text-ink shadow-overlay lg:right-4 lg:bottom-4 lg:left-auto"
-        >
-          <span className="min-w-0 flex-1">
-            <strong className="block text-body-strong">{notice.title}</strong>
-            {notice.description && <span className="text-caption text-ink-muted">{notice.description}</span>}
-          </span>
-          {notice.onUndo && (
-            <Button variant="ghost" onClick={notice.onUndo}>
-              Hoàn tác
-            </Button>
-          )}
-          <Button variant="ghost" aria-label="Đóng thông báo" onClick={() => setNotice(null)}>
-            Đóng
-          </Button>
-        </div>
       )}
     </main>
   );

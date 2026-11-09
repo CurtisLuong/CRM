@@ -47,7 +47,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             key={t.id}
             open={t.open}
             onOpenChange={(o) => !o && close(t.id)}
-            duration={t.durationMs ?? (t.onUndo ? 5000 : 4000)}
+            // Curtis 09/11: thông báo chỉ hiện ~2 giây rồi tự tắt; có Hoàn tác thì 4 giây để kịp bấm.
+            duration={t.durationMs ?? (t.onUndo ? 4000 : 2000)}
             type={t.tone === 'error' ? 'foreground' : 'background'}
             className={cn(
               'flex items-center gap-3 rounded-card border border-border bg-surface-3 px-4 py-3 text-text shadow-e3',
