@@ -111,7 +111,11 @@ test('demo giữ dữ liệu local, chặn mạng, sống qua reload và xoá ri
     .getByRole('button', { name: 'Mở hồ sơ', exact: true })
     .click();
   await expect(page.getByRole('heading', { level: 1, name: 'Gia Hân · Khách mới' })).toBeVisible();
-  await page.getByRole('button', { name: 'Ghi chú', exact: true }).click();
+  // TL-03: tab Dòng thời gian mở sẵn có chip lọc "Ghi chú" → bấm nút Ghi chú ở hàng hành động nhanh.
+  await page
+    .getByRole('navigation', { name: 'Hành động nhanh' })
+    .getByRole('button', { name: 'Ghi chú', exact: true })
+    .click();
   await page.getByRole('textbox', { name: 'Nội dung ghi chú' }).fill('Đã xem thử dữ liệu mẫu.');
   await page.getByRole('button', { name: 'Lưu', exact: true }).click();
   await expect(page.getByLabel('Đã biết').getByText('Đã xem thử dữ liệu mẫu.')).toBeVisible();

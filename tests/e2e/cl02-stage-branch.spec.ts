@@ -112,6 +112,7 @@ async function seed(page: Page) {
   );
 }
 
+// TL-03: tab Dòng thời gian mở sẵn cũng có nút "Đổi bậc" → chọn chip cạnh tên ("Đổi bậc · …").
 async function openProfile(page: Page, id: string, name: string) {
   await seed(page);
   await page.goto(`/ho-so/${id}`);
@@ -126,7 +127,7 @@ const expectNoHorizontalScroll = async (page: Page) => {
 
 test('L1/L2: sheet đổi bậc xếp Nuôi dài hạn ngay sau Đang chăm sóc, kèm "không tính SLA"', async ({ page }, info) => {
   await openProfile(page, ownOver.id, ownOver.full_name);
-  await page.getByRole('button', { name: /Đổi bậc/ }).click();
+  await page.getByRole('button', { name: /^Đổi bậc · / }).click();
   const sheet = page.getByRole('dialog', { name: /bậc/i });
   await expect(sheet).toBeVisible();
 
