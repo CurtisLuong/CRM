@@ -1,5 +1,7 @@
 import { expect, type Page, test } from '@playwright/test';
 
+// UI-04 (09/11): nút đáy tấm xem nhanh đổi thành "Mở hồ sơ" (có icon).
+
 // CL-01 — đầu danh sách khách: chip nhóm không số, hàng đếm + Xoá lọc, ngày đăng ký có lịch,
 // sắp xếp gọn, nhớ nhóm khi quay lại, khách nhóm không SLA. Giờ cố định 22/10/2026 09:30.
 const userId = 'cl01-e2e-user';
@@ -257,11 +259,11 @@ test('CL-01: chip không số, hàng phễu + đếm + Xoá lọc, ngày đăng 
   await expect(countText(page, 1)).toBeVisible();
   await cardOf(page, 'Khách Mới A').getByRole('button', { name: 'Mở Khách Mới A' }).click();
   await expect(page).toHaveURL(/\/khach-hang\/cl01-l1$/);
-  await page.getByRole('button', { name: 'Mở hồ sơ đầy đủ' }).click();
+  await page.getByRole('button', { name: 'Mở hồ sơ', exact: true }).click();
   await expect(page).toHaveURL(/\/ho-so\/cl01-l1$/);
   await page.goBack();
   await expect(page).toHaveURL(/\/khach-hang\/cl01-l1$/);
-  await expect(page.getByRole('button', { name: 'Mở hồ sơ đầy đủ' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Mở hồ sơ', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Đóng' }).click();
   await expect(page.getByRole('button', { name: 'Khách mới', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await expect(search).toHaveValue('0916000001');

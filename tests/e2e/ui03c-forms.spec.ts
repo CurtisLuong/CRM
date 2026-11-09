@@ -125,6 +125,11 @@ async function sameRow(first: Locator, second: Locator) {
   await expect(second).toBeVisible();
   // Ngăn kéo còn đang trượt vào thì boundingBox có thể rỗng → chờ đo được cả hai.
   await expect.poll(async () => !!(await first.boundingBox()) && !!(await second.boundingBox())).toBe(true);
+  // UI-04 (09/11): tấm đáy trượt lên → chờ hiệu ứng của tấm chứa ô xong rồi mới đo.
+  await first.evaluate(async (el) => {
+    const sheet = el.closest('[role="dialog"]');
+    if (sheet) await Promise.all(sheet.getAnimations({ subtree: true }).map((animation) => animation.finished));
+  });
   const a = await first.boundingBox();
   const b = await second.boundingBox();
   if (!a || !b) throw new Error('Không đo được ô nhập');
