@@ -11,6 +11,7 @@ import { useCustomers, useRepositoryAccount, useSyncStatus } from '@/data/hooks'
 import { fmtClock } from '@/domain/deadlines';
 import { appendPromise, promiseTaskKey, snoozePromise, undoPromiseSnooze } from '@/domain/deadlines/promises';
 import { fmt as formatDuration } from '@/domain/velocity/engine';
+import { CompleteTaskDialog, type TaskCompletionTarget } from '@/features/profile/complete-task';
 import { openQuickAction } from '@/features/quick-actions/store';
 import { signalFor } from '@/lib/crm';
 import { customerNeed } from '@/lib/crm/customer-need';
@@ -270,6 +271,7 @@ function TasksPage() {
   customersRef.current = customers;
   const sync = useSyncStatus();
   const toast = useToast();
+  const [completing, setCompleting] = useState<TaskCompletionTarget | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [kind, setKind] = useState('all');
   const [side, setSide] = useState<TaskSideFilter>('all');
@@ -569,32 +571,7 @@ function TasksPage() {
                         busy={busyKey === key || (row.type === 'call' ? !canOwn : !editable)}
                         onComplete={() => {
                           if (row.type !== 'task' || !editable || busyKey || !taskAt) return;
-                          setBusyKey(key);
-                          void account.customers
-                            .completeTask(customer.id, taskAt)
-                            .then(() =>
-                              toast({
-                                title: 'Đã xong việc',
-                                description: `${task.text} · ${customer.full_name}`,
-                                onUndo: () => {
-                                  void account.customers.reopenTask(customer.id, taskAt).catch((cause) =>
-                                    toast({
-                                      title: 'Chưa hoàn tác được việc',
-                                      description: cause instanceof Error ? cause.message : 'Thử lại sau.',
-                                      tone: 'error',
-                                    }),
-                                  );
-                                },
-                              }),
-                            )
-                            .catch((cause) =>
-                              toast({
-                                title: 'Chưa hoàn tất được việc',
-                                description: cause instanceof Error ? cause.message : 'Thử lại sau.',
-                                tone: 'error',
-                              }),
-                            )
-                            .finally(() => setBusyKey(''));
+                          setCompleting({ customerId: customer.id, task: row.task });
                         }}
                         onReopen={() => {
                           if (row.type !== 'task' || !editable || busyKey || !taskAt) return;
@@ -693,6 +670,23 @@ function TasksPage() {
             );
           })}
         </div>
+      )}
+      {completing && (
+        <CompleteTaskDialog
+          task={completing.task}
+          now={now}
+          onClose={() => setCompleting(null)}
+          onUndo={() => {
+            void account.customers.reopenTask(completing.customerId, completing.task.at || '').catch((cause) =>
+              toast({
+                title: 'Chưa hoàn tác được việc',
+                description: cause instanceof Error ? cause.message : 'Thử lại sau.',
+                tone: 'error',
+              }),
+            );
+          }}
+          onConfirm={(note) => account.customers.completeTask(completing.customerId, completing.task.at || '', note)}
+        />
       )}
     </main>
   );
