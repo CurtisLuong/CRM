@@ -184,7 +184,8 @@ describe('quick actions touch budget', () => {
     );
 
     await user.click(screen.getByRole('button', { name: 'Zalo' }));
-    await user.click(await screen.findByRole('button', { name: 'Sao chép & mở Zalo' }));
+    // ZL-01 (09/11): nút đang đếm ngược có hậu tố " · 3" → tìm theo tiền tố.
+    await user.click(await screen.findByRole('button', { name: /^Sao chép & mở Zalo/ }));
     await waitFor(() => expect(window.open).toHaveBeenCalled());
     act(() => window.dispatchEvent(new Event('crm:resume')));
     await user.click(await screen.findByRole('button', { name: /^Đã gửi$/ }));

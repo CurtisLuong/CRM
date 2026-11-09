@@ -26,6 +26,8 @@ export interface TimelineAction {
   level?: Level;
   note?: React.ReactNode;
   by?: string;
+  /** Hành động cuối hàng tên, sau giờ; không chiếm chiều cao của hàng. */
+  edit?: React.ReactNode;
 }
 export interface TimelineStageGroup {
   stage: Stage;
@@ -70,7 +72,7 @@ export function TimelineEditButton(props: { label: string; disabled?: boolean; o
       variant="ghost"
       size="icon"
       data-timeline-edit=""
-      className="text-ink-muted [&_svg]:size-3.5"
+      className="absolute right-0 bottom-0 items-end justify-end pb-0.5 pr-1 text-ink-muted [&_svg]:size-3.5"
       aria-label={props.label}
       disabled={props.disabled}
       onClick={props.onClick}
@@ -93,11 +95,15 @@ function Step({ item, now }: { item: TimelineAction; now: Date }) {
         <ActionIcon action={item.action} size={14} />
       </span>
       <div className="flex min-w-0 flex-col gap-1 pt-0.5">
-        <div className="flex items-baseline justify-between gap-2">
+        <div
+          data-timeline-item-header=""
+          className={cn('relative flex items-baseline justify-between gap-2', item.edit && 'pr-11')}
+        >
           <span className="min-w-0 break-words text-sm font-medium leading-5">{item.title ?? a.label}</span>
           <time className="shrink-0 font-mono text-xs text-ink-muted" dateTime={new Date(item.at).toISOString()}>
             {fmtWhen(item.at, now)}
           </time>
+          {item.edit}
         </div>
         {item.outcome && (
           <span
@@ -110,7 +116,10 @@ function Step({ item, now }: { item: TimelineAction; now: Date }) {
           </span>
         )}
         {item.note && (
-          <div className="m-0 whitespace-pre-line break-words rounded-sm border border-line bg-surface-0 px-3 py-2 text-sm font-medium">
+          <div
+            data-timeline-note=""
+            className="m-0 whitespace-pre-line break-words rounded-sm border border-line bg-surface-0 px-3 py-2 text-sm font-medium leading-5"
+          >
             {item.note}
           </div>
         )}
@@ -155,13 +164,11 @@ function StageBlock({
   return (
     <li className="relative grid grid-cols-[32px_minmax(0,1fr)] gap-3 pb-5">
       {!last && (
-        <span
-          aria-hidden
-          className={cn('absolute bottom-0.5 left-[15px] top-[34px] w-0.5', live ? 'bg-ion' : 'bg-line')}
-        />
+        <span aria-hidden data-timeline-stage-rail="" className="absolute bottom-0 left-[15px] top-8 w-0.5 bg-line" />
       )}
       <span
         aria-hidden
+        data-timeline-stage-icon=""
         className={cn(
           'relative z-[1] grid size-8 place-items-center rounded-full border-2 border-line font-mono text-xs font-semibold',
           live
@@ -173,14 +180,14 @@ function StageBlock({
       >
         {mark}
       </span>
-      <div className="flex min-w-0 flex-col gap-0.5 pt-0.5">
+      <div className="flex min-w-0 flex-col gap-0.5">
         <button
           type="button"
           aria-expanded={open}
           onClick={() => setOpen(!open)}
-          className="flex min-h-7 w-full cursor-pointer items-center gap-2 text-left text-ink"
+          className="flex min-h-8 w-full cursor-pointer items-end gap-2 text-left text-ink"
         >
-          <span className="flex min-w-0 flex-1 items-center gap-2 text-sm font-semibold leading-5">
+          <span className="flex min-w-0 flex-1 items-end gap-2 text-sm font-semibold leading-5">
             <span data-stage-title="" className={cn(live && 'text-ion')}>
               {st.label}
             </span>

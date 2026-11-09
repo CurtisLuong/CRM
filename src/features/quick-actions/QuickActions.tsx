@@ -32,6 +32,7 @@ import {
   slotFor,
 } from './model';
 import { actionStore, clearQuickAction, openQuickAction, type QuickAction } from './store';
+import { useZaloCountdown } from './useZaloCountdown';
 import { appendVoiceTranscript, VoiceNoteInput, type VoiceNoteInputHandle, voiceNotePreview } from './voice';
 import { contactPhones, copyAndOpenZalo, defaultTemplates } from './zalo';
 
@@ -518,6 +519,24 @@ function ActionSheet({
           }
         : undefined,
     );
+  const openZalo = (automatic = false) =>
+    run(async () => {
+      const latestCustomer = account.customers.getSnapshot().find((item) => item.id === c.id) || c;
+      if (latestCustomer.contact_prefs?.do_not_contact) throw new Error('Khách yêu cầu không liên hệ.');
+      if (!text.trim() || !phone || account.sync.local.isClosed) return;
+      try {
+        await copyAndOpenZalo(text, phone);
+      } catch (e) {
+        if (automatic) throw new Error('Bấm Sao chép & mở Zalo để gửi');
+        throw e;
+      }
+      setLaunched(true);
+      onZaloOpen();
+    }, false);
+  const countdown = useZaloCountdown(
+    kind === 'zalo' && !!text.trim() && !!phone && !c.contact_prefs?.do_not_contact,
+    () => void openZalo(true),
+  );
   const title =
     kind === 'outcome'
       ? editingRecorded
@@ -532,6 +551,7 @@ function ActionSheet({
   return (
     <Sheet
       open
+      contentProps={kind === 'zalo' ? countdown.contentProps : undefined}
       onOpenChange={(o) => !o && onClose()}
       title={`${title} · ${c.full_name}`}
       description={
@@ -551,17 +571,12 @@ function ActionSheet({
             block
             loading={busy}
             disabled={!text.trim() || !phone}
-            onClick={() =>
-              run(async () => {
-                const latestCustomer = account.customers.getSnapshot().find((item) => item.id === c.id) || c;
-                if (latestCustomer.contact_prefs?.do_not_contact) throw new Error('Khách yêu cầu không liên hệ.');
-                await copyAndOpenZalo(text, phone);
-                setLaunched(true);
-                onZaloOpen();
-              }, false)
-            }
+            onClick={() => {
+              countdown.cancel();
+              void openZalo();
+            }}
           >
-            Sao chép & mở Zalo
+            Sao chép & mở Zalo{countdown.remaining !== null ? ` · ${countdown.remaining}` : ''}
           </Button>
         ) : (
           <Button variant="primary" block loading={busy} onClick={save}>
@@ -737,15 +752,6 @@ function ActionSheet({
         {kind === 'schedule' && <ScheduleFields schedule={schedule} onChange={setSchedule} />}
         {kind === 'zalo' && (
           <>
-            <p className="text-caption text-ink-muted">{phone} · Dán nội dung vào Zalo rồi tự bấm gửi.</p>
-            <AiZaloDraft
-              account={account}
-              customer={c}
-              onDraft={(draftText) => {
-                setText(draftText);
-                textEdited.current = true;
-              }}
-            />
             <label htmlFor="zalo-template-select" className="flex flex-col gap-1 text-caption">
               Mẫu tin
               <select
@@ -767,20 +773,25 @@ function ActionSheet({
                 ))}
               </select>
             </label>
-            <label htmlFor="zalo-message-text" className="flex flex-col gap-1 text-caption">
-              Nội dung tin nhắn
-              <Textarea
-                className="w-full"
-                id="zalo-message-text"
-                aria-label="Nội dung tin nhắn"
-                rows={7}
-                value={text}
-                onChange={(e) => {
-                  setText(e.target.value);
-                  textEdited.current = true;
-                }}
-              />
-            </label>
+            <AiZaloDraft
+              account={account}
+              customer={c}
+              onDraft={(draftText) => {
+                setText(draftText);
+                textEdited.current = true;
+              }}
+            />
+            <Textarea
+              className="w-full"
+              id="zalo-message-text"
+              aria-label="Nội dung tin nhắn"
+              rows={7}
+              value={text}
+              onChange={(e) => {
+                setText(e.target.value);
+                textEdited.current = true;
+              }}
+            />
             <Button
               variant="secondary"
               onClick={() => {
@@ -833,7 +844,7 @@ function ActionSheet({
             {error}
           </p>
         )}
-        {!account.sync.isOnline() && (
+        {kind !== 'zalo' && !account.sync.isOnline() && (
           <p className="text-caption text-ink-muted">Ngoại tuyến · Thay đổi được lưu trên máy.</p>
         )}
       </div>

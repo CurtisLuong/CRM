@@ -108,6 +108,8 @@ test('hồ sơ: nhóm dưới tên, hẹn gọi, giá ước tính, còn thiếu
   await expect(next.getByText('Hẹn gọi lại')).toBeVisible();
   await expect(next.getByText(/Hôm nay 14:00–15:00/)).toBeVisible();
 
+  // TL-03 (09/11): tab mở sẵn là Dòng thời gian → chuyển sang Nhu cầu & căn.
+  await page.getByRole('tab', { name: 'Nhu cầu & căn' }).click();
   // Curtis 06/11: Giá căn = thuần 2,25 tỷ + VAT 5% + KPBT 2% = 2,4075 → '2,408'.
   // MN-01 (09/11): ô tiền nhập theo triệu; ô Giá căn đổi nhãn thành "Giá căn", rời ô ≥ 1 tỷ hiện số tỷ.
   await expect(page.getByLabel('Giá căn', { exact: true })).toHaveValue('2,408');

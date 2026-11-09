@@ -6,6 +6,8 @@ import type { Customer } from '@/domain/customer';
 import { ArchiveCustomerSection, ArchivedBanner, canArchive } from '@/features/profile/archive';
 import { ToastProvider } from '@/ui';
 
+// PF-12 (09/11): nút mở tấm đổi thành icon + "Lưu trữ khách" (bỏ dấu "…").
+
 const remove = vi.fn();
 const restore = vi.fn();
 const update = vi.fn();
@@ -40,15 +42,15 @@ describe('archive customer (soft delete)', () => {
   it('asks for explicit confirmation, then archives through the repository soft-delete', async () => {
     const user = userEvent.setup();
     wrap(<ArchiveCustomerSection customer={base()} />);
-    await user.click(screen.getByRole('button', { name: 'Lưu trữ khách…' }));
+    await user.click(screen.getByRole('button', { name: 'Lưu trữ khách' }));
     expect(remove).not.toHaveBeenCalled();
     expect(screen.getByRole('dialog', { name: 'Lưu trữ khách Lan?' })).toBeTruthy();
-    expect(screen.getByText(/ẩn khỏi Danh sách khách, Hôm nay, Công việc/)).toBeTruthy();
-    expect(screen.getByText(/Khôi phục bất cứ lúc nào/)).toBeTruthy();
+    // PF-12 (09/11): tấm lưu trữ bỏ chữ giải thích dài; chỉ còn tên khách và ô lý do.
+    expect(screen.queryByText(/ẩn khỏi Danh sách khách, Hôm nay, Công việc/)).toBeNull();
     await user.click(screen.getByRole('button', { name: 'Huỷ' }));
     expect(remove).not.toHaveBeenCalled();
 
-    await user.click(screen.getByRole('button', { name: 'Lưu trữ khách…' }));
+    await user.click(screen.getByRole('button', { name: 'Lưu trữ khách' }));
     // PC-03 (Curtis 26/10): bắt buộc lý do; lưu trữ + dòng nhật ký ghi trong một patch.
     expect(screen.getByRole('button', { name: 'Lưu trữ khách' })).toHaveProperty('disabled', true);
     await user.selectOptions(screen.getByRole('combobox', { name: 'Lý do lưu trữ' }), 'so_sai');
@@ -73,7 +75,7 @@ describe('archive customer (soft delete)', () => {
         </ToastProvider>
       </MemoryRouter>,
     );
-    expect(screen.queryByRole('button', { name: 'Lưu trữ khách…' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Lưu trữ khách' })).toBeNull();
   });
 
   it('archived banner restores for the owner only', async () => {

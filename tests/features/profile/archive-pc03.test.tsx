@@ -9,6 +9,8 @@ import { ArchiveCustomerSection } from '@/features/profile/archive';
 import { timelineView } from '@/features/profile/model';
 import { ToastProvider } from '@/ui';
 
+// PF-12 (09/11): nút mở tấm đổi thành icon + "Lưu trữ khách" (bỏ dấu "…").
+
 const update = vi.fn();
 const account = {
   sync: { local: { userId: 'u1' }, isOnline: () => false },
@@ -44,7 +46,7 @@ describe('PC-03 archive interactions', () => {
     const user = userEvent.setup();
     const customer = base();
     wrap(customer);
-    await user.click(screen.getByRole('button', { name: 'Lưu trữ khách…' }));
+    await user.click(screen.getByRole('button', { name: 'Lưu trữ khách' }));
     const submit = screen.getByRole('button', { name: 'Lưu trữ khách' });
     await user.selectOptions(screen.getByRole('combobox', { name: 'Lý do lưu trữ' }), 'khac');
     expect(submit).toHaveProperty('disabled', true);
@@ -71,7 +73,7 @@ describe('PC-03 archive interactions', () => {
   it('undo restores with one patch and records a restored interaction', async () => {
     const user = userEvent.setup();
     wrap(base());
-    await user.click(screen.getByRole('button', { name: 'Lưu trữ khách…' }));
+    await user.click(screen.getByRole('button', { name: 'Lưu trữ khách' }));
     await user.selectOptions(screen.getByRole('combobox', { name: 'Lý do lưu trữ' }), 'so_sai');
     await user.click(screen.getByRole('button', { name: 'Lưu trữ khách' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Hoàn tác' }));

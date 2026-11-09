@@ -1,5 +1,7 @@
 import { expect, type Page, test } from '@playwright/test';
 
+// PF-12 (09/11): nút mở tấm đổi thành icon + "Lưu trữ khách" (bỏ dấu "…").
+
 const dbName = (userId: string) => `crm_khach_hang__${encodeURIComponent(userId)}`;
 
 async function readStore(page: Page, userId: string, store: 'customers' | 'queue') {
@@ -107,15 +109,17 @@ for (const theme of ['light', 'dark'] as const) {
 
     await page.goto(`/ho-so/${customerId}`);
     await expect(page.getByRole('heading', { name: 'Khách Thử Lưu Trữ' })).toBeVisible();
-    await page.getByRole('button', { name: 'Lưu trữ khách…' }).click();
+    await page.getByRole('button', { name: 'Lưu trữ khách', exact: true }).click();
     const dialog = page.getByRole('dialog', { name: 'Lưu trữ khách Khách Thử Lưu Trữ?' });
-    await expect(dialog.getByText(/Ghi chú, cuộc gọi, lịch sử và tài liệu được giữ nguyên/)).toBeVisible();
+    // PF-12 (09/11): tấm lưu trữ bỏ chữ giải thích dài; chỉ còn ô lý do.
+    await expect(dialog.getByRole('combobox', { name: 'Lý do lưu trữ' })).toBeVisible();
     await testInfo.attach(`archive-confirm-${theme}`, { body: await page.screenshot(), contentType: 'image/png' });
     // PC-03 (Curtis 26/10): bắt buộc chọn lý do trước khi lưu trữ.
     await dialog.getByRole('combobox', { name: 'Lý do lưu trữ' }).selectOption('so_sai');
     await dialog.getByRole('button', { name: 'Lưu trữ khách', exact: true }).click();
     await expect(page.getByText(/Khách đã lưu trữ ngày/)).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Gọi' })).toBeDisabled();
+    // PF-12: dòng "Hẹn gọi lại" giờ là nút → khớp đúng tên "Gọi".
+    await expect(page.getByRole('button', { name: 'Gọi', exact: true })).toBeDisabled();
 
     const [archived] = (await readStore(page, userId, 'customers')).filter((c) => c.id === customerId);
     expect(archived.archived_at).toEqual(expect.any(String));

@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { cloneElement, type ReactElement } from 'react';
 import { MemoryRouter } from 'react-router';
@@ -47,7 +47,17 @@ const tree = () => (
     <ToastProvider>{cloneElement(route.element as ReactElement)}</ToastProvider>
   </MemoryRouter>
 );
-const wrap = () => render(tree());
+// TL-03 (09/11): tab mở sẵn là Dòng thời gian → test ô Nhu cầu chuyển sang tab "Nhu cầu & căn" trước (Radix kích hoạt tab khi mousedown).
+const openNeeds = () => {
+  const tab = screen.getByRole('tab', { name: 'Nhu cầu & căn' });
+  fireEvent.mouseDown(tab);
+  fireEvent.click(tab);
+};
+const wrap = () => {
+  const view = render(tree());
+  openNeeds();
+  return view;
+};
 const rerenderProfile = (view: ReturnType<typeof render>) => view.rerender(tree());
 
 const base = (overrides: Partial<Customer> = {}) =>
@@ -69,11 +79,11 @@ beforeEach(() => {
 });
 
 describe('CP-01 — tab mặc định và ô nhu cầu', () => {
-  it('mở hồ sơ mặc định tab Nhu cầu & căn, thứ tự needs → memory → timeline → docs (06/11: bỏ tab Tính vay)', () => {
-    wrap();
+  it('mở hồ sơ mặc định tab Dòng thời gian, thứ tự timeline → memory → needs → docs (TL-03, Curtis 09/11)', () => {
+    render(tree());
     const list = screen.getByRole('tablist', { name: 'Nội dung hồ sơ khách' });
     const tabs = within(list).getAllByRole('tab');
-    expect(tabs.map((tab) => tab.textContent)).toEqual(['Nhu cầu & căn', 'Trí nhớ', 'Dòng thời gian0', 'Tài liệu0']);
+    expect(tabs.map((tab) => tab.textContent)).toEqual(['Dòng thời gian0', 'Trí nhớ', 'Nhu cầu & căn', 'Tài liệu0']);
     expect(tabs[0]?.getAttribute('aria-selected')).toBe('true');
   });
 
@@ -150,9 +160,11 @@ describe('CP-01 — tab mặc định và ô nhu cầu', () => {
     customer = base({ id: 'c2', purpose: 'Ở' });
     rerenderProfile(view);
 
+    // TL-03: đổi khách → về tab mặc định (Dòng thời gian); mở lại Nhu cầu để kiểm Bổ sung/Nâng cao đã đóng.
     await waitFor(() =>
-      expect(screen.getByRole('tab', { name: 'Nhu cầu & căn' }).getAttribute('aria-selected')).toBe('true'),
+      expect(screen.getByRole('tab', { name: /^Dòng thời gian/ }).getAttribute('aria-selected')).toBe('true'),
     );
+    openNeeds();
     expect(screen.getByRole('button', { name: /^(Mở rộng \(\d+\)|Thu gọn)$/ }).getAttribute('aria-expanded')).toBe(
       'false',
     );
