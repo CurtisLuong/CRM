@@ -77,8 +77,8 @@ function Profile() {
   };
   const [now, setNow] = useState(Date.now());
   const [busy, setBusy] = useState(false);
-  // CP-01: Nhu cầu & căn là tab đầu/mặc định; mở khách khác quay lại tab này.
-  const [tab, setTab] = useState('needs');
+  // TL-03: mở hồ sơ bắt đầu ở Dòng thời gian.
+  const [tab, setTab] = useState('timeline');
   // CL-03 L2: ô trống của Trí nhớ ẩn sau nút "Bổ sung"; mặc định đóng mỗi lần mở hồ sơ.
   const [supplementOpen, setSupplementOpen] = useState(false);
   // CP-01: ô trống của Nhu cầu hiện tại dùng nút "Bổ sung" riêng.
@@ -130,7 +130,7 @@ function Profile() {
     };
   }, []);
 
-  // Mở một khách khác: tab về Nhu cầu & căn, mọi khu Bổ sung/Nâng cao đóng lại.
+  // Mở một khách khác: tab về Dòng thời gian, mọi khu Bổ sung/Nâng cao đóng lại.
   const customerId = customer?.id ?? '';
   // Ô nhu cầu đã có giá trị lúc mở khách vẫn hiện dù bị xoá trắng; giữ qua lần đổi tab, chỉ reset khi sang khách khác.
   const [needsVisible, setNeedsVisible] = useState<{ id: string; keys: Set<string> }>(() => ({
@@ -145,7 +145,7 @@ function Profile() {
   }
   useEffect(() => {
     if (!customerId) return;
-    setTab('needs');
+    setTab('timeline');
     setAddOpen(false);
     setSupplementOpen(false);
     setNeedsSupplementOpen(false);
@@ -532,9 +532,9 @@ function Profile() {
     </div>
   );
   const tabs = [
-    { value: 'needs', label: 'Nhu cầu & căn', content: needsContent },
-    { value: 'memory', label: 'Trí nhớ', content: memoryContent },
     { value: 'timeline', label: 'Dòng thời gian', count: timeline.length, content: timelineContent },
+    { value: 'memory', label: 'Trí nhớ', content: memoryContent },
+    { value: 'needs', label: 'Nhu cầu & căn', content: needsContent },
     { value: 'docs', label: 'Tài liệu', count: docCount, content: docsContent },
   ];
 

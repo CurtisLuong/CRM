@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, fireEvent as tl03FireEvent, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -34,12 +34,18 @@ vi.mock('@/data/hooks', () => ({
   useRepositoryAccount: () => account,
 }));
 
-const wrap = () =>
-  render(
+// TL-03 (09/11): tab mở sẵn là Dòng thời gian → chuyển sang "Nhu cầu & căn" trước (Radix kích hoạt tab khi mousedown).
+const wrap = () => {
+  const view = render(
     <MemoryRouter>
       <ToastProvider>{route.element}</ToastProvider>
     </MemoryRouter>,
   );
+  const tab = screen.getByRole('tab', { name: 'Nhu cầu & căn' });
+  tl03FireEvent.mouseDown(tab);
+  tl03FireEvent.click(tab);
+  return view;
+};
 
 // PC-01 (Curtis 26/10): Dự án quan tâm là ô gọn, bấm mới mở phần chọn/sửa/xoá.
 const openProjects = async () =>

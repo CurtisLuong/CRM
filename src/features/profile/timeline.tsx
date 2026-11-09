@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { type ReactNode, useState } from 'react';
 import { formatStageDuration, Timeline, type TimelineAction, TimelineEditButton } from '@/components/crm';
 import { Button } from '@/components/ui/button';
 import {
@@ -392,7 +392,7 @@ export function ProfileTimeline({
   const entryBody = (entry: ProfileTimelineEntry) => {
     const editable = canEditEntry(entry);
     const editing = editable && editingId === entry.id;
-    // Không ghi chú → không khung; bút nằm trên dòng tên (penInTitle) để không thêm dòng trống.
+    // Không ghi chú → không khung; bút nằm sau giờ trên hàng tên để không thêm dòng trống.
     if (!entry.detail && !editing) return null;
     if (editing) {
       if (entry.kind === 'call') return callEditor(entry);
@@ -400,9 +400,11 @@ export function ProfileTimeline({
       return noteEditor(entry);
     }
     return (
-      <span data-entry-body="" className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3">
+      <span data-entry-body="" className={cn('relative block', editable && 'pr-11 [&>button]:-right-2')}>
         {entry.detail ? (
-          <span className="whitespace-pre-wrap break-words text-sm font-medium text-ink-muted">{entry.detail}</span>
+          <span className="block whitespace-pre-wrap break-words text-sm font-medium leading-5 text-ink-muted">
+            {entry.detail}
+          </span>
         ) : (
           <span />
         )}
@@ -415,17 +417,35 @@ export function ProfileTimeline({
 
   const entryText = (
     entry: ProfileTimelineEntry,
-    options: { detail: boolean; heading?: boolean; timeBelow?: boolean; duration?: string },
+    options: {
+      detail: boolean;
+      heading?: boolean;
+      stageIcon?: boolean;
+      timeBelow?: boolean;
+      duration?: string;
+      trailing?: ReactNode;
+    },
   ) => (
     <>
-      <div className="flex items-baseline justify-between gap-2">
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
+      <div
+        data-timeline-item-header=""
+        className={cn(
+          'relative flex items-end justify-between gap-2',
+          !entry.detail && canEditEntry(entry) && editingId !== entry.id && 'pr-11',
+        )}
+      >
+        {options.stageIcon && (
+          <span data-timeline-stage-icon="" className="relative z-[1] size-5 shrink-0 bg-surface-0">
+            <Icon name={timelineIcon(entry)} size={20} className="text-ion" />
+          </span>
+        )}
+        <div className="flex min-w-0 flex-1 flex-wrap items-end gap-2">
           {options.heading ? (
             <h3 className="text-sm font-semibold leading-5">{displayTitleOf(entry)}</h3>
           ) : (
             <span className="text-sm font-medium leading-5">{displayTitleOf(entry)}</span>
           )}
-          {entry.automatic && (
+          {entry.automatic && !options.heading && (
             <span className="rounded-sm border border-line px-2 py-0.5 text-caption text-ink-muted">Tự động · SLA</span>
           )}
           {entry.kind === 'task' && entry.taskKind && (
@@ -439,12 +459,19 @@ export function ProfileTimeline({
             {fmtWhen(entry.at)}
           </time>
         )}
+        {options.trailing}
         {!entry.detail && canEditEntry(entry) && editingId !== entry.id && (
           <TimelineEditButton label={editLabel(entry)} disabled={disabled} onClick={() => startEdit(entry)} />
         )}
       </div>
       {options.timeBelow && (
-        <p className="mt-0.5 flex flex-wrap items-center gap-x-1 text-caption text-ink-muted">
+        <p
+          className={cn(
+            'mt-0.5 flex flex-wrap items-center gap-x-1 text-caption text-ink-muted',
+            options.stageIcon && 'ml-7',
+          )}
+        >
+          {entry.automatic && <span className="rounded-sm border border-line px-2 py-0.5">Tự động · SLA</span>}
           {options.duration && <span data-stage-duration="">{options.duration}</span>}
           {options.duration && <span aria-hidden="true">·</span>}
           <time className="font-mono text-xs" dateTime={new Date(entry.at).toISOString()}>
@@ -452,7 +479,16 @@ export function ProfileTimeline({
           </time>
         </p>
       )}
-      {options.detail && (entry.detail || editingId === entry.id) && <div className="mt-1">{entryBody(entry)}</div>}
+      {options.detail && (entry.detail || editingId === entry.id) && (
+        <div className={cn('mt-1', options.stageIcon && 'ml-7')}>
+          <div
+            data-timeline-note={editingId === entry.id ? undefined : ''}
+            className={editingId === entry.id ? undefined : 'rounded-sm border border-line bg-surface-0 px-3 py-2'}
+          >
+            {entryBody(entry)}
+          </div>
+        </div>
+      )}
     </>
   );
 
@@ -498,15 +534,16 @@ export function ProfileTimeline({
               {taskKindOf(entry.taskKind).label}
             </span>
           )}
-          {!entry.detail && canEditEntry(entry) && editingId !== entry.id && (
-            <TimelineEditButton label={editLabel(entry)} disabled={disabled} onClick={() => startEdit(entry)} />
-          )}
         </span>
       ),
+      edit:
+        !entry.detail && canEditEntry(entry) && editingId !== entry.id ? (
+          <TimelineEditButton label={editLabel(entry)} disabled={disabled} onClick={() => startEdit(entry)} />
+        ) : undefined,
       // Không có ghi chú → không vẽ khung (ngày đã ở dòng tên của kit).
       note:
         entry.detail || entry.automatic || editingId === entry.id ? (
-          <span className="flex flex-col items-start gap-1">
+          <span className="flex flex-col gap-1">
             {entry.automatic && (
               <span className="rounded-sm border border-line px-2 py-0.5 text-caption text-ink-muted">
                 Tự động · SLA
@@ -584,8 +621,8 @@ export function ProfileTimeline({
           })}
         </div>
       ) : view.grouped ? (
-        <div className="space-y-4">
-          {view.groups.map((group) => {
+        <div>
+          {view.groups.map((group, index) => {
             const groupIndex = allGroups.findIndex((item) => item.id === group.id);
             // Nhóm hiện tại = nhóm mới nhất và đúng bậc đang chăm sóc (lịch sử có thể lặp lại tên bậc cũ).
             const isCurrent =
@@ -595,29 +632,41 @@ export function ProfileTimeline({
               normStage(stageDisplayTitle(group.stage.title)) === currentStage;
             const duration = group.stage ? formatStageDuration(group.at, endOfGroup(groupIndex), new Date(now)) : '';
             return (
-              <section key={group.id} data-timeline-group={group.id} className="space-y-2">
+              <section key={group.id} data-timeline-group={group.id} className="relative pb-4 last:pb-0">
+                {index < view.groups.length - 1 && (
+                  <span
+                    aria-hidden="true"
+                    data-timeline-stage-rail=""
+                    className="absolute bottom-0 left-[9px] top-5 w-0.5 bg-line"
+                  />
+                )}
                 {group.stage ? (
-                  <article data-timeline-header="" className="flex items-start gap-2">
-                    <Icon name={group.icon} size={20} className="mt-0.5 shrink-0 text-ion" />
-                    <div className="min-w-0 flex-1">
-                      {/* 360px: tên bậc một dòng; thời gian ở bậc + giờ vào bậc xuống dòng dưới (mockup TL-02). */}
-                      {entryText(group.stage, { detail: stageDetail, heading: true, timeBelow: true, duration })}
-                    </div>
-                    {isCurrent && writable && onStage && (
-                      <Button variant="secondary" size="sm" className="shrink-0" onClick={onStage}>
-                        Đổi bậc
-                      </Button>
-                    )}
+                  <article data-timeline-header="" className="relative">
+                    {entryText(group.stage, {
+                      detail: stageDetail,
+                      heading: true,
+                      stageIcon: true,
+                      timeBelow: true,
+                      duration,
+                      trailing:
+                        isCurrent && writable && onStage ? (
+                          <Button variant="secondary" size="sm" className="-my-3 h-11 shrink-0" onClick={onStage}>
+                            Đổi bậc
+                          </Button>
+                        ) : undefined,
+                    })}
                   </article>
                 ) : (
-                  <article data-timeline-header="" className="flex items-center gap-2">
-                    <Icon name={group.icon} size={20} className="shrink-0 text-ink-muted" />
+                  <article data-timeline-header="" className="relative flex items-end gap-2">
+                    <span data-timeline-stage-icon="" className="relative z-[1] size-5 shrink-0 bg-surface-0">
+                      <Icon name={group.icon} size={20} className="text-ink-muted" />
+                    </span>
                     <h3 className="text-sm font-semibold leading-5">{group.title}</h3>
                   </article>
                 )}
                 {/* Ẩn vòng tròn bậc và vòng tròn từng mục của kit (icon đã nằm trong dòng mục) → bỏ luôn cột của chúng, không thì nội dung bị nhét vào cột hẹp và icon lặp đôi (Curtis 30/10). */}
                 {group.rows.length > 0 && (
-                  <div className="ml-2 border-l-2 border-line pl-3 [&>ol>li]:grid-cols-1 [&>ol>li>span:nth-child(-n+2)]:hidden [&>ol>li>div>ol>li]:grid-cols-1 [&>ol>li>div>ol>li]:before:hidden [&>ol>li>div>ol>li>span:first-child]:hidden [&>ol>li>div>button]:hidden [&>ol>li>div>span]:hidden">
+                  <div className="ml-2 mt-2 pl-3 [&>ol>li]:grid-cols-1 [&>ol>li>span:nth-child(-n+2)]:hidden [&>ol>li>div>ol>li]:grid-cols-1 [&>ol>li>div>ol>li]:before:hidden [&>ol>li>div>ol>li>span:first-child]:hidden [&>ol>li>div>button]:hidden [&>ol>li>div>span]:hidden">
                     <Timeline
                       now={new Date(now)}
                       stages={[

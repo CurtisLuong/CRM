@@ -104,7 +104,8 @@ test('Hồ sơ v3: không "Chưa biết", không Brief 20 giây, không ô chọ
 
 test('Đầu hồ sơ: nút bậc mở sheet chọn bậc; có thanh SLA', async ({ page }) => {
   await open(page);
-  const stage = page.getByRole('button', { name: /Đổi bậc/ });
+  // TL-03: tab Dòng thời gian mở sẵn cũng có nút "Đổi bậc" → chọn chip cạnh tên ("Đổi bậc · …").
+  const stage = page.getByRole('button', { name: /^Đổi bậc · / });
   await expect(stage).toContainText('Xem dự án');
   // PF-10 (Curtis 08/11): bỏ dòng "còn/quá …" lặp dưới thanh; thanh SLA vẫn có nhãn "SLA <mục tiêu> · <hạn mức>".
   await expect(page.getByText(/^SLA .+ · .+/).first()).toBeVisible();

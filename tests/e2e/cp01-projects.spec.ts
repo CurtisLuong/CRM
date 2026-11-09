@@ -166,6 +166,9 @@ async function open(
   );
   await page.goto(`/ho-so/${customerId}`);
   await expect(page.getByRole('heading', { level: 1, name: 'Nguyễn Thị Hưởng' })).toBeVisible();
+  // TL-03 (09/11): tab mở sẵn là Dòng thời gian → các ca CP-01 kiểm tab Nhu cầu & căn.
+  await expect(page.getByRole('tab', { name: /^Dòng thời gian/ })).toHaveAttribute('aria-selected', 'true');
+  await page.getByRole('tab', { name: 'Nhu cầu & căn' }).click();
   return {
     userId,
     customerId,
