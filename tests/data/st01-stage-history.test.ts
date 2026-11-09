@@ -69,4 +69,19 @@ describe('ST-01: không ghi mốc bậc cùng bậc', () => {
     expect(row.call_attempts).toHaveLength(1);
     expect(row.care_stage_history).toEqual(before.care_stage_history);
   });
+  it('xong việc: không thêm mốc bậc; ghi chú lưu vào việc (done_note); mở lại thì bỏ', async () => {
+    const { repo } = await setup({ care_stage: 'Đang chăm sóc' });
+    await repo.addTask(ID, 'Tham quan nhà mẫu');
+    const task = ((await repo.get(ID)) as any).next_tasks[0];
+    const before = (await repo.get(ID)) as any;
+    await repo.completeTask(ID, task.at, '  Khách thích căn góc  ');
+    let row = (await repo.get(ID)) as any;
+    expect(row.care_stage_history).toEqual(before.care_stage_history);
+    expect(row.care_stage_updated_at).toBe(before.care_stage_updated_at);
+    expect(row.next_tasks[0]).toMatchObject({ done_at: NOW, done_note: 'Khách thích căn góc' });
+    await repo.reopenTask(ID, task.at);
+    row = (await repo.get(ID)) as any;
+    expect(row.next_tasks[0]).not.toHaveProperty('done_at');
+    expect(row.next_tasks[0]).not.toHaveProperty('done_note');
+  });
 });

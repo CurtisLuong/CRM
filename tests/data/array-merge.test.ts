@@ -269,9 +269,18 @@ describe('2 thiết bị cùng sửa 1 khách (kịch bản T5.2 E2)', () => {
     await mac.repo.addTask('c1', 'Gửi bảng giá');
     const taskAt = (await mac.local.get('c1'))?.next_tasks?.[0]?.at as string;
     await new Promise((r) => setTimeout(r, 2)); // mốc `at` khác nhau
-    await mac.repo.completeTask('c1', taskAt);
+    // ST-01 (09/11): xong việc không còn ghi mốc bậc → dựng dữ liệu cũ (việc xong có log_at + mốc "Xong việc")
+    // để vẫn kiểm: mở lại việc bỏ mốc cũ, mốc máy khác thêm vẫn còn.
+    const logAt = new Date().toISOString();
+    const local = (await mac.local.get('c1')) as any;
+    await mac.repo.update('c1', {
+      next_tasks: local.next_tasks.map((t: any) => (t.at === taskAt ? { ...t, done_at: logAt, log_at: logAt } : t)),
+      care_stage_history: [
+        ...(local.care_stage_history ?? []),
+        { stage: local.care_stage, note: 'Xong việc: Gửi bảng giá', at: logAt },
+      ],
+    });
     await mac.sync.flushQueue();
-    const logAt = server.rows.c1.next_tasks[0].log_at;
     expect(server.rows.c1.care_stage_history.some((h: any) => h.at === logAt)).toBe(true);
     // Điện thoại tải bản server, rồi ghi 1 mốc chăm sóc.
     await phone.local.put(clean(server.rows.c1));
