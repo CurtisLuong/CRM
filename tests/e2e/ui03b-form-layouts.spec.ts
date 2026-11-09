@@ -1,5 +1,7 @@
 import { expect, type Locator, type Page, type TestInfo, test } from '@playwright/test';
 
+// PF-12 (09/11): nút mở tấm đổi thành icon + "Lưu trữ khách" (bỏ dấu "…").
+
 const userId = 'ui03b-e2e-user';
 const NOW = new Date(2026, 10, 8, 9, 30);
 const AT = NOW.toISOString();
@@ -240,7 +242,7 @@ for (const theme of ['light', 'dark'] as const) {
       await dialog.getByLabel('Nội dung việc', { exact: true }).fill('Gửi bảng giá mới');
       await dialog.getByRole('button', { name: 'Lưu việc', exact: true }).click();
       await expect(dialog).toHaveCount(0);
-      await page.getByRole('button', { name: 'Lưu trữ khách…', exact: true }).click();
+      await page.getByRole('button', { name: 'Lưu trữ khách', exact: true }).click();
       dialog = page.getByRole('dialog', { name: /Lưu trữ khách/ });
       await dialog.getByLabel('Lý do lưu trữ', { exact: true }).selectOption('khac');
       await expect(dialog.getByLabel('Ghi chú lý do lưu trữ')).toBeVisible();

@@ -1,5 +1,7 @@
 import { expect, type Page, test } from '@playwright/test';
 
+// PF-12 (09/11): nút mở tấm đổi thành icon + "Lưu trữ khách" (bỏ dấu "…").
+
 const userId = 'pc03-offline-user';
 const customerId = 'pc03-offline-customer';
 const dbName = `crm_khach_hang__${encodeURIComponent(userId)}`;
@@ -79,7 +81,7 @@ test('lưu trữ khi ngoại tuyến ghi ngay vào bản local và hàng đợi'
   await page.goto(`/ho-so/${customerId}`);
   await expect(page.getByRole('heading', { name: 'Khách ngoại tuyến' })).toBeVisible();
   await page.context().setOffline(true);
-  await page.getByRole('button', { name: 'Lưu trữ khách…' }).click();
+  await page.getByRole('button', { name: 'Lưu trữ khách', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: 'Lưu trữ khách Khách ngoại tuyến?' });
   await dialog.getByRole('combobox', { name: 'Lý do lưu trữ' }).selectOption('so_sai');
   await dialog.getByRole('button', { name: 'Lưu trữ khách', exact: true }).click();
