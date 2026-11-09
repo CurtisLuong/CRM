@@ -85,6 +85,8 @@ function Profile() {
   const [projectsOpen, setProjectsOpen] = useState(false);
   const [stageOpen, setStageOpen] = useState(false);
   const [missingKey, setMissingKey] = useState('');
+  // KB-01: "Vướng mắc gần nhất" gọn 3 dòng, bấm để xem đủ.
+  const [objectionOpen, setObjectionOpen] = useState(false);
   // Bấm "Còn thiếu: …" → mở đúng tab/khối rồi cuộn tới ô cần điền (Curtis 03/11).
   const [jump, setJump] = useState<{ target: string; serial: number } | null>(null);
   const [assetsOpenSignal, setAssetsOpenSignal] = useState(0);
@@ -900,8 +902,9 @@ function Profile() {
               {lastTouch && <span className="text-caption text-ink-muted">{lastTouch.meta}</span>}
             </div>
             {lastTouch ? (
-              <p className="mt-2 text-body">
-                {lastTouch.headline && <b className="font-semibold">{lastTouch.headline}. </b>}
+              // KB-01 (Curtis 10/11): nội dung nhỏ hơn tiêu đề thẻ (14px, chữ phụ) để phân cấp thông tin.
+              <p className="mt-2 text-sm leading-relaxed text-ink-muted">
+                {lastTouch.headline && <b className="font-semibold text-ink">{lastTouch.headline}. </b>}
                 {lastTouch.text}
               </p>
             ) : (
@@ -989,14 +992,36 @@ function Profile() {
           <section aria-label="Đã biết" className="rounded-md border border-line bg-surface-100 p-4 max-xl:order-4">
             <h2 className="text-section-head">Đã biết</h2>
             {briefParts.known.length ? (
-              <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-3">
-                {briefParts.known.map((item) => (
-                  <div key={item.key} className="min-w-0">
-                    <dt className="text-caption text-ink-muted">{item.label}</dt>
-                    <dd className="text-body [overflow-wrap:anywhere]">{item.value}</dd>
-                  </div>
-                ))}
-              </dl>
+              <>
+                {/* KB-01 (Curtis 10/11): ô ngắn 2 cột; "Vướng mắc gần nhất" (thường rất dài) xuống cuối, cả bề ngang. */}
+                <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-3">
+                  {briefParts.known
+                    .filter((item) => item.key !== 'objection')
+                    .map((item) => (
+                      <div key={item.key} className="min-w-0">
+                        <dt className="text-caption text-ink-muted">{item.label}</dt>
+                        <dd className="text-sm font-medium [overflow-wrap:anywhere]">{item.value}</dd>
+                      </div>
+                    ))}
+                </dl>
+                {briefParts.known
+                  .filter((item) => item.key === 'objection')
+                  .map((item) => (
+                    <dl key={item.key} className="mt-3 border-t border-line pt-3">
+                      <dt className="text-caption text-ink-muted">{item.label}</dt>
+                      <dd className="mt-0.5">
+                        <button
+                          type="button"
+                          aria-expanded={objectionOpen}
+                          onClick={() => setObjectionOpen((open) => !open)}
+                          className={`w-full text-left text-sm leading-relaxed text-ink-muted [overflow-wrap:anywhere] ${objectionOpen ? '' : 'line-clamp-3'}`}
+                        >
+                          {item.value}
+                        </button>
+                      </dd>
+                    </dl>
+                  ))}
+              </>
             ) : (
               <p className="mt-2 text-body text-ink-muted">Chưa có thông tin nào được ghi.</p>
             )}
