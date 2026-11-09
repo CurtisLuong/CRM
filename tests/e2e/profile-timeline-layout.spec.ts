@@ -1,5 +1,7 @@
 import { expect, type Page, test } from '@playwright/test';
 
+// TL-04 (09/11): dòng thời gian dùng khuôn Hành trình — mục con là '[data-timeline-group] ol > li', icon loại nằm trong vòng tròn của <li>.
+
 // Curtis 30/10: mọi mục nhật ký cùng một khuôn — dòng đầu có icon + tên + đúng một ngày (ngoài khung);
 // khung chỉ có khi có ghi chú: chữ bên trái, nút Sửa cố định cuối dòng trên.
 // Dữ liệu đủ loại: gọi có/không ghi chú, ghi chú ngắn/dài, Zalo, việc, bậc.
@@ -110,13 +112,15 @@ for (const theme of ['light', 'dark'] as const) {
     const panel = page.getByRole('tabpanel', { name: /Dòng thời gian/ });
 
     // Mỗi mục (trong bậc + mốc bậc) có icon, tên và đúng một ngày.
-    const steps = panel.locator('[data-timeline-group] ol ol > li');
+    const steps = panel.locator('[data-timeline-group] ol > li');
     // TL-01 (09/11): mốc cùng bậc có ghi chú thành dòng con "Ghi chú bậc" trong nhóm bậc.
-    expect(await steps.count()).toBe(9); // 3 cuộc gọi + 3 ghi chú + Zalo + việc + 1 ghi chú bậc
+    // TL-04: tab chỉ hiện 8 hoạt động mới nhất (9 mục: 3 cuộc gọi + 3 ghi chú + Zalo + việc + 1 ghi chú bậc), còn lại ở "Xem toàn bộ lịch sử".
+    expect(await steps.count()).toBe(8);
+    await expect(panel.getByRole('button', { name: 'Xem toàn bộ lịch sử (1 mục)' })).toBeVisible();
     for (const step of await steps.all()) {
       await expect(step.locator('time')).toHaveCount(1);
       // TL-02: icon bút nằm trong nút → chỉ đếm icon loại mục.
-      await expect(step.locator('[data-timeline-entry] svg:not(button svg)')).toHaveCount(1);
+      await expect(step.locator('svg:not(button svg)')).toHaveCount(1);
     }
     const stageHeads = panel.locator('[data-timeline-header]').filter({ has: page.getByRole('heading') }); // TL-02: tên bậc bỏ tiền tố "Bậc: "
     // TL-01 (09/11): 2 mốc cùng "Đang chăm sóc" gộp thành 1 nhóm bậc; mốc sau thành dòng "Ghi chú bậc".
@@ -131,8 +135,9 @@ for (const theme of ['light', 'dark'] as const) {
     await expect(panel.getByText('Hạn 09:00 28/10/2026', { exact: true })).toBeVisible();
 
     const bodies = panel.locator('[data-entry-body]');
-    expect(await bodies.count()).toBe(8); // 2 cuộc gọi có ghi chú + 3 ghi chú + Zalo + việc + 1 ghi chú mốc bậc
-    expect(await page.getByRole('button', { name: /^Sửa ghi chú/ }).count()).toBe(4);
+    // TL-04: mục cũ nhất (có ghi chú) bị rút gọn → còn 7 khung, 3 bút "Sửa ghi chú…" trong tab.
+    expect(await bodies.count()).toBe(7);
+    expect(await panel.getByRole('button', { name: /^Sửa ghi chú/ }).count()).toBeGreaterThanOrEqual(3);
     const layouts = await bodies.evaluateAll((els) =>
       els.map((el) => {
         const r = (n: Element) => n.getBoundingClientRect();
