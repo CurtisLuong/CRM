@@ -148,6 +148,8 @@ async function seed(page: Page, path: string) {
 const routes = ['/today', '/cong-viec', '/khach-hang', '/khach-moi', '/khach-hang/retarget', '/khach-hang/luu-tru'];
 
 test('nhu cầu từng thẻ đúng nội dung, vị trí, màu và ellipsis ở 360/390/1280px', async ({ page }) => {
+  // 3 khổ × 3 trang = 9 lần nạp trang trong một ca: 30 giây không đủ khi máy chạy song song worker (09/11).
+  test.setTimeout(120_000);
   for (const width of [360, 390, 1280]) {
     await page.setViewportSize({ width, height: 780 });
     for (const path of routes) {

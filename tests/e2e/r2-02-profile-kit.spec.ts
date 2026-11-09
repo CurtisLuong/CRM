@@ -114,7 +114,9 @@ test('R2-02: hồ sơ trong phạm vi không import component cũ ngoài ngoại
     const imports = source.match(/from\s+['"]@\/ui[^'"]*['"]/g) ?? [];
     expect(
       imports.filter(
-        (line) => !['@/ui/display', '@/ui/Icon', '@/ui/BlockBoundary'].some((allowed) => line.includes(allowed)),
+        // TS-01 (09/11): '@/ui/Toast' là lớp thông báo chung gắn cho cả app (Sonner chưa gắn toàn cục) → ngoại lệ chung.
+        (line) =>
+          !['@/ui/display', '@/ui/Icon', '@/ui/BlockBoundary', '@/ui/Toast'].some((allowed) => line.includes(allowed)),
       ),
       file,
     ).toEqual([]);
