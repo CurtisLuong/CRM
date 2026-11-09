@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { FormSection, LONG_FIELD } from '@/components/crm/form-section';
 import { Button } from '@/components/ui/button';
 import {
@@ -15,6 +15,7 @@ import { LEAD_DROP_REASONS } from '@/config/reasons';
 import { useRepositoryAccount } from '@/data/hooks';
 import type { Customer, Interaction } from '@/domain/customer';
 import { appendInteractionPatch } from '@/domain/customer/interactions';
+import { Icon } from '@/ui/Icon';
 
 export const ARCHIVED_PATH = '/khach-hang/luu-tru';
 
@@ -111,7 +112,6 @@ export function useArchiveActions(customer: ArchiveTarget) {
 
 /** Cuối hồ sơ, xa thanh thao tác thường; mở sheet xác nhận trước khi lưu trữ. */
 export function ArchiveCustomerSection({ customer }: { customer: Customer }) {
-  const navigate = useNavigate();
   const { account, busy, run, notice, dismissNotice } = useArchiveActions(customer);
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState('');
@@ -126,18 +126,24 @@ export function ArchiveCustomerSection({ customer }: { customer: Customer }) {
       <h2 id="archive-customer-title" className="text-title">
         Lưu trữ khách
       </h2>
-      <p className="text-caption text-ink-muted">
-        Dùng cho khách nhập nhầm, khách thử hoặc không còn chăm sóc. Dữ liệu được giữ nguyên và khôi phục được.
-      </p>
       <div className="flex flex-wrap gap-2">
-        <Button onClick={() => setOpen(true)}>Lưu trữ khách…</Button>
-        <Button variant="ghost" onClick={() => navigate(ARCHIVED_PATH)}>
-          Xem khách đã lưu trữ
+        <Button
+          onClick={() => {
+            setReason('');
+            setNote('');
+            setOpen(true);
+          }}
+        >
+          <Icon name="archive" />
+          Lưu trữ khách
+        </Button>
+        <Button asChild variant="link" className="min-h-11 whitespace-normal text-left">
+          <Link to={ARCHIVED_PATH}>Xem khách đã lưu trữ</Link>
         </Button>
       </div>
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent aria-describedby="archive-description">
-          <SheetHeader>
+          <SheetHeader className="[&_button]:size-11">
             <SheetTitle>{`Lưu trữ khách ${customer.full_name}?`}</SheetTitle>
             <SheetDescription id="archive-description">Khách sẽ ẩn khỏi danh sách, không xoá dữ liệu.</SheetDescription>
           </SheetHeader>
@@ -171,11 +177,7 @@ export function ArchiveCustomerSection({ customer }: { customer: Customer }) {
                   className="min-h-20 w-full rounded-md border border-line bg-surface-100 px-3 py-2 text-body text-ink focus-visible:outline-2 focus-visible:outline-ion"
                 />
               </label>
-              <ul className={`${LONG_FIELD} list-disc space-y-2 pl-5 text-body`}>
-                <li>Khách ẩn khỏi Danh sách khách, Hôm nay, Công việc và Thông báo; không còn nhắc gọi.</li>
-                <li>Ghi chú, cuộc gọi, lịch sử và tài liệu được giữ nguyên.</li>
-                <li>Khôi phục bất cứ lúc nào ở “Khách đã lưu trữ” (Tiện ích hoặc Bảng lệnh).</li>
-              </ul>
+              {!reason && <p className={`${LONG_FIELD} text-caption text-ink-muted`}>Chọn lý do</p>}
             </FormSection>
           </SheetBody>
           <SheetFooter>

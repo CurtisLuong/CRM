@@ -7,10 +7,10 @@ import { Button } from '@/components/ui/button';
 import { TabsContent, TabsList, Tabs as TabsPrimitive, TabsTrigger } from '@/components/ui/tabs';
 import { PREF_CONDITIONS_LEGACY, PROFILE_PREF_CONDITIONS, PROFILE_PREF_FIELDS } from '@/config/advanced';
 import { CARE_STAGE_BOOKING, CARE_STAGE_DISPLAY } from '@/config/stages';
-import { type TaskActionKind, taskKindOf } from '@/config/taskKinds';
+import { taskKindOf } from '@/config/taskKinds';
 import { VELOCITY_CONFIG } from '@/config/velocity';
 import { useCustomer, useRepositoryAccount } from '@/data/hooks';
-import type { Customer } from '@/domain/customer';
+import type { Customer, Task } from '@/domain/customer';
 import { customerBrief } from '@/domain/customer/brief';
 import { factPatch } from '@/domain/customer/facts';
 import { callAttemptsOf, normStage, openTasksOf } from '@/domain/customer/normalize';
@@ -96,6 +96,7 @@ function Profile() {
   const [browserOnline, setBrowserOnline] = useState(() => typeof navigator === 'undefined' || navigator.onLine);
   // CP-03: Thêm việc mở danh sách 5 loại trước, không dùng window.prompt.
   const [addOpen, setAddOpen] = useState(false);
+  const [editTask, setEditTask] = useState<Task | null>(null);
   const [assignOpen, setAssignOpen] = useState(false);
   const [classifyOpen, setClassifyOpen] = useState(false);
   const teamMembers = useTeamMembers(account);
@@ -147,6 +148,7 @@ function Profile() {
     if (!customerId) return;
     setTab('timeline');
     setAddOpen(false);
+    setEditTask(null);
     setSupplementOpen(false);
     setNeedsSupplementOpen(false);
     setProjectsOpen(false);
@@ -330,10 +332,15 @@ function Profile() {
     await save(bookingStepPatch(c, key, checked, new Date().toISOString()), 'Đã cập nhật checklist hồ sơ');
   };
   // CP-03: nội dung bắt buộc; hạn do form quyết định, không tự bịa nội dung hay hạn.
-  const saveNewTask = async (kind: Exclude<TaskActionKind, 'call'>, text: string, due: TaskDueValue) => {
+  const saveNewTask = async (kind: string | undefined, text: string, due: TaskDueValue) => {
     if (!account || !writable) throw new Error('Khách chỉ được xem.');
     await account.customers.addTask(c.id, text, due, kind);
     toast({ title: 'Đã thêm việc', description: `${text} · ${c.full_name}` });
+  };
+  const saveEditedTask = async (kind: string | undefined, text: string, due: TaskDueValue) => {
+    if (!account || !writable || !editTask?.at) throw new Error('Khách chỉ được xem.');
+    await account.customers.updateTask(c.id, editTask.at, text, due, kind);
+    toast({ title: 'Đã sửa việc', description: text });
   };
   const completeTask = async (at: string) => {
     if (account && writable) await account.customers.completeTask(c.id, at);
@@ -755,8 +762,9 @@ function Profile() {
             )}
             <div className="flex items-center justify-between gap-2">
               <h2 className="text-section-head">Việc tiếp theo</h2>
-              <Button disabled={!writable} onClick={() => setAddOpen(true)}>
-                Thêm việc
+              <Button aria-label="Thêm việc" disabled={!writable} onClick={() => setAddOpen(true)}>
+                <Icon name="add" />
+                Thêm
               </Button>
             </div>
             {tasks.length || callWhen || pendingCalls.length ? (
@@ -785,23 +793,31 @@ function Profile() {
                   );
                 })}
                 {callWhen && (
-                  <li className="flex items-start gap-3">
-                    <Icon name="call" size={20} className="mt-0.5 text-ink-muted" />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-body-strong">
-                        Hẹn gọi lại{c.next_call_reason ? ` · ${c.next_call_reason}` : ''}
-                      </p>
-                      <div className="mt-1 flex flex-wrap items-center gap-2 text-caption text-ink-muted">
-                        <span>{callWhen}</span>
-                        {callTag && callTag.state !== 'far' && (
-                          <span
-                            className={`rounded-sm px-2 py-1 text-caption ${callTag.state === 'missed' ? 'bg-alert-tint text-alert-text' : 'bg-soon-tint text-soon-text'}`}
-                          >
-                            {callTag.text}
-                          </span>
-                        )}
+                  <li>
+                    <button
+                      type="button"
+                      aria-label="Hẹn gọi lại"
+                      disabled={!writable}
+                      onClick={() => openQuickAction(c.id, 'schedule')}
+                      className="flex min-h-11 w-full items-start gap-3 rounded-md text-left hover:bg-surface-200 focus-visible:outline-2 focus-visible:outline-ion disabled:pointer-events-none"
+                    >
+                      <Icon name="call" size={20} className="mt-0.5 text-ink-muted" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-body-strong">
+                          Hẹn gọi lại{c.next_call_reason ? ` · ${c.next_call_reason}` : ''}
+                        </p>
+                        <div className="mt-1 flex flex-wrap items-center gap-2 text-caption text-ink-muted">
+                          <span>{callWhen}</span>
+                          {callTag && callTag.state !== 'far' && (
+                            <span
+                              className={`rounded-sm px-2 py-1 text-caption ${callTag.state === 'missed' ? 'bg-alert-tint text-alert-text' : 'bg-soon-tint text-soon-text'}`}
+                            >
+                              {callTag.text}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    </div>
+                    </button>
                   </li>
                 )}
                 {tasks.map((task) => {
@@ -818,15 +834,22 @@ function Profile() {
                     : null;
                   return (
                     <li key={task.at} className="flex items-start gap-3">
-                      <input
-                        aria-label={`Hoàn thành ${task.text}`}
-                        type="checkbox"
-                        disabled={!writable}
-                        onChange={() => void completeTask(task.at || '')}
-                        className="mt-1"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-body-strong">{task.text}</p>
+                      <label className="flex size-11 shrink-0 items-center justify-center rounded-md hover:bg-surface-200">
+                        <input
+                          aria-label={`Hoàn thành ${task.text}`}
+                          type="checkbox"
+                          disabled={!writable}
+                          onChange={() => void completeTask(task.at || '')}
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        aria-label={`Sửa việc ${task.text}`}
+                        disabled={!writable || !task.at}
+                        onClick={() => setEditTask(task)}
+                        className="min-h-11 min-w-0 flex-1 rounded-md text-left hover:bg-surface-200 focus-visible:outline-2 focus-visible:outline-ion disabled:pointer-events-none"
+                      >
+                        <p className="text-body-strong break-words">{task.text}</p>
                         <div className="mt-1 flex flex-wrap items-center gap-2 text-caption text-ink-muted">
                           <span className="inline-flex items-center gap-1">
                             <Icon name={kindInfo.icon} size={16} />
@@ -841,7 +864,7 @@ function Profile() {
                             </span>
                           )}
                         </div>
-                      </div>
+                      </button>
                     </li>
                   );
                 })}
@@ -1015,6 +1038,19 @@ function Profile() {
         }}
         onSave={saveNewTask}
       />
+
+      {editTask && writable && (
+        <AddTaskSheet
+          open
+          task={editTask}
+          customerName={c.full_name}
+          onOpenChange={(open) => {
+            if (!open) setEditTask(null);
+          }}
+          onScheduleCall={() => openQuickAction(c.id, 'schedule')}
+          onSave={saveEditedTask}
+        />
+      )}
 
       <ClassifyLeadSheet account={account} customer={c} open={classifyOpen} onOpenChange={setClassifyOpen} />
       <AssignCustomerSheet
