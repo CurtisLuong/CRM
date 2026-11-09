@@ -32,6 +32,8 @@ export interface TimelineAction {
   edit?: React.ReactNode;
 }
 export interface TimelineStageGroup {
+  /** Dấu bậc tuỳ biến; mặc định giữ số bước của Hành trình. */
+  icon?: React.ReactNode;
   /** Đầu nhóm tuỳ biến cho hồ sơ có sửa tại chỗ. */
   header?: React.ReactNode;
   id?: string;
@@ -87,10 +89,10 @@ export function TimelineEditButton(props: { label: string; disabled?: boolean; o
   );
 }
 
-function Step({ item, now, last }: { item: TimelineAction; now: Date; last: boolean }) {
+function Step({ item, now, last, profile }: { item: TimelineAction; now: Date; last: boolean; profile: boolean }) {
   const a = ACTION_BY_ID[item.action];
   return (
-    <li className="relative grid grid-cols-[24px_minmax(0,1fr)] gap-2.5 pb-3">
+    <li className={cn('relative grid grid-cols-[24px_minmax(0,1fr)] pb-3', profile ? 'gap-2' : 'gap-2.5')}>
       {!last && (
         <span
           aria-hidden
@@ -147,12 +149,14 @@ function StageBlock({
   order,
   defaultOpen,
   last,
+  profile,
 }: {
   group: TimelineStageGroup;
   now: Date;
   order: 'asc' | 'desc';
   defaultOpen: boolean;
   last: boolean;
+  profile: boolean;
 }) {
   const st = stageDef(group.stage);
   const [open, setOpen] = React.useState(defaultOpen);
@@ -174,7 +178,10 @@ function StageBlock({
       st.step
     );
   return (
-    <li data-timeline-group={group.id} className="relative grid grid-cols-[32px_minmax(0,1fr)] gap-3 pb-5">
+    <li
+      data-timeline-group={group.id}
+      className={cn('relative grid grid-cols-[32px_minmax(0,1fr)] pb-5', profile ? 'gap-2' : 'gap-3')}
+    >
       {!last && (
         <span aria-hidden data-timeline-stage-rail="" className="absolute bottom-0 left-[15px] top-8 w-0.5 bg-line" />
       )}
@@ -190,7 +197,7 @@ function StageBlock({
               : 'bg-surface-200 text-ink',
         )}
       >
-        {mark}
+        {group.icon ?? mark}
       </span>
       <div className="flex min-w-0 flex-col gap-0.5">
         {group.header ?? (
@@ -236,7 +243,7 @@ function StageBlock({
         {(group.header || open) && items.length > 0 && (
           <ol className="mt-2.5 flex list-none flex-col p-0">
             {items.map((it, i) => (
-              <Step key={i} item={it} now={now} last={i === items.length - 1} />
+              <Step key={i} item={it} now={now} last={i === items.length - 1} profile={profile} />
             ))}
           </ol>
         )}
@@ -251,11 +258,14 @@ export function Timeline({
   now,
   order = 'desc',
   collapsePast,
+  layout = 'journey',
 }: {
   stages: TimelineStageGroup[];
   now?: Date | string;
   order?: 'asc' | 'desc';
   collapsePast?: boolean;
+  /** Hồ sơ: đầu bậc và icon hoạt động cùng lề, dành thêm chỗ cho nội dung. */
+  layout?: 'journey' | 'profile';
 }) {
   const n = new Date(now ?? new Date());
   const groups = [...stages].sort(
@@ -271,6 +281,7 @@ export function Timeline({
           order={order}
           defaultOpen={collapsePast ? !g.end : true}
           last={i === groups.length - 1}
+          profile={layout === 'profile'}
         />
       ))}
     </ol>

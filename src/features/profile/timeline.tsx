@@ -626,6 +626,7 @@ export function ProfileTimeline({
         </div>
       ) : view.grouped ? (
         <Timeline
+          layout="profile"
           now={new Date(now)}
           stages={view.groups.map((group) => {
             const groupIndex = allGroups.findIndex((item) => item.id === group.id);
@@ -637,11 +638,12 @@ export function ProfileTimeline({
             const duration = group.stage ? formatStageDuration(group.at, endOfGroup(groupIndex), new Date(now)) : '';
             return {
               id: group.id,
+              icon: <Icon name={group.icon} size={20} />,
               stage: group.stage ? stageDisplayTitle(group.stage.title) : 'Chưa có bậc',
               start: group.at || group.rows[0]?.entry.at || new Date(now),
               end: endOfGroup(groupIndex),
               header: (
-                <article data-timeline-header="" className="relative pl-[34px] pt-3">
+                <article data-timeline-header="" className="relative pt-3">
                   {group.stage ? (
                     entryText(group.stage, {
                       detail: stageDetail,
