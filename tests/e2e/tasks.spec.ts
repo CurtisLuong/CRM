@@ -202,6 +202,11 @@ for (const scheme of ['light', 'dark'] as const) {
 
       await page.getByLabel('Lọc theo loại việc').selectOption('docs');
       await page.getByRole('button', { name: 'Hoàn tất: Gửi bảng giá' }).click();
+      // PF-13 (09/11): tick xong mở hộp "Hoàn thành việc" (ghi chú tuỳ chọn) → phải xác nhận.
+      await page
+        .getByRole('dialog', { name: 'Hoàn thành việc' })
+        .getByRole('button', { name: 'Xác nhận xong' })
+        .click();
       await expect(page.getByRole('heading', { name: 'Đã xong', exact: true })).toBeVisible();
       await expect(page.getByText(/^Đã xong · /)).toBeVisible();
       await expect(page.getByRole('button', { name: 'Hoàn tác' })).toBeVisible();
@@ -219,12 +224,11 @@ for (const scheme of ['light', 'dark'] as const) {
         db.close();
         return row;
       });
+      // ST-01b (09/11): xong việc không ghi mốc bậc "Xong việc: …" nữa (trong một bậc chỉ có hoạt động).
       expect(done.next_tasks).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ text: 'Gửi bảng giá', done_at: expect.any(String), log_at: expect.any(String) }),
-        ]),
+        expect.arrayContaining([expect.objectContaining({ text: 'Gửi bảng giá', done_at: expect.any(String) })]),
       );
-      expect(done.care_stage_history).toEqual(
+      expect(done.care_stage_history ?? []).not.toEqual(
         expect.arrayContaining([expect.objectContaining({ note: 'Xong việc: Gửi bảng giá' })]),
       );
       await page.getByRole('button', { name: 'Hoàn tác' }).click();

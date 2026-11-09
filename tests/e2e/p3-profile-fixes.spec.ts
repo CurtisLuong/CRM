@@ -105,7 +105,8 @@ test('hồ sơ: nhóm dưới tên, hẹn gọi, giá ước tính, còn thiếu
   await expect(header.getByText(/Facebook/)).toHaveCount(0);
 
   const next = main.getByRole('region', { name: 'Việc tiếp theo' });
-  await expect(next.getByText('Hẹn gọi lại')).toBeVisible();
+  // PF-13 (09/11): dòng hẹn gọi cùng khuôn với việc, tiêu đề "Gọi lại".
+  await expect(next.getByText('Gọi lại', { exact: true })).toBeVisible();
   await expect(next.getByText(/Hôm nay 14:00–15:00/)).toBeVisible();
 
   // TL-03 (09/11): tab mở sẵn là Dòng thời gian → chuyển sang Nhu cầu & căn.
