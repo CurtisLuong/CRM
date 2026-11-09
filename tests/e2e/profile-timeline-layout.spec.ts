@@ -115,11 +115,10 @@ for (const theme of ['light', 'dark'] as const) {
     expect(await steps.count()).toBe(9); // 3 cuộc gọi + 3 ghi chú + Zalo + việc + 1 ghi chú bậc
     for (const step of await steps.all()) {
       await expect(step.locator('time')).toHaveCount(1);
-      await expect(step.locator('[data-timeline-entry] svg')).toHaveCount(1);
+      // TL-02: icon bút nằm trong nút → chỉ đếm icon loại mục.
+      await expect(step.locator('[data-timeline-entry] svg:not(button svg)')).toHaveCount(1);
     }
-    const stageHeads = panel
-      .locator('[data-timeline-header]')
-      .filter({ has: page.getByRole('heading', { name: /^Bậc:/ }) });
+    const stageHeads = panel.locator('[data-timeline-header]').filter({ has: page.getByRole('heading') }); // TL-02: tên bậc bỏ tiền tố "Bậc: "
     // TL-01 (09/11): 2 mốc cùng "Đang chăm sóc" gộp thành 1 nhóm bậc; mốc sau thành dòng "Ghi chú bậc".
     expect(await stageHeads.count()).toBe(1);
     for (const head of await stageHeads.all()) await expect(head.locator('time')).toHaveCount(1);

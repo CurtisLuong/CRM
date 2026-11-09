@@ -114,7 +114,8 @@ for (const theme of ['light', 'dark'] as const) {
       await expect(page).toHaveURL(/\/khach-hang\/r2-04-customer$/);
       await expect(sheet.getByText('0912 345 678')).toBeVisible();
       await expect(sheet.getByText('Đang chăm sóc', { exact: true }).first()).toBeVisible();
-      await expect(sheet.getByText('Quá hạn', { exact: true })).toBeVisible();
+      // TL-02: ô thời gian của bậc cũ trong Hành trình cũng ghi trạng thái SLA → lấy chip đầu tấm.
+      await expect(sheet.getByText('Quá hạn', { exact: true }).first()).toBeVisible();
       await expect(sheet.getByText('Ở bậc này')).toBeVisible();
 
       const actions = sheet.getByRole('navigation', { name: 'Hành động nhanh' });

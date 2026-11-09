@@ -98,10 +98,11 @@ for (const theme of ['light', 'dark'] as const) {
     test('Dòng thời gian gộp bậc, sửa đúng ghi chú; Hành trình từ Hôm nay có hai bậc', async ({ page }) => {
       await open(page);
       const panel = page.getByRole('tabpanel', { name: /Dòng thời gian/ });
-      await expect(panel.getByRole('heading', { name: /^Bậc:/ })).toHaveCount(2);
+      // TL-02 (09/11): tên bậc bỏ tiền tố "Bậc: "; nút sửa thành icon bút ("Sửa …"), lưu bằng "Lưu".
+      await expect(panel.locator('[data-timeline-header]').getByRole('heading')).toHaveCount(2);
       const groups = panel.locator('[data-timeline-group]');
       await expect(groups).toHaveCount(2);
-      await expect(groups.nth(0).getByRole('heading')).toHaveText('Bậc: Nuôi dài hạn');
+      await expect(groups.nth(0).getByRole('heading')).toHaveText('Nuôi dài hạn');
       await expect(groups.nth(0).locator('[data-timeline-header] time')).toHaveAttribute(
         'dateTime',
         at('10-30', '10:53'),
@@ -120,10 +121,10 @@ for (const theme of ['light', 'dark'] as const) {
       await expect(stageNote.locator('time')).toHaveAttribute('dateTime', at('11-03', '15:33'));
       await expectNoOverflow(page);
 
-      await stageNote.getByRole('button', { name: 'Sửa ghi chú lịch sử bậc' }).click();
+      await stageNote.getByRole('button', { name: 'Sửa ghi chú bậc' }).click();
       const edited = 'Đã xác nhận nhu cầu căn hai phòng ngủ, hẹn gửi bảng giá';
-      await stageNote.getByRole('textbox', { name: 'Sửa ghi chú' }).fill(edited);
-      await stageNote.getByRole('button', { name: 'Lưu ghi chú' }).click();
+      await stageNote.getByRole('textbox', { name: 'Sửa ghi chú bậc' }).fill(edited);
+      await stageNote.getByRole('button', { name: 'Lưu', exact: true }).click();
       await expect(stageNote.getByText(edited, { exact: true })).toBeVisible();
       const saved = await page.evaluate(async (uid) => {
         const request = indexedDB.open(`crm_khach_hang__${encodeURIComponent(uid)}`, 2);
@@ -143,7 +144,7 @@ for (const theme of ['light', 'dark'] as const) {
       await expectNoOverflow(page);
 
       await panel.getByRole('button', { name: 'Bậc 2', exact: true }).click();
-      await expect(panel.getByRole('heading', { name: /^Bậc:/ })).toHaveCount(2);
+      await expect(panel.locator('[data-timeline-header]').getByRole('heading')).toHaveCount(2);
       await expect(panel.locator('[data-timeline-entry]')).toHaveCount(0);
       await expect(panel.getByText('Ghi chú bậc', { exact: true })).toHaveCount(0);
 

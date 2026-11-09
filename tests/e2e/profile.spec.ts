@@ -122,15 +122,19 @@ for (const theme of ['light', 'dark'] as const) {
     // Curtis 30/10: mỗi mục một ngày, ở dòng tên (dạng kit "T6 16/10 13:16"; khác năm mới kèm năm).
     await expect(page.locator('[data-timeline-group] time').filter({ hasText: '16/10' }).first()).toBeVisible();
     await expect(page.getByText('Đã xem dự án', { exact: true })).toBeVisible();
-    await page.getByRole('button', { name: 'Sửa ghi chú hồ sơ' }).click();
+    // TL-02 (09/11): tên bậc bỏ tiền tố "Bậc: "; nút sửa thành icon bút ("Sửa …"), lưu bằng "Lưu".
+    await page.getByRole('button', { name: 'Sửa ghi chú', exact: true }).first().click();
     await page.getByRole('textbox', { name: 'Sửa ghi chú' }).fill('Ghi chú hồ sơ đã sửa');
-    await page.getByRole('button', { name: 'Lưu ghi chú' }).click();
+    await page.getByRole('button', { name: 'Lưu', exact: true }).click();
     await expect(
       page.getByRole('tabpanel', { name: 'Dòng thời gian' }).getByText('Ghi chú hồ sơ đã sửa').first(),
     ).toBeVisible();
-    await page.getByRole('button', { name: 'Sửa ghi chú lịch sử bậc' }).click();
-    await page.getByRole('textbox', { name: 'Sửa ghi chú' }).fill('Ghi chú bậc đã sửa');
-    await page.getByRole('button', { name: 'Lưu ghi chú' }).click();
+    await page
+      .getByRole('button', { name: /^Sửa (mốc bậc|ghi chú bậc)$/ })
+      .first()
+      .click();
+    await page.getByRole('textbox', { name: 'Sửa ghi chú bậc' }).fill('Ghi chú bậc đã sửa');
+    await page.getByRole('button', { name: 'Lưu', exact: true }).click();
     await expect(
       page.getByRole('tabpanel', { name: 'Dòng thời gian' }).getByText('Ghi chú bậc đã sửa').first(),
     ).toBeVisible();
