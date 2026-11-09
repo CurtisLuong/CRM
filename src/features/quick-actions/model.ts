@@ -1,4 +1,4 @@
-import { CALL_OUTCOME_TALKED_SEC, CALL_RESULTS, type CallResult } from '@/config/callResults';
+import { CALL_OUTCOME_TALKED_SEC, type CallResult } from '@/config/callResults';
 import { type CallSlotKey, FOLLOWUP_CONFIG } from '@/config/followup';
 import type { CustomerRepository, Data } from '@/data/repositories/customers';
 import { type CallAttempt, type Customer, callAttemptsOf, isQualified } from '@/domain/customer';
@@ -101,10 +101,6 @@ export function schedulePatch(schedule: ScheduleSuggestion | null): Data {
     next_call_reason: schedule?.reason ?? null,
   };
 }
-function stamp(d: Date) {
-  const p = (n: number) => String(n).padStart(2, '0');
-  return `${p(d.getHours())}:${p(d.getMinutes())}, ${p(d.getDate())}.${p(d.getMonth() + 1)}.${d.getFullYear()}`;
-}
 export function callDuration(sec: number | null | undefined) {
   if (sec == null) return '';
   const n = Math.max(0, Math.round(sec));
@@ -160,13 +156,6 @@ export async function saveCall(
     ...(draft.device_id ? { device_id: draft.device_id } : {}),
     ...(draft.direction ? { direction: draft.direction } : {}),
   };
-  const qualified = isQualified(c);
-  if (qualified) patch.care_stage = c.care_stage;
-  const dur = callDuration(draft.duration);
-  return repo.logCall(id, attempt, {
-    editAt: draft.editAt,
-    patch,
-    forceLog: qualified,
-    careStageNote: `📞 gọi ${stamp(new Date(draft.at))}${dur ? ` (${dur})` : ''} — ${CALL_RESULTS[result]}${note.trim() ? `. ${note.trim()}` : ''}${sched ? ` · hẹn gọi lại ${sched.label}` : ''}`,
-  });
+  // Curtis 09/11: cuộc gọi là hoạt động TRONG bậc, đã lưu ở call_attempts — không ghi thêm mốc bậc cùng bậc.
+  return repo.logCall(id, attempt, { editAt: draft.editAt, patch });
 }

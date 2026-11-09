@@ -79,7 +79,8 @@ describe('quick actions touch budget', () => {
         duration: null,
         origin: 'manual',
       }),
-      expect.objectContaining({ forceLog: true }),
+      // Curtis 09/11: cuộc gọi không ghi thêm mốc bậc cùng bậc.
+      expect.not.objectContaining({ forceLog: true }),
     );
   });
 
@@ -235,7 +236,8 @@ describe('quick actions touch budget', () => {
     expect(logCall).toHaveBeenCalledWith(
       'quick-1',
       expect.objectContaining({ result: 'talked', note: 'Hẹn gửi bảng giá', origin: 'manual' }),
-      expect.objectContaining({ forceLog: true }),
+      // Curtis 09/11: cuộc gọi không ghi thêm mốc bậc cùng bậc.
+      expect.not.objectContaining({ forceLog: true }),
     );
     document.removeEventListener('click', countTouch);
   });
