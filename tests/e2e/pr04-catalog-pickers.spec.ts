@@ -154,6 +154,8 @@ async function openProfile(page: Page, theme: 'light' | 'dark', patch: Row = {})
   );
   await page.goto(`/ho-so/${CID}`);
   await expect(page.getByRole('heading', { name: 'Lan PR04', exact: true })).toBeVisible();
+  // TL-03 (09/11): hồ sơ mở sẵn tab Dòng thời gian → chuyển sang Nhu cầu & căn.
+  await page.getByRole('tab', { name: 'Nhu cầu & căn' }).click();
   await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
   return {
     customer,
@@ -283,6 +285,8 @@ for (const theme of ['light', 'dark'] as const) {
     await drawer.getByRole('button', { name: 'Lưu căn' }).click();
     await expect(drawer).toHaveCount(0);
     await navigate(page, `/ho-so/${CID}`);
+    // TL-03 (09/11): hồ sơ mở sẵn tab Dòng thời gian → chuyển sang Nhu cầu & căn.
+    await page.getByRole('tab', { name: 'Nhu cầu & căn' }).click();
     await page.getByLabel('Mã căn', { exact: true }).click();
     await expect(page.getByRole('button', { name: '802', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: '801', exact: true })).toBeVisible();

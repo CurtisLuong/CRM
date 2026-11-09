@@ -131,6 +131,8 @@ for (const theme of ['light', 'dark'] as const) {
     await page.emulateMedia({ colorScheme: theme });
     await openProfile(page);
     await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+    // TL-03 (09/11): hồ sơ mở sẵn tab Dòng thời gian → chuyển sang Nhu cầu & căn.
+    await page.getByRole('tab', { name: 'Nhu cầu & căn' }).click();
     const area = page.getByLabel('Diện tích (m²)', { exact: true });
     // 06/11: Giá ước tính thành ô Giá căn (tỷ), điền sẵn ước tính = Giá dự kiến (thuần + VAT 5% + KPBT 2%):
     // 1,5 tỷ thuần → 1,605; 1,125 → 1,204.
@@ -156,6 +158,8 @@ for (const theme of ['light', 'dark'] as const) {
     await expect(page.getByText('60 m² · theo Giỏ hàng', { exact: true })).toHaveCount(0);
     expect((await readLocal(page)).customers[0].apt_area).toBe(45);
     await page.reload();
+    // TL-03: tải lại → về tab mặc định Dòng thời gian.
+    await page.getByRole('tab', { name: 'Nhu cầu & căn' }).click();
     await expect(area).toHaveValue('45');
     await expect(estimate).toHaveValue('1,204');
 
@@ -165,6 +169,7 @@ for (const theme of ['light', 'dark'] as const) {
     await expect(page.getByText('60 m² · theo Giỏ hàng', { exact: true })).toBeVisible();
     expect((await readLocal(page)).customers[0].apt_area).toBeNull();
     await page.reload();
+    await page.getByRole('tab', { name: 'Nhu cầu & căn' }).click();
     await expect(area).toHaveValue('');
     await expect(area).toHaveAttribute('placeholder', '60');
     await expect(estimate).toHaveValue('1,605');

@@ -89,6 +89,8 @@ async function open(page: Page, customer: Record<string, unknown>) {
   );
   await page.goto(`/ho-so/${customer.id}`);
   await expect(page.getByRole('heading', { level: 1, name: String(customer.full_name) })).toBeVisible();
+  // TL-03 (09/11): hồ sơ mở sẵn tab Dòng thời gian → chuyển sang Nhu cầu & căn.
+  await page.getByRole('tab', { name: 'Nhu cầu & căn' }).click();
 }
 
 async function box(locator: Locator) {
