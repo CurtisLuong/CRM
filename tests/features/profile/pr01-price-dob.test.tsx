@@ -78,13 +78,14 @@ function Harness({
   );
 }
 
-describe('ô Giá căn (tỷ)', () => {
+// MN-01 (Curtis 09/11): ô "Giá căn" nhập theo triệu; rời ô ≥ 1000 triệu hiện số tỷ (đơn vị "tỷ"); lưu vẫn theo đồng.
+describe('ô Giá căn (triệu, hiện tỷ khi rời ô)', () => {
   // Curtis 06/11: ước tính = Giá dự kiến 68,6 × 30 tr = 2,058 tỷ thuần + VAT 5% + KPBT 2% = 2,202 tỷ.
   it('chưa nhập: điền sẵn ước tính, mở/rời ô không ghi; sửa thì lưu VNĐ; xoá thì về ước tính', async () => {
     const user = userEvent.setup();
     const onSave = vi.fn();
     render(<Harness start={{ apt_area: 68.6 }} onSave={onSave} />);
-    const input = screen.getByLabelText('Giá căn (tỷ)') as HTMLInputElement;
+    const input = screen.getByLabelText('Giá căn') as HTMLInputElement;
     expect(input.value).toBe('2,202');
     expect(screen.getByText('Ước tính · 68,6 m² × 30 triệu/m² + VAT 5% + KPBT 2%')).toBeTruthy();
     await user.click(input);
@@ -92,11 +93,11 @@ describe('ô Giá căn (tỷ)', () => {
     expect(onSave).not.toHaveBeenCalled();
 
     await user.clear(input);
-    await user.type(input, '2,2');
+    await user.type(input, '2200');
     await user.tab();
     expect(onSave).toHaveBeenLastCalledWith('apt_price', 2_200_000_000);
     expect(input.value).toBe('2,2');
-    expect(screen.getByText('Ước tính ≈ 2,2 tỷ')).toBeTruthy();
+    expect(screen.getByText('Ước tính ≈ 2,202 tỷ')).toBeTruthy();
 
     await user.clear(input);
     await user.tab();
@@ -108,16 +109,16 @@ describe('ô Giá căn (tỷ)', () => {
     const user = userEvent.setup();
     const onSave = vi.fn();
     render(<Harness start={{ apt_area: 68.6 }} onSave={onSave} />);
-    const input = screen.getByLabelText('Giá căn (tỷ)') as HTMLInputElement;
+    const input = screen.getByLabelText('Giá căn') as HTMLInputElement;
     await user.clear(input);
     await user.type(input, '2 tỷ');
     await user.tab();
     expect(onSave).not.toHaveBeenCalled();
-    expect(screen.getByText('Nhập giá theo tỷ, ví dụ 2,06.')).toBeTruthy();
+    expect(screen.getByText('Nhập số triệu, ví dụ 500 hoặc 12,5.')).toBeTruthy();
   });
 
   it('đã có giá căn từ form Thêm khách → hiện giá đó, không phải ước tính', () => {
     render(<Harness start={{ apt_area: 68.6, apt_price: 1_950_000_000 }} onSave={vi.fn()} />);
-    expect((screen.getByLabelText('Giá căn (tỷ)') as HTMLInputElement).value).toBe('1,95');
+    expect((screen.getByLabelText('Giá căn') as HTMLInputElement).value).toBe('1,95');
   });
 });

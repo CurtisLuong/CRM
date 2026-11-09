@@ -105,6 +105,7 @@ function IntakePage() {
   const [newManualNote, setNewManualNote] = useState('');
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [moneyErrors, setMoneyErrors] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState(false);
   const [ocrStatus, setOcrStatus] = useState('');
   const [ocrBusy, setOcrBusy] = useState(false);
@@ -153,6 +154,7 @@ function IntakePage() {
     setCustomAptType(!!next.apt_type && !APT_TYPES.includes(next.apt_type as (typeof APT_TYPES)[number]));
     setMoreOpen(false);
     reset(next);
+    setMoneyErrors({});
     const notes = Array.isArray(customer?.notes_manual)
       ? customer.notes_manual.filter((note): note is Record<string, unknown> => !!note && typeof note === 'object')
       : [];
@@ -223,6 +225,11 @@ function IntakePage() {
 
   const save = async (rawValues: IntakeValues) => {
     setError('');
+    if (Object.values(moneyErrors).some(Boolean)) {
+      setError('Kiểm tra lại các ô tiền được đánh dấu.');
+      setMoreOpen(true);
+      return;
+    }
     let dob: string | undefined;
     try {
       dob = dobToIso(rawValues.dob);
@@ -666,7 +673,15 @@ function IntakePage() {
           values={values}
           register={register}
           set={set}
-          fieldErrors={fieldErrors}
+          fieldErrors={{
+            ...fieldErrors,
+            ...Object.fromEntries(
+              Object.entries(moneyErrors)
+                .filter(([, invalid]) => invalid)
+                .map(([key]) => [key, 'Nhập số triệu, ví dụ 500 hoặc 12,5.']),
+            ),
+          }}
+          onMoneyValidityChange={(key, valid) => setMoneyErrors((current) => ({ ...current, [key]: !valid }))}
           unitCodes={unitCodes}
           filledCount={countMoreFilled(values)}
         />

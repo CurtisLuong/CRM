@@ -79,8 +79,6 @@ const SAME: [string, unknown, string][] = [
   ['APT_ALIAS_CORNER', APT_ALIAS_CORNER, 'APT_ALIAS_CORNER'],
   // occupations.ts, advanced.ts, docKinds.ts
   ['OCCUPATIONS', OCCUPATIONS, 'OCCUPATIONS'],
-  ['ADVANCED_GROUPS', ADVANCED_GROUPS, 'ADVANCED_GROUPS'],
-  ['ADVANCED_FIELDS', ADVANCED_FIELDS, 'ADVANCED_FIELDS'],
   ['DOC_KIND_LABELS', DOC_KIND_LABELS, 'DOC_KIND_LABELS'],
   // icons.ts
   ['STAGE_ICON', STAGE_ICON, 'STAGE_ICON'],
@@ -89,6 +87,20 @@ const SAME: [string, unknown, string][] = [
 describe('src/config = giá trị v1 (deep equal)', () => {
   it.each(SAME)('%s', (_name, mine, expr) => {
     expect(mine).toStrictEqual(v1(expr));
+  });
+
+  // MN-01 (Curtis 09/11): ô tiền nhập theo triệu → chỉ chữ gợi ý (ph) của ô số đổi, khoá/nhãn/kiểu giữ như v1.
+  it.each([
+    ['ADVANCED_GROUPS', ADVANCED_GROUPS],
+    ['ADVANCED_FIELDS', ADVANCED_FIELDS],
+  ] as const)('%s = v1, trừ chữ gợi ý ô tiền', (expr, mine) => {
+    const money = (value: unknown): unknown =>
+      JSON.parse(JSON.stringify(value), (_key, field) =>
+        field && typeof field === 'object' && field.type === 'number' && field.ph === 'VNĐ'
+          ? { ...field, ph: 'Nhập số triệu' }
+          : field,
+      );
+    expect(mine).toStrictEqual(money(v1(expr)));
   });
 
   it('LEAD_DROP_REASONS = v1 + cup_may (D-030, chỉ thêm mã)', () => {

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { TextField } from '@/components/crm/form-fields';
 import { CollapsibleFormSection, FormSubsection } from '@/components/crm/form-section';
+import { MoneyField } from '@/components/crm/money-field';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -11,7 +12,7 @@ import {
   PROFILE_LIFE_CONTEXT,
 } from '@/config/advanced';
 import type { Customer } from '@/domain/customer';
-import { displayText } from '@/ui/display';
+import { displayText, formatMoney, moneyValue } from '@/ui/display';
 import { LONG_FIELD, legacyDraft, legacyValues, SHORT_FIELD, showLegacy } from './fields';
 
 const FIELD =
@@ -181,11 +182,6 @@ export function ProfileAdvanced({ customer, writable, onSaveAdvanced, openSignal
   const advanced = customer.advanced || {};
   const assetLegacy = legacyValues(advanced, ASSET_LEGACY);
   const unknown = Object.entries(advanced).filter(([key]) => !PROFILE_ADVANCED_KEYS.includes(key));
-  const saveNumber = (key: string, raw: string) => {
-    if (raw === '') return onSaveAdvanced(key, null);
-    const value = Number(raw);
-    onSaveAdvanced(key, Number.isFinite(value) ? value : raw);
-  };
 
   return (
     <CollapsibleFormSection title="Nâng cao" aria-label="Hồ sơ nâng cao" open={open} onOpenChange={setOpen}>
@@ -204,25 +200,31 @@ export function ProfileAdvanced({ customer, writable, onSaveAdvanced, openSignal
       <FormSubsection title="Tài sản" role="group" aria-label="Tài sản">
         {PROFILE_ASSET_FIELDS.map((field) => (
           <div key={field.key} data-jump={field.key} className={SHORT_FIELD}>
-            <ProfileTextField
+            <MoneyField
+              id={fieldId(field.label)}
               label={field.label}
-              value={advanced[field.key]}
+              value={moneyValue(advanced[field.key])}
+              unparsedValue={
+                moneyValue(advanced[field.key]) == null ? displayText(advanced[field.key]) || undefined : undefined
+              }
               disabled={!writable}
-              type="number"
               placeholder={field.ph}
-              onSave={(value) => saveNumber(field.key, value)}
+              onCommit={(value) => onSaveAdvanced(field.key, value)}
             />
           </div>
         ))}
         {/* Vốn ghi lúc nhập khách (ô cũ "Tài chính sẵn có") — hiện để không tưởng là trống (D-012). */}
         {!displayText(advanced.capital) && !!displayText(customer.finance) && (
           <p className={`${LONG_FIELD} text-caption text-ink-muted`}>
-            Vốn ghi lúc nhập khách: <span className="text-body">{displayText(customer.finance)}</span>
+            Vốn ghi lúc nhập khách: <span className="text-body">{formatMoney(customer.finance)}</span>
           </p>
         )}
         {assetLegacy.map((row) => (
           <p key={row.key} className={`${LONG_FIELD} text-caption text-ink-muted`}>
-            {row.label}: <span className="text-body">{row.value}</span>{' '}
+            {row.label}:{' '}
+            <span className="text-body">
+              {row.key === 'monthly_payment' ? formatMoney(advanced[row.key], true) : row.value}
+            </span>{' '}
             <span className="text-ink-muted">(ghi cũ được giữ nguyên)</span>
           </p>
         ))}

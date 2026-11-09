@@ -1,9 +1,57 @@
 /**
  * Định dạng giá trị để HIỂN THỊ (docs/DESIGN.md luật L3): không bao giờ ra mã lưu DB,
- * ngày ISO hay "[object Object]". Nhãn lấy từ src/config (một nguồn). Không dùng để ghi dữ liệu.
+ * ngày ISO hay "[object Object]". Nhãn lấy từ src/config (một nguồn). Tiền chỉ đổi đơn vị ở biên nhập/hiển thị.
  */
 import { CALL_RESULTS } from '@/config/callResults';
 import { INTAKE_METHODS, SOURCE_LEGACY, SOURCES } from '@/config/sources';
+
+export { formatMoney } from '@/domain/customer/brief';
+
+/** Số đang lưu theo đồng, kể cả chuỗi số cũ; không suy đoán từ chữ tự do. */
+export function moneyValue(value: unknown): number | null {
+  if (value == null || value === '' || (typeof value !== 'number' && typeof value !== 'string')) return null;
+  if (typeof value === 'string' && !/^\d+(\.\d+)?$/.test(value.trim())) return null;
+  const amount = Number(value);
+  return Number.isFinite(amount) && amount >= 0 ? amount : null;
+}
+
+/** Ô nhập luôn đọc theo triệu; dấu chấm trước nhóm 3 chữ số là dấu nghìn. */
+export function parseMoneyInput(raw: string): number | null | undefined {
+  const value = parseMoneyNumber(raw);
+  if (value == null) return value;
+  const amount = Math.round(value * 1_000_000);
+  return Number.isSafeInteger(amount) ? amount : undefined;
+}
+
+function parseMoneyNumber(raw: string): number | null | undefined {
+  const text = raw.trim();
+  if (!text) return null;
+  const grouped = /^\d+(\.\d{3})+(,\d+)?$/.test(text);
+  if (!grouped && !/^\d+([.,]\d+)?$/.test(text)) return undefined;
+  const normalized = (grouped ? text.replaceAll('.', '') : text).replace(',', '.');
+  const value = Number(normalized);
+  return Number.isFinite(value) ? value : undefined;
+}
+
+/** Chữ thu nhập cũ → số đồng cho ô tiền, chỉ đọc; không chuẩn hoá dữ liệu khi mở hồ sơ. */
+export function parseIncome(value: string | null | undefined): number | null | undefined {
+  const text = value?.trim() ?? '';
+  if (!text) return null;
+  const match = text.match(/^(?:khoảng\s+)?(\d+(?:[.,]\d+)*)(?:\s*(tr|triệu)(?:\s*\/\s*tháng)?)?$/iu);
+  if (!match?.[1]) return undefined;
+  const parsed = parseMoneyNumber(match[1]);
+  if (parsed == null) return undefined;
+  // Thu nhập cũ từ 100.000 trở lên được ghi theo đồng.
+  const amount = Math.round(!match[2] && parsed >= 100_000 ? parsed : parsed * 1_000_000);
+  return Number.isSafeInteger(amount) ? amount : undefined;
+}
+
+/** Cột income vẫn là chữ và luôn ghi theo triệu, kể cả trên 1 tỷ/tháng. */
+export function incomeText(value: number | null): string | null {
+  return value == null
+    ? null
+    : `${(value / 1_000_000).toLocaleString('vi-VN', { useGrouping: false, maximumFractionDigits: 6 })} triệu/tháng`;
+}
 
 const ISO_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/;
 const pad = (n: number) => String(n).padStart(2, '0');

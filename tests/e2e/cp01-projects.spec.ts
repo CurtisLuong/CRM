@@ -236,7 +236,8 @@ for (const theme of ['light', 'dark'] as const) {
     const type = await page.getByLabel('Loại căn').boundingBox();
     const expandedArea = await page.getByLabel('Diện tích (m²)').boundingBox();
     // Curtis 03/11: ô "Tài chính sẵn có" → "Giá ước tính" (tự tính, cùng chỗ cạnh Diện tích).
-    const finance = await page.getByLabel('Giá căn (tỷ)').boundingBox();
+    // MN-01 (09/11): ô tiền nhập theo triệu; ô Giá căn đổi nhãn thành "Giá căn", rời ô ≥ 1 tỷ hiện số tỷ.
+    const finance = await page.getByLabel('Giá căn', { exact: true }).boundingBox();
     expect(Math.abs((expandedPurpose?.y ?? -999) - (type?.y ?? 999))).toBeLessThanOrEqual(2);
     expect(Math.abs((expandedArea?.y ?? -999) - (finance?.y ?? 999))).toBeLessThanOrEqual(2);
     if (info.project.name === 'desktop-1280') {

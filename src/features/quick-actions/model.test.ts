@@ -61,9 +61,11 @@ describe('quick action call payload parity', () => {
       device_id: 'android-call-17',
       direction: 'out',
     });
-    expect(options).toMatchObject({ editAt: undefined, forceLog: true, patch: { care_stage: 'Đang chăm sóc' } });
-    expect(options.careStageNote).toContain('— Nói chuyện được. Hẹn gửi bảng giá');
-    expect(options.careStageNote).toContain('(1p30s)');
+    // Curtis 09/11: cuộc gọi là hoạt động trong bậc — không đụng bậc, không ghi mốc bậc cùng bậc.
+    expect(options).toMatchObject({ editAt: undefined });
+    expect(options).not.toHaveProperty('forceLog');
+    expect(options).not.toHaveProperty('careStageNote');
+    expect(options.patch).not.toHaveProperty('care_stage');
   });
 
   it('edits the exact pending device call and keeps its source metadata', async () => {

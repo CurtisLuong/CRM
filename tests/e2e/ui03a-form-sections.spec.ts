@@ -194,7 +194,7 @@ for (const theme of ['light', 'dark'] as const) {
       );
     }
     await sameRow(page.getByLabel('Kênh liên hệ ưu tiên'), page.getByLabel('Khung giờ liên hệ'));
-    await sameRow(page.getByLabel('Liên hệ lại sau ngày'), page.getByLabel('Ngân sách tối đa (VNĐ)', { exact: true }));
+    await sameRow(page.getByLabel('Liên hệ lại sau ngày'), page.getByLabel('Ngân sách tối đa', { exact: true }));
     const advanced = page.getByRole('region', { name: 'Hồ sơ nâng cao' });
     await advanced.getByRole('button', { name: 'Nâng cao' }).click();
     await contained(advanced, 'Bối cảnh sống', page.getByLabel('Bối cảnh sống', { exact: true }));

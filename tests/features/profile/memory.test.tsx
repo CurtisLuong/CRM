@@ -27,7 +27,8 @@ describe('CustomerMemory', () => {
     );
     await user.type(screen.getByRole('textbox', { name: 'Dự án quan tâm mới' }), 'Dự án mới');
     await user.type(screen.getByRole('textbox', { name: 'Loại căn đợt mới' }), '2N-2WC');
-    await user.type(screen.getByRole('spinbutton', { name: 'Ngân sách đợt mới' }), '1500000000');
+    // MN-01 (09/11): ngân sách nhập theo triệu, lưu đồng.
+    await user.type(screen.getByRole('textbox', { name: 'Ngân sách đợt mới' }), '1500');
     await user.type(screen.getByRole('textbox', { name: 'Mục đích đợt mới' }), 'Ở');
     await user.type(screen.getByRole('textbox', { name: 'Thời điểm đợt mới' }), '6 tháng');
     await user.click(screen.getByRole('button', { name: 'Thêm đợt' }));

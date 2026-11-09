@@ -134,7 +134,8 @@ for (const theme of ['light', 'dark'] as const) {
     const area = page.getByLabel('Diện tích (m²)', { exact: true });
     // 06/11: Giá ước tính thành ô Giá căn (tỷ), điền sẵn ước tính = Giá dự kiến (thuần + VAT 5% + KPBT 2%):
     // 1,5 tỷ thuần → 1,605; 1,125 → 1,204.
-    const estimate = page.getByLabel('Giá căn (tỷ)', { exact: true });
+    // MN-01 (09/11): ô tiền nhập theo triệu; ô Giá căn đổi nhãn thành "Giá căn", rời ô ≥ 1 tỷ hiện số tỷ.
+    const estimate = page.getByLabel('Giá căn', { exact: true });
     await expect(estimate).toHaveValue('1,605');
     await expect(area).toHaveValue('');
     await expect(area).toHaveAttribute('placeholder', '60');

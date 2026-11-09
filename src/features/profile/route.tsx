@@ -4,7 +4,6 @@ import type { FeatureRoute } from '@/app/routes';
 import { ActionButton, Avatar, SlaMeter, StageChip } from '@/components/crm';
 import { FormSubsection } from '@/components/crm/form-section';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetBody, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { TabsContent, TabsList, Tabs as TabsPrimitive, TabsTrigger } from '@/components/ui/tabs';
 import { PREF_CONDITIONS_LEGACY, PROFILE_PREF_CONDITIONS, PROFILE_PREF_FIELDS } from '@/config/advanced';
 import { CARE_STAGE_BOOKING, CARE_STAGE_DISPLAY } from '@/config/stages';
@@ -15,10 +14,11 @@ import type { Customer } from '@/domain/customer';
 import { customerBrief } from '@/domain/customer/brief';
 import { factPatch } from '@/domain/customer/facts';
 import { callAttemptsOf, normStage, openTasksOf } from '@/domain/customer/normalize';
-import { canEditTeamInfo, isTeamInfoPatch } from '@/domain/customer/teamEdit';
+import { canMoveStage } from '@/domain/customer/stageMoves';
+import { canEditTeamInfo, canLogHistory, isTeamInfoPatch } from '@/domain/customer/teamEdit';
 import { customerTimeline } from '@/domain/customer/timeline';
 import { callScheduleLabel, countdownTag, dashWhen, taskDueInfo } from '@/domain/deadlines';
-import { forStage } from '@/domain/followup';
+import type { ScheduleSuggestion } from '@/domain/followup';
 import { planSlaUndo } from '@/domain/velocity/automation';
 import { bookingSteps, status as slaStatus } from '@/domain/velocity/engine';
 import { AiBrief } from '@/features/ai/AiBrief';
@@ -50,12 +50,12 @@ import {
   priceRates,
   profileLoan,
   splitBrief,
-  stageChoiceRows,
   type TaskDueValue,
   withTaskKinds,
 } from './model';
 import { hasNeedValue, NEEDS_FIELDS, needsHiddenFor, ProfileNeedsFields, type ProjectCatalog } from './needs';
 import { ProfilePhotoFrame } from './photos';
+import { StageChangeSheet } from './stage-change';
 import { ProfileTimeline } from './timeline';
 
 // Giữ export cũ (test + nơi khác import từ route).
@@ -104,6 +104,7 @@ function Profile() {
   // ghi chú; Gọi, Zalo, Hẹn, bậc, việc vẫn của người phụ trách.
   const teamInfo = !writable && !!account && canEditTeamInfo(customer, account.sync.local.userId);
   const infoWritable = writable || teamInfo;
+  const canEditHistory = !!customer && !!account && canLogHistory(customer, account.sync.local.userId);
   const readOnly = !!customer && !infoWritable;
   const otherOwner = !!customer?.owner_id && !!account && customer.owner_id !== account.sync.local.userId;
   const stage = normStage(customer?.care_stage) || '';
@@ -222,7 +223,11 @@ function Profile() {
     );
   }
   const c: Customer = customer;
-  const save = async (patch: Record<string, unknown>, message = 'Đã lưu trên thiết bị'): Promise<boolean> => {
+  const save = async (
+    patch: Record<string, unknown>,
+    message = 'Đã lưu trên thiết bị',
+    options: { careStageNote?: string | null } = {},
+  ): Promise<boolean> => {
     if (!account || busy || !(writable || (teamInfo && isTeamInfoPatch(patch)))) return false;
     if ('phone' in patch && !String(patch.phone || '').trim()) {
       toast({ title: 'Số điện thoại là thông tin bắt buộc', tone: 'error' });
@@ -234,7 +239,9 @@ function Profile() {
     }
     setBusy(true);
     try {
-      await account.customers.update(c.id, patch);
+      // Chỉ truyền options khi thật sự có ghi chú bậc — giữ đúng chữ ký update(id, patch) cũ cho mọi lần lưu khác.
+      if (options.careStageNote) await account.customers.update(c.id, patch, options);
+      else await account.customers.update(c.id, patch);
       toast({ title: message, description: account.sync.isOnline() ? 'Đang đồng bộ.' : 'Ngoại tuyến · chờ đồng bộ.' });
       return true;
     } catch (error) {
@@ -295,23 +302,15 @@ function Profile() {
       />
     </nav>
   );
-  const onStage = async (next: string) => {
-    if (!writable || !account || next === stage) return;
-    const suggestion = forStage(c, next, Date.now());
+  const onStage = async (next: string, note: string, suggestion: ScheduleSuggestion | null) => {
+    if (!writable || !account || !canMoveStage(stage, next)) return false;
     const patch: Record<string, unknown> = { care_stage: next };
-    if (
-      suggestion &&
-      !window.confirm(
-        `Đổi bậc sang “${CARE_STAGE_DISPLAY[next] || next}” và hẹn ${suggestion.label}? Chọn Hủy để chỉ đổi bậc.`,
-      )
-    ) {
-      // A canceled schedule suggestion still permits the explicit stage change.
-    } else if (suggestion) {
+    if (suggestion) {
       patch.next_call_at = suggestion.start.toISOString();
       patch.next_call_end = suggestion.end.toISOString();
       patch.next_call_reason = suggestion.reason;
     }
-    await save(patch, 'Đã cập nhật bậc');
+    return save(patch, 'Đã cập nhật bậc', { careStageNote: note });
   };
   const undo = async () => {
     if (!writable || !account) return;
@@ -358,7 +357,18 @@ function Profile() {
       </Button>
     ) : null;
   const timelineContent = (
-    <ProfileTimeline customer={c} entries={timeline} writable={writable} busy={busy} onSave={save} />
+    <ProfileTimeline
+      key={c.id}
+      customer={c}
+      entries={timeline}
+      writable={writable}
+      canEditHistory={canEditHistory}
+      busy={busy}
+      repo={account?.customers}
+      now={now}
+      onStage={() => setStageOpen(true)}
+      onSave={save}
+    />
   );
   const memoryContent = (
     <div key={c.id} className="space-y-5">
@@ -562,7 +572,6 @@ function Profile() {
   const extra = extraFacts(c, now);
   const stageLabel = CARE_STAGE_DISPLAY[stage] || stage || 'Chưa có bậc';
   const slaMeter = slaMeterFor(c, now);
-  const stageOptions = stageChoiceRows(stage);
   const age = dobView(c.dob, now).age;
   const classifiable = !!account && canClassify(c, account.sync.local.userId);
   const assignable = canAssignWithTeam(c, account?.sync.local.userId ?? '', teamMembers);
@@ -1016,49 +1025,9 @@ function Profile() {
         onOpenChange={setAssignOpen}
       />
 
-      <Sheet open={stageOpen} onOpenChange={setStageOpen}>
-        <SheetContent aria-describedby="stage-description">
-          <SheetHeader>
-            <SheetTitle>Đổi bậc khách</SheetTitle>
-            <SheetDescription id="stage-description">
-              Chọn bậc chăm sóc mới. Lịch gợi ý và SLA sẽ theo bậc mới.
-            </SheetDescription>
-          </SheetHeader>
-          <SheetBody>
-            <fieldset className="space-y-1">
-              <legend className="sr-only">Bậc chăm sóc</legend>
-              {stageOptions.map((option) => (
-                <label
-                  key={option.stage}
-                  className={`flex min-h-12 cursor-pointer items-center gap-3 rounded-md px-2 hover:bg-surface-200 ${
-                    option.hint ? 'ml-4 border-l-2 border-line pl-3' : ''
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="profile-care-stage"
-                    value={option.stage}
-                    checked={option.stage === stage}
-                    disabled={busy}
-                    aria-label={option.label}
-                    onChange={() => {
-                      setStageOpen(false);
-                      void onStage(option.stage);
-                    }}
-                  />
-                  <span className="min-w-0">
-                    <span className="block text-body">
-                      {option.hint && <span aria-hidden>↳ </span>}
-                      {option.label}
-                    </span>
-                    {option.hint && <span className="block text-caption text-ink-muted">{option.hint}</span>}
-                  </span>
-                </label>
-              ))}
-            </fieldset>
-          </SheetBody>
-        </SheetContent>
-      </Sheet>
+      {stageOpen && (
+        <StageChangeSheet customer={c} busy={busy} onClose={() => setStageOpen(false)} onConfirm={onStage} />
+      )}
       {notice && (
         <div
           role={notice.tone === 'error' ? 'alert' : 'status'}

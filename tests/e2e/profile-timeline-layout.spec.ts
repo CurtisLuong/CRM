@@ -111,19 +111,21 @@ for (const theme of ['light', 'dark'] as const) {
 
     // Mỗi mục (trong bậc + mốc bậc) có icon, tên và đúng một ngày.
     const steps = panel.locator('[data-timeline-group] ol ol > li');
-    expect(await steps.count()).toBe(8); // 3 cuộc gọi + 3 ghi chú + Zalo + việc
+    // TL-01 (09/11): mốc cùng bậc có ghi chú thành dòng con "Ghi chú bậc" trong nhóm bậc.
+    expect(await steps.count()).toBe(9); // 3 cuộc gọi + 3 ghi chú + Zalo + việc + 1 ghi chú bậc
     for (const step of await steps.all()) {
       await expect(step.locator('time')).toHaveCount(1);
-      await expect(step.locator('[data-timeline-entry] svg')).toHaveCount(1);
+      // TL-02: icon bút nằm trong nút → chỉ đếm icon loại mục.
+      await expect(step.locator('[data-timeline-entry] svg:not(button svg)')).toHaveCount(1);
     }
-    const stageHeads = panel
-      .locator('[data-timeline-header]')
-      .filter({ has: page.getByRole('heading', { name: /^Bậc:/ }) });
-    expect(await stageHeads.count()).toBe(2);
+    const stageHeads = panel.locator('[data-timeline-header]').filter({ has: page.getByRole('heading') }); // TL-02: tên bậc bỏ tiền tố "Bậc: "
+    // TL-01 (09/11): 2 mốc cùng "Đang chăm sóc" gộp thành 1 nhóm bậc; mốc sau thành dòng "Ghi chú bậc".
+    expect(await stageHeads.count()).toBe(1);
     for (const head of await stageHeads.all()) await expect(head.locator('time')).toHaveCount(1);
 
     // Không ghi chú → không khung; khung không chứa ngày.
-    const noNote = steps.filter({ hasText: 'Không nghe máy' });
+    // TL-01: dòng "Ghi chú bậc" cũng chứa chữ "Không nghe máy" trong ghi chú → loại ra.
+    const noNote = steps.filter({ hasText: 'Không nghe máy' }).filter({ hasNotText: 'Ghi chú bậc' });
     await expect(noNote.locator('p')).toHaveCount(0);
     await expect(panel.locator('[data-entry-body] time')).toHaveCount(0);
     await expect(panel.getByText('Hạn 09:00 28/10/2026', { exact: true })).toBeVisible();

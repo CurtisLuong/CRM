@@ -8,9 +8,11 @@ import {
   LONG_FIELD,
   SHORT_FIELD,
 } from '@/components/crm/form-section';
+import { IncomeField, MoneyField } from '@/components/crm/money-field';
 import { ADVANCED_GROUPS } from '@/config/advanced';
 import { dobView } from '@/features/profile/dob';
 import { DobDerivedFields } from '@/features/profile/dob-field';
+import { displayText, moneyValue } from '@/ui/display';
 import type { IntakeValues } from './schema';
 import { safeDob } from './view';
 
@@ -28,6 +30,7 @@ type Props = {
   register: UseFormRegister<IntakeValues>;
   set: IntakeSetValue;
   fieldErrors: Record<string, string>;
+  onMoneyValidityChange?: (key: string, valid: boolean) => void;
   /** Mã căn gợi ý theo dự án đã chọn (datalist). */
   unitCodes: readonly string[];
   /** Số trường đã điền, hiện trên nhãn nút. */
@@ -38,7 +41,17 @@ type Props = {
  * PF-03: khu "Thêm thông tin" — mọi trường không thiết yếu nằm sau một nút, mặc định ẩn.
  * Đóng khu không xoá giá trị: các ô vẫn nằm trong state của form và được lưu y như trước.
  */
-export function IntakeMore({ open, onToggle, values, register, set, fieldErrors, unitCodes, filledCount }: Props) {
+export function IntakeMore({
+  open,
+  onToggle,
+  values,
+  register,
+  set,
+  fieldErrors,
+  unitCodes,
+  filledCount,
+  onMoneyValidityChange,
+}: Props) {
   const label = filledCount > 0 ? `Thêm thông tin · đã điền ${filledCount}` : 'Thêm thông tin';
 
   const input = (
@@ -108,7 +121,14 @@ export function IntakeMore({ open, onToggle, values, register, set, fieldErrors,
         </div>
         {select('Tình trạng hôn nhân', 'marital_status', ['đã kết hôn', 'chưa kết hôn'])}
         {select('Công việc', 'occupation', ['Tự do', 'Công ty, DN', 'Công, viên chức', 'Công an, Bộ đội'])}
-        {input('Thu nhập', 'income')}
+        <IncomeField
+          className={`${SHORT_FIELD} self-end`}
+          label="Thu nhập"
+          value={values.income}
+          onChange={(value) => set('income', value ?? '')}
+          onValidityChange={(valid) => onMoneyValidityChange?.('income', valid)}
+          error={fieldErrors.income}
+        />
         {input('Thường trú', 'residence')}
       </FormSubsection>
 
@@ -137,8 +157,17 @@ export function IntakeMore({ open, onToggle, values, register, set, fieldErrors,
           'Tây Nam',
         ])}
         {input('Tầng', 'apt_floor', 'number', { min: 1, step: 1 })}
-        {input('Giá căn (VNĐ)', 'apt_price', 'number', { min: 0, step: 'any' })}
-        {input('Vốn sẵn có (VNĐ)', 'finance', 'number', { min: 0, step: 'any' })}
+        {(['apt_price', 'finance'] as const).map((key) => (
+          <MoneyField
+            key={key}
+            className={`${SHORT_FIELD} self-end`}
+            label={key === 'apt_price' ? 'Giá căn' : 'Vốn sẵn có'}
+            value={moneyValue(values[key])}
+            onChange={(value) => set(key, value ?? '')}
+            onValidityChange={(valid) => onMoneyValidityChange?.(key, valid)}
+            error={fieldErrors[key]}
+          />
+        ))}
         {select('Mục đích', 'purpose', ['Ở', 'Đầu tư', 'Cho tặng'])}
       </FormSubsection>
 
@@ -163,8 +192,24 @@ export function IntakeMore({ open, onToggle, values, register, set, fieldErrors,
                 key={field.key}
                 className={`${field.type === 'number' ? SHORT_FIELD : LONG_FIELD} flex flex-col gap-1 text-caption text-ink-muted`}
               >
-                <label htmlFor={`advanced-${field.key}`}>{field.label}</label>
-                {field.type === 'textarea' ? (
+                {field.type !== 'number' && <label htmlFor={`advanced-${field.key}`}>{field.label}</label>}
+                {field.type === 'number' ? (
+                  <MoneyField
+                    id={`advanced-${field.key}`}
+                    label={field.label}
+                    value={moneyValue(values.advanced[field.key])}
+                    unparsedValue={
+                      moneyValue(values.advanced[field.key]) == null
+                        ? displayText(values.advanced[field.key]) || undefined
+                        : undefined
+                    }
+                    monthly={field.key === 'monthly_payment'}
+                    error={fieldErrors[`advanced.${field.key}`]}
+                    onChange={(value) => set('advanced', { ...values.advanced, [field.key]: value })}
+                    onValidityChange={(valid) => onMoneyValidityChange?.(`advanced.${field.key}`, valid)}
+                    placeholder={field.ph}
+                  />
+                ) : field.type === 'textarea' ? (
                   <textarea
                     id={`advanced-${field.key}`}
                     value={String(values.advanced[field.key] ?? '')}
@@ -176,13 +221,12 @@ export function IntakeMore({ open, onToggle, values, register, set, fieldErrors,
                 ) : (
                   <input
                     id={`advanced-${field.key}`}
-                    type={field.type === 'number' ? 'number' : 'text'}
+                    type="text"
                     value={String(values.advanced[field.key] ?? '')}
                     onChange={(e) =>
                       set('advanced', {
                         ...values.advanced,
-                        [field.key]:
-                          field.type === 'number' && e.target.value ? Number(e.target.value) : e.target.value,
+                        [field.key]: e.target.value,
                       })
                     }
                     placeholder={field.ph}

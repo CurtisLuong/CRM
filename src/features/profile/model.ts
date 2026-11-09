@@ -17,7 +17,7 @@ import { type CustomerTimelineEntry, customerTimeline } from '@/domain/customer/
 import { fmtClock, type TaskDueInfo, taskDayLabel } from '@/domain/deadlines';
 import { calcPrice, DEFAULT_LOAN } from '@/domain/loan';
 import { customerUnit, type LoanPrefill } from '@/features/loan/model';
-import { callResultLabel, displayText, intakeLabel, sourceLabel } from '@/ui/display';
+import { callResultLabel, displayText, formatMoney, intakeLabel, sourceLabel } from '@/ui/display';
 
 /** Checklist state belongs to booking_steps; it must never move the stage SLA clock. */
 export function bookingStepPatch(customer: Customer, key: string, checked: boolean, at: string) {
@@ -67,7 +67,7 @@ export function taskDueFromInput(input: { day?: string; time?: string; allDay?: 
 }
 
 /** Dòng thời gian: việc đã xong mang thêm mã loại để dùng đúng icon loại việc. */
-export type ProfileTimelineEntry = CustomerTimelineEntry & { taskKind?: string };
+export type ProfileTimelineEntry = CustomerTimelineEntry & { taskKind?: string; stageNote?: boolean };
 
 export function withTaskKinds(customer: Customer, entries: readonly CustomerTimelineEntry[]): ProfileTimelineEntry[] {
   const tasks = Array.isArray(customer.next_tasks) ? customer.next_tasks : [];
@@ -226,12 +226,13 @@ export const TIMELINE_FILTERS: readonly { key: TimelineFilter; label: string }[]
 ];
 
 /** Lọc dòng thời gian theo loại (I7). 'all' giữ nguyên. */
-export function filterTimeline<T extends { kind: string }>(entries: readonly T[], key: TimelineFilter): T[] {
+export function filterTimeline<T extends StageEntryLike>(entries: readonly T[], key: TimelineFilter): T[] {
+  if (key === 'stage') return stageTransitions(entries).sort(newestFirst);
   return key === 'all' ? [...entries] : entries.filter((e) => e.kind === key);
 }
 
 /** Số mục mỗi loại để hiện trên chip; chip số 0 (trừ "Tất cả") không hiện. */
-export function timelineCounts(entries: readonly { kind: string }[]): Record<TimelineFilter, number> {
+export function timelineCounts(entries: readonly StageEntryLike[]): Record<TimelineFilter, number> {
   const out: Record<TimelineFilter, number> = {
     all: entries.length,
     call: 0,
@@ -240,6 +241,7 @@ export function timelineCounts(entries: readonly { kind: string }[]): Record<Tim
     stage: 0,
   };
   for (const e of entries) if (e.kind in out && e.kind !== 'all') out[e.kind as TimelineFilter]++;
+  out.stage = stageTransitions(entries).length;
   return out;
 }
 
@@ -250,6 +252,8 @@ type TimelineEntryLike = {
   at: string;
   kind: string;
   title: string;
+  detail?: string;
+  stageNote?: boolean;
   interactionKind?: string;
   /** CP-03: mã loại của việc đã xong (profile bơm vào từ next_tasks). */
   taskKind?: string;
@@ -278,7 +282,22 @@ export type TimelineView<T> = {
 
 export const BEFORE_STAGE_TITLE = 'Trước khi có mốc bậc';
 
-const newestFirst = (a: { at: string }, b: { at: string }) => b.at.localeCompare(a.at);
+type StageEntryLike = { kind: string; at?: string; title?: string };
+
+const newestFirst = (a: { at?: string }, b: { at?: string }) => Date.parse(b.at || '') - Date.parse(a.at || '');
+
+/** So sánh bậc theo thứ tự thời gian, kể cả tên cũ; không sửa lịch sử đã lưu. */
+function stageTransitions<T extends StageEntryLike>(entries: readonly T[]): T[] {
+  const stages = entries.filter((entry) => entry.kind === 'stage').sort((a, b) => newestFirst(b, a));
+  return stages.filter((entry, index) => {
+    const previous = stages[index - 1];
+    return (
+      !previous ||
+      !entry.title ||
+      normStage(entry.title.replace(/^Bậc: /, '')) !== normStage(previous.title?.replace(/^Bậc: /, ''))
+    );
+  });
+}
 
 /** Tên bậc đã lưu nằm sau tiền tố "Bậc: " của customerTimeline (domain giữ nguyên tiêu đề hiển thị). */
 const stageNameOf = (entry: TimelineEntryLike) =>
@@ -288,6 +307,7 @@ const stageNameOf = (entry: TimelineEntryLike) =>
 export function timelineIcon(entry: TimelineEntryLike): IconName {
   switch (entry.kind) {
     case 'stage':
+      if (entry.stageNote) return 'note';
       return STAGE_ICON[stageNameOf(entry)] ?? STAGE_ICON_FALLBACK;
     case 'call':
       return 'call';
@@ -317,6 +337,31 @@ export function timelineIcon(entry: TimelineEntryLike): IconName {
   }
 }
 
+/** Tên bậc hiển thị: customerTimeline đang giữ tiền tố "Bậc: " cho dữ liệu cũ, giao diện mới bỏ tiền tố. */
+export function stageDisplayTitle(title: string): string {
+  const name = title.startsWith('Bậc: ') ? title.slice('Bậc: '.length) : title;
+  return normStage(name) || name;
+}
+
+/** ID dòng thời gian → con trỏ tới phần tử đã lưu; đuôi ID là chỉ số nên giờ ISO có dấu ':' vẫn đọc đúng. */
+export type TimelineEntryTarget = {
+  kind: 'note' | 'stage' | 'call' | 'interaction' | 'task';
+  at: string;
+  index: number;
+};
+
+export function timelineEntryTarget(id: string): TimelineEntryTarget | null {
+  const first = id.indexOf(':');
+  const last = id.lastIndexOf(':');
+  if (first < 0 || last <= first) return null;
+  const kind = id.slice(0, first);
+  if (kind !== 'note' && kind !== 'stage' && kind !== 'call' && kind !== 'interaction' && kind !== 'task') return null;
+  const index = Number(id.slice(last + 1));
+  const at = id.slice(first + 1, last);
+  if (!Number.isInteger(index) || index < 0 || !at) return null;
+  return { kind, at, index };
+}
+
 /** Ghi chú của mốc bậc chỉ hiện ở "Tất cả" / "Bậc" (lọc "Cuộc gọi" không được lộ chữ ghi chú). */
 export function showsStageDetail(filter: TimelineFilter): boolean {
   return filter === 'all' || filter === 'stage';
@@ -327,7 +372,7 @@ export function showsStageDetail(filter: TimelineFilter): boolean {
  * Mục cũ hơn mọi mốc bậc → nhóm cuối "Trước khi có mốc bậc". Không có mốc bậc → [].
  */
 export function timelineGroups<T extends TimelineEntryLike>(entries: readonly T[]): TimelineGroup<T>[] {
-  const stages = entries.filter((e) => e.kind === 'stage').sort(newestFirst);
+  const stages = stageTransitions(entries).sort(newestFirst);
   if (!stages.length) return [];
   const groups: TimelineGroup<T>[] = stages.map((stage) => ({
     id: stage.id,
@@ -346,8 +391,17 @@ export function timelineGroups<T extends TimelineEntryLike>(entries: readonly T[
     rows: [],
   };
   // groups xếp mới nhất trước → nhóm đầu tiên có at <= mục là bậc gần nhất; cùng thời điểm thuộc bậc đó.
-  for (const entry of entries.filter((e) => e.kind !== 'stage' && e.kind !== 'archive').sort(newestFirst)) {
-    const group = groups.find((g) => g.at <= entry.at) ?? before;
+  const transitions = new Set(stages);
+  const calls = entries.filter((entry) => entry.kind === 'call').map((entry) => Date.parse(entry.at));
+  const children = entries.flatMap((entry): T[] => {
+    if (entry.kind === 'archive' || transitions.has(entry)) return [];
+    if (entry.kind !== 'stage') return [entry];
+    // Mốc gọi cũ chỉ là bản sao của cuộc gọi; giữ ID gốc cho các ghi chú còn hiển thị.
+    if (!entry.detail?.trim() || calls.some((at) => Math.abs(at - Date.parse(entry.at)) <= 2 * 60_000)) return [];
+    return [{ ...entry, title: 'Ghi chú bậc', stageNote: true }];
+  });
+  for (const entry of children.sort(newestFirst)) {
+    const group = groups.find((g) => Date.parse(g.at) <= Date.parse(entry.at)) ?? before;
     group.rows.push({ entry, icon: timelineIcon(entry) });
   }
   return before.rows.length ? [...groups, before] : groups;
@@ -359,15 +413,21 @@ export function timelineView<T extends TimelineEntryLike>(
   filter: TimelineFilter,
 ): TimelineView<T> {
   const groups = timelineGroups(entries);
-  const orderedEntries = entries
-    .filter((entry) => filter === 'all' || entry.kind === filter)
+  const visibleEntries = groups.length
+    ? [
+        ...groups.flatMap((group) => [...(group.stage ? [group.stage] : []), ...group.rows.map((row) => row.entry)]),
+        ...entries.filter((entry) => entry.kind === 'archive'),
+      ]
+    : entries;
+  const orderedEntries = visibleEntries
+    .filter((entry) => filter === 'all' || (entry.kind === filter && !entry.stageNote))
     .slice()
     .sort(newestFirst);
   const ordered = orderedEntries.map((entry) => ({
     entry,
     icon: timelineIcon(entry),
-    topLevel: entry.kind === 'stage' || entry.kind === 'archive',
-    nested: !!groups.length && entry.kind !== 'stage' && entry.kind !== 'archive',
+    topLevel: (entry.kind === 'stage' && !entry.stageNote) || entry.kind === 'archive',
+    nested: !!groups.length && (entry.kind !== 'stage' || !!entry.stageNote) && entry.kind !== 'archive',
   }));
   if (!groups.length) {
     return {
@@ -550,9 +610,7 @@ export function profileLoan(customer: Customer, estimate: PriceEstimate, rates: 
 
 /** 2340000000 → "2,34 tỷ"; 850000000 → "850 triệu". */
 export function formatVndShort(value: number): string {
-  if (value >= 1_000_000_000)
-    return `${(value / 1_000_000_000).toLocaleString('vi-VN', { maximumFractionDigits: 2 })} tỷ`;
-  return `${(value / 1_000_000).toLocaleString('vi-VN', { maximumFractionDigits: 1 })} triệu`;
+  return formatMoney(value);
 }
 
 export const PRICE_ESTIMATE_MISSING: Record<'area' | 'project' | 'price', string> = {

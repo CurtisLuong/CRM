@@ -112,9 +112,10 @@ describe('thẻ Giá & vay', () => {
   it('nằm ngay trước hàng tab; không còn tab Tính vay và nút trong tab Nhu cầu', () => {
     wrap();
     const card = screen.getByRole('region', { name: 'Giá và vay' });
-    expect(card.textContent).toContain('≈ 2,2 tỷ');
+    // MN-01 (09/11): định dạng tiền chung giữ tối đa 3 số lẻ (2,202 tỷ thay vì 2,2 tỷ).
+    expect(card.textContent).toContain('≈ 2,202 tỷ');
     expect(card.textContent).toContain('Vay 70%');
-    expect(card.textContent).toContain('≈ 1,51 tỷ');
+    expect(card.textContent).toContain('≈ 1,513 tỷ');
     expect(card.textContent).toContain('Giá ước tính');
     const tabs = screen.getByRole('tablist', { name: 'Nội dung hồ sơ khách' });
     expect(card.compareDocumentPosition(tabs) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();

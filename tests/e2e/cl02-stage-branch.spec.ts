@@ -140,6 +140,8 @@ test('L1/L2: sheet đổi bậc xếp Nuôi dài hạn ngay sau Đang chăm sóc
     'Nuôi dài hạn',
     'Xem dự án',
     'Booking & Làm hồ sơ',
+    // TL-02 (09/11): tấm đổi bậc 2 bước có thêm Kí HĐMB theo thứ tự không lùi bậc.
+    'Kí HĐMB',
   ]);
   expect(values.indexOf('Nuôi dài hạn')).toBe(values.indexOf('Đang chăm sóc') + 1);
 

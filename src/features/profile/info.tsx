@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Fragment, useState } from 'react';
 import { Field } from '@/components/crm/form-fields';
 import { FormSection } from '@/components/crm/form-section';
+import { IncomeField } from '@/components/crm/money-field';
 import { Button } from '@/components/ui/button';
 import { OCCUPATIONS } from '@/config/occupations';
 import type { Customer } from '@/domain/customer';
@@ -144,11 +145,11 @@ export function ProfileInfoFields({ customer, writable, busy, now, showEmpty, on
       key: 'income',
       short: true,
       node: (
-        <ProfileTextField
+        <IncomeField
           label="Thu nhập"
           value={customer.income}
           disabled={!writable}
-          onSave={(value) => onSaveField('income', value)}
+          onCommit={(value) => onSaveField('income', value)}
         />
       ),
     },
