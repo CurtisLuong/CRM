@@ -68,6 +68,7 @@ import {
   toast,
 } from '@/components/ui';
 import { ACTIONS, STAGES, stageDef } from '@/lib/crm';
+import { Icon } from '@/ui/Icon';
 import { DocumentViewerDemo } from './DocumentViewerDemo';
 import { CUSTOMERS, type Customer, JOURNEY_AN, NOTIFS, NOW } from './demo-data';
 import { FormSectionDemo } from './FormSectionDemo';
@@ -422,8 +423,8 @@ export function UiKit() {
 
         <Section
           id="data"
-          title="5 · Bảng dữ liệu + Drawer khách"
-          note="Bấm một dòng để mở Drawer. Bộ lọc mở ở bên phải."
+          title="5 · Bảng dữ liệu + Tấm xem nhanh khách"
+          note="Bấm một dòng để xem nhanh. Điện thoại: tấm đáy cao 2/3 màn, vuốt đầu tấm xuống để đóng. Máy tính: ngăn kéo bên phải."
         >
           <FilterBar
             chips={chips}
@@ -728,7 +729,11 @@ export function UiKit() {
 
       {/* Customer drawer */}
       <Sheet open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
-        <SheetContent width={480} aria-describedby={undefined}>
+        <SheetContent
+          width={480}
+          mobileHeight="calc(var(--sheet-viewport-height, 100dvh) * 2 / 3)"
+          aria-describedby={undefined}
+        >
           {selected && (
             <>
               <SheetHeader>
@@ -767,9 +772,12 @@ export function UiKit() {
                 <Timeline stages={JOURNEY_AN} now={NOW} collapsePast />
               </SheetBody>
               <SheetFooter>
-                <Button>Mở trang đầy đủ</Button>
-                <span className="flex-1" />
-                <ActionButton action="call" variant="primary" />
+                <Button className="min-h-11 min-w-0 flex-1">
+                  <Icon name="assign" /> Giao khách
+                </Button>
+                <Button variant="primary" className="min-h-11 min-w-0 flex-1">
+                  <Icon name="profile" /> Mở hồ sơ
+                </Button>
               </SheetFooter>
             </>
           )}

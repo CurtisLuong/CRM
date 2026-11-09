@@ -15,6 +15,7 @@ import { normStage } from '@/domain/customer/normalize';
 import { canEditTeamInfo } from '@/domain/customer/teamEdit';
 import { openQuickAction } from '@/features/quick-actions/store';
 import { fmtPhone, slaMeterFor, stageDef } from '@/lib/crm';
+import { Icon } from '@/ui/Icon';
 import { customerJourney, customerQuickSignal } from './model';
 
 type Props = {
@@ -52,8 +53,13 @@ export function CustomerSheet({ customer, userId, canAssign = false, onOpenChang
 
   return (
     <Sheet open={!!customer} onOpenChange={onOpenChange}>
-      <SheetContent width={480} aria-label={customer.full_name} aria-describedby={undefined}>
-        <SheetHeader>
+      <SheetContent
+        width={480}
+        mobileHeight="calc(var(--sheet-viewport-height, 100dvh) * 2 / 3)"
+        aria-label={customer.full_name}
+        aria-describedby={undefined}
+      >
+        <SheetHeader className="pt-1 pb-3 lg:py-4">
           <span className="text-overline">Khách hàng</span>
           <SheetTitle>
             <button
@@ -66,7 +72,7 @@ export function CustomerSheet({ customer, userId, canAssign = false, onOpenChang
           </SheetTitle>
           <SheetDescription asChild>
             <div className="flex flex-wrap items-center gap-2">
-              <span className="font-mono text-body text-ink-muted">{fmtPhone(customer.phone)}</span>
+              <span className="whitespace-nowrap font-mono text-label text-ink-muted">{fmtPhone(customer.phone)}</span>
               <StageChip stage={stage} />
               <SignalBadge level={signal.level} size="sm">
                 {signal.text}
@@ -75,7 +81,10 @@ export function CustomerSheet({ customer, userId, canAssign = false, onOpenChang
           </SheetDescription>
         </SheetHeader>
 
-        <nav aria-label="Hành động nhanh" className="flex min-w-0 justify-between gap-2 border-b border-line px-5 py-3">
+        <nav
+          aria-label="Hành động nhanh"
+          className="flex min-w-0 shrink-0 justify-between gap-2 border-b border-line px-5 py-3"
+        >
           <ActionButton
             action="call"
             label="Gọi"
@@ -130,16 +139,16 @@ export function CustomerSheet({ customer, userId, canAssign = false, onOpenChang
           </section>
         </SheetBody>
 
-        {canAssign && onAssign && (
-          <div className="border-t border-line px-5 py-3">
-            <Button className="w-full" onClick={() => onAssign(customer)}>
+        <SheetFooter>
+          {canAssign && onAssign && (
+            <Button variant="secondary" className="min-h-11 min-w-0 flex-1" onClick={() => onAssign(customer)}>
+              <Icon name="assign" />
               Giao khách
             </Button>
-          </div>
-        )}
-        <SheetFooter>
-          <Button variant="primary" className="w-full" onClick={() => onOpenProfile(customer)}>
-            Mở hồ sơ đầy đủ
+          )}
+          <Button variant="primary" className="min-h-11 min-w-0 flex-1" onClick={() => onOpenProfile(customer)}>
+            <Icon name="profile" />
+            Mở hồ sơ
           </Button>
         </SheetFooter>
       </SheetContent>

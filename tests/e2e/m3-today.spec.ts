@@ -1,5 +1,7 @@
 import { expect, type Page, test } from '@playwright/test';
 
+// UI-04 (09/11): nút đáy tấm xem nhanh đổi thành "Mở hồ sơ" (có icon).
+
 // M3 — Hôm nay v3 (DESIGN_SYSTEM v4, D-023; UX_GUIDELINES §4). Lead viết TRƯỚC khi giao worker; trượt trên bố cục cũ.
 // Giờ máy cố định 09:30 19/10/2026 (Asia/Ho_Chi_Minh theo playwright.config).
 
@@ -185,7 +187,7 @@ test('Nút Gọi trên thẻ mở luồng gọi có sẵn; chạm tên mở hồ
   // R2-04: "Mở" bật tấm xem nhanh ngay trên Hôm nay; hồ sơ đầy đủ mở từ tấm.
   const quick = page.getByRole('dialog', { name: 'Khách Quá Hẹn' });
   await expect(quick).toBeVisible();
-  await quick.getByRole('button', { name: 'Mở hồ sơ đầy đủ' }).click();
+  await quick.getByRole('button', { name: 'Mở hồ sơ', exact: true }).click();
   await expect(page).toHaveURL(/\/ho-so\/m3-due$/);
 });
 
