@@ -100,11 +100,8 @@ describe('repository operations match real v1 payloads and local records', () =>
       for (const n of row.notes_manual ?? []) if (n?.at) ops.push(['updateNote', [row.id, n.at, 'edited']]);
       for (const t of row.next_tasks ?? [])
         if (t?.at)
-          ops.push(
-            ['updateTask', [row.id, t.at, 'edited', null]],
-            ['completeTask', [row.id, t.at]],
-            ['reopenTask', [row.id, t.at]],
-          );
+          // ST-01 (09/11): completeTask cố ý khác v1 (không ghi mốc bậc "Xong việc") → kiểm riêng ở st01.
+          ops.push(['updateTask', [row.id, t.at, 'edited', null]]);
       for (const h of row.care_stage_history ?? [])
         if (h?.at) ops.push(['updateCareHistoryNote', [row.id, h.at, 'edited']]);
       for (const [method, args] of ops) {

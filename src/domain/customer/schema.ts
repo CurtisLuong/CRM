@@ -36,6 +36,7 @@ export const TaskSchema = z
     due: str,
     due_allday: z.boolean().nullish(),
     done_at: str,
+    done_note: str,
     log_at: str,
     // v2
     side: str, // 'me' | 'customer'

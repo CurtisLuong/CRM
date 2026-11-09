@@ -430,7 +430,8 @@ export class CustomerRepository {
     );
   }
 
-  async completeTask(id: string, at: string) {
+  /** Đánh dấu xong; `note` (tuỳ chọn) lưu vào việc (`done_note`). Không ghi mốc bậc cùng bậc (ST-01, Curtis 09/11). */
+  async completeTask(id: string, at: string, note?: string | null) {
     return this.write(
       id,
       (existing) => {
@@ -440,14 +441,9 @@ export class CustomerRepository {
         if (idx === -1 || list[idx].done_at) return;
         const now = new Date().toISOString();
         const entry: Data = { ...list[idx], done_at: now };
+        const doneNote = note?.trim();
+        if (doneNote) entry.done_note = doneNote;
         const payload: Data = { updated_at: now };
-        if (existing.care_stage) {
-          const history = Array.isArray(existing.care_stage_history) ? existing.care_stage_history.slice() : [];
-          history.push({ stage: existing.care_stage, note: `Xong việc: ${entry.text || ''}`, at: now });
-          entry.log_at = now;
-          payload.care_stage_history = history;
-          payload.care_stage_updated_at = now;
-        }
         list[idx] = entry;
         payload.next_tasks = list;
         const record: Data = { ...existing, ...payload };
@@ -470,6 +466,7 @@ export class CustomerRepository {
         const logAt = entry.log_at;
         delete entry.done_at;
         delete entry.log_at;
+        delete entry.done_note;
         list[idx] = entry;
         const payload: Data = { next_tasks: list, updated_at: now };
         const hist = Array.isArray(existing.care_stage_history) ? existing.care_stage_history : [];

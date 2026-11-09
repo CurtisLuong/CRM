@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { TabsContent, TabsList, Tabs as TabsPrimitive, TabsTrigger } from '@/components/ui/tabs';
 import { PREF_CONDITIONS_LEGACY, PROFILE_PREF_CONDITIONS, PROFILE_PREF_FIELDS } from '@/config/advanced';
 import { CARE_STAGE_BOOKING, CARE_STAGE_DISPLAY } from '@/config/stages';
-import { taskKindOf } from '@/config/taskKinds';
+import { CALL_APPOINTMENT, taskKindOf } from '@/config/taskKinds';
 import { VELOCITY_CONFIG } from '@/config/velocity';
 import { useCustomer, useRepositoryAccount } from '@/data/hooks';
 import type { Customer, Task } from '@/domain/customer';
@@ -31,9 +31,11 @@ import { openQuickAction } from '@/features/quick-actions/store';
 import { AssignCustomerSheet, canAssignWithTeam, useTeamMembers } from '@/features/team/AssignSheet';
 import { slaMeterFor } from '@/lib/crm';
 import { Icon } from '@/ui/Icon';
+import { useToast } from '@/ui/Toast';
 import { AddTaskSheet } from './add-task';
 import { ProfileTextField as Field, LegacyAssistField, ProfileAdvanced } from './advanced';
 import { ArchiveCustomerSection, ArchivedBanner } from './archive';
+import { CompleteTaskDialog } from './complete-task';
 import { dobSavePatch, dobView } from './dob';
 import { DocumentsSection } from './documents';
 import { advancedPatch, LONG_FIELD, legacyValues } from './fields';
@@ -66,15 +68,9 @@ function Profile() {
   const navigate = useNavigate();
   const customer = useCustomer(id);
   const account = useRepositoryAccount();
-  const [notice, setNotice] = useState<{
-    title: string;
-    description?: string;
-    tone?: 'default' | 'error';
-    onUndo?: () => void;
-  } | null>(null);
-  const toast = (input: { title: string; description?: string; tone?: 'default' | 'error'; onUndo?: () => void }) => {
-    setNotice(input);
-  };
+  // Thông báo dùng lớp toast chung của app (tự tắt, nằm trên mọi lớp). Trước đây hồ sơ tự vẽ hộp riêng
+  // không tự tắt và bị kẹt dưới tấm đang mở (Curtis 09/11).
+  const toast = useToast();
   const [now, setNow] = useState(Date.now());
   const [busy, setBusy] = useState(false);
   // TL-03: mở hồ sơ bắt đầu ở Dòng thời gian.
@@ -97,6 +93,7 @@ function Profile() {
   // CP-03: Thêm việc mở danh sách 5 loại trước, không dùng window.prompt.
   const [addOpen, setAddOpen] = useState(false);
   const [editTask, setEditTask] = useState<Task | null>(null);
+  const [completingTask, setCompletingTask] = useState<Task | null>(null);
   const [assignOpen, setAssignOpen] = useState(false);
   const [classifyOpen, setClassifyOpen] = useState(false);
   const teamMembers = useTeamMembers(account);
@@ -148,6 +145,7 @@ function Profile() {
     if (!customerId) return;
     setTab('timeline');
     setAddOpen(false);
+    setCompletingTask(null);
     setEditTask(null);
     setSupplementOpen(false);
     setNeedsSupplementOpen(false);
@@ -341,9 +339,6 @@ function Profile() {
     if (!account || !writable || !editTask?.at) throw new Error('Khách chỉ được xem.');
     await account.customers.updateTask(c.id, editTask.at, text, due, kind);
     toast({ title: 'Đã sửa việc', description: text });
-  };
-  const completeTask = async (at: string) => {
-    if (account && writable) await account.customers.completeTask(c.id, at);
   };
   const priceCatalog = (account?.catalog as PriceCatalog | undefined) ?? null;
   const estimate = estimatePrice(c, priceCatalog);
@@ -584,10 +579,14 @@ function Profile() {
   const assignable = canAssignWithTeam(c, account?.sync.local.userId ?? '', teamMembers);
   // Dưới tên: nhóm khách (cùng chip ở màn Khách hàng); nguồn đã có ở phần thông tin bên dưới.
   const groupText = CUSTOMER_GROUP_LABEL[customerGroupOf(c, account?.sync.local.userId ?? c.owner_id ?? '')];
-  // Hẹn gọi nằm ở trường riêng (next_call_at), không phải next_tasks → thêm 1 dòng đầu "Việc tiếp theo".
+  // Hẹn gọi ở trường riêng; gộp để việc có hạn sớm nhất đứng trước, việc chưa có hạn đứng cuối.
   const callStart = c.next_call_at ? Date.parse(c.next_call_at) : Number.NaN;
   const callTag = countdownTag(callStart, c.next_call_end ? Date.parse(c.next_call_end) : callStart, false, now);
   const callWhen = callScheduleLabel(c, now);
+  const nextRows = [
+    ...tasks.map((task) => ({ type: 'task' as const, task, due: task.due ? Date.parse(task.due) : Infinity })),
+    ...(callWhen ? [{ type: 'call' as const, due: callStart }] : []),
+  ].sort((a, b) => (Number.isFinite(a.due) ? a.due : Infinity) - (Number.isFinite(b.due) ? b.due : Infinity));
   // Cuộc gọi (thường từ nhật ký máy) chưa ghi kết quả → nhắc ngay trong "Việc tiếp theo" để ghi.
   const pendingCalls = otherOwner ? [] : pendingCallsOf(c);
   // Việc đến hạn/quá hạn đứng đầu hồ sơ, vạch đỏ để không bỏ quên (D-010).
@@ -792,35 +791,50 @@ function Profile() {
                     </li>
                   );
                 })}
-                {callWhen && (
-                  <li>
-                    <button
-                      type="button"
-                      aria-label="Hẹn gọi lại"
-                      disabled={!writable}
-                      onClick={() => openQuickAction(c.id, 'schedule')}
-                      className="flex min-h-11 w-full items-start gap-3 rounded-md text-left hover:bg-surface-200 focus-visible:outline-2 focus-visible:outline-ion disabled:pointer-events-none"
-                    >
-                      <Icon name="call" size={20} className="mt-0.5 text-ink-muted" />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-body-strong">
-                          Hẹn gọi lại{c.next_call_reason ? ` · ${c.next_call_reason}` : ''}
-                        </p>
-                        <div className="mt-1 flex flex-wrap items-center gap-2 text-caption text-ink-muted">
-                          <span>{callWhen}</span>
-                          {callTag && callTag.state !== 'far' && (
-                            <span
-                              className={`rounded-sm px-2 py-1 text-caption ${callTag.state === 'missed' ? 'bg-alert-tint text-alert-text' : 'bg-soon-tint text-soon-text'}`}
-                            >
-                              {callTag.text}
-                            </span>
+                {nextRows.map((row) => {
+                  if (row.type === 'call')
+                    return (
+                      <li key="scheduled-call" className="flex items-start gap-3">
+                        <label className="flex size-11 shrink-0 items-center justify-center rounded-md hover:bg-surface-200">
+                          <input
+                            aria-label="Hoàn thành Gọi lại"
+                            type="checkbox"
+                            checked={false}
+                            disabled={!writable}
+                            onChange={() => openQuickAction(c.id, 'outcome')}
+                          />
+                        </label>
+                        <button
+                          type="button"
+                          aria-label="Hẹn gọi lại"
+                          disabled={!writable}
+                          onClick={() => openQuickAction(c.id, 'schedule')}
+                          className="min-h-11 min-w-0 flex-1 rounded-md text-left hover:bg-surface-200 focus-visible:outline-2 focus-visible:outline-ion disabled:pointer-events-none"
+                        >
+                          <p className="text-body-strong">Gọi lại</p>
+                          {c.next_call_reason && (
+                            <p className="truncate text-caption text-ink-muted">{c.next_call_reason}</p>
                           )}
-                        </div>
-                      </div>
-                    </button>
-                  </li>
-                )}
-                {tasks.map((task) => {
+                          <div className="mt-1 flex flex-wrap items-center gap-2 text-caption text-ink-muted">
+                            <span className="inline-flex items-center gap-1">
+                              <Icon name={CALL_APPOINTMENT.icon} size={16} />
+                              {CALL_APPOINTMENT.label}
+                            </span>
+                            <span className="rounded-sm bg-surface-200 px-2 py-1 text-caption text-ink-muted">
+                              {callWhen}
+                            </span>
+                            {callTag && callTag.state !== 'far' && (
+                              <span
+                                className={`rounded-sm px-2 py-1 text-caption ${callTag.state === 'missed' ? 'bg-alert-tint text-alert-text' : 'bg-soon-tint text-soon-text'}`}
+                              >
+                                {callTag.text}
+                              </span>
+                            )}
+                          </div>
+                        </button>
+                      </li>
+                    );
+                  const task = row.task;
                   const due = taskDueInfo(task, now);
                   const kindInfo = taskKindOf(task.kind);
                   const tag = due
@@ -838,8 +852,9 @@ function Profile() {
                         <input
                           aria-label={`Hoàn thành ${task.text}`}
                           type="checkbox"
-                          disabled={!writable}
-                          onChange={() => void completeTask(task.at || '')}
+                          checked={false}
+                          disabled={!writable || !task.at}
+                          onChange={() => setCompletingTask(task)}
                         />
                       </label>
                       <button
@@ -1039,6 +1054,15 @@ function Profile() {
         onSave={saveNewTask}
       />
 
+      {completingTask && writable && account && (
+        <CompleteTaskDialog
+          task={completingTask}
+          now={now}
+          onClose={() => setCompletingTask(null)}
+          onConfirm={(note) => account.customers.completeTask(c.id, completingTask.at || '', note)}
+        />
+      )}
+
       {editTask && writable && (
         <AddTaskSheet
           open
@@ -1063,25 +1087,6 @@ function Profile() {
 
       {stageOpen && (
         <StageChangeSheet customer={c} busy={busy} onClose={() => setStageOpen(false)} onConfirm={onStage} />
-      )}
-      {notice && (
-        <div
-          role={notice.tone === 'error' ? 'alert' : 'status'}
-          className="fixed inset-x-4 bottom-20 z-[60] mx-auto flex max-w-md items-center gap-3 rounded-md border border-line bg-surface-200 p-3 text-ink shadow-overlay lg:right-4 lg:bottom-4 lg:left-auto"
-        >
-          <span className="min-w-0 flex-1">
-            <strong className="block text-body-strong">{notice.title}</strong>
-            {notice.description && <span className="text-caption text-ink-muted">{notice.description}</span>}
-          </span>
-          {notice.onUndo && (
-            <Button variant="ghost" onClick={notice.onUndo}>
-              Hoàn tác
-            </Button>
-          )}
-          <Button variant="ghost" aria-label="Đóng thông báo" onClick={() => setNotice(null)}>
-            Đóng
-          </Button>
-        </div>
       )}
     </main>
   );

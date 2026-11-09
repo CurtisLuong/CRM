@@ -15,6 +15,7 @@ import { forStage } from '@/domain/followup';
 import { applySlaPlan, planSlaAutomation, slaPlanMessage } from '@/domain/velocity/automation';
 import { CustomerSheet } from '@/features/customer-sheet/CustomerSheet';
 import { ClassifyLeadSheet, canClassify } from '@/features/leads/ClassifySheet';
+import { CompleteTaskDialog, type TaskCompletionTarget } from '@/features/profile/complete-task';
 import { callDraftOf, pendingCallsOf } from '@/features/quick-actions/model';
 import { openQuickAction } from '@/features/quick-actions/store';
 import { AssignCustomerSheet, canAssignWithTeam, useTeamMembers } from '@/features/team/AssignSheet';
@@ -74,6 +75,7 @@ export function TodayPage() {
     error?: string;
   }>({ account: null, status: 'loading' });
   const [notice, setNotice] = useState('');
+  const [completing, setCompleting] = useState<TaskCompletionTarget | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [quickCustomerId, setQuickCustomerId] = useState<string | null>(null);
   const [assignCustomerId, setAssignCustomerId] = useState<string | null>(null);
@@ -294,9 +296,7 @@ export function TodayPage() {
           ? () => {
               const task = signalTask(signal, customer);
               if (!task?.at) return;
-              void account.customers
-                .completeTask(customer.id, task.at)
-                .catch(() => setNotice('Chưa hoàn tất được việc.'));
+              setCompleting({ customerId: customer.id, task });
             }
           : card.action === 'outcome'
             ? () => {
@@ -558,6 +558,14 @@ export function TodayPage() {
         open={!!assignCustomerId}
         onOpenChange={(open) => !open && setAssignCustomerId(null)}
       />
+      {completing && (
+        <CompleteTaskDialog
+          task={completing.task}
+          now={now}
+          onClose={() => setCompleting(null)}
+          onConfirm={(note) => account.customers.completeTask(completing.customerId, completing.task.at || '', note)}
+        />
+      )}
     </main>
   );
 }
