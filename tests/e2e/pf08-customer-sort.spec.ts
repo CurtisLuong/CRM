@@ -138,7 +138,13 @@ const card = (page: Page, name: string) => page.locator(`[data-card]:has(button[
 
 const openFilters = async (page: Page) => {
   await page.getByRole('button', { name: /^Bộ lọc/ }).click();
-  return page.getByRole('dialog', { name: /Lọc/ });
+  const sheet = page.getByRole('dialog', { name: /Lọc/ });
+  await expect(sheet).toBeVisible();
+  // UI-04 (09/11): tấm đáy trượt lên → chờ hiệu ứng xong rồi mới đo kích thước.
+  await sheet.evaluate(async (el) => {
+    await Promise.all(el.getAnimations({ subtree: true }).map((animation) => animation.finished));
+  });
+  return sheet;
 };
 
 const closeFilters = async (page: Page, count: number) => {

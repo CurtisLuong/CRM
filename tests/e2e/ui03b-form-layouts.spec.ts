@@ -141,6 +141,11 @@ async function open(page: Page, customer: Record<string, unknown>) {
 async function sameRow(a: Locator, b: Locator) {
   await expect(a).toBeVisible();
   await expect(b).toBeVisible();
+  // UI-04 (09/11): tấm đáy trượt lên → chờ hiệu ứng của tấm chứa ô xong rồi mới đo.
+  await a.evaluate(async (el) => {
+    const sheet = el.closest('[role="dialog"]');
+    if (sheet) await Promise.all(sheet.getAnimations({ subtree: true }).map((animation) => animation.finished));
+  });
   const first = await a.boundingBox();
   const second = await b.boundingBox();
   if (!first || !second) throw new Error('Không đo được ô nhập');
