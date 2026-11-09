@@ -67,8 +67,14 @@ describe('signals baseline parity', () => {
     );
     const ranks: Record<string, number> = { urgent: 0, warn: 1 };
     actual.sort((a, b) => (ranks[a.level] ?? 0) - (ranks[b.level] ?? 0) || a.sortAt - b.sortAt);
+    // Curtis 09/11: cuộc gọi không còn ghi mốc bậc cùng bậc (v1 dùng mốc đó làm "lần liên hệ cuối"), nên S08 tính
+    // thẳng cuộc gọi. Khách ...016 (quan tâm 70%, gọi 30/11) không còn bị báo "chưa liên hệ" — đúng như v1 ngoài
+    // thực tế (v1 gọi khách đã đạt luôn ghi thêm mốc); fixture không có mốc đó nên baseline cũ còn báo.
+    const expected = baseline.notifications.filter(
+      (n) => !(n.ruleKey === 'hot_idle' && n.customerId === 'f0000000-0000-4000-8000-000000000016'),
+    );
     expect(actual).toEqual(
-      baseline.notifications.map(({ ruleKey, level, sortAt, customerId }) => ({ ruleKey, level, sortAt, customerId })),
+      expected.map(({ ruleKey, level, sortAt, customerId }) => ({ ruleKey, level, sortAt, customerId })),
     );
   });
   it('keeps legacy effective customer queue prefix and exposes the added SLA target warning', () => {

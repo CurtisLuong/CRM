@@ -2,6 +2,7 @@
 // biome-ignore-all lint/suspicious/noExplicitAny: Preserve unknown legacy and future JSON fields without projecting the aggregate.
 import type { Customer } from '@/domain/customer';
 import { buildCustomerMerge } from '@/domain/customer/merge';
+import { normStage } from '@/domain/customer/normalize';
 import { canEditTeamInfo, isTeamWritePatch } from '@/domain/customer/teamEdit';
 import { captureArrayBase } from '../arrayMerge';
 import { ReadOnlyError, STORE_CUSTOMERS, STORE_QUEUE, sameRecord } from '../localdb';
@@ -162,8 +163,22 @@ export class CustomerRepository {
         //  - careChanged: care_stage đổi sang bậc khác (đi tới hoặc lùi), HOẶC
         //  - opts.forceLog: ghi thêm 1 lần liên hệ CÙNG bậc (vd gọi lại lần 2) — dù
         //    care_stage không đổi. Sửa các field khác (không kèm 2 cờ này) → không đụng.
-        const careChanged = 'care_stage' in updatePayload && updatePayload.care_stage !== existing.care_stage;
+        // So theo tên bậc đã chuẩn hoá: tên cũ (vd "Booking") và tên mới cùng một bậc → không phải đổi bậc.
+        const careChanged =
+          'care_stage' in updatePayload && normStage(updatePayload.care_stage) !== normStage(existing.care_stage);
         const logStage = careChanged || opts.forceLog || opts.rewind;
+        // Curtis 09/11: trong một bậc chỉ có hoạt động (ghi chú, cuộc gọi, việc…). Chọn lại đúng bậc kèm ghi chú
+        // → lưu thành Ghi chú, không thêm mốc bậc cùng bậc.
+        const sameStageNote = !logStage && 'care_stage' in updatePayload ? opts.careStageNote?.trim() : '';
+        if (sameStageNote) {
+          const notes = Array.isArray(updatePayload.notes_manual)
+            ? updatePayload.notes_manual.slice()
+            : Array.isArray(existing.notes_manual)
+              ? existing.notes_manual.slice()
+              : [];
+          notes.unshift({ text: sameStageNote, at: now });
+          updatePayload.notes_manual = notes;
+        }
         const record: Data = { ...existing, ...updatePayload, id, updated_at: now };
         if (logStage) {
           record.care_stage_updated_at = now;
@@ -544,7 +559,7 @@ export class CustomerRepository {
       if (index >= 0) calls[index] = { ...calls[index], ...attempt };
       else calls.push({ ...attempt });
       const payload: Data = { ...options.patch, call_attempts: calls, updated_at: now };
-      const stageChanged = 'care_stage' in payload && payload.care_stage !== existing.care_stage;
+      const stageChanged = 'care_stage' in payload && normStage(payload.care_stage) !== normStage(existing.care_stage);
       if (stageChanged || options.forceLog) {
         payload.care_stage_updated_at = now;
         payload.care_stage_history = [

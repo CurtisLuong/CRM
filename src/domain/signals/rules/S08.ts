@@ -11,7 +11,8 @@ export default {
       [CARE_STAGE_NURTURE, CARE_STAGE_WON, CARE_STAGE_DROPPED].some((s) => s === c.care_stage)
     )
       return [];
-    const last = lastInteractionAt(c),
+    // Cuộc gọi không còn ghi mốc bậc cùng bậc (Curtis 09/11) → tính cả cuộc gọi như lastTouchMs.
+    const last = lastTouchMs(c),
       idle = idleDays(c, now);
     const dashboard = active(c) && !futureCall(c, now) && idle >= C.idleHotDays;
     const notification = last != null && Number.isFinite(last) && Math.floor((now - last) / DAY) >= C.idleHotDays;
@@ -23,7 +24,7 @@ export default {
       `Quan tâm ${interest}% · ${dashboard ? idle : Math.floor((now - (last ?? now)) / DAY)} ngày chưa liên hệ`,
       'P1',
       ['call', 'zalo'],
-      { interest_level: interest, lastTouch: lastTouchMs(c), lastInteraction: last },
+      { interest_level: interest, lastTouch: last, lastInteraction: lastInteractionAt(c) },
       undefined,
       [-interest, -idle],
     );
