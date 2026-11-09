@@ -12,7 +12,15 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
-import { TASK_ACTION_KINDS, TASK_KINDS, type TaskActionKind } from '@/config/taskKinds';
+import {
+  TASK_ACTION_KINDS,
+  TASK_KIND_PICK,
+  TASK_KINDS,
+  type TaskActionKind,
+  type TaskKind,
+  taskKindOf,
+} from '@/config/taskKinds';
+import type { Task } from '@/domain/customer';
 import { Icon } from '@/ui/Icon';
 import { type TaskDueValue, taskDueFromInput } from './model';
 
@@ -21,24 +29,40 @@ const ACTION_ROW =
 
 type SaveKind = Exclude<TaskActionKind, 'call'>;
 
+const dueInputs = (task?: Task) => {
+  const date = task?.due ? new Date(task.due) : null;
+  const valid = date && !Number.isNaN(date.getTime()) ? date : null;
+  const pad = (value: number) => String(value).padStart(2, '0');
+  return {
+    day: valid ? `${valid.getFullYear()}-${pad(valid.getMonth() + 1)}-${pad(valid.getDate())}` : '',
+    time: valid ? `${pad(valid.getHours())}:${pad(valid.getMinutes())}` : '09:00',
+    allDay: task?.due_allday === true,
+  };
+};
+
 /**
  * CP-03: "Thêm việc" luôn mở danh sách 5 hành động trước; Gọi điện rẽ sang lịch hẹn gọi (next_call_at),
  * bốn loại còn lại mới mở form nội dung + hạn và ghi next_tasks qua repository.
  */
-export function AddTaskSheet({
-  open,
-  customerName,
-  onOpenChange,
-  onScheduleCall,
-  onSave,
-}: {
+type SheetProps = {
   open: boolean;
   customerName: string;
   onOpenChange: (open: boolean) => void;
   onScheduleCall: () => void;
-  onSave: (kind: SaveKind, text: string, due: TaskDueValue) => Promise<void>;
-}) {
-  const [kind, setKind] = useState<SaveKind | null>(null);
+} & (
+  | {
+      task?: undefined;
+      onSave: (kind: SaveKind, text: string, due: TaskDueValue) => Promise<void>;
+    }
+  | {
+      task: Task;
+      onSave: (kind: string | undefined, text: string, due: TaskDueValue) => Promise<void>;
+    }
+);
+
+export function AddTaskSheet(props: SheetProps) {
+  const { open, customerName, task, onOpenChange, onScheduleCall } = props;
+  const [kind, setKind] = useState<string | null>(null);
   const [text, setText] = useState('');
   const [day, setDay] = useState('');
   const [time, setTime] = useState('09:00');
@@ -46,7 +70,9 @@ export function AddTaskSheet({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [confirming, setConfirming] = useState(false);
-  const dirty = kind !== null && (!!text.trim() || !!day || allDay);
+  const editing = !!task;
+  const hasKind = kind !== null;
+  const dirty = !editing && hasKind && (!!text.trim() || !!day || allDay);
   const requestOpenChange = (next: boolean) => {
     if (!next && dirty && !busy) {
       setConfirming(true);
@@ -58,19 +84,20 @@ export function AddTaskSheet({
   // Mỗi lần mở "Thêm việc" đều bắt đầu ở danh sách loại, không nhớ bản nháp lần trước.
   useEffect(() => {
     if (!open) return;
-    setKind(null);
-    setText('');
-    setDay('');
-    setTime('09:00');
-    setAllDay(false);
+    const initial = dueInputs(task);
+    setKind(task ? (task.kind ?? '') : null);
+    setText(task?.text ?? '');
+    setDay(initial.day);
+    setTime(initial.time);
+    setAllDay(initial.allDay);
     setBusy(false);
     setError('');
     setConfirming(false);
-  }, [open]);
+  }, [open, task]);
 
-  const pick = (action: TaskActionKind) => {
+  const pick = (action: TaskKind) => {
     setError('');
-    if (action === 'call') {
+    if (action === 'call' && !editing) {
       onScheduleCall();
       return;
     }
@@ -79,7 +106,7 @@ export function AddTaskSheet({
 
   const submit = async (event?: FormEvent) => {
     event?.preventDefault();
-    if (!kind || busy) return;
+    if (kind === null || busy) return;
     const clean = text.trim();
     if (!clean) {
       setError('Nhập nội dung việc trước khi lưu.');
@@ -93,7 +120,20 @@ export function AddTaskSheet({
     setBusy(true);
     setError('');
     try {
-      await onSave(kind, clean, due.due);
+      const initial = dueInputs(task);
+      // Không đổi hạn thì giữ nguyên mốc đã lưu, kể cả giây và thuộc tính cả ngày cũ.
+      const unchangedDue = task && day === initial.day && time === initial.time && allDay === initial.allDay;
+      const savedDue = unchangedDue
+        ? task.due
+          ? { due: task.due, due_allday: task.due_allday === true }
+          : null
+        : due.due;
+      if (props.task) await props.onSave(kind || undefined, clean, savedDue);
+      else {
+        const action = TASK_ACTION_KINDS.find((action) => action === kind);
+        if (!action || action === 'call') return;
+        await props.onSave(action, clean, savedDue);
+      }
       onOpenChange(false);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Chưa lưu được việc. Thử lại sau.');
@@ -102,19 +142,19 @@ export function AddTaskSheet({
     }
   };
 
-  const selected = kind ? TASK_KINDS[kind] : null;
+  const selected = hasKind ? taskKindOf(kind) : null;
 
   return (
     <Sheet open={open} onOpenChange={requestOpenChange}>
       <SheetContent aria-describedby="add-task-description">
-        <SheetHeader>
-          <SheetTitle>{`Thêm việc · ${customerName}`}</SheetTitle>
+        <SheetHeader className="[&_button]:size-11">
+          <SheetTitle>{`${editing ? 'Sửa việc' : 'Thêm việc'} · ${customerName}`}</SheetTitle>
           <SheetDescription id="add-task-description">
-            {kind ? 'Nhập nội dung và hạn, sau đó bấm Lưu việc.' : 'Chọn loại việc trước khi nhập nội dung.'}
+            {hasKind ? 'Nhập nội dung và hạn, sau đó bấm Lưu.' : 'Chọn loại việc trước khi nhập nội dung.'}
           </SheetDescription>
         </SheetHeader>
         <SheetBody>
-          {kind ? (
+          {hasKind ? (
             <form className="flex min-w-0 flex-col gap-3" onSubmit={(event) => void submit(event)}>
               <button
                 type="button"
@@ -127,7 +167,10 @@ export function AddTaskSheet({
               >
                 <Icon name="back" size={16} /> Đổi loại
               </button>
-              <p className="flex min-w-0 items-center gap-2 text-body font-semibold" data-task-form-kind={kind}>
+              <p
+                className="flex min-w-0 items-center gap-2 text-body font-semibold"
+                data-task-form-kind={kind ?? undefined}
+              >
                 <Icon name={selected?.icon ?? 'task'} size={20} className="shrink-0 text-ink-muted" />
                 <span className="min-w-0">{selected?.label}</span>
               </p>
@@ -205,8 +248,8 @@ export function AddTaskSheet({
               )}
             </form>
           ) : (
-            <ul className="flex flex-col gap-2" aria-label="Loại việc cần thêm">
-              {TASK_ACTION_KINDS.map((action) => {
+            <ul className="flex flex-col gap-2" aria-label={editing ? 'Loại việc cần sửa' : 'Loại việc cần thêm'}>
+              {(editing ? TASK_KIND_PICK : TASK_ACTION_KINDS).map((action) => {
                 const item = TASK_KINDS[action];
                 return (
                   <li key={action}>
@@ -214,7 +257,7 @@ export function AddTaskSheet({
                       <Icon name={item.icon} size={24} className="shrink-0 text-ink-muted" />
                       <span className="text-body-strong min-w-0 flex-1">{item.label}</span>
                       <span aria-hidden="true" className="shrink-0 text-caption text-ink-muted">
-                        {action === 'call' ? 'Lịch hẹn gọi' : ''}
+                        {action === 'call' && !editing ? 'Lịch hẹn gọi' : ''}
                       </span>
                       <Icon name="open" size={20} className="shrink-0 text-ink-muted" />
                     </button>
@@ -224,13 +267,13 @@ export function AddTaskSheet({
             </ul>
           )}
         </SheetBody>
-        {kind && (
+        {hasKind && (
           <SheetFooter>
             <Button className="flex-1" disabled={busy} onClick={() => onOpenChange(false)}>
               Huỷ
             </Button>
             <Button type="button" variant="primary" className="flex-1" disabled={busy} onClick={() => void submit()}>
-              Lưu việc
+              {editing ? 'Lưu' : 'Lưu việc'}
             </Button>
           </SheetFooter>
         )}
