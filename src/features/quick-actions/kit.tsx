@@ -1,6 +1,6 @@
 import { LoaderCircle } from 'lucide-react';
 import { RadioGroup } from 'radix-ui';
-import { type ButtonHTMLAttributes, type ReactNode, useState } from 'react';
+import { type ButtonHTMLAttributes, type ComponentPropsWithoutRef, type ReactNode, useState } from 'react';
 import { Button as KitButton } from '@/components/ui/button';
 import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -75,7 +75,9 @@ export function ActionSheet({
   dirty,
   footer,
   children,
+  contentProps,
 }: {
+  contentProps?: ComponentPropsWithoutRef<typeof SheetContent>;
   open?: boolean;
   onOpenChange: (open: boolean) => void;
   title: string;
@@ -90,6 +92,7 @@ export function ActionSheet({
     <>
       <Sheet open={open} onOpenChange={(next) => (next ? onOpenChange(true) : requestClose())}>
         <SheetContent
+          {...contentProps}
           onEscapeKeyDown={(event) => {
             if (dirty) {
               event.preventDefault();
