@@ -107,10 +107,11 @@ test('PF-02: mốc bậc là đầu nhóm, mục trong bậc thụt phải hơn 
   await expect(groups).toHaveCount(3);
 
   // Nhóm mới nhất trước; trong nhóm, mục con mới nhất trước.
-  await expect(groups.nth(0)).toContainText('Bậc: Xem dự án');
+  // TL-02 (09/11): tên bậc bỏ tiền tố "Bậc: "; nút sửa thành icon bút ("Sửa …"), lưu bằng "Lưu".
+  await expect(groups.nth(0)).toContainText('Xem dự án');
   await expect(groups.nth(0)).toContainText('Nói chuyện được');
   await expect(groups.nth(0)).not.toContainText('Đã gửi Zalo');
-  await expect(groups.nth(1)).toContainText('Bậc: Đang chăm sóc');
+  await expect(groups.nth(1)).toContainText('Đang chăm sóc');
   await expect(groups.nth(1)).toContainText('Đã gửi Zalo');
   await expect(groups.nth(1)).toContainText('Ghi chú trong bậc A');
   await expect(groups.nth(1)).toContainText('Ghi chú mốc A');
@@ -126,9 +127,11 @@ test('PF-02: mốc bậc là đầu nhóm, mục trong bậc thụt phải hơn 
   // Mỗi dòng (đầu nhóm + mục con) có đúng một icon.
   const rows = panel.locator('[data-timeline-entry]');
   await expect(rows).toHaveCount(4);
-  for (let index = 0; index < 4; index++) await expect(rows.nth(index).locator('svg')).toHaveCount(1);
+  // TL-02: mục không ghi chú có icon bút trên dòng tên → chỉ đếm icon loại mục.
+  for (let index = 0; index < 4; index++) await expect(rows.nth(index).locator('svg:not(button svg)')).toHaveCount(1);
   for (let index = 0; index < 3; index++)
-    await expect(groups.nth(index).locator('[data-timeline-header]').locator('svg')).toHaveCount(1);
+    // TL-02: đầu nhóm bậc hiện tại có nút "Đổi bậc"/bút → chỉ đếm icon bậc, không đếm icon trong nút.
+    await expect(groups.nth(index).locator('[data-timeline-header]').locator('svg:not(button svg)')).toHaveCount(1);
 
   // Không cuộn ngang (dự án phone-360 đo đúng 360px).
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
@@ -140,7 +143,7 @@ test('PF-02: lọc "Cuộc gọi" chỉ giữ nhóm có cuộc gọi và ẩn gh
   await panel.getByRole('button', { name: /^Cuộc gọi/ }).click();
   const groups = panel.locator('[data-timeline-group]');
   await expect(groups).toHaveCount(2);
-  await expect(groups.nth(0)).toContainText('Bậc: Xem dự án');
+  await expect(groups.nth(0)).toContainText('Xem dự án');
   await expect(groups.nth(1)).toContainText('Trước khi có mốc bậc');
   await expect(panel).not.toContainText('Ghi chú mốc A');
   await expect(panel).not.toContainText('Ghi chú trong bậc A');

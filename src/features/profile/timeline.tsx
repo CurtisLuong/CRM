@@ -242,16 +242,15 @@ export function ProfileTimeline({
         if (index < 0) throw new Error('Không tìm thấy mốc bậc.');
         list.splice(index, 1);
         await repo.update(customer.id, { care_stage_history: list });
-      } else if (entry.kind === 'call') {
-        const list = (Array.isArray(customer.call_attempts) ? customer.call_attempts : []).filter(
-          (item) => atOf(item) !== target.at,
-        );
-        await repo.update(customer.id, { call_attempts: list });
-      } else if (entry.kind === 'interaction') {
-        const list = (Array.isArray(customer.interactions) ? customer.interactions : []).filter(
-          (item) => atOf(item) !== target.at,
-        );
-        await repo.update(customer.id, { interactions: list });
+      } else if (entry.kind === 'call' || entry.kind === 'interaction') {
+        // Bỏ đúng MỘT phần tử (theo vị trí trong mảng gốc, đối chiếu giờ) — hai mục trùng giờ không bị xoá cùng (D-012).
+        const key = entry.kind === 'call' ? 'call_attempts' : 'interactions';
+        const list = Array.isArray(customer[key]) ? (customer[key] as { at?: string | null }[]).slice() : [];
+        const index =
+          atOf(list[target.index]) === target.at ? target.index : list.findIndex((item) => atOf(item) === target.at);
+        if (index < 0) throw new Error('Không tìm thấy mục cần xoá.');
+        list.splice(index, 1);
+        await repo.update(customer.id, { [key]: list });
       } else if (entry.kind === 'task') {
         const task = findDoneTask(customer, target.at, target.index);
         if (!task || typeof task.at !== 'string') throw new Error('Không tìm thấy việc.');
@@ -392,8 +391,10 @@ export function ProfileTimeline({
   // khung chỉ có khi có ghi chú — chữ bên trái, bút nhỏ cố định cuối dòng.
   const entryBody = (entry: ProfileTimelineEntry) => {
     const editable = canEditEntry(entry);
-    if (!entry.detail && !editable) return null;
-    if (editable && editingId === entry.id) {
+    const editing = editable && editingId === entry.id;
+    // Không ghi chú → không khung; bút nằm trên dòng tên (penInTitle) để không thêm dòng trống.
+    if (!entry.detail && !editing) return null;
+    if (editing) {
       if (entry.kind === 'call') return callEditor(entry);
       if (entry.kind === 'task') return taskEditor(entry);
       return noteEditor(entry);
@@ -412,7 +413,10 @@ export function ProfileTimeline({
     );
   };
 
-  const entryText = (entry: ProfileTimelineEntry, options: { detail: boolean; heading?: boolean }) => (
+  const entryText = (
+    entry: ProfileTimelineEntry,
+    options: { detail: boolean; heading?: boolean; timeBelow?: boolean; duration?: string },
+  ) => (
     <>
       <div className="flex items-baseline justify-between gap-2">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
@@ -430,11 +434,25 @@ export function ProfileTimeline({
             </span>
           )}
         </div>
-        <time className="shrink-0 font-mono text-xs text-ink-muted" dateTime={new Date(entry.at).toISOString()}>
-          {fmtWhen(entry.at)}
-        </time>
+        {!options.timeBelow && (
+          <time className="shrink-0 font-mono text-xs text-ink-muted" dateTime={new Date(entry.at).toISOString()}>
+            {fmtWhen(entry.at)}
+          </time>
+        )}
+        {!entry.detail && canEditEntry(entry) && editingId !== entry.id && (
+          <TimelineEditButton label={editLabel(entry)} disabled={disabled} onClick={() => startEdit(entry)} />
+        )}
       </div>
-      {options.detail && (entry.detail || canEditEntry(entry)) && <div className="mt-1">{entryBody(entry)}</div>}
+      {options.timeBelow && (
+        <p className="mt-0.5 flex flex-wrap items-center gap-x-1 text-caption text-ink-muted">
+          {options.duration && <span data-stage-duration="">{options.duration}</span>}
+          {options.duration && <span aria-hidden="true">·</span>}
+          <time className="font-mono text-xs" dateTime={new Date(entry.at).toISOString()}>
+            {fmtWhen(entry.at)}
+          </time>
+        </p>
+      )}
+      {options.detail && (entry.detail || editingId === entry.id) && <div className="mt-1">{entryBody(entry)}</div>}
     </>
   );
 
@@ -480,11 +498,14 @@ export function ProfileTimeline({
               {taskKindOf(entry.taskKind).label}
             </span>
           )}
+          {!entry.detail && canEditEntry(entry) && editingId !== entry.id && (
+            <TimelineEditButton label={editLabel(entry)} disabled={disabled} onClick={() => startEdit(entry)} />
+          )}
         </span>
       ),
       // Không có ghi chú → không vẽ khung (ngày đã ở dòng tên của kit).
       note:
-        entry.detail || entry.automatic || canEditEntry(entry) ? (
+        entry.detail || entry.automatic || editingId === entry.id ? (
           <span className="flex flex-col items-start gap-1">
             {entry.automatic && (
               <span className="rounded-sm border border-line px-2 py-0.5 text-caption text-ink-muted">
@@ -579,12 +600,8 @@ export function ProfileTimeline({
                   <article data-timeline-header="" className="flex items-start gap-2">
                     <Icon name={group.icon} size={20} className="mt-0.5 shrink-0 text-ion" />
                     <div className="min-w-0 flex-1">
-                      {entryText(group.stage, { detail: stageDetail, heading: true })}
-                      {duration && (
-                        <p data-stage-duration="" className="mt-0.5 text-caption text-ink-muted">
-                          {duration}
-                        </p>
-                      )}
+                      {/* 360px: tên bậc một dòng; thời gian ở bậc + giờ vào bậc xuống dòng dưới (mockup TL-02). */}
+                      {entryText(group.stage, { detail: stageDetail, heading: true, timeBelow: true, duration })}
                     </div>
                     {isCurrent && writable && onStage && (
                       <Button variant="secondary" size="sm" className="shrink-0" onClick={onStage}>

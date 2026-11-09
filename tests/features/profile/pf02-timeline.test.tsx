@@ -39,7 +39,8 @@ function renderTimeline(customer: Customer) {
 describe('ProfileTimeline PF-02', () => {
   it('phân nhóm theo bậc; mỗi mục có đúng một icon; con nằm trong đường dọc', () => {
     const { container } = renderTimeline(standard);
-    expect(screen.getByRole('heading', { level: 3, name: 'Bậc: Xem dự án' })).toBeTruthy();
+    // TL-02 (09/11): tên bậc bỏ tiền tố "Bậc: "; nút sửa thành icon bút ("Sửa …"), lưu bằng "Lưu".
+    expect(screen.getByRole('heading', { level: 3, name: 'Xem dự án' })).toBeTruthy();
     expect(screen.getByRole('heading', { level: 3, name: 'Trước khi có mốc bậc' })).toBeTruthy();
     const rows = [...container.querySelectorAll('[data-timeline-entry]')];
     expect(rows).toHaveLength(4);
@@ -59,7 +60,7 @@ describe('ProfileTimeline PF-02', () => {
     expect(screen.queryByText('Ghi chú trong bậc')).toBeNull();
     expect(screen.getByText('Nói chuyện được')).toBeTruthy();
     expect(screen.getByText('Không nghe máy')).toBeTruthy();
-    expect(screen.getByRole('heading', { level: 3, name: 'Bậc: Xem dự án' })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 3, name: 'Xem dự án' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Sửa ghi chú lịch sử bậc' })).toBeNull();
   });
 
