@@ -463,7 +463,13 @@ export function ProfileTimeline({
         )}
       </div>
       {options.timeBelow && (
-        <p className="mt-0.5 flex flex-wrap items-center gap-x-1 text-caption text-ink-muted">
+        // Nút "Đổi bậc" (cao 44px, lề âm) tràn xuống dòng này → chừa chỗ bên phải để chữ không bị che (360px).
+        <p
+          className={cn(
+            'mt-0.5 flex flex-wrap items-center gap-x-1 text-caption text-ink-muted',
+            options.trailing && 'pr-24',
+          )}
+        >
           {entry.automatic && <span className="rounded-sm border border-line px-2 py-0.5">Tự động · SLA</span>}
           {options.duration && <span data-stage-duration="">{options.duration}</span>}
           {options.duration && <span aria-hidden="true">·</span>}

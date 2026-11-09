@@ -984,7 +984,8 @@ function Profile() {
           (trừ thêm 56px lề dưới của khung) để khi cuộn hết trang cột vẫn nằm ngay dưới tiêu đề;
           nội dung dài hơn thì tự cuộn bên trong, không bị cắt.
         */}
-        <div className="contents xl:sticky xl:top-[calc(56px+env(safe-area-inset-top))] xl:flex xl:h-[calc(100dvh-112px)] xl:flex-col xl:gap-4 xl:overflow-y-auto">
+        {/* TL-04: dòng thời gian rút gọn làm trang ngắn → cột phụ thấp hơn 24px để cuộn hết trang vẫn không trồi lên dưới thanh tiêu đề. */}
+        <div className="contents xl:sticky xl:top-[calc(56px+env(safe-area-inset-top))] xl:flex xl:h-[calc(100dvh-136px)] xl:flex-col xl:gap-4 xl:overflow-y-auto">
           <section aria-label="Đã biết" className="rounded-md border border-line bg-surface-100 p-4 max-xl:order-4">
             <h2 className="text-section-head">Đã biết</h2>
             {briefParts.known.length ? (
