@@ -1,7 +1,8 @@
-import fs from 'node:fs';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-const sql = fs.readFileSync(new URL('../../SQL/v2/015_stage_history_dedupe.sql', import.meta.url), 'utf8');
+const sql = readFileSync(resolve(process.cwd(), 'SQL/v2/015_stage_history_dedupe.sql'), 'utf8');
 // Phần chạy thật (bỏ dòng chú thích): mục 2–5 để dạng chú thích, người chạy tự bỏ dấu "--".
 const live = sql
   .split('\n')
