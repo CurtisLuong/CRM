@@ -18,6 +18,8 @@ import { Glyph } from './signal';
 
 export interface TimelineAction {
   action: ActionId;
+  /** Icon theo loại mục của màn (ví dụ ghi chú bậc, duyệt AI). */
+  icon?: React.ReactNode;
   at: Date | string;
   title?: React.ReactNode;
   /** "Nghe máy · 4 phút", "Không nghe máy" */
@@ -30,6 +32,9 @@ export interface TimelineAction {
   edit?: React.ReactNode;
 }
 export interface TimelineStageGroup {
+  /** Đầu nhóm tuỳ biến cho hồ sơ có sửa tại chỗ. */
+  header?: React.ReactNode;
+  id?: string;
   stage: Stage;
   start: Date | string;
   /** When the next stage began; omit for the stage in progress. */
@@ -82,17 +87,24 @@ export function TimelineEditButton(props: { label: string; disabled?: boolean; o
   );
 }
 
-function Step({ item, now }: { item: TimelineAction; now: Date }) {
+function Step({ item, now, last }: { item: TimelineAction; now: Date; last: boolean }) {
   const a = ACTION_BY_ID[item.action];
   return (
-    <li className="relative grid grid-cols-[24px_minmax(0,1fr)] gap-2.5 pb-3 [&:not(:last-child)]:before:absolute [&:not(:last-child)]:before:bottom-0.5 [&:not(:last-child)]:before:left-[11px] [&:not(:last-child)]:before:top-[26px] [&:not(:last-child)]:before:w-px [&:not(:last-child)]:before:bg-line">
+    <li className="relative grid grid-cols-[24px_minmax(0,1fr)] gap-2.5 pb-3">
+      {!last && (
+        <span
+          aria-hidden
+          data-timeline-activity-rail=""
+          className="absolute bottom-0.5 left-[11px] top-[26px] w-px bg-line"
+        />
+      )}
       <span
         className={cn(
           'grid size-6 place-items-center rounded-full border border-line bg-surface-200 text-ink-muted',
           item.level && ICO[item.level],
         )}
       >
-        <ActionIcon action={item.action} size={14} />
+        {item.icon ?? <ActionIcon action={item.action} size={14} />}
       </span>
       <div className="flex min-w-0 flex-col gap-1 pt-0.5">
         <div
@@ -162,7 +174,7 @@ function StageBlock({
       st.step
     );
   return (
-    <li className="relative grid grid-cols-[32px_minmax(0,1fr)] gap-3 pb-5">
+    <li data-timeline-group={group.id} className="relative grid grid-cols-[32px_minmax(0,1fr)] gap-3 pb-5">
       {!last && (
         <span aria-hidden data-timeline-stage-rail="" className="absolute bottom-0 left-[15px] top-8 w-0.5 bg-line" />
       )}
@@ -181,44 +193,50 @@ function StageBlock({
         {mark}
       </span>
       <div className="flex min-w-0 flex-col gap-0.5">
-        <button
-          type="button"
-          aria-expanded={open}
-          onClick={() => setOpen(!open)}
-          className="flex min-h-8 w-full cursor-pointer items-end gap-2 text-left text-ink"
-        >
-          <span className="flex min-w-0 flex-1 items-end gap-2 text-sm font-semibold leading-5">
-            <span data-stage-title="" className={cn(live && 'text-ion')}>
-              {st.label}
-            </span>
-          </span>
-          {!st.end && sla?.level && (
-            <span
-              title={`${sla.word} · SLA ${fmtLimit(sla.ideal!)} / ${fmtLimit(sla.max!)}`}
-              className={cn(
-                'inline-flex shrink-0 items-center gap-1.5 rounded-sm bg-surface-200 px-2 py-0.5 font-mono text-[13px] font-semibold tabular-nums',
-                live && DUR[sla.level],
-              )}
+        {group.header ?? (
+          <>
+            <button
+              type="button"
+              aria-expanded={open}
+              onClick={() => setOpen(!open)}
+              className="flex min-h-8 w-full cursor-pointer items-end gap-2 text-left text-ink"
             >
-              <Glyph level={sla.level} pulse={live} />
-              {sla.word}
+              <span className="flex min-w-0 flex-1 items-end gap-2 text-sm font-semibold leading-5">
+                <span data-stage-title="" className={cn(live && 'text-ion')}>
+                  {st.label}
+                </span>
+              </span>
+              {live && sla?.level && (
+                <span
+                  title={`${sla.word} · SLA ${fmtLimit(sla.ideal!)} / ${fmtLimit(sla.max!)}`}
+                  className={cn(
+                    'inline-flex shrink-0 items-center gap-1.5 rounded-sm bg-surface-200 px-2 py-0.5 font-mono text-[13px] font-semibold tabular-nums',
+                    live && DUR[sla.level],
+                  )}
+                >
+                  <Glyph level={sla.level} pulse={live} />
+                  {sla.word}
+                </span>
+              )}
+              <ChevronDown
+                className={cn('size-4 shrink-0 text-ink-muted transition-transform', !open && '-rotate-90')}
+              />
+            </button>
+            {!group.hideDuration && (
+              <span data-stage-duration="" className="text-caption text-ink-muted">
+                {formatStageDuration(group.start, group.end, now)}
+              </span>
+            )}
+            <span className="font-mono text-xs text-ink-muted">
+              {fmtWhen(group.start, now)}
+              {!st.end && ` → ${end ? fmtWhen(end, now) : 'nay'}`} · {items.length} việc
             </span>
-          )}
-          <ChevronDown className={cn('size-4 shrink-0 text-ink-muted transition-transform', !open && '-rotate-90')} />
-        </button>
-        {!group.hideDuration && (
-          <span data-stage-duration="" className="text-caption text-ink-muted">
-            {formatStageDuration(group.start, group.end, now)}
-          </span>
+          </>
         )}
-        <span className="font-mono text-xs text-ink-muted">
-          {fmtWhen(group.start, now)}
-          {!st.end && ` → ${end ? fmtWhen(end, now) : 'nay'}`} · {items.length} việc
-        </span>
-        {open && items.length > 0 && (
+        {(group.header || open) && items.length > 0 && (
           <ol className="mt-2.5 flex list-none flex-col p-0">
             {items.map((it, i) => (
-              <Step key={i} item={it} now={now} />
+              <Step key={i} item={it} now={now} last={i === items.length - 1} />
             ))}
           </ol>
         )}

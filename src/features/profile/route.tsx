@@ -4,6 +4,7 @@ import type { FeatureRoute } from '@/app/routes';
 import { ActionButton, Avatar, SlaMeter, StageChip } from '@/components/crm';
 import { FormSubsection } from '@/components/crm/form-section';
 import { Button } from '@/components/ui/button';
+import { toast as notify, Toaster } from '@/components/ui/sonner';
 import { TabsContent, TabsList, Tabs as TabsPrimitive, TabsTrigger } from '@/components/ui/tabs';
 import { PREF_CONDITIONS_LEGACY, PROFILE_PREF_CONDITIONS, PROFILE_PREF_FIELDS } from '@/config/advanced';
 import { CARE_STAGE_BOOKING, CARE_STAGE_DISPLAY } from '@/config/stages';
@@ -31,7 +32,6 @@ import { openQuickAction } from '@/features/quick-actions/store';
 import { AssignCustomerSheet, canAssignWithTeam, useTeamMembers } from '@/features/team/AssignSheet';
 import { slaMeterFor } from '@/lib/crm';
 import { Icon } from '@/ui/Icon';
-import { useToast } from '@/ui/Toast';
 import { AddTaskSheet } from './add-task';
 import { ProfileTextField as Field, LegacyAssistField, ProfileAdvanced } from './advanced';
 import { ArchiveCustomerSection, ArchivedBanner } from './archive';
@@ -63,14 +63,17 @@ import { ProfileTimeline } from './timeline';
 // Giữ export cũ (test + nơi khác import từ route).
 export { editedTimelineNotePatch } from './model';
 
+const toast = (input: { title: string; description?: string; tone?: 'default' | 'error' }) =>
+  notify[input.tone === 'error' ? 'error' : 'info'](input.title, {
+    description: input.description,
+    duration: 2000,
+  });
+
 function Profile() {
   const { id = '' } = useParams();
   const navigate = useNavigate();
   const customer = useCustomer(id);
   const account = useRepositoryAccount();
-  // Thông báo dùng lớp toast chung của app (tự tắt, nằm trên mọi lớp). Trước đây hồ sơ tự vẽ hộp riêng
-  // không tự tắt và bị kẹt dưới tấm đang mở (Curtis 09/11).
-  const toast = useToast();
   const [now, setNow] = useState(Date.now());
   const [busy, setBusy] = useState(false);
   // TL-03: mở hồ sơ bắt đầu ở Dòng thời gian.
@@ -1088,6 +1091,7 @@ function Profile() {
       {stageOpen && (
         <StageChangeSheet customer={c} busy={busy} onClose={() => setStageOpen(false)} onConfirm={onStage} />
       )}
+      <Toaster closeButton={false} offset={80} mobileOffset={80} />
     </main>
   );
 }
