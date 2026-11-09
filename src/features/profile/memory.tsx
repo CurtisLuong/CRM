@@ -354,7 +354,8 @@ export function CustomerInterests({
           placeholder="Loại căn"
         />
         <MoneyField
-          label="Ngân sách đợt mới"
+          aria-label="Ngân sách đợt mới"
+          placeholder="Ngân sách"
           className={SHORT_FIELD}
           disabled={!writable}
           value={interestBudget}
@@ -513,7 +514,8 @@ export function CustomerClosure({ customer, writable, onSave, now }: BaseProps) 
           onBlur={() => closeNote !== (customer.close_note || '') && closePatch('close_note', closeNote.trim())}
         />
       </label>
-      <FormGrid className={LONG_FIELD}>
+      {/* Ô ngày (nhãn chữ nhỏ) và ô tiền (nhãn Field) khác chiều cao nhãn → canh đáy để hai ô thẳng hàng. */}
+      <FormGrid className={`${LONG_FIELD} items-end`}>
         <label
           className={`${SHORT_FIELD} flex flex-col gap-1 text-caption [&>input]:min-w-0 [&>input]:w-full [&>input]:max-w-full [&>input]:shrink`}
         >

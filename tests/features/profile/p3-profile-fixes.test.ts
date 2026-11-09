@@ -58,8 +58,9 @@ describe('Đã biết → Tài chính đọc Vốn hiện có', () => {
   const finance = (patch: Record<string, unknown>) =>
     customerBrief(customer(patch)).find((fact) => fact.key === 'finance')?.value;
   it('ưu tiên Vốn hiện có (Trí nhớ), không có thì vốn ghi lúc nhập khách', () => {
-    expect(finance({ advanced: { capital: 800_000_000 }, finance: 500_000_000 })).toContain('Vốn 800000000');
-    expect(finance({ finance: 500_000_000 })).toContain('Vốn 500000000');
+    // MN-01 (09/11): tiền hiển thị theo triệu/tỷ.
+    expect(finance({ advanced: { capital: 800_000_000 }, finance: 500_000_000 })).toContain('Vốn 800 triệu');
+    expect(finance({ finance: 500_000_000 })).toContain('Vốn 500 triệu');
     expect(finance({})).toBe('Chưa biết');
   });
 });

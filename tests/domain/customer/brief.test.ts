@@ -62,7 +62,8 @@ describe('customerBrief', () => {
     );
     expect(brief.find((fact) => fact.key === 'need')?.value).toContain('Dự án thứ hai');
     expect(brief.find((fact) => fact.key === 'need')?.value).toContain('Dự án đầu');
-    expect(brief.find((fact) => fact.key === 'finance')?.value).toContain('1500000000');
+    // MN-01 (09/11): tiền hiển thị theo triệu/tỷ.
+    expect(brief.find((fact) => fact.key === 'finance')?.value).toContain('1,5 tỷ');
     expect(brief.find((fact) => fact.key === 'purpose')?.value).toBe('Ở');
   });
 
