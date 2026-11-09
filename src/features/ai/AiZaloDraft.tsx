@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
-import { FormSubsection, LONG_FIELD } from '@/components/crm/form-section';
+import { LoaderCircle } from 'lucide-react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import type { RepositoryAccount } from '@/data/repositories/session';
 import type { Customer } from '@/domain/customer';
 import { buildAiContext } from '@/domain/customer/aiContext';
@@ -19,16 +20,15 @@ export function AiZaloDraft({
   onDraft: (text: string) => void;
   template?: string;
 }) {
+  const goalId = useId();
   const identity = JSON.stringify([customer.id, customer.updated_at, customer.contact_prefs, template]);
   const requestCurrent = useAiScope(identity, account);
   const latest = useRef({ identity, account });
   latest.current = { identity, account };
-  const [evidence, setEvidence] = useState('');
   useEffect(() => {
     if (latest.current.identity !== identity || latest.current.account !== account) return;
     setBusy(false);
     setError('');
-    setEvidence('');
   }, [identity, account]);
   const [online, setOnline] = useState(() => typeof navigator === 'undefined' || navigator.onLine);
   const [busy, setBusy] = useState(false);
@@ -52,9 +52,9 @@ export function AiZaloDraft({
       </p>
     );
   }
-  if (!aiAvailable(workerUrl, online && account.sync.isOnline())) return null;
+  const available = aiAvailable(workerUrl, online && account.sync.isOnline());
   const generate = async () => {
-    if (busy || customer.contact_prefs?.do_not_contact) return;
+    if (busy || !available || customer.contact_prefs?.do_not_contact) return;
     const current = requestCurrent;
     setBusy(true);
     setError('');
@@ -74,41 +74,37 @@ export function AiZaloDraft({
       const finalCustomer = account.customers.getSnapshot().find((item) => item.id === customer.id);
       if (!current() || !finalCustomer || finalCustomer.archived_at || finalCustomer.contact_prefs?.do_not_contact)
         return;
-      setEvidence(response.data.chi_tiet_dung || '');
       onDraft(response.data.tin_nhan.trim());
     } catch (e) {
-      if (current()) setError(e instanceof Error ? e.message : 'Chưa tạo được bản nháp Zalo.');
+      if (current())
+        setError(
+          !navigator.onLine
+            ? 'Mất mạng. Kết nối lại để soạn tin.'
+            : e instanceof TypeError
+              ? 'Chưa soạn được tin. Thử lại.'
+              : e instanceof Error
+                ? e.message
+                : 'Chưa tạo được bản nháp Zalo.',
+        );
     } finally {
       if (current()) setBusy(false);
     }
   };
   return (
-    <FormSubsection
-      title="Soạn Zalo bằng AI"
-      className={`${LONG_FIELD} [&>div>*]:basis-full`}
-      aria-label="Soạn Zalo bằng AI"
-    >
-      <label className="flex flex-col gap-1 text-label">
+    <div className="flex min-w-0 flex-col gap-2">
+      <label htmlFor={goalId} className="flex flex-col gap-1 text-label">
         Mục đích tin (tuỳ chọn)
-        <input
-          className="min-w-0 w-full min-h-11 rounded-sm border border-line bg-surface-100 px-3 text-body"
-          value={goal}
-          onChange={(event) => setGoal(event.target.value)}
-          maxLength={300}
-        />
+        <Input id={goalId} value={goal} onChange={(event) => setGoal(event.target.value)} maxLength={300} />
       </label>
-      <Button className="mt-2" variant="primary" disabled={busy} onClick={() => void generate()}>
+      <Button aria-busy={busy || undefined} disabled={busy || !available} onClick={() => void generate()}>
+        {busy && <LoaderCircle className="animate-spin motion-reduce:animate-none" aria-hidden />}
         Soạn bằng AI
       </Button>
-      <p className="mt-1 text-label text-ink-muted">
-        AI chỉ điền bản nháp. Hãy kiểm tra, rồi tự chọn sao chép và mở Zalo.
-      </p>
-      {evidence && <p className="mt-2 text-label text-ink-muted">Chi tiết đã dùng: {evidence}</p>}
       {error && (
         <p role="alert" className="mt-1 text-label text-alert-text">
           {error}
         </p>
       )}
-    </FormSubsection>
+    </div>
   );
 }
