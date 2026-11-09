@@ -247,7 +247,7 @@ export function ProfileTimeline({ customer, entries, writable, busy, onSave }: P
                 <div className="min-w-0 flex-1">
                   {entryText(entry, {
                     detail: entry.kind === 'stage' ? stageDetail : true,
-                    heading: entry.kind === 'stage' || entry.kind === 'archive',
+                    heading: row.topLevel,
                   })}
                 </div>
               </article>
