@@ -136,9 +136,8 @@ async function checkRail(groups: Locator, profile: boolean) {
   const icons: Awaited<ReturnType<typeof box>>[] = [];
   for (const group of await groups.all()) {
     const icon = await box(
-      group.locator(
-        profile ? '[data-timeline-header] [data-timeline-stage-icon]' : ':scope > [data-timeline-stage-icon]',
-      ),
+      // TL-04 (09/11): hồ sơ dùng khuôn Hành trình → dấu bậc ở cột trái của nhóm như tấm xem nhanh.
+      group.locator(':scope > [data-timeline-stage-icon]'),
     );
     const title = await box(group.locator(profile ? '[data-timeline-header] h3' : '[data-stage-title]'));
     expect(Math.abs(bottom(icon) - bottom(title)), 'icon căn đáy tên bậc').toBeLessThanOrEqual(2);

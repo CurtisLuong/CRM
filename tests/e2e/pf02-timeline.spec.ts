@@ -128,10 +128,13 @@ test('PF-02: mốc bậc là đầu nhóm, mục trong bậc thụt phải hơn 
   const rows = panel.locator('[data-timeline-entry]');
   await expect(rows).toHaveCount(4);
   // TL-02: mục không ghi chú có icon bút trên dòng tên → chỉ đếm icon loại mục.
-  for (let index = 0; index < 4; index++) await expect(rows.nth(index).locator('svg:not(button svg)')).toHaveCount(1);
+  // TL-04: icon loại nằm trong vòng tròn của <li> chứa mục.
+  for (let index = 0; index < 4; index++)
+    await expect(rows.nth(index).locator('xpath=ancestor::li[1]').locator('svg:not(button svg)')).toHaveCount(1);
   for (let index = 0; index < 3; index++)
     // TL-02: đầu nhóm bậc hiện tại có nút "Đổi bậc"/bút → chỉ đếm icon bậc, không đếm icon trong nút.
-    await expect(groups.nth(index).locator('[data-timeline-header]').locator('svg:not(button svg)')).toHaveCount(1);
+    // TL-04: dấu bậc ở cột trái kit Hành trình.
+    await expect(groups.nth(index).locator('[data-timeline-stage-icon]').first()).toBeVisible();
 
   // Không cuộn ngang (dự án phone-360 đo đúng 360px).
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);

@@ -44,10 +44,13 @@ describe('ProfileTimeline PF-02', () => {
     expect(screen.getByRole('heading', { level: 3, name: 'Trước khi có mốc bậc' })).toBeTruthy();
     const rows = [...container.querySelectorAll('[data-timeline-entry]')];
     expect(rows).toHaveLength(4);
-    for (const row of rows) expect(row.querySelectorAll('svg')).toHaveLength(1);
+    // TL-04 (09/11): icon loại nằm trong vòng tròn của kit (cùng dòng <li>), bút sửa là nút → đếm icon không thuộc nút.
+    for (const row of rows) expect((row.closest('li') ?? row).querySelectorAll('svg:not(button svg)')).toHaveLength(1);
     const headers = [...container.querySelectorAll('[data-timeline-header]')];
     expect(headers).toHaveLength(3);
-    for (const header of headers) expect(header.querySelectorAll('svg')).toHaveLength(1);
+    // TL-04: dấu bậc nằm ở cột trái của kit Hành trình (cùng <li> với đầu nhóm), không còn icon trong đầu nhóm.
+    for (const header of headers)
+      expect((header.closest('li') ?? header).querySelectorAll('[data-timeline-stage-icon]').length).toBeGreaterThan(0);
     // TL-03 (09/11): một đường dọc liền nối các nhóm bậc (thay cho đường riêng mỗi nhóm).
     expect(container.querySelectorAll('[data-timeline-stage-rail]').length).toBeGreaterThan(0);
   });

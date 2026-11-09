@@ -1,5 +1,7 @@
 import { expect, type Page, test } from '@playwright/test';
 
+// TL-04 (09/11): dòng thời gian dùng khuôn Hành trình — mục con là '[data-timeline-group] ol > li', icon loại nằm trong vòng tròn của <li>.
+
 const userId = 'tl01-e2e-user';
 const NOW = new Date('2026-11-09T10:00:00+07:00');
 const at = (day: string, time: string) => new Date(`2026-${day}T${time}:00+07:00`).toISOString();
@@ -115,7 +117,7 @@ for (const theme of ['light', 'dark'] as const) {
       await expect(panel.getByText('đã gọi 21:11, 10.10.2026', { exact: true })).toHaveCount(0);
       await expect(panel.getByText('Nói chuyện được', { exact: true })).toHaveCount(2);
       await expect(panel.getByRole('button', { name: 'Bậc 2', exact: true })).toBeVisible();
-      const stageNote = groups.nth(0).locator('ol ol > li').filter({ hasText: 'Ghi chú bậc' });
+      const stageNote = groups.nth(0).locator('ol > li').filter({ hasText: 'Ghi chú bậc' });
       await expect(stageNote).toHaveCount(1);
       await expect(stageNote.getByText('d', { exact: true })).toBeVisible();
       await expect(stageNote.locator('time')).toHaveAttribute('dateTime', at('11-03', '15:33'));
