@@ -40,6 +40,7 @@ import { dobSavePatch, dobView } from './dob';
 import { DocumentsSection } from './documents';
 import { advancedPatch, LONG_FIELD, legacyValues } from './fields';
 import { infoHiddenCount, ProfileInfoFields } from './info';
+import { ProfileInterest } from './interest';
 import { CustomerMemory, CustomerNeedsAdvanced, contactPrefsMissingCount } from './memory';
 import {
   bookingStepPatch,
@@ -47,10 +48,12 @@ import {
   estimatePrice,
   extraFacts,
   formatVndShort,
+  knownStats,
   lastTouchOf,
   type PriceCatalog,
   priceRates,
   profileLoan,
+  profileTaskSide,
   splitBrief,
   type TaskDueValue,
   withTaskKinds,
@@ -575,6 +578,7 @@ function Profile() {
     }
   };
   const briefParts = splitBrief(brief);
+  const stats = knownStats(c, now);
   const lastTouch = lastTouchOf(c, now);
   const extra = extraFacts(c, now);
   const stageLabel = CARE_STAGE_DISPLAY[stage] || stage || 'Chưa có bậc';
@@ -875,7 +879,7 @@ function Profile() {
                             <Icon name={kindInfo.icon} size={16} />
                             {kindInfo.label}
                           </span>
-                          <span>{task.side === 'customer' ? 'Khách hẹn' : 'Em hứa'}</span>
+                          {profileTaskSide(task.side) && <span>{profileTaskSide(task.side)}</span>}
                           {tag && (
                             <span
                               className={`rounded-sm px-2 py-1 text-caption ${tag.state === 'missed' ? 'bg-alert-tint text-alert-text' : tag.state === 'due' || tag.state === 'soon' ? 'bg-soon-tint text-soon-text' : 'bg-surface-200 text-ink-muted'}`}
@@ -991,7 +995,7 @@ function Profile() {
         <div className="contents xl:sticky xl:top-[calc(56px+env(safe-area-inset-top))] xl:flex xl:h-[calc(100dvh-136px)] xl:flex-col xl:gap-4 xl:overflow-y-auto">
           <section aria-label="Đã biết" className="rounded-md border border-line bg-surface-100 p-4 max-xl:order-4">
             <h2 className="text-section-head">Đã biết</h2>
-            {briefParts.known.length ? (
+            {briefParts.known.length || stats.length ? (
               <>
                 {/* KB-01 (Curtis 10/11): ô ngắn 2 cột; "Vướng mắc gần nhất" (thường rất dài) xuống cuối, cả bề ngang. */}
                 <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-3">
@@ -1003,6 +1007,18 @@ function Profile() {
                         <dd className="text-sm font-medium [overflow-wrap:anywhere]">{item.value}</dd>
                       </div>
                     ))}
+                  {stats.map((row) => (
+                    <div key={row.label} className="min-w-0">
+                      <dt className="text-caption text-ink-muted">{row.label}</dt>
+                      <dd className="text-sm font-medium [overflow-wrap:anywhere]">
+                        {row.label === 'Mức quan tâm' ? (
+                          <ProfileInterest customer={c} writable={writable} busy={busy} onSave={save} />
+                        ) : (
+                          row.value
+                        )}
+                      </dd>
+                    </div>
+                  ))}
                 </dl>
                 {briefParts.known
                   .filter((item) => item.key === 'objection')
@@ -1046,12 +1062,12 @@ function Profile() {
             {asked && <p className="mt-2 text-caption text-ink-muted">Có thể hỏi: {asked.question}</p>}
           </section>
 
-          <section
-            aria-label="Thông tin thêm"
-            className="rounded-md border border-line bg-surface-100 p-4 max-xl:order-6"
-          >
-            <h2 className="text-title">Thông tin thêm</h2>
-            {extra.length ? (
+          {extra.length > 0 && (
+            <section
+              aria-label="Thông tin thêm"
+              className="rounded-md border border-line bg-surface-100 p-4 max-xl:order-6"
+            >
+              <h2 className="text-title">Thông tin thêm</h2>
               <dl className="mt-3 grid grid-cols-2 gap-3 text-caption sm:max-xl:grid-cols-3">
                 {extra.map((row) => (
                   <div key={row.label} className="min-w-0">
@@ -1060,10 +1076,8 @@ function Profile() {
                   </div>
                 ))}
               </dl>
-            ) : (
-              <p className="mt-2 text-body text-ink-muted">Chưa có thông tin bổ sung.</p>
-            )}
-          </section>
+            </section>
+          )}
 
           <div className="max-xl:order-7">
             <AiBrief customer={c} />
