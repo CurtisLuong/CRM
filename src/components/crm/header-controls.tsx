@@ -9,7 +9,6 @@ export function HeaderSearch({ onOpen, className }: { onOpen: () => void; classN
   return (
     <button
       type="button"
-      aria-label="Tìm khách, lệnh"
       title="Tìm (⌘K)"
       onClick={onOpen}
       className={cn(
@@ -18,6 +17,8 @@ export function HeaderSearch({ onOpen, className }: { onOpen: () => void; classN
       )}
     >
       <Search className="size-5 shrink-0" aria-hidden />
+      {/* Tên truy cập lấy từ chữ trong nút (axe: chữ hiện phải nằm trong tên); không dùng aria-label để khỏi trùng nhãn "Dự án" ở màn khác. */}
+      <span className="sr-only">Tìm khách, lệnh</span>
       <span className="min-w-0 flex-1 truncate text-left text-label">
         <span className="md:hidden">Tìm khách…</span>
         <span className="hidden md:inline">Tìm khách, SĐT, dự án…</span>
