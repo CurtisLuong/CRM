@@ -15,9 +15,8 @@ describe('HD-01: thành phần thanh trên', () => {
     fireEvent.click(screen.getByText('Tìm khách…'));
     fireEvent.click(screen.getByText('Tìm khách, SĐT, dự án…'));
     expect(open).toHaveBeenCalledTimes(2);
-    expect(screen.getByRole('button', { name: /Tìm khách, lệnh/ }).getAttribute('aria-label')).toContain(
-      'Tìm khách, SĐT, dự án…',
-    );
+    // Tên truy cập chỉ "Tìm khách, lệnh": không chứa "dự án" để khỏi trùng nhãn ô chọn Dự án ở màn khác.
+    expect(screen.getByRole('button', { name: 'Tìm khách, lệnh' })).toBeTruthy();
     expect(screen.getByText('⌘K')).toBeTruthy();
   });
 
