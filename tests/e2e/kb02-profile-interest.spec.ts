@@ -13,6 +13,7 @@ const rows = [
     full_name: 'Anh Văn KB',
     phone: '0900000188',
     source: ['facebook_ads'],
+    intake_method: 'manual', // KB-04: khách thật luôn có cách nhập; ô chỉ xem
     purpose: 'Ở',
     apt_type: '3N-2WC',
     projects: ['Vin TC'],
