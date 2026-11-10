@@ -14,6 +14,7 @@ import { useCustomer, useRepositoryAccount } from '@/data/hooks';
 import type { Customer, Task } from '@/domain/customer';
 import { customerBrief } from '@/domain/customer/brief';
 import { factPatch } from '@/domain/customer/facts';
+import { withInterestRule } from '@/domain/customer/interest';
 import { callAttemptsOf, normStage, openTasksOf } from '@/domain/customer/normalize';
 import { canMoveStage } from '@/domain/customer/stageMoves';
 import { canEditTeamInfo, canLogHistory, isTeamInfoPatch } from '@/domain/customer/teamEdit';
@@ -245,6 +246,7 @@ function Profile() {
       toast({ title: 'Họ tên là thông tin bắt buộc', tone: 'error' });
       return false;
     }
+    patch = withInterestRule(c, patch);
     setBusy(true);
     try {
       // Chỉ truyền options khi thật sự có ghi chú bậc — giữ đúng chữ ký update(id, patch) cũ cho mọi lần lưu khác.

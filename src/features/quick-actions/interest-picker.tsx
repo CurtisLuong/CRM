@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { INTEREST_TIERS } from '@/config/stages';
 
-/** Dùng chung thứ tự tăng dần cho hồ sơ và tấm ghi cuộc gọi. */
+/** Dùng chung thứ tự từ cấu hình cho hồ sơ và tấm ghi cuộc gọi. */
 export function InterestTierPicker({
   value,
   disabled,
@@ -15,7 +15,7 @@ export function InterestTierPicker({
     <fieldset className="min-w-0 space-y-2" aria-label="Mức quan tâm">
       <legend className="text-caption text-ink-muted">Mức quan tâm</legend>
       <div className="grid grid-cols-2 gap-2">
-        {[...INTEREST_TIERS].reverse().map((tier) => (
+        {INTEREST_TIERS.map((tier) => (
           <Button
             key={tier.key}
             type="button"

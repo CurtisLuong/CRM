@@ -7,7 +7,7 @@ import { useRepositoryAccount } from '@/data/hooks';
 import type { RepositoryAccount } from '@/data/repositories/session';
 import { type CallAttempt, type Customer, callAttemptsOf } from '@/domain/customer';
 import { appendInteractionPatch, createInteraction } from '@/domain/customer/interactions';
-import { interestLevelForTier, interestTierOf } from '@/domain/customer/interest';
+import { customerInterestTier, interestLevelForTier, withInterestRule } from '@/domain/customer/interest';
 import { canLogHistory } from '@/domain/customer/teamEdit';
 import type { ScheduleSuggestion } from '@/domain/followup';
 import { AiNoteReview } from '@/features/ai/AiNoteReview';
@@ -360,6 +360,7 @@ function ActionSheet({
   const interestChanged =
     showInterest &&
     interestTier !== undefined &&
+    interestTier !== customerInterestTier(c).key &&
     interestLevelForTier(c.interest_level, interestTier) !== Number(c.interest_level);
   const [note, setNote] = useState(existing?.note ?? '');
   const [interimNote, setInterimNote] = useState('');
@@ -465,6 +466,7 @@ function ActionSheet({
   };
   const save = () => {
     let beforeCall: Customer | undefined;
+    let afterCall: Customer | undefined;
     return run(
       async () => {
         // Dừng nghe bên trong run: cờ busy bật trước nên bấm Lưu lần hai không tạo ghi chú trùng.
@@ -494,7 +496,8 @@ function ActionSheet({
             label: start.toLocaleString('vi-VN'),
           };
         }
-        if (interestChanged) beforeCall = (await account.customers.get(c.id)) ?? undefined;
+        if (interestChanged || (mode === 'drop' && suggestion?.kind === 'drop' && suggestion.auto))
+          beforeCall = (await account.customers.get(c.id)) ?? undefined;
         const saved = await saveCall(
           account.customers,
           c.id,
@@ -507,6 +510,7 @@ function ActionSheet({
           account.customers.getSnapshot(),
           showInterest ? interestTier : undefined,
         );
+        afterCall = saved;
         // Phân loại sau khi cuộc gọi đã ghi: Đạt cần có cuộc "Nói chuyện được" (vừa ghi xong).
         if (classifyChoice === 'qualify') await qualifyLead(account.customers, c.id);
         if (classifyChoice === 'drop' && dropReason)
@@ -520,22 +524,29 @@ function ActionSheet({
             if (account.sync.local.isClosed || !beforeCall) return;
             // Hoàn nguyên mức quan tâm; giữ nhật ký cuộc gọi như Hoàn tác tự loại hiện có.
             void account.customers
-              .update(c.id, { interest_level: beforeCall.interest_level ?? null })
+              .update(c.id, withInterestRule(beforeCall, { interest_level: beforeCall.interest_level ?? null }))
               .catch(() => toast({ title: 'Chưa hoàn tác được. Thử lại.', tone: 'error' }));
           }
         : kind === 'outcome' && !editingRecorded && mode === 'drop' && suggestion?.kind === 'drop' && suggestion.auto
           ? () => {
               if (account.sync.local.isClosed) return;
-              // Chỉ hoàn tác việc loại và lịch bị xoá; giữ nguyên cuộc gọi vừa xác nhận.
+              // Trả trạng thái, lịch và mức trước khi loại; giữ cuộc gọi vừa xác nhận.
+              const before = beforeCall ?? c;
               void account.customers
-                .update(c.id, {
-                  disqualified_at: c.disqualified_at ?? null,
-                  disqualify_reason: c.disqualify_reason ?? null,
-                  disqualify_note: c.disqualify_note ?? null,
-                  next_call_at: c.next_call_at ?? null,
-                  next_call_end: c.next_call_end ?? null,
-                  next_call_reason: c.next_call_reason ?? null,
-                })
+                .update(
+                  c.id,
+                  withInterestRule(before, {
+                    disqualified_at: before.disqualified_at ?? null,
+                    disqualify_reason: before.disqualify_reason ?? null,
+                    disqualify_note: before.disqualify_note ?? null,
+                    next_call_at: before.next_call_at ?? null,
+                    next_call_end: before.next_call_end ?? null,
+                    next_call_reason: before.next_call_reason ?? null,
+                    ...(afterCall?.interest_level !== before.interest_level
+                      ? { interest_level: before.interest_level ?? null }
+                      : {}),
+                  }),
+                )
                 .catch(() => toast({ title: 'Chưa hoàn tác được. Thử lại.', tone: 'error' }));
             }
           : undefined,
@@ -614,7 +625,7 @@ function ActionSheet({
             <OutcomePicker value={result} onValueChange={setOutcome} />
             {showInterest && (
               <InterestTierPicker
-                value={interestTier ?? interestTierOf(c.interest_level).key}
+                value={interestTier ?? customerInterestTier(c).key}
                 disabled={busy}
                 onChange={setInterestTier}
               />
