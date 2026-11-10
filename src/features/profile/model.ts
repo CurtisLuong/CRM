@@ -154,7 +154,7 @@ export function lastTouchOf(customer: Customer, now: number): LastTouch | null {
 
 /** Brief tách 2 phần (D-023 L4): ô đã biết + câu hỏi còn thiếu. Bỏ nội dung đã có ở Lần trước / Việc tiếp theo. */
 export function splitBrief(brief: readonly BriefFact[]): { known: BriefFact[]; missing: BriefFact[] } {
-  const rows = brief.filter((f) => f.key !== 'last_contact' && f.key !== 'promise');
+  const rows = brief.filter((f) => f.key !== 'last_contact' && f.key !== 'promise' && f.key !== 'objection');
   return {
     known: rows.filter((f) => f.value && f.value !== 'Chưa biết'),
     missing: rows.filter((f) => !f.value || f.value === 'Chưa biết'),
@@ -660,3 +660,27 @@ export const PRICE_ESTIMATE_MISSING: Record<'area' | 'project' | 'price', string
   project: 'Cần dự án quan tâm',
   price: 'Dự án chưa có giá/m² trong Giỏ hàng',
 };
+
+/** Đổi nguồn chính, giữ mọi nguồn cũ kể cả mã chưa biết. */
+export function registrationSourcePatch(source: Customer['source'], next: string): { source: string[] } {
+  const previous = Array.isArray(source) ? source : typeof source === 'string' && source ? [source] : [];
+  return { source: [next, ...previous.filter((code) => code !== next)] };
+}
+
+/** Giờ Việt Nam trong ô đăng ký → ISO ở biên lưu; rỗng xoá ngày, sai giữ bản nháp. */
+export function parseRegistrationDate(text: string): string | null | undefined {
+  if (!text.trim()) return null;
+  const match = /^(\d{1,2}):(\d{2})\s+(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(text.trim());
+  if (!match) return undefined;
+  const [hour, minute, day, month, year] = match.slice(1).map(Number) as [number, number, number, number, number];
+  const date = new Date(year, month - 1, day, hour, minute);
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day ||
+    date.getHours() !== hour ||
+    date.getMinutes() !== minute
+  )
+    return undefined;
+  return date.toISOString();
+}

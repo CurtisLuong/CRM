@@ -89,8 +89,6 @@ function Profile() {
   const [projectsOpen, setProjectsOpen] = useState(false);
   const [stageOpen, setStageOpen] = useState(false);
   const [missingKey, setMissingKey] = useState('');
-  // KB-01: "Vướng mắc gần nhất" gọn 3 dòng, bấm để xem đủ.
-  const [objectionOpen, setObjectionOpen] = useState(false);
   // Bấm "Còn thiếu: …" → mở đúng tab/khối rồi cuộn tới ô cần điền (Curtis 03/11).
   const [jump, setJump] = useState<{ target: string; serial: number } | null>(null);
   const [assetsOpenSignal, setAssetsOpenSignal] = useState(0);
@@ -404,8 +402,10 @@ function Profile() {
       {showMemoryAdvanced && (
         <ProfileAdvanced
           customer={c}
-          writable={infoWritable}
+          writable={infoWritable && !busy}
           now={now}
+          onSaveField={(field, value) => void save({ [field]: value })}
+          canEditField={(field) => writable || (teamInfo && isTeamInfoPatch({ [field]: null }))}
           onSaveAdvanced={setAdvancedField}
           openSignal={assetsOpenSignal}
         />
@@ -574,9 +574,6 @@ function Profile() {
       goTo('memory', 'contact');
     } else if (key === 'promise') {
       if (writable) setAddOpen(true);
-    } else if (writable) {
-      // Vướng mắc / Liên hệ cuối: ghi ngay một ghi chú cho khách.
-      openQuickAction(c.id, 'note');
     }
   };
   const briefParts = splitBrief(brief);
@@ -999,16 +996,14 @@ function Profile() {
             <h2 className="text-section-head">Đã biết</h2>
             {briefParts.known.length || stats.length ? (
               <>
-                {/* KB-01 (Curtis 10/11): ô ngắn 2 cột; "Vướng mắc gần nhất" (thường rất dài) xuống cuối, cả bề ngang. */}
+                {/* Các thông tin ngắn trong Đã biết dùng hai cột. */}
                 <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-3">
-                  {briefParts.known
-                    .filter((item) => item.key !== 'objection')
-                    .map((item) => (
-                      <div key={item.key} className="min-w-0">
-                        <dt className="text-caption text-ink-muted">{item.label}</dt>
-                        <dd className="text-sm font-medium [overflow-wrap:anywhere]">{item.value}</dd>
-                      </div>
-                    ))}
+                  {briefParts.known.map((item) => (
+                    <div key={item.key} className="min-w-0">
+                      <dt className="text-caption text-ink-muted">{item.label}</dt>
+                      <dd className="text-sm font-medium [overflow-wrap:anywhere]">{item.value}</dd>
+                    </div>
+                  ))}
                   {stats.map((row) => (
                     <div key={row.label} className="min-w-0">
                       <dt className="text-caption text-ink-muted">{row.label}</dt>
@@ -1022,23 +1017,6 @@ function Profile() {
                     </div>
                   ))}
                 </dl>
-                {briefParts.known
-                  .filter((item) => item.key === 'objection')
-                  .map((item) => (
-                    <dl key={item.key} className="mt-3 border-t border-line pt-3">
-                      <dt className="text-caption text-ink-muted">{item.label}</dt>
-                      <dd className="mt-0.5">
-                        <button
-                          type="button"
-                          aria-expanded={objectionOpen}
-                          onClick={() => setObjectionOpen((open) => !open)}
-                          className={`w-full text-left text-sm leading-relaxed text-ink-muted [overflow-wrap:anywhere] ${objectionOpen ? '' : 'line-clamp-3'}`}
-                        >
-                          {item.value}
-                        </button>
-                      </dd>
-                    </dl>
-                  ))}
               </>
             ) : (
               <p className="mt-2 text-body text-ink-muted">Chưa có thông tin nào được ghi.</p>
