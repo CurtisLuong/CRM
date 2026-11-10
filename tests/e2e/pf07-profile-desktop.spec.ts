@@ -127,18 +127,30 @@ test('Không cuộn ngang (mọi khổ, cả 1440 và 1920)', async ({ page }, i
   }
 });
 
-test('Desktop: 4 nút Gọi · Zalo · Ghi chú · Hẹn cùng một hàng', async ({ page }, info) => {
+// Curtis 10/11 (mockup duyệt): desktop đưa cụm Gọi · Zalo · Ghi chú · Hẹn sang cột phụ, ngay dưới "Đã biết", lưới 2×2.
+test('Desktop: Gọi · Zalo / Ghi chú · Hẹn lưới 2×2 ở cột phụ, dưới Đã biết', async ({ page }, info) => {
   desktopOnly(info.project.name);
   await open(page);
   const bar = page.getByRole('navigation', { name: 'Hành động nhanh' });
   for (const size of DESKTOP) {
     await page.setViewportSize(size);
-    const tops: number[] = [];
-    for (const name of ['Gọi', 'Zalo', 'Ghi chú', 'Hẹn']) {
-      const b = await bar.getByRole('button', { name, exact: true }).boundingBox();
-      tops.push(b?.y ?? -999);
-    }
-    expect(Math.max(...tops) - Math.min(...tops), `${size.width}px: ${tops.join(', ')}`).toBeLessThanOrEqual(2);
+    const known = await box(page, 'Đã biết');
+    const main = await box(page, 'Việc tiếp theo');
+    const [call, zalo, note, appt] = await Promise.all(
+      ['Gọi', 'Zalo', 'Ghi chú', 'Hẹn'].map(async (name) => {
+        const b = await bar.getByRole('button', { name, exact: true }).boundingBox();
+        if (!b) throw new Error(`thiếu nút ${name}`);
+        return b;
+      }),
+    );
+    const at = `${size.width}px`;
+    expect(Math.abs(call.y - zalo.y), at).toBeLessThanOrEqual(2);
+    expect(Math.abs(note.y - appt.y), at).toBeLessThanOrEqual(2);
+    expect(note.y, at).toBeGreaterThan(bottom(call));
+    expect(Math.abs(call.x - note.x), at).toBeLessThanOrEqual(2);
+    expect(call.x, at).toBeGreaterThanOrEqual(right(main) + 16);
+    expect(call.y, at).toBeGreaterThan(bottom(known));
+    expect(call.y - bottom(known), at).toBeLessThanOrEqual(48);
   }
 });
 
@@ -176,7 +188,9 @@ test('Desktop: cột phụ (Đã biết · Thông tin thêm · Brief AI) nằm b
   for (const size of DESKTOP) {
     await page.setViewportSize(size);
     const main = await box(page, 'Việc tiếp theo');
-    const side = [await box(page, 'Đã biết'), await box(page, 'Thông tin thêm')];
+    const actions = await page.getByRole('navigation', { name: 'Hành động nhanh' }).boundingBox();
+    if (!actions) throw new Error('Thiếu cụm hành động');
+    const side = [await box(page, 'Đã biết'), actions, await box(page, 'Thông tin thêm')];
     // Brief AI chỉ hiện khi có máy chủ AI + mạng (e2e thường không có) → có thì cũng phải nằm liền trong cột phụ.
     if (await page.getByRole('region', { name: 'Brief AI', exact: true }).count())
       side.push(await box(page, 'Brief AI'));

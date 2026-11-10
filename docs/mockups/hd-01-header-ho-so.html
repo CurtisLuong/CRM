@@ -1,0 +1,328 @@
+<title>Hồ sơ khách desktop</title>
+<!-- v2: thêm giao diện chung (đồng bộ, menu, tìm kiếm) -->
+<style>@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --soon: #f5b400; } } :root[data-theme="dark"] { --soon: #f5b400; }</style>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Mockup bám token thật của app (src/styles/tokens.css): khung desktop 1200px cuộn bên trong, có chú thích 2 thay đổi. */
+:root {
+  --surface-0: #eef2f6; --surface-100: #ffffff; --surface-200: #f4f7fa;
+  --line: #d5dde5; --ink: #0b1220; --ink-muted: #4f5d6c;
+  --ion: #0369a1; --on-ion: #ffffff; --ion-tint: #dff0fb;
+  --ok: #16a34a; --ok-text: #116a32; --alert: #e5243b;
+  --note: #fdf3d0; --note-ink: #6b4300; --note-line: #f5b400;
+  --sans: "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+  --radius: 10px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --surface-0: #070b10; --surface-100: #0e151c; --surface-200: #16212b;
+  --line: #223040; --ink: #e6edf3; --ink-muted: #8b9bab;
+  --ion: #38bdf8; --on-ion: #04121c; --ion-tint: #0c2a3a;
+  --ok: #3ddc84; --ok-text: #3ddc84; --alert: #ff5468;
+  --note: #2a2108; --note-ink: #f5c84a; --note-line: #9a7400; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --surface-0: #070b10; --surface-100: #0e151c; --surface-200: #16212b;
+  --line: #223040; --ink: #e6edf3; --ink-muted: #8b9bab;
+  --ion: #38bdf8; --on-ion: #04121c; --ion-tint: #0c2a3a;
+  --ok: #3ddc84; --ok-text: #3ddc84; --alert: #ff5468;
+  --note: #2a2108; --note-ink: #f5c84a; --note-line: #9a7400; color-scheme: dark; }
+
+body { background: var(--surface-0); color: var(--ink); font-family: var(--sans); font-size: 15px; }
+.page { padding-block: 24px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); max-width: 1240px; margin: 0 auto; display: grid; gap: 20px; }
+h1 { font-size: 22px; margin: 0; text-wrap: balance; }
+.intro { display: grid; gap: 10px; max-width: 70ch; color: var(--ink-muted); line-height: 1.55; }
+.intro ol { margin: 0; padding-left: 22px; display: grid; gap: 4px; color: var(--ink); }
+.tag { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--note-line); color: #1f1500; font: 700 12px var(--sans); margin-right: 6px; vertical-align: 1px; }
+.controls { display: flex; gap: 8px; flex-wrap: wrap; }
+.controls button { font: 500 14px var(--sans); padding: 8px 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface-100); color: var(--ink); cursor: pointer; }
+.controls button:focus-visible, .btn:focus-visible { outline: 2px solid var(--ion); outline-offset: 2px; }
+
+.frame-wrap { overflow-x: auto; border-radius: 14px; border: 1px solid var(--line); box-shadow: 0 10px 30px #0b12201a; }
+.app { width: 1200px; height: 720px; overflow-y: auto; background: var(--surface-0); position: relative; scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { .app { scroll-behavior: auto; } }
+
+/* Header của app */
+.topbar { position: sticky; top: 0; z-index: 5; height: 56px; display: flex; align-items: center; gap: 18px; padding: 0 24px; background: var(--surface-0); border-bottom: 1px solid var(--line); }
+.title { flex: 1; min-width: 0; position: relative; height: 28px; overflow: hidden; }
+.title > span { position: absolute; inset: 0; display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 17px; white-space: nowrap; transition: transform .2s ease, opacity .2s ease; }
+.title .age { font-weight: 500; color: var(--ink-muted); font-size: 15px; }
+.title .t-name { transform: translateY(100%); opacity: 0; }
+.app.scrolled .title .t-default { transform: translateY(-100%); opacity: 0; }
+.app.scrolled .title .t-name { transform: none; opacity: 1; }
+.title.marked { outline: 2px dashed var(--note-line); outline-offset: 4px; border-radius: 4px; }
+.topicons { display: flex; align-items: center; gap: 22px; color: var(--ink-muted); }
+.bell { position: relative; }
+.bell b { position: absolute; top: -9px; right: -12px; background: var(--alert); color: #fff; font: 600 11px var(--sans); border-radius: 9px; padding: 1px 5px; }
+.sync { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); display: inline-block; }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 20px; padding: 20px 24px 40px; align-items: start; }
+.col { display: grid; gap: 16px; min-width: 0; }
+.card { background: var(--surface-100); border: 1px solid var(--line); border-radius: 14px; padding: 20px 24px; }
+.eyebrow { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink); font-weight: 500; }
+
+.head { display: flex; gap: 16px; align-items: center; }
+.avatar { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; background: var(--surface-200); border: 1px solid var(--line); font-weight: 700; font-size: 20px; }
+.name { font-size: 24px; font-weight: 700; display: flex; align-items: baseline; gap: 10px; }
+.name small { font-size: 16px; font-weight: 400; color: var(--ink-muted); }
+.phone { font-family: var(--mono); color: var(--ink-muted); font-size: 15px; margin-top: 2px; }
+.chips { display: flex; gap: 10px; align-items: center; margin-top: 16px; flex-wrap: wrap; }
+.chip { border: 1px solid var(--line); border-radius: 8px; padding: 5px 10px; font-size: 14px; display: inline-flex; gap: 8px; align-items: center; }
+.bars { display: inline-flex; gap: 2px; } .bars i { width: 9px; height: 9px; background: var(--ion); border-radius: 1px; } .bars i.off { background: none; border: 1px solid var(--line); }
+.sla { margin-top: 18px; display: grid; gap: 8px; }
+.sla-top { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 12px; color: var(--ink-muted); }
+.sla-top strong { color: var(--ok-text); font-size: 14px; display: inline-flex; align-items: center; gap: 6px; }
+.track { height: 6px; border-radius: 3px; background: var(--surface-200); position: relative; }
+.track::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 6%; background: var(--ok); border-radius: 3px; }
+.track i { position: absolute; top: -4px; width: 2px; height: 14px; background: var(--ink); }
+
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; font: 500 15px var(--sans); color: var(--ink); background: var(--surface-100); border: 1px solid var(--line); border-radius: var(--radius); height: 46px; cursor: pointer; }
+.btn svg { width: 19px; height: 19px; }
+.btn.primary { background: var(--ion); color: var(--on-ion); border-color: var(--ion); }
+
+.marked { outline: 2px dashed var(--note-line); outline-offset: 5px; }
+.callout { position: absolute; z-index: 6; background: var(--note); color: var(--note-ink); border: 1px solid var(--note-line); font-size: 12.5px; line-height: 1.4; padding: 6px 10px; border-radius: 8px; max-width: 240px; box-shadow: 0 4px 12px #0b122014; }
+
+.known { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 18px; margin-top: 14px; }
+.known dt { font-size: 13px; color: var(--ink-muted); } .known dd { margin: 2px 0 0; font-weight: 500; }
+.known dd.hot { color: var(--ion); }
+.actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.actions .wide { grid-column: 1 / -1; }
+.brief { display: flex; align-items: center; justify-content: space-between; }
+.brief h3 { margin: 0; font-size: 20px; }
+
+.task { display: grid; grid-template-columns: 28px 1fr; gap: 12px; padding: 10px 0; }
+.box { width: 18px; height: 18px; border: 1.5px solid var(--ink-muted); border-radius: 4px; margin-top: 4px; }
+.task b { font-size: 17px; } .task p { margin: 2px 0; color: var(--ink-muted); font-size: 14px; }
+.when { display: inline-block; background: var(--surface-200); border-radius: 6px; padding: 3px 8px; font-size: 13px; margin-left: 8px; color: var(--ink-muted); }
+.row { display: flex; justify-content: space-between; align-items: center; }
+.loan { display: grid; grid-template-columns: 1fr 1fr auto; align-items: center; gap: 16px; }
+.loan .k { font-family: var(--mono); font-size: 12px; letter-spacing: .06em; color: var(--ink-muted); }
+.loan .v { font-family: var(--mono); font-size: 19px; font-weight: 500; }
+.tabs { display: flex; border-bottom: 1px solid var(--line); }
+.tabs span { flex: 1; padding: 12px 14px; color: var(--ink-muted); }
+.tabs span.on { color: var(--ink); font-weight: 600; border-bottom: 2px solid var(--ion); }
+.tl { display: grid; gap: 12px; }
+.tl .it { display: grid; grid-template-columns: 90px 1fr; gap: 12px; font-size: 14px; }
+.tl .it time { font-family: var(--mono); font-size: 12px; color: var(--ink-muted); padding-top: 2px; }
+.muted { color: var(--ink-muted); }
+/* Giao diện chung: thanh trên */
+:root { --soon: #f5b400; }
+.ic-sync, .ic-menu { width: 22px; height: 22px; flex: none; }
+.ic-sync.pending { color: var(--soon); animation: spin 1.6s linear infinite; }
+.ic-sync.error { color: var(--alert); }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .ic-sync.pending { animation: none; } }
+.search-pill { display: inline-flex; align-items: center; gap: 10px; height: 40px; width: 320px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-100); color: var(--ink-muted); font-size: 14px; flex: none; }
+.search-pill svg { width: 19px; height: 19px; flex: none; }
+.search-pill .ph { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.search-pill kbd { font: 500 11px var(--mono); border: 1px solid var(--line); border-radius: 5px; padding: 2px 5px; background: var(--surface-200); }
+h2 { font-size: 18px; margin: 12px 0 0; }
+.chrome { display: grid; gap: 16px; }
+.bar-demo { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-0); }
+.bar-demo .topbar { position: static; border-bottom: 0; }
+.phone-row { display: flex; gap: 16px; flex-wrap: wrap; }
+.device { width: 360px; max-width: 100%; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-0); overflow: hidden; }
+.device .topbar { position: static; padding: 0 8px 0 16px; gap: 6px; border-bottom: 0; }
+.device .title > span { font-size: 16px; }
+.device .search-pill { width: auto; flex: 1 1 0; min-width: 96px; max-width: 150px; padding: 0 10px; gap: 6px; }
+.device .search-pill kbd { display: none; }
+.device .topicons { gap: 14px; }
+.cap { font-size: 13px; color: var(--ink-muted); padding: 8px 12px; border-top: 1px solid var(--line); background: var(--surface-100); }
+.states { display: flex; gap: 12px; flex-wrap: wrap; }
+.state { display: flex; align-items: center; gap: 10px; background: var(--surface-100); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; font-size: 14px; }
+.state .ref { color: var(--ink-muted); display: inline-flex; align-items: center; gap: 6px; }
+.state .ref svg { width: 22px; height: 22px; }
+.note-foot { font-size: 13px; color: var(--ink-muted); line-height: 1.5; max-width: 75ch; }
+</style>
+
+<div class="page">
+  <div class="intro">
+    <h1>Mockup: Hồ sơ khách trên desktop</h1>
+    <p>Chỉ đổi giao diện desktop (từ 1024px trở lên). Điện thoại giữ nguyên. Hai chỗ thay đổi có viền vàng đứt nét:</p>
+    <ol>
+      <li><span class="tag">1</span>Cụm nút <b>Gọi · Zalo · Ghi chú · Hẹn · Giao</b> chuyển sang cột phải, ngay dưới thẻ “Đã biết”. Thẻ đầu bên trái chỉ còn tên, bậc, SLA.</li>
+      <li><span class="tag">2</span>Kéo xuống đến khi tên khách vừa khuất thì thanh trên đổi chữ “Hồ sơ khách” thành <b>Đào Minh Hoàng · 29 tuổi</b>. Kéo lên lại thì trở về “Hồ sơ khách”.</li>
+    </ol>
+    <p>Cuộn bên trong khung dưới đây để xem, hoặc bấm nút.</p>
+    <div class="controls">
+      <button id="btn-down" type="button">Kéo xuống (tên khuất)</button>
+      <button id="btn-up" type="button">Về đầu trang</button>
+    </div>
+  </div>
+
+  <div class="frame-wrap">
+    <div class="app" id="app">
+      <header class="topbar">
+        <div class="title marked" id="title">
+          <span class="t-default">Hồ sơ khách</span>
+          <span class="t-name">Đào Minh Hoàng <span class="age">29 tuổi</span></span>
+        </div>
+        <span class="search-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span class="ph">Tìm khách, SĐT, dự án…</span><kbd>⌘K</kbd></span>
+        <div class="topicons">
+          <span class="bell"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><b>35</b></span>
+          <svg class="ic-sync" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+          <svg class="ic-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </div>
+      </header>
+      <div class="callout" style="top:12px; left:250px;"><b>2</b> · Tên khuất → hiện “Đào Minh Hoàng 29 tuổi” ở đây</div>
+
+      <div class="grid">
+        <div class="col">
+          <section class="card">
+            <div class="head" id="name-block">
+              <div class="avatar">ĐH</div>
+              <div>
+                <div class="name">Đào Minh Hoàng <small>29 tuổi</small></div>
+                <div class="phone">0365123978</div>
+              </div>
+            </div>
+            <div class="chips">
+              <span class="chip"><span class="bars"><i></i><i></i><i></i><i class="off"></i><i class="off"></i></span>Đang chăm sóc</span>
+              <span class="muted">⌄</span>
+              <span class="chip" style="border:0;padding-left:0"><span class="dot"></span>Đúng nhịp</span>
+              <span class="chip">Tiềm năng</span>
+            </div>
+            <div class="sla">
+              <div class="sla-top"><strong><span class="dot"></span>Đúng mục tiêu 1n 09h</strong><span>SLA 10n · 20n</span></div>
+              <div class="track"><i style="left:40%"></i><i style="left:80%"></i></div>
+              <div class="sla-top"><span>Ở bậc này · 1n 09h</span></div>
+            </div>
+          </section>
+
+          <section class="card">
+            <div class="row"><span class="eyebrow">Việc tiếp theo</span><span class="btn" style="height:40px;padding:0 16px">＋ Thêm</span></div>
+            <div class="task"><span class="box"></span><div><b>Gọi lại</b><p>Gọi lại (lần 3)</p><p>Gọi điện <span class="when">12/11 11:30–12:15</span></p></div></div>
+            <div class="task"><span class="box"></span><div><b>Hồ sơ</b><p>Hồ sơ</p></div></div>
+          </section>
+
+          <section class="card">
+            <div class="row"><span class="eyebrow">Lần trước · hôm qua 13:40</span><span class="muted" style="font-size:14px">Ghi chú</span></div>
+            <p style="margin:10px 0 0">Gọi 11:50, 09.11.2026 (1p1s) · Nói chuyện được · hẹn gọi lại Thứ Năm 12/11, 09:00–10:00</p>
+          </section>
+
+          <section class="card loan">
+            <div><div class="k">GIÁ CĂN</div><div class="v">≈ 2,3 tỷ</div><div class="muted" style="font-size:13px">Giá ước tính · vay tính trên giá gồm VAT</div></div>
+            <div><div class="k">VAY 70%</div><div class="v">≈ 1,374 tỷ</div></div>
+            <span class="btn primary" style="padding:0 20px">Tính vay</span>
+          </section>
+
+          <section class="card">
+            <div class="tabs"><span class="on">Dòng thời gian 9</span><span>Trí nhớ</span><span>Nhu cầu &amp; căn</span><span>Tài liệu 0</span></div>
+            <div class="tl" style="margin-top:16px">
+              <div class="it"><time>09/11 11:50</time><div>Cuộc gọi · Nói chuyện được · hẹn gọi lại Thứ Năm</div></div>
+              <div class="it"><time>08/11 16:20</time><div>Zalo · Gửi bảng giá Marquee Homes 3N-2WC</div></div>
+              <div class="it"><time>08/11 10:05</time><div>Cuộc gọi · Không nghe máy</div></div>
+              <div class="it"><time>07/11 09:30</time><div>Ghi chú · Bố (anh Thanh) cùng quyết định, vốn 1 tỷ</div></div>
+              <div class="it"><time>06/11 14:12</time><div>Chuyển bậc · Mới → Đang chăm sóc</div></div>
+              <div class="it"><time>06/11 14:10</time><div>Gặp · Xem nhà mẫu</div></div>
+              <div class="it"><time>05/11 18:40</time><div>Zalo · Khách hỏi tiến độ bàn giao</div></div>
+              <div class="it"><time>05/11 11:02</time><div>Cuộc gọi · Nói chuyện được</div></div>
+              <div class="it"><time>04/11 20:15</time><div>Khách mới từ quảng cáo Facebook</div></div>
+            </div>
+          </section>
+          <div style="height:200px"></div>
+        </div>
+
+        <div class="col">
+          <section class="card">
+            <span class="eyebrow">Đã biết</span>
+            <dl class="known">
+              <div><dt>Mua để</dt><dd>Ở</dd></div>
+              <div><dt>Cần gì</dt><dd>Marquee Homes · 3N-2WC</dd></div>
+              <div><dt>Tài chính</dt><dd>Vốn 1 tỷ</dd></div>
+              <div><dt>Người quyết định</dt><dd>Bản thân, Thanh (Bố)</dd></div>
+              <div><dt>Liên hệ</dt><dd>Gọi zalo · 11:00–13:00</dd></div>
+              <div><dt>Số lần gọi</dt><dd>3 lần</dd></div>
+              <div><dt>Lần gọi cuối</dt><dd>Hôm qua 11:50</dd></div>
+              <div><dt>Mức quan tâm</dt><dd class="hot">Nóng</dd></div>
+            </dl>
+          </section>
+
+          <section class="card marked" style="position:relative">
+            <div class="actions">
+              <span class="btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg>Gọi</span>
+              <span class="btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22z"/></svg>Zalo</span>
+              <span class="btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13.4 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7.4"/><path d="M2 6h4M2 10h4M2 14h4M2 18h4"/><path d="M21.4 5.6a2.1 2.1 0 1 0-3-3L13 8l-.5 3.5L16 11z"/></svg>Ghi chú</span>
+              <span class="btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3.5"/><path d="M16 2v4M8 2v4M3 10h5"/><circle cx="16" cy="16" r="6"/><path d="M16 14v2.2l1.6 1"/></svg>Hẹn</span>
+              <span class="btn wide"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m16 3 4 4-4 4M20 7H4M8 21l-4-4 4-4M4 17h16"/></svg>Giao</span>
+            </div>
+            <div class="callout" style="top:-14px; right:-6px; transform:translateY(-100%);"><b>1</b> · Cụm nút chuyển sang đây, dưới “Đã biết”</div>
+          </section>
+
+          <section class="card brief">
+            <h3>Brief AI</h3>
+            <span class="btn primary" style="padding:0 18px">Tạo tóm tắt AI</span>
+          </section>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h2>Giao diện chung: thanh trên (mọi màn, cả điện thoại)</h2>
+  <div class="intro">
+    <ol>
+      <li><span class="tag">3</span>Icon đồng bộ thành hai nửa vòng tròn có mũi tên nối đuôi. Bình thường cùng màu chuông thông báo, đang đồng bộ thì vàng (xoay chậm), lỗi thì đỏ. Bấm vào vẫn mở bảng đồng bộ như cũ.</li>
+      <li><span class="tag">4</span>Nút “…” đổi thành nút menu 3 gạch ngang.</li>
+      <li><span class="tag">5</span>Tìm kiếm thành ô dài có chữ gợi ý, bấm chỗ nào trên ô cũng mở tìm kiếm. Desktop rộng khoảng 320px, điện thoại co giãn theo chỗ trống.</li>
+    </ol>
+  </div>
+  <div class="chrome">
+    <div class="bar-demo"><div class="topbar" style="width:1200px">
+      <div class="title"><span>Khách hàng</span></div>
+      <span class="search-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span class="ph">Tìm khách, SĐT, dự án…</span><kbd>⌘K</kbd></span>
+      <div class="topicons">
+        <span class="bell"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><b>35</b></span>
+        <svg class="ic-sync" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+        <svg class="ic-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </div>
+    </div><div class="cap">Desktop 1280px</div></div>
+
+    <div class="phone-row">
+      <div class="device"><div class="topbar">
+        <div class="title"><span>Hôm nay</span></div>
+        <span class="search-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span class="ph">Tìm khách…</span></span>
+        <div class="topicons">
+          <span class="bell"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><b>35</b></span>
+          <svg class="ic-sync pending" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+          <svg class="ic-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </div>
+      </div><div class="cap">Điện thoại 360px · đang đồng bộ (vàng)</div></div>
+
+      <div class="device"><div class="topbar">
+        <div class="title"><span>Khách hàng</span></div>
+        <span class="search-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span class="ph">Tìm khách…</span></span>
+        <div class="topicons">
+          <span class="bell"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><b>35</b></span>
+          <svg class="ic-sync error" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+          <svg class="ic-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </div>
+      </div><div class="cap">Điện thoại 360px · lỗi đồng bộ (đỏ)</div></div>
+    </div>
+
+    <div class="states">
+      <span class="state"><span class="ref"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><svg class="ic-sync" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg></span>Đã đồng bộ: cùng màu chuông</span>
+      <span class="state"><svg class="ic-sync pending" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>Đang đồng bộ / chờ gửi: vàng</span>
+      <span class="state"><svg class="ic-sync error" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>Lỗi đồng bộ: đỏ</span>
+    </div>
+  </div>
+
+  <p class="note-foot">Cột phải vẫn cuộn theo trang như bây giờ, nên khi kéo xuống sâu thì cụm nút cũng trôi khỏi màn hình. Nếu anh muốn cột phải dính lại để luôn bấm được Gọi/Zalo thì nói em thêm.</p>
+</div>
+
+<script>
+(function () {
+  var app = document.getElementById('app');
+  var nameEl = document.getElementById('name-block');
+  // Đổi tiêu đề khi khối tên đã khuất dưới thanh trên (56px).
+  function update() {
+    var top = nameEl.getBoundingClientRect().bottom - app.getBoundingClientRect().top;
+    app.classList.toggle('scrolled', top < 56);
+  }
+  app.addEventListener('scroll', update, { passive: true });
+  update();
+  document.getElementById('btn-down').addEventListener('click', function () { app.scrollTo({ top: 260 }); });
+  document.getElementById('btn-up').addEventListener('click', function () { app.scrollTo({ top: 0 }); });
+})();
+</script>

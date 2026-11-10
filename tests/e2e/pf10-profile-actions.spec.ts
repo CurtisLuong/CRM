@@ -82,8 +82,9 @@ test('PF-10: hàng quyết định có icon, thẳng lưới với Gọi/Zalo/Gh
   await page.goto('/ho-so/pf10-a');
   await expect(page.getByRole('heading', { level: 1, name: 'Phạm Huy Văn' })).toBeVisible();
   const card = page.locator('header').filter({ has: page.getByRole('heading', { level: 1, name: 'Phạm Huy Văn' }) });
-  const promote = card.getByRole('button', { name: 'Chuyển tiềm năng', exact: true });
-  const drop = card.getByRole('button', { name: 'Loại', exact: true });
+  // Desktop (10/11): cụm nút ở cột phụ, ngoài thẻ đầu hồ sơ → tìm trên cả trang (nút ẩn không được tính).
+  const promote = page.getByRole('button', { name: 'Chuyển tiềm năng', exact: true });
+  const drop = page.getByRole('button', { name: 'Loại', exact: true });
   await expect(promote).toBeEnabled();
   for (const button of [promote, drop]) await expect(button.locator('svg')).toHaveCount(1);
   // Dòng "còn 2n …" dưới thanh SLA đã bỏ; con số chỉ còn ở đầu thanh.
@@ -93,28 +94,30 @@ test('PF-10: hàng quyết định có icon, thẳng lưới với Gọi/Zalo/Gh
   const p = await promote.boundingBox();
   const d = await drop.boundingBox();
   if (!p || !d) throw new Error('thiếu nút');
-  expect(Math.abs(p.y - d.y)).toBeLessThanOrEqual(1);
-  // Ô Chuyển tiềm năng = 2 ô lưới (+ 1 khe 8px).
-  expect(Math.abs(p.width - (2 * d.width + 8))).toBeLessThanOrEqual(2);
+  if (width < 1280) {
+    expect(Math.abs(p.y - d.y)).toBeLessThanOrEqual(1);
+    // Ô Chuyển tiềm năng = 2 ô lưới (+ 1 khe 8px).
+    expect(Math.abs(p.width - (2 * d.width + 8))).toBeLessThanOrEqual(2);
+  }
   // Chữ đang hiện: 360/390px gọn "Tiềm năng", màn rộng đủ "Chuyển tiềm năng".
   await expect(promote.locator('span').filter({ visible: true })).toHaveText(
     width < 640 ? 'Tiềm năng' : 'Chuyển tiềm năng',
   );
   if (width >= 1280) {
-    const bar = card.getByRole('navigation', { name: 'Hành động nhanh' });
+    const bar = page.getByRole('navigation', { name: 'Hành động nhanh' });
     const boxes = await Promise.all(
       ['Gọi', 'Zalo', 'Ghi chú', 'Hẹn'].map((name) => bar.getByRole('button', { name, exact: true }).boundingBox()),
     );
     const [call, , note] = boxes;
     if (!call || !note) throw new Error('thiếu nút');
-    // 4 ô bằng nhau, cao 44px, cùng mép với hàng quyết định.
+    // Lưới 2×2 ở cột phụ: 4 ô bằng nhau, cao 44px; hàng quyết định nằm dưới, cùng mép trái.
     for (const box of boxes) {
-      expect(Math.abs((box?.width ?? 0) - d.width)).toBeLessThanOrEqual(1);
+      expect(Math.abs((box?.width ?? 0) - call.width)).toBeLessThanOrEqual(1);
       expect(Math.round(box?.height ?? 0)).toBe(44);
     }
     expect(Math.abs(call.x - p.x)).toBeLessThanOrEqual(1);
-    expect(Math.abs(note.x - d.x)).toBeLessThanOrEqual(1);
-    expect(call.y).toBeGreaterThan(p.y);
+    expect(p.y).toBeGreaterThan(note.y);
+    expect(d.y).toBeGreaterThanOrEqual(p.y);
   }
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
