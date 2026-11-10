@@ -155,7 +155,8 @@ export function ProfileInfoFields({ customer, writable, busy, now, showEmpty, on
     },
     {
       key: 'residence',
-      short: false,
+      // Curtis 10/11: Nơi ở thường ngắn (Hải Phòng, Hà Nội…) → ô ngắn, chung hàng với Thu nhập.
+      short: true,
       node: (
         <ProfileTextField
           label="Nơi ở"
