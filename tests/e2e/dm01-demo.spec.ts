@@ -118,7 +118,8 @@ test('demo giữ dữ liệu local, chặn mạng, sống qua reload và xoá ri
     .click();
   await page.getByRole('textbox', { name: 'Nội dung ghi chú' }).fill('Đã xem thử dữ liệu mẫu.');
   await page.getByRole('button', { name: 'Lưu', exact: true }).click();
-  await expect(page.getByLabel('Đã biết').getByText('Đã xem thử dữ liệu mẫu.')).toBeVisible();
+  // KB-02 (Curtis 10/11): ghi chú mới nhất hiện ở "Lần trước", không còn lặp làm vướng mắc ở "Đã biết".
+  await expect(page.getByLabel('Lần trước').getByText('Đã xem thử dữ liệu mẫu.')).toBeVisible();
 
   const demoAfterNote = await readDatabase(page, demoUserId);
   const demoCustomer = demoAfterNote.customers.find((row) => (row as { id?: string }).id === 'dm01-05') as
