@@ -69,12 +69,10 @@ export const LEAD_ONLY_STAGES = ['Đăng kí mới', 'Đang tiếp cận'] as co
 // Mức quan tâm mặc định của khách mới (khớp default cột DB — SQL/interest_default_20.sql).
 export const INTEREST_DEFAULT_NEW = 20;
 
-// Đổi bậc → TỰ set mức quan tâm (chỉ các bậc dưới; kéo tay ghi đè).
+// Đổi trạng thái → TỰ set mức quan tâm (D-033, Curtis 10/11). Ngoài các mốc này mức quan tâm chỉ chỉnh tay.
+// Loại / lưu trữ → Nguội (0); Nuôi dài hạn → Lạnh (20). Không còn tự nâng khi Đạt.
 export const STAGE_INTEREST: Readonly<Record<string, number>> = {
-  'Đang chăm sóc': 60,
-  'Xem dự án': 75,
-  [CARE_STAGE_BOOKING]: 90,
-  [CARE_STAGE_WON]: 100,
+  [CARE_STAGE_NURTURE]: 20,
   [CARE_STAGE_DROPPED]: 0,
 };
 
@@ -87,12 +85,13 @@ export const CONTACT_STATUSES = [
   'Mất liên lạc',
 ] as const;
 
-// 4 bậc mức quan tâm, xếp min giảm dần (find() lấy bậc đầu tiên đạt).
-// color = tên token màu của v1 (giữ nguyên để so với v1; giao diện v2 map sang token DS v3).
-export type InterestTier = { key: string; label: string; color: string; min: number; flames: number };
+// 4 bậc mức quan tâm (D-033, Curtis 10/11), xếp theo vòng đời khách: Lạnh → Ấm → Nóng → Nguội.
+// Lưu vẫn là số 0–100 ở cột interest_level (dữ liệu cũ giữ nguyên): 0 = Nguội · 1–34 = Lạnh · 35–59 = Ấm · ≥ 60 = Nóng
+// (bậc "Rất nóng" cũ ≥ 80 gộp vào Nóng). level = số ghi khi sale chọn bậc đó.
+export type InterestTier = { key: string; label: string; min: number; level: number };
 export const INTEREST_TIERS: readonly InterestTier[] = [
-  { key: 'ratnong', label: 'Rất nóng', color: 'var(--text)', min: 80, flames: 3 },
-  { key: 'nong', label: 'Nóng', color: 'var(--text-secondary)', min: 60, flames: 2 },
-  { key: 'am', label: 'Ấm', color: 'var(--text-secondary)', min: 35, flames: 1 },
-  { key: 'nguoi', label: 'Nguội', color: 'var(--text-muted)', min: 0, flames: 0 },
+  { key: 'lanh', label: 'Lạnh', min: 1, level: 20 },
+  { key: 'am', label: 'Ấm', min: 35, level: 35 },
+  { key: 'nong', label: 'Nóng', min: 60, level: 60 },
+  { key: 'nguoi', label: 'Nguội', min: 0, level: 0 },
 ];

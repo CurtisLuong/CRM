@@ -73,7 +73,7 @@ describe('extraFacts / knownStats / registrationFacts (D-023 L3 + L4)', () => {
     expect(knownStats(full, now)).toEqual([
       { label: 'Số lần gọi', value: '1 lần' },
       { label: 'Lần gọi cuối', value: 'Hôm qua 15:00' },
-      { label: 'Mức quan tâm', value: 'Rất nóng' },
+      { label: 'Mức quan tâm', value: 'Nóng' },
     ]);
   });
 

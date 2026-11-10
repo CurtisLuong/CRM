@@ -60,17 +60,17 @@ describe('KB-02 — mức quan tâm trong cuộc gọi', () => {
     const sheet = await open();
     expect(sheet.queryByRole('group', { name: 'Mức quan tâm' })).toBeNull();
     fireEvent.click(sheet.getByRole('radio', { name: 'Nói chuyện được' }));
-    expect(sheet.getByRole('button', { name: 'Nguội' }).getAttribute('aria-pressed')).toBe('true');
-    fireEvent.click(sheet.getByRole('button', { name: 'Rất nóng' }));
+    expect(sheet.getByRole('button', { name: 'Lạnh' }).getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(sheet.getByRole('button', { name: 'Nóng' }));
     fireEvent.click(sheet.getByRole('button', { name: 'Lưu' }));
     await waitFor(() => expect(logCall).toHaveBeenCalledTimes(1));
     expect(logCall).toHaveBeenCalledWith(
       'c1',
       expect.objectContaining({ result: 'talked' }),
-      expect.objectContaining({ patch: expect.objectContaining({ interest_level: 80 }) }),
+      expect.objectContaining({ patch: expect.objectContaining({ interest_level: 60 }) }),
     );
     expect(update).not.toHaveBeenCalled();
-    expect(customer.interest_level).toBe(80);
+    expect(customer.interest_level).toBe(60);
     expect(customer.call_attempts).toHaveLength(1);
     fireEvent.click(await screen.findByRole('button', { name: 'Hoàn tác' }));
     await waitFor(() => expect(customer.interest_level).toBe(20));
@@ -82,9 +82,9 @@ describe('KB-02 — mức quan tâm trong cuộc gọi', () => {
     async (mode) => {
       const sheet = await open();
       fireEvent.click(sheet.getByRole('radio', { name: 'Nói chuyện được' }));
-      if (mode === 'chọn trùng') fireEvent.click(sheet.getByRole('button', { name: 'Nguội' }));
+      if (mode === 'chọn trùng') fireEvent.click(sheet.getByRole('button', { name: 'Lạnh' }));
       if (mode === 'đổi kết quả') {
-        fireEvent.click(sheet.getByRole('button', { name: 'Rất nóng' }));
+        fireEvent.click(sheet.getByRole('button', { name: 'Nóng' }));
         fireEvent.click(sheet.getByRole('radio', { name: 'Không nghe' }));
         expect(sheet.queryByRole('group', { name: 'Mức quan tâm' })).toBeNull();
       }

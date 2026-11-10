@@ -84,7 +84,7 @@ test('Khách mới mặc định Trong phễu và Đạt yêu cầu một lần 
   });
   expect(saved).toMatchObject({
     care_stage: 'Đang chăm sóc',
-    interest_level: 60,
+    interest_level: 20, // D-033: Đạt không tự nâng mức quan tâm
     x_future: { keep: true },
     call_attempts: [{ result: 'talked', x_unknown: 'keep' }],
   });

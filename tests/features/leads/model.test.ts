@@ -61,7 +61,6 @@ describe('T3.4 D-001 lead rules and v1 payload parity', () => {
     expect(update.mock.calls[0]?.[1]).toEqual({
       qualified_at: '2026-10-16T10:00:00.000Z',
       care_stage: 'Đang chăm sóc',
-      interest_level: 60,
       disqualified_at: null,
       disqualify_reason: null,
       disqualify_note: null,

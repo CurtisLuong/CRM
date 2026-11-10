@@ -21,7 +21,7 @@ export default {
       'S08',
       c,
       dashboard ? 'hot' : undefined,
-      `Quan tâm ${interest}% · ${dashboard ? idle : Math.floor((now - (last ?? now)) / DAY)} ngày chưa liên hệ`,
+      `Khách nóng · ${dashboard ? idle : Math.floor((now - (last ?? now)) / DAY)} ngày chưa liên hệ`,
       'P1',
       ['call', 'zalo'],
       { interest_level: interest, lastTouch: last, lastInteraction: lastInteractionAt(c) },

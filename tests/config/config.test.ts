@@ -59,9 +59,7 @@ const SAME: [string, unknown, string][] = [
   ['QUALIFIED_STAGE', QUALIFIED_STAGE, 'QUALIFIED_STAGE'],
   ['LEAD_ONLY_STAGES', LEAD_ONLY_STAGES, 'LEAD_ONLY_STAGES'],
   ['INTEREST_DEFAULT_NEW', INTEREST_DEFAULT_NEW, 'INTEREST_DEFAULT_NEW'],
-  ['STAGE_INTEREST', STAGE_INTEREST, 'STAGE_INTEREST'],
   ['CONTACT_STATUSES', CONTACT_STATUSES, 'CONTACT_STATUSES'],
-  ['INTEREST_TIERS', INTEREST_TIERS, 'INTEREST_TIERS'],
   // sources.ts
   ['SOURCES', SOURCES, 'SOURCES'],
   ['SOURCE_DEFAULT', SOURCE_DEFAULT, 'SOURCE_DEFAULT'],
@@ -105,6 +103,18 @@ describe('src/config = giá trị v1 (deep equal)', () => {
 
   it('LEAD_DROP_REASONS = v1 + cup_may (D-030, chỉ thêm mã)', () => {
     expect(LEAD_DROP_REASONS).toStrictEqual({ ...v1<Record<string, string>>('LEAD_DROP_REASONS'), cup_may: 'Cúp máy' });
+  });
+
+  // D-033 (Curtis 10/11): mức quan tâm 4 bậc Lạnh → Ấm → Nóng → Nguội, cố ý khác v1; số lưu giữ thang 0–100.
+  it('INTEREST_TIERS / STAGE_INTEREST theo D-033 (khác v1)', () => {
+    expect(INTEREST_TIERS.map((t) => [t.key, t.label, t.min, t.level])).toEqual([
+      ['lanh', 'Lạnh', 1, 20],
+      ['am', 'Ấm', 35, 35],
+      ['nong', 'Nóng', 60, 60],
+      ['nguoi', 'Nguội', 0, 0],
+    ]);
+    expect(STAGE_INTEREST).toStrictEqual({ 'Nuôi dài hạn': 20, Loại: 0 });
+    expect(INTEREST_DEFAULT_NEW).toBe(20);
   });
 
   it('MIN = 1 phút như velocity.js', () => {

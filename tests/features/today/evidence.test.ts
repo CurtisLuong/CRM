@@ -63,7 +63,7 @@ describe('T5.3a readable Next Best Action evidence', () => {
       ]),
     ).toEqual([
       'Giai đoạn: Booking & Làm hồ sơ',
-      'Mức quan tâm: 80%',
+      'Mức quan tâm: Nóng',
       'Bậc chăm sóc: Đang chăm sóc',
       'Lý do hẹn gọi: Xác nhận lịch xem nhà',
       `Liên hệ cuối: ${displayedDate}`,
