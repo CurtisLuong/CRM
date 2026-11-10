@@ -1,7 +1,15 @@
-import { Search } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Outlet, useLocation, useMatches, useNavigate } from 'react-router';
-import { AppShell, BottomNav, NAV_DEFAULT, PageHeader, Sidebar } from '@/components/crm';
+import {
+  AppShell,
+  BottomNav,
+  HeaderSearch,
+  NAV_DEFAULT,
+  PageHeader,
+  ScrollTitle,
+  Sidebar,
+  useScrolledPast,
+} from '@/components/crm';
 import { TooltipProvider } from '@/components/ui';
 import { NotificationBell } from '@/features/notifications/Bell';
 import { QuickActionsHost } from '@/features/quick-actions/QuickActions';
@@ -15,7 +23,7 @@ import { type AppCommand, appCommands, type CommandContext } from './commands';
 import { installCRMBack } from './layout.back';
 import { QuickAddSheet, ToolsMenu } from './layout.menus';
 import { NAV_TABS, tabForPath } from './layout.nav';
-import { setAsideElement, useAsideVisible, useCustomerSearch, useShellSync } from './layout.slots';
+import { setAsideElement, useAsideVisible, useCustomerSearch, useShellSync, useShellTitle } from './layout.slots';
 import { UpdatePrompt } from './UpdatePrompt';
 
 const RAIL_KEY = 'sk-rail-expanded';
@@ -90,6 +98,12 @@ export function RootLayout() {
   const sync = useShellSync();
   const search = useCustomerSearch();
   const aside = useAsideVisible();
+  const shellTitle = useShellTitle();
+  const [headerElement, setHeaderElement] = useState<HTMLElement | null>(null);
+  const titlePast = useScrolledPast(shellTitle?.target ?? null, {
+    boundary: headerElement,
+    mediaQuery: '(min-width: 1280px)',
+  });
 
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [quickOpen, setQuickOpen] = useState(false);
@@ -155,25 +169,25 @@ export function RootLayout() {
           }
           header={
             <PageHeader
-              title={title}
+              title={
+                <ScrollTitle
+                  title={title}
+                  replacement={shellTitle?.title}
+                  detail={shellTitle?.detail}
+                  active={titlePast}
+                />
+              }
+              headerRef={setHeaderElement}
               compact
               actions={
                 <>
-                  <button
-                    type="button"
-                    aria-label="Tìm khách, lệnh"
-                    title="Tìm (⌘K)"
-                    onClick={() => setPaletteOpen(true)}
-                    className="grid size-11 shrink-0 place-items-center rounded-md text-ink-muted hover:bg-surface-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ion"
-                  >
-                    <Search className="size-5" aria-hidden="true" />
-                  </button>
+                  <HeaderSearch onOpen={() => setPaletteOpen(true)} />
                   <NotificationBell />
                   {sync && (
                     <SyncIndicator
                       state={sync}
                       onOpen={() => setSyncOpen(true)}
-                      className="size-11 min-w-11 rounded-md px-0 text-ink-muted"
+                      className="size-11 min-w-11 rounded-md px-0"
                     />
                   )}
                   <ToolsMenu commands={appCommands} ctx={ctx} />

@@ -47,55 +47,9 @@ export function ActionBar({ actions, className }: { actions: ActionItem[]; class
   );
 }
 
-export type SyncState =
-  | { kind: 'synced'; at: string }
-  | { kind: 'pending'; count: number }
-  | { kind: 'offline' }
-  | { kind: 'error' };
-
-/** Chấm + chữ ngắn. Lỗi → nhấn xem chi tiết (`onOpen`). Nối `useSyncStatus` ở T2.C3. */
-export function SyncIndicator({
-  state,
-  onOpen,
-  className,
-}: {
-  state: SyncState;
-  onOpen?: () => void;
-  className?: string;
-}) {
-  const { dot, text } =
-    state.kind === 'synced'
-      ? { dot: 'bg-success', text: `Đã đồng bộ ${state.at}` }
-      : state.kind === 'pending'
-        ? { dot: 'bg-warning', text: `Chờ ${state.count} thay đổi` }
-        : state.kind === 'offline'
-          ? { dot: 'border border-border-strong', text: 'Ngoại tuyến' }
-          : { dot: 'bg-danger', text: 'Lỗi đồng bộ' };
-  const content = (
-    <>
-      <span className={cn('size-2 shrink-0 rounded-full', dot)} aria-hidden />
-      {state.kind === 'offline' && <Icon name="offline" size={16} />}
-      {/* v4 (D-023): mobile chỉ hiện chấm — chữ vẫn là tên truy cập, không chiếm chỗ tiêu đề. */}
-      <span className={cn('sr-only lg:not-sr-only lg:truncate', state.kind === 'synced' && 'font-data')}>{text}</span>
-    </>
-  );
-  const cls = cn(
-    'inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 whitespace-nowrap text-small text-text-2 lg:justify-start',
-    state.kind === 'error' && 'text-danger',
-    className,
-  );
-  return (
-    <span aria-live="polite" className="inline-flex">
-      {onOpen ? (
-        <button type="button" onClick={onOpen} className={cn(cls, 'rounded-control px-2 hover:bg-surface-2')}>
-          {content}
-        </button>
-      ) : (
-        <span className={cls}>{content}</span>
-      )}
-    </span>
-  );
-}
+// Giữ đường import/props cũ cho các màn chưa chuyển sang bộ component mới.
+export type { SyncState } from '@/components/crm/header-controls';
+export { SyncStatusButton as SyncIndicator } from '@/components/crm/header-controls';
 
 /** Header màn: tiêu đề · ô tìm/lệnh (⌘K) · chuông thông báo · SyncIndicator · avatar. `compact` khi đã cuộn. */
 export function Header({
