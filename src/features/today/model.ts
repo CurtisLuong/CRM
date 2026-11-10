@@ -4,6 +4,7 @@ import { CLOSE_REASONS, LEAD_DROP_REASONS } from '@/config/reasons';
 import { SIGNAL_GROUPS, SIGNALS_CONFIG, type SignalGroup } from '@/config/signals';
 import { VELOCITY_CONFIG } from '@/config/velocity';
 import type { Customer, Task } from '@/domain/customer';
+import { customerInterestTier, interestTierOf } from '@/domain/customer/interest';
 import { callAttemptsOf, sourceListOf } from '@/domain/customer/normalize';
 import { countdownTag, fmtClock, taskDayLabel } from '@/domain/deadlines';
 import { computeSignals, type Signal } from '@/domain/signals';
@@ -203,7 +204,7 @@ const EVIDENCE_DATES = new Set([
 ]);
 
 /** Display only evidence with a known label and a readable value; never stringify structured records. */
-export function formatSignalEvidence(evidence: Signal['evidence']): string[] {
+export function formatSignalEvidence(evidence: Signal['evidence'], customer?: Customer): string[] {
   return evidence.flatMap(({ field, value }) => {
     const label = EVIDENCE_LABELS[field];
     if (!label || value == null || (typeof value !== 'string' && typeof value !== 'number')) return [];
@@ -212,6 +213,8 @@ export function formatSignalEvidence(evidence: Signal['evidence']): string[] {
       const timestamp = typeof value === 'number' ? value : Date.parse(value);
       if (!Number.isFinite(timestamp) || !Number.isFinite(new Date(timestamp).getTime())) return [];
       formatted = formatDue(timestamp);
+    } else if (field === 'interest_level') {
+      formatted = customer ? customerInterestTier(customer).label : interestTierOf(value).label;
     } else if (field === 'step') {
       const step = VELOCITY_CONFIG.bookingSteps.find((entry) => entry.key === value);
       if (!step) return [];
@@ -222,7 +225,7 @@ export function formatSignalEvidence(evidence: Signal['evidence']): string[] {
       formatted = phase.label;
     } else if (typeof value === 'number') {
       if (!Number.isFinite(value)) return [];
-      formatted = `${value.toLocaleString('vi-VN')}${field === 'interest_level' ? '%' : ''}`;
+      formatted = value.toLocaleString('vi-VN');
     } else {
       const text = value.trim();
       formatted = field === 'reason' ? CLOSE_REASONS[text] || LEAD_DROP_REASONS[text] || text : text;
@@ -384,7 +387,7 @@ export function todayCard(row: QueueRow, now: number): TodayCard {
   // Thẻ về thủ tục/hạn mức (nhóm SLA, hoặc hành động chỉ là mở hồ sơ): bằng chứng của tín hiệu thay cho số liệu cuộc gọi.
   const evidence =
     group === 'sla' || action === 'open'
-      ? formatSignalEvidence(signal.evidence)
+      ? formatSignalEvidence(signal.evidence, customer)
           .filter((line) => !line.startsWith('Bậc chăm sóc:'))
           .slice(0, 3)
           .map((line) => {

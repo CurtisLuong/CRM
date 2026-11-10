@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import type { Customer } from '@/domain/customer';
-import { interestLevelForTier, interestTierOf } from '@/domain/customer/interest';
+import { customerInterestTier, interestLevelForTier } from '@/domain/customer/interest';
 import { InterestTierPicker } from '@/features/quick-actions/interest-picker';
 
 export function ProfileInterest({
@@ -17,7 +17,7 @@ export function ProfileInterest({
   onSave: (patch: Record<string, unknown>) => Promise<boolean>;
 }) {
   const [open, setOpen] = useState(false);
-  const tier = interestTierOf(customer.interest_level);
+  const tier = customerInterestTier(customer);
   if (!writable) return <>{tier.label}</>;
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -38,7 +38,8 @@ export function ProfileInterest({
           disabled={busy}
           onChange={async (key) => {
             const next = interestLevelForTier(customer.interest_level, key);
-            if (next != null && next !== Number(customer.interest_level)) await onSave({ interest_level: next });
+            if (key !== tier.key && next != null && next !== Number(customer.interest_level))
+              await onSave({ interest_level: next });
             setOpen(false);
           }}
         />

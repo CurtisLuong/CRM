@@ -1,8 +1,9 @@
 import { HEALTH_STALE_TEXT } from '@/config/integrations';
-import { QUALIFIED_STAGE, STAGE_INTEREST } from '@/config/stages';
+import { QUALIFIED_STAGE } from '@/config/stages';
 import type { IntegrationHealthState } from '@/data/hooks';
 import type { CustomerRepository, Data } from '@/data/repositories/customers';
 import { type Customer, callAttemptsOf, isQualified } from '@/domain/customer';
+import { withInterestRule } from '@/domain/customer/interest';
 import { integrationHealthLevel, isIntegrationHealthStale } from '@/domain/integrations';
 
 export const LEAD_DROP_REASONS = {
@@ -68,12 +69,13 @@ export async function qualifyLead(repo: CustomerRepository, id: string, now = ne
   const patch: Data = {
     qualified_at: now.toISOString(),
     care_stage: QUALIFIED_STAGE,
-    interest_level: Math.max(Number(c.interest_level) || 0, STAGE_INTEREST[QUALIFIED_STAGE] ?? 60),
     disqualified_at: null,
     disqualify_reason: null,
     disqualify_note: null,
   };
-  return repo.update(id, patch, { careStageNote: `Đạt — xác nhận quan tâm sau ${callAttemptsOf(c).length} lần gọi` });
+  return repo.update(id, withInterestRule(c, patch), {
+    careStageNote: `Đạt — xác nhận quan tâm sau ${callAttemptsOf(c).length} lần gọi`,
+  });
 }
 
 export async function disqualifyLead(
@@ -89,14 +91,17 @@ export async function disqualifyLead(
   if (!isLead(c) || c.disqualified_at) throw new Error('Khách không còn ở trạng thái có thể loại.');
   const cleanNote = note.trim();
   if (reason === 'khac' && !cleanNote) throw new Error('Lý do “Khác” cần mô tả thêm.');
-  return repo.update(id, {
-    disqualified_at: now.toISOString(),
-    disqualify_reason: reason,
-    disqualify_note: cleanNote || null,
-    next_call_at: null,
-    next_call_end: null,
-    next_call_reason: null,
-  });
+  return repo.update(
+    id,
+    withInterestRule(c, {
+      disqualified_at: now.toISOString(),
+      disqualify_reason: reason,
+      disqualify_note: cleanNote || null,
+      next_call_at: null,
+      next_call_end: null,
+      next_call_reason: null,
+    }),
+  );
 }
 
 export async function reopenLead(repo: CustomerRepository, id: string, now = new Date()) {
@@ -104,10 +109,13 @@ export async function reopenLead(repo: CustomerRepository, id: string, now = new
   if (!c || c.archived_at || c.owner_id !== repo.sync.local.userId)
     throw new Error('Khách không còn thuộc quyền chỉnh sửa.');
   if (!isLead(c) || !c.disqualified_at) throw new Error('Khách không ở trạng thái đã loại.');
-  return repo.update(id, {
-    disqualified_at: null,
-    disqualify_reason: null,
-    disqualify_note: null,
-    sla_anchor_at: now.toISOString(),
-  });
+  return repo.update(
+    id,
+    withInterestRule(c, {
+      disqualified_at: null,
+      disqualify_reason: null,
+      disqualify_note: null,
+      sla_anchor_at: now.toISOString(),
+    }),
+  );
 }

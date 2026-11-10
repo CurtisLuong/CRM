@@ -11,7 +11,7 @@ import { taskKindOf } from '@/config/taskKinds';
 import type { Customer } from '@/domain/customer';
 import type { BriefFact } from '@/domain/customer/brief';
 import { interactionTitle, LEAD_FORM_KIND } from '@/domain/customer/interactions';
-import { interestTierOf } from '@/domain/customer/interest';
+import { customerInterestTier } from '@/domain/customer/interest';
 import { callAttemptsOf, normStage, sourceListOf } from '@/domain/customer/normalize';
 import { type CustomerTimelineEntry, customerTimeline } from '@/domain/customer/timeline';
 import { fmtClock, type TaskDueInfo, taskDayLabel } from '@/domain/deadlines';
@@ -168,12 +168,7 @@ export function knownStats(customer: Customer, now: number): { label: string; va
   return facts([
     ['Số lần gọi', calls.length ? `${calls.length} lần` : ''],
     ['Lần gọi cuối', last ? dayClock(last.at, now) : ''],
-    [
-      'Mức quan tâm',
-      customer.interest_level != null && customer.interest_level !== ''
-        ? interestTierOf(customer.interest_level).label
-        : '',
-    ],
+    ['Mức quan tâm', customerInterestTier(customer).label],
   ]);
 }
 
