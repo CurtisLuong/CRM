@@ -4,6 +4,7 @@ import { CARE_STAGE_BRANCH, CARE_STAGE_DEFAULT, INTEREST_DEFAULT_NEW, QUALIFIED_
 import type { Customer } from '@/domain/customer';
 import { sourceListOf } from '@/domain/customer';
 import { canonicalAptType } from '@/domain/customer/aptType';
+import { withInterestRule } from '@/domain/customer/interest';
 import { normalizePhoneVN } from '@/domain/customer/phone';
 import { calcCungFromDOB, calcMenhFromSolarDOB } from '@/domain/lunar/lunar';
 import type { IntakeValues, ParsedIntake } from './schema';
@@ -97,10 +98,10 @@ export function toCustomerPayload(value: ParsedIntake, existing?: Customer, dob 
     finance: value.finance,
     purpose: value.purpose || null,
     campaign: value.campaign || null,
-    interest_level: value.qualify_now ? Math.max(60, Number(value.interest_level)) : Number(value.interest_level),
     advanced: mergeAdvanced(existing?.advanced ?? {}, value.advanced),
   };
   if (!existing) {
+    payload.interest_level = INTEREST_DEFAULT_NEW;
     payload.care_stage = value.qualify_now ? QUALIFIED_STAGE : CARE_STAGE_DEFAULT;
     if (value.qualify_now) {
       const now = new Date().toISOString();
@@ -117,8 +118,7 @@ export function toCustomerPayload(value: ParsedIntake, existing?: Customer, dob 
     payload.source = [channel, ...existingSources.filter((x) => x !== channel)];
   if (!existing) payload.intake_method = 'manual';
   if (value.notes.trim() || (existing && (existing.notes || null) !== null)) payload.notes = value.notes.trim() || null;
-  if (existing && !existing.qualified_at) delete payload.interest_level;
-  return payload;
+  return existing ? withInterestRule(existing, payload) : payload;
 }
 
 export function mergeOcrValues(current: IntakeValues, extracted: Record<string, unknown>): IntakeValues {

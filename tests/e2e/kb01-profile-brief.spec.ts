@@ -102,9 +102,7 @@ async function openProfile(page: import('@playwright/test').Page) {
 }
 
 for (const theme of ['light', 'dark'] as const) {
-  test(`KB-01 ${theme}: Lần trước 14px; Đã biết 2 cột, vướng mắc cuối thẻ cả bề ngang, 3 dòng rồi bấm xem đủ`, async ({
-    page,
-  }) => {
+  test(`KB-01 ${theme}: Lần trước 14px; Đã biết 2 cột, không còn Vướng mắc`, async ({ page }) => {
     await page.emulateMedia({ colorScheme: theme });
     await openProfile(page);
     const last = page.getByRole('region', { name: 'Lần trước' });
@@ -113,24 +111,13 @@ for (const theme of ['light', 'dark'] as const) {
     expect(await lastText.evaluate((el) => getComputedStyle(el).fontSize)).toBe('14px');
 
     const known = page.getByRole('region', { name: 'Đã biết' });
-    await expect(known.getByText('Vướng mắc gần nhất', { exact: true })).toBeVisible();
-    const card = await known.boundingBox();
+    // KB-04 (Curtis 10/11): bỏ hẳn "Vướng mắc gần nhất" khỏi Đã biết (cả phần Còn thiếu).
+    await expect(known.getByText('Vướng mắc gần nhất', { exact: true })).toHaveCount(0);
     const terms = known.locator('dt');
-    const labels = await terms.allTextContents();
-    expect(labels.at(-1)).toBe('Vướng mắc gần nhất');
     // Hai ô ngắn đầu cùng hàng (2 cột).
     const [a, b] = await Promise.all([terms.nth(0).boundingBox(), terms.nth(1).boundingBox()]);
     expect(Math.abs((a?.y ?? 0) - (b?.y ?? 99))).toBeLessThanOrEqual(2);
     expect(b?.x ?? 0).toBeGreaterThan((a?.x ?? 0) + 40);
-    // Vướng mắc: cả bề ngang thẻ (trừ padding), nằm dưới mọi ô ngắn, gọn 3 dòng.
-    const objection = known.getByRole('button', { name: /gọi 11:50/ });
-    const ob = await objection.boundingBox();
-    expect(ob && card ? ob.width : 0).toBeGreaterThan((card?.width ?? 0) - 48);
-    const lineHeight = await objection.evaluate((el) => parseFloat(getComputedStyle(el).lineHeight));
-    expect(ob?.height ?? 0).toBeLessThanOrEqual(lineHeight * 3 + 2);
-    await objection.click();
-    await expect(objection).toHaveAttribute('aria-expanded', 'true');
-    expect((await objection.boundingBox())?.height ?? 0).toBeGreaterThan(ob?.height ?? 0);
     expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(0);
   });
 }

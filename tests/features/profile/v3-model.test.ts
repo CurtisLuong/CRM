@@ -73,7 +73,7 @@ describe('extraFacts / knownStats / registrationFacts (D-023 L3 + L4)', () => {
     expect(knownStats(full, now)).toEqual([
       { label: 'Số lần gọi', value: '1 lần' },
       { label: 'Lần gọi cuối', value: 'Hôm qua 15:00' },
-      { label: 'Mức quan tâm', value: 'Rất nóng' },
+      { label: 'Mức quan tâm', value: 'Nóng' },
     ]);
   });
 
@@ -96,11 +96,12 @@ describe('extraFacts / knownStats / registrationFacts (D-023 L3 + L4)', () => {
     ]);
   });
 
-  it('khách gần như trống → Đăng ký chỉ ngày tạo; Đã biết không có số gọi', () => {
+  it('khách gần như trống → Đăng ký chỉ ngày tạo; Đã biết chỉ có mức quan tâm Lạnh', () => {
     expect(registrationFacts(c({ created_at: at(1, 9) }), now)).toEqual([
       { label: 'Ngày đăng ký', value: 'T5 1/10 09:00' },
     ]);
-    expect(knownStats(c({ created_at: at(1, 9) }), now)).toEqual([]);
+    // D-033: ô Mức quan tâm luôn hiện, khách thiếu số = Lạnh.
+    expect(knownStats(c({ created_at: at(1, 9) }), now)).toEqual([{ label: 'Mức quan tâm', value: 'Lạnh' }]);
   });
 
   // PF-07: mọi mốc giờ trong hồ sơ cùng kiểu với "Lần gọi cuối"; khác năm thì thêm năm.

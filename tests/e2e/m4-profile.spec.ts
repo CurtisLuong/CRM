@@ -161,7 +161,7 @@ test('Dòng thời gian lọc theo loại; nhãn tiếng Việt', async ({ page 
 // "Thông tin thêm" không còn trường nào có giá trị với khách này → ẩn hẳn.
 test('Thông tin thêm chỉ trường có giá trị', async ({ page }) => {
   await open(page);
-  await expect(page.getByRole('region', { name: 'Đã biết', exact: true })).toContainText('Rất nóng');
+  await expect(page.getByRole('region', { name: 'Đã biết', exact: true })).toContainText('Nóng');
   await expect(page.getByRole('region', { name: 'Thông tin thêm', exact: true })).toHaveCount(0);
   await expect(page.getByText('Lý do loại', { exact: true })).toHaveCount(0);
   await expect(page.getByText('Điều kiện retarget', { exact: true })).toHaveCount(0);

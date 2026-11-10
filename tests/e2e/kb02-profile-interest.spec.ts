@@ -13,6 +13,7 @@ const rows = [
     full_name: 'Anh Văn KB',
     phone: '0900000188',
     source: ['facebook_ads'],
+    intake_method: 'manual', // KB-04: khách thật luôn có cách nhập; ô chỉ xem
     purpose: 'Ở',
     apt_type: '3N-2WC',
     projects: ['Vin TC'],
@@ -134,9 +135,9 @@ for (const theme of ['light', 'dark'] as const) {
       0,
     );
     await expect(page.getByRole('region', { name: 'Thông tin thêm' })).toHaveCount(0);
-    await known.getByRole('button', { name: 'Mức quan tâm: Nguội' }).click();
+    await known.getByRole('button', { name: 'Mức quan tâm: Lạnh' }).click();
     const choices = page.getByRole('group', { name: 'Mức quan tâm' });
-    await expect(choices.getByRole('button', { name: 'Nguội', exact: true })).toHaveAttribute('aria-pressed', 'true');
+    await expect(choices.getByRole('button', { name: 'Lạnh', exact: true })).toHaveAttribute('aria-pressed', 'true');
     for (const button of await choices.getByRole('button').all()) {
       await expect.poll(async () => (await button.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
     }
@@ -148,8 +149,9 @@ for (const theme of ['light', 'dark'] as const) {
     if (await more.count()) await more.click();
     await page.getByRole('button', { name: 'Nâng cao', exact: true }).click();
     const registration = page.getByRole('group', { name: 'Đăng ký' });
-    await expect(registration.getByText('Facebook Ads', { exact: true })).toBeVisible();
-    await expect(registration.locator('input, textarea, button')).toHaveCount(0);
+    // KB-04 (Curtis 10/11): Đăng ký thành ô sửa được; Cách nhập do máy ghi → chỉ xem.
+    await expect(registration.getByLabel('Chiến dịch', { exact: true })).toBeEditable();
+    await expect(registration.getByLabel('Cách nhập', { exact: true })).toBeDisabled();
     expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(0);
   });
 }
@@ -157,7 +159,7 @@ for (const theme of ['light', 'dark'] as const) {
 test('KB-02: khách nhóm không bấm được mức quan tâm và không được chọn khi ghi giùm', async ({ page }) => {
   await openProfile(page, true);
   const known = page.getByRole('region', { name: 'Đã biết' });
-  await expect(known.getByText('Nguội', { exact: true })).toBeVisible();
+  await expect(known.getByText('Lạnh', { exact: true })).toBeVisible();
   await expect(known.getByRole('button', { name: /^Mức quan tâm:/ })).toHaveCount(0);
   await page.goto('/thao-tac-nhanh');
   await page.getByRole('button', { name: 'Ghi tương tác', exact: true }).first().click();
@@ -170,9 +172,7 @@ test('KB-02: khách nhóm không bấm được mức quan tâm và không đư�
   await expect(sheet.getByRole('group', { name: 'Mức quan tâm' })).toHaveCount(0);
 });
 
-test('KB-02: nói chuyện được lưu Rất nóng cùng cuộc gọi; Hoàn tác trả mức cũ và giữ nhật ký cuộc gọi', async ({
-  page,
-}) => {
+test('KB-02: nói chuyện được lưu Nóng cùng cuộc gọi; Hoàn tác trả mức cũ và giữ nhật ký cuộc gọi', async ({ page }) => {
   await openProfile(page);
   await page.goto('/thao-tac-nhanh');
   await page.getByRole('button', { name: 'Ghi tương tác', exact: true }).first().click();
@@ -184,10 +184,10 @@ test('KB-02: nói chuyện được lưu Rất nóng cùng cuộc gọi; Hoàn t
   await sheet.getByRole('radio', { name: 'Không nghe', exact: true }).click();
   await expect(sheet.getByRole('group', { name: 'Mức quan tâm' })).toHaveCount(0);
   await sheet.getByRole('radio', { name: 'Nói chuyện được' }).click();
-  await sheet.getByRole('button', { name: 'Rất nóng', exact: true }).click();
+  await sheet.getByRole('button', { name: 'Nóng', exact: true }).click();
   await sheet.getByRole('button', { name: 'Lưu', exact: true }).click();
   await expect(sheet).toBeHidden();
-  await expect.poll(async () => (await readCustomer(page)).interest_level).toBe(80);
+  await expect.poll(async () => (await readCustomer(page)).interest_level).toBe(60);
   const saved = await readCustomer(page);
   expect(saved.call_attempts).toHaveLength(2);
   expect(saved.call_attempts.at(-1)?.result).toBe('talked');

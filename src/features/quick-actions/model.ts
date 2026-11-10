@@ -2,7 +2,7 @@ import { CALL_OUTCOME_TALKED_SEC, type CallResult } from '@/config/callResults';
 import { type CallSlotKey, FOLLOWUP_CONFIG } from '@/config/followup';
 import type { CustomerRepository, Data } from '@/data/repositories/customers';
 import { type CallAttempt, type Customer, callAttemptsOf, isQualified } from '@/domain/customer';
-import { interestLevelForTier } from '@/domain/customer/interest';
+import { customerInterestTier, interestLevelForTier, withInterestRule } from '@/domain/customer/interest';
 import { canLogHistory } from '@/domain/customer/teamEdit';
 import {
   afterCall,
@@ -123,7 +123,10 @@ export async function saveCall(
   const c = await repo.get(id);
   if (!c || !canLogHistory(c, repo.sync.local.userId)) throw new Error('Khách không còn thuộc quyền chỉnh sửa.');
   const interest =
-    result === 'talked' && c.owner_id === repo.sync.local.userId && interestTier
+    result === 'talked' &&
+    c.owner_id === repo.sync.local.userId &&
+    interestTier &&
+    interestTier !== customerInterestTier(c).key
       ? interestLevelForTier(c.interest_level, interestTier)
       : null;
   const interestPatch = interest != null && interest !== Number(c.interest_level) ? { interest_level: interest } : {};
@@ -171,5 +174,5 @@ export async function saveCall(
     ...(draft.direction ? { direction: draft.direction } : {}),
   };
   // Curtis 09/11: cuộc gọi là hoạt động TRONG bậc, đã lưu ở call_attempts — không ghi thêm mốc bậc cùng bậc.
-  return repo.logCall(id, attempt, { editAt: draft.editAt, patch });
+  return repo.logCall(id, attempt, { editAt: draft.editAt, patch: withInterestRule(c, patch) });
 }

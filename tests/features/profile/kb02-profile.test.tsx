@@ -60,8 +60,8 @@ describe('KB-02 — Đã biết và quyền đổi mức quan tâm', () => {
     [20, 'Nóng', 60],
     [70, 'Nóng', null],
     [90, 'Ấm', 35],
-    [90, 'Nguội', 20],
-    [20, 'Rất nóng', 80],
+    [90, 'Nguội', 0],
+    [20, 'Lạnh', null],
   ] as const)('lưu thật từ %s chọn %s → %s, patch chỉ interest_level', async (current, label, expected) => {
     customer = { ...customer, interest_level: current };
     mount();
@@ -71,7 +71,7 @@ describe('KB-02 — Đã biết và quyền đổi mức quan tâm', () => {
       within(choices)
         .getAllByRole('button')
         .map((el) => el.textContent),
-    ).toEqual(['Nguội', 'Ấm', 'Nóng', 'Rất nóng']);
+    ).toEqual(['Lạnh', 'Ấm', 'Nóng', 'Nguội']);
     fireEvent.click(within(choices).getByRole('button', { name: label }));
     if (expected === null) expect(update).not.toHaveBeenCalled();
     else await waitFor(() => expect(update).toHaveBeenCalledExactlyOnceWith('c1', { interest_level: expected }));
@@ -79,17 +79,17 @@ describe('KB-02 — Đã biết và quyền đổi mức quan tâm', () => {
   it('lưu lỗi giữ giá trị cũ và báo lỗi như các ô hồ sơ', async () => {
     update.mockRejectedValue(new Error('Lỗi lưu thử'));
     mount();
-    fireEvent.click(screen.getByRole('button', { name: 'Mức quan tâm: Nguội' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Mức quan tâm: Lạnh' }));
     fireEvent.click(screen.getByRole('button', { name: 'Nóng' }));
     await waitFor(() => expect(screen.queryByRole('group', { name: 'Mức quan tâm' })).toBeNull());
-    expect(screen.getByRole('button', { name: 'Mức quan tâm: Nguội' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Mức quan tâm: Lạnh' })).toBeTruthy();
     expect(await screen.findByText('Chưa lưu được')).toBeTruthy();
   });
   it('khách nhóm chỉ có chữ mức quan tâm dù vẫn sửa được hồ sơ', () => {
     customer = { ...customer, owner_id: 'u2' };
     mount();
     const known = within(screen.getByRole('region', { name: 'Đã biết' }));
-    expect(known.getByText('Nguội')).toBeTruthy();
+    expect(known.getByText('Lạnh')).toBeTruthy();
     expect(known.queryByRole('button', { name: /^Mức quan tâm:/ })).toBeNull();
   });
 });

@@ -13,6 +13,7 @@ import { CARE_STAGE_NURTURE, QUALIFIED_STAGE } from '@/config/stages';
 import { VELOCITY_CONFIG as C } from '@/config/velocity';
 import type { Customer } from '@/domain/customer';
 import { normStage } from '@/domain/customer';
+import { withInterestRule } from '@/domain/customer/interest';
 import { type AutoAction, autoAction } from './engine';
 
 /** Patch theo trường (chỉ các trường cần đổi). */
@@ -65,14 +66,15 @@ export function planSlaAutomation(
       changes.push({
         id: c.id,
         ...a,
-        patch: {
+        // D-033: tự loại → mức quan tâm Nguội.
+        patch: withInterestRule(c, {
           disqualified_at: new Date(now).toISOString(),
           disqualify_reason: C.dropReason,
           disqualify_note: `Tự động: quá ${cfg.maxText} ở "${cfg.label}" chưa liên lạc được (SLA)`,
           next_call_at: null,
           next_call_end: null,
           next_call_reason: null,
-        },
+        }),
         opts: null,
       });
       counts.drop++;
@@ -84,13 +86,18 @@ export function planSlaAutomation(
         patch.next_call_end = sug.end.toISOString();
         patch.next_call_reason = sug.reason;
       }
+      // D-033: Nuôi dài hạn → Lạnh; giữ mức cũ trong mốc lịch sử để Hoàn tác trả lại.
+      const withInterest = withInterestRule(c, patch);
       changes.push({
         id: c.id,
         ...a,
-        patch,
+        patch: withInterest,
         opts: {
           careStageNote: `Tự động: quá ${cfg.maxText} ở "${cfg.label}" (SLA) → Nuôi dài hạn`,
-          historyMeta: { auto: 'sla' },
+          historyMeta:
+            'interest_level' in withInterest
+              ? { auto: 'sla', interest_before: c.interest_level ?? null }
+              : { auto: 'sla' },
         },
       });
       counts.nurture++;
@@ -146,13 +153,24 @@ export function planSlaUndo(
   now: number,
   me: string,
 ): { id: string; patch: CustomerPatch; opts: UpdateOpts } | null {
-  if (!isMineFor(c, me) || !slaAutoEntry(c, now)) return null;
+  const entry = slaAutoEntry(c, now);
+  if (!isMineFor(c, me) || !entry) return null;
   const h = Array.isArray(c.care_stage_history) ? c.care_stage_history : [];
   const prev = [...h].reverse().find((x, i) => i > 0 && x?.stage && x.stage !== c.care_stage);
   const back = (prev && normStage(prev.stage)) || QUALIFIED_STAGE;
   return {
     id: c.id,
-    patch: { care_stage: back },
+    // D-033: trả mức quan tâm trước lúc tự chuyển (mốc cũ không ghi → giữ nguyên).
+    patch:
+      'interest_before' in entry
+        ? {
+            care_stage: back,
+            interest_level:
+              Number.isFinite(Number(entry.interest_before)) && entry.interest_before != null
+                ? Number(entry.interest_before)
+                : null,
+          }
+        : { care_stage: back },
     opts: { careStageNote: 'Hoàn tác tự chuyển SLA — đồng hồ giai đoạn tính lại từ hôm nay' },
   };
 }

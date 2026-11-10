@@ -136,10 +136,12 @@ test('CL-03: ô trống ẩn sau Bổ sung, ngày sinh ra tuổi/mệnh/cung, nh
   await expect(page.getByLabel('Nơi ở')).toBeVisible();
   const dobGroup = page.getByRole('group', { name: 'Ngày sinh' });
   await expect(dobGroup).toBeVisible();
-  // Ô dài chiếm cả hàng: Nơi ở rộng hơn hẳn ô ngắn SĐT.
-  const phoneWidth = (await page.getByLabel('Số điện thoại').boundingBox())?.width || 0;
-  const residenceWidth = (await page.getByLabel('Nơi ở').boundingBox())?.width || 0;
-  expect(residenceWidth).toBeGreaterThan(phoneWidth * 1.5);
+  // Curtis 10/11: Nơi ở là ô ngắn (Hải Phòng, Hà Nội…) — trên desktop không chiếm cả hàng.
+  if (testInfo.project.name === 'desktop-1280') {
+    const panelWidth = (await page.getByRole('tabpanel').boundingBox())?.width || 0;
+    const residenceWidth = (await page.getByLabel('Nơi ở').boundingBox())?.width || 0;
+    expect(residenceWidth).toBeLessThan(panelWidth * 0.6);
+  }
 
   // L3: 15/08/1985 → 41 tuổi, Mệnh Kim (+ nạp âm), Cung Sư Tử; lưu dob + menh + cung.
   const dobInput = dobGroup.getByRole('textbox', { name: 'Ngày sinh — ngày/tháng/năm' });

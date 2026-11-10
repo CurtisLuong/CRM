@@ -118,7 +118,12 @@ function memoryWriter(list: Customer[]) {
   const calls: { id: string; payload: unknown; opts: unknown }[] = [];
   const writer: V.CustomerWriter = {
     async update(id, patch, opts) {
-      calls.push({ id, payload: clone(patch), opts: opts ? clone(opts) : null });
+      // D-033 (Curtis 10/11) cố ý khác v1: tự chuyển ghi thêm mức quan tâm (+ mức cũ trong mốc để Hoàn tác).
+      // So phần còn lại với v1; luật mức quan tâm kiểm ở tests/domain/customer/interest.test.ts.
+      const { interest_level: _i, ...payload } = clone(patch) as Record<string, unknown>;
+      const o = opts ? (clone(opts) as { historyMeta?: Record<string, unknown> }) : null;
+      if (o?.historyMeta) delete o.historyMeta.interest_before;
+      calls.push({ id, payload, opts: o });
       const c = list.find((x) => x.id === id);
       if (c) Object.assign(c, patch);
       return c;

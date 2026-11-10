@@ -42,6 +42,7 @@ Lựa chọn nền tảng ban đầu (Supabase, Cloudflare Pages, local-first) k
 | D-030 | Kết quả cuộc gọi: 3 nút chính + Khác; chọn sẵn theo thời lượng (60s); khách mới cúp máy 2 lần liên tiếp → tự Loại "Cúp máy" | Curtis yêu cầu 2026-11-05 | Mở rộng tự chuyển của D-008/followup (thêm 1 điều kiện tự loại) |
 | D-032 | Khách ở mọi bậc giao được; nút Giao (icon) ở đầu hồ sơ; người đang thấy khách đã giao/khách nhóm **ghi giùm** cuộc gọi, tương tác, ghi chú — chỉ Gọi/Zalo/Hẹn khoá | Curtis yêu cầu 2026-11-06 | Nới D-025 (thêm quyền ghi lịch sử cho người theo dõi/trưởng nhóm); SQL 014 |
 | D-031 | Máy tính vay thêm **phí mỗi căn** (dự án → toà → căn ghi đè); Giá dự kiến = thuần + phí + VAT + KPBT; phí đóng đợt 1, không vay | Curtis yêu cầu 2026-11-06 | Đổi công thức máy tính vay (thêm 1 khoản); phí 0 = như cũ |
+| D-033 | Mức quan tâm 4 bậc Lạnh → Ấm → Nóng → Nguội (bỏ Rất nóng); khách mới Lạnh; Loại/lưu trữ → Nguội; Nuôi dài hạn → Lạnh; bỏ lại khỏi Loại/lưu trữ → Lạnh; còn lại chỉnh tay (bỏ tự nâng 60 khi Đạt) | Curtis yêu cầu 2026-11-10 | Đổi nhãn đọc từ số `interest_level` (dữ liệu giữ nguyên, không update hàng loạt): 0 Nguội · 1–34 Lạnh · 35–59 Ấm · ≥60 Nóng; khách đang Loại/lưu trữ luôn hiện Nguội |
 
 ## Ba loại kết quả
 

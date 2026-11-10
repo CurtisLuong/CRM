@@ -594,7 +594,6 @@ function IntakePage() {
                   checked={values.qualify_now}
                   onChange={(e) => {
                     set('qualify_now', e.target.checked);
-                    if (e.target.checked && Number(values.interest_level) < 60) set('interest_level', 60);
                     if (e.target.checked) set('care_stage', 'Đang chăm sóc');
                   }}
                 />
@@ -606,17 +605,6 @@ function IntakePage() {
                 {select('Tiến độ', 'care_stage', CARE_STAGE_PICKER_ORDER, stageOptionLabel)}
                 {select('Trạng thái liên lạc', 'contact_status', CONTACT_STATUSES)}
                 {input('Ghi chú cho lần đổi tiến độ', 'care_stage_note')}
-                <label className={`${LONG_FIELD} flex flex-col gap-2 text-caption text-ink-muted`}>
-                  Mức quan tâm:{' '}
-                  <strong className="text-body font-semibold text-ink">{Number(values.interest_level)}%</strong>
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={Number(values.interest_level)}
-                    onChange={(e) => set('interest_level', Number(e.target.value))}
-                  />
-                </label>
               </>
             )}
             <FormSubsection className={LONG_FIELD} title="Ghi chú chăm sóc">

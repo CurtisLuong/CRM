@@ -15,6 +15,7 @@ import { LEAD_DROP_REASONS } from '@/config/reasons';
 import { useRepositoryAccount } from '@/data/hooks';
 import type { Customer, Interaction } from '@/domain/customer';
 import { appendInteractionPatch } from '@/domain/customer/interactions';
+import { withInterestRule } from '@/domain/customer/interest';
 import { Icon } from '@/ui/Icon';
 
 export const ARCHIVED_PATH = '/khach-hang/luu-tru';
@@ -33,9 +34,8 @@ export function archiveReason(customer: Pick<Customer, 'interactions'>): string 
   return item?.reason && typeof item.reason === 'string' ? LEAD_DROP_REASONS[item.reason] || '' : '';
 }
 
-type ArchiveTarget = Pick<Customer, 'id' | 'owner_id' | 'interactions'>;
-
-export function useArchiveActions(customer: ArchiveTarget) {
+// Bản ghi đầy đủ từ useCustomer/snapshot repository, gồm trạng thái và mức trước khi ghi.
+export function useArchiveActions(customer: Customer) {
   const account = useRepositoryAccount();
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<{
@@ -65,10 +65,13 @@ export function useArchiveActions(customer: ArchiveTarget) {
         }
       : { at, kind: 'restored', channel: 'other', by: userId, origin: 'v2' };
     try {
-      await account.customers.update(customer.id, {
-        archived_at: archive ? at : null,
-        ...appendInteractionPatch(customer, interaction),
-      });
+      await account.customers.update(
+        customer.id,
+        withInterestRule(customer, {
+          archived_at: archive ? at : null,
+          ...appendInteractionPatch(customer, interaction),
+        }),
+      );
       const sync = account.sync.isOnline() ? 'Đang đồng bộ.' : 'Ngoại tuyến · chờ đồng bộ.';
       toast(
         archive
@@ -84,13 +87,17 @@ export function useArchiveActions(customer: ArchiveTarget) {
                   by: userId,
                   origin: 'v2',
                 };
-                void account.customers.update(customer.id, {
-                  archived_at: null,
-                  ...appendInteractionPatch(
-                    { interactions: [interaction, ...(customer.interactions ?? [])] },
-                    restored,
-                  ),
-                });
+                void account.customers.update(
+                  customer.id,
+                  withInterestRule(customer, {
+                    archived_at: customer.archived_at ?? null,
+                    interest_level: customer.interest_level ?? null,
+                    ...appendInteractionPatch(
+                      { interactions: [interaction, ...(customer.interactions ?? [])] },
+                      restored,
+                    ),
+                  }),
+                );
               },
             }
           : { title: 'Đã khôi phục khách', description: `Khách hiện lại trong danh sách. ${sync}` },

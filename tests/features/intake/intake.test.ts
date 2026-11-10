@@ -105,7 +105,8 @@ describe('intake form parity and data preservation', () => {
     });
     expect(toCustomerPayload(qualified)).toMatchObject({
       care_stage: 'Đang chăm sóc',
-      interest_level: 60,
+      // D-033: Đạt lúc nhập không còn tự nâng mức quan tâm — khách mới đều Lạnh.
+      interest_level: 20,
       call_attempts: [{ result: 'talked', note: 'Xác nhận quan tâm lúc nhập khách' }],
     });
   });
