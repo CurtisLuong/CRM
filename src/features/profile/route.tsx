@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
+import { ShellScrollTitle } from '@/app/layout.slots';
 import type { FeatureRoute } from '@/app/routes';
 import { ActionButton, Avatar, SlaMeter, StageChip } from '@/components/crm';
 import { FormSubsection } from '@/components/crm/form-section';
@@ -79,6 +80,7 @@ function Profile() {
   const customer = useCustomer(id);
   const account = useRepositoryAccount();
   const [now, setNow] = useState(Date.now());
+  const [titleElement, setTitleElement] = useState<HTMLHeadingElement | null>(null);
   const [busy, setBusy] = useState(false);
   // TL-03: mở hồ sơ bắt đầu ở Dòng thời gian.
   const [tab, setTab] = useState('timeline');
@@ -273,8 +275,8 @@ function Profile() {
     if (!hasNeedValue(value)) keepNeedVisible(String(key));
     setField(key, value);
   };
-  // layout: thanh đáy điện thoại dàn hai mép; trong thẻ máy tính là lưới 4 ô bằng nhau (PF-10).
-  const actionBar = (className = '', layout = 'flex items-center justify-between') => (
+  // Thanh đáy điện thoại giữ nguyên; máy tính dùng lưới 2×2 trong cột phụ.
+  const actionBar = (className = '', layout = 'flex items-center justify-between', decisions?: ReactNode) => (
     <nav aria-label="Hành động nhanh" className={`${layout} min-w-0 gap-2 ${className}`}>
       <ActionButton
         action="call"
@@ -308,6 +310,7 @@ function Profile() {
         disabled={!writable}
         onClick={() => openQuickAction(c.id, 'schedule')}
       />
+      {decisions && <div className="col-span-full space-y-2">{decisions}</div>}
     </nav>
   );
   const onStage = async (next: string, note: string, suggestion: ScheduleSuggestion | null) => {
@@ -608,11 +611,66 @@ function Profile() {
   // Khách của đồng nghiệp: SLA không thuộc phạm vi chăm sóc của mình → không hiện nút hoàn tác (L3).
   const undoPlan = account && !otherOwner ? planSlaUndo(c, now, account.sync.local.userId) : null;
 
+  const decisionActions = (
+    <>
+      {(classifiable || assignable) && (
+        <div className="grid grid-cols-4 gap-2 xl:grid-cols-3">
+          {classifiable && (
+            <>
+              <Button
+                variant="primary"
+                className="col-span-2 min-w-0 px-2"
+                aria-label="Chuyển tiềm năng"
+                disabled={busy || !hasTalked(c)}
+                title={hasTalked(c) ? undefined : 'Cần một cuộc gọi "Nói chuyện được" trước khi chuyển'}
+                onClick={() =>
+                  account &&
+                  void qualifyLead(account.customers, c.id)
+                    .then(() => toast({ title: 'Đã chuyển sang Tiềm năng' }))
+                    .catch((e) =>
+                      toast({
+                        title: 'Chưa chuyển được',
+                        description: String(e?.message ?? e),
+                        tone: 'error',
+                      }),
+                    )
+                }
+              >
+                <Icon name="qualify" size={20} />
+                {/* 360px: ô 2 cột chỉ vừa "Tiềm năng" kèm icon. */}
+                <span className="sm:hidden">Tiềm năng</span>
+                <span className="max-sm:hidden">Chuyển tiềm năng</span>
+              </Button>
+              <Button className="min-w-0 gap-1.5 px-1.5" disabled={busy} onClick={() => setClassifyOpen(true)}>
+                <Icon name="drop" size={20} />
+                Loại
+              </Button>
+            </>
+          )}
+          {assignable && (
+            <Button
+              className="col-start-4 min-w-0 gap-1.5 px-1.5 xl:col-span-3 xl:col-start-1"
+              aria-label="Giao khách"
+              onClick={() => setAssignOpen(true)}
+            >
+              <Icon name="assign" size={20} />
+              Giao
+            </Button>
+          )}
+        </div>
+      )}
+      {classifiable && !hasTalked(c) && (
+        <p className="text-caption text-ink-muted">Chuyển tiềm năng cần ít nhất một cuộc gọi "Nói chuyện được".</p>
+      )}
+    </>
+  );
+
   return (
     <main
       className="mx-auto w-full max-w-[1360px] space-y-4 p-4 pb-[calc(92px+env(safe-area-inset-bottom))] lg:p-6 lg:pb-6"
       data-testid="customer-profile"
     >
+      <ShellScrollTitle target={titleElement} title={c.full_name} detail={age != null ? `${age} tuổi` : undefined} />
       <ArchivedBanner customer={c} />
       {/*
         Desktop: 2 cột độc lập (cột chính đọc liền mạch + cột phụ dính), không lưới hàng ghép cặp thẻ.
@@ -637,7 +695,9 @@ function Profile() {
                 )}
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-baseline gap-2">
-                    <h1 className="min-w-0 truncate text-title">{c.full_name}</h1>
+                    <h1 ref={setTitleElement} className="min-w-0 truncate text-title">
+                      {c.full_name}
+                    </h1>
                     {/* Curtis 06/11: có năm sinh thì hiện tuổi cạnh tên — cỡ bằng SĐT, nét mảnh hơn một bậc. */}
                     {age != null && (
                       <span className="shrink-0 text-[14px] leading-5 font-normal text-ink-muted">{age} tuổi</span>
@@ -685,68 +745,9 @@ function Profile() {
                 // Bỏ dòng "còn/quá …" dưới thanh (Curtis 08/11): đầu thanh đã ghi đúng con số đó.
                 <SlaMeter {...slaMeter} />
               )}
-              {/* PF-10 (Curtis 08/11, mockup B): sau vạch ngăn, hàng quyết định và hàng Gọi/Zalo/Ghi chú/Hẹn (máy tính)
-                  dùng chung lưới 4 cột nên mép nút thẳng nhau. Khách tiềm năng chỉ còn Giao, vẫn ở cột cuối. */}
-              <div
-                className={`-mx-4 space-y-2 border-t border-line px-4 pt-3 ${classifiable || assignable ? '' : 'max-xl:hidden'}`}
-              >
-                {(classifiable || assignable) && (
-                  <div className="grid grid-cols-4 gap-2">
-                    {classifiable && (
-                      <>
-                        <Button
-                          variant="primary"
-                          className="col-span-2 min-w-0 px-2"
-                          aria-label="Chuyển tiềm năng"
-                          disabled={busy || !hasTalked(c)}
-                          title={hasTalked(c) ? undefined : 'Cần một cuộc gọi "Nói chuyện được" trước khi chuyển'}
-                          onClick={() =>
-                            account &&
-                            void qualifyLead(account.customers, c.id)
-                              .then(() => toast({ title: 'Đã chuyển sang Tiềm năng' }))
-                              .catch((e) =>
-                                toast({
-                                  title: 'Chưa chuyển được',
-                                  description: String(e?.message ?? e),
-                                  tone: 'error',
-                                }),
-                              )
-                          }
-                        >
-                          <Icon name="qualify" size={20} />
-                          {/* 360px: ô 2 cột chỉ vừa "Tiềm năng" kèm icon. */}
-                          <span className="sm:hidden">Tiềm năng</span>
-                          <span className="max-sm:hidden">Chuyển tiềm năng</span>
-                        </Button>
-                        <Button
-                          className="min-w-0 gap-1.5 px-1.5"
-                          disabled={busy}
-                          onClick={() => setClassifyOpen(true)}
-                        >
-                          <Icon name="drop" size={20} />
-                          Loại
-                        </Button>
-                      </>
-                    )}
-                    {assignable && (
-                      <Button
-                        className="col-start-4 min-w-0 gap-1.5 px-1.5"
-                        aria-label="Giao khách"
-                        onClick={() => setAssignOpen(true)}
-                      >
-                        <Icon name="assign" size={20} />
-                        Giao
-                      </Button>
-                    )}
-                  </div>
-                )}
-                {classifiable && !hasTalked(c) && (
-                  <p className="text-caption text-ink-muted">
-                    Chuyển tiềm năng cần ít nhất một cuộc gọi "Nói chuyện được".
-                  </p>
-                )}
-                <div className="hidden xl:block">{actionBar('', 'grid grid-cols-4')}</div>
-              </div>
+              {(classifiable || assignable) && (
+                <div className="-mx-4 space-y-2 border-t border-line px-4 pt-3 xl:hidden">{decisionActions}</div>
+              )}
               {otherOwner && <p className="text-caption text-ink-muted">Người phụ trách khác · hồ sơ chỉ xem.</p>}
               {undoPlan && (
                 <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-line bg-surface-200 p-3">
@@ -1041,6 +1042,10 @@ function Profile() {
             )}
             {asked && <p className="mt-2 text-caption text-ink-muted">Có thể hỏi: {asked.question}</p>}
           </section>
+
+          <div className="hidden shrink-0 space-y-2 xl:block">
+            {actionBar('', 'grid grid-cols-2', classifiable || assignable ? decisionActions : undefined)}
+          </div>
 
           {extra.length > 0 && (
             <section

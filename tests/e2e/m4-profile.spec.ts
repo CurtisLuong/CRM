@@ -182,11 +182,14 @@ test('Điện thoại: 4 nút liên hệ ở đáy thay thanh điều hướng; 
   }
 });
 
-test('Desktop: 4 nút liên hệ nằm ngay dưới tên, không nổi giữa trang', async ({ page }, info) => {
+// HD-01 (Curtis 10/11): desktop đưa cụm nút sang cột phụ, ngay dưới "Đã biết", vẫn trong màn đầu.
+test('Desktop: 4 nút liên hệ ngay dưới Đã biết, trong màn đầu', async ({ page }, info) => {
   test.skip(info.project.name !== 'desktop-1280', 'Bố cục desktop');
   await open(page);
   const bar = page.getByRole('navigation', { name: 'Hành động nhanh' });
   const box = await bar.boundingBox();
-  expect(box?.y ?? 9999).toBeLessThan(320);
-  await expect(page.getByRole('region', { name: 'Đã biết', exact: true })).toBeVisible();
+  const known = await page.getByRole('region', { name: 'Đã biết', exact: true }).boundingBox();
+  if (!box || !known) throw new Error('thiếu cụm nút hoặc Đã biết');
+  expect(box.y).toBeGreaterThan(known.y + known.height);
+  expect(box.y + box.height).toBeLessThan(page.viewportSize()?.height ?? 0);
 });

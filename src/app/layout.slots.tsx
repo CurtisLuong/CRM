@@ -68,3 +68,20 @@ export function ContextPanel({ children }: { children: ReactNode }) {
   }, [desktop]);
   return desktop && el ? createPortal(children, el) : null;
 }
+
+// Màn đăng ký nguồn tiêu đề; bỏ đăng ký khi rời màn để không giữ tên khách cũ.
+type ShellTitle = { target: HTMLElement | null; title: string; detail?: string };
+const titleStore = store<ShellTitle | null>(null);
+export function useShellTitle() {
+  return useSyncExternalStore(titleStore.subscribe, titleStore.get, titleStore.get);
+}
+export function ShellScrollTitle({ target, title, detail }: ShellTitle) {
+  useEffect(() => {
+    const entry = { target, title, detail };
+    titleStore.set(entry);
+    return () => {
+      if (titleStore.get() === entry) titleStore.set(null);
+    };
+  }, [target, title, detail]);
+  return null;
+}
