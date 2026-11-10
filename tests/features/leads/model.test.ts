@@ -82,6 +82,7 @@ describe('T3.4 D-001 lead rules and v1 payload parity', () => {
       next_call_at: null,
       next_call_end: null,
       next_call_reason: null,
+      interest_level: 0, // D-033: Loại → Nguội
     });
   });
 

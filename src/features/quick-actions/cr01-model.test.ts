@@ -67,6 +67,7 @@ describe('CR-01 — chọn sẵn theo thời lượng máy', () => {
           next_call_at: null,
           next_call_end: null,
           next_call_reason: null,
+          interest_level: 0, // D-033: Loại → Nguội
         },
       }),
     );
