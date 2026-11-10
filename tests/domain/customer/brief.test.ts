@@ -29,7 +29,11 @@ describe('customerBrief', () => {
     expect(brief.find((fact) => fact.key === 'need')?.value).toContain('Tràng Cát');
     expect(brief.find((fact) => fact.key === 'decision')?.value).toBe('Chồng');
     expect(brief.find((fact) => fact.key === 'promise')?.value).toBe('Gửi bảng giá');
-    expect(brief.find((fact) => fact.key === 'objection')?.value).toBe('Ngại lãi suất');
+    // Ghi chú thường không phải vướng mắc, và đã hiện ở "Lần trước" (Curtis 10/11).
+    expect(brief.find((fact) => fact.key === 'objection')?.value).toBe('Chưa biết');
+    expect(
+      customerBrief({ ...c, advanced: { pain_points: 'Ngại lãi suất' } }).find((f) => f.key === 'objection')?.value,
+    ).toBe('Ngại lãi suất');
     expect(c).toStrictEqual(before);
   });
 

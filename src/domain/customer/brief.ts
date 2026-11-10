@@ -99,13 +99,9 @@ export function customerBrief(customer: Customer): BriefFact[] {
     {
       key: 'objection',
       label: 'Vướng mắc gần nhất',
-      value: known(
-        advanced.financial_barriers ||
-          advanced.pain_points ||
-          latestCall?.note ||
-          latestNote?.text ||
-          latestInteraction?.note,
-      ),
+      // Chỉ vướng mắc đã ghi thật (Curtis 10/11): ghi chú cuộc gọi/ghi chú mới nhất đã hiện ở "Lần trước",
+      // lấy làm vướng mắc thì trùng và thường không phải vướng mắc.
+      value: known(advanced.financial_barriers || advanced.pain_points),
       question: 'Điều gì đang khiến anh/chị chưa quyết định?',
     },
     {

@@ -157,15 +157,14 @@ test('Dòng thời gian lọc theo loại; nhãn tiếng Việt', async ({ page 
   await expect(panel).toContainText('Vợ chồng làm KCN');
 });
 
+// Curtis 10/11: mức quan tâm lên "Đã biết"; nguồn/cách nhập xuống Trí nhớ › Nâng cao › Đăng ký;
+// "Thông tin thêm" không còn trường nào có giá trị với khách này → ẩn hẳn.
 test('Thông tin thêm chỉ trường có giá trị', async ({ page }) => {
   await open(page);
-  const extra = page.getByRole('region', { name: 'Thông tin thêm', exact: true });
-  await extra.scrollIntoViewIfNeeded();
-  await expect(extra).toContainText('Facebook Ads');
-  await expect(extra).toContainText('Từ ảnh chụp');
-  await expect(extra).toContainText('Rất nóng');
-  await expect(extra).not.toContainText('Lý do loại');
-  await expect(extra).not.toContainText('Điều kiện retarget');
+  await expect(page.getByRole('region', { name: 'Đã biết', exact: true })).toContainText('Rất nóng');
+  await expect(page.getByRole('region', { name: 'Thông tin thêm', exact: true })).toHaveCount(0);
+  await expect(page.getByText('Lý do loại', { exact: true })).toHaveCount(0);
+  await expect(page.getByText('Điều kiện retarget', { exact: true })).toHaveCount(0);
 });
 
 test('Điện thoại: 4 nút liên hệ ở đáy thay thanh điều hướng; màn đầu thấy việc tiếp + lần trước', async ({

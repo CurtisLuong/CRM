@@ -6,12 +6,12 @@ import {
   CARE_STAGE_DROPPED,
   CARE_STAGE_PICKER_ORDER,
   CARE_STAGE_WON,
-  INTEREST_TIERS,
 } from '@/config/stages';
 import { taskKindOf } from '@/config/taskKinds';
 import type { Customer } from '@/domain/customer';
 import type { BriefFact } from '@/domain/customer/brief';
 import { interactionTitle, LEAD_FORM_KIND } from '@/domain/customer/interactions';
+import { interestTierOf } from '@/domain/customer/interest';
 import { callAttemptsOf, normStage, sourceListOf } from '@/domain/customer/normalize';
 import { type CustomerTimelineEntry, customerTimeline } from '@/domain/customer/timeline';
 import { fmtClock, type TaskDueInfo, taskDayLabel } from '@/domain/deadlines';
@@ -152,29 +152,47 @@ export function lastTouchOf(customer: Customer, now: number): LastTouch | null {
   return top ? { when: dayClock(top.at, now), meta: top.meta, headline: top.headline, text: top.text } : null;
 }
 
-/** Brief tách 2 phần (D-023 L4): ô đã biết + câu hỏi còn thiếu. Bỏ "Liên hệ cuối" (đã có ở Lần trước). */
+/** Brief tách 2 phần (D-023 L4): ô đã biết + câu hỏi còn thiếu. Bỏ nội dung đã có ở Lần trước / Việc tiếp theo. */
 export function splitBrief(brief: readonly BriefFact[]): { known: BriefFact[]; missing: BriefFact[] } {
-  const rows = brief.filter((f) => f.key !== 'last_contact');
+  const rows = brief.filter((f) => f.key !== 'last_contact' && f.key !== 'promise');
   return {
     known: rows.filter((f) => f.value && f.value !== 'Chưa biết'),
     missing: rows.filter((f) => !f.value || f.value === 'Chưa biết'),
   };
 }
 
-/** "Thông tin thêm": chỉ trường có giá trị, nhãn tiếng Việt (D-023 L3 + L4). */
-export function extraFacts(customer: Customer, now: number): { label: string; value: string }[] {
+/** Số liệu ngắn đặt sau các ô brief trong Đã biết. */
+export function knownStats(customer: Customer, now: number): { label: string; value: string }[] {
   const calls = callAttemptsOf(customer);
   const last = calls.at(-1);
-  const tier = INTEREST_TIERS.find((t) => (Number(customer.interest_level) || 0) >= t.min);
-  const reason = displayText(customer.disqualify_reason);
-  const rows: [string, string][] = [
-    ['Trạng thái liên hệ', displayText(customer.contact_status)],
+  return facts([
     ['Số lần gọi', calls.length ? `${calls.length} lần` : ''],
     ['Lần gọi cuối', last ? dayClock(last.at, now) : ''],
+    [
+      'Mức quan tâm',
+      customer.interest_level != null && customer.interest_level !== ''
+        ? interestTierOf(customer.interest_level).label
+        : '',
+    ],
+  ]);
+}
+
+/** Thông tin lúc nhập khách, chỉ xem trong Trí nhớ › Nâng cao. */
+export function registrationFacts(customer: Customer, now: number): { label: string; value: string }[] {
+  return facts([
     ['Nguồn', sourceListOf(customer.source).map(sourceLabel).filter(Boolean).join(' · ')],
     ['Chiến dịch', displayText(customer.campaign)],
     ['Cách nhập', intakeLabel(customer.intake_method)],
-    ['Mức quan tâm', customer.interest_level != null && tier ? tier.label : ''],
+    ['Ngày đăng ký', dayClock(String(customer.registered_at || customer.created_at || ''), now)],
+    ['Ghi chú đăng ký', displayText(customer.notes)],
+  ]);
+}
+
+/** "Thông tin thêm": chỉ giữ liên hệ, kết thúc và retarget. */
+export function extraFacts(customer: Customer, _now: number): { label: string; value: string }[] {
+  const reason = displayText(customer.disqualify_reason);
+  return facts([
+    ['Trạng thái liên hệ', displayText(customer.contact_status)],
     ['Lý do loại', reason ? LEAD_DROP_REASONS[reason] || CLOSE_REASONS[reason] || reason : ''],
     ['Ghi chú kết thúc', displayText(customer.disqualify_note || customer.close_note)],
     ['Điều kiện retarget', displayText(customer.retarget_hint?.note)],
@@ -182,10 +200,16 @@ export function extraFacts(customer: Customer, now: number): { label: string; va
       'Không liên hệ',
       customer.contact_prefs?.do_not_contact ? displayText(customer.contact_prefs.dnc_reason) || 'Đã yêu cầu' : '',
     ],
-    ['Ngày đăng ký', dayClock(String(customer.registered_at || customer.created_at || ''), now)],
-    ['Ghi chú đăng ký', displayText(customer.notes)],
-  ];
-  return rows.filter(([, v]) => v).map(([label, value]) => ({ label, value }));
+  ]);
+}
+
+function facts(rows: [string, string][]): { label: string; value: string }[] {
+  return rows.filter(([, value]) => value).map(([label, value]) => ({ label, value }));
+}
+
+/** Việc tự thêm chưa có side không mang nhãn lời hứa. */
+export function profileTaskSide(side: unknown): string {
+  return side === 'me' ? 'Em hứa' : side === 'customer' ? 'Khách hẹn' : '';
 }
 
 /**

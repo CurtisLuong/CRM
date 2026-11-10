@@ -7,6 +7,7 @@ import { useRepositoryAccount } from '@/data/hooks';
 import type { RepositoryAccount } from '@/data/repositories/session';
 import { type CallAttempt, type Customer, callAttemptsOf } from '@/domain/customer';
 import { appendInteractionPatch, createInteraction } from '@/domain/customer/interactions';
+import { interestLevelForTier, interestTierOf } from '@/domain/customer/interest';
 import { canLogHistory } from '@/domain/customer/teamEdit';
 import type { ScheduleSuggestion } from '@/domain/followup';
 import { AiNoteReview } from '@/features/ai/AiNoteReview';
@@ -15,6 +16,7 @@ import { canClassify, DropReasonFields } from '@/features/leads/ClassifySheet';
 import { disqualifyLead, type LeadDropReason, qualifyLead } from '@/features/leads/model';
 import { useToast } from '@/ui/Toast';
 import { InteractionRecorder } from './interactions';
+import { InterestTierPicker } from './interest-picker';
 import { Button, IconButton, Input, OutcomePicker, ActionSheet as Sheet, SlotPicker, Textarea } from './kit';
 import {
   type CallDraft,
@@ -352,6 +354,13 @@ function ActionSheet({
   const [draft] = useState<CallDraft>(() => given ?? { at: new Date(now).toISOString(), origin: 'manual' });
   const existing = draft.editAt ? callAttemptsOf(c).find((a) => a.at === draft.editAt) : null;
   const [result, setResult] = useState(() => initialCallResult(draft, (existing?.result as CallResult) ?? null));
+  const [interestTier, setInterestTier] = useState<string | undefined>();
+  const owner = c.owner_id === account.sync.local.userId && !c.archived_at;
+  const showInterest = kind === 'outcome' && result === 'talked' && owner;
+  const interestChanged =
+    showInterest &&
+    interestTier !== undefined &&
+    interestLevelForTier(c.interest_level, interestTier) !== Number(c.interest_level);
   const [note, setNote] = useState(existing?.note ?? '');
   const [interimNote, setInterimNote] = useState('');
   const noteRef = useRef(note);
@@ -408,6 +417,7 @@ function ActionSheet({
   }, [account, c, kind, now]);
   const setOutcome = (value: CallResult) => {
     setResult(value);
+    if (value !== 'talked') setInterestTier(undefined);
     setError('');
     const sug = callSuggestion(c, draft, value, now, account.customers.getSnapshot());
     setMode(nextModeFor(sug));
@@ -453,8 +463,9 @@ function ActionSheet({
       setBusy(false);
     }
   };
-  const save = () =>
-    run(
+  const save = () => {
+    let beforeCall: Customer | undefined;
+    return run(
       async () => {
         // Dừng nghe bên trong run: cờ busy bật trước nên bấm Lưu lần hai không tạo ghi chú trùng.
         await voiceInput.current?.stop();
@@ -483,6 +494,7 @@ function ActionSheet({
             label: start.toLocaleString('vi-VN'),
           };
         }
+        if (interestChanged) beforeCall = (await account.customers.get(c.id)) ?? undefined;
         const saved = await saveCall(
           account.customers,
           c.id,
@@ -493,6 +505,7 @@ function ActionSheet({
           custom,
           Date.now(),
           account.customers.getSnapshot(),
+          showInterest ? interestTier : undefined,
         );
         // Phân loại sau khi cuộc gọi đã ghi: Đạt cần có cuộc "Nói chuyện được" (vừa ghi xong).
         if (classifyChoice === 'qualify') await qualifyLead(account.customers, c.id);
@@ -502,23 +515,32 @@ function ActionSheet({
       },
       true,
       'Đã lưu trên máy',
-      kind === 'outcome' && !editingRecorded && mode === 'drop' && suggestion?.kind === 'drop' && suggestion.auto
+      interestChanged
         ? () => {
-            if (account.sync.local.isClosed) return;
-            // Chỉ hoàn tác việc loại và lịch bị xoá; giữ nguyên cuộc gọi vừa xác nhận.
+            if (account.sync.local.isClosed || !beforeCall) return;
+            // Hoàn nguyên mức quan tâm; giữ nhật ký cuộc gọi như Hoàn tác tự loại hiện có.
             void account.customers
-              .update(c.id, {
-                disqualified_at: c.disqualified_at ?? null,
-                disqualify_reason: c.disqualify_reason ?? null,
-                disqualify_note: c.disqualify_note ?? null,
-                next_call_at: c.next_call_at ?? null,
-                next_call_end: c.next_call_end ?? null,
-                next_call_reason: c.next_call_reason ?? null,
-              })
+              .update(c.id, { interest_level: beforeCall.interest_level ?? null })
               .catch(() => toast({ title: 'Chưa hoàn tác được. Thử lại.', tone: 'error' }));
           }
-        : undefined,
+        : kind === 'outcome' && !editingRecorded && mode === 'drop' && suggestion?.kind === 'drop' && suggestion.auto
+          ? () => {
+              if (account.sync.local.isClosed) return;
+              // Chỉ hoàn tác việc loại và lịch bị xoá; giữ nguyên cuộc gọi vừa xác nhận.
+              void account.customers
+                .update(c.id, {
+                  disqualified_at: c.disqualified_at ?? null,
+                  disqualify_reason: c.disqualify_reason ?? null,
+                  disqualify_note: c.disqualify_note ?? null,
+                  next_call_at: c.next_call_at ?? null,
+                  next_call_end: c.next_call_end ?? null,
+                  next_call_reason: c.next_call_reason ?? null,
+                })
+                .catch(() => toast({ title: 'Chưa hoàn tác được. Thử lại.', tone: 'error' }));
+            }
+          : undefined,
     );
+  };
   const openZalo = (automatic = false) =>
     run(async () => {
       const latestCustomer = account.customers.getSnapshot().find((item) => item.id === c.id) || c;
@@ -590,6 +612,13 @@ function ActionSheet({
         {kind === 'outcome' && (
           <>
             <OutcomePicker value={result} onValueChange={setOutcome} />
+            {showInterest && (
+              <InterestTierPicker
+                value={interestTier ?? interestTierOf(c.interest_level).key}
+                disabled={busy}
+                onChange={setInterestTier}
+              />
+            )}
             <div className="flex flex-col gap-1 text-caption">
               <label htmlFor="call-note">Ghi chú cuộc gọi</label>
               <div className="grid">

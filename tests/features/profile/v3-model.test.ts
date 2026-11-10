@@ -2,7 +2,15 @@ import { describe, expect, it } from 'vitest';
 import type { Customer } from '@/domain/customer';
 import { customerBrief } from '@/domain/customer/brief';
 import { customerTimeline } from '@/domain/customer/timeline';
-import { extraFacts, filterTimeline, lastTouchOf, splitBrief, timelineCounts } from '@/features/profile/model';
+import {
+  extraFacts,
+  filterTimeline,
+  knownStats,
+  lastTouchOf,
+  registrationFacts,
+  splitBrief,
+  timelineCounts,
+} from '@/features/profile/model';
 
 const now = new Date(2026, 9, 19, 9, 30).getTime();
 const at = (d: number, h: number, m = 0) => new Date(2026, 9, d, h, m).toISOString();
@@ -49,37 +57,55 @@ describe('splitBrief (D-023 L4)', () => {
   });
 });
 
-describe('extraFacts (D-023 L3 + L4)', () => {
-  it('chỉ trường có giá trị, nhãn tiếng Việt, không mã, không ISO', () => {
-    const facts = extraFacts(
-      c({
-        source: 'facebook_ads',
-        intake_method: 'ocr',
-        interest_level: 85,
-        registered_at: at(4, 9),
-        call_attempts: [{ at: at(18, 15), result: 'talked' }],
-        notes: { text: 'object cũ' } as unknown as string,
-      }),
-      now,
-    );
-    expect(facts).toEqual([
+// Curtis 10/11: "Thông tin thêm" chỉ còn trường kết thúc/không liên hệ; số gọi + mức quan tâm lên "Đã biết";
+// nguồn/chiến dịch/cách nhập/ngày đăng ký xuống Trí nhớ › Nâng cao › Đăng ký.
+describe('extraFacts / knownStats / registrationFacts (D-023 L3 + L4)', () => {
+  const full = c({
+    source: 'facebook_ads',
+    intake_method: 'ocr',
+    interest_level: 85,
+    registered_at: at(4, 9),
+    call_attempts: [{ at: at(18, 15), result: 'talked' }],
+    notes: { text: 'object cũ' } as unknown as string,
+  });
+
+  it('Đã biết: số lần gọi, lần gọi cuối, mức quan tâm', () => {
+    expect(knownStats(full, now)).toEqual([
       { label: 'Số lần gọi', value: '1 lần' },
       { label: 'Lần gọi cuối', value: 'Hôm qua 15:00' },
+      { label: 'Mức quan tâm', value: 'Rất nóng' },
+    ]);
+  });
+
+  it('Đăng ký: chỉ trường có giá trị, nhãn tiếng Việt, không mã, không ISO', () => {
+    expect(registrationFacts(full, now)).toEqual([
       { label: 'Nguồn', value: 'Facebook Ads' },
       { label: 'Cách nhập', value: 'Từ ảnh chụp' },
-      { label: 'Mức quan tâm', value: 'Rất nóng' },
       { label: 'Ngày đăng ký', value: 'CN 4/10 09:00' },
       { label: 'Ghi chú đăng ký', value: 'object cũ' },
     ]);
   });
 
-  it('khách gần như trống → chỉ ngày đăng ký', () => {
-    expect(extraFacts(c({ created_at: at(1, 9) }), now)).toEqual([{ label: 'Ngày đăng ký', value: 'T5 1/10 09:00' }]);
+  it('Thông tin thêm không còn trường đăng ký/số gọi/mức quan tâm', () => {
+    expect(extraFacts(full, now)).toEqual([]);
+    expect(
+      extraFacts(c({ contact_status: 'Phản hồi tốt', retarget_hint: { note: 'Khi có dự án mới ở Hưng Yên' } }), now),
+    ).toEqual([
+      { label: 'Trạng thái liên hệ', value: 'Phản hồi tốt' },
+      { label: 'Điều kiện retarget', value: 'Khi có dự án mới ở Hưng Yên' },
+    ]);
+  });
+
+  it('khách gần như trống → Đăng ký chỉ ngày tạo; Đã biết không có số gọi', () => {
+    expect(registrationFacts(c({ created_at: at(1, 9) }), now)).toEqual([
+      { label: 'Ngày đăng ký', value: 'T5 1/10 09:00' },
+    ]);
+    expect(knownStats(c({ created_at: at(1, 9) }), now)).toEqual([]);
   });
 
   // PF-07: mọi mốc giờ trong hồ sơ cùng kiểu với "Lần gọi cuối"; khác năm thì thêm năm.
   it('ngày đăng ký năm trước có năm', () => {
-    expect(extraFacts(c({ registered_at: new Date(2025, 11, 20, 14, 5).toISOString() }), now)).toEqual([
+    expect(registrationFacts(c({ registered_at: new Date(2025, 11, 20, 14, 5).toISOString() }), now)).toEqual([
       { label: 'Ngày đăng ký', value: 'T7 20/12/2025 14:05' },
     ]);
   });
