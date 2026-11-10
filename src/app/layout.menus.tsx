@@ -1,3 +1,4 @@
+import { Menu } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 import { THEME_OPTIONS, useThemePref } from '@/app/theme';
 import { MENU_GROUPS, MENU_THEME_GROUP } from '@/config/menu';
@@ -121,7 +122,7 @@ export function ToolsMenu({ commands, ctx }: { commands: AppCommand[]; ctx: Comm
         onClick={() => setOpen(true)}
         className="inline-flex size-11 shrink-0 items-center justify-center rounded-control text-text-2 hover:bg-surface-2"
       >
-        <Icon name="more" size={20} />
+        <Menu size={20} aria-hidden />
       </button>
       <Sheet open={open} onOpenChange={setOpen} title="Menu">
         <div className="flex flex-col gap-5 pt-1 pb-2">

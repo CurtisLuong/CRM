@@ -266,6 +266,7 @@ export function PageHeader({
   onTab,
   sticky = true,
   compact = false,
+  headerRef,
 }: {
   title: React.ReactNode;
   count?: number;
@@ -281,6 +282,7 @@ export function PageHeader({
   sticky?: boolean;
   /** Header khung app gọn 56px để giữ chỗ cho nội dung trên điện thoại. */
   compact?: boolean;
+  headerRef?: React.Ref<HTMLElement>;
 }) {
   const hidden = useHideOnScroll(compact && sticky);
   return (
@@ -290,6 +292,7 @@ export function PageHeader({
         <div aria-hidden className="fixed inset-x-0 top-0 z-30 h-[env(safe-area-inset-top)] bg-surface-0 md:hidden" />
       )}
       <header
+        ref={headerRef}
         data-hidden={hidden || undefined}
         className={cn(
           cn(
@@ -312,13 +315,15 @@ export function PageHeader({
             compact && 'min-w-0 flex-1 flex-nowrap gap-1',
           )}
         >
-          <div className={cn('flex min-w-0 flex-col gap-0.5', compact && 'flex-1 flex-row items-center')}>
+          <div
+            className={cn('flex min-w-0 flex-col gap-0.5', compact && 'flex-1 flex-row items-center overflow-hidden')}
+          >
             {overline && <span className="text-overline">{overline}</span>}
-            <div className="flex flex-wrap items-center gap-2.5">
+            <div className={cn('flex flex-wrap items-center gap-2.5', compact && 'min-w-0 flex-1 flex-nowrap')}>
               <h1
                 className={cn(
                   'm-0 text-2xl font-bold leading-8 tracking-tight max-sm:text-xl',
-                  compact && 'truncate text-base leading-5',
+                  compact && 'min-w-0 truncate text-base leading-5',
                 )}
               >
                 {title}

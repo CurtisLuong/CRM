@@ -73,6 +73,7 @@ import { Icon } from '@/ui/Icon';
 import { DocumentViewerDemo } from './DocumentViewerDemo';
 import { CUSTOMERS, type Customer, JOURNEY_AN, NOTIFS, NOW } from './demo-data';
 import { FormSectionDemo } from './FormSectionDemo';
+import { HeaderControlsDemo } from './HeaderControlsDemo';
 
 function Section({
   id,
@@ -269,6 +270,10 @@ export function UiKit() {
             />
           </div>
         )}
+
+        <Section id="header-controls" title="Thanh trên chung">
+          <HeaderControlsDemo />
+        </Section>
 
         <Section
           id="signals"
