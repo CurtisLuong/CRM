@@ -170,9 +170,7 @@ test('KB-02: khách nhóm không bấm được mức quan tâm và không đư�
   await expect(sheet.getByRole('group', { name: 'Mức quan tâm' })).toHaveCount(0);
 });
 
-test('KB-02: nói chuyện được lưu Nóng cùng cuộc gọi; Hoàn tác trả mức cũ và giữ nhật ký cuộc gọi', async ({
-  page,
-}) => {
+test('KB-02: nói chuyện được lưu Nóng cùng cuộc gọi; Hoàn tác trả mức cũ và giữ nhật ký cuộc gọi', async ({ page }) => {
   await openProfile(page);
   await page.goto('/thao-tac-nhanh');
   await page.getByRole('button', { name: 'Ghi tương tác', exact: true }).first().click();
