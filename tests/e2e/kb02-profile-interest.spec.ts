@@ -148,8 +148,9 @@ for (const theme of ['light', 'dark'] as const) {
     if (await more.count()) await more.click();
     await page.getByRole('button', { name: 'Nâng cao', exact: true }).click();
     const registration = page.getByRole('group', { name: 'Đăng ký' });
-    await expect(registration.getByText('Facebook Ads', { exact: true })).toBeVisible();
-    await expect(registration.locator('input, textarea, button')).toHaveCount(0);
+    // KB-04 (Curtis 10/11): Đăng ký thành ô sửa được; Cách nhập do máy ghi → chỉ xem.
+    await expect(registration.getByLabel('Chiến dịch', { exact: true })).toBeEditable();
+    await expect(registration.getByLabel('Cách nhập', { exact: true })).toBeDisabled();
     expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(0);
   });
 }
