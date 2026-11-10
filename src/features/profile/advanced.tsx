@@ -14,6 +14,7 @@ import {
 import type { Customer } from '@/domain/customer';
 import { displayText, formatMoney, moneyValue } from '@/ui/display';
 import { LONG_FIELD, legacyDraft, legacyValues, SHORT_FIELD, showLegacy } from './fields';
+import { registrationFacts } from './model';
 
 const FIELD =
   'min-h-11 w-full rounded-sm border border-line bg-surface-100 px-3 text-body text-ink focus-visible:outline-2 focus-visible:outline-ion disabled:opacity-60';
@@ -173,13 +174,14 @@ type Props = {
  * Khu "Nâng cao" cuối tab Trí nhớ: mặc định đóng mỗi lần mở hồ sơ.
  * Gồm Bối cảnh sống (ô gộp), Tài sản (3 ô), trường cũ khác. Ngày sinh không còn ở đây (CL-03).
  */
-export function ProfileAdvanced({ customer, writable, onSaveAdvanced, openSignal }: Props) {
+export function ProfileAdvanced({ customer, writable, now = Date.now(), onSaveAdvanced, openSignal }: Props) {
   const [open, setOpen] = useState(false);
   // Đổi số = mở khối (bấm "Còn thiếu: Tài chính" ở thẻ Đã biết).
   useEffect(() => {
     if (openSignal) setOpen(true);
   }, [openSignal]);
   const advanced = customer.advanced || {};
+  const registration = registrationFacts(customer, now);
   const assetLegacy = legacyValues(advanced, ASSET_LEGACY);
   const unknown = Object.entries(advanced).filter(([key]) => !PROFILE_ADVANCED_KEYS.includes(key));
 
@@ -229,6 +231,16 @@ export function ProfileAdvanced({ customer, writable, onSaveAdvanced, openSignal
           </p>
         ))}
       </FormSubsection>
+      {registration.length > 0 && (
+        <FormSubsection title="Đăng ký" role="group" aria-label="Đăng ký">
+          {registration.map((row) => (
+            <dl key={row.label} className={LONG_FIELD}>
+              <dt className="text-caption text-ink-muted">{row.label}</dt>
+              <dd className="whitespace-pre-wrap text-body [overflow-wrap:anywhere]">{row.value}</dd>
+            </dl>
+          ))}
+        </FormSubsection>
+      )}
       {/* "Nguồn và độ mới" (field_meta) Curtis cho ẩn 2026-10-21: dữ liệu vẫn ghi cho AI/độ mới, không hiện. */}
       {unknown.length > 0 && (
         <FormSubsection title="Trường cũ khác">

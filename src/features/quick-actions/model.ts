@@ -2,6 +2,7 @@ import { CALL_OUTCOME_TALKED_SEC, type CallResult } from '@/config/callResults';
 import { type CallSlotKey, FOLLOWUP_CONFIG } from '@/config/followup';
 import type { CustomerRepository, Data } from '@/data/repositories/customers';
 import { type CallAttempt, type Customer, callAttemptsOf, isQualified } from '@/domain/customer';
+import { interestLevelForTier } from '@/domain/customer/interest';
 import { canLogHistory } from '@/domain/customer/teamEdit';
 import {
   afterCall,
@@ -117,15 +118,25 @@ export async function saveCall(
   custom: ScheduleSuggestion | null,
   now: number,
   stats: Customer[] = [],
+  interestTier?: string,
 ) {
   const c = await repo.get(id);
   if (!c || !canLogHistory(c, repo.sync.local.userId)) throw new Error('Khách không còn thuộc quyền chỉnh sửa.');
+  const interest =
+    result === 'talked' && c.owner_id === repo.sync.local.userId && interestTier
+      ? interestLevelForTier(c.interest_level, interestTier)
+      : null;
+  const interestPatch = interest != null && interest !== Number(c.interest_level) ? { interest_level: interest } : {};
   const existingCall = draft.editAt ? callAttemptsOf(c).find((a) => a.at === draft.editAt) : null;
   if (draft.editAt && !existingCall) throw new Error('Cuộc gọi đã thay đổi. Mở lại để kiểm tra.');
   // Editing an already-recorded call changes only its outcome and note. Keep the
   // original timestamp, source/device metadata, unknown fields, and stage history.
   if (existingCall?.result) {
-    return repo.logCall(id, { result, note: note.trim() || null }, { editAt: draft.editAt });
+    return repo.logCall(
+      id,
+      { result, note: note.trim() || null },
+      { editAt: draft.editAt, ...(Object.keys(interestPatch).length ? { patch: interestPatch } : {}) },
+    );
   }
   const suggestion = callSuggestion(c, draft, result, now, stats);
   const suggested =
@@ -135,7 +146,10 @@ export async function saveCall(
     throw new Error('Chọn giờ khách hẹn gọi lại.');
   if (sched && (!Number.isFinite(+sched.start) || +sched.start <= now || +sched.end < +sched.start))
     throw new Error('Chọn lịch gọi trong tương lai.');
-  const patch: Data = sched ? schedulePatch(sched) : c.next_call_at ? schedulePatch(null) : {};
+  const patch: Data = {
+    ...(sched ? schedulePatch(sched) : c.next_call_at ? schedulePatch(null) : {}),
+    ...interestPatch,
+  };
   if (mode === 'drop' && suggestion?.kind === 'drop')
     Object.assign(patch, {
       disqualified_at: new Date(now).toISOString(),
