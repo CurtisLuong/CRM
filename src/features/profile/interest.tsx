@@ -21,8 +21,14 @@ export function ProfileInterest({
   if (!writable) return <>{tier.label}</>;
   return (
     <Popover open={open} onOpenChange={setOpen}>
+      {/* Lề âm: chữ thẳng hàng giá trị các ô khác mà vùng bấm vẫn 44px. */}
       <PopoverTrigger asChild>
-        <Button variant="ghost" className="min-h-11 px-2" disabled={busy} aria-label={`Mức quan tâm: ${tier.label}`}>
+        <Button
+          variant="ghost"
+          className="-mx-2 -my-2.5 h-auto min-h-11 justify-start px-2 text-sm font-medium"
+          disabled={busy}
+          aria-label={`Mức quan tâm: ${tier.label}`}
+        >
           {tier.label}
         </Button>
       </PopoverTrigger>
