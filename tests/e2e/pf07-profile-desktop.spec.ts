@@ -250,13 +250,12 @@ test('Desktop: khi cuộn, cột phụ và hàng tab dính dưới thanh tiêu �
   }
 });
 
-test('Ngày trong Thông tin thêm cùng một kiểu với Lần gọi cuối', async ({ page }) => {
+// Curtis 10/11: "Lần gọi cuối" ở "Đã biết"; ngày đăng ký ở Trí nhớ › Nâng cao › Đăng ký (kiểm ở unit registrationFacts).
+test('Lần gọi cuối trong Đã biết cùng kiểu giờ hồ sơ', async ({ page }) => {
   await open(page);
-  const extra = page.getByRole('region', { name: 'Thông tin thêm', exact: true });
-  await extra.scrollIntoViewIfNeeded();
-  await expect(extra).toContainText('Hôm qua 15:00');
-  await expect(extra).toContainText('CN 4/10 09:00');
-  await expect(extra).not.toContainText('04/10/2026');
+  const known = page.getByRole('region', { name: 'Đã biết', exact: true });
+  await expect(known).toContainText('Hôm qua 15:00');
+  await expect(page.getByRole('region', { name: 'Thông tin thêm', exact: true })).not.toContainText('04/10/2026');
 });
 
 // Ảnh mẫu "màn đầu điện thoại giữ nguyên bản cũ" đã gỡ (28/10): R2 làm lại hồ sơ theo D-028.
