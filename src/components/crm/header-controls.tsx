@@ -9,7 +9,7 @@ export function HeaderSearch({ onOpen, className }: { onOpen: () => void; classN
   return (
     <button
       type="button"
-      aria-label="Tìm khách, lệnh — Tìm khách, SĐT, dự án… ⌘K"
+      aria-label="Tìm khách, lệnh"
       title="Tìm (⌘K)"
       onClick={onOpen}
       className={cn(
@@ -111,8 +111,22 @@ export function ScrollTitle({
       data-scroll-title={swapped ? 'replacement' : 'title'}
       className="flex min-w-0 items-baseline gap-2 animate-in fade-in slide-in-from-bottom-1 duration-200 motion-reduce:animate-none"
     >
-      <span className="min-w-0 truncate">{swapped ? replacement : title}</span>
-      {swapped && detail != null && <span className="shrink-0 text-label font-normal text-ink-muted">{detail}</span>}
+      {swapped ? (
+        <>
+          {/* Tên truy cập của thanh giữ nguyên tiêu đề màn: tránh hai heading cùng tên khách. */}
+          <span className="sr-only">{title}</span>
+          <span aria-hidden className="min-w-0 truncate">
+            {replacement}
+          </span>
+          {detail != null && (
+            <span aria-hidden className="shrink-0 text-label font-normal text-ink-muted">
+              {detail}
+            </span>
+          )}
+        </>
+      ) : (
+        <span className="min-w-0 truncate">{title}</span>
+      )}
     </span>
   );
 }

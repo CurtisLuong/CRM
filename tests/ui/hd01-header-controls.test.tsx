@@ -47,11 +47,11 @@ describe('HD-01: thành phần thanh trên', () => {
     );
     expect(container.textContent).toBe('Hồ sơ khách');
     rerender(<ScrollTitle title="Hồ sơ khách" replacement="Nguyễn An" detail="35 tuổi" active />);
-    expect(container.textContent).toBe('Nguyễn An35 tuổi');
+    expect(container.textContent).toBe('Hồ sơ kháchNguyễn An35 tuổi');
     expect(screen.getByText('35 tuổi').className).toContain('text-ink-muted');
     expect(container.firstElementChild?.className).toContain('motion-reduce:animate-none');
     rerender(<ScrollTitle title="Hồ sơ khách" replacement="Nguyễn An" active />);
-    expect(container.textContent).toBe('Nguyễn An');
+    expect(container.textContent).toBe('Hồ sơ kháchNguyễn An');
     rerender(<ScrollTitle title="Hồ sơ khách" replacement="Nguyễn An" active={false} />);
     expect(container.textContent).toBe('Hồ sơ khách');
   });

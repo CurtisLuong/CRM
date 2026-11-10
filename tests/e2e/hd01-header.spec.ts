@@ -150,7 +150,8 @@ test('HD-01: tên khuất thì thanh đổi tên + tuổi, trở về đầu kh�
       await expect(title).toHaveText('Hồ sơ khách');
       await page.evaluate((top) => window.scrollTo(0, top), threshold + 2);
       if (width >= 1280) {
-        await expect(title).toHaveText('Nguyễn Văn Đức35 tuổi');
+        await expect(title).toContainText('Nguyễn Văn Đức35 tuổi');
+        await expect(title).toHaveAccessibleName('Hồ sơ khách');
         await expect(title.getByText('35 tuổi')).toHaveClass(/text-ink-muted/);
       } else {
         await expect(title).toHaveText('Hồ sơ khách');

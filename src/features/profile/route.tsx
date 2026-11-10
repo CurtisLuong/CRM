@@ -614,7 +614,7 @@ function Profile() {
   const decisionActions = (
     <>
       {(classifiable || assignable) && (
-        <div className="grid grid-cols-4 gap-2 xl:grid-cols-2">
+        <div className="grid grid-cols-4 gap-2 xl:grid-cols-3">
           {classifiable && (
             <>
               <Button
@@ -649,7 +649,7 @@ function Profile() {
           )}
           {assignable && (
             <Button
-              className="col-start-4 min-w-0 xl:col-start-2 gap-1.5 px-1.5"
+              className="col-start-4 min-w-0 gap-1.5 px-1.5 xl:col-span-3 xl:col-start-1"
               aria-label="Giao khách"
               onClick={() => setAssignOpen(true)}
             >
