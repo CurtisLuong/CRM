@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { TextField } from '@/components/crm/form-fields';
+import { Field, TextField } from '@/components/crm/form-fields';
 import { CollapsibleFormSection, FormSubsection } from '@/components/crm/form-section';
 import { MoneyField } from '@/components/crm/money-field';
 import { Button } from '@/components/ui/button';
@@ -11,10 +11,11 @@ import {
   PROFILE_ASSET_FIELDS,
   PROFILE_LIFE_CONTEXT,
 } from '@/config/advanced';
+import { SOURCES } from '@/config/sources';
 import type { Customer } from '@/domain/customer';
-import { displayText, formatMoney, moneyValue } from '@/ui/display';
+import { displayDateTime, displayText, formatMoney, intakeLabel, moneyValue, sourceLabel } from '@/ui/display';
 import { LONG_FIELD, legacyDraft, legacyValues, SHORT_FIELD, showLegacy } from './fields';
-import { registrationFacts } from './model';
+import { parseRegistrationDate, registrationSourcePatch } from './model';
 
 const FIELD =
   'min-h-11 w-full rounded-sm border border-line bg-surface-100 px-3 text-body text-ink focus-visible:outline-2 focus-visible:outline-ion disabled:opacity-60';
@@ -163,8 +164,9 @@ type Props = {
   customer: Customer;
   writable: boolean;
   now?: number;
-  /** Giữ trong chữ ký cũ; Ngày sinh đã chuyển lên Thông tin chính (CL-03). */
+  /** Lưu đúng trường vừa sửa qua đường lưu của hồ sơ. */
   onSaveField?: (field: string, value: unknown) => void;
+  canEditField?: (field: string) => boolean;
   /** Lưu một khoá trong cột JSONB advanced, luôn giữ khoá cũ + khoá lạ. */
   onSaveAdvanced: (key: string, value: unknown) => void;
   openSignal?: number;
@@ -174,14 +176,13 @@ type Props = {
  * Khu "Nâng cao" cuối tab Trí nhớ: mặc định đóng mỗi lần mở hồ sơ.
  * Gồm Bối cảnh sống (ô gộp), Tài sản (3 ô), trường cũ khác. Ngày sinh không còn ở đây (CL-03).
  */
-export function ProfileAdvanced({ customer, writable, now = Date.now(), onSaveAdvanced, openSignal }: Props) {
+export function ProfileAdvanced({ customer, writable, onSaveField, canEditField, onSaveAdvanced, openSignal }: Props) {
   const [open, setOpen] = useState(false);
   // Đổi số = mở khối (bấm "Còn thiếu: Tài chính" ở thẻ Đã biết).
   useEffect(() => {
     if (openSignal) setOpen(true);
   }, [openSignal]);
   const advanced = customer.advanced || {};
-  const registration = registrationFacts(customer, now);
   const assetLegacy = legacyValues(advanced, ASSET_LEGACY);
   const unknown = Object.entries(advanced).filter(([key]) => !PROFILE_ADVANCED_KEYS.includes(key));
 
@@ -231,16 +232,12 @@ export function ProfileAdvanced({ customer, writable, now = Date.now(), onSaveAd
           </p>
         ))}
       </FormSubsection>
-      {registration.length > 0 && (
-        <FormSubsection title="Đăng ký" role="group" aria-label="Đăng ký">
-          {registration.map((row) => (
-            <dl key={row.label} className={LONG_FIELD}>
-              <dt className="text-caption text-ink-muted">{row.label}</dt>
-              <dd className="whitespace-pre-wrap text-body [overflow-wrap:anywhere]">{row.value}</dd>
-            </dl>
-          ))}
-        </FormSubsection>
-      )}
+      <RegistrationFields
+        customer={customer}
+        writable={writable}
+        onSaveField={onSaveField}
+        canEditField={canEditField}
+      />
       {/* "Nguồn và độ mới" (field_meta) Curtis cho ẩn 2026-10-21: dữ liệu vẫn ghi cho AI/độ mới, không hiện. */}
       {unknown.length > 0 && (
         <FormSubsection title="Trường cũ khác">
@@ -252,5 +249,114 @@ export function ProfileAdvanced({ customer, writable, now = Date.now(), onSaveAd
         </FormSubsection>
       )}
     </CollapsibleFormSection>
+  );
+}
+
+/** Đăng ký dùng cùng ô/lưới với hồ sơ; quyền kiểm riêng từng cột, Cách nhập chỉ đọc. */
+function RegistrationFields({
+  customer,
+  writable,
+  onSaveField,
+  canEditField,
+}: Pick<Props, 'customer' | 'writable' | 'onSaveField' | 'canEditField'>) {
+  const sources = Array.isArray(customer.source) ? customer.source : customer.source ? [customer.source] : [];
+  const primary = sources[0] || '';
+  const options = [...new Set([...Object.keys(SOURCES), ...sources])];
+  const disabled = (field: string) => !writable || !onSaveField || (canEditField ? !canEditField(field) : false);
+  const intake = intakeLabel(customer.intake_method);
+  return (
+    <FormSubsection title="Đăng ký" role="group" aria-label="Đăng ký">
+      <div className={SHORT_FIELD}>
+        <Field id={fieldId('Nguồn')} label="Nguồn" className="[&_label]:block [&_label]:min-h-9">
+          <select
+            id={fieldId('Nguồn')}
+            className={FIELD}
+            value={primary}
+            disabled={disabled('source')}
+            onChange={(event) => {
+              const next = event.target.value;
+              if (next && next !== primary)
+                onSaveField?.('source', registrationSourcePatch(customer.source, next).source);
+            }}
+          >
+            <option value="" disabled>
+              — Chưa chọn —
+            </option>
+            {options.map((code) => (
+              <option key={code} value={code}>
+                {sourceLabel(code)}
+              </option>
+            ))}
+          </select>
+        </Field>
+      </div>
+      <div className={SHORT_FIELD}>
+        <ProfileTextField
+          label="Chiến dịch"
+          value={customer.campaign}
+          disabled={disabled('campaign')}
+          onSave={(value) => onSaveField?.('campaign', value)}
+        />
+      </div>
+      {intake && (
+        <div className={SHORT_FIELD}>
+          <TextField label="Cách nhập" value={intake} disabled className="[&_label]:block [&_label]:min-h-9" />
+        </div>
+      )}
+      <div className={SHORT_FIELD}>
+        <RegistrationDateField
+          value={customer.registered_at}
+          disabled={disabled('registered_at')}
+          onSave={(value) => onSaveField?.('registered_at', value)}
+        />
+      </div>
+      <div className={LONG_FIELD}>
+        <ProfileTextField
+          label="Ghi chú đăng ký"
+          value={customer.notes}
+          multiline
+          disabled={disabled('notes')}
+          onSave={(value) => onSaveField?.('notes', value)}
+        />
+      </div>
+    </FormSubsection>
+  );
+}
+
+function RegistrationDateField({
+  value,
+  disabled,
+  onSave,
+}: {
+  value: unknown;
+  disabled: boolean;
+  onSave: (value: string | null) => void;
+}) {
+  const raw = displayDateTime(value);
+  const [draft, setDraft] = useState(raw);
+  const [error, setError] = useState('');
+  useEffect(() => {
+    setDraft(raw);
+    setError('');
+  }, [raw]);
+  return (
+    <TextField
+      label="Ngày đăng ký"
+      value={draft}
+      disabled={disabled}
+      placeholder="09:00 10/11/2026"
+      className="[&_label]:block [&_label]:min-h-9"
+      error={error || undefined}
+      onChange={(event) => {
+        setDraft(event.target.value);
+        setError('');
+      }}
+      onBlur={() => {
+        if (draft === raw) return;
+        const parsed = parseRegistrationDate(draft);
+        if (parsed === undefined) setError('Nhập giờ và ngày hợp lệ: 09:00 10/11/2026.');
+        else onSave(parsed);
+      }}
+    />
   );
 }
