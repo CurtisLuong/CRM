@@ -77,6 +77,10 @@ export function stageEnteredAt(c: Customer): number {
 /** Giai đoạn SLA hiện tại → { key, start } hoặc null (ngoài phễu / đã loại). sla_anchor_at đặt lại đồng hồ. */
 export function phaseOf(c: Customer | null | undefined): PhaseInfo | null {
   if (!c) return null;
+  const st = normStage(c.care_stage);
+  // Nuôi dài hạn / Kí HĐMB nằm ngoài phễu (D-008) kể cả khi khách chưa bấm Tiềm năng: không tính SLA,
+  // không tự chuyển (Curtis 11/11: khách Nuôi dài hạn vẫn báo quá hạn "Đang tiếp cận").
+  if (st === C.stageNurture || st === C.stageWon) return null;
   const anchor = ms(c.sla_anchor_at);
   const withAnchor = (t: number) => (Number.isNaN(anchor) || anchor < t ? t : anchor);
   if (!c.qualified_at) {
@@ -85,7 +89,6 @@ export function phaseOf(c: Customer | null | undefined): PhaseInfo | null {
     if (!first) return { key: 'new_lead', start: withAnchor(newLeadStart(ms(c.registered_at) || ms(c.created_at))) };
     return { key: 'approach', start: withAnchor(ms(first.at)) };
   }
-  const st = normStage(c.care_stage);
   const key = C.order.find((k) => (C.phases[k] as { stage?: string }).stage === st);
   if (!key) return null;
   return { key, start: withAnchor(stageEnteredAt(c)) };
