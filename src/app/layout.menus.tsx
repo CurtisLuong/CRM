@@ -41,6 +41,25 @@ function RowItem({ item, onSelect }: { item: MenuItem; onSelect: (item: MenuItem
   );
 }
 
+/** Hàng Đồng bộ trong nhóm Cài đặt: trạng thái + mở danh sách thay đổi chờ/lỗi (nút header chỉ hiện khi có lỗi). */
+function SyncRow({ label, onOpen }: { label: string; onOpen: () => void }) {
+  return (
+    <li>
+      <button
+        type="button"
+        onClick={onOpen}
+        className="flex min-h-12 w-full items-center gap-3 px-3 py-1.5 text-left hover:bg-surface-2"
+      >
+        <span className={ICON_ROW}>
+          <Icon name="sync" size={20} />
+        </span>
+        <span className="min-w-0 flex-1 truncate text-body-strong">Đồng bộ</span>
+        <span className="shrink-0 truncate text-caption text-ink-muted">{label}</span>
+      </button>
+    </li>
+  );
+}
+
 /** Hàng cuối nhóm Cài đặt: chọn Sáng | Tối | Tự động ngay trong menu, không đóng sheet. */
 function ThemeRow() {
   const [pref, setPref] = useThemePref();
@@ -101,8 +120,30 @@ function Section({
 }
 
 /** Menu ⋮ (PF-04): sheet có nhóm — lối tắt dạng ô (Khách hàng, Công cụ) + hàng (Cài đặt, Giao diện). */
-export function ToolsMenu({ commands, ctx }: { commands: AppCommand[]; ctx: CommandContext }) {
+export function ToolsMenu({
+  commands,
+  ctx,
+  sync,
+}: {
+  commands: AppCommand[];
+  ctx: CommandContext;
+  sync?: { label: string; onOpen: () => void };
+}) {
   const [open, setOpen] = useState(false);
+  const settingsExtra = (
+    <>
+      {sync && (
+        <SyncRow
+          label={sync.label}
+          onOpen={() => {
+            setOpen(false);
+            sync.onOpen();
+          }}
+        />
+      )}
+      <ThemeRow />
+    </>
+  );
   const sections = buildMenu(commands);
   const themeGroup = MENU_GROUPS.find((g) => g.key === MENU_THEME_GROUP);
 
@@ -131,14 +172,14 @@ export function ToolsMenu({ commands, ctx }: { commands: AppCommand[]; ctx: Comm
               key={section.key}
               section={section}
               onSelect={select}
-              extra={section.key === MENU_THEME_GROUP ? <ThemeRow /> : undefined}
+              extra={section.key === MENU_THEME_GROUP ? settingsExtra : undefined}
             />
           ))}
           {!sections.some((s) => s.key === MENU_THEME_GROUP) && themeGroup && (
             <Section
               section={{ key: themeGroup.key, title: themeGroup.title, kind: themeGroup.kind, items: [] }}
               onSelect={select}
-              extra={<ThemeRow />}
+              extra={settingsExtra}
             />
           )}
         </div>

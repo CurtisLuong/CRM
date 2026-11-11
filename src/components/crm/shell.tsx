@@ -298,8 +298,10 @@ export function PageHeader({
           cn(
             'flex flex-col gap-3 border-b border-line bg-surface-0 px-6 py-4 max-sm:px-4 max-sm:py-3',
             // Vỏ Android vẽ dưới status bar: chiều cao = 56px + phần status bar, không trừ phần đệm vào 56px (Curtis 29/10: nút đầu bị đẩy lên status bar).
+            // Phải ghi đè cả max-sm:py-3 ở trên: thiếu thì điện thoại chỉ đệm 12px thay vì phần status bar → hàng nút
+            // trồi lên trùng camera (Curtis 11/11).
             compact &&
-              'h-[calc(56px+env(safe-area-inset-top))] flex-row flex-nowrap gap-2 px-2 py-0 pt-[env(safe-area-inset-top)] max-sm:px-2',
+              'h-[calc(56px+env(safe-area-inset-top))] flex-row flex-nowrap gap-2 px-2 py-0 pt-[env(safe-area-inset-top)] max-sm:px-2 max-sm:py-0 max-sm:pt-[env(safe-area-inset-top)]',
           ),
           // Trên mọi dòng danh sách (nút phủ dòng khách z-10/z-20), dưới thanh tab đáy (z-40) và Sheet.
           sticky && 'sticky top-0 z-30',

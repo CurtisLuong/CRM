@@ -38,6 +38,18 @@ export type SyncState =
 
 const SYNC_TONE: Record<Level, string> = { ok: 'text-ink-muted', soon: 'text-soon-text', alert: 'text-alert-text' };
 
+/** Chữ trạng thái đồng bộ (nút header + hàng trong menu ⋮). */
+export function syncLabel(state: SyncState): string {
+  if (state.kind === 'synced') return `Đã đồng bộ ${state.at}`;
+  if (state.kind === 'pending') return `Chờ ${state.count} thay đổi`;
+  return state.kind === 'offline' ? 'Ngoại tuyến' : 'Lỗi đồng bộ';
+}
+
+/** Header chỉ hiện nút đồng bộ khi cần chú ý; bình thường xem trong menu ⋮ (Curtis 11/11: nút chiếm chỗ mà không ai nhìn). */
+export function syncNeedsAttention(state: SyncState | null | undefined): boolean {
+  return state?.kind === 'error' || state?.kind === 'offline';
+}
+
 /** Chỉ trình bày trạng thái do hàng đợi cung cấp, không suy lại luật đồng bộ. */
 export function SyncStatusButton({
   state,
@@ -48,14 +60,7 @@ export function SyncStatusButton({
   onOpen?: () => void;
   className?: string;
 }) {
-  const label =
-    state.kind === 'synced'
-      ? `Đã đồng bộ ${state.at}`
-      : state.kind === 'pending'
-        ? `Chờ ${state.count} thay đổi`
-        : state.kind === 'offline'
-          ? 'Ngoại tuyến'
-          : 'Lỗi đồng bộ';
+  const label = syncLabel(state);
   const level: Level = state.kind === 'error' ? 'alert' : state.kind === 'pending' ? 'soon' : 'ok';
   const props = {
     'data-state': state.kind,
