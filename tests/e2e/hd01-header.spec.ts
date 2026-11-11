@@ -111,7 +111,9 @@ test('HD-01: ô tìm dài mở bảng tìm, Menu ba gạch; cụm phải vừa m
   const searchBox = await search.boundingBox();
   const bellBox = await bell.boundingBox();
   const width = page.viewportSize()?.width ?? 0;
-  expect(searchBox?.width ?? 0).toBeGreaterThanOrEqual(width >= 1280 ? 280 : 2 * (bellBox?.width ?? 44));
+  // Điện thoại (Curtis 11/11, phương án B): icon + "Tìm" vừa khít để tiêu đề hiện đủ; desktop ô dài.
+  expect(searchBox?.width ?? 0).toBeGreaterThanOrEqual(width >= 1280 ? 280 : (bellBox?.width ?? 44));
+  if (width < 768) await expect(search).toContainText('Tìm');
   for (const button of [search, bell, header.getByRole('button', { name: 'Menu', exact: true })]) {
     const box = await button.boundingBox();
     expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);

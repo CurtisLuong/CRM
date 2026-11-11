@@ -12,7 +12,7 @@ describe('HD-01: thành phần thanh trên', () => {
   it('ô tìm có gợi ý hai khổ, tên truy cập và mở bảng từ cả ô', () => {
     const open = vi.fn();
     render(<HeaderSearch onOpen={open} />);
-    fireEvent.click(screen.getByText('Tìm khách…'));
+    fireEvent.click(screen.getByText('Tìm', { exact: true }));
     fireEvent.click(screen.getByText('Tìm khách, SĐT, dự án…'));
     expect(open).toHaveBeenCalledTimes(2);
     // Tên truy cập từ chữ trong nút, không qua aria-label → getByLabel('Dự án') ở màn khác không trùng.

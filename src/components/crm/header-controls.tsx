@@ -4,7 +4,7 @@ import type { Level } from '@/lib/crm';
 import { cn } from '@/lib/utils';
 import { Icon } from '@/ui/Icon';
 
-/** Ô mở bảng tìm chung; giữ tên truy cập cũ dù gợi ý đổi theo khổ màn. */
+/** Ô mở bảng tìm chung; giữ tên truy cập cũ dù gợi ý đổi theo khổ màn. Điện thoại (Curtis 11/11): icon + "Tìm" vừa khít để tiêu đề màn hiện đủ. */
 export function HeaderSearch({ onOpen, className }: { onOpen: () => void; className?: string }) {
   return (
     <button
@@ -12,7 +12,7 @@ export function HeaderSearch({ onOpen, className }: { onOpen: () => void; classN
       title="Tìm (⌘K)"
       onClick={onOpen}
       className={cn(
-        'inline-flex h-11 w-[clamp(88px,36vw,160px)] min-w-0 shrink-0 items-center gap-2 rounded-md border border-line bg-surface-100 px-2 text-ink-muted hover:bg-surface-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ion md:w-80 md:px-3',
+        'inline-flex h-11 w-auto min-w-11 shrink-0 items-center gap-1.5 rounded-md border border-line bg-surface-100 px-2.5 text-ink-muted hover:bg-surface-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ion md:w-80 md:gap-2 md:px-3',
         className,
       )}
     >
@@ -20,7 +20,7 @@ export function HeaderSearch({ onOpen, className }: { onOpen: () => void; classN
       {/* Tên truy cập lấy từ chữ trong nút (axe: chữ hiện phải nằm trong tên); không dùng aria-label để khỏi trùng nhãn "Dự án" ở màn khác. */}
       <span className="sr-only">Tìm khách, lệnh</span>
       <span className="min-w-0 flex-1 truncate text-left text-label">
-        <span className="md:hidden">Tìm khách…</span>
+        <span className="md:hidden">Tìm</span>
         <span className="hidden md:inline">Tìm khách, SĐT, dự án…</span>
       </span>
       <kbd aria-hidden className="hidden rounded-sm border border-line bg-surface-200 px-1 text-caption md:inline">
