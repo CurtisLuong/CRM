@@ -43,6 +43,7 @@ Lựa chọn nền tảng ban đầu (Supabase, Cloudflare Pages, local-first) k
 | D-032 | Khách ở mọi bậc giao được; nút Giao (icon) ở đầu hồ sơ; người đang thấy khách đã giao/khách nhóm **ghi giùm** cuộc gọi, tương tác, ghi chú — chỉ Gọi/Zalo/Hẹn khoá | Curtis yêu cầu 2026-11-06 | Nới D-025 (thêm quyền ghi lịch sử cho người theo dõi/trưởng nhóm); SQL 014 |
 | D-031 | Máy tính vay thêm **phí mỗi căn** (dự án → toà → căn ghi đè); Giá dự kiến = thuần + phí + VAT + KPBT; phí đóng đợt 1, không vay | Curtis yêu cầu 2026-11-06 | Đổi công thức máy tính vay (thêm 1 khoản); phí 0 = như cũ |
 | D-033 | Mức quan tâm 4 bậc Lạnh → Ấm → Nóng → Nguội (bỏ Rất nóng); khách mới Lạnh; Loại/lưu trữ → Nguội; Nuôi dài hạn → Lạnh; bỏ lại khỏi Loại/lưu trữ → Lạnh; còn lại chỉnh tay (bỏ tự nâng 60 khi Đạt) | Curtis yêu cầu 2026-11-10 | Đổi nhãn đọc từ số `interest_level` (dữ liệu giữ nguyên, không update hàng loạt): 0 Nguội · 1–34 Lạnh · 35–59 Ấm · ≥60 Nóng; khách đang Loại/lưu trữ luôn hiện Nguội |
+| D-034 | Thanh đầu điện thoại luôn hiện, nền kính mờ (thay "ẩn khi cuộn" 30/10) | Ngoại lệ cục bộ D-023 đã duyệt 2026-11-11 | Chỉ thanh đầu + tab đáy |
 
 ## Ba loại kết quả
 
@@ -465,6 +466,16 @@ Ví dụ và mẫu trong bộ tài liệu không phải sự chấp thuận cho 
   - Thẻ Hôm nay / Công việc: dòng nhu cầu cả bề ngang; thẻ được cao thêm. Màn đầu Hôm nay 360×780: ≥ 1 thẻ trọn + đầu thẻ 2 (trước: ≥ 2 thẻ trọn, D-023 L1); thẻ việc ≤ 170px (trước 150px).
   - Chữ rút gọn chỉ ở giao diện, DB giữ giá trị gốc: loại căn hiện mã chuẩn ("2N-2WC"); dự án hiện tên ngắn theo `src/config/projectShort.ts` ("Vin Tràng Cát" → "Vin TC", "Marquee Homes" → "Marquee", cụm "Nhà ở xã hội" → "NOXH"). Dự án mới: Curtis đặt quy tắc, thêm vào file đó.
 - Không đổi: D-012 (không ghi tên ngắn vào dữ liệu), hồ sơ/form/xuất Excel dùng tên đầy đủ.
+
+### D-034 — Thanh đầu luôn hiện, nền kính mờ
+
+- Ngày: 2026-11-11
+- Loại: Ngoại lệ cục bộ của D-023 (D-023 loại Liquid Glass/kính mờ vì tương phản thấp) + thay hành vi "ẩn thanh đầu khi cuộn" (Curtis 30/10).
+- Quyết định: Điện thoại: thanh đầu không ẩn khi cuộn; thanh đầu (`bg-glass`) và tab đáy (`bg-glass-raised`) nền đặc 85% + blur 16px, nội dung cuộn thấp thoáng phía sau. Máy không hỗ trợ blur → nền đặc. Thẻ, sheet, nội dung vẫn nền đặc.
+- Lý do và đánh đổi: Curtis thích kiểu màn Calls Android — icon luôn ở đó, bấm nhanh. Nền 85% giữ tương phản chữ/icon trên thanh (lý do D-023 loại kính mờ). Đánh đổi: mất cố định 56px khi đọc danh sách dài (đã bớt nút đồng bộ khỏi thanh cho gọn).
+- Chấp thuận: Curtis 2026-11-11 chọn phương án A ("Ừ làm A đi").
+- Tài liệu đã cập nhật: `docs/DESIGN.md` §5, `src/app/index.css` (utility).
+- Trạng thái: Đang áp dụng.
 
 ### D-032 — Giao khách mọi bậc; người theo dõi ghi giùm lịch sử
 

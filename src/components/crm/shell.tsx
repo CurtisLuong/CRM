@@ -208,49 +208,6 @@ export function Sidebar({
   );
 }
 
-/**
- * Kiểu Facebook (Curtis 30/10): vuốt lên xem thêm thì giấu thanh đầu, chỉ còn status bar; vuốt xuống thì hiện lại.
- * Gần đầu trang luôn hiện. Bỏ qua rung tay < 8px để thanh không nhấp nháy.
- */
-function useHideOnScroll(enabled: boolean) {
-  const [hidden, setHidden] = React.useState(false);
-  React.useEffect(() => {
-    if (!enabled) return;
-    let last = window.scrollY;
-    let frame = 0;
-    const update = () => {
-      frame = 0;
-      const y = Math.max(0, window.scrollY);
-      if (y < 56) {
-        setHidden(false);
-        last = y;
-        return;
-      }
-      if (Math.abs(y - last) < 8) return;
-      setHidden(y > last);
-      last = y;
-    };
-    const onScroll = () => {
-      if (!frame) frame = requestAnimationFrame(update);
-    };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => {
-      window.removeEventListener('scroll', onScroll);
-      cancelAnimationFrame(frame);
-    };
-  }, [enabled]);
-  React.useEffect(() => {
-    if (!enabled) return;
-    const root = document.documentElement;
-    if (hidden) root.dataset.headerHidden = '';
-    else delete root.dataset.headerHidden;
-    return () => {
-      delete root.dataset.headerHidden;
-    };
-  }, [enabled, hidden]);
-  return enabled && hidden;
-}
-
 /** Every page: LEFT title + total count (+ subtitle/signals), RIGHT 1–3 actions with the single primary LAST. Optional toolbar row + tabs. */
 export function PageHeader({
   title,
@@ -284,19 +241,16 @@ export function PageHeader({
   compact?: boolean;
   headerRef?: React.Ref<HTMLElement>;
 }) {
-  const hidden = useHideOnScroll(compact && sticky);
   return (
     <>
-      {compact && sticky && (
-        // Nền cho status bar khi thanh đầu ẩn — nội dung cuộn không lộ dưới giờ/pin. Web thường cao 0.
-        <div aria-hidden className="fixed inset-x-0 top-0 z-30 h-[env(safe-area-inset-top)] bg-surface-0 md:hidden" />
-      )}
       <header
         ref={headerRef}
-        data-hidden={hidden || undefined}
         className={cn(
           cn(
-            'flex flex-col gap-3 border-b border-line bg-surface-0 px-6 py-4 max-sm:px-4 max-sm:py-3',
+            'flex flex-col gap-3 border-b border-line px-6 py-4 max-sm:px-4 max-sm:py-3',
+            // Kính mờ (Curtis 11/11, ngoại lệ D-023 → D-034, chỉ thanh đầu + tab đáy): thanh luôn hiện, nội dung cuộn
+            // thấp thoáng phía sau; nền đặc ~85% nên chữ/icon trên thanh giữ nguyên độ tương phản.
+            compact && sticky ? 'bg-glass' : 'bg-surface-0',
             // Vỏ Android vẽ dưới status bar: chiều cao = 56px + phần status bar, không trừ phần đệm vào 56px (Curtis 29/10: nút đầu bị đẩy lên status bar).
             // Phải ghi đè cả max-sm:py-3 ở trên: thiếu thì điện thoại chỉ đệm 12px thay vì phần status bar → hàng nút
             // trồi lên trùng camera (Curtis 11/11).
@@ -305,10 +259,6 @@ export function PageHeader({
           ),
           // Trên mọi dòng danh sách (nút phủ dòng khách z-10/z-20), dưới thanh tab đáy (z-40) và Sheet.
           sticky && 'sticky top-0 z-30',
-          // Chỉ ẩn trên điện thoại; desktop luôn hiện. Tab tới nút trong thanh thì hiện lại.
-          compact &&
-            sticky &&
-            'transition-transform duration-200 motion-reduce:transition-none max-md:data-[hidden]:-translate-y-full max-md:focus-within:translate-y-0',
         )}
       >
         <div
@@ -452,7 +402,7 @@ export function BottomNav({
   return (
     <nav
       aria-label="Điều hướng chính"
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface-100 pb-[env(safe-area-inset-bottom)]"
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-glass-raised pb-[env(safe-area-inset-bottom)]"
     >
       <ul className="m-0 grid list-none auto-cols-fr grid-flow-col p-0">
         {items.map((it, index) => {

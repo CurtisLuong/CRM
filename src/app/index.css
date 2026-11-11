@@ -198,6 +198,24 @@
   text-transform: uppercase;
   color: var(--ink-muted);
 }
+/* Kính mờ cho thanh đầu (surface-0) và tab đáy (surface-100) — D-034 (ngoại lệ D-023, Curtis 11/11), KHÔNG dùng cho thẻ/nội dung.
+   Nền đặc 85% → chữ/icon trên thanh vẫn đủ tương phản; máy không hỗ trợ blur thì nền đặc hẳn. */
+@utility bg-glass {
+  background-color: var(--surface-0);
+  @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+    background-color: color-mix(in oklab, var(--surface-0) 85%, transparent);
+    -webkit-backdrop-filter: blur(16px) saturate(1.4);
+    backdrop-filter: blur(16px) saturate(1.4);
+  }
+}
+@utility bg-glass-raised {
+  background-color: var(--surface-100);
+  @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+    background-color: color-mix(in oklab, var(--surface-100) 85%, transparent);
+    -webkit-backdrop-filter: blur(16px) saturate(1.4);
+    backdrop-filter: blur(16px) saturate(1.4);
+  }
+}
 /* Chữ gợi ý/trống ("Chưa có…", "Thêm … để …"): nhỏ, mảnh, mờ 90% — không phải thông tin chính (Curtis 11/11).
    90% là mức thấp nhất còn giữ ≥ 4,5:1 ở cả sáng và tối (80% chỉ còn 4,2:1 ở nền sáng). */
 @utility text-hint {
