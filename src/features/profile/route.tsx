@@ -894,7 +894,7 @@ function Profile() {
                 })}
               </ul>
             ) : (
-              <p className="mt-2 text-body text-ink-muted">
+              <p className="mt-2 text-hint">
                 Chưa có bước tiếp theo. Ghi lại việc cần làm hoặc lời hứa để không bỏ quên khách.
               </p>
             )}
@@ -912,7 +912,7 @@ function Profile() {
                 {lastTouch.text}
               </p>
             ) : (
-              <p className="mt-2 text-body text-ink-muted">Chưa có liên hệ nào được ghi.</p>
+              <p className="mt-2 text-hint">Chưa có liên hệ nào được ghi.</p>
             )}
           </section>
 
@@ -957,8 +957,9 @@ function Profile() {
               <TabsList
                 aria-label="Nội dung hồ sơ khách"
                 // 5 tab không vừa 360px: cuộn ngang trong thanh tab thay vì ép chữ chồng lên nhau.
-                // Header hiện lại: tab xuống ngay để không chồng lên nhau; chỉ dịch tab lên sau khi header đã ẩn xong.
-                className="sticky top-[calc(56px+env(safe-area-inset-top))] z-20 transition-none max-md:[[data-header-hidden]_&]:-translate-y-14 max-md:[[data-header-hidden]_&]:transition-transform max-md:[[data-header-hidden]_&]:duration-200 max-md:[[data-header-hidden]_&]:delay-200 motion-reduce:!transition-none gap-0 overflow-x-auto bg-surface-0 [scrollbar-width:none] [&_[role=tab]]:scroll-mt-14"
+                // Header ẩn: đổi mốc dính (top) thay vì dịch tab, để lúc tab chưa dính nó không trùm lên thẻ Tính vay phía trên (Curtis 11/11).
+                // Header hiện lại: tab xuống ngay để không chồng lên nhau; chỉ đẩy tab lên sau khi header đã ẩn xong.
+                className="sticky top-[calc(56px+env(safe-area-inset-top))] z-20 transition-none max-md:[[data-header-hidden]_&]:top-[env(safe-area-inset-top)] max-md:[[data-header-hidden]_&]:transition-[top] max-md:[[data-header-hidden]_&]:duration-200 max-md:[[data-header-hidden]_&]:delay-200 motion-reduce:!transition-none gap-0 overflow-x-auto bg-surface-0 [scrollbar-width:none] [&_[role=tab]]:scroll-mt-14"
               >
                 {tabs.map((item) => (
                   <TabsTrigger
@@ -1020,7 +1021,7 @@ function Profile() {
                 </dl>
               </>
             ) : (
-              <p className="mt-2 text-body text-ink-muted">Chưa có thông tin nào được ghi.</p>
+              <p className="mt-2 text-hint">Chưa có thông tin nào được ghi.</p>
             )}
             {briefParts.missing.length > 0 && (
               <div className="mt-3 flex flex-wrap items-center gap-1.5">

@@ -134,7 +134,7 @@ export function CustomerSheet({ customer, userId, canAssign = false, onOpenChang
             {journey.stages.length > 0 ? (
               <Timeline stages={journey.stages} now={new Date(now)} collapsePast />
             ) : (
-              <p className="m-0 text-body text-ink-muted">Chưa có hoạt động để hiển thị.</p>
+              <p className="m-0 text-hint">Chưa có hoạt động để hiển thị.</p>
             )}
           </section>
         </SheetBody>

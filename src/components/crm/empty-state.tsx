@@ -64,7 +64,7 @@ export function EmptyState({
         <Icon className="size-6" />
       </span>
       <span className="text-base font-semibold">{title ?? p?.title}</span>
-      {(text ?? p?.text) && <span className="max-w-[360px] text-sm text-ink-muted">{text ?? p?.text}</span>}
+      {(text ?? p?.text) && <span className="max-w-[360px] text-hint">{text ?? p?.text}</span>}
       {actions && <div className="mt-2 flex flex-wrap justify-center gap-2">{actions}</div>}
     </div>
   );

@@ -176,7 +176,7 @@ export function InsightsPage() {
             ))}
           </ul>
         ) : (
-          <p className="text-caption text-ink-muted">Chưa có quan sát đạt ngưỡng.</p>
+          <p className="text-hint">Chưa có quan sát đạt ngưỡng.</p>
         )}
       </section>
 

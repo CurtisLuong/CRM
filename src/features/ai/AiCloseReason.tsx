@@ -24,7 +24,7 @@ export function AiCloseReason({
     >
       {(result, isCurrent) => (
         <>
-          {!result.goi_y.length && <p>Chưa có bằng chứng rõ để đề xuất lý do.</p>}
+          {!result.goi_y.length && <p className="text-hint">Chưa có bằng chứng rõ để đề xuất lý do.</p>}
           {result.goi_y
             .filter((item) => Object.hasOwn(reasons, item.ma))
             .map((item) => (

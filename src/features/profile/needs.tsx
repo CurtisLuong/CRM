@@ -209,7 +209,7 @@ function ProjectPicker({ customer, writable, online, catalog, onSave, open, onTo
             ))}
           </ul>
         ) : (
-          <p className="text-body text-ink-muted">Chưa có dự án quan tâm.</p>
+          <p className="text-hint">Chưa có dự án quan tâm.</p>
         )}
       </div>
     );
@@ -285,9 +285,7 @@ function ProjectPicker({ customer, writable, online, catalog, onSave, open, onTo
               ))}
             </ul>
           )}
-          {!active.size && !legacy.length && (
-            <p className="text-body text-ink-muted">Chưa có dự án nào trong danh mục.</p>
-          )}
+          {!active.size && !legacy.length && <p className="text-hint">Chưa có dự án nào trong danh mục.</p>}
           {canEdit && !online && (
             <p className="text-caption text-ink-muted">
               Cần mạng để thêm hoặc lưu trữ dự án; vẫn chọn được dự án đã có trên máy.

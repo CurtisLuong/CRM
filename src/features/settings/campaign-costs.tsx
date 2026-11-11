@@ -282,7 +282,7 @@ export function CampaignCostsSection({
                           </p>
                         )}
                         {!row.leadCount && (
-                          <p className="text-caption text-ink-muted">
+                          <p className="text-hint">
                             Chưa có lead khớp kỳ; chưa hiển thị chi phí/lead, chi phí/Đạt hoặc chi phí/Booking.
                           </p>
                         )}
