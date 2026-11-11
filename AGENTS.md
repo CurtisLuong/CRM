@@ -94,6 +94,7 @@ npm run dev      # chạy local
 | Lộ trình v3, trạng thái | `docs/ROADMAP.md`, `docs/STATE.md` |
 | Lý do một quy tắc, tiền lệ | `docs/decisions.md` (bảng chỉ mục đầu file) |
 | Lỗi kỹ thuật đã gặp | `docs/pitfalls.md` — chỉ phần liên quan |
+| Bản đồ khối: ai gọi ai, sửa khối nào ảnh hưởng khối nào, bảo mật từng khối | `docs/architecture-map.md` (sinh từ `docs/architecture.json` bằng `factory-arch.mjs`, không sửa tay; Curtis xem `docs/architecture.html`) |
 | Phễu, SLA, Booking · follow-up, mẫu Zalo · nhóm, giao khách · giỏ hàng · vay | `docs/funnel-velocity.md` · `docs/huong-dan-follow-up.md` · `docs/huong-dan-nhom.md` · `docs/gio-hang.md` · `docs/loan-module.md` |
 | AI trong app | `docs/prompts.md` |
 
