@@ -7,6 +7,7 @@ import { useNotificationSignals } from './use-signals';
 /**
  * Chuông header (PF-06): số = đúng số thẻ màn Thông báo đang hiện; bấm → /thong-bao.
  * Badge nhỏ (~0,7 chiều cao icon) + viền màu nền để tách khỏi chuông — Curtis 2026-10-21.
+ * 11/11: thu còn 14px, chữ 10px, đẩy ra góc trên-phải để không che chuông khi số 2 chữ số.
  */
 export function NotificationBell() {
   const navigate = useNavigate();
@@ -32,7 +33,7 @@ export function NotificationBell() {
           <span
             aria-hidden
             data-bell-count
-            className={`absolute -top-1.5 -right-2 inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-caption leading-none tabular-nums ring-2 ring-surface-0 ${badgeTone}`}
+            className={`absolute -top-2 -right-3 inline-flex h-3.5 min-w-3.5 items-center justify-center rounded-full px-[3px] font-semibold text-[10px] leading-none tabular-nums ring-[1.5px] ring-surface-0 ${badgeTone}`}
           >
             {badge.text}
           </span>
