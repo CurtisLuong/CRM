@@ -316,9 +316,7 @@ export function DocumentsSection({
         </p>
       )}
       {!error && !loading && !docs.length && (
-        <p className="text-body text-ink-muted">
-          {online ? 'Chưa có tài liệu.' : 'Ngoại tuyến · tài liệu chỉ tải khi có mạng.'}
-        </p>
+        <p className="text-hint">{online ? 'Chưa có tài liệu.' : 'Ngoại tuyến · tài liệu chỉ tải khi có mạng.'}</p>
       )}
       {!error &&
         groups.map((group) => (

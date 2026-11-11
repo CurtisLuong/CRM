@@ -82,7 +82,7 @@ export function UnitPicker({
               }
             }}
           />
-          {!rows.length && <p className="text-caption text-ink-muted">Chưa có</p>}
+          {!rows.length && <p className="text-hint">Chưa có</p>}
           <fieldset aria-label={`${label} trong Giỏ hàng`} className="max-h-60 overflow-y-auto">
             {[{ id: 'none', code: '' }, ...filtered].map((row) => {
               const current = row.code ? codeKey(row.code) === codeKey(value ?? '') : !value;

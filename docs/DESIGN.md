@@ -22,7 +22,7 @@ Luật đo được giữ từ D-023 (có e2e, vẫn chặn merge): **L1** màn 
 | Tín hiệu | `ok` · `soon` · `alert` — mỗi loại: `bg-ok` (chấm/khối) · `text-ok-text` (chữ) · `bg-ok-tint` (nền) · `text-on-ok` (chữ trên khối) | Chỉ thời gian/độ gấp (§2) |
 | Biểu đồ | `chart-1` (một chuỗi / kỳ này) · `chart-prev` (so sánh) · `chart-2` · `chart-3` | Tối đa 3 chuỗi |
 | Lớp nổi | `shadow-overlay` · `--scrim` | Sheet, dialog |
-| Chữ | `text-display` 32/700 · `text-title` 20/600 · `text-body` 15/400 · `text-label` 13/500 · `text-caption` 12/400 · `text-numeric` 14 mono · `text-countdown` 13 mono · `text-overline` 11 mono HOA | Không cỡ chữ tự đặt |
+| Chữ | `text-display` 32/700 · `text-title` 20/600 · `text-body` 15/400 · `text-label` 13/500 · `text-caption` 12/400 · `text-numeric` 14 mono · `text-countdown` 13 mono · `text-overline` 11 mono HOA · `text-hint` 13/400 xám 90% (dòng trống/gợi ý "Chưa có…", câu phụ của khung trống) | Không cỡ chữ tự đặt |
 | Bo góc | `rounded-sm` 6 (badge, ô nhập) · `rounded-md` 10 (nút, thẻ) · `rounded-lg` 16 (hộp thoại, ô lớn) | |
 
 - Giao diện: tối ("mission control") và sáng ngang hàng; người dùng chọn Sáng / Tối / Tự động (`src/app/theme.ts` đặt `data-theme`). Biến thể `dark:` / `light:` theo cùng thuộc tính.

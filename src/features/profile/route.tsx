@@ -894,7 +894,7 @@ function Profile() {
                 })}
               </ul>
             ) : (
-              <p className="mt-2 text-label font-normal text-ink-muted">
+              <p className="mt-2 text-hint">
                 Chưa có bước tiếp theo. Ghi lại việc cần làm hoặc lời hứa để không bỏ quên khách.
               </p>
             )}
@@ -912,7 +912,7 @@ function Profile() {
                 {lastTouch.text}
               </p>
             ) : (
-              <p className="mt-2 text-label font-normal text-ink-muted">Chưa có liên hệ nào được ghi.</p>
+              <p className="mt-2 text-hint">Chưa có liên hệ nào được ghi.</p>
             )}
           </section>
 
@@ -1021,7 +1021,7 @@ function Profile() {
                 </dl>
               </>
             ) : (
-              <p className="mt-2 text-label font-normal text-ink-muted">Chưa có thông tin nào được ghi.</p>
+              <p className="mt-2 text-hint">Chưa có thông tin nào được ghi.</p>
             )}
             {briefParts.missing.length > 0 && (
               <div className="mt-3 flex flex-wrap items-center gap-1.5">

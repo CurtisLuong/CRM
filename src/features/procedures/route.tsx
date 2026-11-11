@@ -125,7 +125,7 @@ function ProceduresPage() {
                 </p>
               </>
             ) : (
-              <p className="mb-0 text-body">Chưa có danh sách hồ sơ cho đối tượng này.</p>
+              <p className="mb-0 text-hint">Chưa có danh sách hồ sơ cho đối tượng này.</p>
             )}
           </CardContent>
         </Card>

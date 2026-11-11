@@ -232,9 +232,9 @@ export function CampaignProjectsSection({
                 {READ_ERROR}
               </p>
             )}
-            {ready && rows.length === 0 && <p className="mt-3 text-caption text-ink-muted">{EMPTY_TEXT}</p>}
+            {ready && rows.length === 0 && <p className="mt-3 text-hint">{EMPTY_TEXT}</p>}
             {ready && rows.length > 0 && !projectNames.length && (
-              <p className="mt-3 text-caption text-ink-muted">
+              <p className="mt-3 text-hint">
                 Chưa có dự án trong giỏ hàng. Thêm dự án ở Giỏ hàng rồi quay lại để gán theo chiến dịch.
               </p>
             )}

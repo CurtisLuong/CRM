@@ -593,7 +593,7 @@ export function ProfileTimeline({
   const renderTimeline = (view: typeof fullView) => (
     <>
       {isEmpty ? (
-        <p className="text-body text-ink-muted">Chưa có hoạt động để hiển thị.</p>
+        <p className="text-hint">Chưa có hoạt động để hiển thị.</p>
       ) : hasArchive ? (
         <div className="space-y-3">
           {view.ordered.map((row) => {

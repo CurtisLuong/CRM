@@ -227,7 +227,7 @@ export function MarketingSection({
             </table>
           </div>
         ) : (
-          <p className="mt-2 text-caption text-ink-muted">Chưa có ngày đăng ký hợp lệ.</p>
+          <p className="mt-2 text-hint">Chưa có ngày đăng ký hợp lệ.</p>
         )}
       </section>
       <aside aria-label="Tình trạng nhận lead Facebook" className="border-t border-line pt-3">

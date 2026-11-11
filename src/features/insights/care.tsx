@@ -297,7 +297,7 @@ export function CareSection({ customers, now }: { customers: readonly Customer[]
             ))}
           </ul>
         ) : (
-          <p className="mt-2 text-caption text-ink-muted">Chưa có bài học đạt ngưỡng mẫu trong tuần này.</p>
+          <p className="mt-2 text-hint">Chưa có bài học đạt ngưỡng mẫu trong tuần này.</p>
         )}
       </section>
 
@@ -369,7 +369,7 @@ export function CareSection({ customers, now }: { customers: readonly Customer[]
               })}
             </ul>
           ) : (
-            <p className="mt-3 text-caption text-ink-muted">Chưa có khách trong nhóm này.</p>
+            <p className="mt-3 text-hint">Chưa có khách trong nhóm này.</p>
           )}
         </section>
       )}
