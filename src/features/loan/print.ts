@@ -1,4 +1,5 @@
 import type { ComputeResult } from '@/domain/loan';
+import { scheduleLabel } from './model';
 import printCSS from './print.css?inline';
 export type LoanPrintContext = {
   projectName?: string;
@@ -254,7 +255,10 @@ export function loanPrintDocument(result: ComputeResult, ctx: LoanPrintContext) 
     '<style>' +
     printCSS +
     '</style></head><body>' +
-    buildLoanPrintHTML(result, ctx) +
+    buildLoanPrintHTML(
+      { ...result, milestones: result.milestones.map((m) => ({ ...m, label: scheduleLabel(m.label) })) },
+      ctx,
+    ) +
     '</body></html>'
   );
 }

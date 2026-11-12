@@ -289,3 +289,18 @@ export function quoteToAutoOpen<T extends { created_at: string }>(quotes: T[], p
     null,
   );
 }
+
+/** Nhãn ngắn chỉ dùng khi trình bày; không đổi tiến độ của engine / phương án đã lưu. */
+const SCHEDULE_LABELS = new Map([
+  ['Ký Hợp đồng mua bán (T)', 'Kí HĐMB (T)'],
+  ['Thông báo bàn giao + KPBT', 'Bàn giao + KPBT'],
+]);
+export const scheduleLabel = (label: string) => SCHEDULE_LABELS.get(label) ?? label;
+
+/** Chọn nguyên số liệu engine, chỉ nhận số thứ tự nguyên nằm trong lịch. */
+export function chartPaymentAt(result: ComputeResult, yearly: boolean, period: number | null) {
+  if (period == null || !Number.isInteger(period) || period < 1 || !result.schedule) return null;
+  return yearly
+    ? (result.schedule.years.find((row) => row.year === period)?.avgPayment ?? null)
+    : (result.schedule.rows.find((row) => row.k === period)?.payment ?? null);
+}
