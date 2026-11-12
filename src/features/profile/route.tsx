@@ -957,9 +957,8 @@ function Profile() {
               <TabsList
                 aria-label="Nội dung hồ sơ khách"
                 // 5 tab không vừa 360px: cuộn ngang trong thanh tab thay vì ép chữ chồng lên nhau.
-                // Header ẩn: đổi mốc dính (top) thay vì dịch tab, để lúc tab chưa dính nó không trùm lên thẻ Tính vay phía trên (Curtis 11/11).
-                // Header hiện lại: tab xuống ngay để không chồng lên nhau; chỉ đẩy tab lên sau khi header đã ẩn xong.
-                className="sticky top-[calc(56px+env(safe-area-inset-top))] z-20 transition-none max-md:[[data-header-hidden]_&]:top-[env(safe-area-inset-top)] max-md:[[data-header-hidden]_&]:transition-[top] max-md:[[data-header-hidden]_&]:duration-200 max-md:[[data-header-hidden]_&]:delay-200 motion-reduce:!transition-none gap-0 overflow-x-auto bg-surface-0 [scrollbar-width:none] [&_[role=tab]]:scroll-mt-14"
+                // Thanh đầu luôn hiện (kính mờ, 11/11) → tab dính ngay dưới nó; z-[31] để nằm trên phần nhoè 24px thò xuống của thanh đầu (12/11).
+                className="sticky top-[calc(56px+env(safe-area-inset-top))] z-[31] gap-0 overflow-x-auto bg-surface-0 [scrollbar-width:none] [&_[role=tab]]:scroll-mt-14"
               >
                 {tabs.map((item) => (
                   <TabsTrigger

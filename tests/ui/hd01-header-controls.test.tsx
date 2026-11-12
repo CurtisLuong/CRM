@@ -9,12 +9,14 @@ afterEach(() => {
 });
 
 describe('HD-01: thành phần thanh trên', () => {
-  it('ô tìm có gợi ý hai khổ, tên truy cập và mở bảng từ cả ô', () => {
+  it('ô tìm: điện thoại chỉ icon, desktop có gợi ý; tên truy cập và mở bảng từ cả ô', () => {
     const open = vi.fn();
     render(<HeaderSearch onOpen={open} />);
-    fireEvent.click(screen.getByText('Tìm', { exact: true }));
+    // Curtis 12/11: điện thoại chỉ còn icon (không chữ "Tìm"); gợi ý dài chỉ hiện từ md.
+    expect(screen.queryByText('Tìm', { exact: true })).toBeNull();
+    expect(screen.getByText('Tìm khách, SĐT, dự án…').className).toMatch(/hidden.*md:inline/);
     fireEvent.click(screen.getByText('Tìm khách, SĐT, dự án…'));
-    expect(open).toHaveBeenCalledTimes(2);
+    expect(open).toHaveBeenCalledTimes(1);
     // Tên truy cập từ chữ trong nút, không qua aria-label → getByLabel('Dự án') ở màn khác không trùng.
     const button = screen.getByRole('button', { name: /^Tìm khách, lệnh/ });
     expect(button.getAttribute('aria-label')).toBeNull();

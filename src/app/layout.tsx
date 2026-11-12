@@ -10,6 +10,7 @@ import {
   Sidebar,
   useScrolledPast,
 } from '@/components/crm';
+import { syncLabel, syncNeedsAttention } from '@/components/crm/header-controls';
 import { TooltipProvider } from '@/components/ui';
 import { NotificationBell } from '@/features/notifications/Bell';
 import { QuickActionsHost } from '@/features/quick-actions/QuickActions';
@@ -183,14 +184,18 @@ export function RootLayout() {
                 <>
                   <HeaderSearch onOpen={() => setPaletteOpen(true)} />
                   <NotificationBell />
-                  {sync && (
+                  {sync && syncNeedsAttention(sync) && (
                     <SyncIndicator
                       state={sync}
                       onOpen={() => setSyncOpen(true)}
                       className="size-11 min-w-11 rounded-md px-0"
                     />
                   )}
-                  <ToolsMenu commands={appCommands} ctx={ctx} />
+                  <ToolsMenu
+                    commands={appCommands}
+                    ctx={ctx}
+                    sync={sync ? { label: syncLabel(sync), onOpen: () => setSyncOpen(true) } : undefined}
+                  />
                 </>
               }
             />

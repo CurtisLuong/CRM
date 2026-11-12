@@ -4,7 +4,7 @@ import type { Level } from '@/lib/crm';
 import { cn } from '@/lib/utils';
 import { Icon } from '@/ui/Icon';
 
-/** Ô mở bảng tìm chung; giữ tên truy cập cũ dù gợi ý đổi theo khổ màn. Điện thoại (Curtis 11/11): icon + "Tìm" vừa khít để tiêu đề màn hiện đủ. */
+/** Ô mở bảng tìm chung; giữ tên truy cập cũ dù gợi ý đổi theo khổ màn. Điện thoại (Curtis 12/11): chỉ icon, không viền/nền — thanh đầu kính mờ chỉ còn icon Tìm · Thông báo · Menu. */
 export function HeaderSearch({ onOpen, className }: { onOpen: () => void; className?: string }) {
   return (
     <button
@@ -12,17 +12,14 @@ export function HeaderSearch({ onOpen, className }: { onOpen: () => void; classN
       title="Tìm (⌘K)"
       onClick={onOpen}
       className={cn(
-        'inline-flex h-11 w-auto min-w-11 shrink-0 items-center gap-1.5 rounded-md border border-line bg-surface-100 px-2.5 text-ink-muted hover:bg-surface-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ion md:w-80 md:gap-2 md:px-3',
+        'inline-flex size-11 shrink-0 items-center justify-center rounded-md text-ink hover:bg-surface-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ion md:h-11 md:w-80 md:justify-start md:gap-2 md:border md:border-line md:bg-surface-100 md:px-3 md:text-ink-muted',
         className,
       )}
     >
       <Search className="size-5 shrink-0" aria-hidden />
       {/* Tên truy cập lấy từ chữ trong nút (axe: chữ hiện phải nằm trong tên); không dùng aria-label để khỏi trùng nhãn "Dự án" ở màn khác. */}
       <span className="sr-only">Tìm khách, lệnh</span>
-      <span className="min-w-0 flex-1 truncate text-left text-label">
-        <span className="md:hidden">Tìm</span>
-        <span className="hidden md:inline">Tìm khách, SĐT, dự án…</span>
-      </span>
+      <span className="hidden min-w-0 flex-1 truncate text-left text-label md:inline">Tìm khách, SĐT, dự án…</span>
       <kbd aria-hidden className="hidden rounded-sm border border-line bg-surface-200 px-1 text-caption md:inline">
         ⌘K
       </kbd>
@@ -38,6 +35,18 @@ export type SyncState =
 
 const SYNC_TONE: Record<Level, string> = { ok: 'text-ink-muted', soon: 'text-soon-text', alert: 'text-alert-text' };
 
+/** Chữ trạng thái đồng bộ (nút header + hàng trong menu ⋮). */
+export function syncLabel(state: SyncState): string {
+  if (state.kind === 'synced') return `Đã đồng bộ ${state.at}`;
+  if (state.kind === 'pending') return `Chờ ${state.count} thay đổi`;
+  return state.kind === 'offline' ? 'Ngoại tuyến' : 'Lỗi đồng bộ';
+}
+
+/** Header chỉ hiện nút đồng bộ khi cần chú ý; bình thường xem trong menu ⋮ (Curtis 11/11: nút chiếm chỗ mà không ai nhìn). */
+export function syncNeedsAttention(state: SyncState | null | undefined): boolean {
+  return state?.kind === 'error' || state?.kind === 'offline';
+}
+
 /** Chỉ trình bày trạng thái do hàng đợi cung cấp, không suy lại luật đồng bộ. */
 export function SyncStatusButton({
   state,
@@ -48,14 +57,7 @@ export function SyncStatusButton({
   onOpen?: () => void;
   className?: string;
 }) {
-  const label =
-    state.kind === 'synced'
-      ? `Đã đồng bộ ${state.at}`
-      : state.kind === 'pending'
-        ? `Chờ ${state.count} thay đổi`
-        : state.kind === 'offline'
-          ? 'Ngoại tuyến'
-          : 'Lỗi đồng bộ';
+  const label = syncLabel(state);
   const level: Level = state.kind === 'error' ? 'alert' : state.kind === 'pending' ? 'soon' : 'ok';
   const props = {
     'data-state': state.kind,
