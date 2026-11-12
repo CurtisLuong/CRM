@@ -131,7 +131,6 @@ const ROUTES = [
   '/khach-moi',
   '/cong-viec',
   '/hieu-qua',
-  '/thong-bao',
   '/ho-so/m1-ok-1',
   '/ho-so/m1-ok-2',
   '/ho-so/m1-bad',

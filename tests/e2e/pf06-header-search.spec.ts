@@ -1,6 +1,6 @@
 import { expect, type Page, test } from '@playwright/test';
 
-// PF-06: chuông Thông báo có số ở header + ô tìm toàn app (tìm khách theo nhóm).
+// PF-06: ô tìm toàn app (tìm khách theo nhóm). Curtis 12/11: bỏ chuông Thông báo (trùng Hôm nay).
 // Test Lead viết cùng task; dữ liệu giả trong IndexedDB, không gọi mạng.
 
 const userId = 'pf06-e2e-user';
@@ -133,7 +133,9 @@ const bell = (page: Page) => header(page).getByRole('button', { name: /^Thông b
 const palette = (page: Page) => page.getByRole('dialog');
 const combobox = (page: Page) => page.getByRole('combobox', { name: 'Tìm khách, lệnh, màn' });
 
-test('360: cụm phải header đúng thứ tự Tìm · Thông báo · Đồng bộ · Menu, vùng chạm ≥44px', async ({ page }, info) => {
+test('360: cụm phải header đúng thứ tự Tìm · Đồng bộ · Menu, không còn chuông, vùng chạm ≥44px', async ({
+  page,
+}, info) => {
   test.skip(info.project.name !== 'phone-360', 'đo thứ tự ở 360×780');
   await open(page);
 
@@ -141,11 +143,11 @@ test('360: cụm phải header đúng thứ tự Tìm · Thông báo · Đồng 
   const menu = header(page).getByRole('button', { name: 'Menu', exact: true });
   const sync = header(page).getByRole('button', { name: /Đồng bộ|Chờ \d+ thay đổi|Ngoại tuyến|Lỗi đồng bộ/ });
   await expect(search).toBeVisible();
-  await expect(bell(page)).toBeVisible();
+  await expect(bell(page)).toHaveCount(0);
   await expect(menu).toBeVisible();
 
-  const controls = (await sync.count()) ? [search, bell(page), sync.first(), menu] : [search, bell(page), menu];
-  for (const name of ['Tìm khách, lệnh', 'Thông báo', 'Menu']) {
+  const controls = (await sync.count()) ? [search, sync.first(), menu] : [search, menu];
+  for (const name of ['Tìm khách, lệnh', 'Menu']) {
     const control = header(page)
       .getByRole('button', { name: new RegExp(name) })
       .first();
@@ -161,20 +163,6 @@ test('360: cụm phải header đúng thứ tự Tìm · Thông báo · Đồng 
   }
   expect(xs).toEqual([...xs].sort((a, b) => a - b));
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-});
-
-test('chuông: số đỏ đúng bằng số thẻ màn Thông báo; bấm → /thong-bao', async ({ page }) => {
-  await open(page);
-  const counter = header(page).locator('[data-bell-count]');
-  await expect(counter).toBeVisible();
-  const shown = Number(await counter.textContent());
-  expect(shown).toBeGreaterThan(0);
-  await expect(bell(page)).toHaveAttribute('aria-label', `Thông báo, ${shown} mục`);
-
-  await bell(page).click();
-  await expect(page).toHaveURL('/thong-bao');
-  const cards = page.locator('#main').getByRole('button', { name: 'Mở hồ sơ' });
-  await expect(cards).toHaveCount(shown);
 });
 
 test('tìm toàn app: gõ "dũng" → 4 nhóm đúng thứ tự luật 8; chọn khách mở hồ sơ', async ({ page }) => {
@@ -230,9 +218,8 @@ test('nhóm > 5 khách: "Xem thêm N khách" mở rộng ngay trong Bảng lện
 test.describe('giao diện tối', () => {
   test.use({ colorScheme: 'dark' });
 
-  test('Bảng lệnh mở rộng nhóm không cuộn ngang; chuông vẫn đọc được', async ({ page }) => {
+  test('Bảng lệnh mở rộng nhóm không cuộn ngang', async ({ page }) => {
     await open(page);
-    await expect(bell(page)).toBeVisible();
     await header(page)
       .getByRole('button', { name: /Tìm khách, lệnh/ })
       .click();

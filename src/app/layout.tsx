@@ -12,7 +12,6 @@ import {
 } from '@/components/crm';
 import { syncLabel, syncNeedsAttention } from '@/components/crm/header-controls';
 import { TooltipProvider } from '@/components/ui';
-import { NotificationBell } from '@/features/notifications/Bell';
 import { QuickActionsHost } from '@/features/quick-actions/QuickActions';
 import { CustomerSearchBridge } from '@/features/search/SearchBridge';
 import { SyncIssuesSheet } from '@/features/sync/SyncIssuesSheet';
@@ -183,7 +182,6 @@ export function RootLayout() {
               actions={
                 <>
                   <HeaderSearch onOpen={() => setPaletteOpen(true)} />
-                  <NotificationBell />
                   {sync && syncNeedsAttention(sync) && (
                     <SyncIndicator
                       state={sync}
