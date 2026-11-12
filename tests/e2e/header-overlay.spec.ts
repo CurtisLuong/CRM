@@ -20,11 +20,14 @@ test('thanh đầu cao 56px, luôn hiện khi cuộn, nền kính mờ, nằm tr
   expect((await header.boundingBox())?.y).toBe(0);
   const glass = await header.evaluate((el) => {
     const s = getComputedStyle(el);
-    return { blur: s.backdropFilter, bg: s.backgroundColor };
+    const k = getComputedStyle(el, '::before');
+    return { bg: s.backgroundColor, border: s.borderBottomColor, blur: k.backdropFilter, mask: k.maskImage };
   });
+  // Curtis 12/11 (kiểu màn Calls): lớp kính ::before nhoè, nhạt dần về mép dưới; thanh không còn nền đặc hay đường viền.
   expect(glass.blur).toContain('blur');
-  // Nền không đặc hẳn (nội dung thấp thoáng) nhưng vẫn gần đặc để giữ tương phản chữ.
-  expect(glass.bg).not.toMatch(/^rgb\(/);
+  expect(glass.mask).toContain('linear-gradient');
+  expect(glass.bg).toBe('rgba(0, 0, 0, 0)');
+  expect(glass.border).toBe('rgba(0, 0, 0, 0)');
   const box = await header.boundingBox();
   if (!box) throw new Error('Không thấy thanh đầu');
   // Điểm giữa mép phải thanh đầu (chỗ nút gọi của dòng khách cuộn qua) phải thuộc thanh đầu.

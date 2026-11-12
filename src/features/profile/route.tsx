@@ -957,8 +957,8 @@ function Profile() {
               <TabsList
                 aria-label="Nội dung hồ sơ khách"
                 // 5 tab không vừa 360px: cuộn ngang trong thanh tab thay vì ép chữ chồng lên nhau.
-                // Thanh đầu luôn hiện (kính mờ, 11/11) → tab dính ngay dưới nó.
-                className="sticky top-[calc(56px+env(safe-area-inset-top))] z-20 gap-0 overflow-x-auto bg-surface-0 [scrollbar-width:none] [&_[role=tab]]:scroll-mt-14"
+                // Thanh đầu luôn hiện (kính mờ, 11/11) → tab dính ngay dưới nó; z-[31] để nằm trên phần nhoè 24px thò xuống của thanh đầu (12/11).
+                className="sticky top-[calc(56px+env(safe-area-inset-top))] z-[31] gap-0 overflow-x-auto bg-surface-0 [scrollbar-width:none] [&_[role=tab]]:scroll-mt-14"
               >
                 {tabs.map((item) => (
                   <TabsTrigger

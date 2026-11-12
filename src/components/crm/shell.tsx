@@ -242,89 +242,85 @@ export function PageHeader({
   headerRef?: React.Ref<HTMLElement>;
 }) {
   return (
-    <>
-      <header
-        ref={headerRef}
+    <header
+      ref={headerRef}
+      className={cn(
+        cn(
+          'flex flex-col gap-3 border-b border-line px-6 py-4 max-sm:px-4 max-sm:py-3',
+          // Kính mờ (Curtis 11/11, ngoại lệ D-023 → D-034, chỉ thanh đầu + tab đáy): thanh luôn hiện, nội dung cuộn
+          // thấp thoáng (nhoè) phía sau.
+          compact && sticky ? 'bg-glass border-transparent' : 'bg-surface-0',
+          // Vỏ Android vẽ dưới status bar: chiều cao = 56px + phần status bar, không trừ phần đệm vào 56px (Curtis 29/10: nút đầu bị đẩy lên status bar).
+          // Phải ghi đè cả max-sm:py-3 ở trên: thiếu thì điện thoại chỉ đệm 12px thay vì phần status bar → hàng nút
+          // trồi lên trùng camera (Curtis 11/11).
+          compact &&
+            'h-[calc(56px+env(safe-area-inset-top))] flex-row flex-nowrap gap-2 px-2 py-0 pt-[env(safe-area-inset-top)] max-sm:px-2 max-sm:py-0 max-sm:pt-[env(safe-area-inset-top)]',
+        ),
+        // Trên mọi dòng danh sách (nút phủ dòng khách z-10/z-20), dưới thanh tab đáy (z-40) và Sheet.
+        sticky && 'sticky top-0 z-30',
+      )}
+    >
+      <div
         className={cn(
-          cn(
-            'flex flex-col gap-3 border-b border-line px-6 py-4 max-sm:px-4 max-sm:py-3',
-            // Kính mờ (Curtis 11/11, ngoại lệ D-023 → D-034, chỉ thanh đầu + tab đáy): thanh luôn hiện, nội dung cuộn
-            // thấp thoáng (nhoè) phía sau.
-            compact && sticky ? 'bg-glass' : 'bg-surface-0',
-            // Vỏ Android vẽ dưới status bar: chiều cao = 56px + phần status bar, không trừ phần đệm vào 56px (Curtis 29/10: nút đầu bị đẩy lên status bar).
-            // Phải ghi đè cả max-sm:py-3 ở trên: thiếu thì điện thoại chỉ đệm 12px thay vì phần status bar → hàng nút
-            // trồi lên trùng camera (Curtis 11/11).
-            compact &&
-              'h-[calc(56px+env(safe-area-inset-top))] flex-row flex-nowrap gap-2 px-2 py-0 pt-[env(safe-area-inset-top)] max-sm:px-2 max-sm:py-0 max-sm:pt-[env(safe-area-inset-top)]',
-          ),
-          // Trên mọi dòng danh sách (nút phủ dòng khách z-10/z-20), dưới thanh tab đáy (z-40) và Sheet.
-          sticky && 'sticky top-0 z-30',
+          'flex flex-wrap items-center justify-between gap-x-6 gap-y-3',
+          compact && 'min-w-0 flex-1 flex-nowrap gap-1',
         )}
       >
-        <div
-          className={cn(
-            'flex flex-wrap items-center justify-between gap-x-6 gap-y-3',
-            compact && 'min-w-0 flex-1 flex-nowrap gap-1',
-          )}
-        >
-          <div
-            className={cn('flex min-w-0 flex-col gap-0.5', compact && 'flex-1 flex-row items-center overflow-hidden')}
-          >
-            {overline && <span className="text-overline">{overline}</span>}
-            <div className={cn('flex flex-wrap items-center gap-2.5', compact && 'min-w-0 flex-1 flex-nowrap')}>
-              <h1
-                className={cn(
-                  'm-0 text-2xl font-bold leading-8 tracking-tight max-sm:text-xl',
-                  compact && 'min-w-0 truncate text-base leading-5',
-                )}
-              >
-                {title}
-              </h1>
-              {count != null && (
-                <span
-                  role="img"
-                  aria-label={`${count} ${noun}`}
-                  className="inline-grid h-6 place-items-center rounded-[6px] border border-line bg-surface-200 px-2 font-mono text-[13px] font-semibold tabular-nums"
-                >
-                  {count}
-                </span>
+        <div className={cn('flex min-w-0 flex-col gap-0.5', compact && 'flex-1 flex-row items-center overflow-hidden')}>
+          {overline && <span className="text-overline">{overline}</span>}
+          <div className={cn('flex flex-wrap items-center gap-2.5', compact && 'min-w-0 flex-1 flex-nowrap')}>
+            <h1
+              className={cn(
+                'm-0 text-2xl font-bold leading-8 tracking-tight max-sm:text-xl',
+                compact && 'min-w-0 truncate text-base leading-5',
               )}
-              {signals && <span className="inline-flex gap-1.5">{signals}</span>}
-            </div>
-            {subtitle && <span className="text-[13px] text-ink-muted">{subtitle}</span>}
+            >
+              {title}
+            </h1>
+            {count != null && (
+              <span
+                role="img"
+                aria-label={`${count} ${noun}`}
+                className="inline-grid h-6 place-items-center rounded-[6px] border border-line bg-surface-200 px-2 font-mono text-[13px] font-semibold tabular-nums"
+              >
+                {count}
+              </span>
+            )}
+            {signals && <span className="inline-flex gap-1.5">{signals}</span>}
           </div>
-          {actions && (
-            <div className={cn('flex flex-wrap items-center gap-2', compact && 'shrink-0 flex-nowrap gap-1')}>
-              {actions}
-            </div>
-          )}
+          {subtitle && <span className="text-[13px] text-ink-muted">{subtitle}</span>}
         </div>
-        {toolbar && <div className="flex flex-wrap items-center gap-2">{toolbar}</div>}
-        {tabs && (
-          <div role="tablist" className="-mx-1 -mb-4 flex gap-1 overflow-x-auto">
-            {tabs.map((t) => {
-              const on = t.id === activeTab;
-              return (
-                <button
-                  key={t.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={on}
-                  onClick={() => onTab?.(t.id)}
-                  className={cn(
-                    'inline-flex h-10 cursor-pointer items-center gap-1.5 whitespace-nowrap border-b-2 border-transparent px-3 text-sm font-medium text-ink-muted hover:text-ink',
-                    on && 'border-ion font-semibold text-ink',
-                  )}
-                >
-                  {t.label}
-                  {t.count != null && <span className="font-mono text-[11px] text-ink-muted">{t.count}</span>}
-                </button>
-              );
-            })}
+        {actions && (
+          <div className={cn('flex flex-wrap items-center gap-2', compact && 'shrink-0 flex-nowrap gap-1')}>
+            {actions}
           </div>
         )}
-      </header>
-    </>
+      </div>
+      {toolbar && <div className="flex flex-wrap items-center gap-2">{toolbar}</div>}
+      {tabs && (
+        <div role="tablist" className="-mx-1 -mb-4 flex gap-1 overflow-x-auto">
+          {tabs.map((t) => {
+            const on = t.id === activeTab;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                role="tab"
+                aria-selected={on}
+                onClick={() => onTab?.(t.id)}
+                className={cn(
+                  'inline-flex h-10 cursor-pointer items-center gap-1.5 whitespace-nowrap border-b-2 border-transparent px-3 text-sm font-medium text-ink-muted hover:text-ink',
+                  on && 'border-ion font-semibold text-ink',
+                )}
+              >
+                {t.label}
+                {t.count != null && <span className="font-mono text-[11px] text-ink-muted">{t.count}</span>}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </header>
   );
 }
 
