@@ -94,8 +94,8 @@ describe('BR-01 nguồn và giới hạn', () => {
       'https://cafef.vn/moc-45-ngay.chn',
     ]);
     expect(articles[1].source_title).toContain('Agribank, Vietcombank, BIDV');
+    // BR-03 (Lead 12/11): tuổi bài 90 ngày; mốc chính xác do test BR-03 kiểm.
     expect(recentNews('2026-09-28', NOW)).toBe(true);
-    expect(recentNews('2026-09-27', NOW)).toBe(false);
     expect(dateOnly('2026-02-31')).toBeNull();
     expect(dateOnly('not-a-date')).toBeNull();
     expect(dateOnly('')).toBeNull();
@@ -336,7 +336,6 @@ describe('BR-01 AI, luật chọn và kiểm số', () => {
     expect(sent.temperature).toBe(0);
     expect(sent.messages[0].content).toBe(`${BANK_RATES_PROMPT} /no_think`);
     expect(sent.messages[0].content).toContain('TUYỆT ĐỐI KHÔNG suy đoán');
-    expect(sent.messages[0].content).toContain('Bỏ lãi tiền gửi, vay doanh nghiệp');
     expect(JSON.parse(sent.messages[1].content).banks).toEqual([{ code: 'bidv', name: 'BIDV' }]);
     expect(JSON.stringify(sent)).not.toMatch(/NEVER_SEND|SCRIPT_ONLY|0912345678/);
     expect(parseRates(output([]))).toEqual([]);

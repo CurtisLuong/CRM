@@ -38,10 +38,10 @@ const row = (code: string, name: string, promo: number) => ({
 
 describe('BR-02 giải URL Bing và lọc bài tìm kiếm', () => {
   it('cấu hình đủ hai truy vấn tiếng Việt và giữ đủ 10 trang chủ + 5 RSS cũ', () => {
-    expect(NEWS_SEARCH_FEEDS.map((feed: string) => new URL(feed).searchParams.get('q'))).toEqual([
-      'lãi suất vay mua nhà',
-      'lãi suất cho vay mua nhà ngân hàng',
-    ]);
+    // BR-03 thêm truy vấn: chỉ khoá hai truy vấn vay gốc vẫn còn.
+    expect(NEWS_SEARCH_FEEDS.map((feed: string) => new URL(feed).searchParams.get('q'))).toEqual(
+      expect.arrayContaining(['lãi suất vay mua nhà', 'lãi suất cho vay mua nhà ngân hàng']),
+    );
     for (const feed of NEWS_SEARCH_FEEDS) {
       const url = new URL(feed);
       expect(url.origin + url.pathname).toBe('https://www.bing.com/news/search');

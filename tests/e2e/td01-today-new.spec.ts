@@ -172,7 +172,7 @@ for (const scheme of ['light', 'dark'] as const) {
       const selectors = [
         'section[aria-label="Lời chào và ngày"]',
         'section[aria-label="Tổng quan mức gấp"]',
-        'section[aria-label="Lãi vay mua nhà"]',
+        'section[aria-label="Lãi suất ngân hàng"]',
         'section[aria-label="Việc quan trọng"]',
         'section[aria-label="Việc đến hạn hôm nay"]',
       ];
@@ -185,7 +185,7 @@ for (const scheme of ['light', 'dark'] as const) {
       await assertNoOverflow(page);
       await page.screenshot({ path: info.outputPath(`today-urgent-${scheme}.png`), fullPage: true });
       await page.getByRole('button', { name: 'Xem 10 ngân hàng ›' }).click();
-      const sheet = page.getByRole('dialog', { name: 'Lãi vay mua nhà', exact: true });
+      const sheet = page.getByRole('dialog', { name: 'Lãi suất ngân hàng', exact: true });
       await expect(sheet).toBeVisible();
       expect(
         await sheet
@@ -193,7 +193,8 @@ for (const scheme of ['light', 'dark'] as const) {
           .evaluateAll((elements) => elements.map((el) => el.getAttribute('aria-label'))),
       ).toEqual(BANKS.map((bank) => bank.name));
       const mb = sheet.getByRole('region', { name: 'MB', exact: true });
-      await expect(mb).toContainText('Chưa lấy được hôm nay · số 11/11');
+      await expect(mb).toContainText('Chưa lấy được hôm nay');
+      await expect(mb).toContainText('11/11');
       const vcb = sheet.getByRole('region', { name: 'Vietcombank', exact: true });
       await expect(vcb.getByRole('link', { name: 'Nguồn' })).toHaveAttribute('href', 'https://example.test/vcb');
       await expect(vcb.getByRole('link', { name: 'Nguồn' })).toHaveAttribute('target', '_blank');
@@ -204,7 +205,7 @@ for (const scheme of ['light', 'dark'] as const) {
       await vcb.getByLabel('Ghi chú ngắn').fill('Hỏi CB tín dụng');
       await vcb.getByRole('button', { name: 'Lưu', exact: true }).click();
       await expect(vcb.getByRole('img', { name: 'Anh tự sửa' })).toBeVisible();
-      await expect(vcb).toContainText('24 tháng đầu');
+      await expect(vcb).toContainText('Anh sửa'); // TD-02: số tự sửa thay dòng tháng ưu đãi
       await expect(page.getByTestId('big4-promo')).toHaveText('7,5%');
       await expect(page.getByTestId('big4-floating')).toHaveText('≈ 11,0%');
       expect(remote.writes[0]?.ui_state).toMatchObject({ profile: { phone: '0901234567' }, retained_key: true });
@@ -230,7 +231,7 @@ for (const scheme of ['light', 'dark'] as const) {
       await expect(page.getByText('Chưa có số lãi suất', { exact: true })).toBeVisible();
       const positions = await Promise.all(
         [
-          'section[aria-label="Lãi vay mua nhà"]',
+          'section[aria-label="Lãi suất ngân hàng"]',
           'section[aria-label="Không còn việc gấp"]',
           'section[aria-label="Việc quan trọng"]',
         ].map((selector) => blockY(page, selector)),
