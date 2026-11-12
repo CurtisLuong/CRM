@@ -6,7 +6,7 @@ import { VELOCITY_CONFIG } from '@/config/velocity';
 import type { Customer, Task } from '@/domain/customer';
 import { customerInterestTier, interestTierOf } from '@/domain/customer/interest';
 import { callAttemptsOf, sourceListOf } from '@/domain/customer/normalize';
-import { countdownTag, fmtClock, taskDayLabel } from '@/domain/deadlines';
+import { countdownTag, fmtClock, startOfDayMs, taskDayLabel, taskDueInfo } from '@/domain/deadlines';
 import { computeSignals, type Signal } from '@/domain/signals';
 import { fmt as fmtDuration, status as slaStatus } from '@/domain/velocity/engine';
 import { LEVEL_ORDER, type Level, signalFor, slaFor, slaMeterFor } from '@/lib/crm';
@@ -15,6 +15,33 @@ import { callResultLabel, displayText, sourceLabel } from '@/ui/display';
 export type QueueFilter = 'priority' | 'new' | 'promise' | 'opportunity';
 export type QueueRow = { signal: Signal; customer: Customer; minutes: number };
 export type CapacitySnoozeCandidate = { customer: Customer; task: Task };
+
+export function importantTasks(customers: readonly Customer[], now: number, userId: string) {
+  const today = startOfDayMs(now);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  return customers
+    .flatMap((customer) => {
+      if (customer.owner_id !== userId || customer.archived_at) return [];
+      return (customer.next_tasks ?? []).flatMap((task) => {
+        if (!task || task.done_at || !['visit', 'docs', 'cafe', 'contract'].includes(task.kind ?? '')) return [];
+        const due = taskDueInfo(task, now);
+        if (!due) return [];
+        const day = startOfDayMs(due.ms);
+        if (day !== today && day !== tomorrow.getTime()) return [];
+        return [
+          {
+            customer,
+            task,
+            due: due.ms,
+            day: day === today ? 'Hôm nay' : 'Mai',
+            time: task.due_allday ? 'Cả ngày' : fmtClock(due.ms),
+          },
+        ];
+      });
+    })
+    .sort((a, b) => a.due - b.due);
+}
 
 /** Start of the next configured calling slot, using local time like D-005. */
 export function nextCallSlotStart(now: number, notBefore = now): number {

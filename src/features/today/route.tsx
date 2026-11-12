@@ -7,20 +7,23 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { SIGNALS_CONFIG } from '@/config/signals';
+import { taskKindOf } from '@/config/taskKinds';
 import { useCustomers, useRepositoryAccount, useSyncStatus } from '@/data/hooks';
 import { isDemoAvailable } from '@/data/supabase';
 import type { Task } from '@/domain/customer';
 import { snoozePromise, undoPromiseSnooze } from '@/domain/deadlines/promises';
 import { forStage } from '@/domain/followup';
 import { applySlaPlan, planSlaAutomation, slaPlanMessage } from '@/domain/velocity/automation';
+import { BankRatesCard } from '@/features/bank-rates/BankRatesCard';
 import { CustomerSheet } from '@/features/customer-sheet/CustomerSheet';
 import { ClassifyLeadSheet, canClassify } from '@/features/leads/ClassifySheet';
 import { CompleteTaskDialog, type TaskCompletionTarget } from '@/features/profile/complete-task';
 import { callDraftOf, pendingCallsOf } from '@/features/quick-actions/model';
 import { openQuickAction } from '@/features/quick-actions/store';
 import { AssignCustomerSheet, canAssignWithTeam, useTeamMembers } from '@/features/team/AssignSheet';
-import { ACTION_BY_ID, type ActionId, NOTIF_TYPES, slaMeterFor } from '@/lib/crm';
+import { ACTION_BY_ID, type ActionId, NOTIF_TYPES, slaMeterFor, stageDef } from '@/lib/crm';
 import { customerNeed } from '@/lib/crm/customer-need';
+import { greeting, todayDateLine } from './lunar';
 import {
   callSessionRows,
   capacityPlan,
@@ -28,6 +31,7 @@ import {
   endOfDaySummary,
   formatSignalEvidence,
   groupQueue,
+  importantTasks,
   nextCallSlotStart,
   type QueueRow,
   queueRows,
@@ -149,6 +153,8 @@ export function TodayPage() {
   const summary = endOfDaySummary(customers, now);
   // Một định nghĩa quá hạn (D-010) và một quy tắc hành động (kể cả tín hiệu phụ) — cùng nguồn với thẻ.
   const counts = todayUrgencyCounts(rows, now);
+  const noUrgent = counts.alert === 0 && counts.soon === 0;
+  const important = account ? importantTasks(customers, now, account.sync.local.userId) : [];
   const sessionMinutes = sessionRows.reduce((sum, row) => sum + row.minutes, 0);
   const afterEvening = new Date(now).getHours() >= 20 && new Date(now).getMinutes() >= 45;
   const currentReadState = readState.account === account ? readState : { account, status: 'loading' as const };
@@ -354,12 +360,48 @@ export function TodayPage() {
   };
 
   return (
-    <main className="mx-auto flex max-w-3xl flex-col p-4 pt-3 pb-24">
+    <main className="mx-auto flex max-w-3xl flex-col p-4 pt-1 pb-24">
+      <section aria-label="Lời chào và ngày" className="mb-0">
+        <h2 className="text-body font-semibold">
+          {greeting(now, teamMembers.find((member) => member.is_me)?.full_name)}
+        </h2>
+        <p className="text-caption text-ink-muted">{todayDateLine(now)}</p>
+      </section>
       <section className="grid grid-cols-3 gap-2" aria-label="Tổng quan mức gấp">
         <StatTile compact level="alert" label="Quá hạn" value={counts.alert} />
         <StatTile compact level="soon" label="Đến giờ hôm nay" value={counts.soon} />
         <StatTile compact level="ok" label="Đúng hẹn" value={counts.ok} />
       </section>
+      <BankRatesCard key={account.sync.local.userId} account={account} now={now} compact={noUrgent} />
+      {noUrgent && (
+        <section aria-label="Không còn việc gấp" className="mt-3 rounded-md border border-line bg-surface-100 p-3">
+          <h2 className="text-section-head">Hôm nay không còn việc gấp</h2>
+        </section>
+      )}
+      {important.length > 0 && (
+        <section aria-label="Việc quan trọng" className="mt-3">
+          <h2 className="mb-2 text-section-head">Việc quan trọng</h2>
+          <div className="flex flex-col gap-2">
+            {important.map(({ customer, task, time, day }) => (
+              <button
+                key={`${customer.id}:${task.key || task.at || task.due}`}
+                type="button"
+                onClick={() => navigate(`/ho-so/${customer.id}`)}
+                className="flex min-h-11 w-full min-w-0 items-start gap-3 rounded-md border border-line bg-surface-100 p-3 text-left"
+              >
+                <span className="shrink-0 text-numeric">{time}</span>
+                <span className="min-w-0 flex-1 break-words">
+                  <span className="block text-label font-semibold">{task.text || taskKindOf(task.kind).label}</span>
+                  <span className="block text-caption text-ink-muted">
+                    {customer.full_name} · {taskKindOf(task.kind).label} · {stageDef(customer.care_stage).label}
+                  </span>
+                </span>
+                <span className="shrink-0 text-caption text-ink-muted">{day}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
       {sessionRows.length === 0 && (
         <div className="mt-2 text-caption text-ink-muted">
           {rows.length} việc · ~{plan.minutes} phút
@@ -464,11 +506,14 @@ export function TodayPage() {
         </div>
       )}
 
-      {groupQueue(rows).map((group) => {
+      {groupQueue(rows).map((group, index, groups) => {
         if (group.collapsed) {
           const opened = !!openCollapsed[group.key];
           return (
             <section key={group.key} aria-label={group.title} className="mt-2">
+              {noUrgent && !groups.slice(0, index).some((entry) => entry.collapsed) && (
+                <h2 className="mb-2 text-section-head">Rảnh thì chăm khách</h2>
+              )}
               <button
                 type="button"
                 aria-expanded={opened}
@@ -511,14 +556,6 @@ export function TodayPage() {
           </section>
         );
       })}
-
-      {!rows.length && (
-        <EmptyState
-          kind="done"
-          title="Đã xử lý các việc ưu tiên"
-          text="Chưa có tín hiệu cần hành động. Không tạo việc giả."
-        />
-      )}
 
       {(afterEvening || showSummary) && (
         <section className="mt-3 rounded-md border border-line bg-surface-100 p-4">
