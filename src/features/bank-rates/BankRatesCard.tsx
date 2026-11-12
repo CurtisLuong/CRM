@@ -6,18 +6,18 @@ import { BANKS, type BankCode } from '@/config/banks';
 import type { RepositoryAccount } from '@/data/repositories/session';
 import { Icon } from '@/ui/Icon';
 import {
-  big4Average,
-  fetchedLabel,
+  bankRateRows,
   formatRate,
+  formatRateDay,
   type OverrideDraft,
   parseOverride,
   type RateCache,
   type RateOverride,
-  rateFor,
+  rateSummary,
   readOverrides,
   readRateCache,
   readRates,
-  sourceUrl,
+  vietnamDay,
   writeRateCache,
 } from './model';
 
@@ -54,12 +54,14 @@ function OverrideForm({
   onCancel: () => void;
 }) {
   const [draft, setDraft] = useState<OverrideDraft>({
+    deposit_rate: value?.deposit_rate?.toString() ?? '',
     promo_rate: value?.promo_rate?.toString() ?? '',
     promo_months: value?.promo_months?.toString() ?? '',
     floating_rate: value?.floating_rate?.toString() ?? '',
     note: value?.note ?? '',
   });
   const fields = [
+    ['deposit_rate', 'Gửi 12 tháng (%)'],
     ['promo_rate', 'Lãi ưu đãi (%)'],
     ['promo_months', 'Số tháng ưu đãi'],
     ['floating_rate', 'Lãi thả nổi (%)'],
@@ -187,65 +189,66 @@ export function BankRatesCard({
       if (alive.current) setBusy(false);
     }
   };
-  const average = big4Average(cache.rates, cache.overrides);
-  const noRates = average.promo === null && average.floating === null;
-  const newest = cache.rates
-    .map((row) => row.fetched_at)
-    .filter((at): at is string => !!at && Number.isFinite(Date.parse(at)))
-    .sort((a, b) => Date.parse(b) - Date.parse(a))[0];
+  const rows = bankRateRows(cache.rates, cache.overrides);
+  const average = rateSummary(rows.filter((bank) => bank.big4));
+  const summary = rateSummary(rows);
+  const newest = summary.updatedOn;
+  const noRates = average.deposit === null && average.promo === null && average.floating === null;
+  const today = vietnamDay(new Date(now).toISOString());
+  const metrics = [
+    { key: 'deposit', label: 'Gửi TB', hint: '12 tháng', value: average.deposit },
+    { key: 'promo', label: 'Vay ưu đãi TB', hint: 'cố định đầu kỳ', value: average.promo },
+    { key: 'floating', label: 'Thả nổi TB', hint: 'sau ưu đãi', value: average.floating },
+  ] as const;
   return (
     <>
-      <section aria-label="Lãi vay mua nhà" className="mt-2 rounded-md border border-line bg-surface-100 px-3 py-1">
+      <section aria-label="Lãi suất ngân hàng" className="mt-2 rounded-md border border-line bg-surface-100 px-3 py-2">
         {compact ? (
-          <>
-            <Button
-              variant="ghost"
-              aria-label="Xem 10 ngân hàng ›"
-              className="min-h-11 h-auto w-full justify-between gap-1 whitespace-normal px-0 text-left text-ink"
-              onClick={() => setOpen(true)}
-            >
-              <span className="text-caption font-semibold">Lãi vay mua nhà · TB Big 4</span>
-              <span className="shrink-0 text-caption">
-                <span className="sr-only">Ưu đãi trung bình </span>
-                <strong data-testid="big4-promo">{formatRate(average.promo)}</strong>
-                {' · '}
-                <span className="sr-only">Thả nổi trung bình </span>
-                <strong data-testid="big4-floating">
-                  {average.floating === null ? '—' : `≈ ${formatRate(average.floating)}`}
-                </strong>
-                {' ›'}
-              </span>
-            </Button>
-            {noRates && <p className="text-hint">Chưa có số lãi suất</p>}
-            {newest && <p className="text-caption text-ink-muted">{fetchedLabel(newest, now)}</p>}
-          </>
+          <Button
+            variant="ghost"
+            aria-label="Xem 10 ngân hàng ›"
+            className="min-h-11 h-auto w-full flex-col items-stretch gap-1 whitespace-normal px-0 text-left text-ink"
+            onClick={() => setOpen(true)}
+          >
+            <span className="text-caption font-semibold">Lãi suất ngân hàng · TB Big 4</span>
+            <span className="flex flex-wrap justify-between gap-2 text-caption">
+              {metrics.map((metric) => (
+                <span key={metric.key}>
+                  <span className="sr-only">{metric.label} </span>
+                  <strong data-testid={`big4-${metric.key}`}>
+                    {metric.key === 'floating' && metric.value !== null ? '≈ ' : ''}
+                    {formatRate(metric.value)}
+                  </strong>
+                </span>
+              ))}
+              <span aria-hidden="true">›</span>
+            </span>
+          </Button>
         ) : (
           <>
-            <h2 className="text-label font-semibold">Lãi vay mua nhà · TB Big 4</h2>
-            <div className="mt-1 grid grid-cols-2 gap-2">
-              <p className="text-caption text-ink-muted">
-                Ưu đãi trung bình{' '}
-                <strong className="text-numeric text-ink" data-testid="big4-promo">
-                  {formatRate(average.promo)}
-                </strong>
-              </p>
-              <p className="text-caption text-ink-muted">
-                Thả nổi trung bình{' '}
-                <strong className="text-numeric text-ink" data-testid="big4-floating">
-                  {average.floating === null ? '—' : `≈ ${formatRate(average.floating)}`}
-                </strong>
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center justify-between gap-x-2">
-              <div>
-                {noRates && <p className="text-hint">Chưa có số lãi suất</p>}
-                {newest && <p className="text-caption text-ink-muted">{fetchedLabel(newest, now)}</p>}
-              </div>
-              <Button variant="ghost" className="min-h-11 px-0" onClick={() => setOpen(true)}>
-                Xem 10 ngân hàng ›
-              </Button>
+            <h2 className="text-label font-semibold">Lãi suất ngân hàng · TB Big 4</h2>
+            <div className="mt-2 grid grid-cols-3 gap-1">
+              {metrics.map((metric) => (
+                <div key={metric.key} className="min-w-0 rounded-md bg-surface-200 px-2 py-2">
+                  <p className="text-caption text-ink-muted">{metric.label}</p>
+                  <strong className="block text-numeric text-ink" data-testid={`big4-${metric.key}`}>
+                    {metric.key === 'floating' && metric.value !== null ? '≈ ' : ''}
+                    {formatRate(metric.value)}
+                  </strong>
+                  <p className="text-caption text-ink-muted">{metric.hint}</p>
+                </div>
+              ))}
             </div>
           </>
+        )}
+        {noRates && <p className="text-hint">Chưa có số lãi suất</p>}
+        {average.updatedOn && (
+          <p className="mt-1 text-caption text-ink-muted">Cập nhật cuối: {formatRateDay(average.updatedOn)}</p>
+        )}
+        {!compact && (
+          <Button variant="ghost" className="min-h-11 w-full justify-between px-0" onClick={() => setOpen(true)}>
+            Xem 10 ngân hàng ›
+          </Button>
         )}
       </section>
       <Sheet
@@ -256,11 +259,9 @@ export function BankRatesCard({
       >
         <SheetContent mobileHeight="90dvh" width={520}>
           <SheetHeader>
-            <SheetTitle>Lãi vay mua nhà</SheetTitle>
-            <SheetDescription>10 ngân hàng · %/năm</SheetDescription>
-          </SheetHeader>
-          <SheetBody>
-            <div className="flex flex-wrap gap-x-4 gap-y-2 text-caption text-ink-muted">
+            <SheetTitle>Lãi suất ngân hàng</SheetTitle>
+            {newest && <SheetDescription>Cập nhật cuối: {formatRateDay(newest)}</SheetDescription>}
+            <div className="flex flex-wrap gap-x-3 gap-y-2 text-caption text-ink-muted">
               {(Object.keys(SOURCES) as (keyof typeof SOURCES)[]).map((kind) => (
                 <span key={kind} className="flex items-center gap-2">
                   <SourceDot kind={kind} />
@@ -268,20 +269,78 @@ export function BankRatesCard({
                 </span>
               ))}
             </div>
-            {cache.rates.length === 0 && <p className="text-hint">Chưa có số</p>}
-            {BANKS.map((bank, index) => {
-              const row = cache.rates.find((rate) => rate.bank_code === bank.code);
-              const override = cache.overrides[bank.code];
-              const effective = rateFor(row, override);
-              const url = sourceUrl(row?.source_url);
+          </SheetHeader>
+          <SheetBody className="px-3">
+            <div className="grid grid-cols-[minmax(0,1fr)_3.25rem_3.25rem_3.5rem_2.75rem] items-center gap-1 text-caption text-ink-muted">
+              <span>Ngân hàng</span>
+              <span className="text-right">Gửi 12T</span>
+              <span className="text-right">Vay ƯĐ</span>
+              <span className="text-right">Thả nổi</span>
+            </div>
+            {summary.deposit === null && summary.promo === null && summary.floating === null && (
+              <p className="text-hint">Chưa có số</p>
+            )}
+            {rows.map((bank, index) => {
+              const override = bank.override;
+              const fetched = vietnamDay(bank.source?.fetched_at);
+              const stale = fetched && today && fetched < today;
               return (
                 <div key={bank.code}>
                   {(index === 0 || (BANKS[index - 1]?.big4 && !bank.big4)) && (
                     <h3 className="mb-2 text-section-head">{bank.big4 ? 'Big 4' : 'Ngân hàng TMCP khác'}</h3>
                   )}
                   <section aria-label={bank.name} className="border-b border-line pb-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <h4 className="text-body font-semibold">{bank.name}</h4>
+                    <div className="grid grid-cols-[minmax(0,1fr)_3.25rem_3.25rem_3.5rem_2.75rem] items-center gap-1">
+                      <div className="min-w-0 break-words">
+                        <h4 className="text-label font-semibold">{bank.name}</h4>
+                        <div className="text-caption text-ink-muted">
+                          <div className="flex items-center gap-1">
+                            {(override || bank.source) && (
+                              <SourceDot
+                                kind={override ? 'manual' : bank.source?.source_kind === 'bank' ? 'bank' : 'news'}
+                              />
+                            )}
+                            {override ? (
+                              <span>Anh sửa</span>
+                            ) : bank.promo_months ? (
+                              <span>{bank.promo_months.toLocaleString('vi-VN')} tháng đầu</span>
+                            ) : null}
+                          </div>
+                          <div className="flex flex-wrap items-center gap-x-1">
+                            {bank.detailDay && (
+                              <span>
+                                {formatRateDay(bank.detailDay, false)}
+                                {override?.note || (!override && bank.url) ? ' ·' : ''}
+                              </span>
+                            )}
+                            {override
+                              ? override.note
+                              : bank.url && (
+                                  <a
+                                    className="inline-flex min-h-11 items-center text-ion underline"
+                                    href={bank.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                  >
+                                    Nguồn
+                                  </a>
+                                )}
+                          </div>
+                          {stale && <p className="text-hint">Chưa lấy được hôm nay</p>}
+                        </div>
+                      </div>
+                      <span className="text-right text-numeric">
+                        <span className="sr-only">Gửi 12T </span>
+                        {formatRate(bank.deposit_rate)}
+                      </span>
+                      <span className="text-right text-numeric">
+                        <span className="sr-only">Vay ƯĐ </span>
+                        {formatRate(bank.promo_rate)}
+                      </span>
+                      <span className="text-right text-numeric">
+                        <span className="sr-only">Thả nổi </span>
+                        {bank.floating_rate === null ? '—' : `≈${formatRate(bank.floating_rate)}`}
+                      </span>
                       <Button
                         variant="ghost"
                         size="icon"
@@ -295,38 +354,6 @@ export function BankRatesCard({
                         <Icon name="note" />
                       </Button>
                     </div>
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-label">
-                      <span>
-                        Ưu đãi {formatRate(effective.promo_rate)}
-                        {effective.promo_months ? ` · ${effective.promo_months.toLocaleString('vi-VN')} tháng đầu` : ''}
-                      </span>
-                      <span>
-                        Thả nổi {effective.floating_rate === null ? '—' : `≈ ${formatRate(effective.floating_rate)}`}
-                      </span>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2 text-caption text-ink-muted">
-                      {override && (
-                        <>
-                          <SourceDot kind="manual" />
-                          <span>Anh tự sửa</span>
-                        </>
-                      )}
-                      {row && <SourceDot kind={row.source_kind === 'bank' ? 'bank' : 'news'} />}
-                      {url && (
-                        <a
-                          className="inline-flex min-h-11 items-center text-ion underline"
-                          href={url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          Nguồn
-                        </a>
-                      )}
-                    </div>
-                    {fetchedLabel(row?.fetched_at, now, true) && (
-                      <p className="text-hint">{fetchedLabel(row?.fetched_at, now, true)}</p>
-                    )}
-                    {effective.note && <p className="break-words text-hint">{effective.note}</p>}
                     {editing === bank.code && (
                       <OverrideForm
                         key={bank.code}
