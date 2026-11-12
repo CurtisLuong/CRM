@@ -166,7 +166,9 @@ export async function handleBankRates(request, env) {
   if (request.headers.get('X-Cron-Secret') !== env.BANK_RATES_SECRET) return json({ error: 'Unauthorized' }, 401);
   try {
     return json(await runBankRates(env), 200);
-  } catch {
+  } catch (error) {
+    // Lý do chỉ ghi nhật ký Worker (wrangler tail), không trả ra ngoài.
+    console.error('bank-rates run failed', error instanceof Error ? error.message : String(error));
     return json({ error: 'Không cập nhật được lãi suất; giữ bản cũ.' }, 503);
   }
 }

@@ -170,7 +170,7 @@ export default {
       ctx.waitUntil(
         runBankRates(env)
           .then((r) => console.log('bank-rates cron', JSON.stringify(r)))
-          .catch(() => console.error('bank-rates cron lỗi; giữ bản cũ')),
+          .catch((e) => console.error('bank-rates cron lỗi; giữ bản cũ', e instanceof Error ? e.message : String(e))),
       );
       return;
     }

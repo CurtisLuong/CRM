@@ -46,3 +46,8 @@ order by bank_code, fetched_at desc;
 
 revoke all on table public.bank_rates_latest from public, anon;
 grant select on table public.bank_rates_latest to authenticated;
+
+-- Worker ghi bằng service_role: cấp rõ (project mới có thể không tự cấp quyền bảng mới cho Data API).
+grant select, insert on table public.bank_rates to service_role;
+grant usage, select on sequence public.bank_rates_id_seq to service_role;
+grant select on table public.bank_rates_latest to service_role;
