@@ -202,7 +202,7 @@
    Thanh đầu kiểu màn Calls Android (Curtis 12/11): cả thanh (gồm status bar) mờ đều; lớp kính kéo dài 24px dưới mép thanh,
    ở đó độ nhoè lẫn lớp màu nhạt dần về 0 → không còn đường ranh, nội dung cuộn hiện thành mảng màu nhoè, không đọc được chữ.
    Phần kéo dài không nhận chạm (pointer-events none); thanh dính ngay dưới (tab hồ sơ) đặt z cao hơn để không bị nhoè.
-   Màu nền chỉ ~40–48% (Curtis 12/11: giảm 40%) — nội dung lộ màu rõ, blur 24px giữ chữ phía sau không đọc được.
+   Màu nền ~32–38%, blur 17px (Curtis 12/11: giảm dần cho nội dung phía sau rõ hơn).
    Lớp kính là ::before (z -1 trong ngữ cảnh xếp lớp của thanh sticky) để icon/tiêu đề luôn nằm trên. Máy không hỗ trợ blur → nền đặc. */
 @utility bg-glass {
   background-color: var(--surface-0);
@@ -216,12 +216,12 @@
       pointer-events: none;
       background: linear-gradient(
         to bottom,
-        color-mix(in oklab, var(--surface-0) 48%, transparent) 0%,
-        color-mix(in oklab, var(--surface-0) 40%, transparent) calc(100% - 24px),
+        color-mix(in oklab, var(--surface-0) 38%, transparent) 0%,
+        color-mix(in oklab, var(--surface-0) 32%, transparent) calc(100% - 24px),
         color-mix(in oklab, var(--surface-0) 0%, transparent) 100%
       );
-      -webkit-backdrop-filter: blur(24px) saturate(1.6);
-      backdrop-filter: blur(24px) saturate(1.6);
+      -webkit-backdrop-filter: blur(17px) saturate(1.6);
+      backdrop-filter: blur(17px) saturate(1.6);
       -webkit-mask-image: linear-gradient(to bottom, black calc(100% - 24px), transparent 100%);
       mask-image: linear-gradient(to bottom, black calc(100% - 24px), transparent 100%);
     }
