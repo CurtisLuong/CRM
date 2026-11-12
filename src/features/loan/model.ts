@@ -262,3 +262,30 @@ export function presetParams(key: string) {
   const preset = BANK_PRESETS.find((p) => p.key === key) ?? BANK_PRESETS[0];
   return { ...structuredClone(DEFAULT_LOAN), ...structuredClone(preset), presetKey: key };
 }
+
+/** Chỉ đổi cách trình bày bậc cuối; engine vẫn nhận các bậc cố định nối tiếp. */
+export function remainingRateMonths(loan: LoanParams) {
+  return Math.max(0, Number(loan.termYears) * 12 - loan.rateTiers.reduce((sum, tier) => sum + Number(tier.months), 0));
+}
+
+export function appendFixedRateTier(loan: LoanParams): LoanParams {
+  return { ...loan, rateTiers: [...loan.rateTiers, { months: 12, rate: 6.5 }] };
+}
+
+export function removeLastFixedRateTier(loan: LoanParams): LoanParams {
+  return { ...loan, rateTiers: loan.rateTiers.slice(0, -1) };
+}
+
+export function hasUnitPrefill(prefill: LoanPrefill) {
+  return ['projectName', 'building', 'code', 'aptType', 'area', 'pricePerM2', 'netOverride'].some(
+    (key) => prefill[key] != null && prefill[key] !== '',
+  );
+}
+
+export function quoteToAutoOpen<T extends { created_at: string }>(quotes: T[], prefill: LoanPrefill): T | null {
+  if (hasUnitPrefill(prefill)) return null;
+  return quotes.reduce<T | null>(
+    (latest, quote) => (!latest || quote.created_at > latest.created_at ? quote : latest),
+    null,
+  );
+}
