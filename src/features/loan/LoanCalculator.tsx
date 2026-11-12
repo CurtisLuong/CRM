@@ -15,6 +15,7 @@ import { type Customer, isQualified } from '@/domain/customer';
 import { BANK_PRESETS, type BankPreset, type ComputeResult, calcPrice, compute, type Numeric } from '@/domain/loan';
 import { useTeamMembers } from '@/features/team/AssignSheet';
 import { useMyPhone } from '@/features/team/profile';
+import { cn } from '@/lib/utils';
 import { displayDate } from '@/ui/display';
 import {
   appendFixedRateTier,
@@ -775,9 +776,12 @@ function CalculatorForm({
           <div className={`${LONG_FIELD} flex flex-wrap gap-2`}>
             <Button onClick={() => loan(appendFixedRateTier(state.loan))}>Thêm bậc lãi</Button>
             <label
-              className={buttonVariants({
-                className: `relative ${state.loan.graceEnabled ? 'border-ion bg-ion-tint' : ''}`,
-              })}
+              // cn (twMerge) để màu khung/nền trạng thái thắng border-transparent/bg của biến thể (cva không gộp lớp trùng).
+              className={cn(
+                buttonVariants(),
+                'relative',
+                state.loan.graceEnabled ? 'border-ion bg-ion-tint text-ink' : 'border-line',
+              )}
             >
               <input
                 type="checkbox"
@@ -787,7 +791,10 @@ function CalculatorForm({
               />
               <span
                 aria-hidden="true"
-                className="grid size-4 place-items-center rounded-sm border border-input text-ion"
+                className={cn(
+                  'grid size-4 place-items-center rounded-sm border text-[11px] leading-none',
+                  state.loan.graceEnabled ? 'border-ion bg-ion text-on-ion' : 'border-input',
+                )}
               >
                 {state.loan.graceEnabled ? '✓' : ''}
               </span>
