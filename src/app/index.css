@@ -199,10 +199,10 @@
   color: var(--ink-muted);
 }
 /* Kính mờ cho thanh đầu (surface-0) và tab đáy (surface-100) — D-034 (ngoại lệ D-023, Curtis 11/11), KHÔNG dùng cho thẻ/nội dung.
-   Thanh đầu kiểu màn Calls Android (Curtis 12/11): cả thanh (gồm status bar) mờ đều; lớp kính kéo dài 24px dưới mép thanh,
-   ở đó độ nhoè lẫn lớp màu nhạt dần về 0 → không còn đường ranh, nội dung cuộn hiện thành mảng màu nhoè, không đọc được chữ.
+   Thanh đầu kiểu màn Calls Android (Curtis 12/11): nửa trên thanh (gồm status bar) mờ đều; từ 56% chiều cao thanh tới 10px dưới mép,
+   độ nhoè lẫn lớp màu nhạt dần về 0 → không còn đường ranh, nội dung cuộn hiện mờ nhẹ phía sau.
    Phần kéo dài không nhận chạm (pointer-events none); thanh dính ngay dưới (tab hồ sơ) đặt z cao hơn để không bị nhoè.
-   Màu nền ~22–27%, blur 17px (Curtis 12/11: giảm dần cho nội dung phía sau rõ hơn).
+   Thông số Curtis tự chỉnh trên mockup (12/11): màu 20% → 3% tại 56% chiều cao, blur 4px, saturate 1.6, kéo 10px dưới mép.
    Lớp kính là ::before (z -1 trong ngữ cảnh xếp lớp của thanh sticky) để icon/tiêu đề luôn nằm trên. Máy không hỗ trợ blur → nền đặc. */
 @utility bg-glass {
   background-color: var(--surface-0);
@@ -211,19 +211,19 @@
     &::before {
       content: "";
       position: absolute;
-      inset: 0 0 -24px;
+      inset: 0 0 -10px;
       z-index: -1;
       pointer-events: none;
       background: linear-gradient(
         to bottom,
-        color-mix(in oklab, var(--surface-0) 27%, transparent) 0%,
-        color-mix(in oklab, var(--surface-0) 22%, transparent) calc(100% - 24px),
+        color-mix(in oklab, var(--surface-0) 20%, transparent) 0%,
+        color-mix(in oklab, var(--surface-0) 3%, transparent) calc((100% - 10px) * 0.56),
         color-mix(in oklab, var(--surface-0) 0%, transparent) 100%
       );
-      -webkit-backdrop-filter: blur(17px) saturate(1.6);
-      backdrop-filter: blur(17px) saturate(1.6);
-      -webkit-mask-image: linear-gradient(to bottom, black calc(100% - 24px), transparent 100%);
-      mask-image: linear-gradient(to bottom, black calc(100% - 24px), transparent 100%);
+      -webkit-backdrop-filter: blur(4px) saturate(1.6);
+      backdrop-filter: blur(4px) saturate(1.6);
+      -webkit-mask-image: linear-gradient(to bottom, black calc((100% - 10px) * 0.56), transparent 100%);
+      mask-image: linear-gradient(to bottom, black calc((100% - 10px) * 0.56), transparent 100%);
     }
   }
 }
