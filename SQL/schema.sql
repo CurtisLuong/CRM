@@ -223,3 +223,4 @@ on conflict (name, owner_id) do nothing;
 --      SQL/v2/014_team_log_edit.sql        → khách đã giao/khách nhóm: người theo dõi ghi giùm cuộc gọi, tương tác, ghi chú (D-032; nới trigger của 010)
 --      SQL/v2/015_stage_history_dedupe.sql → dọn mốc bậc cùng bậc của khách đang chăm sóc → Ghi chú (ST-01); bảng sao lưu customer_stage_history_backup_015 (chỉ postgres/service)
 --      SQL/v2/016_bank_rates.sql           → Lãi vay mua nhà 10 ngân hàng (BR-01): bảng bank_rates (Worker ghi bằng service role) + view bank_rates_latest, authenticated chỉ đọc
+--      SQL/v2/017_bank_rates_deposit.sql   → Lãi gửi 12 tháng: bank_rates thêm kind (loan|deposit) + deposit_rate; view bank_rates_latest theo (bank_code, kind)

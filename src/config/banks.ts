@@ -25,3 +25,6 @@ export type BankCode = (typeof BANKS)[number]['code'];
 
 /** Kiểm số hợp lý trước khi hiện (số ngoài khoảng coi như không có). Đơn vị %/năm. */
 export const BANK_RATE_LIMITS = { min: 3, max: 20 } as const;
+
+/** Lãi gửi tiết kiệm 12 tháng hợp lệ (%/năm); ngoài khoảng coi như không có. */
+export const DEPOSIT_RATE_LIMITS = { min: 1, max: 12 } as const;
