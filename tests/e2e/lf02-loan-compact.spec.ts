@@ -15,10 +15,10 @@ for (const theme of ['light', 'dark'] as const) {
     await unitPrice.fill('25');
     await expect(page.getByRole('table', { name: 'Phiếu giá', exact: true })).toContainText('1.340.000.000');
 
-    // Tư vấn viên là nhóm đầu tiên của form (ngay sau ô chọn khách). UI-03c (Curtis 08/11): mỗi nhóm là một khu
-    // có thẻ, tiêu đề khu `h2.text-title`; mục con (Tiến độ, Bậc lãi suất) mới dùng `text-section-head`.
+    // UI-03c (Curtis 08/11): mỗi nhóm là một khu có thẻ, tiêu đề khu `h2.text-title`; mục con dùng `text-section-head`.
+    // Curtis 12/11: bỏ nhóm "Tư vấn viên trên phiếu" (lấy từ cài đặt tài khoản).
     const heads = await page.locator('h2.text-title').allTextContents();
-    expect(heads.slice(0, 2)).toEqual(['Khách hàng (không bắt buộc)', 'Tư vấn viên trên phiếu']);
+    expect(heads).not.toContain('Tư vấn viên trên phiếu');
 
     // Ô ngắn cùng hàng: Toà | Mã căn, Loại căn | Diện tích, Đơn giá | Phí, Ngày ký | Ngày bàn giao.
     for (const [a, b] of [
