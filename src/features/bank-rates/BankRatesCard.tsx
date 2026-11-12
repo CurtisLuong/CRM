@@ -194,16 +194,18 @@ export function BankRatesCard({
   const summary = rateSummary(rows);
   const newest = summary.updatedOn;
   const noRates = average.deposit === null && average.promo === null && average.floating === null;
+  // Chưa có số nào → thẻ 1 dòng như dạng thu gọn, không chiếm màn đầu bằng 3 ô trống.
+  const slim = compact || noRates;
   const today = vietnamDay(new Date(now).toISOString());
   const metrics = [
     { key: 'deposit', label: 'Gửi TB', hint: '12 tháng', value: average.deposit },
-    { key: 'promo', label: 'Vay ưu đãi TB', hint: 'cố định đầu kỳ', value: average.promo },
+    { key: 'promo', label: 'Vay ưu đãi TB', hint: 'cố định', value: average.promo },
     { key: 'floating', label: 'Thả nổi TB', hint: 'sau ưu đãi', value: average.floating },
   ] as const;
   return (
     <>
       <section aria-label="Lãi suất ngân hàng" className="mt-2 rounded-md border border-line bg-surface-100 px-3 py-2">
-        {compact ? (
+        {slim ? (
           <Button
             variant="ghost"
             aria-label="Xem 10 ngân hàng ›"
@@ -242,13 +244,20 @@ export function BankRatesCard({
           </>
         )}
         {noRates && <p className="text-hint">Chưa có số lãi suất</p>}
-        {average.updatedOn && (
-          <p className="mt-1 text-caption text-ink-muted">Cập nhật cuối: {formatRateDay(average.updatedOn)}</p>
-        )}
-        {!compact && (
-          <Button variant="ghost" className="min-h-11 w-full justify-between px-0" onClick={() => setOpen(true)}>
-            Xem 10 ngân hàng ›
-          </Button>
+        {/* Ngày + nút chung một hàng: thẻ thấp để màn đầu 360px vẫn thấy thẻ việc (D-023 L1). */}
+        {(average.updatedOn || !slim) && (
+          <div className="flex items-center justify-between gap-2">
+            {average.updatedOn ? (
+              <p className="text-caption text-ink-muted">Cập nhật cuối: {formatRateDay(average.updatedOn)}</p>
+            ) : (
+              <span />
+            )}
+            {!slim && (
+              <Button variant="ghost" className="min-h-11 shrink-0 px-0" onClick={() => setOpen(true)}>
+                Xem 10 ngân hàng ›
+              </Button>
+            )}
+          </div>
         )}
       </section>
       <Sheet
