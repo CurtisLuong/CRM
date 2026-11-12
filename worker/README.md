@@ -82,3 +82,63 @@ Tóm tắt kỹ thuật:
 
 ## Kiểm thử code
 `npx vitest run tests/worker` — giả lập Supabase + Graph (không gọi mạng thật).
+
+## Lãi vay mua nhà mỗi sáng (BR-01)
+
+`bank-rates.js` đọc trang chủ 10 ngân hàng, theo liên kết về lãi suất/vay nhà (tối đa
+3 trang/ngân hàng) và đọc bài từ 5 RSS cấu hình trong `bank-rates-config.js`.
+Bài báo phải có từ khóa về lãi vay và ngày đăng không quá 45 ngày. Mỗi lượt tối đa
+30 HTTP request công khai, tính cả RSS, redirect và nguồn lỗi. Nội dung HTML/script
+được bỏ, hotline được ẩn, văn bản gửi Workers AI Qwen tối đa 12.000 ký tự/trang.
+Không gọi AI bên ngoài binding `AI`.
+
+AI phải trả JSON đúng khuôn với trích dẫn cho từng số. Worker đối chiếu trích dẫn
+với văn bản, kiểm khoảng lãi 3–20%/năm, cộng tham chiếu + biên độ nếu đủ số, bỏ
+thả nổi thấp hơn ưu đãi. Biên độ tính bằng điểm %, có thể nhỏ hơn 3. Trong cùng
+lượt: nguồn ngân hàng thắng báo, cùng loại chọn ngày đăng mới hơn; không ghép gói
+giữa các trang. Lệch hơn 2 điểm so với bản mới nhất thì bỏ cả dòng và log cảnh báo.
+Không có số hợp lệ thì không ghi; bản cũ trong `bank_rates_latest` vẫn giữ nguyên.
+Lỗi đọc bản cũ từ Supabase làm dừng lượt trước khi ghi.
+
+Cron `0 0 * * *` chạy lúc **07:00 Việt Nam**, tách biệt cron Facebook `*/5`.
+Các yêu cầu đồng thời trong cùng isolate được gộp; cùng ngày đã hoàn tất thì bỏ qua.
+Isolate mới kiểm `fetched_at` trong `bank_rates_latest` để tránh ghi lại trong ngày
+Việt Nam. Nếu cả lượt không ghi được dòng nào, dấu đã chạy chỉ nằm trong bộ nhớ
+isolate; schema 016 không có bảng khóa lượt chạy bền vững. Không tạo bảng khác.
+Kiểm ngày không phải khóa nguyên tử: hai isolate cùng bắt đầu trước khi có dòng
+mới vẫn có thể cùng chạy. Lịch cron chỉ khai báo một lần mỗi ngày.
+
+Curtis/Lead thiết lập sau khi duyệt:
+
+1. Bảo đảm SQL `016_bank_rates.sql` đã có trên đúng Supabase mà Worker đang dùng:
+   **staging `mksjmpcsfawsiabfhoxe`** khi thử preview, hoặc **production
+   `nrqccwamwctihivpxjww`** khi duyệt chạy thật. Không đổi `SUPABASE_URL` của Worker
+   đang nhận Facebook chỉ để thử tính năng này; dùng Worker staging riêng nếu cần.
+2. Trong thư mục `worker`, dùng `wrangler secret put BANK_RATES_SECRET`, nhập bí mật
+   riêng để bảo vệ route chạy thử. Cần sẵn `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`
+   cùng project và binding `AI`. Không đặt service-role key trong app.
+3. Chạy `wrangler deploy`. Nếu Wrangler yêu cầu đăng nhập trên VPS, mở link và mã
+   trên Mac để đăng nhập. Thiếu `BANK_RATES_SECRET` thì route thủ công tắt (404);
+   cron vẫn chạy bằng cấu hình Supabase và AI.
+4. Chạy thử server-to-server (lệnh này ghi `bank_rates` trên project đã cấu hình):
+
+   ```bash
+   read -rsp 'BANK_RATES_SECRET: ' BANK_RATES_RUN_SECRET
+   curl --request POST 'https://intake-worker.<subdomain>.workers.dev/bank-rates/run' \
+     --header "X-Cron-Secret: ${BANK_RATES_RUN_SECRET}"
+   unset BANK_RATES_RUN_SECRET
+   ```
+
+   Đúng secret trả thống kê `pages`, `candidates`, `written`, `drifted`, `failed`
+   (lỗi trích xuất/ghi). Đã chạy hôm nay trả `skipped: "already_ran_today"`.
+   Secret thiếu/sai trả 401; lỗi cấu hình/đọc DB trả 503. Xem `wrangler tail` để biết
+   nguồn lỗi hoặc ngân hàng bị chặn do lệch số; log không chứa khóa hay nội dung AI.
+5. Trên Supabase cùng môi trường, xem `bank_rates_latest`: mỗi dòng mới có URL
+   trang đã đọc và ngày lấy; bấm nguồn để kiểm số gần đúng. Trang bị 403 hoặc không
+   có số công khai sẽ giữ bản cũ. Không cần đọc/ghi bảng khách.
+
+Kiểm thử offline: `npm run check` rồi `npx vitest run tests/worker`.
+Fixture trong `tests/worker/fixtures/bank-rates/` mô phỏng HTML/RSS theo các nguồn
+được giao, với số/ngày cố định phục vụ test; chưa phải bản chụp tải từ website thật.
+Task cấm gọi mạng và repo chưa có bản chụp nguồn, nên Lead cần cung cấp HTML/RSS
+thật rút gọn để hoàn tất yêu cầu fixture thật. Chưa kiểm website live hoặc deploy.
