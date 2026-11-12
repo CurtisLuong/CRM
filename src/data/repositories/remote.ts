@@ -282,6 +282,13 @@ export function createRemoteRepository(sync: CustomerSync, customers: CustomerRe
       const { error } = await guard(() => _supabase.rpc('team_set_my_name', { new_name: name }));
       if (error) throw error;
     },
+    /** Lãi vay mua nhà mới nhất mỗi ngân hàng (SQL/v2/016, Worker ghi). Mất mạng/lỗi/chưa chạy SQL → undefined (đọc lỗi ≠ trống). */
+    async listBankRates() {
+      sync.local.assertOpen();
+      if (!sync.isOnline()) return undefined;
+      const { data, error } = (await guard(() => _supabase.from('bank_rates_latest').select('*'))) as any;
+      return error ? undefined : ((data ?? []) as Data[]);
+    },
     async getUiStateRemote() {
       sync.local.assertOpen();
       if (!sync.isOnline()) return undefined;
