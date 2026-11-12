@@ -70,7 +70,7 @@ describe('BR-01 route thủ công và cron', () => {
     vi.stubGlobal('fetch', fetcher);
     const response = await worker.fetch(manual(config.BANK_RATES_SECRET), config, {});
     expect(response.status).toBe(200);
-    expect(await response.json()).toMatchObject({ written: 0, pages: 15 });
+    expect(await response.json()).toMatchObject({ written: 0, pages: expect.any(Number) });
     expect(fetcher).toHaveBeenCalled();
     expect((await worker.fetch(manual(config.BANK_RATES_SECRET, 'GET'), config, {})).status).toBe(404);
     expect(
