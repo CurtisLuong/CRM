@@ -21,10 +21,10 @@ export default function LoanPaymentChart({ result }: { result: ComputeResult }) 
       definition="Theo tháng: số tiền trả từng tháng. Theo năm: trung bình tiền trả mỗi tháng trong từng năm vay."
     >
       <fieldset aria-label="Biểu đồ trả nợ" className="mb-3 flex gap-2">
-        <Button aria-pressed={!yearly} onClick={() => setYearly(false)}>
+        <Button variant={yearly ? 'secondary' : 'primary'} aria-pressed={!yearly} onClick={() => setYearly(false)}>
           Theo tháng
         </Button>
-        <Button aria-pressed={yearly} onClick={() => setYearly(true)}>
+        <Button variant={yearly ? 'primary' : 'secondary'} aria-pressed={yearly} onClick={() => setYearly(true)}>
           Theo năm
         </Button>
       </fieldset>

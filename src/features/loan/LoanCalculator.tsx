@@ -1015,7 +1015,7 @@ function SummaryTable({ title, rows }: { title: string; rows: [string, string][]
           {rows.map(([label, value]) => (
             <TableRow key={label}>
               <TableCell className="whitespace-normal text-label">{label}</TableCell>
-              <TableCell className="whitespace-normal text-right font-data text-body-strong">{value}</TableCell>
+              <TableCell className="whitespace-nowrap text-right font-data text-body-strong">{value}</TableCell>
             </TableRow>
           ))}
         </TableBody>
