@@ -83,10 +83,24 @@ Tóm tắt kỹ thuật:
 ## Kiểm thử code
 `npx vitest run tests/worker` — giả lập Supabase + Graph (không gọi mạng thật).
 
-## Lãi vay mua nhà mỗi sáng (BR-01)
+## Lãi vay mua nhà mỗi sáng (BR-01, BR-02)
 
-`bank-rates.js` đọc trang chủ 10 ngân hàng, theo liên kết về lãi suất/vay nhà (tối đa
-3 trang/ngân hàng) và đọc bài từ 5 RSS cấu hình trong `bank-rates-config.js`.
+`bank-rates.js` đọc lần lượt 2 Bing News RSS (truy vấn “lãi suất vay mua nhà” và
+“lãi suất cho vay mua nhà ngân hàng”), đủ 10 trang chủ ngân hàng rồi 5 RSS cũ,
+tất cả cấu hình trong `bank-rates-config.js`. Tiếp theo đọc bài từ tìm kiếm trước
+(mới nhất trước), bài từ RSS cũ sau, cuối cùng mới đọc liên kết về lãi suất/vay nhà
+của ngân hàng (chia vòng, tối đa 3 trang/ngân hàng). Không có liên kết phù hợp thì
+không đọc trang con. URL trùng chỉ đọc một lần trong cả lượt.
+
+17 nguồn đầu vào dùng tối đa 18 request (tối đa 1 request redirect bổ sung), luôn
+chừa ít nhất 12 request cho bài báo nếu có đủ bài; thông thường còn 13 request.
+Redirect bài báo cũng tính trong phần này. Nếu ít bài, phần dư dùng cho trang con.
+Bing chỉ dùng để tìm URL; không gửi trang tìm kiếm cho AI hoặc lưu link Bing.
+Chỉ nhận URL gốc HTTPS thuộc các báo RSS cũ và Vietstock, Dân trí, VietnamNet,
+Báo Mới, Soha; bỏ link thiếu `url`, host lạ hoặc giao thức không hợp lệ. Ví dụ:
+`http://www.bing.com/news/apiclick.aspx?url=https%3A%2F%2Fdantri.com.vn%2Fkinh-doanh%2Flai-vay.htm&ref=BF`
+→ `https://dantri.com.vn/kinh-doanh/lai-vay.htm`. Bài tìm được vẫn là nguồn `news`.
+
 Bài báo phải có từ khóa về lãi vay và ngày đăng không quá 45 ngày. Mỗi lượt tối đa
 30 HTTP request công khai, tính cả RSS, redirect và nguồn lỗi. Nội dung HTML/script
 được bỏ, hotline được ẩn, văn bản gửi Workers AI Qwen tối đa 12.000 ký tự/trang.
@@ -138,7 +152,7 @@ Curtis/Lead thiết lập sau khi duyệt:
    có số công khai sẽ giữ bản cũ. Không cần đọc/ghi bảng khách.
 
 Kiểm thử offline: `npm run check` rồi `npx vitest run tests/worker`.
-Fixture trong `tests/worker/fixtures/bank-rates/` mô phỏng HTML/RSS theo các nguồn
-được giao, với số/ngày cố định phục vụ test; chưa phải bản chụp tải từ website thật.
-Task cấm gọi mạng và repo chưa có bản chụp nguồn, nên Lead cần cung cấp HTML/RSS
-thật rút gọn để hoàn tất yêu cầu fixture thật. Chưa kiểm website live hoặc deploy.
+Fixture BR-01 trong `tests/worker/fixtures/bank-rates/`, fixture BR-02 đặt ngay trong
+`tests/worker/bank-rates-search.test.ts`: mô phỏng HTML/RSS theo các nguồn được giao,
+với số/ngày cố định phục vụ test (Lead duyệt dùng mô phỏng). Chưa kiểm website live
+hoặc deploy; task cấm gọi mạng thật.

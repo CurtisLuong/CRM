@@ -1,6 +1,6 @@
 import { MODELS } from './ai-assist.js';
-import { AI_TIMEOUT_MS, BANK_RATE_LIMITS, BANK_SOURCES, MAX_TEXT, NEWS_FEEDS } from './bank-rates-config.js';
-import { sourceUrl } from './bank-rates-sources.js';
+import { AI_TIMEOUT_MS, BANK_RATE_LIMITS, BANK_SOURCES, MAX_TEXT } from './bank-rates-config.js';
+import { newsSourceUrl, sourceUrl } from './bank-rates-sources.js';
 
 export const BANK_RATES_PROMPT = `Bạn trích lãi vay mua nhà/bất động sản thương mại cho CÁ NHÂN từ văn bản công khai.
 TUYỆT ĐỐI KHÔNG suy đoán, dùng kiến thức có sẵn hoặc bịa số. Chỉ trích số có trong văn bản; thiếu thì null.
@@ -84,11 +84,13 @@ export function validateRate(row, source, text) {
   // URL chỉ được gắn bởi bộ đọc trang thành công, không nhận URL của model.
   if (!source?.source_url || !['bank', 'news'].includes(source.source_kind)) return null;
   if (source.bank_code && row.bank_code !== source.bank_code) return null;
-  const bases =
+  const validUrl =
     source.source_kind === 'bank'
-      ? BANK_SOURCES.filter((bank) => bank.code === row.bank_code).map((bank) => bank.url)
-      : NEWS_FEEDS;
-  if (!bases.some((base) => sourceUrl(source.source_url, base) === source.source_url)) return null;
+      ? BANK_SOURCES.some(
+          (bank) => bank.code === row.bank_code && sourceUrl(source.source_url, bank.url) === source.source_url,
+        )
+      : newsSourceUrl(source.source_url) === source.source_url;
+  if (!validUrl) return null;
   const values = Object.fromEntries(FIELDS.map((key) => [key, evidenced(row[key], row.evidence[key], text)]));
   const promo = withinRate(values.promo_rate);
   const reference = withinRate(values.reference_rate);

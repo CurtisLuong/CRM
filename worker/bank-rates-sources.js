@@ -1,4 +1,4 @@
-import { MAX_NEWS_AGE_DAYS, MAX_PAGES, MAX_TEXT } from './bank-rates-config.js';
+import { MAX_NEWS_AGE_DAYS, MAX_PAGES, MAX_TEXT, NEWS_PUBLISHERS, NEWS_SEARCH_FEEDS } from './bank-rates-config.js';
 
 export function decodeEntities(value) {
   const named = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };
@@ -45,6 +45,37 @@ export function sourceUrl(value, base) {
     if (/\.(?:pdf|docx?|xlsx?|zip|jpe?g|png|gif|webp|mp4)(?:$|\/)/i.test(url.pathname)) return null;
     url.hash = '';
     return url.href;
+  } catch {
+    return null;
+  }
+}
+
+export function newsSourceUrl(value) {
+  for (const base of NEWS_PUBLISHERS) {
+    const url = sourceUrl(value, base);
+    if (url) return url;
+  }
+  return null;
+}
+
+export function bingArticleUrl(value) {
+  if (typeof value !== 'string' || !value.trim()) return null;
+  try {
+    const link = new URL(decodeEntities(value));
+    if (
+      !['http:', 'https:'].includes(link.protocol) ||
+      !['bing.com', 'www.bing.com'].includes(link.hostname) ||
+      link.pathname !== '/news/apiclick.aspx' ||
+      link.username ||
+      link.password ||
+      link.port ||
+      link.searchParams.getAll('url').length !== 1
+    )
+      return null;
+    const original = link.searchParams.get('url');
+    // URL gốc phải tuyệt đối; không diễn giải chuỗi lỗi thành đường dẫn của báo.
+    if (!/^https:\/\//i.test(original || '')) return null;
+    return newsSourceUrl(original);
   } catch {
     return null;
   }
@@ -112,6 +143,7 @@ function xmlText(item, name) {
 
 export function newsArticles(rss, feed, now) {
   const articles = new Map();
+  const search = NEWS_SEARCH_FEEDS.includes(feed);
   for (const match of rss.matchAll(/<item\b[^>]*>([\s\S]*?)<\/item\s*>/gi)) {
     const item = match[1];
     const title = pageText(xmlText(item, 'title'), 300);
@@ -119,11 +151,18 @@ export function newsArticles(rss, feed, now) {
     if (!/lai suat cho vay|vay mua nha|lai suat tha noi|lai suat uu dai/.test(fold(`${title} ${description}`)))
       continue;
     const day = dateOnly(xmlText(item, 'pubDate') || xmlText(item, 'dc:date'));
-    const url = sourceUrl(xmlText(item, 'link'), feed);
+    const link = xmlText(item, 'link');
+    const url = search ? bingArticleUrl(link) : sourceUrl(link, feed);
     if (!url || !recentNews(day, now)) continue;
     const previous = articles.get(url);
     if (!previous || day > previous.published_on) {
-      articles.set(url, { source_url: url, source_kind: 'news', source_title: title, published_on: day, base: feed });
+      articles.set(url, {
+        source_url: url,
+        source_kind: 'news',
+        source_title: title,
+        published_on: day,
+        base: search ? url : feed,
+      });
     }
   }
   return [...articles.values()].sort((a, b) => b.published_on.localeCompare(a.published_on));
@@ -137,9 +176,9 @@ export function createPageReader(fetcher, logger = console) {
     get count() {
       return count;
     },
-    async read(address, base) {
+    async read(address, base, budgetEnd = MAX_PAGES) {
       let url = sourceUrl(address, base);
-      for (let redirects = 0; url && redirects <= 3 && count < MAX_PAGES; redirects++) {
+      for (let redirects = 0; url && redirects <= 3 && count < Math.min(MAX_PAGES, budgetEnd); redirects++) {
         if (seen.has(url)) return null;
         seen.add(url);
         count++;

@@ -1,4 +1,11 @@
-import { BANK_RATES_CRON, BANK_SOURCES, MAX_PAGES, NEWS_FEEDS } from './bank-rates-config.js';
+import {
+  BANK_RATES_CRON,
+  BANK_SOURCES,
+  MAX_PAGES,
+  MIN_NEWS_PAGES,
+  NEWS_FEEDS,
+  NEWS_SEARCH_FEEDS,
+} from './bank-rates-config.js';
 import { exceedsDrift, extractPage, preferredRates } from './bank-rates-extract.js';
 import { bankLinks, createPageReader, newsArticles, pageMetadata, pageText, recentNews } from './bank-rates-sources.js';
 
@@ -63,7 +70,24 @@ async function collectAndStore(env, now, fetcher, logger) {
   const reader = createPageReader(fetcher, logger);
   const candidates = [],
     banks = [],
-    articles = new Map();
+    articles = new Map(),
+    rssArticles = new Map();
+  let remainingSeeds = BANK_SOURCES.length + NEWS_FEEDS.length + NEWS_SEARCH_FEEDS.length;
+  async function readSeed(url) {
+    remainingSeeds--;
+    // Redirect nguồn đầu vào không được lấy phần dành cho bài báo hoặc nguồn còn lại.
+    return reader.read(url, url, MAX_PAGES - MIN_NEWS_PAGES - remainingSeeds);
+  }
+  async function collectArticles(feeds, target) {
+    for (const feed of feeds) {
+      const page = await readSeed(feed);
+      if (!page) continue;
+      for (const article of newsArticles(page.html, feed, now)) {
+        const previous = target.get(article.source_url);
+        if (!previous || article.published_on > previous.published_on) target.set(article.source_url, article);
+      }
+    }
+  }
   let failed = 0,
     drifted = 0,
     written = 0;
@@ -83,9 +107,10 @@ async function collectAndStore(env, now, fetcher, logger) {
       logger.warn('bank-rates extraction failed', { url: page.url });
     }
   }
-  // Đọc đủ mười trang chủ trước để một ngân hàng không chiếm hết ngân sách.
+  await collectArticles(NEWS_SEARCH_FEEDS, articles);
+  // Đọc đủ mười trang chủ; chưa đọc trang con để giữ ngân sách bài báo.
   for (const bank of BANK_SOURCES) {
-    const page = await reader.read(bank.url, bank.url);
+    const page = await readSeed(bank.url);
     const source = { bank_code: bank.code, source_kind: 'bank' };
     const state = { bank, source, links: [], visited: 1 };
     banks.push(state);
@@ -93,17 +118,21 @@ async function collectAndStore(env, now, fetcher, logger) {
     state.links.push(...bankLinks(page.html, page.url));
     await inspect(page, source);
   }
-  for (const feed of NEWS_FEEDS) {
-    const page = await reader.read(feed, feed);
-    if (!page) continue;
-    for (const article of newsArticles(page.html, feed, now)) articles.set(article.source_url, article);
+  await collectArticles(NEWS_FEEDS, rssArticles);
+  const newestFirst = (a, b) => b.published_on.localeCompare(a.published_on);
+  const news = [
+    ...[...articles.values()].sort(newestFirst),
+    ...[...rssArticles.values()].filter((article) => !articles.has(article.source_url)).sort(newestFirst),
+  ];
+  // Bài tìm kiếm trước, bài RSS sau; phần dư mới dành cho trang con ngân hàng.
+  for (const source of news) {
+    if (reader.count >= MAX_PAGES) break;
+    const page = await reader.read(source.source_url, source.base);
+    if (page) await inspect(page, source);
   }
-  const news = [...articles.values()].sort((a, b) => b.published_on.localeCompare(a.published_on));
-  // Chừa tối đa năm lượt cho bài báo; còn lại chia vòng, mỗi ngân hàng tối đa ba trang.
-  const bankBudget = MAX_PAGES - Math.min(5, news.length);
   for (let round = 0; round < 2; round++) {
     for (const state of banks) {
-      if (reader.count >= bankBudget || state.visited >= 3) continue;
+      if (reader.count >= MAX_PAGES || state.visited >= 3) continue;
       const url = state.links.shift();
       if (!url) continue;
       state.visited++;
@@ -112,11 +141,6 @@ async function collectAndStore(env, now, fetcher, logger) {
       state.links.push(...bankLinks(page.html, page.url).filter((link) => !state.links.includes(link)));
       await inspect(page, state.source);
     }
-  }
-  for (const source of news) {
-    if (reader.count >= MAX_PAGES) break;
-    const page = await reader.read(source.source_url, source.base);
-    if (page) await inspect(page, source);
   }
   const previous = new Map(latest.map((row) => [row.bank_code, row]));
   for (const row of preferredRates(candidates)) {
