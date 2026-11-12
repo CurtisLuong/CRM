@@ -160,6 +160,11 @@ Không có bằng chứng → "goi_y": [].
 
 ---
 
+
+### Lãi vay mua nhà (BR-01, Worker cron 07:00 VN)
+
+Prompt nguyên văn: `BANK_RATES_PROMPT` trong `worker/bank-rates-extract.js` (nguồn duy nhất, không chép lại để tránh lệch). Đầu vào: văn bản trang ngân hàng/báo (không có dữ liệu khách). Đầu ra JSON chặt; Worker kiểm khoảng 3–20%, thả nổi < ưu đãi thì bỏ thả nổi, lệch > 2 điểm so lần trước thì bỏ + ghi log, mỗi dòng bắt buộc `source_url`.
+
 ## Phần B — Prompt cho coding agent (vibe code)
 
 Dùng các mẫu dưới khi mở phiên Claude Code / Codex. Thay `{…}`.
