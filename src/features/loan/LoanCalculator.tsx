@@ -4,7 +4,7 @@ import { lazy, type ReactNode, Suspense, useCallback, useEffect, useId, useMemo,
 import { toast as notify } from 'sonner';
 import { type Column, EmptyState, DataTable as KitDataTable, TextField } from '@/components/crm';
 import { FormGrid, FormSection, FormSubsection, LONG_FIELD, SHORT_FIELD } from '@/components/crm/form-section';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { rememberedUser } from '@/data/auth';
@@ -36,6 +36,7 @@ import {
   remainingRateMonths,
   removeLastFixedRateTier,
   restoreLoanState,
+  scheduleLabel,
   validateState,
 } from './model';
 import { printLoan } from './print';
@@ -44,7 +45,9 @@ import { createLoanStore, type LoanQuote } from './store';
 const LoanPaymentChart = lazy(() => import('./LoanPaymentChart'));
 const WIDE = LONG_FIELD;
 const PAIR = 'min-w-0 flex-1 basis-[calc(50%_-_0.375rem)]';
-const PAIR_GRID = '[&_label[for]]:min-h-10 [&_label>span:first-child]:min-h-10';
+// Nhãn nhiều dòng căn đáy để luôn cách ô 6px như ô phí tất toán.
+const PAIR_GRID =
+  '[&_label[for]]:flex [&_label[for]]:min-h-10 [&_label[for]]:items-end [&_label>span:first-child]:flex [&_label>span:first-child]:min-h-10 [&_label>span:first-child]:items-end';
 const FIELD =
   'h-11 w-full min-w-0 rounded-sm border border-input bg-surface-100 px-3 py-2 text-body text-ink focus:outline-2 focus:outline-ion';
 function Field({ label, children, className = '' }: { label: string; children: ReactNode; className?: string }) {
@@ -80,7 +83,7 @@ function NumberInput({
   scale?: number;
   /** Số tự tính hiện khi chưa nhập tay; xoá trống rồi rời ô thì về lại số này (Curtis 06/11). */
   auto?: number;
-  hint?: string;
+  hint?: ReactNode;
   className?: string;
 }) {
   // Ô tự điền: giữ chữ đang gõ (kể cả rỗng) tới khi rời ô, không bật lại số tự tính dưới tay.
@@ -135,7 +138,17 @@ function ErrorState({ title, detail, onRetry }: { title: string; detail: string;
     </div>
   );
 }
-function DataTable({ label, head, rows }: { label: string; head: string[]; rows: (string | number)[][] }) {
+function DataTable({
+  label,
+  head,
+  rows,
+  className = '',
+}: {
+  label: string;
+  head: string[];
+  rows: (string | number)[][];
+  className?: string;
+}) {
   type TableRow = { id: number } & Record<string, string | number>;
   const data: TableRow[] = rows.map((row, index) => ({
     id: index,
@@ -149,7 +162,7 @@ function DataTable({ label, head, rows }: { label: string; head: string[]; rows:
   }));
   return (
     <div className="max-w-full overflow-x-auto" data-slot="loan-table-scroll">
-      <KitDataTable caption={label} columns={columns} rows={data} className="min-w-[640px]" />
+      <KitDataTable caption={label} columns={columns} rows={data} className={`min-w-[640px] ${className}`} />
     </div>
   );
 }
@@ -569,7 +582,7 @@ function CalculatorForm({
         </FormGrid>
         <FormSubsection
           title="Tiến độ"
-          className="[&_label>span:first-child]:min-h-10 sm:[&_label>span:first-child]:min-h-5"
+          className="[&_label>span:first-child]:flex [&_label>span:first-child]:min-h-10 [&_label>span:first-child]:items-end sm:[&_label>span:first-child]:min-h-5"
         >
           <Field label="Ngày ký hợp đồng">
             <input
@@ -682,9 +695,14 @@ function CalculatorForm({
             value={manualLoan}
             auto={Math.round((gross * shownLtv) / 100)}
             hint={
-              manualLoan != null
-                ? `Đã nhập tay · tối đa ${LTV_MAX}% = ${money(maxLoan)}đ · xoá trống về ${LTV_AUTO}%`
-                : `Theo tỷ lệ vay · tối đa ${LTV_MAX}% = ${money(maxLoan)}đ`
+              <>
+                <span className="block">
+                  {manualLoan != null
+                    ? `Đã nhập tay · tối đa ${LTV_MAX}% = ${money(maxLoan)}đ · xoá trống về ${LTV_AUTO}%`
+                    : `Tối đa ${LTV_MAX}% = ${money(maxLoan)}đ`}
+                </span>
+                <span className="block">Tỷ lệ vay tính trên giá thuần + VAT (không gồm phí và KPBT).</span>
+              </>
             }
             onChange={(n) => {
               if (n == null) return loan({ loanOverride: null, ltv: LTV_AUTO });
@@ -701,14 +719,13 @@ function CalculatorForm({
             >
               {(buildInput(state, project).schedule ?? []).map((m, i) => (
                 <option key={m.label} value={i}>
-                  Đợt {i + 1} · {m.label}
+                  Đợt {i + 1} · {scheduleLabel(m.label)}
                 </option>
               ))}
             </select>
           </Field>
         </FormGrid>
-        <p className="text-caption text-ink-muted">Tỷ lệ vay tính trên giá thuần + VAT (không gồm phí và KPBT).</p>
-        <FormSubsection title="Bậc lãi suất">
+        <FormSubsection title="Bậc lãi suất" className="pl-0 sm:pl-0">
           {state.loan.rateTiers.map((tier, i) => (
             <FormGrid className={`${LONG_FIELD} ${PAIR_GRID}`} key={`tier-${i}`}>
               <NumberInput
@@ -757,19 +774,30 @@ function CalculatorForm({
           )}
           <div className={`${LONG_FIELD} flex flex-wrap gap-2`}>
             <Button onClick={() => loan(appendFixedRateTier(state.loan))}>Thêm bậc lãi</Button>
+            <label
+              className={buttonVariants({
+                className: `relative ${state.loan.graceEnabled ? 'border-ion bg-ion-tint' : ''}`,
+              })}
+            >
+              <input
+                type="checkbox"
+                className="absolute inset-0 m-0 h-full w-full cursor-pointer appearance-none rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ion"
+                checked={state.loan.graceEnabled}
+                onChange={(e) => loan({ graceEnabled: e.target.checked })}
+              />
+              <span
+                aria-hidden="true"
+                className="grid size-4 place-items-center rounded-sm border border-input text-ion"
+              >
+                {state.loan.graceEnabled ? '✓' : ''}
+              </span>
+              Ân hạn gốc
+            </label>
             {state.loan.rateTiers.length > 1 && (
               <Button onClick={() => loan(removeLastFixedRateTier(state.loan))}>Bỏ bậc cố định cuối</Button>
             )}
           </div>
         </FormSubsection>
-        <label className="flex min-h-11 items-center gap-2 text-caption">
-          <input
-            type="checkbox"
-            checked={state.loan.graceEnabled}
-            onChange={(e) => loan({ graceEnabled: e.target.checked })}
-          />
-          Ân hạn gốc
-        </label>
         {state.loan.graceEnabled && (
           <FormGrid className={PAIR_GRID}>
             <NumberInput
@@ -919,9 +947,10 @@ function LoanResults({
       />
       <DataTable
         label="Tiến độ thanh toán"
+        className="[&_td]:px-2 [&_th]:px-2"
         head={['Đợt', 'Ngày', 'Tỷ lệ', 'Số tiền (đ)', 'Khách trả (đ)', 'NH giải ngân (đ)']}
         rows={r.milestones.map((m, i) => [
-          `${i + 1}. ${m.label}`,
+          `${i + 1}. ${scheduleLabel(m.label)}`,
           displayDate(m.date),
           `${m.pct.toLocaleString('vi-VN')}%`,
           money(m.amount),
@@ -981,6 +1010,7 @@ function LoanResults({
           <SummaryTable
             title="Tổng"
             rows={[
+              ['Tổng vay', `${money(r.loan.amount)} đ`],
               ['Tổng lãi', `${money(s.totalInterest)} đ`],
               ['Tổng trả ngân hàng', `${money(s.totalPaid)} đ`],
             ]}
