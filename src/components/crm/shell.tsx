@@ -249,7 +249,7 @@ export function PageHeader({
           cn(
             'flex flex-col gap-3 border-b border-line px-6 py-4 max-sm:px-4 max-sm:py-3',
             // Kính mờ (Curtis 11/11, ngoại lệ D-023 → D-034, chỉ thanh đầu + tab đáy): thanh luôn hiện, nội dung cuộn
-            // thấp thoáng phía sau; nền đặc ~85% nên chữ/icon trên thanh giữ nguyên độ tương phản.
+            // thấp thoáng (nhoè) phía sau.
             compact && sticky ? 'bg-glass' : 'bg-surface-0',
             // Vỏ Android vẽ dưới status bar: chiều cao = 56px + phần status bar, không trừ phần đệm vào 56px (Curtis 29/10: nút đầu bị đẩy lên status bar).
             // Phải ghi đè cả max-sm:py-3 ở trên: thiếu thì điện thoại chỉ đệm 12px thay vì phần status bar → hàng nút

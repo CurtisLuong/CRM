@@ -471,8 +471,8 @@ Ví dụ và mẫu trong bộ tài liệu không phải sự chấp thuận cho 
 
 - Ngày: 2026-11-11
 - Loại: Ngoại lệ cục bộ của D-023 (D-023 loại Liquid Glass/kính mờ vì tương phản thấp) + thay hành vi "ẩn thanh đầu khi cuộn" (Curtis 30/10).
-- Quyết định: Điện thoại: thanh đầu không ẩn khi cuộn; thanh đầu (`bg-glass`) và tab đáy (`bg-glass-raised`) nền đặc 85% + blur 16px, nội dung cuộn thấp thoáng phía sau. Máy không hỗ trợ blur → nền đặc. Thẻ, sheet, nội dung vẫn nền đặc.
-- Lý do và đánh đổi: Curtis thích kiểu màn Calls Android — icon luôn ở đó, bấm nhanh. Nền 85% giữ tương phản chữ/icon trên thanh (lý do D-023 loại kính mờ). Đánh đổi: mất cố định 56px khi đọc danh sách dài (đã bớt nút đồng bộ khỏi thanh cho gọn).
+- Quyết định: Điện thoại: thanh đầu không ẩn khi cuộn; thanh đầu (`bg-glass`) và tab đáy (`bg-glass-raised`) nền 60% + blur 24px (12/11: 85% đặc quá, Curtis muốn thấy nội dung nhoè phía sau), nội dung cuộn thấp thoáng phía sau. Máy không hỗ trợ blur → nền đặc. Thẻ, sheet, nội dung vẫn nền đặc. Điện thoại: nút Tìm chỉ còn icon.
+- Lý do và đánh đổi: Curtis thích kiểu màn Calls Android — icon luôn ở đó, bấm nhanh. Blur 24px làm nội dung phía sau nhoè thành mảng màu, chữ/icon đậm trên thanh vẫn đọc được (lý do D-023 loại kính mờ là tương phản). Đánh đổi: mất cố định 56px khi đọc danh sách dài (đã bớt nút đồng bộ khỏi thanh cho gọn).
 - Chấp thuận: Curtis 2026-11-11 chọn phương án A ("Ừ làm A đi").
 - Tài liệu đã cập nhật: `docs/DESIGN.md` §5, `src/app/index.css` (utility).
 - Trạng thái: Đang áp dụng.
