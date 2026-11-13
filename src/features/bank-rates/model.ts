@@ -104,6 +104,38 @@ export function bankRateRows(rates: BankRate[], overrides: Overrides) {
   });
 }
 
+export const RATE_FIELDS = [
+  { key: 'deposit', label: 'Gửi 12T' },
+  { key: 'promo', label: 'Vay ưu đãi' },
+  { key: 'floating', label: 'Thả nổi' },
+] as const;
+
+/** So ngày lịch VN, không so số giờ kể từ lúc lấy số. */
+export function rateFreshness(bank: ReturnType<typeof bankRateRows>[number], now: number) {
+  const today = vietnamDay(new Date(now).toISOString());
+  const cells = RATE_FIELDS.map(({ key, label }) => {
+    const day = bank.dates[key];
+    const age = day && today ? (Date.parse(today) - Date.parse(day)) / 86400000 : null;
+    return { key, label, day, age, stale: age !== null && age > 14 };
+  });
+  const staleCells = cells.filter((cell) => cell.stale);
+  const missing = [
+    ...(bank.deposit_rate === null ? ['Gửi 12T'] : []),
+    ...(bank.promo_rate === null && bank.floating_rate === null ? ['Số vay'] : []),
+  ];
+  return { cells, staleCells, missing, stale: staleCells.length > 0 };
+}
+
+export function rateWarnings(rows: ReturnType<typeof bankRateRows>, now: number) {
+  const hasRates = rows.some(
+    (bank) => bank.deposit_rate !== null || bank.promo_rate !== null || bank.floating_rate !== null,
+  );
+  const freshness = rows.map((bank) => rateFreshness(bank, now));
+  const staleBanks = freshness.filter((bank) => bank.stale).length;
+  const missingBanks = freshness.filter((bank) => bank.missing.length > 0).length;
+  return { hasRates, staleBanks, missingBanks, warning: hasRates && (staleBanks > 0 || missingBanks > 0) };
+}
+
 export function rateSummary(rows: ReturnType<typeof bankRateRows>) {
   const mean = (field: 'promo_rate' | 'floating_rate' | 'deposit_rate') => {
     const values = rows.map((row) => row[field]).filter((value): value is number => value !== null);

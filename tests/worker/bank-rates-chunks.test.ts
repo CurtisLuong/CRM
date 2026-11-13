@@ -401,7 +401,5 @@ describe('BR-04 thống kê lượt chạy và response', () => {
       ai_calls: expect.any(Number),
       rejected: expect.objectContaining({ json: 0 }),
     });
-    const skipped = await handleBankRates(request, w.env);
-    expect(await skipped.json()).toMatchObject({ skipped: 'already_ran_today', ai_calls: 0, rejected: { drift: 0 } });
   });
 });

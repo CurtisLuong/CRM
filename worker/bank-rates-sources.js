@@ -58,7 +58,7 @@ export function newsSourceUrl(value) {
   return null;
 }
 
-export function bingArticleUrl(value) {
+export function bingArticleUrl(value, bank) {
   if (typeof value !== 'string' || !value.trim()) return null;
   try {
     const link = new URL(decodeEntities(value));
@@ -75,7 +75,7 @@ export function bingArticleUrl(value) {
     const original = link.searchParams.get('url');
     // URL gốc phải tuyệt đối; không diễn giải chuỗi lỗi thành đường dẫn của báo.
     if (!/^https:\/\//i.test(original || '')) return null;
-    return newsSourceUrl(original);
+    return newsSourceUrl(original) || (bank ? sourceUrl(original, bank.url) : null);
   } catch {
     return null;
   }
@@ -140,7 +140,8 @@ export function pageMetadata(html) {
     if (
       match[1].toLowerCase() === 'time' ||
       /(?:^|[\s_-])(?:date|publish(?:ed)?|pubdate|time)(?:$|[\s_-])/i.test(attrs.class || '')
-    ) published ||= dateOnly(pageText(match[3]));
+    )
+      published ||= dateOnly(pageText(match[3]));
   }
   const title = html.match(/<title\b[^>]*>([\s\S]*?)<\/title\s*>/i)?.[1];
   return { published_on: published, source_title: title ? pageText(title, 300) : null };
@@ -151,9 +152,9 @@ function xmlText(item, name) {
   return decodeEntities(raw.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')).trim();
 }
 
-export function newsArticles(rss, feed, now) {
+export function newsArticles(rss, feed, now, bank) {
   const articles = new Map();
-  const search = newsSearchFeeds(now).includes(feed);
+  const search = Boolean(bank) || newsSearchFeeds(now).includes(feed);
   for (const match of rss.matchAll(/<item\b[^>]*>([\s\S]*?)<\/item\s*>/gi)) {
     const item = match[1];
     const title = pageText(xmlText(item, 'title'), 300);
@@ -164,13 +165,13 @@ export function newsArticles(rss, feed, now) {
     if (!loan && !deposit) continue;
     const day = dateOnly(xmlText(item, 'pubDate') || xmlText(item, 'dc:date'));
     const link = xmlText(item, 'link');
-    const url = search ? bingArticleUrl(link) : sourceUrl(link, feed);
+    const url = search ? bingArticleUrl(link, bank) : sourceUrl(link, feed);
     if (!url || !recentNews(day, now)) continue;
     const previous = articles.get(url);
     if (!previous || day > previous.published_on) {
       articles.set(url, {
         source_url: url,
-        source_kind: 'news',
+        source_kind: bank && sourceUrl(url, bank.url) ? 'bank' : 'news',
         source_title: title,
         published_on: day,
         base: search ? url : feed,
@@ -196,12 +197,14 @@ export function createPageReader(fetcher, logger = console) {
         count++;
         const controller = new AbortController();
         const timer = setTimeout(() => controller.abort(), 12_000);
+        let status;
         try {
           const response = await fetcher(url, {
             redirect: 'manual',
             signal: controller.signal,
             headers: { Accept: 'text/html,application/rss+xml,application/xml,text/xml' },
           });
+          status = response.status;
           if (response.status >= 300 && response.status < 400) {
             await response.body?.cancel();
             url = sourceUrl(response.headers.get('Location') || '', url);
@@ -231,7 +234,7 @@ export function createPageReader(fetcher, logger = console) {
           html += decoder.decode();
           return { html, url };
         } catch {
-          logger.warn('bank-rates source failed', { url });
+          logger.warn('bank-rates source failed', { url, ...(status !== undefined ? { status } : {}) });
           return null;
         } finally {
           clearTimeout(timer);

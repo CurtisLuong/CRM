@@ -132,7 +132,7 @@ CÁC FIELD (đúng thuộc tính CRM):
 import { handleFb, runCron } from './fb-leads.js';
 import { handleAi } from './ai-assist.js';
 import { handleStt } from './stt.js';
-import { BANK_RATES_CRON, handleBankRates, runBankRates } from './bank-rates.js';
+import { BANK_RATES_CRON, BANK_RATES_SUPPLEMENTAL_CRON, handleBankRates, runBankRates } from './bank-rates.js';
 
 export default {
   async fetch(request, env, ctx) {
@@ -166,9 +166,13 @@ export default {
 
   // Cron (wrangler.toml [triggers]): quét lead Facebook mới + xử lý hàng chờ mỗi 5 phút.
   async scheduled(event, env, ctx) {
-    if (event.cron === BANK_RATES_CRON) {
+    if (event.cron === BANK_RATES_CRON || event.cron === BANK_RATES_SUPPLEMENTAL_CRON) {
+      const now = new Date(event.scheduledTime ?? Date.now());
+      const supplemental = event.cron === BANK_RATES_SUPPLEMENTAL_CRON;
+      // 00:00 đã có cron lượt đầu; bỏ bản trùng dù hai cron chạy ở hai isolate khác nhau.
+      if (supplemental && now.getUTCHours() === 0 && now.getUTCMinutes() === 0) return;
       ctx.waitUntil(
-        runBankRates(env)
+        runBankRates(env, { now, supplemental })
           .then((r) => console.log('bank-rates cron', JSON.stringify(r)))
           .catch((e) => console.error('bank-rates cron lỗi; giữ bản cũ', e instanceof Error ? e.message : String(e))),
       );

@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Sheet, SheetBody, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { BANKS, type BankCode } from '@/config/banks';
 import type { RepositoryAccount } from '@/data/repositories/session';
+import { LEVEL_CLASS } from '@/lib/crm';
 import { Icon } from '@/ui/Icon';
 import {
   bankRateRows,
@@ -13,7 +14,9 @@ import {
   parseOverride,
   type RateCache,
   type RateOverride,
+  rateFreshness,
   rateSummary,
+  rateWarnings,
   readOverrides,
   readRateCache,
   readRates,
@@ -190,8 +193,16 @@ export function BankRatesCard({
     }
   };
   const rows = bankRateRows(cache.rates, cache.overrides);
-  const average = rateSummary(rows.filter((bank) => bank.big4));
+  const big4 = rows.filter((bank) => bank.big4);
+  const average = rateSummary(big4);
   const summary = rateSummary(rows);
+  const warnings = rateWarnings(rows, now);
+  const big4Warnings = rateWarnings(big4, now);
+  const showCardWarning = warnings.hasRates && (big4Warnings.staleBanks > 0 || big4Warnings.missingBanks > 0);
+  const warningText = [
+    ...(warnings.staleBanks ? [`${warnings.staleBanks} ngân hàng có số cũ hơn 14 ngày`] : []),
+    ...(warnings.missingBanks ? [`${warnings.missingBanks} ngân hàng còn thiếu số`] : []),
+  ].join(' · ');
   const newest = summary.updatedOn;
   const noRates = average.deposit === null && average.promo === null && average.floating === null;
   // Chưa có số nào → thẻ 1 dòng như dạng thu gọn, không chiếm màn đầu bằng 3 ô trống.
@@ -259,6 +270,11 @@ export function BankRatesCard({
             )}
           </div>
         )}
+        {showCardWarning && (
+          <p className={`whitespace-nowrap text-caption ${LEVEL_CLASS.soon.text}`}>
+            Có số cũ / thiếu — xem 10 ngân hàng
+          </p>
+        )}
       </section>
       <Sheet
         open={open}
@@ -280,6 +296,14 @@ export function BankRatesCard({
             </div>
           </SheetHeader>
           <SheetBody className="px-3">
+            {warnings.warning && (
+              <p
+                role="status"
+                className={`mb-3 rounded-md p-2 text-label ${LEVEL_CLASS.soon.tint} ${LEVEL_CLASS.soon.text}`}
+              >
+                {warningText} — nên kiểm lại trên internet và tự sửa.
+              </p>
+            )}
             <div className="grid grid-cols-[minmax(0,1fr)_3.25rem_3.25rem_3.5rem_2.75rem] items-center gap-1 text-caption text-ink-muted">
               <span>Ngân hàng</span>
               <span className="text-right">Gửi 12T</span>
@@ -291,6 +315,7 @@ export function BankRatesCard({
             )}
             {rows.map((bank, index) => {
               const override = bank.override;
+              const freshness = rateFreshness(bank, now);
               const fetched = vietnamDay(bank.source?.fetched_at);
               const stale = fetched && today && fetched < today;
               return (
@@ -338,15 +363,21 @@ export function BankRatesCard({
                           {stale && <p className="text-hint">Chưa lấy được hôm nay</p>}
                         </div>
                       </div>
-                      <span className="text-right text-numeric">
+                      <span
+                        className={`text-right text-numeric ${freshness.cells[0]?.stale ? LEVEL_CLASS.soon.text : ''}`}
+                      >
                         <span className="sr-only">Gửi 12T </span>
                         {formatRate(bank.deposit_rate)}
                       </span>
-                      <span className="text-right text-numeric">
+                      <span
+                        className={`text-right text-numeric ${freshness.cells[1]?.stale ? LEVEL_CLASS.soon.text : ''}`}
+                      >
                         <span className="sr-only">Vay ƯĐ </span>
                         {formatRate(bank.promo_rate)}
                       </span>
-                      <span className="text-right text-numeric">
+                      <span
+                        className={`text-right text-numeric ${freshness.cells[2]?.stale ? LEVEL_CLASS.soon.text : ''}`}
+                      >
                         <span className="sr-only">Thả nổi </span>
                         {bank.floating_rate === null ? '—' : `≈${formatRate(bank.floating_rate)}`}
                       </span>
@@ -363,6 +394,16 @@ export function BankRatesCard({
                         <Icon name="note" />
                       </Button>
                     </div>
+                    {freshness.staleCells.map((cell) => (
+                      <p key={cell.key} className={`text-caption ${LEVEL_CLASS.soon.text}`}>
+                        {cell.label}: {cell.day && formatRateDay(cell.day, false)} · {cell.age} ngày trước
+                      </p>
+                    ))}
+                    {warnings.hasRates && freshness.missing.length > 0 && (
+                      <p className={`text-caption ${LEVEL_CLASS.soon.text}`}>
+                        Còn thiếu: {freshness.missing.join(' · ')}
+                      </p>
+                    )}
                     {editing === bank.code && (
                       <OverrideForm
                         key={bank.code}

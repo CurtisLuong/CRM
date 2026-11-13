@@ -292,16 +292,6 @@ describe('BR-03 lượt chạy fixture, không gọi mạng', () => {
     for (const row of w.inserts) expect(row.published_on).toBe('2026-11-11');
   });
 
-  it.each(['loan', 'deposit'])('isolate mới nhận ra lượt đã chạy hôm nay từ dòng %s trong view', async (kind) => {
-    const w = world([previous(kind, 5.9, '2026-11-11T18:00:00Z')]);
-    expect(await runBankRates(w.env, { now: NOW, fetcher: w.fetcher, logger: w.log })).toMatchObject({
-      skipped: 'already_ran_today',
-      pages: 0,
-      written: 0,
-    });
-    expect(w.publicCalls).toEqual([]);
-  });
-
   it('view sai kind hoặc sai số gửi phải dừng trước khi đọc nguồn', async () => {
     for (const row of [previous('unknown', 5.9), { ...previous('deposit', 5.9), deposit_rate: '5.9' }]) {
       const w = world([row]);

@@ -107,7 +107,8 @@ describe('BR-01 route thủ công và cron', () => {
 
   it('luật 6: wrangler giữ cron Facebook và thêm đúng lịch 07:00 Việt Nam', () => {
     const toml = readFileSync(new URL('../../worker/wrangler.toml', import.meta.url), 'utf8');
-    expect(toml).toMatch(/crons\s*=\s*\["\*\/5 \* \* \* \*", "0 0 \* \* \*"\]/);
+    // BR-06 (Curtis 13/11): thêm lịch lượt bổ sung mỗi 10 phút 00:00–03:59 UTC.
+    expect(toml).toMatch(/crons\s*=\s*\["\*\/5 \* \* \* \*", "0 0 \* \* \*", "\*\/10 0-3 \* \* \*"\]/);
   });
 
   it('hợp đồng: /ocr, /ai, /stt vẫn xác thực và có CORS; /fb/* chuyển tiếp handler cũ', async () => {
