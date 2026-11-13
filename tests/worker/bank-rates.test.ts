@@ -88,12 +88,25 @@ describe('BR-01 nguồn và giới hạn', () => {
 
   it('luật 2: RSS lọc tiêu đề/mô tả theo bốn từ khóa, ngày tối đa 45, loại tương lai/thiếu ngày và URL lạ', () => {
     const articles = newsArticles(RSS, NEWS_FEEDS[0], NOW);
-    expect(articles.map((article: Row) => article.source_url)).toEqual([
-      'https://cafef.vn/tin-moi.chn?a=1&b=2',
-      'https://cafef.vn/lai-suat-ngan-hang-11-11.chn',
-      'https://cafef.vn/moc-45-ngay.chn',
-    ]);
-    expect(articles[1].source_title).toContain('Agribank, Vietcombank, BIDV');
+    // BR-03: nhận thêm bài lãi tiền gửi (có hay không bài tien-gui đều được); bài > 90 ngày, tương lai, thiếu/sai ngày, host lạ bị loại.
+    const urls = articles.map((article: Row) => article.source_url);
+    expect(urls).toEqual(
+      expect.arrayContaining([
+        'https://cafef.vn/tin-moi.chn?a=1&b=2',
+        'https://cafef.vn/lai-suat-ngan-hang-11-11.chn',
+        'https://cafef.vn/moc-45-ngay.chn',
+      ]),
+    );
+    for (const bad of ['cu.chn', 'tuong-lai.chn', 'khong-ngay.chn', 'sai-ngay.chn', 'evil.example'])
+      expect(
+        urls.some((url: string) => url.includes(bad)),
+        bad,
+      ).toBe(false);
+    expect(new Set(urls).size).toBe(urls.length);
+    expect(
+      articles.find((article: Row) => article.source_url === 'https://cafef.vn/lai-suat-ngan-hang-11-11.chn')
+        ?.source_title,
+    ).toContain('Agribank, Vietcombank, BIDV');
     // BR-03 (Lead 12/11): tuổi bài 90 ngày; mốc chính xác do test BR-03 kiểm.
     expect(recentNews('2026-09-28', NOW)).toBe(true);
     expect(dateOnly('2026-02-31')).toBeNull();
