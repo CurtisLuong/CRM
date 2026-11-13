@@ -10,6 +10,8 @@ import { validateRate } from '../../worker/bank-rates-extract.js';
 import { bingArticleUrl, newsArticles } from '../../worker/bank-rates-sources.js';
 
 const { BANK_SOURCES, MAX_PAGES, MIN_NEWS_PAGES, NEWS_FEEDS, NEWS_SEARCH_FEEDS } = config;
+// Số nguồn đầu vào lấy từ cấu hình (BR-03 thêm truy vấn), không khoá cứng.
+const SOURCES = BANK_SOURCES.length + NEWS_FEEDS.length + NEWS_SEARCH_FEEDS.length;
 const NOW = new Date('2026-11-12T00:00:00Z');
 const ORIGINAL = 'https://dantri.com.vn/kinh-doanh/lai-vay.htm?a=1&b=2';
 const bingLink = (url: string) =>
@@ -50,7 +52,8 @@ describe('BR-02 giải URL Bing và lọc bài tìm kiếm', () => {
     }
     expect(BANK_SOURCES).toHaveLength(10);
     expect(NEWS_FEEDS).toHaveLength(5);
-    expect(MIN_NEWS_PAGES).toBeGreaterThanOrEqual(12);
+    expect(MIN_NEWS_PAGES).toBeGreaterThanOrEqual(10);
+    expect(SOURCES + MIN_NEWS_PAGES).toBeLessThanOrEqual(MAX_PAGES);
   });
 
   it('giải tham số url một lần, bỏ fragment, giữ query và chấp nhận wrapper HTTP/HTTPS', () => {
@@ -216,7 +219,7 @@ function world(
 
 describe('BR-02 lượt chạy offline và ngân sách ưu tiên bài báo', () => {
   it.each([false, true])(
-    'giữ đủ 17 nguồn đầu vào, dành ≥12 lượt bài tìm kiếm trước trang con (redirect=%s)',
+    'giữ đủ nguồn đầu vào, dành ≥ MIN_NEWS_PAGES lượt bài tìm kiếm trước trang con (redirect=%s)',
     async (seedRedirect) => {
       const w = world({ articles: 30, bankLinks: true, seedRedirect });
       const result = await runBankRates(w.env, { now: NOW, fetcher: w.fetcher, logger: w.log });
@@ -231,8 +234,8 @@ describe('BR-02 lượt chạy offline và ngân sách ưu tiên bài báo', () 
         ]),
       );
       const articleCalls = w.publicCalls.filter((url) => w.addresses.includes(url));
-      expect(articleCalls).toHaveLength(13 - Number(seedRedirect));
-      expect(articleCalls.length).toBeGreaterThanOrEqual(12);
+      expect(articleCalls).toHaveLength(MAX_PAGES - SOURCES - Number(seedRedirect));
+      expect(articleCalls.length).toBeGreaterThanOrEqual(MIN_NEWS_PAGES);
       expect(new Set(articleCalls).size).toBe(articleCalls.length);
       expect(w.publicCalls).not.toContain('https://cafef.vn/rss-only.chn');
       expect(w.publicCalls.some((url) => url.endsWith('/lai-suat'))).toBe(false);
@@ -247,7 +250,7 @@ describe('BR-02 lượt chạy offline và ngân sách ưu tiên bài báo', () 
     const searchIndex = w.publicCalls.indexOf(ORIGINAL);
     const rssIndex = w.publicCalls.indexOf('https://cafef.vn/rss-only.chn');
     const bankChildIndex = w.publicCalls.indexOf('https://bidv.com.vn/lai-suat');
-    expect(searchIndex).toBe(17);
+    expect(searchIndex).toBe(SOURCES);
     expect(rssIndex).toBeGreaterThan(searchIndex);
     expect(bankChildIndex).toBeGreaterThan(rssIndex);
     expect(w.publicCalls.length).toBeLessThanOrEqual(30);
@@ -257,7 +260,7 @@ describe('BR-02 lượt chạy offline và ngân sách ưu tiên bài báo', () 
     const w = world();
     const result = await runBankRates(w.env, { now: NOW, fetcher: w.fetcher, logger: w.log });
     expect(result.written).toBe(2);
-    expect(w.publicCalls).toHaveLength(19);
+    expect(w.publicCalls).toHaveLength(SOURCES + 2);
     expect(w.inserts).toEqual([
       expect.objectContaining({ bank_code: 'bidv', promo_rate: 6.5, source_kind: 'news', source_url: ORIGINAL }),
       expect.objectContaining({ bank_code: 'mb', promo_rate: 7, source_kind: 'news', source_url: ORIGINAL }),

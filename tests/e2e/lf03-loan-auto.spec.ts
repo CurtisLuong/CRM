@@ -27,7 +27,8 @@ test('LF-03: giá thuần + số tiền vay tự điền, ghi đè và về tự
   await amount.fill('630');
   await amount.press('Tab');
   await expect(ltv).toHaveValue('60');
-  await expect(page.getByText('Đã nhập tay · tối đa 80% = 840.000.000đ · xoá trống về 70%')).toBeVisible();
+  // LV-03: ghi chú trần nằm trong nhãn "Tiền vay (max 840,0 tr)".
+  await expect(page.getByText('(max 840,0 tr)')).toBeVisible();
 
   // Vượt 80% bị kẹp ở 840 tr / 80%.
   await amount.fill('900');
