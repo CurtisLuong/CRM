@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import type { FeatureRoute } from '@/app/routes';
 import { startDemo, useAppSession } from '@/app/session';
-import { ActionItem, EmptyState, SlaMeter, StatTile } from '@/components/crm';
+import { ActionItem, EmptyState, SlaMeter } from '@/components/crm';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -23,6 +23,7 @@ import { openQuickAction } from '@/features/quick-actions/store';
 import { AssignCustomerSheet, canAssignWithTeam, useTeamMembers } from '@/features/team/AssignSheet';
 import { ACTION_BY_ID, type ActionId, NOTIF_TYPES, slaMeterFor, stageDef } from '@/lib/crm';
 import { customerNeed } from '@/lib/crm/customer-need';
+import { TodayHero } from './Hero';
 import { greeting, todayDateLine } from './lunar';
 import {
   callSessionRows,
@@ -361,17 +362,11 @@ export function TodayPage() {
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col p-4 pt-1 pb-24">
-      <section aria-label="Lời chào và ngày" className="mb-0">
-        <h2 className="text-body font-semibold">
-          {greeting(now, teamMembers.find((member) => member.is_me)?.full_name)}
-        </h2>
-        <p className="text-caption text-ink-muted">{todayDateLine(now)}</p>
-      </section>
-      <section className="grid grid-cols-3 gap-2" aria-label="Tổng quan mức gấp">
-        <StatTile compact level="alert" label="Quá hạn" value={counts.alert} />
-        <StatTile compact level="soon" label="Đến giờ hôm nay" value={counts.soon} />
-        <StatTile compact level="ok" label="Đúng hẹn" value={counts.ok} />
-      </section>
+      <TodayHero
+        greeting={greeting(now, teamMembers.find((member) => member.is_me)?.full_name)}
+        dateLine={todayDateLine(now)}
+        counts={counts}
+      />
       <BankRatesCard key={account.sync.local.userId} account={account} now={now} compact={noUrgent} />
       {noUrgent && (
         <section aria-label="Không còn việc gấp" className="mt-3 rounded-md border border-line bg-surface-100 p-3">
