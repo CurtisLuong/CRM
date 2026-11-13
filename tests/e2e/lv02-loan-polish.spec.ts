@@ -50,15 +50,15 @@ for (const theme of ['light', 'dark'] as const) {
     if (!result.schedule) throw new Error('Thiếu lịch');
 
     const standard = await labelGap(field('Phí tất toán theo năm vay'));
-    for (const label of ['Số tiền vay', 'Tỷ lệ vay', 'Tính lãi', 'Bậc 1: số tháng']) {
+    for (const label of ['Tiền vay', 'Tỷ lệ vay', 'Tính lãi', 'Bậc 1: số tháng']) {
       expect(Math.abs((await labelGap(field(label))) - standard), label).toBeLessThanOrEqual(2);
     }
-    const amountHint = page.locator(`[id="${await field('Số tiền vay').getAttribute('aria-describedby')}"]`);
-    await expect(amountHint).toHaveText(
-      `Tối đa 80% = ${money(Math.round(result.price.gross * 0.8))}đTỷ lệ vay tính trên giá thuần + VAT (không gồm phí và KPBT).`,
-    );
+    const amountHint = page.locator(`[id="${await field('Tiền vay').getAttribute('aria-describedby')}"]`);
+    // LV-03: ghi chú trong ngoặc "(max X tr)", triệu 1 chữ số thập phân, dấu phẩy.
+    await expect(amountHint).toContainText(`max ${((result.price.gross * 0.8) / 1e6).toFixed(1).replace('.', ',')} tr`);
+    await expect(amountHint).not.toContainText('Tối đa');
     await expect(amountHint).not.toContainText('Theo tỷ lệ vay');
-    const amountBox = await box(border(field('Số tiền vay')));
+    const amountBox = await box(border(field('Tiền vay')));
     const disbursementBox = await box(field('Bắt đầu giải ngân từ đợt'));
     const fixed = await box(border(field('Bậc 1: số tháng')));
     const floating = await box(border(field('Bậc 2: thả nổi')));

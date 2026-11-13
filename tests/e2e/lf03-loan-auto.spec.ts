@@ -8,14 +8,14 @@ test('LF-03: giá thuần + số tiền vay tự điền, ghi đè và về tự
   await page.getByLabel('Ngày bàn giao', { exact: true }).fill('2027-11-15');
   const net = page.getByLabel('Giá thuần', { exact: true });
   const ltv = page.getByLabel('Tỷ lệ vay', { exact: true });
-  const amount = page.getByLabel('Số tiền vay', { exact: true });
+  const amount = page.getByLabel('Tiền vay', { exact: true });
   const priceTable = page.getByRole('table', { name: 'Phiếu giá', exact: true });
 
   // Tự tính: 53,6 × 19,91153 tr = 1067,258 tr; 70% của (thuần + VAT 5%) = 784,435 tr.
   await expect(net).toHaveValue('1067.258');
   await expect(ltv).toHaveValue('70');
   await expect(amount).toHaveValue('784.435');
-  await expect(page.getByText('Tự tính = diện tích × đơn giá')).toBeVisible();
+  await expect(page.getByText('(diện tích × đơn giá)')).toBeVisible();
 
   // Nhập tay giá thuần 1.000 tr → gộp VAT 1.050 tr → vay 70% = 735 tr.
   await net.fill('1000');

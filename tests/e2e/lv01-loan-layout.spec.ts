@@ -177,7 +177,7 @@ for (const theme of ['light', 'dark'] as const) {
       await page.getByRole('checkbox', { name: 'Ân hạn gốc', exact: true }).check();
       for (const [a, b] of [
         ['Tỷ lệ vay', 'Thời hạn vay'],
-        ['Số tiền vay', 'Bắt đầu giải ngân từ đợt'],
+        ['Tiền vay', 'Bắt đầu giải ngân từ đợt'],
         ['Bậc 1: số tháng', 'Bậc 1: lãi suất'],
         ['Bậc 2: còn lại', 'Bậc 2: thả nổi'],
         ['Ân hạn gốc', 'Tính ân hạn từ giải ngân'],
@@ -187,7 +187,7 @@ for (const theme of ['light', 'dark'] as const) {
       const order = [
         'Gói vay',
         'Tỷ lệ vay',
-        'Số tiền vay',
+        'Tiền vay',
         'Bậc 1: số tháng',
         'Bậc 2: còn lại',
         'Tính ân hạn từ giải ngân',

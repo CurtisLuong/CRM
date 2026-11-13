@@ -104,7 +104,7 @@ describe('BR-02 giải URL Bing và lọc bài tìm kiếm', () => {
         item(bingLink(ORIGINAL), '2026-11-10'),
         item(bingLink(ORIGINAL)),
         item(bingLink('https://vietstock.vn/bien-45.htm'), '2026-09-28'),
-        item(bingLink('https://vietstock.vn/cu.htm'), '2026-09-27'),
+        item(bingLink('https://vietstock.vn/cu.htm'), '2026-08-01'),
         item(bingLink('https://vietstock.vn/tuong-lai.htm'), '2026-11-13'),
         item(bingLink('https://vietstock.vn/thieu-ngay.htm'), ''),
         item(bingLink('https://vietstock.vn/vi-mo.htm'), '2026-11-12', 'Giảm lãi suất điều hành'),
@@ -207,7 +207,7 @@ function world(
       return new Response(null, { status: 302, headers: { Location: '/kinh-doanh/trang-dich.htm' } });
     if (addresses.includes(url) || url.endsWith('/trang-dich.htm') || url === 'https://cafef.vn/rss-only.chn')
       return new Response(
-        `${options.stalePage ? '<meta property="article:published_time" content="2026-09-01">' : ''}<p>${url === 'https://cafef.vn/rss-only.chn' ? 'Chưa công bố số.' : newsText}</p>`,
+        `${options.stalePage ? '<meta property="article:published_time" content="2026-07-01">' : ''}<p>${url === 'https://cafef.vn/rss-only.chn' ? 'Chưa công bố số.' : newsText}</p>`,
       );
     return new Response('<p>Chưa có lãi suất</p>');
   });
