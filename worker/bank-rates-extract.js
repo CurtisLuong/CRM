@@ -88,6 +88,7 @@ export function parseRates(output) {
 
 export function extractionStats() {
   return {
+    evidence: new WeakMap(),
     ai_calls: 0,
     ai_rows: 0,
     validated: 0,
@@ -260,10 +261,21 @@ function validSource(row, source) {
   return validUrl;
 }
 
-export function validateRate(row, source, text, reject = () => {}) {
+export function logRejectedValue(logger, row, field, reason, evidence = row.evidence?.[field]) {
+  logger.warn('bank-rates rejected value', {
+    bank_code: row.bank_code,
+    field,
+    value: row[field],
+    reason,
+    evidence: aiPageText(typeof evidence === 'string' ? evidence : '').slice(0, 80),
+  });
+}
+
+export function validateRate(row, source, text, reject = () => {}, rejectValue = () => {}) {
   if (!FIELDS.some((key) => row[key] !== null && row[key] !== undefined)) return null;
   if (!validSource(row, source)) {
     reject('wrong_bank');
+    for (const key of FIELDS) if (row[key] != null) rejectValue(key, 'wrong_bank');
     return null;
   }
   const checked = Object.fromEntries(
@@ -285,13 +297,29 @@ export function validateRate(row, source, text, reject = () => {}) {
     referenceRate = null;
     margin = null;
   }
+  const accepted = {
+    promo_rate: promo,
+    promo_months: promo === null ? null : values.promo_months,
+    floating_rate: floating,
+    reference_rate: referenceRate,
+    margin,
+  };
+  for (const key of FIELDS) {
+    if (row[key] != null && accepted[key] === null) {
+      rejectValue(
+        key,
+        checked[key].reason || (key === 'promo_months' ? checked.promo_rate.reason : null) || 'out_of_range',
+      );
+    }
+  }
   if (promo === null && floating === null) {
     const supplied = FIELDS.filter((key) => row[key] !== null);
-    reject(
-      supplied.some((key) => checked[key].value !== null)
-        ? 'out_of_range'
-        : checked[supplied[0]]?.reason || 'no_context',
-    );
+    const reason = supplied.some((key) => checked[key].value !== null)
+      ? 'out_of_range'
+      : checked[supplied[0]]?.reason || 'no_context';
+    reject(reason);
+    // Số thành phần đúng nhưng không lập được lãi vay cũng bị bỏ cùng dòng.
+    for (const key of supplied) if (accepted[key] !== null) rejectValue(key, reason);
     return null;
   }
   return {
@@ -325,10 +353,11 @@ function termIs12(context, value, position) {
   });
 }
 
-export function validateDepositRate(row, source, text, reject = () => {}) {
+export function validateDepositRate(row, source, text, reject = () => {}, rejectValue = () => {}) {
   if (row.deposit_rate === null || row.deposit_rate === undefined) return null;
   if (!validSource(row, source)) {
     reject('wrong_bank');
+    rejectValue('deposit_rate', 'wrong_bank');
     return null;
   }
   const quote = row.evidence?.deposit_rate;
@@ -336,10 +365,12 @@ export function validateDepositRate(row, source, text, reject = () => {}) {
   const value = checked.value;
   if (value === null) {
     reject(checked.reason);
+    rejectValue('deposit_rate', checked.reason);
     return null;
   }
   if (value < DEPOSIT_RATE_LIMITS.min || value > DEPOSIT_RATE_LIMITS.max) {
     reject('out_of_range');
+    rejectValue('deposit_rate', 'out_of_range');
     return null;
   }
   return {
@@ -355,7 +386,7 @@ export function validateDepositRate(row, source, text, reject = () => {}) {
   };
 }
 
-async function extractChunk(env, source, clean, stats) {
+async function extractChunk(env, source, clean, stats, logger) {
   const model = MODELS.qwen;
   const thinking = model.thinking(false);
   let timer;
@@ -372,6 +403,7 @@ async function extractChunk(env, source, clean, stats) {
                 ({ code, name }) => ({ code, name }),
               ),
               text: clean,
+              ...(source.target_kind ? { kind: source.target_kind } : {}),
             }),
           },
         ],
@@ -389,15 +421,32 @@ async function extractChunk(env, source, clean, stats) {
   const rows = parseRates(output) ?? recoverRates(output);
   if (rows === null) {
     stats.rejected.json++;
+    try {
+      const invalid = JSON.parse(responseText(output));
+      for (const row of Array.isArray(invalid?.rates) ? invalid.rates.slice(0, BANK_SOURCES.length) : []) {
+        if (!BANK_SOURCES.some((bank) => bank.code === row?.bank_code)) continue;
+        for (const field of DEPOSIT_FIELDS) {
+          if (typeof row[field] === 'number') logRejectedValue(logger, row, field, 'json');
+        }
+      }
+    } catch {
+      // JSON chưa đọc được thì không đoán số hoặc trích cả phản hồi vào log.
+    }
     throw new Error('AI JSON invalid');
   }
   stats.ai_rows += rows.length;
   const reject = (reason) => {
     stats.rejected[reason]++;
   };
-  const validated = rows
-    .flatMap((row) => [validateRate(row, source, clean, reject), validateDepositRate(row, source, clean, reject)])
-    .filter(Boolean);
+  const validated = rows.flatMap((row) => {
+    const rejectValue = (field, reason) => logRejectedValue(logger, row, field, reason);
+    const accepted = [
+      validateRate(row, source, clean, reject, rejectValue),
+      validateDepositRate(row, source, clean, reject, rejectValue),
+    ].filter(Boolean);
+    for (const value of accepted) stats.evidence.set(value, row.evidence);
+    return accepted;
+  });
   stats.validated += validated.length;
   return validated;
 }
@@ -425,7 +474,7 @@ export async function extractPage(
     }
     stats.ai_calls++;
     try {
-      candidates.push(...(await extractChunk(env, source, chunk, stats)));
+      candidates.push(...(await extractChunk(env, source, chunk, stats, logger)));
     } catch (failure) {
       error = failure;
     }
