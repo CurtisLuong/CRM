@@ -21,6 +21,9 @@ export type LoanUnit = {
   netOverride: number | null;
   /** Phí mỗi căn (đ) — theo Giỏ hàng căn > toà > dự án, sửa tay được (LF-01). */
   fee?: number | null;
+  /** Chỉ áp cho phương án này; thiếu ở bản cũ thì đọc mặc định từ dự án. */
+  vatRate?: number | null;
+  kpbtRate?: number | null;
   [key: string]: unknown;
 };
 export type LoanState = {
@@ -30,6 +33,7 @@ export type LoanState = {
   [key: string]: unknown;
 };
 export type LoanPrefill = Partial<LoanUnit> & { customerId?: string };
+export const LOAN_ESTIMATE_WARNING = 'Số liệu tạm tính để tham khảo nhanh. CHƯA phải chính thức.';
 /** Luật vay (Curtis 06/11): để trống = tự động 70%; nhập tay không được vượt 80% (giá thuần + VAT). */
 export const LTV_AUTO = Number(DEFAULT_LOAN.ltv);
 export const LTV_MAX = 80;
@@ -140,8 +144,8 @@ export function buildInput(state: LoanState, project?: Record<string, unknown> |
     pricePerM2: state.unit.pricePerM2,
     netPriceOverride: state.unit.netOverride,
     fee: state.unit.fee,
-    vatRate: project?.vat_rate == null ? 5 : Number(project.vat_rate),
-    kpbtRate: project?.kpbt_rate == null ? 2 : Number(project.kpbt_rate),
+    vatRate: state.unit.vatRate ?? (project?.vat_rate == null ? 5 : Number(project.vat_rate)),
+    kpbtRate: state.unit.kpbtRate ?? (project?.kpbt_rate == null ? 2 : Number(project.kpbt_rate)),
   };
   return { unit, dates: state.dates, schedule, loan: cappedLoan(state.loan, calcPrice(unit).gross) };
 }

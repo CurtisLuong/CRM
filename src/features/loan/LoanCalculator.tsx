@@ -2,7 +2,7 @@
 
 import { lazy, type ReactNode, Suspense, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { toast as notify } from 'sonner';
-import { type Column, EmptyState, DataTable as KitDataTable, TextField } from '@/components/crm';
+import { type Column, DataTable as KitDataTable, TextField } from '@/components/crm';
 import { FormGrid, FormSection, FormSubsection, LONG_FIELD, SHORT_FIELD } from '@/components/crm/form-section';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
@@ -15,8 +15,10 @@ import { type Customer, isQualified } from '@/domain/customer';
 import { BANK_PRESETS, type BankPreset, type ComputeResult, calcPrice, compute, type Numeric } from '@/domain/loan';
 import { useTeamMembers } from '@/features/team/AssignSheet';
 import { useMyPhone } from '@/features/team/profile';
+import { LEVEL_CLASS } from '@/lib/crm';
 import { cn } from '@/lib/utils';
 import { displayDate } from '@/ui/display';
+import { Icon } from '@/ui/Icon';
 import {
   appendFixedRateTier,
   applyCatalog,
@@ -24,6 +26,7 @@ import {
   customerUnit,
   hasUnitPrefill,
   initialState,
+  LOAN_ESTIMATE_WARNING,
   type LoanPrefill,
   type LoanState,
   type LoanUnit,
@@ -46,16 +49,37 @@ import { createLoanStore, type LoanQuote } from './store';
 const LoanPaymentChart = lazy(() => import('./LoanPaymentChart'));
 const WIDE = LONG_FIELD;
 const PAIR = 'min-w-0 flex-1 basis-[calc(50%_-_0.375rem)]';
-// Nhãn nhiều dòng căn đáy để luôn cách ô 6px như ô phí tất toán.
-const PAIR_GRID =
-  '[&_label[for]]:flex [&_label[for]]:min-h-10 [&_label[for]]:items-end [&_label>span:first-child]:flex [&_label>span:first-child]:min-h-10 [&_label>span:first-child]:items-end';
+// Căn đáy theo nhãn thực tế, không ép mọi nhãn cao hai dòng.
+const PAIR_GRID = 'items-end';
 const FIELD =
   'h-11 w-full min-w-0 rounded-sm border border-input bg-surface-100 px-3 py-2 text-body text-ink focus:outline-2 focus:outline-ion';
-function Field({ label, children, className = '' }: { label: string; children: ReactNode; className?: string }) {
+function Field({
+  label,
+  note,
+  descriptionId,
+  children,
+  className = '',
+}: {
+  label: string;
+  note?: string;
+  descriptionId?: string;
+  children: ReactNode;
+  className?: string;
+}) {
   return (
     // biome-ignore lint/a11y/noLabelWithoutControl: The children always include the input or select, nested inside this label.
     <label className={`flex min-w-0 flex-col gap-1.5 text-label text-ink ${className || SHORT_FIELD}`}>
-      <span>{label}</span>
+      <span>
+        {label}
+        {note && (
+          <>
+            {' '}
+            <span id={descriptionId} aria-hidden="true" className="text-caption text-ink-muted">
+              {note}
+            </span>
+          </>
+        )}
+      </span>
       {children}
     </label>
   );
@@ -70,7 +94,7 @@ function NumberInput({
   suffix,
   scale = 1,
   auto,
-  hint,
+  note,
   className = '',
 }: {
   label: string;
@@ -84,9 +108,10 @@ function NumberInput({
   scale?: number;
   /** Số tự tính hiện khi chưa nhập tay; xoá trống rồi rời ô thì về lại số này (Curtis 06/11). */
   auto?: number;
-  hint?: ReactNode;
+  note?: string;
   className?: string;
 }) {
+  const noteId = useId();
   // Ô tự điền: giữ chữ đang gõ (kể cả rỗng) tới khi rời ô, không bật lại số tự tính dưới tay.
   const [draft, setDraft] = useState<string | null>(null);
   const current = value == null || value === '' ? auto : Number(value);
@@ -101,8 +126,21 @@ function NumberInput({
   return (
     <TextField
       className={className || SHORT_FIELD}
-      label={label}
-      hint={hint}
+      label={
+        <span>
+          {label}
+          {note && (
+            <>
+              {' '}
+              <span id={noteId} aria-hidden="true" className="text-caption text-ink-muted">
+                {note}
+              </span>
+            </>
+          )}
+        </span>
+      }
+      aria-label={label}
+      aria-describedby={note ? noteId : undefined}
       type="number"
       inputMode="decimal"
       numeric
@@ -179,9 +217,18 @@ export function LoanCalculator({ prefill = {} }: { prefill?: LoanPrefill }) {
   );
   return (
     <main className="mx-auto flex max-w-5xl flex-col gap-4 p-4">
-      <p className="text-caption text-ink-muted">
-        Số liệu tạm tính để tham khảo. Lãi suất và phí là giả định; xác nhận với ngân hàng trước khi tư vấn.
-      </p>
+      <div
+        role="note"
+        className={cn(
+          'flex items-start gap-3 rounded-md border p-4 text-body font-bold',
+          LEVEL_CLASS.soon.border,
+          LEVEL_CLASS.soon.tint,
+          LEVEL_CLASS.soon.text,
+        )}
+      >
+        <Icon name="alert" size={24} className="shrink-0" />
+        <p>{LOAN_ESTIMATE_WARNING}</p>
+      </div>
       <FormGrid>
         <Field className={LONG_FIELD} label="Khách hàng (không bắt buộc)">
           <select
@@ -394,6 +441,9 @@ function CalculatorForm({
         pricePerM2: Number(p?.typical_price_per_m2) || s.unit.pricePerM2,
         netOverride: null,
         fee: p ? (catalog?.projectFee(p) ?? null) : s.unit.fee,
+        // Chưa sửa tay thì theo dự án, kể cả khi giỏ hàng tải xong sau lúc chọn.
+        vatRate: null,
+        kpbtRate: null,
       },
       dates: {
         ...s.dates,
@@ -438,7 +488,10 @@ function CalculatorForm({
         customerId: selectedId,
         projectId: project?.id ?? null,
         unitCode: state.unit.code,
-        inputs: state,
+        inputs: {
+          ...state,
+          unit: { ...state.unit, vatRate: result.price.vatRate, kpbtRate: result.price.kpbtRate },
+        },
         summary: quoteSummary(result),
       });
       if (account?.sync.local.isClosed) return;
@@ -475,11 +528,11 @@ function CalculatorForm({
           />
         )}
         {quotes.length === 0 ? (
-          <EmptyState title="Chưa có phương án đã lưu" text="Tính và lưu một phương án để mở lại sau." />
+          !quoteError && <p className="text-caption text-ink-muted">Chưa lưu phương án nào.</p>
         ) : (
           <ul className="divide-y divide-border">
             {quotes.map((q) => (
-              <li key={q.id} className="py-1">
+              <li key={q.id}>
                 <Button
                   variant="ghost"
                   className={`h-auto min-h-11 w-full justify-between whitespace-normal text-left ${openedQuote === q.id ? 'bg-ion-tint text-ion' : ''}`}
@@ -508,8 +561,7 @@ function CalculatorForm({
         )}
       </Group>
       <Group title="Căn hộ và tiến độ">
-        {/* Ô ngắn 2 ô/hàng (4 ở desktop), ô dài chiếm cả hàng — Curtis 06/11: trang tính vay dài quá. */}
-        <FormGrid>
+        <FormGrid className={PAIR_GRID}>
           <Field label="Dự án" className={WIDE}>
             <input
               aria-label="Dự án"
@@ -571,20 +623,34 @@ function CalculatorForm({
             value={state.unit.fee ?? null}
             onChange={(n) => unit({ fee: n })}
           />
+          <FormGrid className={LONG_FIELD}>
+            <NumberInput
+              className={PAIR}
+              label="VAT"
+              suffix="%"
+              value={priceInput.vatRate}
+              onChange={(n) => unit({ vatRate: n ?? 0 })}
+            />
+            <NumberInput
+              className={PAIR}
+              label="KPBT"
+              suffix="%"
+              value={priceInput.kpbtRate}
+              onChange={(n) => unit({ kpbtRate: n ?? 0 })}
+            />
+          </FormGrid>
           <NumberInput
+            className={LONG_FIELD}
             label="Giá thuần"
             suffix="tr"
             scale={1_000_000}
             value={state.unit.netOverride}
             auto={autoNet}
-            hint={state.unit.netOverride ? 'Đã nhập tay · xoá trống để tự tính lại' : 'Tự tính = diện tích × đơn giá'}
+            note="(diện tích × đơn giá)"
             onChange={(n) => unit({ netOverride: n })}
           />
         </FormGrid>
-        <FormSubsection
-          title="Tiến độ"
-          className="[&_label>span:first-child]:flex [&_label>span:first-child]:min-h-10 [&_label>span:first-child]:items-end sm:[&_label>span:first-child]:min-h-5"
-        >
+        <FormSubsection title="Tiến độ" className="pl-0 sm:pl-0 [&>div]:items-end">
           <Field label="Ngày ký hợp đồng">
             <input
               type="date"
@@ -610,31 +676,6 @@ function CalculatorForm({
             onChange={(n) => dates({ titleAfterMonths: n ?? 0 })}
           />
         </FormSubsection>
-        <p className="text-caption text-ink-muted">
-          VAT {project?.vat_rate ?? 5}% · KPBT {project?.kpbt_rate ?? 2}%.{' '}
-          {project
-            ? 'Chính sách theo dự án trong giỏ hàng.'
-            : 'Chưa chọn dự án trong giỏ hàng: đang dùng tiến độ mẫu 7 đợt.'}
-        </p>
-        {project && (
-          <Button
-            disabled={!writable || busy}
-            onClick={async () => {
-              try {
-                if (!account) return;
-                await account.catalog.updateProject(project.id, {
-                  handover_date: state.dates.handoverDate,
-                  title_after_months: state.dates.titleAfterMonths,
-                });
-                notify.success('Đã cập nhật ngày bàn giao và nhận sổ của dự án');
-              } catch (e) {
-                setError(String(e));
-              }
-            }}
-          >
-            Cập nhật ngày bàn giao vào dự án
-          </Button>
-        )}
       </Group>
       <Group title="Thông số vay">
         <FormGrid className={PAIR_GRID}>
@@ -673,7 +714,7 @@ function CalculatorForm({
             value={shownLtv}
             auto={LTV_AUTO}
             max={LTV_MAX}
-            hint={`Tối đa ${LTV_MAX}%`}
+            note={`(max ${LTV_MAX}%)`}
             onChange={(n) =>
               loan({ ltv: n == null ? LTV_AUTO : Math.min(Math.max(n, 0), LTV_MAX), loanOverride: null })
             }
@@ -690,21 +731,16 @@ function CalculatorForm({
           />
           <NumberInput
             className={PAIR}
-            label="Số tiền vay"
+            label="Tiền vay"
             suffix="tr"
             scale={1_000_000}
             value={manualLoan}
             auto={Math.round((gross * shownLtv) / 100)}
-            hint={
-              <>
-                <span className="block">
-                  {manualLoan != null
-                    ? `Đã nhập tay · tối đa ${LTV_MAX}% = ${money(maxLoan)}đ · xoá trống về ${LTV_AUTO}%`
-                    : `Tối đa ${LTV_MAX}% = ${money(maxLoan)}đ`}
-                </span>
-                <span className="block">Tỷ lệ vay tính trên giá thuần + VAT (không gồm phí và KPBT).</span>
-              </>
-            }
+            note={`(max ${(maxLoan / 1_000_000).toLocaleString('vi-VN', {
+              minimumFractionDigits: 1,
+              maximumFractionDigits: 1,
+              useGrouping: false,
+            })} tr)`}
             onChange={(n) => {
               if (n == null) return loan({ loanOverride: null, ltv: LTV_AUTO });
               const amount = Math.min(Math.max(Math.round(n), 0), maxLoan);
@@ -726,6 +762,7 @@ function CalculatorForm({
             </select>
           </Field>
         </FormGrid>
+        <p className="text-caption text-ink-muted">Tỷ lệ vay tính trên giá thuần + VAT (không gồm phí và KPBT).</p>
         <FormSubsection title="Bậc lãi suất" className="pl-0 sm:pl-0">
           {state.loan.rateTiers.map((tier, i) => (
             <FormGrid className={`${LONG_FIELD} ${PAIR_GRID}`} key={`tier-${i}`}>
@@ -805,59 +842,67 @@ function CalculatorForm({
             )}
           </div>
         </FormSubsection>
-        {state.loan.graceEnabled && (
-          <FormGrid className={PAIR_GRID}>
-            <NumberInput
-              className={PAIR}
-              label="Ân hạn gốc"
-              suffix="tháng"
-              value={state.loan.graceMonths}
-              onChange={(n) => loan({ graceMonths: n ?? 0 })}
-            />
-            <Field label="Tính ân hạn từ giải ngân" className={PAIR}>
+        <FormSubsection title="Trả nợ" className="pl-0 sm:pl-0">
+          {state.loan.graceEnabled && (
+            <FormGrid className={`${LONG_FIELD} ${PAIR_GRID}`}>
+              <NumberInput
+                className={PAIR}
+                label="Ân hạn gốc"
+                suffix="tháng"
+                value={state.loan.graceMonths}
+                onChange={(n) => loan({ graceMonths: n ?? 0 })}
+              />
+              <Field label="Tính ân hạn từ giải ngân" className={PAIR}>
+                <select
+                  aria-label="Tính ân hạn từ giải ngân"
+                  className={FIELD}
+                  value={state.loan.principalStart}
+                  onChange={(e) => loan({ principalStart: e.target.value === 'last' ? 'last' : 'first' })}
+                >
+                  <option value="first">Lần đầu</option>
+                  <option value="last">Lần cuối</option>
+                </select>
+              </Field>
+            </FormGrid>
+          )}
+          <FormGrid className={`${LONG_FIELD} ${PAIR_GRID}`}>
+            <Field label="Cách tính lãi" className={PAIR}>
               <select
-                aria-label="Tính ân hạn từ giải ngân"
+                aria-label="Tính lãi"
                 className={FIELD}
-                value={state.loan.principalStart}
-                onChange={(e) => loan({ principalStart: e.target.value === 'last' ? 'last' : 'first' })}
+                value={state.loan.dayCount}
+                onChange={(e) => loan({ dayCount: e.target.value === 'monthly' ? 'monthly' : 'actual365' })}
               >
-                <option value="first">Lần đầu</option>
-                <option value="last">Lần cuối</option>
+                <option value="actual365">Ngày thực tế / 365</option>
+                <option value="monthly">Lãi năm / 12</option>
               </select>
             </Field>
+            <NumberInput
+              className={PAIR}
+              label="Tất toán sau"
+              suffix="tháng"
+              value={state.loan.payoffMonth}
+              min={1}
+              max={Number(state.loan.termYears) * 12}
+              step="1"
+              onChange={(n) => loan({ payoffMonth: n ?? 0 })}
+            />
           </FormGrid>
-        )}
-        <FormGrid className={PAIR_GRID}>
-          <Field label="Cách tính lãi" className={PAIR}>
-            <select
-              aria-label="Tính lãi"
+          <Field
+            className={LONG_FIELD}
+            label="Phí tất toán theo năm vay"
+            note="(%, phân cách dấu phẩy)"
+            descriptionId="loan-prepay-note"
+          >
+            <input
+              aria-label="Phí tất toán theo năm vay"
+              aria-describedby="loan-prepay-note"
               className={FIELD}
-              value={state.loan.dayCount}
-              onChange={(e) => loan({ dayCount: e.target.value === 'monthly' ? 'monthly' : 'actual365' })}
-            >
-              <option value="actual365">Ngày thực tế / 365</option>
-              <option value="monthly">Lãi năm / 12</option>
-            </select>
+              value={state.loan.prepayFees.join(',')}
+              onChange={(e) => loan({ prepayFees: e.target.value.split(',').map((n) => Number(n.trim())) })}
+            />
           </Field>
-          <NumberInput
-            className={PAIR}
-            label="Tất toán sau"
-            suffix="tháng"
-            value={state.loan.payoffMonth}
-            min={1}
-            max={Number(state.loan.termYears) * 12}
-            step="1"
-            onChange={(n) => loan({ payoffMonth: n ?? 0 })}
-          />
-        </FormGrid>
-        <Field label="Phí tất toán theo năm vay (%; phân cách dấu phẩy)">
-          <input
-            aria-label="Phí tất toán theo năm vay"
-            className={FIELD}
-            value={state.loan.prepayFees.join(',')}
-            onChange={(e) => loan({ prepayFees: e.target.value.split(',').map((n) => Number(n.trim())) })}
-          />
-        </Field>
+        </FormSubsection>
         {store && <Button onClick={remember}>Nhớ thông số trên máy</Button>}
       </Group>
       {computeError ? (
