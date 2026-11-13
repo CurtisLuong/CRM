@@ -132,9 +132,12 @@ async function collectAndStore(env, now, fetcher, logger, supplemental, state) {
     return reportRun(skippedRun(), logger);
   }
   // Cron chỉ định lượt rộng/bổ sung; gọi tay không chỉ định thì chọn theo dữ liệu hôm nay.
+  const manual = supplemental === undefined;
   supplemental ??= latest.some((row) => vnDay(new Date(row.fetched_at)) === vnDay(now));
   const missingKeys = new Set(missing.map(rateKey));
   const queries = [];
+  const logPage = (page, source_kind, ai_rows = 0, accepted = 0) =>
+    logger.log?.('bank-rates page', { url: page.url, source_kind, ai_rows, accepted });
   const reader = createPageReader(counted, logger);
   const read = (url, base, end = MAX_PAGES) => reader.read(url, base, Math.min(end, reader.count + workLeft()));
   const candidates = [],
@@ -152,6 +155,7 @@ async function collectAndStore(env, now, fetcher, logger, supplemental, state) {
     for (const feed of feeds) {
       const page = await readSeed(feed);
       if (!page) continue;
+      logPage(page, 'news');
       for (const article of newsArticles(page.html, feed, now)) {
         const previous = target.get(article.source_url);
         if (!previous || article.published_on > previous.published_on) target.set(article.source_url, article);
@@ -163,6 +167,8 @@ async function collectAndStore(env, now, fetcher, logger, supplemental, state) {
     written = 0;
   const stats = extractionStats();
   async function inspect(page, source, canCall = () => true) {
+    const before = stats.ai_rows;
+    let accepted = 0;
     const metadata = pageMetadata(page.html);
     const actual = {
       ...source,
@@ -170,30 +176,42 @@ async function collectAndStore(env, now, fetcher, logger, supplemental, state) {
       source_title: metadata.source_title || source.source_title || null,
       published_on: metadata.published_on || source.published_on || null,
     };
-    if (actual.source_kind === 'news' && !recentNews(actual.published_on, now)) return;
     try {
+      if (actual.source_kind === 'news' && !recentNews(actual.published_on, now)) return;
       const extracted = await extractPage(env, actual, pageText(page.html), {
         stats,
         logger,
         canCall: () => workLeft() > 0 && canCall(),
       });
-      candidates.push(...extracted.filter((row) => !source.target_kind || row.kind === source.target_kind));
+      const eligible = extracted.filter(
+        (row) =>
+          (!source.target_kind || row.kind === source.target_kind) && (!supplemental || missingKeys.has(rateKey(row))),
+      );
+      accepted = eligible.length;
+      candidates.push(...eligible);
     } catch {
       logger.warn('bank-rates extraction failed', { url: page.url });
+    } finally {
+      logPage(page, actual.source_kind, stats.ai_rows - before, accepted);
     }
   }
   if (supplemental) {
-    // Mốc giờ giữ vòng xoay khi isolate mới; con trỏ giữ tiến độ cho các lượt gọi tay liên tiếp.
-    let cursor =
-      state.cursor ??
-      (Math.floor((now.getUTCHours() * 60 + now.getUTCMinutes()) / 10) * SUPPLEMENTAL_CELLS_PER_RUN) % CELLS.length;
+    // Gọi tay xoay theo phút trên danh sách thiếu để isolate mới không lặp vì các ô đã đủ.
+    // Cron giữ vòng mười phút trên toàn bộ ô; con trỏ giữ tiến độ trong cùng isolate.
+    const pool = manual ? missing : CELLS;
+    const cursorKey = manual ? 'manualCursor' : 'cursor';
+    const slot = manual
+      ? Math.floor(now.getTime() / 60_000)
+      : Math.floor((now.getUTCHours() * 60 + now.getUTCMinutes()) / 10);
+    // Gọi tay: mỗi lượt chạy 1–2 phút nên nhảy 1 ô/phút để lượt kế tiếp không bỏ sót ô.
+    let cursor = (state[cursorKey] ?? slot * (manual ? 1 : SUPPLEMENTAL_CELLS_PER_RUN)) % pool.length;
     const selected = [];
-    for (let scanned = 0; scanned < CELLS.length && selected.length < SUPPLEMENTAL_CELLS_PER_RUN; scanned++) {
-      const cell = CELLS[cursor];
-      cursor = (cursor + 1) % CELLS.length;
+    for (let scanned = 0; scanned < pool.length && selected.length < SUPPLEMENTAL_CELLS_PER_RUN; scanned++) {
+      const cell = pool[cursor];
+      cursor = (cursor + 1) % pool.length;
       if (missingKeys.has(rateKey(cell))) selected.push(cell);
     }
-    state.cursor = cursor;
+    state[cursorKey] = cursor;
     const feeds = missingCellSearchFeeds(selected, now);
     // Chia đều trang và AI để bài dài của ô đầu không lấy hết lượt của ô sau.
     const aiPerCell = Math.floor((MAX_SUBREQUESTS - DB_SUBREQUESTS - MAX_PAGES) / selected.length);
@@ -217,6 +235,7 @@ async function collectAndStore(env, now, fetcher, logger, supplemental, state) {
       };
       const source = { bank_code: bank.code, source_kind: 'bank', target_kind: cell.kind };
       const feedPage = await readCell(feed, feed);
+      if (feedPage) logPage(feedPage, 'news');
       const found = feedPage ? newsArticles(feedPage.html, feed, now, bank) : [];
       const home = await readCell(bank.url, bank.url);
       const links = home ? bankLinks(home.html, home.url) : [];
@@ -224,7 +243,7 @@ async function collectAndStore(env, now, fetcher, logger, supplemental, state) {
       for (const article of found) {
         if (!canCall() || workLeft() <= 0) break;
         const page = await readCell(article.source_url, article.base);
-        if (page) await inspect(page, { ...article, bank_code: bank.code, target_kind: cell.kind }, canCall);
+        if (page) await inspect(page, article.source_kind === 'news' ? article : { ...article, ...source }, canCall);
       }
       for (let visited = 0; visited < 2 && links.length && canCall() && workLeft() > 0; visited++) {
         const page = await readCell(links.shift(), bank.url);

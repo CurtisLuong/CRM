@@ -197,12 +197,14 @@ export function createPageReader(fetcher, logger = console) {
         count++;
         const controller = new AbortController();
         const timer = setTimeout(() => controller.abort(), 12_000);
+        let status;
         try {
           const response = await fetcher(url, {
             redirect: 'manual',
             signal: controller.signal,
             headers: { Accept: 'text/html,application/rss+xml,application/xml,text/xml' },
           });
+          status = response.status;
           if (response.status >= 300 && response.status < 400) {
             await response.body?.cancel();
             url = sourceUrl(response.headers.get('Location') || '', url);
@@ -232,7 +234,7 @@ export function createPageReader(fetcher, logger = console) {
           html += decoder.decode();
           return { html, url };
         } catch {
-          logger.warn('bank-rates source failed', { url });
+          logger.warn('bank-rates source failed', { url, ...(status !== undefined ? { status } : {}) });
           return null;
         } finally {
           clearTimeout(timer);

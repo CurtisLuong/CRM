@@ -250,7 +250,7 @@ const withinRate = (value) =>
 function validSource(row, source) {
   // URL chỉ được gắn bởi bộ đọc trang thành công, không nhận URL của model.
   if (!source?.source_url || !['bank', 'news'].includes(source.source_kind)) return null;
-  if (source.bank_code && row.bank_code !== source.bank_code) return null;
+  if (source.source_kind === 'bank' && source.bank_code && row.bank_code !== source.bank_code) return null;
   const validUrl =
     source.source_kind === 'bank'
       ? BANK_SOURCES.some(
@@ -399,9 +399,9 @@ async function extractChunk(env, source, clean, stats, logger) {
           {
             role: 'user',
             content: JSON.stringify({
-              banks: BANK_SOURCES.filter((bank) => !source.bank_code || bank.code === source.bank_code).map(
-                ({ code, name }) => ({ code, name }),
-              ),
+              banks: BANK_SOURCES.filter(
+                (bank) => source.source_kind === 'news' || !source.bank_code || bank.code === source.bank_code,
+              ).map(({ code, name }) => ({ code, name })),
               text: clean,
               ...(source.target_kind ? { kind: source.target_kind } : {}),
             }),
