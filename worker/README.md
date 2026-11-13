@@ -83,7 +83,7 @@ Tóm tắt kỹ thuật:
 ## Kiểm thử code
 `npx vitest run tests/worker` — giả lập Supabase + Graph (không gọi mạng thật).
 
-## Lãi suất ngân hàng mỗi sáng (BR-01, BR-02, BR-03)
+## Lãi suất ngân hàng mỗi sáng (BR-01, BR-02, BR-03, BR-04)
 
 `bank-rates.js` đọc lần lượt 5 Bing News RSS: hai truy vấn vay cũ, “lãi suất tiết kiệm
 12 tháng”, “lãi suất tiết kiệm Big4” và “lãi suất vay mua nhà tháng <tháng>/<năm>”
@@ -108,7 +108,13 @@ hoặc giao thức không hợp lệ. Ví dụ:
 
 Bài báo phải có từ khóa về lãi vay hoặc lãi tiết kiệm/tiền gửi và ngày đăng không quá 90 ngày. Mỗi lượt tối đa
 30 HTTP request công khai, tính cả RSS, redirect và nguồn lỗi. Nội dung HTML/script
-được bỏ, hotline được ẩn, văn bản gửi Workers AI Qwen tối đa 12.000 ký tự/trang.
+được bỏ, hotline được ẩn, văn bản xử lý tối đa 12.000 ký tự/trang.
+Bài dài được cắt thành đoạn tối đa `CHUNK_TEXT = 3.500` ký tự, ưu tiên cuối câu,
+chồng mép `CHUNK_OVERLAP = 400` ký tự. Mỗi đoạn gọi Workers AI Qwen một lần;
+tối đa `MAX_CHUNKS_PER_PAGE = 4` đoạn/trang và `MAX_AI_CALLS = 40` lần/cả lượt
+(cấu hình ở `bank-rates-config.js`, tính cả lần AI lỗi/timeout). Hết ngân sách thì
+log tên giới hạn, dừng gọi thêm, vẫn ghi số đã kiểm được. Các đoạn của một trang
+gộp theo `(bank_code, kind)`, giữ dòng hợp lệ đầu tiên, không ghép trường giữa đoạn.
 Không gọi AI bên ngoài binding `AI`.
 
 AI phải trả JSON đúng khuôn với trích dẫn nguyên văn cho từng số, bao gồm
@@ -117,7 +123,21 @@ hoặc online; kênh được ghi vào `note` nếu nguồn nêu. Bỏ kỳ hạ
 doanh nghiệp và lãi đặc biệt đòi số tiền rất lớn. Không suy đoán hoặc bịa số.
 Một kết quả AI có thể chứa cả vay và gửi cho mỗi ngân hàng; Worker tách thành
 dòng `kind=loan` (cột gửi null) và `kind=deposit` (mọi cột vay null). Lãi gửi
-chỉ nhận 1–12%/năm. Số gửi phải có trích dẫn ghi rõ sản phẩm và kỳ hạn 12 tháng.
+chỉ nhận 1–12%/năm. Trích dẫn phải có trong chính đoạn đã gửi AI và chứa nguyên số,
+không nhận số con (ví dụ `5,9` trong `15,9`). Nếu trích dẫn ngắn, Worker kiểm từng
+lần xuất hiện, lấy câu chứa số và tối đa khoảng 300 ký tự trước đầu câu để tìm
+sản phẩm/kỳ hạn. Số gửi phải gắn với kỳ hạn 12 tháng ngay trước (hoặc ngay sau nếu
+không có kỳ hạn trước), có ngữ cảnh tiết kiệm/tiền gửi/huy động và không thuộc loại
+đặc biệt/doanh nghiệp. Tên ngân hàng gần số trong cửa sổ hoặc phần trước tối đa
+1.500 ký tự phải khớp mã AI trả; đối chiếu không phân biệt hoa/thường từ `BANK_SOURCES`.
+Tên ngân hàng khác gần hơn thì loại. Cửa sổ chỉ để kiểm, không lưu vào bảng;
+`note` vẫn chỉ nhận nếu nguyên văn có trong đoạn.
+
+JSON đúng cú pháp nhưng sai khuôn bị bỏ cả phản hồi như trước. Riêng lỗi cú pháp,
+Worker quét object trong mảng `rates`, đếm ngoặc (bỏ ngoặc đóng thừa, bỏ qua ngoặc
+trong chuỗi), cứu từng object đúng khuôn rồi kiểm bằng chứng như bình thường.
+Không cứu được object nào thì tăng `failed`; đoạn lỗi không làm mất dòng hợp lệ
+ở các đoạn khác. Một trang có đoạn lỗi không cứu được được tính `failed` một lần.
 
 Với lãi vay, Worker đối chiếu trích dẫn
 với văn bản, kiểm khoảng lãi 3–20%/năm, cộng tham chiếu + biên độ nếu đủ số, bỏ
@@ -164,9 +184,17 @@ Curtis/Lead thiết lập sau khi duyệt:
    ```
 
    Đúng secret trả thống kê `pages`, `candidates`, `written`, `drifted`, `failed`
-   (lỗi trích xuất/ghi). Đã chạy hôm nay trả `skipped: "already_ran_today"`.
+   (lỗi trích xuất/ghi), thêm `ai_calls` và `rejected` đếm theo lý do:
+   `no_quote_in_text`, `no_context`, `wrong_term`, `wrong_bank`, `out_of_range`,
+   `drift`, `json`. Đã chạy hôm nay trả `skipped: "already_ran_today"`,
+   `ai_calls: 0` và các bộ đếm loại bằng 0.
    Secret thiếu/sai trả 401; lỗi cấu hình/đọc DB trả 503. Xem `wrangler tail` để biết
    nguồn lỗi hoặc ngân hàng bị chặn do lệch số; log không chứa khóa hay nội dung AI.
+   Cuối lượt có `bank-rates summary`: các thống kê trên, `ai_rows` (số object đọc
+   được từ AI), `validated` (số dòng vay/gửi qua kiểm trước gộp/chặn lệch).
+   `rejected` đếm mỗi dòng vay/gửi bị loại một lý do; đoạn chồng có thể đếm lại
+   một đề xuất. `json` đếm phản hồi bỏ hoàn toàn; JSON cứu được không tính lỗi này.
+   Summary không chứa văn bản bài, trích dẫn, note hoặc số điện thoại.
 5. Trên Supabase cùng môi trường, xem `bank_rates_latest`: mỗi dòng mới có URL
    trang đã đọc, loại vay/gửi, ngày công bố (có thể null) và ngày lấy; bấm nguồn để kiểm số gần đúng. Trang bị 403 hoặc không
    có số công khai sẽ giữ bản cũ. Không cần đọc/ghi bảng khách.
@@ -177,3 +205,6 @@ Fixture BR-01 trong `tests/worker/fixtures/bank-rates/`, fixture BR-02 đặt ng
 `tests/worker/bank-rates-deposit.test.ts`: mô phỏng HTML/RSS theo các nguồn được giao,
 với số/ngày cố định phục vụ test (Lead duyệt dùng mô phỏng). Chưa kiểm website live
 hoặc deploy; task cấm gọi mạng thật.
+BR-04 có `tests/worker/bank-rates-chunks.test.ts` và fixture mô phỏng bài dài nhiều
+ngân hàng `tests/worker/fixtures/bank-rates/long-multi-bank.txt`, kiểm cắt đoạn,
+ngân sách, bằng chứng ngắn, ngân hàng gần nhất, cứu JSON và summary/response.
