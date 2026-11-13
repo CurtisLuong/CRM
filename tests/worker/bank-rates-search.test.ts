@@ -168,7 +168,7 @@ function world(
   const fetcher = vi.fn(async (url: string, init?: RequestInit) => {
     if (url.startsWith('https://sb.test/')) {
       if (init?.method === 'POST') {
-        inserts.push(JSON.parse(String(init.body)));
+        inserts.push(...[JSON.parse(String(init.body))].flat());
         return new Response(null, { status: 201 });
       }
       return new Response(

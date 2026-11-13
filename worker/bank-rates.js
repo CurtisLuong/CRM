@@ -1,7 +1,9 @@
 import {
   BANK_RATES_CRON,
   BANK_SOURCES,
+  DB_SUBREQUESTS,
   MAX_PAGES,
+  MAX_SUBREQUESTS,
   MIN_NEWS_PAGES,
   NEWS_FEEDS,
   newsSearchFeeds,
@@ -72,8 +74,9 @@ function createStore(env, fetcher) {
       }
       return rows;
     },
-    async insert(row) {
-      const response = await request('bank_rates', { method: 'POST', body: JSON.stringify(row) });
+    // Nhận một dòng hoặc mảng dòng (PostgREST ghi mảng trong một request, cùng thành công hoặc cùng lỗi).
+    async insert(rows) {
+      const response = await request('bank_rates', { method: 'POST', body: JSON.stringify(rows) });
       await response.body?.cancel();
     },
   };
@@ -82,13 +85,24 @@ function createStore(env, fetcher) {
 async function collectAndStore(env, now, fetcher, logger) {
   if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY || !env.AI?.run)
     throw new Error('bank-rates configuration missing');
-  const store = createStore(env, fetcher);
+  // Đếm mọi subrequest (fetch + AI) để không chạm trần của Cloudflare trước khi kịp ghi DB.
+  let used = 0;
+  const counted = (input, init) => {
+    used++;
+    return fetcher(input, init);
+  };
+  // Phần cho đọc trang + AI; DB_SUBREQUESTS đã gồm lần đọc bảng mới nhất và các lần ghi.
+  const workLeft = () => MAX_SUBREQUESTS - DB_SUBREQUESTS - reader.count - stats.ai_calls;
+  const ai = env.AI;
+  env = { ...env, AI: { run: (...args) => (used++, ai.run(...args)) } };
+  const store = createStore(env, counted);
   // Không có bản đối chiếu đáng tin → dừng, không coi lỗi đọc là bảng trống.
   const latest = await store.latest();
   if (latest.some((row) => vnDay(new Date(row.fetched_at)) === vnDay(now))) {
     return reportRun(skippedRun(), logger);
   }
-  const reader = createPageReader(fetcher, logger);
+  const reader = createPageReader(counted, logger);
+  const read = (url, base, end = MAX_PAGES) => reader.read(url, base, Math.min(end, reader.count + workLeft()));
   const candidates = [],
     banks = [],
     articles = new Map(),
@@ -98,7 +112,7 @@ async function collectAndStore(env, now, fetcher, logger) {
   async function readSeed(url) {
     remainingSeeds--;
     // Cho tối đa một request redirect nguồn đầu vào; luôn giữ lượt cho các nguồn còn lại.
-    return reader.read(url, url, MAX_PAGES - MIN_NEWS_PAGES - remainingSeeds + 1);
+    return read(url, url, MAX_PAGES - MIN_NEWS_PAGES - remainingSeeds + 1);
   }
   async function collectArticles(feeds, target) {
     for (const feed of feeds) {
@@ -124,7 +138,7 @@ async function collectAndStore(env, now, fetcher, logger) {
     };
     if (actual.source_kind === 'news' && !recentNews(actual.published_on, now)) return;
     try {
-      candidates.push(...(await extractPage(env, actual, pageText(page.html), { stats, logger })));
+      candidates.push(...(await extractPage(env, actual, pageText(page.html), { stats, logger, canCall: () => workLeft() > 0 })));
     } catch {
       logger.warn('bank-rates extraction failed', { url: page.url });
     }
@@ -149,7 +163,7 @@ async function collectAndStore(env, now, fetcher, logger) {
   // Bài tìm kiếm trước, bài RSS sau; phần dư mới dành cho trang con ngân hàng.
   for (const source of news) {
     if (reader.count >= MAX_PAGES) break;
-    const page = await reader.read(source.source_url, source.base);
+    const page = await read(source.source_url, source.base);
     if (page) await inspect(page, source);
   }
   for (let round = 0; round < 2; round++) {
@@ -158,13 +172,14 @@ async function collectAndStore(env, now, fetcher, logger) {
       const url = state.links.shift();
       if (!url) continue;
       state.visited++;
-      const page = await reader.read(url, state.bank.url);
+      const page = await read(url, state.bank.url);
       if (!page) continue;
       state.links.push(...bankLinks(page.html, page.url).filter((link) => !state.links.includes(link)));
       await inspect(page, state.source);
     }
   }
   const previous = new Map(latest.map((row) => [rateKey(row), row]));
+  const rows = [];
   for (const row of preferredRates(candidates)) {
     if (exceedsDrift(row, previous.get(rateKey(row)))) {
       drifted++;
@@ -176,16 +191,33 @@ async function collectAndStore(env, now, fetcher, logger) {
       });
       continue;
     }
+    rows.push({ ...row, fetched_at: now.toISOString() });
+  }
+  const insertFailed = (row, error) =>
+    logger.warn('bank-rates insert failed', {
+      bank_code: row.bank_code,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  if (rows.length) {
     try {
-      await store.insert({ ...row, fetched_at: now.toISOString() });
-      written++;
+      await store.insert(rows);
+      written = rows.length;
     } catch (error) {
-      failed++;
-      // Ghi lý do (HTTP status / giới hạn subrequest) để chẩn đoán; không chứa khoá.
-      logger.warn('bank-rates insert failed', {
-        bank_code: row.bank_code,
-        error: error instanceof Error ? error.message : String(error),
-      });
+      // Ghi gộp lỗi → ghi lẻ để một ngân hàng lỗi không chặn ngân hàng khác (luật 6), trong phần subrequest còn lại.
+      for (const row of rows) {
+        if (used >= MAX_SUBREQUESTS) {
+          failed++;
+          insertFailed(row, error);
+          continue;
+        }
+        try {
+          await store.insert(row);
+          written++;
+        } catch (rowError) {
+          failed++;
+          insertFailed(row, rowError);
+        }
+      }
     }
   }
   const result = {

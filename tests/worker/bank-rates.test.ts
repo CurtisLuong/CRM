@@ -413,9 +413,10 @@ function world(
     if (url.hostname === 'sb.test') {
       dbCalls.push({ url: input, init });
       if (init?.method === 'POST') {
-        const row = JSON.parse(String(init.body));
-        if (row.bank_code === options.failInsert) return new Response(null, { status: 503 });
-        inserts.push(row);
+        // Worker ghi gộp một mảng (BR-05); mảng có dòng lỗi thì cả request lỗi như PostgREST.
+        const rows = [JSON.parse(String(init.body))].flat();
+        if (rows.some((row) => row.bank_code === options.failInsert)) return new Response(null, { status: 503 });
+        inserts.push(...rows);
         return new Response(null, { status: 201 });
       }
       if (options.readError) return new Response(null, { status: 503 });

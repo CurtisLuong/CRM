@@ -281,7 +281,7 @@ function world({ budget = false, drift = false, badJson = false } = {}) {
   const fetcher = vi.fn(async (url: string, init?: RequestInit) => {
     if (url.startsWith('https://sb.test/')) {
       if (init?.method === 'POST') {
-        inserts.push(JSON.parse(String(init.body)));
+        inserts.push(...[JSON.parse(String(init.body))].flat());
         return new Response(null, { status: 201 });
       }
       return new Response(JSON.stringify(latest));
@@ -326,6 +326,32 @@ describe('BR-04 thống kê lượt chạy và response', () => {
       }),
     );
     expect(JSON.stringify(w.logger.log.mock.calls)).not.toContain('Điều kiện áp dụng');
+  });
+
+  it('BR-05: cả lượt (fetch + AI + DB) không vượt trần subrequest của Cloudflare; ghi gộp một request', async () => {
+    for (const budget of [true, false]) {
+      const w = world({ budget });
+      const result = await runBankRates(w.env, { now: NOW, fetcher: w.fetcher, logger: w.logger });
+      expect(w.fetcher.mock.calls.length + w.run.mock.calls.length).toBeLessThanOrEqual(config.MAX_SUBREQUESTS);
+      expect(result.written).toBe(w.inserts.length);
+      expect(w.inserts.length).toBeGreaterThan(0);
+      const posts = w.fetcher.mock.calls.filter(([, init]) => init?.method === 'POST');
+      expect(posts).toHaveLength(1);
+    }
+  });
+
+  it('BR-05: ghi gộp lỗi thì ghi lẻ từng dòng, log kèm lý do lỗi', async () => {
+    const w = world({});
+    const fetcher = vi.fn(async (url: string, init?: RequestInit) => {
+      if (init?.method === 'POST' && Array.isArray(JSON.parse(String(init.body))))
+        return new Response('batch bad', { status: 400 });
+      return w.fetcher(url, init);
+    });
+    const result = await runBankRates(w.env, { now: NOW, fetcher, logger: w.logger });
+    expect(w.inserts.length).toBeGreaterThan(0);
+    expect(result).toMatchObject({ written: w.inserts.length, failed: 0 });
+    const posts = fetcher.mock.calls.filter(([, init]) => init?.method === 'POST');
+    expect(posts).toHaveLength(1 + w.inserts.length);
   });
 
   it('summary và response có số dòng trả/qua kiểm, rejected gồm sai kỳ hạn, thiếu quote và lệch', async () => {

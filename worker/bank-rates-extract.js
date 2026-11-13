@@ -402,7 +402,12 @@ async function extractChunk(env, source, clean, stats) {
   return validated;
 }
 
-export async function extractPage(env, source, text, { stats = extractionStats(), logger = console } = {}) {
+export async function extractPage(
+  env,
+  source,
+  text,
+  { stats = extractionStats(), logger = console, canCall = () => true } = {},
+) {
   const chunks = textChunks(aiPageText(text));
   const candidates = [];
   let error = null;
@@ -412,6 +417,10 @@ export async function extractPage(env, source, text, { stats = extractionStats()
   for (const chunk of chunks.slice(0, MAX_CHUNKS_PER_PAGE)) {
     if (stats.ai_calls >= MAX_AI_CALLS) {
       logger.warn('bank-rates AI budget reached', { limit: 'MAX_AI_CALLS', max: MAX_AI_CALLS });
+      break;
+    }
+    if (!canCall()) {
+      logger.warn('bank-rates AI budget reached', { limit: 'MAX_SUBREQUESTS' });
       break;
     }
     stats.ai_calls++;

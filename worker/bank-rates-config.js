@@ -67,6 +67,11 @@ export const MAX_TEXT = 12_000;
 export const CHUNK_TEXT = 3_500;
 export const CHUNK_OVERLAP = 400;
 export const MAX_CHUNKS_PER_PAGE = 4;
-export const MAX_AI_CALLS = 40;
+// Gói Workers miễn phí: tối đa 50 subrequest/lượt, tính cả fetch lẫn mỗi lần gọi AI (log production 13/11).
+// Chừa 6 cho DB: 1 lần đọc bảng mới nhất + 1 lần ghi gộp + tối đa 4 lần ghi lẻ khi ghi gộp lỗi; còn lại cho trang + AI.
+export const MAX_SUBREQUESTS = 50;
+export const DB_SUBREQUESTS = 6;
+// AI nhận phần còn lại sau trang: 50 − 6 − 30 = 14 lần/lượt.
+export const MAX_AI_CALLS = MAX_SUBREQUESTS - DB_SUBREQUESTS - MAX_PAGES;
 export const MAX_NEWS_AGE_DAYS = 90;
 export const AI_TIMEOUT_MS = 45_000;

@@ -221,7 +221,7 @@ function world(latest: Row[] = [], metadata = '<time>04/09/2026 08:00</time>') {
   const fetcher = vi.fn(async (url: string, init?: RequestInit) => {
     if (url.startsWith('https://sb.test/')) {
       if (init?.method === 'POST') {
-        inserts.push(JSON.parse(String(init.body)));
+        inserts.push(...[JSON.parse(String(init.body))].flat());
         return new Response(null, { status: 201 });
       }
       queries.push(url);
