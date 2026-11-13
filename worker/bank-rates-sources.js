@@ -1,4 +1,4 @@
-import { MAX_NEWS_AGE_DAYS, MAX_PAGES, MAX_TEXT, NEWS_PUBLISHERS, NEWS_SEARCH_FEEDS } from './bank-rates-config.js';
+import { MAX_NEWS_AGE_DAYS, MAX_PAGES, MAX_TEXT, NEWS_PUBLISHERS, newsSearchFeeds } from './bank-rates-config.js';
 
 export function decodeEntities(value) {
   const named = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };
@@ -109,6 +109,8 @@ export function dateOnly(value) {
     const parsed = new Date(`${day}T00:00:00Z`);
     return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === day ? day : null;
   }
+  const local = text.match(/\b(\d{1,2})[/-](\d{1,2})[/-](\d{4})\b/);
+  if (local) return dateOnly(`${local[3]}-${local[2].padStart(2, '0')}-${local[1].padStart(2, '0')}`);
   const timestamp = Date.parse(text);
   return Number.isFinite(timestamp) ? new Date(timestamp).toISOString().slice(0, 10) : null;
 }
@@ -132,6 +134,14 @@ export function pageMetadata(html) {
     }
     if (/^<time/i.test(tag)) published ||= dateOnly(attrs.datetime);
   }
+  // Chỉ đọc vùng ngày bài; ngày trong nội dung có thể là ngày hiệu lực lãi suất.
+  for (const match of withoutScripts(html).matchAll(/<(time|span|div|p)\b([^>]*)>([^<]*)<\/\1\s*>/gi)) {
+    const attrs = attributes(match[2]);
+    if (
+      match[1].toLowerCase() === 'time' ||
+      /(?:^|[\s_-])(?:date|publish(?:ed)?|pubdate|time)(?:$|[\s_-])/i.test(attrs.class || '')
+    ) published ||= dateOnly(pageText(match[3]));
+  }
   const title = html.match(/<title\b[^>]*>([\s\S]*?)<\/title\s*>/i)?.[1];
   return { published_on: published, source_title: title ? pageText(title, 300) : null };
 }
@@ -143,13 +153,15 @@ function xmlText(item, name) {
 
 export function newsArticles(rss, feed, now) {
   const articles = new Map();
-  const search = NEWS_SEARCH_FEEDS.includes(feed);
+  const search = newsSearchFeeds(now).includes(feed);
   for (const match of rss.matchAll(/<item\b[^>]*>([\s\S]*?)<\/item\s*>/gi)) {
     const item = match[1];
     const title = pageText(xmlText(item, 'title'), 300);
     const description = pageText(xmlText(item, 'description'));
-    if (!/lai suat cho vay|vay mua nha|lai suat tha noi|lai suat uu dai/.test(fold(`${title} ${description}`)))
-      continue;
+    const topic = fold(`${title} ${description}`);
+    const loan = /lai suat cho vay|vay mua nha|lai suat tha noi|lai suat uu dai/.test(topic);
+    const deposit = /lai suat/.test(topic) && /tiet kiem|tien gui|lai suat gui|big\s*4/.test(topic);
+    if (!loan && !deposit) continue;
     const day = dateOnly(xmlText(item, 'pubDate') || xmlText(item, 'dc:date'));
     const link = xmlText(item, 'link');
     const url = search ? bingArticleUrl(link) : sourceUrl(link, feed);

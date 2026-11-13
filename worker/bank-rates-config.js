@@ -20,9 +20,18 @@ export const NEWS_FEEDS = [
   'https://baodautu.vn/ngan-hang.rss',
 ];
 
-export const NEWS_SEARCH_FEEDS = ['lãi suất vay mua nhà', 'lãi suất cho vay mua nhà ngân hàng'].map(
-  (query) => `https://www.bing.com/news/search?q=${encodeURIComponent(query)}&format=rss&setlang=vi`,
-);
+export function newsSearchFeeds(now = new Date()) {
+  const vn = new Date(now.getTime() + 7 * 3_600_000);
+  return [
+    'lãi suất vay mua nhà',
+    'lãi suất cho vay mua nhà ngân hàng',
+    'lãi suất tiết kiệm 12 tháng',
+    'lãi suất tiết kiệm Big4',
+    `lãi suất vay mua nhà tháng ${vn.getUTCMonth() + 1}/${vn.getUTCFullYear()}`,
+  ].map((query) => `https://www.bing.com/news/search?q=${encodeURIComponent(query)}&format=rss&setlang=vi`);
+}
+
+export const NEWS_SEARCH_FEEDS = newsSearchFeeds();
 
 // Chỉ mở thêm các báo được giao; kết quả tìm kiếm không được tự mở host bất kỳ.
 export const NEWS_PUBLISHERS = [
@@ -32,12 +41,28 @@ export const NEWS_PUBLISHERS = [
   'https://vietnamnet.vn/',
   'https://baomoi.com/',
   'https://soha.vn/',
+  'https://24h.com.vn/',
+  'https://thanhnien.vn/',
+  'https://tuoitre.vn/',
+  'https://vnexpress.net/',
+  'https://znews.vn/',
+  'https://laodong.vn/',
+  'https://baophapluat.vn/',
+  'https://nguoiquansat.vn/',
+  'https://cafebiz.vn/',
+  'https://cafeland.vn/',
+  'https://batdongsan.com.vn/',
+  'https://baogialai.com.vn/',
+  'https://nld.com.vn/',
+  'https://tienphong.vn/',
+  'https://vtv.vn/',
 ];
 
 export const BANK_RATE_LIMITS = { min: 3, max: 20 };
+export const DEPOSIT_RATE_LIMITS = { min: 1, max: 12 };
 export const BANK_RATES_CRON = '0 0 * * *';
 export const MAX_PAGES = 30;
-export const MIN_NEWS_PAGES = 12;
+export const MIN_NEWS_PAGES = 10;
 export const MAX_TEXT = 12_000;
-export const MAX_NEWS_AGE_DAYS = 45;
+export const MAX_NEWS_AGE_DAYS = 90;
 export const AI_TIMEOUT_MS = 45_000;

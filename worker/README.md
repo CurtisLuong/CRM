@@ -83,48 +83,68 @@ Tóm tắt kỹ thuật:
 ## Kiểm thử code
 `npx vitest run tests/worker` — giả lập Supabase + Graph (không gọi mạng thật).
 
-## Lãi vay mua nhà mỗi sáng (BR-01, BR-02)
+## Lãi suất ngân hàng mỗi sáng (BR-01, BR-02, BR-03)
 
-`bank-rates.js` đọc lần lượt 2 Bing News RSS (truy vấn “lãi suất vay mua nhà” và
-“lãi suất cho vay mua nhà ngân hàng”), đủ 10 trang chủ ngân hàng rồi 5 RSS cũ,
+`bank-rates.js` đọc lần lượt 5 Bing News RSS: hai truy vấn vay cũ, “lãi suất tiết kiệm
+12 tháng”, “lãi suất tiết kiệm Big4” và “lãi suất vay mua nhà tháng <tháng>/<năm>”
+(tháng hiện tại tại Việt Nam, tính lại mỗi lượt), đủ 10 trang chủ ngân hàng rồi 5 RSS cũ,
 tất cả cấu hình trong `bank-rates-config.js`. Tiếp theo đọc bài từ tìm kiếm trước
 (mới nhất trước), bài từ RSS cũ sau, cuối cùng mới đọc liên kết về lãi suất/vay nhà
 của ngân hàng (chia vòng, tối đa 3 trang/ngân hàng). Không có liên kết phù hợp thì
 không đọc trang con. URL trùng chỉ đọc một lần trong cả lượt.
 
-17 nguồn đầu vào dùng tối đa 18 request (tối đa 1 request redirect bổ sung), luôn
-chừa ít nhất 12 request cho bài báo nếu có đủ bài; thông thường còn 13 request.
+20 nguồn đầu vào dùng tối đa 21 request (tối đa 1 request redirect bổ sung),
+chừa 10 request cho bài báo khi nguồn đầu vào không redirect (`MIN_NEWS_PAGES = 10`).
+Nếu nguồn đầu vào redirect thì còn 9 request cho bài, tổng vẫn không vượt 30.
 Redirect bài báo cũng tính trong phần này. Nếu ít bài, phần dư dùng cho trang con.
 Bing chỉ dùng để tìm URL; không gửi trang tìm kiếm cho AI hoặc lưu link Bing.
 Chỉ nhận URL gốc HTTPS thuộc các báo RSS cũ và Vietstock, Dân trí, VietnamNet,
-Báo Mới, Soha; bỏ link thiếu `url`, host lạ hoặc giao thức không hợp lệ. Ví dụ:
+Báo Mới, Soha; thêm 24h, Thanh Niên, Tuổi Trẻ, VnExpress, Znews, Lao Động,
+Báo Pháp Luật (kể cả subdomain), Người Quan Sát, CafeBiz, CafeLand, Batdongsan,
+Báo Gia Lai, Người Lao Động, Tiền Phong, VTV. Bỏ link thiếu `url`, host lạ, IP
+hoặc giao thức không hợp lệ. Ví dụ:
 `http://www.bing.com/news/apiclick.aspx?url=https%3A%2F%2Fdantri.com.vn%2Fkinh-doanh%2Flai-vay.htm&ref=BF`
 → `https://dantri.com.vn/kinh-doanh/lai-vay.htm`. Bài tìm được vẫn là nguồn `news`.
 
-Bài báo phải có từ khóa về lãi vay và ngày đăng không quá 45 ngày. Mỗi lượt tối đa
+Bài báo phải có từ khóa về lãi vay hoặc lãi tiết kiệm/tiền gửi và ngày đăng không quá 90 ngày. Mỗi lượt tối đa
 30 HTTP request công khai, tính cả RSS, redirect và nguồn lỗi. Nội dung HTML/script
 được bỏ, hotline được ẩn, văn bản gửi Workers AI Qwen tối đa 12.000 ký tự/trang.
 Không gọi AI bên ngoài binding `AI`.
 
-AI phải trả JSON đúng khuôn với trích dẫn cho từng số. Worker đối chiếu trích dẫn
+AI phải trả JSON đúng khuôn với trích dẫn nguyên văn cho từng số, bao gồm
+`deposit_rate`. Lãi gửi chỉ lấy tiết kiệm cá nhân kỳ hạn đúng 12 tháng, tại quầy
+hoặc online; kênh được ghi vào `note` nếu nguồn nêu. Bỏ kỳ hạn khác, tiền gửi
+doanh nghiệp và lãi đặc biệt đòi số tiền rất lớn. Không suy đoán hoặc bịa số.
+Một kết quả AI có thể chứa cả vay và gửi cho mỗi ngân hàng; Worker tách thành
+dòng `kind=loan` (cột gửi null) và `kind=deposit` (mọi cột vay null). Lãi gửi
+chỉ nhận 1–12%/năm. Số gửi phải có trích dẫn ghi rõ sản phẩm và kỳ hạn 12 tháng.
+
+Với lãi vay, Worker đối chiếu trích dẫn
 với văn bản, kiểm khoảng lãi 3–20%/năm, cộng tham chiếu + biên độ nếu đủ số, bỏ
 thả nổi thấp hơn ưu đãi. Biên độ tính bằng điểm %, có thể nhỏ hơn 3. Trong cùng
-lượt: nguồn ngân hàng thắng báo, cùng loại chọn ngày đăng mới hơn; không ghép gói
-giữa các trang. Lệch hơn 2 điểm so với bản mới nhất thì bỏ cả dòng và log cảnh báo.
+lượt, chọn riêng theo `(bank_code, kind)`: nguồn ngân hàng thắng báo, cùng loại
+nguồn chọn ngày đăng mới hơn; không ghép gói giữa các trang. Lệch hơn 2 điểm
+so với bản mới nhất của cùng ngân hàng và loại thì bỏ dòng đó, log cả loại.
+Lãi gửi bị loại không làm mất dòng vay hợp lệ và ngược lại.
+`published_on` luôn lấy ngày nguồn công bố: ưu tiên meta/ngày bài gốc rồi ngày RSS.
+Trang ngân hàng không có ngày công bố lưu null; không dùng ngày đọc để điền.
+`fetched_at` mới là thời điểm Worker đọc nguồn.
 Không có số hợp lệ thì không ghi; bản cũ trong `bank_rates_latest` vẫn giữ nguyên.
 Lỗi đọc bản cũ từ Supabase làm dừng lượt trước khi ghi.
 
 Cron `0 0 * * *` chạy lúc **07:00 Việt Nam**, tách biệt cron Facebook `*/5`.
 Các yêu cầu đồng thời trong cùng isolate được gộp; cùng ngày đã hoàn tất thì bỏ qua.
-Isolate mới kiểm `fetched_at` trong `bank_rates_latest` để tránh ghi lại trong ngày
+Isolate mới đọc cả hai loại từ view `bank_rates_latest` (bản mới nhất theo ngân hàng
+và loại), kiểm `fetched_at` để tránh ghi lại trong ngày
 Việt Nam. Nếu cả lượt không ghi được dòng nào, dấu đã chạy chỉ nằm trong bộ nhớ
-isolate; schema 016 không có bảng khóa lượt chạy bền vững. Không tạo bảng khác.
+isolate; schema 016/017 không có bảng khóa lượt chạy bền vững. Không tạo bảng khác.
 Kiểm ngày không phải khóa nguyên tử: hai isolate cùng bắt đầu trước khi có dòng
 mới vẫn có thể cùng chạy. Lịch cron chỉ khai báo một lần mỗi ngày.
 
 Curtis/Lead thiết lập sau khi duyệt:
 
-1. Bảo đảm SQL `016_bank_rates.sql` đã có trên đúng Supabase mà Worker đang dùng:
+1. Bảo đảm SQL `016_bank_rates.sql` rồi `017_bank_rates_deposit.sql` đã có trên
+   đúng Supabase mà Worker đang dùng:
    **staging `mksjmpcsfawsiabfhoxe`** khi thử preview, hoặc **production
    `nrqccwamwctihivpxjww`** khi duyệt chạy thật. Không đổi `SUPABASE_URL` của Worker
    đang nhận Facebook chỉ để thử tính năng này; dùng Worker staging riêng nếu cần.
@@ -148,11 +168,12 @@ Curtis/Lead thiết lập sau khi duyệt:
    Secret thiếu/sai trả 401; lỗi cấu hình/đọc DB trả 503. Xem `wrangler tail` để biết
    nguồn lỗi hoặc ngân hàng bị chặn do lệch số; log không chứa khóa hay nội dung AI.
 5. Trên Supabase cùng môi trường, xem `bank_rates_latest`: mỗi dòng mới có URL
-   trang đã đọc và ngày lấy; bấm nguồn để kiểm số gần đúng. Trang bị 403 hoặc không
+   trang đã đọc, loại vay/gửi, ngày công bố (có thể null) và ngày lấy; bấm nguồn để kiểm số gần đúng. Trang bị 403 hoặc không
    có số công khai sẽ giữ bản cũ. Không cần đọc/ghi bảng khách.
 
 Kiểm thử offline: `npm run check` rồi `npx vitest run tests/worker`.
 Fixture BR-01 trong `tests/worker/fixtures/bank-rates/`, fixture BR-02 đặt ngay trong
-`tests/worker/bank-rates-search.test.ts`: mô phỏng HTML/RSS theo các nguồn được giao,
+`tests/worker/bank-rates-search.test.ts`, fixture BR-03 trong
+`tests/worker/bank-rates-deposit.test.ts`: mô phỏng HTML/RSS theo các nguồn được giao,
 với số/ngày cố định phục vụ test (Lead duyệt dùng mô phỏng). Chưa kiểm website live
 hoặc deploy; task cấm gọi mạng thật.

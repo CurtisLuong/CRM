@@ -4,9 +4,9 @@ import {
   MAX_PAGES,
   MIN_NEWS_PAGES,
   NEWS_FEEDS,
-  NEWS_SEARCH_FEEDS,
+  newsSearchFeeds,
 } from './bank-rates-config.js';
-import { exceedsDrift, extractPage, preferredRates } from './bank-rates-extract.js';
+import { exceedsDrift, extractPage, preferredRates, rateKey } from './bank-rates-extract.js';
 import { bankLinks, createPageReader, newsArticles, pageMetadata, pageText, recentNews } from './bank-rates-sources.js';
 
 export { BANK_RATES_CRON };
@@ -33,7 +33,7 @@ function createStore(env, fetcher) {
   return {
     async latest() {
       const response = await request(
-        'bank_rates_latest?select=bank_code,promo_rate,floating_rate,reference_rate,margin,fetched_at',
+        'bank_rates_latest?select=bank_code,kind,deposit_rate,promo_rate,floating_rate,reference_rate,margin,fetched_at',
       );
       const rows = await response.json();
       if (!Array.isArray(rows)) throw new Error('bank-rates latest invalid');
@@ -41,10 +41,13 @@ function createStore(env, fetcher) {
         if (
           !row ||
           !BANK_SOURCES.some((bank) => bank.code === row.bank_code) ||
+          (row.kind !== undefined && !['loan', 'deposit'].includes(row.kind)) ||
           !Number.isFinite(Date.parse(row.fetched_at))
         )
           throw new Error('bank-rates latest invalid');
-        for (const key of ['promo_rate', 'floating_rate', 'reference_rate', 'margin']) {
+        const fields = ['promo_rate', 'floating_rate', 'reference_rate', 'margin'];
+        if (row.kind !== undefined) fields.push('deposit_rate');
+        for (const key of fields) {
           if (row[key] !== null && !(typeof row[key] === 'number' && Number.isFinite(row[key])))
             throw new Error('bank-rates latest invalid');
         }
@@ -72,11 +75,12 @@ async function collectAndStore(env, now, fetcher, logger) {
     banks = [],
     articles = new Map(),
     rssArticles = new Map();
-  let remainingSeeds = BANK_SOURCES.length + NEWS_FEEDS.length + NEWS_SEARCH_FEEDS.length;
+  const searchFeeds = newsSearchFeeds(now);
+  let remainingSeeds = BANK_SOURCES.length + NEWS_FEEDS.length + searchFeeds.length;
   async function readSeed(url) {
     remainingSeeds--;
-    // Redirect nguồn đầu vào không được lấy phần dành cho bài báo hoặc nguồn còn lại.
-    return reader.read(url, url, MAX_PAGES - MIN_NEWS_PAGES - remainingSeeds);
+    // Cho tối đa một request redirect nguồn đầu vào; luôn giữ lượt cho các nguồn còn lại.
+    return reader.read(url, url, MAX_PAGES - MIN_NEWS_PAGES - remainingSeeds + 1);
   }
   async function collectArticles(feeds, target) {
     for (const feed of feeds) {
@@ -107,7 +111,7 @@ async function collectAndStore(env, now, fetcher, logger) {
       logger.warn('bank-rates extraction failed', { url: page.url });
     }
   }
-  await collectArticles(NEWS_SEARCH_FEEDS, articles);
+  await collectArticles(searchFeeds, articles);
   // Đọc đủ mười trang chủ; chưa đọc trang con để giữ ngân sách bài báo.
   for (const bank of BANK_SOURCES) {
     const page = await readSeed(bank.url);
@@ -142,12 +146,13 @@ async function collectAndStore(env, now, fetcher, logger) {
       await inspect(page, state.source);
     }
   }
-  const previous = new Map(latest.map((row) => [row.bank_code, row]));
+  const previous = new Map(latest.map((row) => [rateKey(row), row]));
   for (const row of preferredRates(candidates)) {
-    if (exceedsDrift(row, previous.get(row.bank_code))) {
+    if (exceedsDrift(row, previous.get(rateKey(row)))) {
       drifted++;
       logger.warn('bank-rates drift > 2 points; keeping previous', {
         bank_code: row.bank_code,
+        kind: row.kind,
         source_url: row.source_url,
       });
       continue;
