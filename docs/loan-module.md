@@ -79,7 +79,7 @@ hàng đợi offline của `db.js`) → mất mạng sẽ báo lỗi, tính + PD
 | Lãi kỳ | Dư nợ thực tế × lãi năm × số ngày thực tế ÷ 365 |
 | Gốc kỳ | Dư nợ ÷ số kỳ còn lại (gốc giảm dần, tự tính lại mỗi lần giải ngân thêm) |
 | Ân hạn | Tính từ lần giải ngân đầu hoặc cuối (chọn trong form) |
-| Phí tất toán | % × dư nợ còn lại, theo năm vay (năm 1 = 12 tháng đầu) |
+| Phí tất toán | % × dư nợ còn lại, theo năm vay (năm 1 = 12 tháng đầu). "Tất toán sau k tháng" = trả ở tháng k+1 → năm vay = floor(k/12)+1 (vd. sau 60 tháng = năm 6; Curtis chốt 12/11, giữ như engine v1) |
 
 **Đổi tiến độ CĐT cho dự án khác:** sửa cột `payment_schedule` (JSON) trong bảng `projects`. Mỗi đợt:
 - `due.type`: `offsetDays` (T + số ngày), `handover` (ngày bàn giao), `afterHandoverMonths` (sau bàn giao X tháng), `date` (ngày cố định)

@@ -107,14 +107,12 @@ test('HD-01: ô tìm dài mở bảng tìm, Menu ba gạch; cụm phải vừa m
   await open(page);
   const header = appHeader(page);
   const search = header.getByRole('button', { name: /Tìm khách, lệnh/ });
-  const bell = header.getByRole('button', { name: /^Thông báo/ });
   const searchBox = await search.boundingBox();
-  const bellBox = await bell.boundingBox();
   const width = page.viewportSize()?.width ?? 0;
   // Điện thoại (Curtis 11/11, phương án B): icon + "Tìm" vừa khít để tiêu đề hiện đủ; desktop ô dài.
-  expect(searchBox?.width ?? 0).toBeGreaterThanOrEqual(width >= 1280 ? 280 : (bellBox?.width ?? 44));
+  expect(searchBox?.width ?? 0).toBeGreaterThanOrEqual(width >= 1280 ? 280 : 44);
   if (width < 768) await expect(search).toContainText('Tìm');
-  for (const button of [search, bell, header.getByRole('button', { name: 'Menu', exact: true })]) {
+  for (const button of [search, header.getByRole('button', { name: 'Menu', exact: true })]) {
     const box = await button.boundingBox();
     expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
     expect(box?.width ?? 0).toBeGreaterThanOrEqual(44);

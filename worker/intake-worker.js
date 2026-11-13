@@ -132,11 +132,15 @@ CÁC FIELD (đúng thuộc tính CRM):
 import { handleFb, runCron } from './fb-leads.js';
 import { handleAi } from './ai-assist.js';
 import { handleStt } from './stt.js';
+import { BANK_RATES_CRON, handleBankRates, runBankRates } from './bank-rates.js';
 
 export default {
   async fetch(request, env, ctx) {
     const origin = env.ALLOWED_ORIGIN || '*';
     const url = new URL(request.url);
+    if (request.method === 'POST' && url.pathname === '/bank-rates/run') {
+      return handleBankRates(request, env);
+    }
     // Facebook gọi server-to-server (không cần CORS) — xử lý trước.
     if (url.pathname.startsWith('/fb/')) {
       const res = await handleFb(request, env, ctx);
@@ -162,6 +166,15 @@ export default {
 
   // Cron (wrangler.toml [triggers]): quét lead Facebook mới + xử lý hàng chờ mỗi 5 phút.
   async scheduled(event, env, ctx) {
+    if (event.cron === BANK_RATES_CRON) {
+      ctx.waitUntil(
+        runBankRates(env)
+          .then((r) => console.log('bank-rates cron', JSON.stringify(r)))
+          .catch((e) => console.error('bank-rates cron lỗi; giữ bản cũ', e instanceof Error ? e.message : String(e))),
+      );
+      return;
+    }
+    if (event.cron !== '*/5 * * * *') return;
     ctx.waitUntil(
       runCron(env)
         .then((r) => console.log('fb cron', JSON.stringify(r)))

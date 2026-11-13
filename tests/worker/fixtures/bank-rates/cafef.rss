@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/">
+<channel><title>Tài chính - Ngân hàng | CafeF</title>
+  <!-- RSS rút gọn theo nguồn Lead cung cấp; ngày/số liệu được cố định cho test offline. -->
+  <item>
+    <title><![CDATA[Lãi suất ngân hàng ngày 11/11 tại Agribank, Vietcombank, BIDV…]]></title>
+    <description><![CDATA[<p>Cập nhật lãi suất cho vay mua nhà và lãi suất ưu đãi.</p>]]></description>
+    <link>https://cafef.vn/lai-suat-ngan-hang-11-11.chn</link>
+    <pubDate>Wed, 11 Nov 2026 08:00:00 +0700</pubDate>
+  </item>
+  <item><title>Lãi suất tiền gửi tiết kiệm tăng</title><description>Gửi tiết kiệm cá nhân</description>
+    <link>https://cafef.vn/tien-gui.chn</link><pubDate>Wed, 11 Nov 2026 08:00:00 +0700</pubDate></item>
+  <item><title>Vay mua nhà từ tháng 9</title><description>Lãi suất cho vay</description>
+    <link>https://cafef.vn/cu.chn</link><pubDate>Sat, 01 Aug 2026 08:00:00 +0700</pubDate></item>
+  <item><title>Lãi suất thả nổi ở mốc 45 ngày</title><description>Cá nhân</description>
+    <link>https://cafef.vn/moc-45-ngay.chn</link><pubDate>Mon, 28 Sep 2026 08:00:00 +0700</pubDate></item>
+  <item><title>Vay mua nhà trong tương lai</title><description>Lãi suất ưu đãi</description>
+    <link>https://cafef.vn/tuong-lai.chn</link><pubDate>Fri, 13 Nov 2026 08:00:00 +0700</pubDate></item>
+  <item><title>Vay mua nhà không rõ ngày</title><link>https://cafef.vn/khong-ngay.chn</link></item>
+  <item><title>Lãi suất cho vay sai ngày</title><link>https://cafef.vn/sai-ngay.chn</link><pubDate>2026-02-31</pubDate></item>
+  <item><title>Vay mua nhà bên ngoài</title><link>https://evil.example/tin</link><pubDate>2026-11-11</pubDate></item>
+  <item><title>Lãi suất cho vay bản trùng</title><link>https://cafef.vn/lai-suat-ngan-hang-11-11.chn</link><pubDate>2026-11-10</pubDate></item>
+  <item><title>Lãi suất ưu đãi &amp; cho vay cá nhân</title><description>Gói vay mua nhà</description>
+    <link>https://cafef.vn/tin-moi.chn?a=1&amp;b=2</link><dc:date>2026-11-12T00:00:00Z</dc:date></item>
+</channel>
+</rss>
