@@ -42,7 +42,10 @@ function createStore(env, fetcher) {
         Prefer: 'return=minimal',
       },
     });
-    if (!response.ok) throw new Error(`bank-rates database HTTP ${response.status}`);
+    if (!response.ok) {
+      const detail = (await response.text().catch(() => '')).slice(0, 300);
+      throw new Error(`bank-rates database HTTP ${response.status} ${detail}`);
+    }
     return response;
   }
   return {
@@ -176,9 +179,13 @@ async function collectAndStore(env, now, fetcher, logger) {
     try {
       await store.insert({ ...row, fetched_at: now.toISOString() });
       written++;
-    } catch {
+    } catch (error) {
       failed++;
-      logger.warn('bank-rates insert failed', { bank_code: row.bank_code });
+      // Ghi lý do (HTTP status / giới hạn subrequest) để chẩn đoán; không chứa khoá.
+      logger.warn('bank-rates insert failed', {
+        bank_code: row.bank_code,
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
   }
   const result = {
