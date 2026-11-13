@@ -135,6 +135,19 @@ export function validateRate(row, source, text) {
   };
 }
 
+// Trích dẫn có nhiều kỳ hạn ("6 tháng 4,5%, 12 tháng 5,9%"): số phải thuộc kỳ hạn 12 tháng gần nhất phía trước
+// (không có thì kỳ hạn ngay sau), để không ghi lãi 6 tháng thành 12 tháng (Lead, review BR-03).
+function termIs12(context, value) {
+  const terms = [...context.matchAll(/\b(\d{1,2})\s*thang\b/g)].map((m) => ({ n: Number(m[1]), i: m.index }));
+  return [...context.matchAll(/\d+(?:[.,]\d+)?/g)].some((m) => {
+    if (Math.abs(Number(m[0].replace(',', '.')) - value) > 1e-9) return false;
+    if (/^\s*thang/.test(context.slice(m.index + m[0].length))) return false;
+    const before = terms.filter((t) => t.i < m.index).at(-1);
+    const term = before ?? terms.find((t) => t.i > m.index);
+    return term?.n === 12;
+  });
+}
+
 export function validateDepositRate(row, source, text) {
   if (!validSource(row, source)) return null;
   const quote = row.evidence?.deposit_rate;
@@ -144,7 +157,7 @@ export function validateDepositRate(row, source, text) {
     value === null ||
     value < DEPOSIT_RATE_LIMITS.min ||
     value > DEPOSIT_RATE_LIMITS.max ||
-    !/\b12\s*thang\b/.test(context) ||
+    !termIs12(context, value) ||
     !/tiet kiem|tien gui|lai gui/.test(context) ||
     /dac biet|sieu lai suat|doanh nghiep/.test(context)
   ) return null;

@@ -79,6 +79,14 @@ describe('BR-03 trích và tách lãi gửi 12 tháng', () => {
     expect(validateDepositRate(deposit(5.9, text), SOURCE, text)).toBeNull();
   });
 
+  it('trích dẫn nhiều kỳ hạn: chỉ nhận số của kỳ hạn 12 tháng (Lead, review BR-03)', () => {
+    const text = 'BIDV lãi suất tiết kiệm kỳ hạn 6 tháng 4,5%/năm và 12 tháng 5,9%/năm.';
+    expect(validateDepositRate(deposit(4.5, text), SOURCE, text)).toBeNull();
+    expect(validateDepositRate(deposit(5.9, text), SOURCE, text)).toMatchObject({ deposit_rate: 5.9 });
+    const after = 'BIDV trả 5,9%/năm cho tiền gửi tiết kiệm kỳ hạn 12 tháng.';
+    expect(validateDepositRate(deposit(5.9, after), SOURCE, after)).toMatchObject({ deposit_rate: 5.9 });
+  });
+
   it('không nhận số thiếu bằng chứng, trích dẫn bịa hoặc lấy số con trong số lớn', () => {
     expect(validateDepositRate(deposit(), SOURCE, 'Không công bố số liệu.')).toBeNull();
     expect(validateDepositRate(deposit(5.9, quote(15.9)), SOURCE, quote(15.9))).toBeNull();
