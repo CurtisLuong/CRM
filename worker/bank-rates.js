@@ -203,7 +203,8 @@ async function collectAndStore(env, now, fetcher, logger, supplemental, state) {
     const slot = manual
       ? Math.floor(now.getTime() / 60_000)
       : Math.floor((now.getUTCHours() * 60 + now.getUTCMinutes()) / 10);
-    let cursor = (state[cursorKey] ?? slot * SUPPLEMENTAL_CELLS_PER_RUN) % pool.length;
+    // Gọi tay: mỗi lượt chạy 1–2 phút nên nhảy 1 ô/phút để lượt kế tiếp không bỏ sót ô.
+    let cursor = (state[cursorKey] ?? slot * (manual ? 1 : SUPPLEMENTAL_CELLS_PER_RUN)) % pool.length;
     const selected = [];
     for (let scanned = 0; scanned < pool.length && selected.length < SUPPLEMENTAL_CELLS_PER_RUN; scanned++) {
       const cell = pool[cursor];
