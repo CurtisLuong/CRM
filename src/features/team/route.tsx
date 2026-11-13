@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { toast as sonnerToast } from '@/components/ui/sonner';
 import { useCustomers, useRepositoryAccount } from '@/data/hooks';
 import { memberLabel, type TeamMember } from './model';
+import { useMyPhone } from './profile';
 
 const FIELD =
   'min-h-11 w-full min-w-0 rounded-sm border border-line bg-surface-100 px-3 text-body text-ink focus-visible:outline-2 focus-visible:outline-ion';
@@ -19,6 +20,8 @@ function Team() {
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [email, setEmail] = useState('');
   const [myName, setMyName] = useState('');
+  const { phone, ready: phoneReady, savePhone } = useMyPhone(account);
+  const [phoneDraft, setPhoneDraft] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [loadState, setLoadState] = useState<'loading' | 'ready' | 'offline' | 'error'>('loading');
@@ -37,6 +40,7 @@ function Team() {
     try {
       const cached = JSON.parse(localStorage.getItem(cacheKey(userId)) || '[]');
       setMembers(Array.isArray(cached) ? cached : []);
+      setMyName(Array.isArray(cached) ? cached.find((member: TeamMember) => member.is_me)?.full_name || '' : '');
     } catch {
       setMembers([]);
     }
@@ -77,6 +81,11 @@ function Team() {
       setLoadState('error');
     }
   }, [account, userId]);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Xoá bản nháp khi đổi tài khoản.
+  useEffect(() => {
+    setPhoneDraft(null);
+  }, [userId]);
 
   useEffect(() => {
     void refresh();
@@ -176,6 +185,30 @@ function Team() {
               Lưu tên
             </Button>
           </div>
+          <label htmlFor="my-profile-phone" className="flex min-w-0 flex-col gap-1.5 text-label">
+            <span>Số điện thoại của bạn</span>
+            <Input
+              id="my-profile-phone"
+              type="tel"
+              autoComplete="tel"
+              className={FIELD}
+              value={phoneDraft ?? phone}
+              onChange={(event) => setPhoneDraft(event.target.value)}
+            />
+          </label>
+          <p className="text-hint">Dùng cùng tên hiển thị trên phiếu tính vay.</p>
+          <Button
+            disabled={busy || !userId || !phoneReady || loadState === 'offline'}
+            onClick={() =>
+              void submit(async () => {
+                if (!(await savePhone(phoneDraft ?? phone)))
+                  throw new Error('Chưa lưu được số điện thoại. Kiểm tra mạng và thử lại.');
+                setPhoneDraft(null);
+              }, 'Đã lưu số điện thoại')
+            }
+          >
+            Lưu số điện thoại
+          </Button>
         </Card>
       </section>
 

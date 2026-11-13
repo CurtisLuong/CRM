@@ -1,21 +1,32 @@
 // biome-ignore-all lint/suspicious/noArrayIndexKey: Loan table columns and rate-tier positions have fixed semantic order; only the last tier can be removed.
 
-import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, type ReactNode, Suspense, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { toast as notify } from 'sonner';
-import { type Column, EmptyState, DataTable as KitDataTable, TextField } from '@/components/crm';
+import { type Column, DataTable as KitDataTable, TextField } from '@/components/crm';
 import { FormGrid, FormSection, FormSubsection, LONG_FIELD, SHORT_FIELD } from '@/components/crm/form-section';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { rememberedUser } from '@/data/auth';
 import { useCustomers, useRepositoryAccount } from '@/data/hooks';
 import type { Data } from '@/data/repositories/customers';
 import type { RepositoryAccount } from '@/data/repositories/session';
 import { type Customer, isQualified } from '@/domain/customer';
 import { BANK_PRESETS, type BankPreset, type ComputeResult, calcPrice, compute, type Numeric } from '@/domain/loan';
+import { useTeamMembers } from '@/features/team/AssignSheet';
+import { useMyPhone } from '@/features/team/profile';
+import { LEVEL_CLASS } from '@/lib/crm';
+import { cn } from '@/lib/utils';
+import { displayDate } from '@/ui/display';
+import { Icon } from '@/ui/Icon';
 import {
+  appendFixedRateTier,
   applyCatalog,
   buildInput,
   customerUnit,
+  hasUnitPrefill,
   initialState,
+  LOAN_ESTIMATE_WARNING,
   type LoanPrefill,
   type LoanState,
   type LoanUnit,
@@ -25,20 +36,50 @@ import {
   money,
   presetParams,
   quoteSummary,
+  quoteToAutoOpen,
+  remainingRateMonths,
+  removeLastFixedRateTier,
   restoreLoanState,
+  scheduleLabel,
   validateState,
 } from './model';
 import { printLoan } from './print';
 import { createLoanStore, type LoanQuote } from './store';
 
+const LoanPaymentChart = lazy(() => import('./LoanPaymentChart'));
 const WIDE = LONG_FIELD;
+const PAIR = 'min-w-0 flex-1 basis-[calc(50%_-_0.375rem)]';
+// Căn đáy theo nhãn thực tế, không ép mọi nhãn cao hai dòng.
+const PAIR_GRID = 'items-end';
 const FIELD =
   'h-11 w-full min-w-0 rounded-sm border border-input bg-surface-100 px-3 py-2 text-body text-ink focus:outline-2 focus:outline-ion';
-function Field({ label, children, className = '' }: { label: string; children: ReactNode; className?: string }) {
+function Field({
+  label,
+  note,
+  descriptionId,
+  children,
+  className = '',
+}: {
+  label: string;
+  note?: string;
+  descriptionId?: string;
+  children: ReactNode;
+  className?: string;
+}) {
   return (
     // biome-ignore lint/a11y/noLabelWithoutControl: The children always include the input or select, nested inside this label.
     <label className={`flex min-w-0 flex-col gap-1.5 text-label text-ink ${className || SHORT_FIELD}`}>
-      <span>{label}</span>
+      <span>
+        {label}
+        {note && (
+          <>
+            {' '}
+            <span id={descriptionId} aria-hidden="true" className="text-caption text-ink-muted">
+              {note}
+            </span>
+          </>
+        )}
+      </span>
       {children}
     </label>
   );
@@ -53,7 +94,7 @@ function NumberInput({
   suffix,
   scale = 1,
   auto,
-  hint,
+  note,
   className = '',
 }: {
   label: string;
@@ -67,9 +108,10 @@ function NumberInput({
   scale?: number;
   /** Số tự tính hiện khi chưa nhập tay; xoá trống rồi rời ô thì về lại số này (Curtis 06/11). */
   auto?: number;
-  hint?: string;
+  note?: string;
   className?: string;
 }) {
+  const noteId = useId();
   // Ô tự điền: giữ chữ đang gõ (kể cả rỗng) tới khi rời ô, không bật lại số tự tính dưới tay.
   const [draft, setDraft] = useState<string | null>(null);
   const current = value == null || value === '' ? auto : Number(value);
@@ -84,8 +126,21 @@ function NumberInput({
   return (
     <TextField
       className={className || SHORT_FIELD}
-      label={label}
-      hint={hint}
+      label={
+        <span>
+          {label}
+          {note && (
+            <>
+              {' '}
+              <span id={noteId} aria-hidden="true" className="text-caption text-ink-muted">
+                {note}
+              </span>
+            </>
+          )}
+        </span>
+      }
+      aria-label={label}
+      aria-describedby={note ? noteId : undefined}
       type="number"
       inputMode="decimal"
       numeric
@@ -122,7 +177,17 @@ function ErrorState({ title, detail, onRetry }: { title: string; detail: string;
     </div>
   );
 }
-function DataTable({ label, head, rows }: { label: string; head: string[]; rows: (string | number)[][] }) {
+function DataTable({
+  label,
+  head,
+  rows,
+  className = '',
+}: {
+  label: string;
+  head: string[];
+  rows: (string | number)[][];
+  className?: string;
+}) {
   type TableRow = { id: number } & Record<string, string | number>;
   const data: TableRow[] = rows.map((row, index) => ({
     id: index,
@@ -136,7 +201,7 @@ function DataTable({ label, head, rows }: { label: string; head: string[]; rows:
   }));
   return (
     <div className="max-w-full overflow-x-auto" data-slot="loan-table-scroll">
-      <KitDataTable caption={label} columns={columns} rows={data} className="min-w-[640px]" />
+      <KitDataTable caption={label} columns={columns} rows={data} className={`min-w-[640px] ${className}`} />
     </div>
   );
 }
@@ -152,13 +217,26 @@ export function LoanCalculator({ prefill = {} }: { prefill?: LoanPrefill }) {
   );
   return (
     <main className="mx-auto flex max-w-5xl flex-col gap-4 p-4">
-      <h1 className="text-title">Tính khoản vay</h1>
-      <p className="text-caption text-ink-muted">
-        Số liệu tạm tính để tham khảo. Lãi suất và phí là giả định; xác nhận với ngân hàng trước khi tư vấn.
-      </p>
-      <FormSection title="Khách hàng (không bắt buộc)">
+      <div
+        role="note"
+        className={cn(
+          'flex items-start gap-3 rounded-md border p-4 text-body font-bold',
+          LEVEL_CLASS.soon.border,
+          LEVEL_CLASS.soon.tint,
+          LEVEL_CLASS.soon.text,
+        )}
+      >
+        <Icon name="alert" size={24} className="shrink-0" />
+        <p>{LOAN_ESTIMATE_WARNING}</p>
+      </div>
+      <FormGrid>
         <Field className={LONG_FIELD} label="Khách hàng (không bắt buộc)">
-          <select className={FIELD} value={selected} onChange={(e) => setSelected(e.target.value)}>
+          <select
+            aria-label="Khách hàng (không bắt buộc)"
+            className={FIELD}
+            value={selected}
+            onChange={(e) => setSelected(e.target.value)}
+          >
             <option value="">Bảng tính độc lập</option>
             {customer && !choices.some((c) => c.id === customer.id) && (
               <option value={customer.id}>{customer.full_name}</option>
@@ -170,7 +248,7 @@ export function LoanCalculator({ prefill = {} }: { prefill?: LoanPrefill }) {
             ))}
           </select>
         </Field>
-      </FormSection>
+      </FormGrid>
       {selected && !customer && (
         <p role="status" className="text-caption text-ink-muted">
           Đang tìm khách trong dữ liệu tài khoản. Chưa thể lưu phương án cho khách này.
@@ -181,6 +259,7 @@ export function LoanCalculator({ prefill = {} }: { prefill?: LoanPrefill }) {
         account={account}
         customer={customer}
         selectedId={selected}
+        explicitPrefill={hasUnitPrefill(prefill)}
         prefill={{ ...customerUnitSafe(customer), ...prefill }}
       />
     </main>
@@ -209,17 +288,35 @@ function CalculatorForm({
   account,
   customer,
   selectedId,
+  explicitPrefill,
   prefill,
 }: {
   account: RepositoryAccount | null;
   customer?: Customer;
   selectedId: string;
+  explicitPrefill: boolean;
   prefill: LoanPrefill;
 }) {
   const store = useMemo(() => (account ? createLoanStore(account) : null), [account]);
   // Số mang từ hồ sơ khách giữ qua mỗi lần áp Giỏ hàng (ref: không làm effect tải Giỏ hàng chạy lại).
   const keep = useRef({ area: prefill.area, netOverride: prefill.netOverride });
-  const [state, setState] = useState<LoanState>(() => {
+  const members = useTeamMembers(account);
+  const { phone } = useMyPhone(account);
+  const me = members.find((member) => member.is_me);
+  const login = rememberedUser();
+  const consultant = {
+    name: me?.full_name?.trim() || me?.email || (login?.id === account?.sync.local.userId ? login?.email : '') || '',
+    phone,
+  };
+  const [initial] = useState(() => {
+    const cachedQuote =
+      selectedId && !explicitPrefill ? quoteToAutoOpen(store?.cachedQuotes(selectedId) ?? [], {}) : null;
+    if (cachedQuote) {
+      try {
+        const restored = restoreLoanState(cachedQuote.inputs);
+        return { state: restored, quoteId: cachedQuote.id };
+      } catch {}
+    }
     const s = initialState(prefill);
     const saved = store?.readSettings();
     if (saved?.loan && Array.isArray(saved.loan.rateTiers) && Array.isArray(saved.loan.prepayFees))
@@ -229,10 +326,12 @@ function CalculatorForm({
         loanOverride: null,
         ltv: Math.min(Number(saved.loan.ltv) || LTV_AUTO, LTV_MAX),
       };
-    return account ? applyCatalogKeeping(s, account.catalog, keep.current) : s;
+    return { state: account ? applyCatalogKeeping(s, account.catalog, keep.current) : s, quoteId: null };
   });
-  const touched = useRef(false);
-  const [consultant, setConsultant] = useState(() => store?.readSettings()?.consultant ?? { name: '', phone: '' });
+  const [state, setState] = useState<LoanState>(initial.state);
+  const [openedQuote, setOpenedQuote] = useState<string | null>(initial.quoteId);
+  const touched = useRef(initial.quoteId !== null);
+  const interacted = useRef(false);
   const [presets, setPresets] = useState<BankPreset[]>(structuredClone(BANK_PRESETS));
   const [quotes, setQuotes] = useState<LoanQuote[]>(() => store?.cachedQuotes(selectedId || null) ?? []);
   const [quoteError, setQuoteError] = useState('');
@@ -240,6 +339,22 @@ function CalculatorForm({
     [error, setError] = useState('');
   const [catalogVersion, setCatalogVersion] = useState(0);
   const [monthly, setMonthly] = useState(false);
+  const receiveQuotes = useCallback(
+    (rows: LoanQuote[]) => {
+      setQuotes(rows);
+      const latest = selectedId && !explicitPrefill ? quoteToAutoOpen(rows, {}) : null;
+      if (!latest || interacted.current) return;
+      try {
+        const restored = restoreLoanState(latest.inputs);
+        touched.current = true;
+        setState(restored);
+        setOpenedQuote(latest.id);
+      } catch (cause) {
+        setQuoteError(cause instanceof Error ? cause.message : 'Không mở được phương án.');
+      }
+    },
+    [selectedId, explicitPrefill],
+  );
   const catalog = account?.catalog;
   const project = catalog?.projectByName(state.unit.projectName);
   const building = project ? catalog?.buildingByCode(project.id, state.unit.building) : null;
@@ -258,7 +373,7 @@ function CalculatorForm({
     void store
       .listQuotes(selectedId || null)
       .then((rows) => {
-        if (alive) setQuotes(rows);
+        if (alive) receiveQuotes(rows);
       })
       .catch((e) => {
         if (alive) setQuoteError(e instanceof Error ? e.message : 'Không tải được phương án đã lưu.');
@@ -275,19 +390,22 @@ function CalculatorForm({
     return () => {
       alive = false;
     };
-  }, [account, store, selectedId]);
+  }, [account, store, selectedId, receiveQuotes]);
   // Catalog refresh only changes choices and policy. Never overwrite fields the sale is editing.
   void catalogVersion;
   const unit = (patch: Partial<LoanUnit>) => {
     touched.current = true;
+    interacted.current = true;
     setState((s) => ({ ...s, unit: { ...s.unit, ...patch } }));
   };
   const loan = (patch: Partial<LoanState['loan']>) => {
     touched.current = true;
+    interacted.current = true;
     setState((s) => ({ ...s, loan: { ...s.loan, ...patch } }));
   };
   const dates = (patch: Partial<LoanState['dates']>) => {
     touched.current = true;
+    interacted.current = true;
     setState((s) => ({ ...s, dates: { ...s.dates, ...patch } }));
   };
   // Giá thuần / số tiền vay tự điền theo công thức; nhập tay thì ghi đè, xoá trống thì về tự tính.
@@ -311,6 +429,7 @@ function CalculatorForm({
     (!selectedId || (!!customer && customer.owner_id === account.sync.local.userId && !customer.archived_at));
   const applyProject = (name: string) => {
     touched.current = true;
+    interacted.current = true;
     const p = catalog?.projectByName(name);
     setState((s) => ({
       ...s,
@@ -322,6 +441,9 @@ function CalculatorForm({
         pricePerM2: Number(p?.typical_price_per_m2) || s.unit.pricePerM2,
         netOverride: null,
         fee: p ? (catalog?.projectFee(p) ?? null) : s.unit.fee,
+        // Chưa sửa tay thì theo dự án, kể cả khi giỏ hàng tải xong sau lúc chọn.
+        vatRate: null,
+        kpbtRate: null,
       },
       dates: {
         ...s.dates,
@@ -362,15 +484,19 @@ function CalculatorForm({
     setBusy(true);
     setError('');
     try {
-      await store.saveQuote({
+      const savedId = await store.saveQuote({
         customerId: selectedId,
         projectId: project?.id ?? null,
         unitCode: state.unit.code,
-        inputs: state,
+        inputs: {
+          ...state,
+          unit: { ...state.unit, vatRate: result.price.vatRate, kpbtRate: result.price.kpbtRate },
+        },
         summary: quoteSummary(result),
       });
       if (account?.sync.local.isClosed) return;
       setQuotes(await store.listQuotes(selectedId || null));
+      setOpenedQuote(savedId);
       notify.success('Đã lưu phương án lên máy chủ');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Không lưu được phương án.');
@@ -379,35 +505,63 @@ function CalculatorForm({
     }
   };
   const remember = () => {
-    store?.saveLocalSettings({ loan: state.loan, consultant });
+    store?.saveLocalSettings({ ...store.readSettings(), loan: state.loan });
     notify.success('Đã nhớ thông số trên máy cho tài khoản này');
   };
   return (
     <div className="flex flex-col gap-6">
-      {/* Curtis 06/11: tư vấn viên trên phiếu đưa lên đầu form. */}
-      <Group title="Tư vấn viên trên phiếu">
-        <FormGrid>
-          <Field label="Tên tư vấn viên">
-            <input
-              className={FIELD}
-              aria-label="Tên tư vấn viên"
-              value={consultant.name}
-              onChange={(e) => setConsultant((c) => ({ ...c, name: e.target.value }))}
-            />
-          </Field>
-          <Field label="Điện thoại">
-            <input
-              className={FIELD}
-              aria-label="Số điện thoại tư vấn viên"
-              value={consultant.phone}
-              onChange={(e) => setConsultant((c) => ({ ...c, phone: e.target.value }))}
-            />
-          </Field>
-        </FormGrid>
+      <Group title="Phương án đã lưu">
+        {quoteError && (
+          <ErrorState
+            title="Chưa tải được phương án"
+            detail={quoteError}
+            onRetry={() => {
+              if (store)
+                void store
+                  .listQuotes(selectedId || null)
+                  .then((q) => {
+                    receiveQuotes(q);
+                    setQuoteError('');
+                  })
+                  .catch((e) => setQuoteError(String(e)));
+            }}
+          />
+        )}
+        {quotes.length === 0 ? (
+          !quoteError && <p className="text-caption text-ink-muted">Chưa lưu phương án nào.</p>
+        ) : (
+          <ul className="divide-y divide-border">
+            {quotes.map((q) => (
+              <li key={q.id}>
+                <Button
+                  variant="ghost"
+                  className={`h-auto min-h-11 w-full justify-between whitespace-normal text-left ${openedQuote === q.id ? 'bg-ion-tint text-ion' : ''}`}
+                  aria-pressed={openedQuote === q.id}
+                  onClick={() => {
+                    try {
+                      const restored = restoreLoanState(q.inputs);
+                      touched.current = true;
+                      interacted.current = true;
+                      setState(restored);
+                      setOpenedQuote(q.id);
+                      setError('');
+                    } catch (cause) {
+                      setError(cause instanceof Error ? cause.message : 'Không mở được phương án.');
+                    }
+                  }}
+                >
+                  <span className="min-w-0 break-words text-caption">
+                    {q.unit_code || 'Chưa có mã căn'} · {new Date(q.created_at).toLocaleString('vi-VN')}
+                  </span>
+                  <span className="shrink-0">{openedQuote === q.id ? 'Đang mở' : 'Mở'}</span>
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
       </Group>
       <Group title="Căn hộ và tiến độ">
-        {/* Ô ngắn 2 ô/hàng (4 ở desktop), ô dài chiếm cả hàng — Curtis 06/11: trang tính vay dài quá. */}
-        <FormGrid>
+        <FormGrid className={PAIR_GRID}>
           <Field label="Dự án" className={WIDE}>
             <input
               aria-label="Dự án"
@@ -469,20 +623,34 @@ function CalculatorForm({
             value={state.unit.fee ?? null}
             onChange={(n) => unit({ fee: n })}
           />
+          <FormGrid className={LONG_FIELD}>
+            <NumberInput
+              className={PAIR}
+              label="VAT"
+              suffix="%"
+              value={priceInput.vatRate}
+              onChange={(n) => unit({ vatRate: n ?? 0 })}
+            />
+            <NumberInput
+              className={PAIR}
+              label="KPBT"
+              suffix="%"
+              value={priceInput.kpbtRate}
+              onChange={(n) => unit({ kpbtRate: n ?? 0 })}
+            />
+          </FormGrid>
           <NumberInput
+            className={LONG_FIELD}
             label="Giá thuần"
             suffix="tr"
             scale={1_000_000}
             value={state.unit.netOverride}
             auto={autoNet}
-            hint={state.unit.netOverride ? 'Đã nhập tay · xoá trống để tự tính lại' : 'Tự tính = diện tích × đơn giá'}
+            note="(diện tích × đơn giá)"
             onChange={(n) => unit({ netOverride: n })}
           />
         </FormGrid>
-        <FormSubsection
-          title="Tiến độ"
-          className="[&_label>span:first-child]:min-h-10 sm:[&_label>span:first-child]:min-h-5"
-        >
+        <FormSubsection title="Tiến độ" className="pl-0 sm:pl-0 [&>div]:items-end">
           <Field label="Ngày ký hợp đồng">
             <input
               type="date"
@@ -508,34 +676,9 @@ function CalculatorForm({
             onChange={(n) => dates({ titleAfterMonths: n ?? 0 })}
           />
         </FormSubsection>
-        <p className="text-caption text-ink-muted">
-          VAT {project?.vat_rate ?? 5}% · KPBT {project?.kpbt_rate ?? 2}%.{' '}
-          {project
-            ? 'Chính sách theo dự án trong giỏ hàng.'
-            : 'Chưa chọn dự án trong giỏ hàng: đang dùng tiến độ mẫu 7 đợt.'}
-        </p>
-        {project && (
-          <Button
-            disabled={!writable || busy}
-            onClick={async () => {
-              try {
-                if (!account) return;
-                await account.catalog.updateProject(project.id, {
-                  handover_date: state.dates.handoverDate,
-                  title_after_months: state.dates.titleAfterMonths,
-                });
-                notify.success('Đã cập nhật ngày bàn giao và nhận sổ của dự án');
-              } catch (e) {
-                setError(String(e));
-              }
-            }}
-          >
-            Cập nhật ngày bàn giao vào dự án
-          </Button>
-        )}
       </Group>
       <Group title="Thông số vay">
-        <FormGrid>
+        <FormGrid className={PAIR_GRID}>
           <Field label="Gói vay" className={WIDE}>
             <select
               aria-label="Gói vay"
@@ -565,17 +708,19 @@ function CalculatorForm({
             </select>
           </Field>
           <NumberInput
+            className={PAIR}
             label="Tỷ lệ vay"
             suffix="%"
             value={shownLtv}
             auto={LTV_AUTO}
             max={LTV_MAX}
-            hint={`Tối đa ${LTV_MAX}%`}
+            note={`(max ${LTV_MAX}%)`}
             onChange={(n) =>
               loan({ ltv: n == null ? LTV_AUTO : Math.min(Math.max(n, 0), LTV_MAX), loanOverride: null })
             }
           />
           <NumberInput
+            className={PAIR}
             label="Thời hạn vay"
             suffix="năm"
             value={state.loan.termYears}
@@ -585,68 +730,44 @@ function CalculatorForm({
             onChange={(n) => loan({ termYears: n ?? 0 })}
           />
           <NumberInput
-            label="Số tiền vay"
+            className={PAIR}
+            label="Tiền vay"
             suffix="tr"
             scale={1_000_000}
             value={manualLoan}
             auto={Math.round((gross * shownLtv) / 100)}
-            hint={
-              manualLoan != null
-                ? `Đã nhập tay · tối đa ${LTV_MAX}% = ${money(maxLoan)}đ · xoá trống về ${LTV_AUTO}%`
-                : `Theo tỷ lệ vay · tối đa ${LTV_MAX}% = ${money(maxLoan)}đ`
-            }
+            note={`(max ${(maxLoan / 1_000_000).toLocaleString('vi-VN', {
+              minimumFractionDigits: 1,
+              maximumFractionDigits: 1,
+              useGrouping: false,
+            })} tr)`}
             onChange={(n) => {
               if (n == null) return loan({ loanOverride: null, ltv: LTV_AUTO });
               const amount = Math.min(Math.max(Math.round(n), 0), maxLoan);
               loan({ loanOverride: amount, ltv: ltvOf(amount, gross) });
             }}
           />
-          <NumberInput
-            label="Lãi thả nổi giả định"
-            suffix="%/năm"
-            value={state.loan.floatingRate}
-            max={100}
-            onChange={(n) => loan({ floatingRate: n ?? 0 })}
-          />
-          <NumberInput
-            label="Tất toán sau"
-            suffix="tháng"
-            value={state.loan.payoffMonth}
-            min={1}
-            max={Number(state.loan.termYears) * 12}
-            step="1"
-            onChange={(n) => loan({ payoffMonth: n ?? 0 })}
-          />
-          <Field label="Tính lãi" className={WIDE}>
+          <Field label="Giải ngân từ" className={PAIR}>
             <select
-              aria-label="Tính lãi"
-              className={FIELD}
-              value={state.loan.dayCount}
-              onChange={(e) => loan({ dayCount: e.target.value === 'monthly' ? 'monthly' : 'actual365' })}
-            >
-              <option value="actual365">Ngày thực tế / 365</option>
-              <option value="monthly">Lãi năm / 12</option>
-            </select>
-          </Field>
-          <Field label="Bắt đầu giải ngân từ đợt" className={WIDE}>
-            <select
+              aria-label="Bắt đầu giải ngân từ đợt"
               className={FIELD}
               value={state.loan.firstBankMilestone ?? 1}
               onChange={(e) => loan({ firstBankMilestone: Number(e.target.value) })}
             >
               {(buildInput(state, project).schedule ?? []).map((m, i) => (
                 <option key={m.label} value={i}>
-                  Đợt {i + 1} · {m.label}
+                  Đợt {i + 1} · {scheduleLabel(m.label)}
                 </option>
               ))}
             </select>
           </Field>
         </FormGrid>
         <p className="text-caption text-ink-muted">Tỷ lệ vay tính trên giá thuần + VAT (không gồm phí và KPBT).</p>
-        <FormSubsection title="Bậc lãi suất ưu đãi">
+        <FormSubsection title="Bậc lãi suất" className="pl-0 sm:pl-0">
           {state.loan.rateTiers.map((tier, i) => (
-            <FormGrid className={LONG_FIELD} key={`tier-${i}`}>
+            <FormGrid className={`${LONG_FIELD} ${PAIR_GRID}`} key={`tier-${i}`}>
               <NumberInput
+                className={PAIR}
                 label={`Bậc ${i + 1}: số tháng`}
                 suffix="tháng"
                 value={tier.months}
@@ -657,6 +778,7 @@ function CalculatorForm({
                 }
               />
               <NumberInput
+                className={PAIR}
                 label={`Bậc ${i + 1}: lãi suất`}
                 suffix="%/năm"
                 value={tier.rate}
@@ -667,52 +789,121 @@ function CalculatorForm({
               />
             </FormGrid>
           ))}
-          <div className={`${LONG_FIELD} flex gap-2`}>
-            <Button onClick={() => loan({ rateTiers: [...state.loan.rateTiers, { months: 12, rate: 6.5 }] })}>
-              Thêm bậc lãi
-            </Button>
+          <FormGrid className={`${LONG_FIELD} ${PAIR_GRID}`}>
+            <TextField
+              className={PAIR}
+              label={`Bậc ${state.loan.rateTiers.length + 1}: còn lại`}
+              value={`${remainingRateMonths(state.loan).toLocaleString('vi-VN')} tháng`}
+              readOnly
+            />
+            <NumberInput
+              className={PAIR}
+              label={`Bậc ${state.loan.rateTiers.length + 1}: thả nổi`}
+              suffix="%/năm"
+              value={state.loan.floatingRate}
+              max={100}
+              onChange={(n) => loan({ floatingRate: n ?? 0 })}
+            />
+          </FormGrid>
+          {remainingRateMonths(state.loan) === 0 && (
+            <p className={`${LONG_FIELD} text-hint`}>
+              Các bậc cố định đã phủ hết thời hạn vay; không còn tháng áp dụng lãi thả nổi.
+            </p>
+          )}
+          <div className={`${LONG_FIELD} flex flex-wrap gap-2`}>
+            <Button onClick={() => loan(appendFixedRateTier(state.loan))}>Thêm bậc lãi</Button>
+            <label
+              // cn (twMerge) để màu khung/nền trạng thái thắng border-transparent/bg của biến thể (cva không gộp lớp trùng).
+              className={cn(
+                buttonVariants(),
+                'relative',
+                state.loan.graceEnabled ? 'border-ion bg-ion-tint text-ink' : 'border-line',
+              )}
+            >
+              <input
+                type="checkbox"
+                className="absolute inset-0 m-0 h-full w-full cursor-pointer appearance-none rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ion"
+                checked={state.loan.graceEnabled}
+                onChange={(e) => loan({ graceEnabled: e.target.checked })}
+              />
+              <span
+                aria-hidden="true"
+                className={cn(
+                  'grid size-4 place-items-center rounded-sm border text-[11px] leading-none',
+                  state.loan.graceEnabled ? 'border-ion bg-ion text-on-ion' : 'border-input',
+                )}
+              >
+                {state.loan.graceEnabled ? '✓' : ''}
+              </span>
+              Ân hạn gốc
+            </label>
             {state.loan.rateTiers.length > 1 && (
-              <Button onClick={() => loan({ rateTiers: state.loan.rateTiers.slice(0, -1) })}>Bỏ bậc cuối</Button>
+              <Button onClick={() => loan(removeLastFixedRateTier(state.loan))}>Bỏ bậc cố định cuối</Button>
             )}
           </div>
         </FormSubsection>
-        <label className="flex min-h-11 items-center gap-2 text-caption">
-          <input
-            type="checkbox"
-            checked={state.loan.graceEnabled}
-            onChange={(e) => loan({ graceEnabled: e.target.checked })}
-          />
-          Ân hạn gốc
-        </label>
-        {state.loan.graceEnabled && (
-          <FormGrid>
-            <NumberInput
-              label="Ân hạn gốc"
-              suffix="tháng"
-              value={state.loan.graceMonths}
-              onChange={(n) => loan({ graceMonths: n ?? 0 })}
-            />
-            <Field label="Tính ân hạn từ giải ngân">
+        <FormSubsection title="Trả nợ" className="pl-0 sm:pl-0">
+          {state.loan.graceEnabled && (
+            <FormGrid className={`${LONG_FIELD} ${PAIR_GRID}`}>
+              <NumberInput
+                className={PAIR}
+                label="Ân hạn gốc"
+                suffix="tháng"
+                value={state.loan.graceMonths}
+                onChange={(n) => loan({ graceMonths: n ?? 0 })}
+              />
+              <Field label="Tính ân hạn từ giải ngân" className={PAIR}>
+                <select
+                  aria-label="Tính ân hạn từ giải ngân"
+                  className={FIELD}
+                  value={state.loan.principalStart}
+                  onChange={(e) => loan({ principalStart: e.target.value === 'last' ? 'last' : 'first' })}
+                >
+                  <option value="first">Lần đầu</option>
+                  <option value="last">Lần cuối</option>
+                </select>
+              </Field>
+            </FormGrid>
+          )}
+          <FormGrid className={`${LONG_FIELD} ${PAIR_GRID}`}>
+            <Field label="Cách tính lãi" className={PAIR}>
               <select
-                aria-label="Tính ân hạn từ giải ngân"
+                aria-label="Tính lãi"
                 className={FIELD}
-                value={state.loan.principalStart}
-                onChange={(e) => loan({ principalStart: e.target.value === 'last' ? 'last' : 'first' })}
+                value={state.loan.dayCount}
+                onChange={(e) => loan({ dayCount: e.target.value === 'monthly' ? 'monthly' : 'actual365' })}
               >
-                <option value="first">Lần đầu</option>
-                <option value="last">Lần cuối</option>
+                <option value="actual365">Ngày thực tế / 365</option>
+                <option value="monthly">Lãi năm / 12</option>
               </select>
             </Field>
+            <NumberInput
+              className={PAIR}
+              label="Tất toán sau"
+              suffix="tháng"
+              value={state.loan.payoffMonth}
+              min={1}
+              max={Number(state.loan.termYears) * 12}
+              step="1"
+              onChange={(n) => loan({ payoffMonth: n ?? 0 })}
+            />
           </FormGrid>
-        )}
-        <Field label="Phí tất toán theo năm vay (%; phân cách dấu phẩy)">
-          <input
-            aria-label="Phí tất toán theo năm vay"
-            className={FIELD}
-            value={state.loan.prepayFees.join(',')}
-            onChange={(e) => loan({ prepayFees: e.target.value.split(',').map((n) => Number(n.trim())) })}
-          />
-        </Field>
+          <Field
+            className={LONG_FIELD}
+            label="Phí tất toán theo năm vay"
+            note="(%, phân cách dấu phẩy)"
+            descriptionId="loan-prepay-note"
+          >
+            <input
+              aria-label="Phí tất toán theo năm vay"
+              aria-describedby="loan-prepay-note"
+              className={FIELD}
+              value={state.loan.prepayFees.join(',')}
+              onChange={(e) => loan({ prepayFees: e.target.value.split(',').map((n) => Number(n.trim())) })}
+            />
+          </Field>
+        </FormSubsection>
+        {store && <Button onClick={remember}>Nhớ thông số trên máy</Button>}
       </Group>
       {computeError ? (
         <ErrorState title="Chưa đủ thông tin để tính" detail={computeError} />
@@ -745,7 +936,6 @@ function CalculatorForm({
               <Button disabled={!writable || !store || !result.schedule || busy} onClick={save}>
                 {busy ? 'Đang lưu…' : 'Lưu phương án'}
               </Button>
-              {store && <Button onClick={remember}>Nhớ thông số trên máy</Button>}
             </div>
           </>
         )
@@ -760,50 +950,6 @@ function CalculatorForm({
           {error}
         </p>
       )}
-      <Group title="Phương án đã lưu">
-        {quoteError && (
-          <ErrorState
-            title="Chưa tải được phương án"
-            detail={quoteError}
-            onRetry={() => {
-              if (store)
-                void store
-                  .listQuotes(selectedId || null)
-                  .then((q) => {
-                    setQuotes(q);
-                    setQuoteError('');
-                  })
-                  .catch((e) => setQuoteError(String(e)));
-            }}
-          />
-        )}
-        {quotes.length === 0 ? (
-          <EmptyState title="Chưa có phương án đã lưu" text="Tính và lưu một phương án để mở lại sau." />
-        ) : (
-          <ul className="divide-y divide-border">
-            {quotes.map((q) => (
-              <li key={q.id} className="flex items-center justify-between gap-3 py-3">
-                <span className="text-caption">
-                  {q.unit_code || 'Chưa có mã căn'} · {new Date(q.created_at).toLocaleString('vi-VN')}
-                </span>
-                <Button
-                  onClick={() => {
-                    try {
-                      touched.current = true;
-                      setState(restoreLoanState(q.inputs));
-                      setError('');
-                    } catch (e) {
-                      setError(String(e));
-                    }
-                  }}
-                >
-                  Mở
-                </Button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Group>
     </div>
   );
 }
@@ -853,11 +999,12 @@ function LoanResults({
       />
       <DataTable
         label="Tiến độ thanh toán"
+        className="[&_td]:px-2 [&_th]:px-2"
         head={['Đợt', 'Ngày', 'Tỷ lệ', 'Số tiền (đ)', 'Khách trả (đ)', 'NH giải ngân (đ)']}
         rows={r.milestones.map((m, i) => [
-          `${i + 1}. ${m.label}`,
-          m.date,
-          `${m.pct}%`,
+          `${i + 1}. ${scheduleLabel(m.label)}`,
+          displayDate(m.date),
+          `${m.pct.toLocaleString('vi-VN')}%`,
           money(m.amount),
           money(m.customer),
           money(m.bank),
@@ -865,16 +1012,13 @@ function LoanResults({
       />
       {s && (
         <>
-          <p className="text-caption">
-            Tổng lãi: {money(s.totalInterest)} đ · Tổng trả ngân hàng: {money(s.totalPaid)} đ
-          </p>
           <DataTable
             label="Giai đoạn trả nợ"
             head={['Giai đoạn', 'Tháng', 'Lãi suất', 'Trả đầu kỳ (đ)', 'Trả cuối kỳ (đ)']}
             rows={s.phases.map((p) => [
               p.type === 'interestOnly' ? 'Chỉ trả lãi' : 'Gốc + lãi',
               `${p.fromMonth}–${p.toMonth}`,
-              `${p.rate}%`,
+              `${p.rate.toLocaleString('vi-VN')}%`,
               money(p.firstPayment),
               money(p.lastPayment),
             ])}
@@ -905,8 +1049,8 @@ function LoanResults({
                 head={['Tháng', 'Ngày', 'Lãi suất', 'Gốc (đ)', 'Lãi (đ)', 'Tổng trả (đ)', 'Dư nợ (đ)']}
                 rows={s.rows.map((m) => [
                   m.k,
-                  m.date,
-                  `${m.rate}%`,
+                  displayDate(m.date),
+                  `${m.rate.toLocaleString('vi-VN')}%`,
                   money(m.principal),
                   money(m.interest),
                   money(m.payment),
@@ -915,18 +1059,68 @@ function LoanResults({
               />
             </TabsContent>
           </Tabs>
+          <SummaryTable
+            title="Tổng"
+            rows={[
+              ['Tổng vay', `${money(r.loan.amount)} đ`],
+              ['Tổng lãi', `${money(s.totalInterest)} đ`],
+              ['Tổng trả ngân hàng', `${money(s.totalPaid)} đ`],
+            ]}
+          />
         </>
       )}
       {r.payoff && (
         <>
-          <h3 className="text-body-strong">Tất toán sau {r.payoff.month} tháng</h3>
-          <p className="text-caption">
-            Dư nợ {money(r.payoff.balance)} đ · Phí {r.payoff.feePct}%: {money(r.payoff.fee)} đ · Cần chuẩn bị{' '}
-            {money(r.payoff.totalToPay)} đ · Lãi tránh được sau phí {money(r.payoff.netSaving)} đ
-          </p>
+          <SummaryTable
+            title={`Tất toán sau ${r.payoff.month} tháng`}
+            rows={[
+              ['Dư nợ', `${money(r.payoff.balance)} đ`],
+              [`Phí tất toán (${r.payoff.feePct.toLocaleString('vi-VN')}%)`, `${money(r.payoff.fee)} đ`],
+              ['Cần chuẩn bị', `${money(r.payoff.totalToPay)} đ`],
+              ['Lãi tránh được sau phí', `${money(r.payoff.netSaving)} đ`],
+            ]}
+          />
           {r.payoff.warning && <p className="text-caption text-soon-text">{r.payoff.warning}</p>}
         </>
       )}
+      {s && <PaymentChartToggle result={r} />}
     </Group>
+  );
+}
+
+function SummaryTable({ title, rows }: { title: string; rows: [string, string][] }) {
+  return (
+    <div className="min-w-0 rounded-md border border-line bg-surface-200 p-3">
+      <Table>
+        <caption className="caption-top mt-0 mb-2 text-left text-body-strong text-ink">{title}</caption>
+        <TableBody>
+          {rows.map(([label, value]) => (
+            <TableRow key={label}>
+              <TableCell className="whitespace-normal text-label">{label}</TableCell>
+              <TableCell className="whitespace-nowrap text-right font-data text-body-strong">{value}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
+
+function PaymentChartToggle({ result }: { result: ComputeResult }) {
+  const [open, setOpen] = useState(false);
+  const chartId = useId();
+  return (
+    <div className="min-w-0 space-y-3">
+      <Button aria-expanded={open} aria-controls={chartId} onClick={() => setOpen(!open)}>
+        {open ? 'Thu gọn' : 'Xem biểu đồ'}
+      </Button>
+      {open && (
+        <div id={chartId}>
+          <Suspense fallback={<p className="text-hint">Đang tải biểu đồ…</p>}>
+            <LoanPaymentChart result={result} />
+          </Suspense>
+        </div>
+      )}
+    </div>
   );
 }

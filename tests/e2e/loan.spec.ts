@@ -4,7 +4,7 @@ for (const theme of ['light', 'dark'] as const) {
   test(`loan prefill/calculation/offline and responsive ${theme}`, async ({ page, context }, testInfo) => {
     await page.emulateMedia({ colorScheme: theme });
     await page.goto('/tinh-vay?code=R30413&area=53.6&pricePerM2=19911530&netOverride=1067258010');
-    await expect(page.getByRole('heading', { name: 'Tính khoản vay', exact: true })).toBeVisible();
+    // Curtis 12/11: bỏ tiêu đề trùng "Tính khoản vay" (thanh đầu đã ghi "Tính vay").
     await expect(page.getByLabel('Mã căn', { exact: true })).toHaveValue('R30413');
     await page.getByLabel('Ngày ký hợp đồng', { exact: true }).fill('2026-10-05');
     await page.getByLabel('Ngày bàn giao', { exact: true }).fill('2027-11-15');
@@ -33,12 +33,11 @@ test('loan browser print retains all report sections and emits A4 PDF', async ({
   await page.goto('/tinh-vay?projectName=Tr%C3%A0ng%20C%C3%A1t&code=R30413&netOverride=1067258010');
   await page.getByLabel('Ngày ký hợp đồng', { exact: true }).fill('2026-10-05');
   await page.getByLabel('Ngày bàn giao', { exact: true }).fill('2027-11-15');
-  await page.getByLabel('Tên tư vấn viên', { exact: true }).fill('Curtis');
+  // Curtis 12/11: bỏ ô tư vấn viên trên form; phiếu lấy tên/SĐT từ cài đặt tài khoản (kiểm ở test LV-01).
   const popupPromise = page.waitForEvent('popup');
   await page.getByRole('button', { name: 'In / Lưu PDF A4', exact: true }).click();
   const popup = await popupPromise;
   await expect(popup.getByRole('heading', { name: 'Lịch trả nợ theo năm', exact: true })).toBeVisible();
-  await expect(popup.locator('body')).toContainText('Tư vấn viên: Curtis');
   await expect(popup.locator('body')).toContainText('Phương án tất toán sớm');
   await popup.screenshot({ path: testInfo.outputPath('loan-print.png'), fullPage: true });
   await popup.pdf({

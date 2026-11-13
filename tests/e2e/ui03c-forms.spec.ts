@@ -275,16 +275,13 @@ for (const theme of ['light', 'dark'] as const) {
 
     test('Tính vay: ô ngắn ghép hàng, thông số lãi thụt một bậc', async ({ page }, testInfo) => {
       await page.goto('/tinh-vay?area=60&pricePerM2=25000000');
-      await sameRow(
-        page.getByLabel('Tên tư vấn viên', { exact: true }),
-        page.getByLabel('Số điện thoại tư vấn viên', { exact: true }),
-      );
+      // Curtis 12/11: bỏ ô tư vấn viên trên form tính vay.
       await sameRow(page.getByLabel('Toà', { exact: true }), page.getByLabel('Mã căn', { exact: true }));
       await sameRow(
         page.getByLabel('Ngày ký hợp đồng', { exact: true }),
         page.getByLabel('Ngày bàn giao', { exact: true }),
       );
-      await expect(page.locator('[data-form-subsection]').filter({ hasText: 'Bậc lãi suất ưu đãi' })).toHaveCount(1);
+      await expect(page.locator('[data-form-subsection]').filter({ hasText: 'Bậc lãi suất' })).toHaveCount(1);
       await capture(page, testInfo, `loan-${theme}`);
     });
   });

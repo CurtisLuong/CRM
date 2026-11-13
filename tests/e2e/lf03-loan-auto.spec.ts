@@ -8,14 +8,14 @@ test('LF-03: giá thuần + số tiền vay tự điền, ghi đè và về tự
   await page.getByLabel('Ngày bàn giao', { exact: true }).fill('2027-11-15');
   const net = page.getByLabel('Giá thuần', { exact: true });
   const ltv = page.getByLabel('Tỷ lệ vay', { exact: true });
-  const amount = page.getByLabel('Số tiền vay', { exact: true });
+  const amount = page.getByLabel('Tiền vay', { exact: true });
   const priceTable = page.getByRole('table', { name: 'Phiếu giá', exact: true });
 
   // Tự tính: 53,6 × 19,91153 tr = 1067,258 tr; 70% của (thuần + VAT 5%) = 784,435 tr.
   await expect(net).toHaveValue('1067.258');
   await expect(ltv).toHaveValue('70');
   await expect(amount).toHaveValue('784.435');
-  await expect(page.getByText('Tự tính = diện tích × đơn giá')).toBeVisible();
+  await expect(page.getByText('(diện tích × đơn giá)')).toBeVisible();
 
   // Nhập tay giá thuần 1.000 tr → gộp VAT 1.050 tr → vay 70% = 735 tr.
   await net.fill('1000');
@@ -27,7 +27,8 @@ test('LF-03: giá thuần + số tiền vay tự điền, ghi đè và về tự
   await amount.fill('630');
   await amount.press('Tab');
   await expect(ltv).toHaveValue('60');
-  await expect(page.getByText('Đã nhập tay · tối đa 80% = 840.000.000đ · xoá trống về 70%')).toBeVisible();
+  // LV-03: ghi chú trần nằm trong nhãn "Tiền vay (max 840,0 tr)".
+  await expect(page.getByText('(max 840,0 tr)')).toBeVisible();
 
   // Vượt 80% bị kẹp ở 840 tr / 80%.
   await amount.fill('900');

@@ -1,4 +1,5 @@
 import type { ComputeResult } from '@/domain/loan';
+import { LOAN_ESTIMATE_WARNING, scheduleLabel } from './model';
 import printCSS from './print.css?inline';
 export type LoanPrintContext = {
   projectName?: string;
@@ -44,6 +45,13 @@ export function buildLoanPrintHTML(r: ComputeResult, ctx: LoanPrintContext = {})
     '<div class="sub">(PTG tạm tính để tham khảo · lập ngày ' +
     today +
     ')</div>' +
+    `<div role="note" class="estimate-warning">${LOAN_ESTIMATE_WARNING}</div>` +
+    (ctx.consultant?.name
+      ? '<p><b>Tư vấn viên:</b> ' +
+        esc(ctx.consultant.name) +
+        (ctx.consultant.phone ? ` · ${esc(ctx.consultant.phone)}` : '') +
+        '</p>'
+      : '') +
     '<div class="two"><table>' +
     (ctx.customer?.name ? `<tr><th>Khách hàng</th><td>${esc(ctx.customer.name)}</td></tr>` : '') +
     (ctx.projectName ? `<tr><th>Dự án</th><td>${esc(ctx.projectName)}</td></tr>` : '') +
@@ -231,12 +239,6 @@ export function buildLoanPrintHTML(r: ComputeResult, ctx: LoanPrintContext = {})
     '<div class="foot">' +
     '<p><b>Cách tính lãi:</b> lãi mỗi kỳ = dư nợ thực tế × lãi suất năm × số ngày thực tế ÷ 365. Ngân hàng giải ngân đợt nào thì khách chỉ trả lãi trên số đã giải ngân. Gốc trả giảm dần: gốc mỗi kỳ = dư nợ ÷ số kỳ còn lại.</p>' +
     '<p><b>Lưu ý:</b> Số liệu mang tính tham khảo. Lãi suất ưu đãi gói NOXH do Ngân hàng Nhà nước công bố định kỳ 6 tháng/lần; lãi suất thả nổi là giả định. Ngày giải ngân phụ thuộc tiến độ thực tế của dự án. Điều kiện vay và phí trả nợ trước hạn theo hợp đồng tín dụng của ngân hàng.</p>' +
-    (ctx.consultant?.name
-      ? '<p><b>Tư vấn viên:</b> ' +
-        esc(ctx.consultant.name) +
-        (ctx.consultant.phone ? ` · ${esc(ctx.consultant.phone)}` : '') +
-        '</p>'
-      : '') +
     '</div></div>';
   return h;
 }
@@ -254,7 +256,10 @@ export function loanPrintDocument(result: ComputeResult, ctx: LoanPrintContext) 
     '<style>' +
     printCSS +
     '</style></head><body>' +
-    buildLoanPrintHTML(result, ctx) +
+    buildLoanPrintHTML(
+      { ...result, milestones: result.milestones.map((m) => ({ ...m, label: scheduleLabel(m.label) })) },
+      ctx,
+    ) +
     '</body></html>'
   );
 }

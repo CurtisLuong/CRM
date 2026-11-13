@@ -104,7 +104,22 @@ describe('PDF content parity with v1', () => {
       consultant: { name: 'Curtis', phone: '0900000000' },
     };
     // LF-01 (06/11): dòng tổng đổi tên "Giá FULL" → "Giá dự kiến" (Curtis); phí 0 thì không có dòng Phí.
-    expect(buildLoanPrintHTML(r, ctx)).toBe(old.buildHTML(r, ctx).replace('<th>Giá FULL</th>', '<th>Giá dự kiến</th>'));
+    // LV-03 (Curtis 13/11): sau tiêu đề thêm cảnh báo "CHƯA phải chính thức", rồi dòng Tư vấn viên (chuyển từ cuối phiếu lên),
+    // nên không còn so nguyên văn cả trang; mọi bảng số vẫn phải khớp v1.
+    const html = buildLoanPrintHTML(r, ctx);
+    const tables = (text: string) => text.match(/<table[\s\S]*?<\/table>/g) ?? [];
+    const v1 = old.buildHTML(r, ctx).replace('<th>Giá FULL</th>', '<th>Giá dự kiến</th>');
+    expect(tables(v1).length).toBeGreaterThan(0);
+    expect(tables(html)).toEqual(tables(v1));
+    const title = html.indexOf('PHIẾU TÍNH GIÁ TẠM TÍNH');
+    const warn = html.indexOf('Số liệu tạm tính để tham khảo nhanh. CHƯA phải chính thức');
+    const consultant = html.indexOf('Tư vấn viên:');
+    expect(title).toBeGreaterThan(-1);
+    expect(warn).toBeGreaterThan(title);
+    expect(consultant).toBeGreaterThan(warn);
+    expect(consultant).toBeLessThan(html.indexOf('<table'));
+    expect(html.split('Tư vấn viên:')).toHaveLength(2);
+    expect(html).toContain('Curtis · 0900000000');
     expect(buildLoanPrintHTML(r, ctx)).toContain('&lt;script&gt;');
     expect(buildLoanPrintHTML(r, ctx)).toContain('Lịch trả nợ theo năm');
     expect(buildLoanPrintHTML(r, ctx)).toContain('Phương án tất toán sớm');

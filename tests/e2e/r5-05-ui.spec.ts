@@ -16,7 +16,7 @@ for (const theme of ['light', 'dark'] as const) {
       await page.setViewportSize({ width, height: 900 });
       await page.emulateMedia({ colorScheme: theme });
       await page.goto('/tinh-vay?code=R5-05&netOverride=1000000000');
-      await expect(page.getByRole('heading', { name: 'Tính khoản vay' })).toBeVisible();
+      // Curtis 12/11: bỏ tiêu đề trùng "Tính khoản vay".
       await page.getByLabel('Ngày ký hợp đồng').fill('2026-10-05');
       await page.getByLabel('Ngày bàn giao').fill('2027-11-15');
       const debtTable = page.getByRole('table', { name: 'Trả nợ theo năm' });

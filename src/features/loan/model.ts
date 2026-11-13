@@ -21,6 +21,9 @@ export type LoanUnit = {
   netOverride: number | null;
   /** Phí mỗi căn (đ) — theo Giỏ hàng căn > toà > dự án, sửa tay được (LF-01). */
   fee?: number | null;
+  /** Chỉ áp cho phương án này; thiếu ở bản cũ thì đọc mặc định từ dự án. */
+  vatRate?: number | null;
+  kpbtRate?: number | null;
   [key: string]: unknown;
 };
 export type LoanState = {
@@ -30,6 +33,7 @@ export type LoanState = {
   [key: string]: unknown;
 };
 export type LoanPrefill = Partial<LoanUnit> & { customerId?: string };
+export const LOAN_ESTIMATE_WARNING = 'Số liệu tạm tính để tham khảo nhanh. CHƯA phải chính thức.';
 /** Luật vay (Curtis 06/11): để trống = tự động 70%; nhập tay không được vượt 80% (giá thuần + VAT). */
 export const LTV_AUTO = Number(DEFAULT_LOAN.ltv);
 export const LTV_MAX = 80;
@@ -140,8 +144,8 @@ export function buildInput(state: LoanState, project?: Record<string, unknown> |
     pricePerM2: state.unit.pricePerM2,
     netPriceOverride: state.unit.netOverride,
     fee: state.unit.fee,
-    vatRate: project?.vat_rate == null ? 5 : Number(project.vat_rate),
-    kpbtRate: project?.kpbt_rate == null ? 2 : Number(project.kpbt_rate),
+    vatRate: state.unit.vatRate ?? (project?.vat_rate == null ? 5 : Number(project.vat_rate)),
+    kpbtRate: state.unit.kpbtRate ?? (project?.kpbt_rate == null ? 2 : Number(project.kpbt_rate)),
   };
   return { unit, dates: state.dates, schedule, loan: cappedLoan(state.loan, calcPrice(unit).gross) };
 }
@@ -261,4 +265,46 @@ export function quoteSummary(result: ComputeResult) {
 export function presetParams(key: string) {
   const preset = BANK_PRESETS.find((p) => p.key === key) ?? BANK_PRESETS[0];
   return { ...structuredClone(DEFAULT_LOAN), ...structuredClone(preset), presetKey: key };
+}
+
+/** Chỉ đổi cách trình bày bậc cuối; engine vẫn nhận các bậc cố định nối tiếp. */
+export function remainingRateMonths(loan: LoanParams) {
+  return Math.max(0, Number(loan.termYears) * 12 - loan.rateTiers.reduce((sum, tier) => sum + Number(tier.months), 0));
+}
+
+export function appendFixedRateTier(loan: LoanParams): LoanParams {
+  return { ...loan, rateTiers: [...loan.rateTiers, { months: 12, rate: 6.5 }] };
+}
+
+export function removeLastFixedRateTier(loan: LoanParams): LoanParams {
+  return { ...loan, rateTiers: loan.rateTiers.slice(0, -1) };
+}
+
+export function hasUnitPrefill(prefill: LoanPrefill) {
+  return ['projectName', 'building', 'code', 'aptType', 'area', 'pricePerM2', 'netOverride'].some(
+    (key) => prefill[key] != null && prefill[key] !== '',
+  );
+}
+
+export function quoteToAutoOpen<T extends { created_at: string }>(quotes: T[], prefill: LoanPrefill): T | null {
+  if (hasUnitPrefill(prefill)) return null;
+  return quotes.reduce<T | null>(
+    (latest, quote) => (!latest || quote.created_at > latest.created_at ? quote : latest),
+    null,
+  );
+}
+
+/** Nhãn ngắn chỉ dùng khi trình bày; không đổi tiến độ của engine / phương án đã lưu. */
+const SCHEDULE_LABELS = new Map([
+  ['Ký Hợp đồng mua bán (T)', 'Kí HĐMB (T)'],
+  ['Thông báo bàn giao + KPBT', 'Bàn giao + KPBT'],
+]);
+export const scheduleLabel = (label: string) => SCHEDULE_LABELS.get(label) ?? label;
+
+/** Chọn nguyên số liệu engine, chỉ nhận số thứ tự nguyên nằm trong lịch. */
+export function chartPaymentAt(result: ComputeResult, yearly: boolean, period: number | null) {
+  if (period == null || !Number.isInteger(period) || period < 1 || !result.schedule) return null;
+  return yearly
+    ? (result.schedule.years.find((row) => row.year === period)?.avgPayment ?? null)
+    : (result.schedule.rows.find((row) => row.k === period)?.payment ?? null);
 }
