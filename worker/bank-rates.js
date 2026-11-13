@@ -6,7 +6,7 @@ import {
   NEWS_FEEDS,
   newsSearchFeeds,
 } from './bank-rates-config.js';
-import { exceedsDrift, extractPage, preferredRates, rateKey } from './bank-rates-extract.js';
+import { exceedsDrift, extractionStats, extractPage, preferredRates, rateKey } from './bank-rates-extract.js';
 import { bankLinks, createPageReader, newsArticles, pageMetadata, pageText, recentNews } from './bank-rates-sources.js';
 
 export { BANK_RATES_CRON };
@@ -14,6 +14,21 @@ export { BANK_RATES_CRON };
 // Gộp yêu cầu trùng trong cùng isolate; DB latest giữ dấu ngày khi đã ghi được số.
 const runs = new WeakMap();
 const vnDay = (date) => new Date(date.getTime() + 7 * 3_600_000).toISOString().slice(0, 10);
+const skippedRun = () => ({
+  skipped: 'already_ran_today',
+  pages: 0,
+  written: 0,
+  ai_calls: 0,
+  rejected: extractionStats().rejected,
+});
+function reportRun(result, logger, stats = extractionStats()) {
+  (logger.log || console.log).call(logger, 'bank-rates summary', {
+    ...result,
+    ai_rows: stats.ai_rows,
+    validated: stats.validated,
+  });
+  return result;
+}
 
 function createStore(env, fetcher) {
   async function request(path, init = {}) {
@@ -68,7 +83,7 @@ async function collectAndStore(env, now, fetcher, logger) {
   // Không có bản đối chiếu đáng tin → dừng, không coi lỗi đọc là bảng trống.
   const latest = await store.latest();
   if (latest.some((row) => vnDay(new Date(row.fetched_at)) === vnDay(now))) {
-    return { skipped: 'already_ran_today', pages: 0, written: 0 };
+    return reportRun(skippedRun(), logger);
   }
   const reader = createPageReader(fetcher, logger);
   const candidates = [],
@@ -95,6 +110,7 @@ async function collectAndStore(env, now, fetcher, logger) {
   let failed = 0,
     drifted = 0,
     written = 0;
+  const stats = extractionStats();
   async function inspect(page, source) {
     const metadata = pageMetadata(page.html);
     const actual = {
@@ -105,9 +121,8 @@ async function collectAndStore(env, now, fetcher, logger) {
     };
     if (actual.source_kind === 'news' && !recentNews(actual.published_on, now)) return;
     try {
-      candidates.push(...(await extractPage(env, actual, pageText(page.html))));
+      candidates.push(...(await extractPage(env, actual, pageText(page.html), { stats, logger })));
     } catch {
-      failed++;
       logger.warn('bank-rates extraction failed', { url: page.url });
     }
   }
@@ -150,6 +165,7 @@ async function collectAndStore(env, now, fetcher, logger) {
   for (const row of preferredRates(candidates)) {
     if (exceedsDrift(row, previous.get(rateKey(row)))) {
       drifted++;
+      stats.rejected.drift++;
       logger.warn('bank-rates drift > 2 points; keeping previous', {
         bank_code: row.bank_code,
         kind: row.kind,
@@ -165,7 +181,16 @@ async function collectAndStore(env, now, fetcher, logger) {
       logger.warn('bank-rates insert failed', { bank_code: row.bank_code });
     }
   }
-  return { pages: reader.count, candidates: candidates.length, written, drifted, failed };
+  const result = {
+    pages: reader.count,
+    candidates: candidates.length,
+    written,
+    drifted,
+    failed: failed + stats.failed_pages,
+    ai_calls: stats.ai_calls,
+    rejected: stats.rejected,
+  };
+  return reportRun(result, logger, stats);
 }
 
 export async function runBankRates(env, { now = new Date(), fetcher = fetch, logger = console } = {}) {
@@ -173,7 +198,7 @@ export async function runBankRates(env, { now = new Date(), fetcher = fetch, log
   const previous = runs.get(env);
   if (previous?.day === day) {
     if (previous.pending) return previous.pending;
-    return { skipped: 'already_ran_today', pages: 0, written: 0 };
+    return reportRun(skippedRun(), logger);
   }
   const state = { day };
   runs.set(env, state);

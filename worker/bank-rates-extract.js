@@ -1,5 +1,15 @@
 import { MODELS } from './ai-assist.js';
-import { AI_TIMEOUT_MS, BANK_RATE_LIMITS, BANK_SOURCES, DEPOSIT_RATE_LIMITS, MAX_TEXT } from './bank-rates-config.js';
+import {
+  AI_TIMEOUT_MS,
+  BANK_RATE_LIMITS,
+  BANK_SOURCES,
+  CHUNK_OVERLAP,
+  CHUNK_TEXT,
+  DEPOSIT_RATE_LIMITS,
+  MAX_AI_CALLS,
+  MAX_CHUNKS_PER_PAGE,
+  MAX_TEXT,
+} from './bank-rates-config.js';
 import { fold, newsSourceUrl, sourceUrl } from './bank-rates-sources.js';
 
 export const BANK_RATES_PROMPT = `Bạn trích lãi vay mua nhà/bất động sản thương mại và lãi gửi tiết kiệm cho CÁ NHÂN từ văn bản công khai.
@@ -76,10 +86,161 @@ export function parseRates(output) {
   return value.rates;
 }
 
-function evidenced(value, quote, text) {
-  if (value === null || !quote || !normalize(text).includes(normalize(quote))) return null;
-  const numbers = quote.match(/(?<![\d.,])[-+]?\d+(?:[.,]\d+)?(?![\d.,])/g) || [];
-  return numbers.some((number) => Number(number.replace(',', '.')) === value) ? value : null;
+export function extractionStats() {
+  return {
+    ai_calls: 0,
+    ai_rows: 0,
+    validated: 0,
+    failed_pages: 0,
+    rejected: Object.fromEntries(
+      ['no_quote_in_text', 'no_context', 'wrong_term', 'wrong_bank', 'out_of_range', 'drift', 'json'].map((reason) => [
+        reason,
+        0,
+      ]),
+    ),
+  };
+}
+
+// Chỉ cứu lỗi cú pháp; JSON parse được vẫn phải qua nguyên bộ kiểm khuôn cũ.
+function recoverRates(output) {
+  const raw = responseText(output);
+  try {
+    JSON.parse(raw);
+    return null;
+  } catch {
+    if (typeof raw !== 'string' || !/^\s*\{\s*"rates"\s*:\s*\[/.test(raw)) return null;
+  }
+  const start = raw.indexOf('[') + 1;
+  const rows = [];
+  let depth = 0,
+    begin = -1,
+    quoted = false,
+    escaped = false;
+  for (let i = start; i < raw.length; i++) {
+    const char = raw[i];
+    if (quoted) {
+      if (escaped) escaped = false;
+      else if (char === '\\') escaped = true;
+      else if (char === '"') quoted = false;
+      continue;
+    }
+    if (char === '"') quoted = true;
+    else if (char === '{') {
+      if (depth++ === 0) begin = i;
+    } else if (char === '}' && depth > 0) {
+      if (--depth === 0) {
+        const parsed = parseRates(`{"rates":[${raw.slice(begin, i + 1)}]}`);
+        if (parsed) rows.push(...parsed);
+      }
+    } else if (char === ']' && depth === 0) break;
+  }
+  return rows.length ? rows.slice(0, BANK_SOURCES.length) : null;
+}
+
+function sentenceBoundary(text, i) {
+  return /[!?\n]/.test(text[i]) || (text[i] === '.' && !(/\d/.test(text[i - 1] || '') && /\d/.test(text[i + 1] || '')));
+}
+
+function sentenceStart(text, i) {
+  while (i > 0 && !sentenceBoundary(text, i - 1)) i--;
+  return i;
+}
+
+function sentenceEnd(text, i) {
+  while (i < text.length && !sentenceBoundary(text, i)) i++;
+  return Math.min(text.length, i + 1);
+}
+
+export function textChunks(text) {
+  const chunks = [];
+  let start = 0;
+  while (start < text.length) {
+    let end = Math.min(text.length, start + CHUNK_TEXT);
+    if (end < text.length) {
+      // Giữ đoạn đủ dài để vùng chồng không làm mất tiến độ.
+      for (let i = end - 1; i >= end - CHUNK_OVERLAP; i--) {
+        if (sentenceBoundary(text, i)) {
+          end = i + 1;
+          break;
+        }
+      }
+    }
+    chunks.push(text.slice(start, end));
+    if (end === text.length) break;
+    start = end - CHUNK_OVERLAP;
+  }
+  return chunks;
+}
+
+const bankNames = BANK_SOURCES.flatMap((bank) =>
+  [bank.name, bank.code].map((name) => ({
+    code: bank.code,
+    pattern: new RegExp(`(?<![\\p{L}\\p{N}])${fold(name)}(?![\\p{L}\\p{N}])`, 'gu'),
+  })),
+);
+
+function nearestBank(text, at, end, windowStart) {
+  const start = Math.max(0, windowStart - 1_500);
+  // Giữ cả mép trái khi dò tên, tránh nhận hậu tố của một từ bị cắt ngang.
+  const context = fold(text.slice(0, end));
+  const mentions = bankNames
+    .flatMap(({ code, pattern }) => [...context.matchAll(pattern)].map((m) => ({ code, i: m.index })))
+    .filter((m) => m.i >= start)
+    .sort((a, b) => a.i - b.i);
+  const before = mentions.filter((m) => m.i <= at).at(-1);
+  // Tên ngân hàng có thể đứng sau số ngay trong câu đó.
+  if (!before || before.i < sentenceStart(text, at)) {
+    const after = mentions.find((m) => m.i > at);
+    if (after) return after;
+  }
+  return before;
+}
+
+function evidenceValue(value, quote, text, bankCode, kind) {
+  const missing = { value: null, reason: 'no_quote_in_text' };
+  if (value === null || !quote) return missing;
+  text = normalize(text);
+  quote = normalize(quote);
+  let reason = 'no_quote_in_text';
+  for (let position = text.indexOf(quote); position !== -1; position = text.indexOf(quote, position + 1)) {
+    for (const number of quote.matchAll(/(?<![\d.,])[-+]?\d+(?:[.,]\d+)?(?![\d.,])/g)) {
+      if (Number(number[0].replace(',', '.')) !== value) continue;
+      const at = position + number.index;
+      // Kiểm mép trong bài thật, kể cả khi AI chỉ trích một phần số.
+      if (/[\d.,]/.test(text[at - 1] || '') || /[\d.,]/.test(text[at + number[0].length] || '')) continue;
+      const end = sentenceEnd(text, at + number[0].length);
+      const sentence = sentenceStart(text, at);
+      let start = Math.max(0, sentence - 300);
+      if (start > 0) start = sentenceEnd(text, start - 1);
+      start = Math.min(start, sentence);
+      const bank = nearestBank(text, at, end, start);
+      if (bank?.code !== bankCode) {
+        reason = 'wrong_bank';
+        continue;
+      }
+      start = Math.max(start, sentenceStart(text, bank.i));
+      const context = fold(text.slice(start, end));
+      if (kind === 'deposit') {
+        if (!/tiet kiem|tien gui|huy dong/.test(context) || /dac biet|sieu lai suat|doanh nghiep/.test(context)) {
+          reason = 'no_context';
+          continue;
+        }
+        // Chỉ xét kỳ hạn gắn với lần xuất hiện này, không mượn lần cùng số ở câu khác.
+        if (!termIs12(context, value, fold(text.slice(start, at)).length)) {
+          reason = 'wrong_term';
+          continue;
+        }
+      } else if (
+        !/vay mua nha|vay nhu cau nha o|vay nha|bat dong san/.test(context) ||
+        /doanh nghiep|tin chap|nha o xa hoi/.test(context)
+      ) {
+        reason = 'no_context';
+        continue;
+      }
+      return { value, reason: null };
+    }
+  }
+  return { value: null, reason };
 }
 
 const withinRate = (value) =>
@@ -99,9 +260,16 @@ function validSource(row, source) {
   return validUrl;
 }
 
-export function validateRate(row, source, text) {
-  if (!validSource(row, source)) return null;
-  const values = Object.fromEntries(FIELDS.map((key) => [key, evidenced(row[key], row.evidence[key], text)]));
+export function validateRate(row, source, text, reject = () => {}) {
+  if (!FIELDS.some((key) => row[key] !== null && row[key] !== undefined)) return null;
+  if (!validSource(row, source)) {
+    reject('wrong_bank');
+    return null;
+  }
+  const checked = Object.fromEntries(
+    FIELDS.map((key) => [key, evidenceValue(row[key], row.evidence[key], text, row.bank_code, 'loan')]),
+  );
+  const values = Object.fromEntries(FIELDS.map((key) => [key, checked[key].value]));
   const promo = withinRate(values.promo_rate);
   const reference = withinRate(values.reference_rate);
   // Biên độ là điểm %, không phải lãi %/năm: có thể nhỏ hơn ngưỡng lãi tối thiểu 3%.
@@ -117,7 +285,15 @@ export function validateRate(row, source, text) {
     referenceRate = null;
     margin = null;
   }
-  if (promo === null && floating === null) return null;
+  if (promo === null && floating === null) {
+    const supplied = FIELDS.filter((key) => row[key] !== null);
+    reject(
+      supplied.some((key) => checked[key].value !== null)
+        ? 'out_of_range'
+        : checked[supplied[0]]?.reason || 'no_context',
+    );
+    return null;
+  }
   return {
     bank_code: row.bank_code,
     kind: 'loan',
@@ -137,9 +313,10 @@ export function validateRate(row, source, text) {
 
 // Trích dẫn có nhiều kỳ hạn ("6 tháng 4,5%, 12 tháng 5,9%"): số phải thuộc kỳ hạn 12 tháng gần nhất phía trước
 // (không có thì kỳ hạn ngay sau), để không ghi lãi 6 tháng thành 12 tháng (Lead, review BR-03).
-function termIs12(context, value) {
+function termIs12(context, value, position) {
   const terms = [...context.matchAll(/\b(\d{1,2})\s*thang\b/g)].map((m) => ({ n: Number(m[1]), i: m.index }));
   return [...context.matchAll(/\d+(?:[.,]\d+)?/g)].some((m) => {
+    if (position !== undefined && m.index !== position) return false;
     if (Math.abs(Number(m[0].replace(',', '.')) - value) > 1e-9) return false;
     if (/^\s*thang/.test(context.slice(m.index + m[0].length))) return false;
     const before = terms.filter((t) => t.i < m.index).at(-1);
@@ -148,19 +325,23 @@ function termIs12(context, value) {
   });
 }
 
-export function validateDepositRate(row, source, text) {
-  if (!validSource(row, source)) return null;
+export function validateDepositRate(row, source, text, reject = () => {}) {
+  if (row.deposit_rate === null || row.deposit_rate === undefined) return null;
+  if (!validSource(row, source)) {
+    reject('wrong_bank');
+    return null;
+  }
   const quote = row.evidence?.deposit_rate;
-  const value = evidenced(row.deposit_rate ?? null, quote, text);
-  const context = fold(quote || '');
-  if (
-    value === null ||
-    value < DEPOSIT_RATE_LIMITS.min ||
-    value > DEPOSIT_RATE_LIMITS.max ||
-    !termIs12(context, value) ||
-    !/tiet kiem|tien gui|lai gui/.test(context) ||
-    /dac biet|sieu lai suat|doanh nghiep/.test(context)
-  ) return null;
+  const checked = evidenceValue(row.deposit_rate, quote, text, row.bank_code, 'deposit');
+  const value = checked.value;
+  if (value === null) {
+    reject(checked.reason);
+    return null;
+  }
+  if (value < DEPOSIT_RATE_LIMITS.min || value > DEPOSIT_RATE_LIMITS.max) {
+    reject('out_of_range');
+    return null;
+  }
   return {
     bank_code: row.bank_code,
     kind: 'deposit',
@@ -174,9 +355,7 @@ export function validateDepositRate(row, source, text) {
   };
 }
 
-export async function extractPage(env, source, text) {
-  const clean = aiPageText(text);
-  if (!clean) return [];
+async function extractChunk(env, source, clean, stats) {
   const model = MODELS.qwen;
   const thinking = model.thinking(false);
   let timer;
@@ -207,11 +386,46 @@ export async function extractPage(env, source, text) {
   } finally {
     clearTimeout(timer);
   }
-  const rows = parseRates(output);
-  if (rows === null) throw new Error('AI JSON invalid');
-  return rows
-    .flatMap((row) => [validateRate(row, source, clean), validateDepositRate(row, source, clean)])
+  const rows = parseRates(output) ?? recoverRates(output);
+  if (rows === null) {
+    stats.rejected.json++;
+    throw new Error('AI JSON invalid');
+  }
+  stats.ai_rows += rows.length;
+  const reject = (reason) => {
+    stats.rejected[reason]++;
+  };
+  const validated = rows
+    .flatMap((row) => [validateRate(row, source, clean, reject), validateDepositRate(row, source, clean, reject)])
     .filter(Boolean);
+  stats.validated += validated.length;
+  return validated;
+}
+
+export async function extractPage(env, source, text, { stats = extractionStats(), logger = console } = {}) {
+  const chunks = textChunks(aiPageText(text));
+  const candidates = [];
+  let error = null;
+  if (chunks.length > MAX_CHUNKS_PER_PAGE) {
+    logger.warn('bank-rates AI budget reached', { limit: 'MAX_CHUNKS_PER_PAGE', max: MAX_CHUNKS_PER_PAGE });
+  }
+  for (const chunk of chunks.slice(0, MAX_CHUNKS_PER_PAGE)) {
+    if (stats.ai_calls >= MAX_AI_CALLS) {
+      logger.warn('bank-rates AI budget reached', { limit: 'MAX_AI_CALLS', max: MAX_AI_CALLS });
+      break;
+    }
+    stats.ai_calls++;
+    try {
+      candidates.push(...(await extractChunk(env, source, chunk, stats)));
+    } catch (failure) {
+      error = failure;
+    }
+  }
+  if (error) {
+    stats.failed_pages++;
+    if (!candidates.length) throw error;
+  }
+  return preferredRates(candidates);
 }
 
 export function preferredRates(candidates) {
@@ -231,7 +445,8 @@ export const rateKey = (row) => `${row.bank_code}:${row.kind || 'loan'}`;
 
 export function exceedsDrift(row, previous) {
   if (!previous || (row.kind || 'loan') !== (previous.kind || 'loan')) return false;
-  const fields = row.kind === 'deposit' ? ['deposit_rate'] : ['promo_rate', 'floating_rate', 'reference_rate', 'margin'];
+  const fields =
+    row.kind === 'deposit' ? ['deposit_rate'] : ['promo_rate', 'floating_rate', 'reference_rate', 'margin'];
   return fields.some(
     (key) =>
       row[key] !== null &&
