@@ -520,37 +520,13 @@ describe('BR-01 lượt cập nhật offline với Supabase và AI giả', () =>
     },
   );
 
-  it('luật 6: một lần mỗi ngày; gộp yêu cầu đồng thời và chặn lần sau cùng ngày', async () => {
+  // Curtis 13/11/2026: bỏ "một lần mỗi ngày" — chạy nhiều lượt tới khi đủ (BR-06); vẫn gộp yêu cầu đồng thời.
+  it('luật 6: gộp yêu cầu đồng thời trong cùng isolate', async () => {
     const w = world();
     const options = { now: NOW, fetcher: w.fetcher, logger: w.log };
     const [first, duplicate] = await Promise.all([runBankRates(w.env, options), runBankRates(w.env, options)]);
     expect(first).toEqual(duplicate);
     expect(w.inserts).toHaveLength(2);
-    const before = w.fetcher.mock.calls.length;
-    expect(await runBankRates(w.env, options)).toMatchObject({ skipped: 'already_ran_today' });
-    expect(w.fetcher).toHaveBeenCalledTimes(before);
-    await runBankRates(w.env, { ...options, now: new Date('2026-11-13T00:00:00Z') });
-    expect(w.inserts).toHaveLength(4);
-  });
-
-  it('luật 6: isolate mới nhận ra đã ghi trong ngày Việt Nam qua latest', async () => {
-    const w = world({
-      latest: [
-        {
-          bank_code: 'bidv',
-          promo_rate: 6.5,
-          floating_rate: 10,
-          reference_rate: null,
-          margin: null,
-          fetched_at: '2026-11-11T18:00:00Z',
-        },
-      ],
-    });
-    expect(await runBankRates(w.env, { now: NOW, fetcher: w.fetcher, logger: w.log })).toMatchObject({
-      skipped: 'already_ran_today',
-    });
-    expect(w.publicCalls).toEqual([]);
-    expect(w.inserts).toEqual([]);
   });
 
   it('luật 6: lỗi ghi một ngân hàng không dừng ngân hàng tiếp theo', async () => {
