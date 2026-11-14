@@ -24,4 +24,4 @@ region = "gcp:us-east4"
 # Chưa đặt FB_PAGE_ID / FB_PAGE_ACCESS_TOKEN thì lượt quét tự bỏ qua.
 [triggers]
 # Lãi vay mua nhà: 00:00 UTC = 07:00 Việt Nam; tách khỏi lượt Facebook.
-crons = ["*/5 * * * *", "0 0 * * *", "*/10 0-3 * * *"]
+crons = ["*/5 * * * *", "0 0 * * *", "*/10 * * * *"]

@@ -1,4 +1,11 @@
-import { MAX_NEWS_AGE_DAYS, MAX_PAGES, MAX_TEXT, NEWS_PUBLISHERS, newsSearchFeeds } from './bank-rates-config.js';
+import {
+  BANK_SOURCES,
+  MAX_NEWS_AGE_DAYS,
+  MAX_PAGES,
+  MAX_TEXT,
+  NEWS_PUBLISHERS,
+  newsSearchFeeds,
+} from './bank-rates-config.js';
 
 export function decodeEntities(value) {
   const named = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };
@@ -115,9 +122,9 @@ export function dateOnly(value) {
   return Number.isFinite(timestamp) ? new Date(timestamp).toISOString().slice(0, 10) : null;
 }
 
-export function recentNews(day, now) {
+export function recentNews(day, now, today = now.toISOString().slice(0, 10)) {
   if (!day) return false;
-  const age = Date.parse(now.toISOString().slice(0, 10)) - Date.parse(day);
+  const age = Date.parse(today) - Date.parse(day);
   return age >= 0 && age <= MAX_NEWS_AGE_DAYS * 86_400_000;
 }
 
@@ -152,7 +159,15 @@ function xmlText(item, name) {
   return decodeEntities(raw.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')).trim();
 }
 
-export function newsArticles(rss, feed, now, bank) {
+export function isComparisonArticle(article) {
+  const title = fold(article.source_title || '');
+  return (
+    /so sanh|bang lai suat|cac ngan hang/.test(title) ||
+    BANK_SOURCES.filter((bank) => new RegExp(`\\b${fold(bank.name)}\\b`).test(title)).length >= 2
+  );
+}
+
+export function newsArticles(rss, feed, now, bank, { allowUndated = false, today } = {}) {
   const articles = new Map();
   const search = Boolean(bank) || newsSearchFeeds(now).includes(feed);
   for (const match of rss.matchAll(/<item\b[^>]*>([\s\S]*?)<\/item\s*>/gi)) {
@@ -162,13 +177,14 @@ export function newsArticles(rss, feed, now, bank) {
     const topic = fold(`${title} ${description}`);
     const loan = /lai suat cho vay|vay mua nha|lai suat tha noi|lai suat uu dai/.test(topic);
     const deposit = /lai suat/.test(topic) && /tiet kiem|tien gui|lai suat gui|big\s*4/.test(topic);
-    if (!loan && !deposit) continue;
+    if (!loan && !deposit && !(allowUndated && /so sanh lai suat|bang lai suat|lai suat cac ngan hang/.test(topic)))
+      continue;
     const day = dateOnly(xmlText(item, 'pubDate') || xmlText(item, 'dc:date'));
     const link = xmlText(item, 'link');
     const url = search ? bingArticleUrl(link, bank) : sourceUrl(link, feed);
-    if (!url || !recentNews(day, now)) continue;
+    if (!url || (!(allowUndated && !day) && !recentNews(day, now, today))) continue;
     const previous = articles.get(url);
-    if (!previous || day > previous.published_on) {
+    if (!previous || (day || '') > (previous.published_on || '')) {
       articles.set(url, {
         source_url: url,
         source_kind: bank && sourceUrl(url, bank.url) ? 'bank' : 'news',
@@ -178,23 +194,25 @@ export function newsArticles(rss, feed, now, bank) {
       });
     }
   }
-  return [...articles.values()].sort((a, b) => b.published_on.localeCompare(a.published_on));
+  return [...articles.values()].sort((a, b) => (b.published_on || '').localeCompare(a.published_on || ''));
 }
 
 // Mỗi HTTP request công khai (kể cả RSS, lỗi và redirect) đều trừ ngân sách.
-export function createPageReader(fetcher, logger = console) {
+export function createPageReader(fetcher, logger = console, { canRead = () => true, onRead = () => {} } = {}) {
   let count = 0;
   const seen = new Set();
   return {
     get count() {
       return count;
     },
-    async read(address, base, budgetEnd = MAX_PAGES) {
+    async read(address, base, budgetEnd = MAX_PAGES, sourceKind) {
       let url = sourceUrl(address, base);
       for (let redirects = 0; url && redirects <= 3 && count < Math.min(MAX_PAGES, budgetEnd); redirects++) {
         if (seen.has(url)) return null;
+        if (!canRead(url)) return null;
         seen.add(url);
         count++;
+        onRead(url, sourceKind);
         const controller = new AbortController();
         const timer = setTimeout(() => controller.abort(), 12_000);
         let status;

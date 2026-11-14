@@ -15,11 +15,21 @@ import {
   exceedsDrift,
   extractionStats,
   extractPage,
+  isAiQuotaError,
   logRejectedValue,
   preferredRates,
   rateKey,
 } from './bank-rates-extract.js';
 import { bankLinks, createPageReader, newsArticles, pageMetadata, pageText, recentNews } from './bank-rates-sources.js';
+import {
+  SCAN_STATE_KEY,
+  collectQueued,
+  loadScanState,
+  newestRates,
+  nextAiReset,
+  pageHistory,
+  sourceDay,
+} from './bank-rates-state.js';
 
 export { BANK_RATES_CRON, BANK_RATES_SUPPLEMENTAL_CRON };
 
@@ -50,6 +60,9 @@ const skippedRun = () => ({
   rejected: extractionStats().rejected,
   missing_before: 0,
   missing_after: 0,
+  cells: [],
+  skipped_urls: 0,
+  queue: 0,
 });
 function reportRun(result, logger, stats = extractionStats(), queries = []) {
   (logger.log || console.log).call(logger, 'bank-rates summary', {
@@ -82,7 +95,7 @@ function createStore(env, fetcher) {
   return {
     async latest() {
       const response = await request(
-        'bank_rates_latest?select=bank_code,kind,deposit_rate,promo_rate,floating_rate,reference_rate,margin,fetched_at',
+        'bank_rates_latest?select=bank_code,kind,deposit_rate,promo_rate,floating_rate,reference_rate,margin,fetched_at,published_on',
       );
       const rows = await response.json();
       if (!Array.isArray(rows)) throw new Error('bank-rates latest invalid');
@@ -114,6 +127,16 @@ function createStore(env, fetcher) {
 async function collectAndStore(env, now, fetcher, logger, supplemental, state) {
   if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY || !env.AI?.run)
     throw new Error('bank-rates configuration missing');
+  const binding = env.BANK_RATES_STATE;
+  const durable = binding ? await loadScanState(binding) : null;
+  if (durable?.paused_until && now.getTime() < Date.parse(durable.paused_until)) {
+    return reportRun(
+      { ...skippedRun(), skipped: 'ai_quota', until: durable.paused_until, queue: durable.queue.length },
+      logger,
+    );
+  }
+  if (durable) durable.paused_until = null;
+  const history = durable ? pageHistory(durable, now) : null;
   // Đếm mọi subrequest (fetch + AI) để không chạm trần của Cloudflare trước khi kịp ghi DB.
   let used = 0;
   const counted = (input, init) => {
@@ -123,23 +146,48 @@ async function collectAndStore(env, now, fetcher, logger, supplemental, state) {
   // Phần cho đọc trang + AI; DB_SUBREQUESTS đã gồm lần đọc bảng mới nhất và các lần ghi.
   const workLeft = () => MAX_SUBREQUESTS - DB_SUBREQUESTS - reader.count - stats.ai_calls;
   const ai = env.AI;
-  env = { ...env, AI: { run: (...args) => (used++, ai.run(...args)) } };
+  env = {
+    ...env,
+    AI: {
+      run: async (...args) => {
+        used++;
+        try {
+          return await ai.run(...args);
+        } catch (error) {
+          if (durable && isAiQuotaError(error)) durable.paused_until = nextAiReset(now);
+          throw error;
+        }
+      },
+    },
+  };
   const store = createStore(env, counted);
   // Không có bản đối chiếu đáng tin → dừng, không coi lỗi đọc là bảng trống.
   const latest = await store.latest();
   const missing = missingCells(latest, now);
   if (!missing.length) {
-    return reportRun(skippedRun(), logger);
+    return reportRun({ ...skippedRun(), queue: durable?.queue.length || 0 }, logger);
   }
   // Cron chỉ định lượt rộng/bổ sung; gọi tay không chỉ định thì chọn theo dữ liệu hôm nay.
   const manual = supplemental === undefined;
   supplemental ??= latest.some((row) => vnDay(new Date(row.fetched_at)) === vnDay(now));
   const missingKeys = new Set(missing.map(rateKey));
+  const previous = new Map(latest.map((row) => [rateKey(row), row]));
+  let selected = [];
   const queries = [];
   const logPage = (page, source_kind, ai_rows = 0, accepted = 0) =>
     logger.log?.('bank-rates page', { url: page.url, source_kind, ai_rows, accepted });
-  const reader = createPageReader(counted, logger);
-  const read = (url, base, end = MAX_PAGES) => reader.read(url, base, Math.min(end, reader.count + workLeft()));
+  const reader = createPageReader(
+    counted,
+    logger,
+    history
+      ? {
+          canRead: (url) => !history.cooling(url),
+          onRead: (url, kind) => history.record(url, kind),
+        }
+      : undefined,
+  );
+  const read = (url, base, end = MAX_PAGES, kind) =>
+    reader.read(url, base, Math.min(end, reader.count + workLeft()), kind);
   const candidates = [],
     banks = [],
     articles = new Map(),
@@ -169,7 +217,7 @@ async function collectAndStore(env, now, fetcher, logger, supplemental, state) {
   async function inspect(page, source, canCall = () => true) {
     const before = stats.ai_rows;
     let accepted = 0;
-    const metadata = pageMetadata(page.html);
+    const metadata = page.metadata || pageMetadata(page.html);
     const actual = {
       ...source,
       source_url: page.url,
@@ -177,25 +225,55 @@ async function collectAndStore(env, now, fetcher, logger, supplemental, state) {
       published_on: metadata.published_on || source.published_on || null,
     };
     try {
-      if (actual.source_kind === 'news' && !recentNews(actual.published_on, now)) return;
-      const extracted = await extractPage(env, actual, pageText(page.html), {
+      if (
+        actual.source_kind === 'news' &&
+        !(durable && !actual.published_on) &&
+        !recentNews(actual.published_on, now, durable ? vnDay(now) : undefined)
+      )
+        return [];
+      const extracted = await extractPage(env, actual, page.text ?? pageText(page.html), {
         stats,
         logger,
-        canCall: () => workLeft() > 0 && canCall(),
+        canCall: () => !durable?.paused_until && workLeft() > 0 && canCall(),
       });
       const eligible = extracted.filter(
         (row) =>
-          (!source.target_kind || row.kind === source.target_kind) && (!supplemental || missingKeys.has(rateKey(row))),
+          (!source.target_kind || row.kind === source.target_kind) &&
+          (!(supplemental || durable) || missingKeys.has(rateKey(row))) &&
+          (!durable ||
+            !previous.has(rateKey(row)) ||
+            sourceDay(row, now) >= sourceDay(previous.get(rateKey(row)), now)),
       );
       accepted = eligible.length;
       candidates.push(...eligible);
+      return eligible;
     } catch {
       logger.warn('bank-rates extraction failed', { url: page.url });
     } finally {
       logPage(page, actual.source_kind, stats.ai_rows - before, accepted);
     }
+    return [];
   }
-  if (supplemental) {
+  if (durable) {
+    try {
+      selected = await collectQueued({
+        state: durable,
+        history,
+        latest,
+        missing,
+        now,
+        read,
+        inspect,
+        stats,
+        workLeft,
+        logger,
+        queries,
+      });
+    } catch (error) {
+      await binding.put(SCAN_STATE_KEY, JSON.stringify(durable));
+      throw error;
+    }
+  } else if (supplemental) {
     // Gọi tay xoay theo phút trên danh sách thiếu để isolate mới không lặp vì các ô đã đủ.
     // Cron giữ vòng mười phút trên toàn bộ ô; con trỏ giữ tiến độ trong cùng isolate.
     const pool = manual ? missing : CELLS;
@@ -205,7 +283,7 @@ async function collectAndStore(env, now, fetcher, logger, supplemental, state) {
       : Math.floor((now.getUTCHours() * 60 + now.getUTCMinutes()) / 10);
     // Gọi tay: mỗi lượt chạy 1–2 phút nên nhảy 1 ô/phút để lượt kế tiếp không bỏ sót ô.
     let cursor = (state[cursorKey] ?? slot * (manual ? 1 : SUPPLEMENTAL_CELLS_PER_RUN)) % pool.length;
-    const selected = [];
+    selected = [];
     for (let scanned = 0; scanned < pool.length && selected.length < SUPPLEMENTAL_CELLS_PER_RUN; scanned++) {
       const cell = pool[cursor];
       cursor = (cursor + 1) % pool.length;
@@ -253,6 +331,7 @@ async function collectAndStore(env, now, fetcher, logger, supplemental, state) {
       }
     }
   } else {
+    selected = missing;
     queries.push(...searchFeeds.map((feed) => new URL(feed).searchParams.get('q')));
     logger.log?.('bank-rates search', { queries });
     await collectArticles(searchFeeds, articles);
@@ -291,9 +370,8 @@ async function collectAndStore(env, now, fetcher, logger, supplemental, state) {
       }
     }
   }
-  const previous = new Map(latest.map((row) => [rateKey(row), row]));
   const rows = [];
-  for (const row of preferredRates(candidates)) {
+  for (const row of durable ? newestRates(candidates, now) : preferredRates(candidates)) {
     if (supplemental && !missingKeys.has(rateKey(row))) continue;
     if (exceedsDrift(row, previous.get(rateKey(row)))) {
       drifted++;
@@ -363,7 +441,18 @@ async function collectAndStore(env, now, fetcher, logger, supplemental, state) {
     rejected: stats.rejected,
     missing_before: missing.length,
     missing_after: missingCells([...latest, ...saved], now).length,
+    cells: selected,
+    skipped_urls: history?.skipped.size || 0,
+    queue: durable?.queue.length || 0,
+    ...(durable?.paused_until ? { paused_until: durable.paused_until } : {}),
   };
+  if (durable) {
+    for (const row of saved) {
+      const entry = durable.visited[row.source_url];
+      if (entry) entry.banks = [...new Set([...entry.banks, row.bank_code])];
+    }
+    await binding.put(SCAN_STATE_KEY, JSON.stringify(durable));
+  }
   return reportRun(result, logger, stats, queries);
 }
 
