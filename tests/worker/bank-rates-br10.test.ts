@@ -499,3 +499,37 @@ describe('BR-10 Lead: trích dẫn chỉ là số viết dấu chấm', () => {
     expect(validate(DEPOSIT, 'mb', 'deposit_rate', 7, '7').result).toBeNull();
   });
 });
+
+describe('BR-10 Lead: cả trang thật (menu, tiêu đề, sapo, nhiều đoạn) qua đúng đường extractPage', () => {
+  it('bài cafef 12/11 nguyên trang: AI chỉ trích con số dấu chấm vẫn ra đủ 10 ngân hàng gửi 12T', async () => {
+    const page = fixture('br10-deposit-cafef-1211-page');
+    const want: Record<string, number> = {
+      agribank: 6.8,
+      bidv: 6.8,
+      vietcombank: 6.8,
+      vietinbank: 6.8,
+      sacombank: 7,
+      vpbank: 6.7,
+      techcombank: 6.25,
+      mb: 5.85,
+      acb: 5.3,
+      hdbank: 5.3,
+    };
+    const run = vi.fn(async (_model: string, params: { messages: { content: string }[] }) => {
+      const prompt = JSON.parse(params.messages[1]?.content || '{}');
+      const rates = Object.entries(want)
+        .filter(([, value]) => prompt.text.includes(String(value).replace('.', ',')))
+        .map(([bank_code, value]) => ({
+          ...empty(),
+          bank_code,
+          note: null,
+          deposit_rate: value,
+          evidence: { ...empty(), deposit_rate: String(value) },
+        }));
+      return { response: JSON.stringify({ rates }) };
+    });
+    const rows = await extractPage({ AI: { run } }, { ...SOURCE, published_on: '2026-11-12' }, page);
+    const got = Object.fromEntries(rows.map((row: Row) => [row.bank_code, row.deposit_rate]));
+    expect(got).toEqual(want);
+  });
+});

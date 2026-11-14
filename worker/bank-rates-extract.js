@@ -38,6 +38,9 @@ const keysAre = (value, keys) =>
 const nullableNumber = (value) => value === null || (typeof value === 'number' && Number.isFinite(value));
 const nullableText = (value) => value === null || (typeof value === 'string' && value.length <= 600);
 const normalize = (text) => text.normalize('NFC').replace(/\s+/g, ' ').trim();
+// Văn bản trang giữ xuống dòng (ranh giới khối = ranh giới câu); trích dẫn của AI thì gộp khoảng trắng.
+const normalizeText = (text) =>
+  text.normalize('NFC').replace(/[^\S\n]+/g, ' ').replace(/ *\n\s*/g, '\n').trim();
 
 // Trang công khai cũng có hotline; không gửi số điện thoại cho AI.
 export function aiPageText(text) {
@@ -254,13 +257,16 @@ const restrictedLoan =
 function leadingContext(text, at, kind) {
   // Chỉ kế thừa câu dẫn chung có sản phẩm; câu riêng của ngân hàng không làm ngữ cảnh cho cả bài.
   let lead = '';
-  for (let start = 0; start < at; ) {
+  // Câu dẫn gần nhất phía trước (≤ 2.000 ký tự, có thể ở đoạn trước): tiêu đề/sapo nêu tên ngân hàng
+  // không chặn câu dẫn của bảng/đoạn so sánh (production 14/11, bài cafef 12/11).
+  let begin = Math.max(0, at - 2_000);
+  if (begin > 0) begin = sentenceEnd(text, begin);
+  for (let start = begin; start < at; ) {
     const end = sentenceEnd(text, start);
     if (end > at) break;
     const sentence = text.slice(start, end);
     const context = fold(sentence);
     const mentions = bankMentions(sentence);
-    if (mentions.some((bank) => bank.code)) break;
     if (
       (!mentions.length || /cac ngan hang|ngan hang thuong mai|khao sat|mat bang|bang lai suat/.test(context)) &&
       (kind === 'deposit'
@@ -318,7 +324,7 @@ function promoPeriods(text, at, bankCode) {
 function evidenceValue(value, quote, text, bankCode, kind, field) {
   const missing = { value: null, reason: 'no_quote_in_text' };
   if (value === null || !quote) return missing;
-  text = normalize(text);
+  text = normalizeText(text);
   quote = normalize(quote);
   // qwen hay trích riêng con số theo kiểu "6.8" khi bài ghi "6,8": chỉ đổi dấu thập phân của trích dẫn
   // toàn số; ngân hàng/kỳ hạn/ngữ cảnh vẫn kiểm tại từng chỗ số đó xuất hiện trong bài.

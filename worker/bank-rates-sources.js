@@ -23,12 +23,19 @@ function withoutScripts(html) {
 }
 
 export function pageText(html, limit = MAX_TEXT) {
+  // Giữ ngắt khối (đoạn, tiêu đề, menu, ô bảng) thành xuống dòng: tiêu đề/menu không dính vào câu đầu bài,
+  // để bộ kiểm ngân hàng/kỳ hạn không đọc nhầm tên ngân hàng ở tiêu đề (production 14/11, bài cafef 12/11).
   const plain = withoutScripts(html)
     .replace(/<head\b[^>]*>[\s\S]*?<\/head\s*>/gi, ' ')
+    .replace(
+      /<\/?(?:p|div|h[1-6]|li|ul|ol|tr|td|th|table|section|article|header|footer|nav|aside|br|hr|figure|figcaption|blockquote|main)\b[^>]*>/gi,
+      '\n',
+    )
     .replace(/<[^>]*>/g, ' ');
   return decodeEntities(plain)
     .replace(/<[^>]*>/g, ' ')
-    .replace(/\s+/g, ' ')
+    .replace(/[^\S\n]+/g, ' ')
+    .replace(/ *\n[\s]*/g, '\n')
     .trim()
     .slice(0, limit);
 }
