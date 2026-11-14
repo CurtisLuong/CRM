@@ -490,3 +490,12 @@ describe('BR-10 Lead: danh sách "lần lượt" là mỗi ngân hàng một s�
     expect(validate(list, 'hdbank', 'deposit_rate', 5.3, '5,3%').result).not.toBeNull();
   });
 });
+
+describe('BR-10 Lead: trích dẫn chỉ là số viết dấu chấm', () => {
+  it('"6.8" khớp "6,8" trong bài; ngân hàng/kỳ hạn vẫn kiểm tại chỗ số xuất hiện', () => {
+    expect(validate(DEPOSIT, 'bidv', 'deposit_rate', 6.8, '6.8').result).toMatchObject({ deposit_rate: 6.8 });
+    expect(validate(DEPOSIT, 'techcombank', 'deposit_rate', 6.25, '6.25').result).toMatchObject({ deposit_rate: 6.25 });
+    expect(validate(DEPOSIT, 'vpbank', 'deposit_rate', 7.4, '7.4').result).toBeNull();
+    expect(validate(DEPOSIT, 'mb', 'deposit_rate', 7, '7').result).toBeNull();
+  });
+});

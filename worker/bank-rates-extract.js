@@ -320,6 +320,9 @@ function evidenceValue(value, quote, text, bankCode, kind, field) {
   if (value === null || !quote) return missing;
   text = normalize(text);
   quote = normalize(quote);
+  // qwen hay trích riêng con số theo kiểu "6.8" khi bài ghi "6,8": chỉ đổi dấu thập phân của trích dẫn
+  // toàn số; ngân hàng/kỳ hạn/ngữ cảnh vẫn kiểm tại từng chỗ số đó xuất hiện trong bài.
+  if (!text.includes(quote) && /^\d+\.\d+%?$/.test(quote)) quote = quote.replace('.', ',');
   let reason = 'no_quote_in_text';
   for (let position = text.indexOf(quote); position !== -1; position = text.indexOf(quote, position + 1)) {
     for (const number of quote.matchAll(/(?<![\d.,])[-+]?\d+(?:[.,]\d+)?(?![\d.,])/g)) {
