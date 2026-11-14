@@ -69,3 +69,4 @@ Loại: `code` / `test-only` / `lead` (Lead tự làm) / `đối chứng` (làm 
 
 - 2026-10-27 (phát hành 1.7): Play Protect chặn APK 1.7 (1.6 cài bình thường, cùng khoá ký) — HYPOTHESIS do thêm `REQUEST_INSTALL_PACKAGES` trên app cài ngoài Play đã có quyền gọi/nhật ký/micro. Bài học: thêm quyền Android nhạy cảm vào APK cài ngoài Play phải hỏi Curtis trước (rủi ro Play Protect). Phát hành web: bản web cũ còn trong bộ nhớ máy (PWA) vẫn đọc file cũ — khi đổi nguồn dữ liệu, giữ file cũ đồng bộ ít nhất 1 đợt.
 - 13/11 BR-08 (Sol): ĐẠT 1 lần; reviewer block 3 cờ. Cờ 1 (gọi tay nhảy 2 ô/phút → bỏ/lặp ô) đúng → Lead sửa 1 dòng (1 ô/phút). Cờ 2–3 (test luật 4 chỉ so cặp; log `accepted` đếm trước drift + trùng trang) nhỏ, để sau.
+- 14/11 BR-10 (Sol): ĐẠT 1 lần; reviewer block 3 cờ — cờ 1 đúng ("lần lượt" chia nhầm số) → Lead sửa + test; cờ 3 đúng (job ngân hàng đã đủ nằm lại hàng chờ) → Lead sửa. Bài học: đặc tả luật liệt kê phải ghi cả ca âm ("lần lượt").
