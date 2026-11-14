@@ -263,16 +263,19 @@ describe('BR-10 luật 1–7 với câu độc lập', () => {
     );
   });
 
-  it.each([
-    'nhà ở xã hội',
-    'khách hàng dưới 30 tuổi',
-    'khách hàng dưới 35 tuổi',
-    'một số dự án',
-    'không phải mức lãi suất áp dụng chung',
-  ])('luật 6: loại điều kiện riêng %s', (condition) => {
+  // Curtis 14/11: chỉ bỏ nhà ở xã hội; mọi chương trình nhà thương mại đều tính.
+  it.each(['nhà ở xã hội', 'NOXH'])('luật 6: loại gói %s', (condition) => {
     const text = `ACB cho vay mua nhà 9%/năm dành cho ${condition}.`;
     rejected(text, 'acb', 'promo_rate', 9, text, 'no_context');
   });
+
+  it.each(['khách hàng dưới 30 tuổi', 'khách hàng dưới 35 tuổi', 'một số dự án'])(
+    'luật 6 (Curtis 14/11): nhận gói nhà thương mại %s',
+    (condition) => {
+      const text = `ACB cho vay mua nhà 9%/năm dành cho ${condition}.`;
+      expect(validate(text, 'acb', 'promo_rate', 9, text).result).toMatchObject({ promo_rate: 9 });
+    },
+  );
 
   it('luật 6: hơn 10% không phải số cụ thể', () => {
     const text = 'ACB cho vay mua nhà với lãi suất hơn 10%/năm.';
