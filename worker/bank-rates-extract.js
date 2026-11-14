@@ -477,6 +477,7 @@ export async function extractPage(
       candidates.push(...(await extractChunk(env, source, chunk, stats, logger)));
     } catch (failure) {
       error = failure;
+      if (isAiQuotaError(failure)) break;
     }
   }
   if (error) {
@@ -484,6 +485,13 @@ export async function extractPage(
     if (!candidates.length) throw error;
   }
   return preferredRates(candidates);
+}
+
+export function isAiQuotaError(error) {
+  return (
+    Number(error?.status ?? error?.statusCode ?? error?.response?.status) === 429 ||
+    /4006|daily free allocation/i.test(String(error?.message || error))
+  );
 }
 
 export function preferredRates(candidates) {

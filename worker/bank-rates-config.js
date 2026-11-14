@@ -33,12 +33,22 @@ export function newsSearchFeeds(now = new Date()) {
 
 export const NEWS_SEARCH_FEEDS = newsSearchFeeds();
 
-export function missingCellSearchFeeds(cells, now = new Date()) {
+export function missingCellSearchFeeds(cells, now = new Date(), variant = 0) {
   const vn = new Date(now.getTime() + 7 * 3_600_000);
   return cells.map(({ bank_code, kind }) => {
     const bank = BANK_SOURCES.find((bank) => bank.code === bank_code);
     const product = kind === 'loan' ? 'vay mua nhà' : 'tiết kiệm 12 tháng';
-    const query = `lãi suất ${product} ${bank.name} tháng ${vn.getUTCMonth() + 1}/${vn.getUTCFullYear()}`;
+    const month = `tháng ${vn.getUTCMonth() + 1}/${vn.getUTCFullYear()}`;
+    const previous = new Date(Date.UTC(vn.getUTCFullYear(), vn.getUTCMonth() - 1, 1));
+    const queries = [
+      `lãi suất ${product} ${bank.name} ${month}`,
+      `lãi suất ${product} ${bank.name}`,
+      kind === 'loan'
+        ? `so sánh lãi suất vay mua nhà các ngân hàng ${month}`
+        : `bảng lãi suất tiết kiệm 12 tháng các ngân hàng ${month}`,
+      `lãi suất ${product} ${bank.name} tháng ${previous.getUTCMonth() + 1}/${previous.getUTCFullYear()}`,
+    ];
+    const query = queries[variant];
     return `https://www.bing.com/news/search?q=${encodeURIComponent(query)}&format=rss&setlang=vi`;
   });
 }
@@ -71,8 +81,10 @@ export const NEWS_PUBLISHERS = [
 export const BANK_RATE_LIMITS = { min: 3, max: 20 };
 export const DEPOSIT_RATE_LIMITS = { min: 1, max: 12 };
 export const BANK_RATES_CRON = '0 0 * * *';
-export const BANK_RATES_SUPPLEMENTAL_CRON = '*/10 0-3 * * *';
+export const BANK_RATES_SUPPLEMENTAL_CRON = '*/10 * * * *';
 export const SUPPLEMENTAL_CELLS_PER_RUN = 2;
+// Trần lần gọi AI/ngày cho lãi suất (~1/3 hạn mức miễn phí, ước tính); phần còn lại cho trợ lý AI trong app.
+export const BANK_RATES_AI_DAILY_CAP = 300;
 export const MAX_PAGES = 30;
 export const MIN_NEWS_PAGES = 10;
 export const MAX_TEXT = 12_000;
