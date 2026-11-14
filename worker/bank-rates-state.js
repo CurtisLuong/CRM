@@ -31,17 +31,21 @@ export async function loadScanState(binding, now) {
 
 export function pageHistory(state, now) {
   const skipped = new Set();
-  const cooling = (url) => {
+  const readyAt = (url) => {
     const previous = state.visited[url];
-    if (!previous) return false;
+    if (!previous) return null;
     const rest =
       previous.source_kind === 'bank' ? 24 * HOUR : previous.source_kind === 'news' ? 7 * 24 * HOUR : 6 * HOUR;
-    const active = now.getTime() < Date.parse(previous.read_at) + rest;
+    return new Date(Date.parse(previous.read_at) + rest).toISOString();
+  };
+  const cooling = (url) => {
+    const active = now.getTime() < Date.parse(readyAt(url));
     if (active) skipped.add(url);
     return active;
   };
   return {
     cooling,
+    readyAt,
     skipped,
     record(url, source_kind = 'feed') {
       state.visited[url] = { read_at: now.toISOString(), source_kind, rows: 0, banks: [] };
@@ -74,15 +78,25 @@ export async function collectQueued({
   logger,
   queries,
 }) {
+  const queuedUrls = state.queue.map((job) => job.source_url);
+  const queued = new Map();
+  for (const job of state.queue) {
+    if (!job.page && history.cooling(job.source_url)) continue;
+    const prior = queued.get(job.source_url);
+    // Giữ trang đã tải khi hai ô từng xếp cùng URL vào hàng chờ.
+    if (!prior || (!prior.page && job.page)) queued.set(job.source_url, job);
+  }
+  state.queue = [...queued.values()];
   const previous = new Map(latest.map((row) => [rateKey(row), row]));
   const available = (cell) => {
     const bank = BANK_SOURCES.find((bank) => bank.code === cell.bank_code);
     return (
       state.queue.some(
         (job) =>
-          (job.cell === rateKey(cell) || job.bank_code === cell.bank_code) &&
+          (job.source_kind === 'news' || job.cell === rateKey(cell) || job.bank_code === cell.bank_code) &&
           (job.page || !history.cooling(job.source_url)),
       ) ||
+      NEWS_FEEDS.some((feed) => !history.cooling(feed)) ||
       !history.cooling(bank.url) ||
       [0, 1, 2, 3].some((variant) => !history.cooling(missingCellSearchFeeds([cell], now, variant)[0]))
     );
@@ -98,6 +112,24 @@ export async function collectQueued({
     })
     .filter(available)
     .slice(0, SUPPLEMENTAL_CELLS_PER_RUN);
+  // Bỏ job trang ngân hàng đã đủ ô trước cả nhánh nghỉ, để hàng chờ không giữ job thừa mãi.
+  const stillNeeded = (code) => missing.some((cell) => cell.bank_code === code);
+  state.queue = state.queue.filter((job) => job.source_kind !== 'bank' || stillNeeded(job.bank_code));
+  if (!selected.length) {
+    const sources = [
+      ...queuedUrls,
+      ...NEWS_FEEDS,
+      ...missing.flatMap((cell) => [
+        BANK_SOURCES.find((bank) => bank.code === cell.bank_code).url,
+        ...[0, 1, 2, 3].flatMap((variant) => missingCellSearchFeeds([cell], now, variant)),
+      ]),
+    ];
+    const next_ready = sources
+      .map(history.readyAt)
+      .filter((until) => Date.parse(until) > now.getTime())
+      .sort()[0];
+    return { cells: selected, next_ready };
+  }
   const pending = new Set(missing.map(rateKey));
   const banks = new Set(selected.map((cell) => cell.bank_code));
   const bankNeeded = (code) => [...pending].some((key) => key.startsWith(`${code}:`));
@@ -106,8 +138,8 @@ export async function collectQueued({
   state.queue = state.queue.filter((job) => job.source_kind !== 'bank' || bankNeeded(job.bank_code));
   const enqueue = (job) => {
     const previous = state.queue.find((item) => item.source_url === job.source_url);
-    if (!previous) state.queue.push(job);
-    else if ((job.published_on || '') > (previous.published_on || '')) {
+    if (!previous && !history.cooling(job.source_url)) state.queue.push(job);
+    else if (previous && (job.published_on || '') > (previous.published_on || '')) {
       previous.published_on = job.published_on;
       previous.source_title = job.source_title;
     }
@@ -154,7 +186,7 @@ export async function collectQueued({
   }
   if (!canWork() || !pending.size) {
     state.queue = state.queue.filter((job) => job.source_kind !== 'bank' || bankNeeded(job.bank_code));
-    return selected;
+    return { cells: selected };
   }
   for (const cell of selected) {
     if (!pending.has(rateKey(cell))) continue;
@@ -216,5 +248,5 @@ export async function collectQueued({
   for (const [url, entry] of Object.entries(state.visited)) {
     if (now.getTime() - Date.parse(entry.read_at) > 7 * 24 * HOUR) delete state.visited[url];
   }
-  return selected;
+  return { cells: selected };
 }
