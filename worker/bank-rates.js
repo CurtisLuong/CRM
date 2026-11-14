@@ -184,6 +184,7 @@ async function collectAndStore(env, now, fetcher, logger, supplemental, state) {
   const missingKeys = new Set(missing.map(rateKey));
   const previous = new Map(latest.map((row) => [rateKey(row), row]));
   let selected = [];
+  let nextReady;
   const queries = [];
   const logPage = (page, source_kind, ai_rows = 0, accepted = 0) =>
     logger.log?.('bank-rates page', { url: page.url, source_kind, ai_rows, accepted });
@@ -267,7 +268,7 @@ async function collectAndStore(env, now, fetcher, logger, supplemental, state) {
   }
   if (durable) {
     try {
-      selected = await collectQueued({
+      const queued = await collectQueued({
         state: durable,
         history,
         latest,
@@ -280,6 +281,8 @@ async function collectAndStore(env, now, fetcher, logger, supplemental, state) {
         logger,
         queries,
       });
+      selected = queued.cells;
+      nextReady = queued.next_ready;
     } catch (error) {
       await binding.put(SCAN_STATE_KEY, JSON.stringify(durable));
       throw error;
@@ -442,7 +445,9 @@ async function collectAndStore(env, now, fetcher, logger, supplemental, state) {
       }
     }
   }
+  if (nextReady) logger.log?.('bank-rates idle', { next_ready: nextReady });
   const result = {
+    ...(nextReady ? { skipped: 'all_sources_resting', next_ready: nextReady } : {}),
     pages: reader.count,
     candidates: candidates.length,
     written,
