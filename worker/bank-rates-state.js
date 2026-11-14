@@ -112,6 +112,9 @@ export async function collectQueued({
     })
     .filter(available)
     .slice(0, SUPPLEMENTAL_CELLS_PER_RUN);
+  // Bỏ job trang ngân hàng đã đủ ô trước cả nhánh nghỉ, để hàng chờ không giữ job thừa mãi.
+  const stillNeeded = (code) => missing.some((cell) => cell.bank_code === code);
+  state.queue = state.queue.filter((job) => job.source_kind !== 'bank' || stillNeeded(job.bank_code));
   if (!selected.length) {
     const sources = [
       ...queuedUrls,

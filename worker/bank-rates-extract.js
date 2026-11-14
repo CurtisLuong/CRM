@@ -216,7 +216,13 @@ function nearestBank(text, at, end, windowStart, bankCode) {
     if (bank.i < clause || !/^(?:,\s*(?:va\s*)?|va|gom)$/.test(gap)) break;
     group.unshift(bank);
   }
-  if (group.length > 1 && !/\d|[;.!?]/.test(fold(text.slice(before.end, at)).replace(/\d+\s*thang/g, ''))) {
+  // "lần lượt 6%, 6,5%…" là mỗi ngân hàng một số: không chia chung. Danh sách chỉ nhận chung một số khi
+  // sau số đó không còn mức % khác trước tên ngân hàng kế tiếp/hết câu.
+  const sentenceStop = Math.min(sentenceEnd(text, at), ...[';'].map((c) => text.indexOf(c, at)).filter((i) => i >= 0));
+  const nextBank = mentions.find((m) => m.i > at)?.i ?? Infinity;
+  const tail = text.slice(at, Math.min(sentenceStop, nextBank)).replace(/^[\d.,]+/, '');
+  const shared = !/lan luot/.test(fold(text.slice(clause, sentenceStop))) && !/\d+(?:[.,]\d+)?\s*%/.test(tail);
+  if (shared && group.length > 1 && !/\d|[;.!?]/.test(fold(text.slice(before.end, at)).replace(/\d+\s*thang/g, ''))) {
     before = group.find((bank) => bank.code === bankCode) || before;
   }
   return before;

@@ -470,3 +470,20 @@ describe('BR-10 kỳ hạn thuộc đúng sản phẩm và đúng số', () => {
     expect(validate(text, 'acb', 'deposit_rate', 6, '6%/năm').result).toMatchObject({ deposit_rate: 6 });
   });
 });
+
+describe('BR-10 Lead: danh sách "lần lượt" là mỗi ngân hàng một số', () => {
+  const text =
+    'Lãi suất tiết kiệm kỳ hạn 12 tháng tại ACB, MB, BIDV và Techcombank lần lượt là 6%, 6,5%, 7% và 7,2%/năm.';
+  it.each([
+    ['mb', 6, '6%'],
+    ['acb', 6.5, '6,5%'],
+    ['bidv', 7.2, '7,2%'],
+  ])('không chia chung số cho %s = %s', (bank, value, quote) => {
+    expect(validate(text, bank, 'deposit_rate', value, `${quote}`).result).toBeNull();
+  });
+  it('danh sách không có "đều/cùng" nhưng chỉ một số rồi sang ngân hàng khác vẫn chia chung', () => {
+    const list = 'Lãi suất tiết kiệm kỳ hạn 12 tháng: ACB và HDBank 5,3%/năm, PVcomBank 5,1%/năm.';
+    expect(validate(list, 'acb', 'deposit_rate', 5.3, '5,3%').result).not.toBeNull();
+    expect(validate(list, 'hdbank', 'deposit_rate', 5.3, '5,3%').result).not.toBeNull();
+  });
+});
