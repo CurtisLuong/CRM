@@ -25,3 +25,9 @@ region = "gcp:us-east4"
 [triggers]
 # Lãi vay mua nhà: 00:00 UTC = 07:00 Việt Nam; tách khỏi lượt Facebook.
 crons = ["*/5 * * * *", "0 0 * * *", "*/10 * * * *"]
+
+# Trạng thái Worker lãi suất giữa các lượt (trang đã đọc, hàng chờ, nghỉ khi hết hạn mức AI) — BR-09.
+# Thiếu binding thì Worker lãi suất chạy kiểu cũ. Namespace tạo 14/11/2026.
+[[kv_namespaces]]
+binding = "BANK_RATES_STATE"
+id = "611546a7bc954aa2bc2f2ef7bc4af805"

@@ -83,6 +83,8 @@ export const DEPOSIT_RATE_LIMITS = { min: 1, max: 12 };
 export const BANK_RATES_CRON = '0 0 * * *';
 export const BANK_RATES_SUPPLEMENTAL_CRON = '*/10 * * * *';
 export const SUPPLEMENTAL_CELLS_PER_RUN = 2;
+// Trần lần gọi AI/ngày cho lãi suất (~1/3 hạn mức miễn phí, ước tính); phần còn lại cho trợ lý AI trong app.
+export const BANK_RATES_AI_DAILY_CAP = 300;
 export const MAX_PAGES = 30;
 export const MIN_NEWS_PAGES = 10;
 export const MAX_TEXT = 12_000;

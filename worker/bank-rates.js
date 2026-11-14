@@ -11,6 +11,7 @@ import {
   missingCellSearchFeeds,
   newsSearchFeeds,
 } from './bank-rates-config.js';
+import { BANK_RATES_AI_DAILY_CAP } from './bank-rates-config.js';
 import {
   exceedsDrift,
   extractionStats,
@@ -128,7 +129,7 @@ async function collectAndStore(env, now, fetcher, logger, supplemental, state) {
   if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY || !env.AI?.run)
     throw new Error('bank-rates configuration missing');
   const binding = env.BANK_RATES_STATE;
-  const durable = binding ? await loadScanState(binding) : null;
+  const durable = binding ? await loadScanState(binding, now) : null;
   if (durable?.paused_until && now.getTime() < Date.parse(durable.paused_until)) {
     return reportRun(
       { ...skippedRun(), skipped: 'ai_quota', until: durable.paused_until, queue: durable.queue.length },
@@ -136,6 +137,16 @@ async function collectAndStore(env, now, fetcher, logger, supplemental, state) {
     );
   }
   if (durable) durable.paused_until = null;
+  // Trợ lý AI trong app (/ai) dùng chung hạn mức Workers AI: lãi suất chỉ dùng tối đa
+  // BANK_RATES_AI_DAILY_CAP lần/ngày UTC (đủ thì nghỉ tới 00:00 UTC) để app vẫn còn AI.
+  const aiDay = now.toISOString().slice(0, 10);
+  if (durable && durable.ai_day !== aiDay) Object.assign(durable, { ai_day: aiDay, ai_used: 0 });
+  if (durable && durable.ai_used >= BANK_RATES_AI_DAILY_CAP) {
+    return reportRun(
+      { ...skippedRun(), skipped: 'ai_daily_cap', until: nextAiReset(now), queue: durable.queue.length },
+      logger,
+    );
+  }
   const history = durable ? pageHistory(durable, now) : null;
   // Đếm mọi subrequest (fetch + AI) để không chạm trần của Cloudflare trước khi kịp ghi DB.
   let used = 0;
@@ -447,6 +458,7 @@ async function collectAndStore(env, now, fetcher, logger, supplemental, state) {
     ...(durable?.paused_until ? { paused_until: durable.paused_until } : {}),
   };
   if (durable) {
+    durable.ai_used = (durable.ai_used || 0) + stats.ai_calls;
     for (const row of saved) {
       const entry = durable.visited[row.source_url];
       if (entry) entry.banks = [...new Set([...entry.banks, row.bank_code])];

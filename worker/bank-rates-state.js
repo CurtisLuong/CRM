@@ -17,11 +17,15 @@ export const hasRate = (row) =>
 export const nextAiReset = (now) =>
   new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1)).toISOString();
 
-export async function loadScanState(binding) {
+export async function loadScanState(binding, now) {
   const stored = await binding.get(SCAN_STATE_KEY, 'json');
-  if (!stored) return { version: 1, visited: {}, queue: [], paused_until: null };
-  if (stored.version !== 1 || !stored.visited || !Array.isArray(stored.queue))
-    throw new Error('bank-rates state invalid');
+  const fresh = { version: 1, visited: {}, queue: [], paused_until: null };
+  // Trạng thái hỏng thì làm lại từ đầu, không kẹt Worker mãi.
+  if (!stored || stored.version !== 1 || !stored.visited || !Array.isArray(stored.queue)) return fresh;
+  // Dọn trang đọc quá 8 ngày (nghỉ dài nhất 7 ngày) để khoá KV không phình mãi.
+  const cutoff = (now ?? new Date()).getTime() - 8 * 24 * HOUR;
+  for (const [url, entry] of Object.entries(stored.visited))
+    if (!(Date.parse(entry?.read_at) >= cutoff)) delete stored.visited[url];
   return stored;
 }
 

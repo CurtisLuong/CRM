@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 // @ts-expect-error Worker source is JavaScript.
 import * as config from '../../worker/bank-rates-config.js';
 // @ts-expect-error Worker source is JavaScript.
-import { SCAN_STATE_KEY } from '../../worker/bank-rates-state.js';
+import { loadScanState, SCAN_STATE_KEY } from '../../worker/bank-rates-state.js';
 
 const { BANK_RATES_SUPPLEMENTAL_CRON, BANK_SOURCES, MAX_SUBREQUESTS, NEWS_FEEDS } = config;
 
@@ -13,6 +13,8 @@ type Row = Record<string, unknown>;
 type Job = { source_url: string; depth?: number; page?: unknown; role?: string };
 type ScanState = {
   paused_until: string | null;
+  ai_day?: string;
+  ai_used?: number;
   visited: Record<string, { read_at: string; source_kind: string; rows: number; banks: string[] }>;
   queue: Job[];
 };
@@ -653,5 +655,45 @@ describe('BR-09 hạn mức và hàng rào', () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({ written: 0, cells: [{ bank_code: 'mb', kind: 'loan' }] });
     expect(w.queries[1]).toBe('lãi suất vay mua nhà MB');
+  });
+
+  it('Lead: trần AI/ngày cho lãi suất — đủ trần thì nghỉ tới 00:00 UTC, không fetch/AI; qua ngày chạy lại', async () => {
+    const w = world();
+    await w.kv.put(
+      SCAN_STATE_KEY,
+      JSON.stringify({
+        version: 1,
+        visited: {},
+        queue: [],
+        paused_until: null,
+        ai_day: '2026-11-14',
+        ai_used: config.BANK_RATES_AI_DAILY_CAP,
+      }),
+    );
+    expect(await w.execute()).toMatchObject({
+      skipped: 'ai_daily_cap',
+      until: '2026-11-15T00:00:00.000Z',
+      pages: 0,
+      ai_calls: 0,
+    });
+    expect(w.publicCalls).toHaveLength(0);
+    expect(w.run).not.toHaveBeenCalled();
+    const next = await w.execute(new Date('2026-11-15T00:10:00Z'));
+    expect(next.skipped).toBeUndefined();
+    expect(w.kv.state().ai_day).toBe('2026-11-15');
+    expect(w.kv.state().ai_used).toBe(next.ai_calls);
+  });
+
+  it('Lead: trạng thái KV hỏng thì làm lại từ đầu; trang đọc quá 8 ngày bị dọn', async () => {
+    const broken = new FakeKV();
+    await broken.put(SCAN_STATE_KEY, JSON.stringify({ version: 9 }));
+    expect(await loadScanState(broken, NOW)).toEqual({ version: 1, visited: {}, queue: [], paused_until: null });
+    const kv = new FakeKV();
+    const visited = {
+      'https://cafef.vn/cu.chn': { read_at: '2026-11-05T12:00:00Z', source_kind: 'news', rows: 0, banks: [] },
+      'https://cafef.vn/moi.chn': { read_at: '2026-11-10T12:00:00Z', source_kind: 'news', rows: 0, banks: [] },
+    };
+    await kv.put(SCAN_STATE_KEY, JSON.stringify({ version: 1, visited, queue: [], paused_until: null }));
+    expect(Object.keys((await loadScanState(kv, NOW)).visited)).toEqual(['https://cafef.vn/moi.chn']);
   });
 });
