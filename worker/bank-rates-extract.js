@@ -106,6 +106,24 @@ export function extractionStats() {
 }
 
 // Chỉ cứu lỗi cú pháp; JSON parse được vẫn phải qua nguyên bộ kiểm khuôn cũ.
+function salvageRates(output) {
+  let value;
+  try {
+    value = JSON.parse(responseText(output));
+  } catch {
+    return null;
+  }
+  if (!keysAre(value, ['rates']) || !Array.isArray(value.rates)) return null;
+  const rows = [],
+    dropped = [];
+  for (const row of value.rates.slice(0, BANK_SOURCES.length * 2)) {
+    const one = parseRates({ response: JSON.stringify({ rates: [row] }) });
+    if (one) rows.push(...one);
+    else dropped.push(row);
+  }
+  return rows.length ? { rows, dropped } : null;
+}
+
 function recoverRates(output) {
   const raw = responseText(output);
   try {
@@ -580,7 +598,18 @@ async function extractChunk(env, source, clean, stats, logger) {
   } finally {
     clearTimeout(timer);
   }
-  const rows = parseRates(output) ?? recoverRates(output);
+  let rows = parseRates(output) ?? recoverRates(output);
+  if (rows === null) {
+    // Production 14/11: qwen trả đúng số Big 4/MB/Techcombank… nhưng một dòng lệch khuôn (vd. trùng ngân hàng)
+    // làm mất cả phản hồi. Giữ từng dòng đúng khuôn; mỗi dòng vẫn qua đủ kiểm trích dẫn/ngân hàng/kỳ hạn.
+    const salvaged = salvageRates(output);
+    if (salvaged) {
+      stats.rejected.json++;
+      for (const row of salvaged.dropped)
+        for (const field of DEPOSIT_FIELDS) if (typeof row?.[field] === 'number') logRejectedValue(logger, row, field, 'json');
+      rows = salvaged.rows;
+    }
+  }
   if (rows === null) {
     stats.rejected.json++;
     try {

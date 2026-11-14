@@ -222,13 +222,23 @@ describe('BR-04 cứu JSON và giữ dữ liệu từng đoạn', () => {
     expect(stats.rejected.wrong_bank).toBe(1);
   });
 
-  it('JSON đúng cú pháp nhưng sai khuôn bỏ cả phản hồi, không cứu object hợp lệ bên cạnh', async () => {
+  // Lead 14/11 (log production: cả phản hồi đúng số Big 4 bị bỏ vì một dòng lệch khuôn): giữ dòng đúng khuôn,
+  // dòng đó vẫn qua đủ kiểm; dòng lệch khuôn bị bỏ và tính json.
+  it('JSON đúng cú pháp, một dòng sai khuôn: bỏ dòng đó, giữ dòng đúng khuôn để kiểm tiếp', async () => {
     const run = vi.fn().mockResolvedValue(response([deposit(), { bank_code: 'vietcombank' }]));
     const stats = extractionStats();
-    await expect(extractPage({ AI: { run } }, SOURCE, context(), { stats })).rejects.toThrow('AI JSON invalid');
+    expect(await extractPage({ AI: { run } }, SOURCE, context(), { stats })).toHaveLength(1);
     expect(stats.rejected.json).toBe(1);
-    expect(stats.ai_rows).toBe(0);
-    expect(stats.failed_pages).toBe(1);
+    expect(stats.ai_rows).toBe(1);
+    expect(stats.failed_pages).toBe(0);
+  });
+
+  it('trùng ngân hàng trong một phản hồi: giữ từng dòng, kỳ hạn sai vẫn bị loại', async () => {
+    const text = `${context()} Agribank tiết kiệm cá nhân kỳ hạn 18 tháng 5,9%/năm.`;
+    const run = vi.fn().mockResolvedValue(response([deposit(), deposit('agribank', 5.9, '5,9')]));
+    const stats = extractionStats();
+    const rows = await extractPage({ AI: { run } }, SOURCE, text, { stats });
+    expect(rows.map((row: { deposit_rate: number }) => row.deposit_rate)).toEqual([5.4]);
   });
 
   it('không cứu được gì thì báo failed; đoạn hỏng không làm mất các đoạn tốt', async () => {
