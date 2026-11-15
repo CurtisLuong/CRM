@@ -38,6 +38,7 @@ export { BANK_RATES_CRON, BANK_RATES_SUPPLEMENTAL_CRON };
 // Chỉ gộp yêu cầu đang chạy; lượt sau luôn đọc lại DB.
 const runs = new WeakMap();
 const vnDay = (date) => new Date(date.getTime() + 7 * 3_600_000).toISOString().slice(0, 10);
+const STALE_DAYS = 14;
 const CELLS = BANK_SOURCES.flatMap((bank) => ['loan', 'deposit'].map((kind) => ({ bank_code: bank.code, kind })));
 function missingCells(latest, now) {
   const complete = new Set(
@@ -45,6 +46,9 @@ function missingCells(latest, now) {
       .filter(
         (row) =>
           vnDay(new Date(row.fetched_at)) === vnDay(now) &&
+          // Đọc lại bài cũ trong ngày không làm ô "đủ": số có ngày nguồn quá 14 ngày (mức app báo cũ) vẫn phải tìm tiếp
+          // (log 15/11: BIDV/MB/ACB ghi lại số 15/10 rồi thôi tìm).
+          Date.parse(vnDay(now)) - Date.parse(sourceDay(row, now)) <= STALE_DAYS * 86_400_000 &&
           (row.kind === 'deposit' ? row.deposit_rate != null : row.promo_rate != null || row.floating_rate != null),
       )
       .map(rateKey),

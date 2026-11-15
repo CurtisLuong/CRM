@@ -37,7 +37,7 @@ const complete = (now = NOW): Row[] =>
       bank_code: bank.code,
       kind,
       fetched_at: now.toISOString(),
-      published_on: '2026-11-14',
+      published_on: new Date(now.getTime() + 7 * 3_600_000).toISOString().slice(0, 10),
       promo_rate: kind === 'loan' ? 6.5 : null,
       deposit_rate: kind === 'deposit' ? 5.5 : null,
     })),

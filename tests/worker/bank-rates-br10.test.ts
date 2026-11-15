@@ -544,3 +544,35 @@ describe('drift chỉ so với số còn mới (log 15/11: BIDV 9% bị số NOX
     expect(exceedsDrift(row, { kind: 'loan', promo_rate: 6.5, fetched_at: '2026-10-15T01:00:00Z' })).toBe(false);
   });
 });
+
+describe('ô có số nguồn quá 14 ngày vẫn tính thiếu dù đọc lại trong ngày (log 15/11)', () => {
+  it('BIDV vay ghi lại hôm nay từ bài 15/10 → Worker vẫn tìm ô đó', async () => {
+    const { runBankRates } = await import('../../worker/bank-rates.js');
+    const now = new Date('2026-11-15T05:00:00Z');
+    const rows = (await import('../../worker/bank-rates-config.js')).BANK_SOURCES.flatMap((bank: { code: string }) =>
+      ['loan', 'deposit'].map((kind) => ({
+        bank_code: bank.code,
+        kind,
+        fetched_at: now.toISOString(),
+        published_on: bank.code === 'bidv' && kind === 'loan' ? '2026-10-15' : '2026-11-14',
+        deposit_rate: kind === 'deposit' ? 5.4 : null,
+        promo_rate: kind === 'loan' ? 9 : null,
+        floating_rate: null,
+        reference_rate: null,
+        margin: null,
+      })),
+    );
+    const fetcher = async (input: string | URL | Request) => {
+      const url = String(input instanceof Request ? input.url : input);
+      if (url.includes('bank_rates_latest')) return new Response(JSON.stringify(rows));
+      return new Response('', { status: 404 });
+    };
+    const env = {
+      SUPABASE_URL: 'https://db.test',
+      SUPABASE_SERVICE_ROLE_KEY: 'k',
+      AI: { run: async () => ({ response: '{"rates":[]}' }) },
+    };
+    const result = await runBankRates(env, { now, fetcher, logger: { log() {}, warn() {}, error() {} } });
+    expect(result.missing_before).toBe(1);
+  });
+});
