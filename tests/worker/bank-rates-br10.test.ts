@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 // @ts-expect-error Worker source is JavaScript.
 import { runBankRates } from '../../worker/bank-rates.js';
 // @ts-expect-error Worker source is JavaScript.
-import { BANK_SOURCES, missingCellSearchFeeds, NEWS_FEEDS } from '../../worker/bank-rates-config.js';
+import { BANK_SOURCES, missingCellSearchFeeds, NEWS_FEEDS, SEARCH_VARIANTS } from '../../worker/bank-rates-config.js';
 // @ts-expect-error Worker source is JavaScript.
 import * as extraction from '../../worker/bank-rates-extract.js';
 // @ts-expect-error Worker source is JavaScript.
@@ -342,7 +342,7 @@ function restAll(state: State) {
   const cell = { bank_code: 'mb', kind: 'loan' };
   state.visited[BANKS.find((bank) => bank.code === 'mb')?.url || ''] = visited('bank');
   for (const feed of NEWS_FEEDS) state.visited[feed] = visited('feed');
-  for (let variant = 0; variant < 4; variant++) {
+  for (let variant = 0; variant < SEARCH_VARIANTS; variant++) {
     state.visited[missingCellSearchFeeds([cell], NOW, variant)[0]] = visited('feed');
   }
 }
@@ -531,5 +531,16 @@ describe('BR-10 Lead: cả trang thật (menu, tiêu đề, sapo, nhiều đoạ
     const rows = await extractPage({ AI: { run } }, { ...SOURCE, published_on: '2026-11-12' }, page);
     const got = Object.fromEntries(rows.map((row: Row) => [row.bank_code, row.deposit_rate]));
     expect(got).toEqual(want);
+  });
+});
+
+describe('drift chỉ so với số còn mới (log 15/11: BIDV 9% bị số NOXH 6,5% ngày 15/10 chặn)', () => {
+  it('số trước quá 14 ngày không chặn; trong 14 ngày vẫn chặn', async () => {
+    const { exceedsDrift } = await import('../../worker/bank-rates-extract.js');
+    const row = { kind: 'loan', bank_code: 'bidv', promo_rate: 9, published_on: '2026-11-15' };
+    expect(exceedsDrift(row, { kind: 'loan', promo_rate: 6.5, published_on: '2026-10-15' })).toBe(false);
+    expect(exceedsDrift(row, { kind: 'loan', promo_rate: 6.5, published_on: '2026-11-01' })).toBe(true);
+    expect(exceedsDrift(row, { kind: 'loan', promo_rate: 6.5, published_on: '2026-10-31' })).toBe(false);
+    expect(exceedsDrift(row, { kind: 'loan', promo_rate: 6.5, fetched_at: '2026-10-15T01:00:00Z' })).toBe(false);
   });
 });

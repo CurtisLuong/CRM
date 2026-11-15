@@ -709,8 +709,15 @@ export function preferredRates(candidates) {
 
 export const rateKey = (row) => `${row.bank_code}:${row.kind || 'loan'}`;
 
+// Số cũ quá 14 ngày (mức app coi là cũ) không được chặn số mới: số cũ có thể chính là số đọc sai
+// (vd. gói NOXH 6,5% ngày 15/10 chặn mãi BIDV 9% ngày 15/11).
+const DRIFT_WINDOW_MS = 14 * 86_400_000;
+const rowDay = (row) => row.published_on || (row.fetched_at ? String(row.fetched_at).slice(0, 10) : null);
 export function exceedsDrift(row, previous) {
   if (!previous || (row.kind || 'loan') !== (previous.kind || 'loan')) return false;
+  const before = rowDay(previous);
+  const after = rowDay(row) || new Date().toISOString().slice(0, 10);
+  if (before && Date.parse(after) - Date.parse(before) > DRIFT_WINDOW_MS) return false;
   const fields =
     row.kind === 'deposit' ? ['deposit_rate'] : ['promo_rate', 'floating_rate', 'reference_rate', 'margin'];
   return fields.some(

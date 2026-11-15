@@ -28,6 +28,7 @@ import {
   loadScanState,
   newestRates,
   nextAiReset,
+  hasRate,
   pageHistory,
   sourceDay,
 } from './bank-rates-state.js';
@@ -457,6 +458,13 @@ async function collectAndStore(env, now, fetcher, logger, supplemental, state) {
     rejected: stats.rejected,
     missing_before: missing.length,
     missing_after: missingCells([...latest, ...saved], now).length,
+    // Ngày nguồn của từng ô (null = trống) để đọc nhật ký biết ô nào cũ/thiếu mà không cần vào DB.
+    cell_days: Object.fromEntries(
+      CELLS.map((cell) => {
+        const row = [...saved, ...latest].find((item) => rateKey(item) === rateKey(cell) && hasRate(item));
+        return [rateKey(cell), row ? sourceDay(row, now) : null];
+      }),
+    ),
     cells: selected,
     skipped_urls: history?.skipped.size || 0,
     queue: durable?.queue.length || 0,

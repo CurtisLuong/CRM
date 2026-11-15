@@ -231,9 +231,9 @@ describe('BR-09 ô và thứ tự ưu tiên', () => {
 
   it('luật 3–5: khi mọi nguồn của ô ưu tiên đang nghỉ thì tiếp tục ô còn nguồn chưa đọc', async () => {
     const w = world(without(['mb:loan', 'mb:deposit', 'acb:loan', 'acb:deposit']));
-    for (let i = 0; i < 4; i++) await w.execute(new Date(NOW.getTime() + i * 10 * 60_000));
+    for (let i = 0; i < config.SEARCH_VARIANTS; i++) await w.execute(new Date(NOW.getTime() + i * 10 * 60_000));
     const start = w.queries.length;
-    expect((await w.execute(new Date(NOW.getTime() + 40 * 60_000))).cells).toEqual([
+    expect((await w.execute(new Date(NOW.getTime() + config.SEARCH_VARIANTS * 10 * 60_000))).cells).toEqual([
       { bank_code: 'acb', kind: 'loan' },
       { bank_code: 'acb', kind: 'deposit' },
     ]);

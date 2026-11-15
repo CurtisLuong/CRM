@@ -3,6 +3,7 @@ import {
   MAX_AI_CALLS,
   NEWS_FEEDS,
   SUPPLEMENTAL_CELLS_PER_RUN,
+  SEARCH_VARIANTS,
   missingCellSearchFeeds,
 } from './bank-rates-config.js';
 import { exceedsDrift, rateKey } from './bank-rates-extract.js';
@@ -10,6 +11,7 @@ import { bankLinks, isComparisonArticle, newsArticles, pageMetadata, pageText } 
 
 export const SCAN_STATE_KEY = 'bank-rates:state:v1';
 const HOUR = 3_600_000;
+const SEARCH_VARIANT_LIST = Array.from({ length: SEARCH_VARIANTS }, (_, i) => i);
 export const vnDay = (date) => new Date(date.getTime() + 7 * HOUR).toISOString().slice(0, 10);
 export const sourceDay = (row, now) => row.published_on || vnDay(new Date(row.fetched_at || now));
 export const hasRate = (row) =>
@@ -98,7 +100,7 @@ export async function collectQueued({
       ) ||
       NEWS_FEEDS.some((feed) => !history.cooling(feed)) ||
       !history.cooling(bank.url) ||
-      [0, 1, 2, 3].some((variant) => !history.cooling(missingCellSearchFeeds([cell], now, variant)[0]))
+      SEARCH_VARIANT_LIST.some((variant) => !history.cooling(missingCellSearchFeeds([cell], now, variant)[0]))
     );
   };
   const selected = [...missing]
@@ -121,7 +123,7 @@ export async function collectQueued({
       ...NEWS_FEEDS,
       ...missing.flatMap((cell) => [
         BANK_SOURCES.find((bank) => bank.code === cell.bank_code).url,
-        ...[0, 1, 2, 3].flatMap((variant) => missingCellSearchFeeds([cell], now, variant)),
+        ...SEARCH_VARIANT_LIST.flatMap((variant) => missingCellSearchFeeds([cell], now, variant)),
       ]),
     ];
     const next_ready = sources
@@ -194,7 +196,7 @@ export async function collectQueued({
     enqueue({ source_url: bank.url, base: bank.url, bank_code: bank.code, source_kind: 'bank', depth: 0 });
     // Ưu tiên xử lý hết bài chưa đọc của mẫu trước, rồi mới mở mẫu truy vấn tiếp theo.
     if (state.queue.some((job) => job.cell === rateKey(cell) && !history.cooling(job.source_url))) continue;
-    for (let variant = 0; variant < 4; variant++) {
+    for (let variant = 0; variant < SEARCH_VARIANTS; variant++) {
       const feed = missingCellSearchFeeds([cell], now, variant)[0];
       if (history.cooling(feed)) continue;
       const page = await read(feed, feed, undefined, 'feed');

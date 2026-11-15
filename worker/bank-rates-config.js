@@ -33,6 +33,8 @@ export function newsSearchFeeds(now = new Date()) {
 
 export const NEWS_SEARCH_FEEDS = newsSearchFeeds();
 
+export const SEARCH_VARIANTS = 7;
+
 export function missingCellSearchFeeds(cells, now = new Date(), variant = 0) {
   const vn = new Date(now.getTime() + 7 * 3_600_000);
   return cells.map(({ bank_code, kind }) => {
@@ -47,6 +49,12 @@ export function missingCellSearchFeeds(cells, now = new Date(), variant = 0) {
         ? `so sánh lãi suất vay mua nhà các ngân hàng ${month}`
         : `bảng lãi suất tiết kiệm 12 tháng các ngân hàng ${month}`,
       `lãi suất ${product} ${bank.name} tháng ${previous.getUTCMonth() + 1}/${previous.getUTCFullYear()}`,
+      // Mở rộng khi 4 mẫu đầu đã đọc hết bài (log 15/11: mọi nguồn đang nghỉ, ô vay vẫn trống/cũ).
+      kind === 'loan' ? `${bank.name} cho vay mua nhà lãi suất ưu đãi` : `lãi suất ngân hàng ${bank.name} hôm nay`,
+      kind === 'loan' ? `lãi suất cho vay ${bank.name} mới nhất` : `biểu lãi suất tiết kiệm ${bank.name} mới nhất`,
+      kind === 'loan'
+        ? `lãi suất vay mua nhà ${month} ngân hàng nào thấp nhất`
+        : `lãi suất tiết kiệm cao nhất ${month}`,
     ];
     const query = queries[variant];
     return `https://www.bing.com/news/search?q=${encodeURIComponent(query)}&format=rss&setlang=vi`;
