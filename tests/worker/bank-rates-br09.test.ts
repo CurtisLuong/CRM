@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 // @ts-expect-error Worker source is JavaScript.
 import * as config from '../../worker/bank-rates-config.js';
 // @ts-expect-error Worker source is JavaScript.
-import { loadScanState, SCAN_STATE_KEY } from '../../worker/bank-rates-state.js';
+import { loadScanState, pageHistory, SCAN_STATE_KEY } from '../../worker/bank-rates-state.js';
 
 const { BANK_RATES_SUPPLEMENTAL_CRON, BANK_SOURCES, MAX_SUBREQUESTS, NEWS_FEEDS } = config;
 
@@ -229,15 +229,22 @@ describe('BR-09 ô và thứ tự ưu tiên', () => {
     ]);
   });
 
-  it('luật 3–5: khi mọi nguồn của ô ưu tiên đang nghỉ thì tiếp tục ô còn nguồn chưa đọc', async () => {
+  it('luật 3–5 (xoay vòng 15/11): ô vừa thử mà còn thiếu nhường lượt cho ô chưa thử', async () => {
     const w = world(without(['mb:loan', 'mb:deposit', 'acb:loan', 'acb:deposit']));
-    for (let i = 0; i < config.SEARCH_VARIANTS; i++) await w.execute(new Date(NOW.getTime() + i * 10 * 60_000));
+    expect((await w.execute()).cells).toEqual([
+      { bank_code: 'mb', kind: 'loan' },
+      { bank_code: 'mb', kind: 'deposit' },
+    ]);
     const start = w.queries.length;
-    expect((await w.execute(new Date(NOW.getTime() + config.SEARCH_VARIANTS * 10 * 60_000))).cells).toEqual([
+    expect((await w.execute(new Date(NOW.getTime() + 10 * 60_000))).cells).toEqual([
       { bank_code: 'acb', kind: 'loan' },
       { bank_code: 'acb', kind: 'deposit' },
     ]);
     expect(w.queries.slice(start).every((query) => query.includes(' ACB '))).toBe(true);
+    expect((await w.execute(new Date(NOW.getTime() + 20 * 60_000))).cells).toEqual([
+      { bank_code: 'mb', kind: 'loan' },
+      { bank_code: 'mb', kind: 'deposit' },
+    ]);
   });
 });
 
@@ -285,13 +292,16 @@ describe('BR-09 hàng chờ bền qua isolate', () => {
     expect(w.publicCalls.slice(start)).not.toContain(NEWS_FEEDS[0]);
     start = w.publicCalls.length;
     await w.execute(new Date(NOW.getTime() + 6 * 3_600_000));
-    expect(w.publicCalls.slice(start)).toContain(firstQuery);
+    // Sang ngày VN mới: mb:loan vừa thử nên nhường các ô khác; truy vấn đã hết nghỉ (không còn trong skipped).
+    expect(pageHistory(w.kv.state(), new Date(NOW.getTime() + 6 * 3_600_000)).cooling(firstQuery)).toBe(false);
     expect(w.publicCalls.slice(start)).toContain(NEWS_FEEDS[0]);
     expect(w.publicCalls.slice(start)).not.toContain('https://mbbank.com.vn/');
     expect(w.publicCalls.slice(start)).not.toContain(url);
     start = w.publicCalls.length;
     await w.execute(new Date(NOW.getTime() + 24 * 3_600_000));
-    expect(w.publicCalls.slice(start)).toContain('https://mbbank.com.vn/');
+    expect(pageHistory(w.kv.state(), new Date(NOW.getTime() + 24 * 3_600_000)).cooling('https://mbbank.com.vn/')).toBe(
+      false,
+    );
     expect(w.publicCalls.slice(start)).not.toContain(url);
   });
 

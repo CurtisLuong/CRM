@@ -103,17 +103,24 @@ export async function collectQueued({
       SEARCH_VARIANT_LIST.some((variant) => !history.cooling(missingCellSearchFeeds([cell], now, variant)[0]))
     );
   };
+  // Xoay vòng: ô vừa thử mà vẫn thiếu xuống cuối, để ô không có nguồn (vd. VietinBank vay) không giữ mãi
+  // 2 chỗ mỗi lượt trong khi ô cũ khác (BIDV vay 15/10) không tới lượt (log 15/11).
+  state.tried ||= {};
+  const tried = (cell) => state.tried[rateKey(cell)] || '';
   const selected = [...missing]
     .sort((a, b) => {
       const first = previous.get(rateKey(a)),
         second = previous.get(rateKey(b));
       return (
+        tried(a).localeCompare(tried(b)) ||
         Number(Boolean(hasRate(first))) - Number(Boolean(hasRate(second))) ||
         (first && second ? sourceDay(first, now).localeCompare(sourceDay(second, now)) : 0)
       );
     })
     .filter(available)
     .slice(0, SUPPLEMENTAL_CELLS_PER_RUN);
+  for (const cell of selected) state.tried[rateKey(cell)] = now.toISOString();
+  for (const key of Object.keys(state.tried)) if (!missing.some((cell) => rateKey(cell) === key)) delete state.tried[key];
   // Bỏ job trang ngân hàng đã đủ ô trước cả nhánh nghỉ, để hàng chờ không giữ job thừa mãi.
   const stillNeeded = (code) => missing.some((cell) => cell.bank_code === code);
   state.queue = state.queue.filter((job) => job.source_kind !== 'bank' || stillNeeded(job.bank_code));
